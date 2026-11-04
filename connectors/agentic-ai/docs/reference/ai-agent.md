@@ -1820,7 +1820,8 @@ model-call limit and tool definitions. The entries of every map are sorted by ke
 tool's input schema is unspecified after a record builder copied it. The order of the parameters, of the tools and of
 list values is significant, so the parameter order enters the hash as a list. The serialization is written and read
 once before hashing, so a number hashes the same for a fresh tool definition and for one loaded from the process
-variable.
+variable. The fingerprint has its own mapper and does not inherit the settings of the connectors mapper; it writes a date or a
+duration as ISO text, never as a timestamp.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither

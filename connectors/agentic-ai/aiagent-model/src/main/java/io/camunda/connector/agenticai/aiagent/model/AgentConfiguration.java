@@ -6,8 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -16,7 +20,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -48,8 +51,15 @@ public record AgentConfiguration(
   public static final int DEFAULT_MAX_MODEL_CALLS = 10;
 
   private static final ObjectMapper FINGERPRINT_MAPPER =
-      ConnectorsObjectMapperSupplier.getCopy()
-          .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+      JsonMapper.builder()
+          .addModule(new JavaTimeModule())
+          .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+          .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+          .enable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+          .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+          .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
+          .defaultPropertyInclusion(JsonInclude.Value.ALL_ALWAYS)
+          .build();
 
   public AgentConfiguration(
       ChatModelConfiguration chatModel,
@@ -95,6 +105,10 @@ public record AgentConfiguration(
    * the schema would lose the parameter order, so the hash input carries it as a list. The input is
    * written and read once before it is hashed, so a number hashes the same whether the tool
    * definition is fresh or was loaded from the process variable.
+   *
+   * <p>The mapper is configured for the fingerprint alone and does not inherit the settings of the
+   * connectors mapper: a date or a duration is written as ISO text, never as a timestamp, so that
+   * it does not turn into a decimal number.
    */
   public String fingerprint() {
     try {

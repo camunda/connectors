@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -30,15 +31,21 @@ import java.math.MathContext;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * {@link AgentConfiguration#fingerprint()} is the change-detection and dedup key for the {@code
@@ -372,31 +379,34 @@ class AgentConfigurationTest {
     @Test
     void fingerprintIsTheDigestOfTheCanonicalJsonOfTheConfiguration()
         throws NoSuchAlgorithmException {
-      final var configuration =
-          configuration(
-              "gpt-4o",
-              "Be nice.",
-              10,
-              List.of(
-                  tool(
-                      "getWeather",
-                      ordered(
-                          "type",
-                          "object",
-                          "properties",
-                          ordered(
-                              "city",
-                              ordered("type", "string"),
-                              "days",
-                              ordered("type", "integer")),
-                          "required",
-                          List.of("city")))));
+      final var configuration = weatherConfiguration();
 
       final var json =
           """
           ["gpt-4o","%s","Be nice.",10,[["getWeather","Get the weather forecast",\
           {"properties":{"city":{"type":"string"},"days":{"type":"integer"}},"required":["city"],"type":"object"},\
           ["city","days"]]]]\
+          """
+              .formatted(configuration.chatModel().descriptiveProvider());
+      final var expected =
+          HexFormat.of()
+              .formatHex(
+                  MessageDigest.getInstance("SHA-256")
+                      .digest(json.getBytes(StandardCharsets.UTF_8)));
+
+      assertThat(configuration.fingerprint()).isEqualTo(expected);
+    }
+
+    @Test
+    void numbersNullsEmptyListsAndDatesHaveACanonicalText() throws NoSuchAlgorithmException {
+      final var configuration = edgeCaseConfiguration();
+
+      final var json =
+          """
+          ["gpt-4o","%s","Be nice.",10,[["t","Get the weather forecast",\
+          {"properties":{"limit":{"default":null,"enum":[],"exact":9007199254740993,"maximum":100.0,\
+          "minimum":0.1,"since":"2026-11-04","timeout":"PT1H","type":"number"}},"type":"object"},\
+          ["limit"]]]]\
           """
               .formatted(configuration.chatModel().descriptiveProvider());
       final var expected =
@@ -420,6 +430,76 @@ class AgentConfigurationTest {
       // silently suppress a real update or dedup two distinct configurations
       final var fingerprint = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
       assertThat(fingerprint).matches("[0-9a-f]{64}");
+    }
+
+    /**
+     * The digests are literals: a change to the mapper, to Jackson or to the serialization of a
+     * number, a date or a null that moves the hash input fails here, and with it the CONFIGURATION
+     * history item of every tracked agent instance would change on upgrade.
+     */
+    @ParameterizedTest
+    @MethodSource("pinnedFingerprints")
+    void fingerprintsOfFixedConfigurationsArePinned(
+        AgentConfiguration configuration, String digest) {
+      assertThat(configuration.fingerprint()).isEqualTo(digest);
+    }
+
+    static Stream<Arguments> pinnedFingerprints() {
+      return Stream.of(
+          argumentSet(
+              "a tool with named parameters",
+              weatherConfiguration(),
+              "54cad7783b01af263376f0345902a5dc34a3039eb9e6212370e0311654c8be91"),
+          argumentSet(
+              "numbers, a null, an empty list, a date and a duration",
+              edgeCaseConfiguration(),
+              "d3a1689d430b256ecc32ee95a679b614341b23b6fc97e054e3e58e5bf93fbb2e"));
+    }
+
+    private static AgentConfiguration weatherConfiguration() {
+      return configuration(
+          "gpt-4o",
+          "Be nice.",
+          10,
+          List.of(
+              tool(
+                  "getWeather",
+                  ordered(
+                      "type",
+                      "object",
+                      "properties",
+                      ordered(
+                          "city", ordered("type", "string"), "days", ordered("type", "integer")),
+                      "required",
+                      List.of("city")))));
+    }
+
+    private static AgentConfiguration edgeCaseConfiguration() {
+      final var schema =
+          ordered(
+              "type",
+              "object",
+              "properties",
+              ordered(
+                  "limit",
+                  ordered(
+                      "type",
+                      "number",
+                      "default",
+                      null,
+                      "minimum",
+                      new BigDecimal("0.10"),
+                      "maximum",
+                      new BigDecimal("1E+2"),
+                      "exact",
+                      9007199254740993L,
+                      "since",
+                      LocalDate.of(2026, 11, 4),
+                      "timeout",
+                      Duration.ofHours(1),
+                      "enum",
+                      List.of())));
+      return configuration("gpt-4o", "Be nice.", 10, List.of(tool("t", schema)));
     }
   }
 }
