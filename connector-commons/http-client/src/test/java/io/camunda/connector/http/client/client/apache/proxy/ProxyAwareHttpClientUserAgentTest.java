@@ -62,7 +62,7 @@ class ProxyAwareHttpClientUserAgentTest {
       throws Exception {
     wm.getWireMock().register(get("/ua").willReturn(ok()));
 
-    execute(wm, new BasicClassicHttpRequest("GET", wm.getHttpBaseUrl() + "/ua"));
+    execute(new BasicClassicHttpRequest("GET", wm.getHttpBaseUrl() + "/ua"));
 
     wm.getWireMock()
         .verifyThat(
@@ -76,7 +76,7 @@ class ProxyAwareHttpClientUserAgentTest {
     System.setProperty(HTTP_AGENT, "my-custom-agent/1.0");
     wm.getWireMock().register(get("/ua").willReturn(ok()));
 
-    execute(wm, new BasicClassicHttpRequest("GET", wm.getHttpBaseUrl() + "/ua"));
+    execute(new BasicClassicHttpRequest("GET", wm.getHttpBaseUrl() + "/ua"));
 
     wm.getWireMock()
         .verifyThat(
@@ -92,7 +92,7 @@ class ProxyAwareHttpClientUserAgentTest {
     var request = new BasicClassicHttpRequest("GET", wm.getHttpBaseUrl() + "/ua");
     request.setHeader(HttpHeaders.USER_AGENT, "caller-agent/2.0");
 
-    execute(wm, request);
+    execute(request);
 
     wm.getWireMock()
         .verifyThat(
@@ -100,8 +100,7 @@ class ProxyAwareHttpClientUserAgentTest {
                 .withHeader(HttpHeaders.USER_AGENT, equalTo("caller-agent/2.0")));
   }
 
-  private static void execute(WireMockRuntimeInfo wm, BasicClassicHttpRequest request)
-      throws Exception {
+  private static void execute(BasicClassicHttpRequest request) throws Exception {
     try (var client =
         new ProxyAwareHttpClient(
             new TimeoutConfiguration(10, 10), new ProxyContext("http", "localhost"), true)) {
