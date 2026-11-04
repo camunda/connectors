@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.a2a.client.inbound.webhook;
 
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.json.JsonProcessingException;
 import io.a2a.json.JsonUtil;
 import io.a2a.spec.Task;
@@ -81,17 +80,14 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aClientWebhookExecutable.class);
 
   private final A2aSdkObjectConverter a2aSdkObjectConverter;
-  private final ObjectMapper objectMapper;
 
   @Nullable private A2aWebhookProperties props;
   @Nullable private WebhookAuthorizationHandler<?> authChecker;
   @Nullable private InboundConnectorContext context;
   @Nullable private HMACVerifier hmacVerifier;
 
-  public A2aClientWebhookExecutable(
-      A2aSdkObjectConverter a2aSdkObjectConverter, ObjectMapper objectMapper) {
+  public A2aClientWebhookExecutable(A2aSdkObjectConverter a2aSdkObjectConverter) {
     this.a2aSdkObjectConverter = a2aSdkObjectConverter;
-    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -217,8 +213,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
   private MappedHttpRequest mapRequest(
       WebhookProcessingPayload payload, InboundConnectorContext ctx) {
     try {
-      Task task =
-          JsonUtil.fromJson(new String(payload.rawBody(), StandardCharsets.UTF_8), Task.class);
+      Task task = parseTask(payload.rawBody());
       A2aTask a2aTask = a2aSdkObjectConverter.convert(task);
       return new MappedHttpRequest(a2aTask, payload.headers(), payload.params());
     } catch (JsonProcessingException e) {
@@ -229,6 +224,31 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
               .withMessage("Error deserializing A2A Webhook payload", e));
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * Parses the webhook body into an SDK {@link Task}. The SDK's Gson-based parser only wraps syntax
+   * errors: it returns {@code null} for an empty body, bypasses the {@link Task} constructor null
+   * checks, and lets constructor failures of nested types escape as unchecked exceptions. All of
+   * these are reported as {@link JsonProcessingException}.
+   */
+  private Task parseTask(byte[] rawBody) throws JsonProcessingException {
+    final Task task;
+    try {
+      task = JsonUtil.fromJson(new String(rawBody, StandardCharsets.UTF_8), Task.class);
+    } catch (RuntimeException e) {
+      throw new JsonProcessingException("Failed to parse A2A task: " + e.getMessage(), e);
+    }
+
+    if (task == null
+        || task.getId() == null
+        || task.getContextId() == null
+        || task.getStatus() == null
+        || task.getStatus().state() == null) {
+      throw new JsonProcessingException(
+          "Payload is not a valid A2A task: id, contextId and status.state are required");
+    }
+    return task;
   }
 
   private void verifyHmac(
