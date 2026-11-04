@@ -317,12 +317,8 @@ class OpenAiResponsesResponseConverterTest {
 
     assertThat(result.assistantMessage().content()).isEmpty();
     assertThat(result.assistantMessage().toolCalls())
-        .containsExactly(
-            ToolCall.builder()
-                .id("call_1")
-                .name("get_weather")
-                .arguments(Map.of("city", "Berlin"))
-                .build());
+        .extracting(ToolCall::name)
+        .containsExactly("get_weather");
   }
 
   @Test

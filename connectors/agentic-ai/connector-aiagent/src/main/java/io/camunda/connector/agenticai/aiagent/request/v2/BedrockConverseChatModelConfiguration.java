@@ -207,6 +207,20 @@ public record BedrockConverseChatModelConfiguration(
                 defaultValue = "true",
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 optional = true)
-            @Nullable Boolean enabled) {}
+            @Nullable Boolean enabled,
+        @NotBlank
+            @TemplateProperty(
+                group = "model",
+                label = "Prompt cache TTL",
+                tooltip =
+                    "How long a cache checkpoint stays valid. Supported values: <code>5m</code>, "
+                        + "<code>1h</code>.",
+                type = TemplateProperty.PropertyType.String,
+                feel = FeelMode.optional,
+                defaultValue = "1h",
+                defaultValueType = TemplateProperty.DefaultValueType.String,
+                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+            @NotNull
+            String ttl) {}
   }
 }

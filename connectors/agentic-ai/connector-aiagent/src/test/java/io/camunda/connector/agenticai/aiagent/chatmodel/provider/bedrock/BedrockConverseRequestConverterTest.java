@@ -82,7 +82,8 @@ class BedrockConverseRequestConverterTest {
   }
 
   private static BedrockConverseModelParameters promptCachingParams(@Nullable Boolean enabled) {
-    final var promptCaching = enabled == null ? null : new BedrockConversePromptCaching(enabled);
+    final var promptCaching =
+        enabled == null ? null : new BedrockConversePromptCaching(enabled, "1h");
     return new BedrockConverseModelParameters(promptCaching, null, null, null);
   }
 
@@ -665,7 +666,7 @@ class BedrockConverseRequestConverterTest {
             flag == null
                 ? null
                 : new BedrockConverseModelParameters(
-                    new BedrockConversePromptCaching(flag), null, null, null);
+                    new BedrockConversePromptCaching(flag, "1h"), null, null, null);
         final var snapshot =
             new ConversationSnapshot(
                 List.of(
