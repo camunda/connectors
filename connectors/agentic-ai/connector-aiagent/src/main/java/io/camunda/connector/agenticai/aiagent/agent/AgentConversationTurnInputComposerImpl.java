@@ -196,10 +196,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return null;
     }
 
-    return UserMessage.builder()
-        .content(content)
-        .metadata(ToolCallResultsInputBuilder.defaultMessageMetadata())
-        .build();
+    return UserMessage.builder().content(content).metadata(MessageMetadata.defaults()).build();
   }
 
   /**
@@ -274,18 +271,18 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return toolCalls.stream()
         .map(toolCall ->
             switch (toolCall.kind()) {
-              case PROCESS ->
-                  processEntry(
-                      Objects.requireNonNull(
-                          processResultsById.get(toolCall.id()),
-                          "No result of the process tool call '%s' was resolved"
-                              .formatted(toolCall.id())));
+              case PROCESS -> processEntry(toolCall, processResultsById.get(toolCall.id()));
               case RUNTIME -> runtimeEntry(toolCall, executionsById.get(toolCall.id()));
             })
         .toList();
   }
 
-  private ToolCallResultsInputBuilder.Entry processEntry(ToolCallResult result) {
+  private ToolCallResultsInputBuilder.Entry processEntry(
+      ToolCall toolCall, @Nullable ToolCallResult result) {
+    if (result == null) {
+      throw new IllegalStateException(
+          "No result of the process tool call '%s' was resolved".formatted(toolCall.id()));
+    }
     final var documents =
         documentExtractor.extractDocuments(List.of(result)).stream()
             .flatMap(group -> group.documents().stream())
@@ -331,7 +328,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     return UserMessage.builder()
         .content(userMessageContent)
-        .metadata(ToolCallResultsInputBuilder.defaultMessageMetadata())
+        .metadata(MessageMetadata.defaults())
         .build();
   }
 

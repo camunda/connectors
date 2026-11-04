@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 class ToolCallTest {
 
@@ -43,7 +44,12 @@ class ToolCallTest {
     final String json =
         objectMapper.writeValueAsString(new ToolCall("toolu_1", "get_weather", Map.of()));
 
-    assertThat(json).doesNotContain("metadata");
+    JSONAssert.assertEquals(
+        """
+        {"id": "toolu_1", "name": "get_weather", "arguments": {}}
+        """,
+        json,
+        true);
   }
 
   @Test
@@ -68,9 +74,12 @@ class ToolCallTest {
         objectMapper.writeValueAsString(
             new ToolCall("toolu_1", "get_weather", Map.of("city", "Berlin")));
 
-    assertThat(json)
-        .isEqualTo(
-            "{\"id\":\"toolu_1\",\"name\":\"get_weather\",\"arguments\":{\"city\":\"Berlin\"}}");
+    JSONAssert.assertEquals(
+        """
+        {"id": "toolu_1", "name": "get_weather", "arguments": {"city": "Berlin"}}
+        """,
+        json,
+        true);
   }
 
   @Test
@@ -80,7 +89,18 @@ class ToolCallTest {
 
     final String json = objectMapper.writeValueAsString(toolCall);
 
-    assertThat(json).contains("\"kind\":\"runtime\"");
+    JSONAssert.assertEquals(
+        """
+        {
+          "id": "toolu_1",
+          "name": "acme_note",
+          "arguments": {},
+          "metadata": {"k": "v"},
+          "kind": "runtime"
+        }
+        """,
+        json,
+        true);
     assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
   }
 
