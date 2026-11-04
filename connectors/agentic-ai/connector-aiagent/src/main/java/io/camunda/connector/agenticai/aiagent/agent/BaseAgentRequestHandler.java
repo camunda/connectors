@@ -300,8 +300,8 @@ public abstract class BaseAgentRequestHandler<
      * called again to continue it.
      */
     CONTINUE,
-    /** The model called runtime tools only: the agent runs them and calls the model again. */
-    RUN_RUNTIME_TOOLS
+    /** The model called runtime tools only: the agent executes them and calls the model again. */
+    EXECUTE_RUNTIME_TOOLS
   }
 
   private record ModelResponse(AgentConversation conversation, ChatResult chatResult) {}
@@ -309,9 +309,9 @@ public abstract class BaseAgentRequestHandler<
   /**
    * Drives the chat model until a response needs no further round in this job, ingesting each round
    * as its own turn. Further rounds follow a {@code Continuation} result and a message that calls
-   * runtime tools only; the agent runs those calls itself. A message that calls process tools ends
-   * the loop, also when it calls runtime tools too: those run when the turn that follows the
-   * process results is composed.
+   * runtime tools only; the agent executes those calls itself. A message that calls process tools
+   * ends the loop, also when it calls runtime tools too: those are executed when the turn that
+   * follows the process results is composed.
    */
   private AgentConversation driveContinuationLoop(
       C executionContext,
@@ -340,9 +340,9 @@ public abstract class BaseAgentRequestHandler<
           throwIfLimitsReached(workingConversation, agentConfiguration);
           workingConversation = workingConversation.nextContinuationRound();
         }
-        case RUN_RUNTIME_TOOLS ->
+        case EXECUTE_RUNTIME_TOOLS ->
             workingConversation =
-                runRuntimeTools(
+                executeRuntimeTools(
                     executionContext, agentConfiguration, workingConversation, agentInstanceKey);
         case STOP -> {
           if (currentTurn.hasRuntimeToolCalls()) {
@@ -363,7 +363,7 @@ public abstract class BaseAgentRequestHandler<
       return NextStep.CONTINUE;
     }
     return currentTurn.hasRuntimeToolCalls() && !currentTurn.hasProcessToolCalls()
-        ? NextStep.RUN_RUNTIME_TOOLS
+        ? NextStep.EXECUTE_RUNTIME_TOOLS
         : NextStep.STOP;
   }
 
@@ -411,7 +411,7 @@ public abstract class BaseAgentRequestHandler<
         status);
   }
 
-  private AgentConversation runRuntimeTools(
+  private AgentConversation executeRuntimeTools(
       C executionContext,
       AgentConfiguration agentConfiguration,
       AgentConversation conversation,

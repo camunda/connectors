@@ -227,7 +227,7 @@ class RuntimeToolsImplTest {
   }
 
   @Test
-  void runsARuntimeToolAndReturnsItsResult() {
+  void executesARuntimeToolAndReturnsItsResult() {
     final var call = note("n1", "buy milk");
 
     final var executions = execute(tools, WITH_MEMORY, call);
@@ -286,7 +286,7 @@ class RuntimeToolsImplTest {
   }
 
   @Test
-  void runsTheCallsInTheOrderOfTheCallsOneAfterTheOther() {
+  void executesTheCallsInTheOrderOfTheCallsOneAfterTheOther() {
     final var order = new ArrayList<String>();
     final var tool =
         StubRuntimeTool.of(
@@ -311,7 +311,7 @@ class RuntimeToolsImplTest {
   }
 
   @Test
-  void givesACallOfAToolThatIsNotEnabledWhenItRunsAnErrorResult() {
+  void givesACallOfAToolThatIsNotEnabledWhenItIsExecutedAnErrorResult() {
     final var executions = execute(tools, PLAIN, note("n1", "a"));
 
     assertThat(executions)
@@ -344,7 +344,7 @@ class RuntimeToolsImplTest {
   }
 
   @Test
-  void runsACustomToolOnlyForAgentsThatHaveTheFeatureItNeeds() {
+  void executesACustomToolOnlyForAgentsThatHaveTheFeatureItNeeds() {
     final var tool =
         StubRuntimeTool.of("acme_featured", (context, call) -> RuntimeToolResult.success("ok"))
             .enabledWhen(context -> context.agentContext().supports("acme"));

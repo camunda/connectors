@@ -1,4 +1,4 @@
-# Runtime tools: let the connector runtime run tool calls itself
+# Runtime tools: let the connector runtime execute tool calls itself
 
 * Deciders: Agentic AI Team
 * Date: Oct 19, 2026
@@ -20,7 +20,7 @@ A BPMN element for each of them costs a job round trip per call, cannot reach th
 in every process that uses an agent.
 
 We build a framework for Camunda agents, and the AI Agent connector is its out-of-the-box agent. The framework needs a
-way for the connector runtime, and for operators and vendors who build on it, to offer a tool that the agent runs
+way for the connector runtime, and for operators and vendors who build on it, to offer a tool that the agent executes
 itself, inside the job, without a BPMN element.
 
 ## Decision Drivers
@@ -42,7 +42,7 @@ itself, inside the job, without a BPMN element.
 
 1. Offer the capabilities as BPMN elements that every process models.
 2. Special-case the built-in capabilities in the agent loop.
-3. A runtime tool SPI: a tool is a definition, an enabled check and a call. The agent runs it in the job.
+3. A runtime tool SPI: a tool is a definition, an enabled check and a call. The agent executes its calls in the job.
 
 ## Decision Outcome
 
@@ -100,25 +100,25 @@ persisted with the message and never computed again. Only process calls are acti
 declares the kind runtime and the registration rejects other tools at start-up; the tag of a call, not the definition,
 decides how a call is answered.
 
-Runtime calls run in one place, an executor that the request handler calls, and the composer of the next turn never runs
-a tool or changes the context. If the model calls runtime tools only, the agent runs them in the same job and calls the
-model again; this round counts against the model-call limit. If the model calls both kinds, **only the process calls are
-activated**. The agent runs the runtime calls when it composes the next turn, and merges their results with the process
-results in call order. An interrupted turn still runs them.
+Runtime calls are executed in one place, an executor that the request handler calls, and the composer of the next turn
+never executes a tool or changes the context. If the model calls runtime tools only, the agent executes them in the same
+job and calls the model again; this round counts against the model-call limit. If the model calls both kinds, **only the
+process calls are activated**. The agent executes the runtime calls when it composes the next turn, and merges their
+results with the process results in call order. An interrupted turn still executes them.
 
 The alternatives for mixed batches were:
 
-* *Run the runtime calls in the issuing job and persist their results until the process results arrive.* Rejected: it
-  needs a persisted field of pending results, a rule that makes them reach exactly one turn, and a separate history
+* *Execute the runtime calls in the issuing job and persist their results until the process results arrive.* Rejected:
+  it needs a persisted field of pending results, a rule that makes them reach exactly one turn, and a separate history
   write.
 * *Classify the calls again in the later job.* Rejected: what a tool enables can change between the two jobs, and so can
   the runtime tool beans of the worker. The agent would then wait for a result of a call that the process never runs, or
-  run a tool whose element already ran.
+  execute a tool whose element already ran.
 * *Persist the classification on the tool call.* **Chosen**: a small persisted tag and no pending-results state. A call
   keeps its kind for the life of the conversation, so a change of what a tool enables cannot misroute it. The results are
   a function of the conversation and the tags, so a retried job computes them again. The price is that every
   conversation store must keep the tag.
-* *Run every runtime call in its own round before the process calls.* Rejected: one more model call for every mixed
+* *Execute every runtime call in its own round before the process calls.* Rejected: one more model call for every mixed
   batch, and it changes what the model sees in the middle of a batch.
 * *Make the model split its batches.* Rejected: not controllable.
 
@@ -126,14 +126,14 @@ The alternatives for mixed batches were:
 
 The contract is stated in the javadoc of the SPI. A tool author can rely on it, and must honor it:
 
-* **At least once.** A failed job is retried and runs the call again. Side effects outside the agent, such as a request
-  to another system, are not undone, so they must be idempotent.
-* **Concurrency.** The calls of one assistant message may run concurrently. Their results are applied in call order.
-  A tool may be called from different threads. The executor runs the calls one after the other today.
+* **At least once.** A failed job is retried and executes the call again. Side effects outside the agent, such as a
+  request to another system, are not undone, so they must be idempotent.
+* **Concurrency.** The calls of one assistant message may be executed concurrently. Their results are applied in call
+  order. A tool may be called from different threads. The executor executes the calls one after the other today.
 * **Below the job timeout.** The framework neither cancels nor times out a call.
 * **Failures** as described above.
 
-A runtime call whose tool does not exist or is not enabled when it runs gets an error result and never goes to the
+A runtime call whose tool does not exist or is not enabled when it is executed gets an error result and never goes to the
 process.
 
 The executor keeps the start and completion time of every call, so later metrics and events with durations need no
@@ -154,27 +154,28 @@ has no element. In a mixed batch the results carry the turn start of the job tha
 
 * **Every conversation store must keep the tag.** A store that drops it turns a runtime call into a process call that
   never gets a result. A missing tag reads as a process call, so existing data keeps working.
-* A tool call that names a tool that is not offered, or a runtime tool that is not enabled when it runs, gets an error
-  result, and the model has to recover.
+* A tool call that names a tool that is not offered, or a runtime tool that is not enabled when it is executed, gets an
+  error result, and the model has to recover.
 * The model receives the results of the runtime calls of a mixed batch with the next request, together with the process
   results. A process call that never completes holds that request back, as it does for every result of the batch.
-* A tool runs in the thread of the job without a timeout, so a slow or blocking tool holds the job.
+* A tool is executed in the thread of the job without a timeout, so a slow or blocking tool holds the job.
 * Every enabled runtime tool adds its definition to every model request, and reserves its name in every process.
 
 ## Follow-up
 
-* **Durable execution of tool calls.** A failure after a tool call runs the tool again, so a tool must accept at-least-once
-  execution and idempotent side effects. A durable execution makes the call run once and replaces this requirement
-  in the `RuntimeTool` contract.
-* **Tools executed as jobs.** A tool that runs long, or that must run on its own worker, is executed as a job instead of
-  in the thread of the agent job. The job timeout of the agent is then extended while such tools run.
+* **Durable execution of tool calls.** A failure after a tool call executes the tool again, so a tool must accept
+  at-least-once execution and idempotent side effects. A durable execution makes the call be executed once and replaces
+  this requirement in the `RuntimeTool` contract.
+* **Tools executed as jobs.** A tool that takes long, or that must be executed on its own worker, is executed as a job
+  instead of in the thread of the agent job. The job timeout of the agent is then extended while such tools are
+  executed.
 * **A per-agent allow and deny list of runtime tools.** Every enabled tool is offered to every agent instance. The
   list becomes necessary as the number of tools grows, because each tool costs input tokens in every call and can change
   tool selection.
 * **A schema derived from a class.** Tool authors write the input schema by hand; deriving it from the arguments type
   would remove the need to know the schema format from every tool.
-* **A test fixture for tool authors.** A fixture that runs a tool the way the agent does, so authors need not copy the
-  tests of the framework.
+* **A test fixture for tool authors.** A fixture that executes a tool the way the agent does, so authors need not copy
+  the tests of the framework.
 * **No access to stored messages.** The agent and execution contexts a tool receives hold the conversation context, so a
   tool can read the stored messages when the store keeps them in the agent context (the in-process store). A view of
   both contexts without the conversation context closes this access.

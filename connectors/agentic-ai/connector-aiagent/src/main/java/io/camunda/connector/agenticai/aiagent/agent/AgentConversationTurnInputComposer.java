@@ -15,7 +15,7 @@ import java.util.List;
 
 /**
  * Composes the next conversation turn input from raw history and the current invocation state. The
- * composer runs no tool: the results of runtime tool calls are given to it.
+ * composer executes no tool: the results of runtime tool calls are given to it.
  */
 public interface AgentConversationTurnInputComposer {
 
@@ -27,7 +27,7 @@ public interface AgentConversationTurnInputComposer {
    *
    * <p>A previous turn without runtime tool calls is composed in this one step. When the previous
    * turn also has runtime tool calls and the process side is complete, the result is {@link
-   * CompositionResult.RuntimeToolResultsRequired}: run the calls and compose again with {@link
+   * CompositionResult.RuntimeToolResultsRequired}: execute the calls and compose again with {@link
    * #composeWithRuntimeToolResults}.
    */
   CompositionResult compose(

@@ -29,7 +29,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Runs the calls of runtime tools one after the other, in the order of the calls. */
+/** Executes the calls of runtime tools one after the other, in the order of the calls. */
 public class RuntimeToolsImpl implements RuntimeTools {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RuntimeToolsImpl.class);
@@ -72,7 +72,7 @@ public class RuntimeToolsImpl implements RuntimeTools {
     final var startedAt = OffsetDateTime.now(ZoneId.systemDefault());
     final var result =
         findEnabled(context, toolCall.name())
-            .map(tool -> run(context, tool, toolCall))
+            .map(tool -> callTool(context, tool, toolCall))
             .orElseGet(() ->
                 RuntimeToolResult.error(
                     "The tool '%s' does not exist.".formatted(toolCall.name())));
@@ -90,7 +90,8 @@ public class RuntimeToolsImpl implements RuntimeTools {
         .filter(tool -> tool.isEnabled(context));
   }
 
-  private RuntimeToolResult run(RuntimeToolContext context, RuntimeTool tool, ToolCall toolCall) {
+  private RuntimeToolResult callTool(
+      RuntimeToolContext context, RuntimeTool tool, ToolCall toolCall) {
     final var runtimeToolCall =
         new RuntimeToolCallImpl(
             toolCall.id(), toolCall.name(), toolCall.arguments(), argumentsMapper);

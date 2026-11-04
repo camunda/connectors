@@ -200,7 +200,7 @@ client in its properties does not start.
 `AgentConversationTurnInputComposer`:
 
 - New abstract method `composeWithRuntimeToolResults(configuration, agentContext, previousConversation, agentInput,
-  List<RuntimeToolExecution> executions)`. The composer runs no tool. `compose(configuration, agentContext,
+  List<RuntimeToolExecution> executions)`. The composer executes no tool. `compose(configuration, agentContext,
   previousConversation, agentInput)` keeps its signature, but resolves only the results of the process tool calls of the
   previous turn. When the process results are complete (or the missing ones are cancelled by an interrupting event) and
   the turn also has runtime tool calls, it returns the new `CompositionResult.RuntimeToolResultsRequired`. The request
@@ -246,7 +246,7 @@ custom bean built with `new` needs the extra argument; inject it as a bean.
   `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see §25.4 of the
   [reference](reference/ai-agent.md)). Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
   `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A call of a
-  runtime tool that does not exist or is not enabled when it runs gets an error result and does not go to the process.
+  runtime tool that does not exist or is not enabled when it is executed gets an error result and does not go to the process.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
