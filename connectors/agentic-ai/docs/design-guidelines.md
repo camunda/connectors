@@ -4,6 +4,10 @@ Follow existing patterns and use existing checks. If neither a pattern nor an ag
 resolves a contract choice, ask before choosing. State new contract decisions and their rationale
 in the PR description.
 
+This file covers contract and system design. For code structure, follow the
+[code design rules](code-design.md). For the target state of the module, read the
+[target architecture](target-architecture.md).
+
 ## Architectural invariants
 
 Do not break these (full statement and rationale in
@@ -40,7 +44,8 @@ Start restrictions as tight as justified by throughput, latency, compatibility o
 then relax as needed. Tightening a default later can break existing workloads; assess whether
 upgrading installations must retain their previous value. In the PR, state the value, reason, how to
 observe a hit and how to configure it. Limit errors name every configuration option that must change
-to recover.
+to recover. A new field or capability does not change behavior when nobody sets it
+([domain rule 1](domain-rules.md)).
 
 ## Design observable automated behavior
 
