@@ -241,7 +241,8 @@ custom bean built with `new` needs the extra argument; inject it as a bean.
 - Agent instances created from 8.11 on have the `runtimeTools` feature. An agent job fails with the error code
   `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime tool that is
   not enabled reserves no name. The connector registers no runtime tool itself, so only the runtime tools of your own runtime matter;
-  give them a name with a prefix of your own. Agent instances created before keep their behavior: they are offered no
+  give them a name with a prefix of your own. The prefix `c8__` is meant for the tools the connector ships; no prefix is
+  checked or reserved, only the exact name. Agent instances created before keep their behavior: they are offered no
   runtime tool and no name is checked.
 - Behavior change for every agent instance, with or without the `runtimeTools` feature, in both flavors: every tool call
   is matched against the tools offered in the job. A call of a tool name that is not offered, for example a name the model

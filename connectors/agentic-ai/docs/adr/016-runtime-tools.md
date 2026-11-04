@@ -73,7 +73,8 @@ exception must not turn into text the model acts on. The job is retried like any
 ### Names
 
 Tool names are unique. A custom tool uses a name with a prefix of its own. The prefix `c8__` is for the tools that the
-connector ships, such as the tools of the document flow.
+connector ships, such as the tools of the document flow. This is a convention: no prefix is checked or reserved, and the
+check of the exact name below is the only enforcement. Reserving a whole prefix is a possible follow-up.
 
 A tool element of a process must not have the name of an enabled runtime tool. Such an element would be
 indistinguishable to the model and lose against the runtime tool without notice. The check runs in every agent job
