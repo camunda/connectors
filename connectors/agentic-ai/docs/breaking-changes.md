@@ -287,8 +287,9 @@ applies it to its persisted context, and the next round continues with the conte
   This is a deliberate exception to gating a change of the persisted shape on the feature.
 - To add a tool of your own, implement `RuntimeTool` (`definition`, `isEnabled(RuntimeToolContext)`,
   `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see
-  [Add a runtime tool](architecture/extension-points.md#add-a-runtime-tool)). A tool can return documents in its result, which the agent registers after all
-  calls of the message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
+  [Add a runtime tool](architecture/extension-points.md#add-a-runtime-tool)). `RuntimeToolContext.documents()` gives the documents the agent knows when the
+  batch of calls starts; a tool can return documents in its result, which the agent registers after all calls of the
+  message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
   call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
   error result from `RuntimeTools`; neither goes to the process.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
@@ -336,7 +337,7 @@ applies it to its persisted context, and the next round continues with the conte
   persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
-  `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
+  `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`) are in `aiagent.api.tool` of `aiagent-api`.
 
 <a id="persisted-data-8-11"></a>
 
