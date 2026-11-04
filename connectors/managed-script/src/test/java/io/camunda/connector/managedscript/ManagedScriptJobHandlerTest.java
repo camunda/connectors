@@ -14,9 +14,11 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.managedscript.ManagedScriptJobHandler.Outcome;
+import io.camunda.connector.managedscript.ScriptResources.ResourceAccessDeniedException;
 import io.camunda.connector.managedscript.ScriptResources.ResourceNotVisibleException;
 import io.camunda.connector.managedscript.ScriptResources.ScriptResource;
 import io.camunda.connector.managedscript.api.ErrorCode;
@@ -170,6 +172,27 @@ class ManagedScriptJobHandlerTest {
     final var failed = assertFailed(outcome, ErrorCode.PLATFORM_UNAVAILABLE, null);
     assertThat(failed.backoff()).isEqualTo(Duration.ZERO);
     assertThat(fetches.get()).isGreaterThan(1);
+  }
+
+  @Test
+  void raisesAnIncidentNamingThePermissionWhenCamundaDeniesReadingTheScript() {
+    final var handler =
+        handler(
+            provider,
+            new ExecutorReadiness(provider, READINESS_BACKOFF, Duration.ZERO),
+            new ScriptResources(
+                16,
+                (camundaClient, resourceKey, timeout) -> {
+                  throw new ResourceAccessDeniedException(
+                      resourceKey, new ClientHttpException(403, "Forbidden"));
+                },
+                Duration.ofMillis(200),
+                Duration.ofMillis(10)));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.PLATFORM_REJECTED, 0);
+    assertThat(failed.message()).contains("READ permission on the RESOURCE resource type");
   }
 
   @Test

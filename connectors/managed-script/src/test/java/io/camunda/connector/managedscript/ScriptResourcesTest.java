@@ -20,6 +20,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.response.Resource;
+import io.camunda.connector.managedscript.ScriptResources.ResourceAccessDeniedException;
 import io.camunda.connector.managedscript.ScriptResources.ResourceNotVisibleException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -28,6 +29,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ScriptResourcesTest {
 
@@ -70,6 +73,20 @@ class ScriptResourcesTest {
     assertThatThrownBy(() -> resources(Duration.ofMillis(200)).get(client, "default", KEY))
         .isInstanceOf(ResourceNotVisibleException.class);
     assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(2));
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {401, 403})
+  void failsAtOnceWhenCamundaDeniesReadingTheScript(int status) throws Exception {
+    final CamundaFuture<Resource> denied = mock();
+    when(denied.get(anyLong(), any(TimeUnit.class)))
+        .thenThrow(new ExecutionException(new ClientHttpException(status, "Forbidden")));
+    when(client.newResourceGetRequest(KEY).send()).thenReturn(denied);
+
+    assertThatThrownBy(() -> resources(Duration.ofSeconds(5)).get(client, "default", KEY))
+        .isInstanceOf(ResourceAccessDeniedException.class)
+        .hasMessageContaining("READ permission on the RESOURCE resource type");
+    verify(denied).get(anyLong(), any(TimeUnit.class));
   }
 
   @Test
