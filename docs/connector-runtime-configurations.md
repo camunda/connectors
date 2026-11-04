@@ -24,6 +24,14 @@ builds the script input with one FEEL expression, mapped to the `scriptInput` va
 other process variable. The language follows the file extension only. Dependencies are not
 supported: a task that links a `dependencies` resource fails with `UNSUPPORTED_DEPENDENCIES`.
 
+The runtime reads the script through the resource API of the Orchestration Cluster, so the client
+of the runtime needs the `READ` permission on the `RESOURCE` resource type. The default
+`connectors` role grants it in versions that include camunda/camunda#68190; otherwise, and for a
+custom role, grant it explicitly, for example an authorization of the role on `RESOURCE` with
+resource ID `*` and permission `READ`. Without it, the job fails with `PLATFORM_REJECTED` and an
+incident that names the permission; resolve the incident once it is granted. A runtime whose
+client is not authenticated gets an incident that says so.
+
 ```properties
 camunda.connector.managed-code.enabled=true
 camunda.connector.managed-code.provider=<provider name>

@@ -50,6 +50,24 @@ final class ScriptResources {
     }
   }
 
+  /** Camunda denies the runtime reading the resource: polling again does not help. */
+  static final class ResourceAccessDeniedException extends RuntimeException {
+    ResourceAccessDeniedException(long resourceKey, ClientHttpException cause) {
+      super(message(resourceKey, cause.code()), cause);
+    }
+
+    private static String message(long resourceKey, int status) {
+      if (status == 401) {
+        return ("Camunda did not authenticate the connectors runtime reading the script resource"
+                + " %d (HTTP 401): check the credentials of its client")
+            .formatted(resourceKey);
+      }
+      return ("Camunda denied reading the script resource %d (HTTP %d): grant the client of the"
+              + " connectors runtime the READ permission on the RESOURCE resource type")
+          .formatted(resourceKey, status);
+    }
+  }
+
   /**
    * @param name the file name of the resource, which gives the script's language
    * @param content the source of the script
@@ -156,6 +174,10 @@ final class ScriptResources {
     } catch (ExecutionException e) {
       if (e.getCause() instanceof ClientHttpException http && http.code() == 404) {
         throw new ResourceNotVisibleException(resourceKey, http);
+      }
+      if (e.getCause() instanceof ClientHttpException http
+          && (http.code() == 401 || http.code() == 403)) {
+        throw new ResourceAccessDeniedException(resourceKey, http);
       }
       if (e.getCause() instanceof RuntimeException runtime) {
         throw runtime;

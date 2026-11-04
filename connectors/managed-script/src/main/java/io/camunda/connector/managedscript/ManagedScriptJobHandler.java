@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.outbound.JobContext;
+import io.camunda.connector.managedscript.ScriptResources.ResourceAccessDeniedException;
 import io.camunda.connector.managedscript.ScriptResources.ResourceNotVisibleException;
 import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
@@ -105,6 +106,9 @@ final class ManagedScriptJobHandler {
       outcome = failed(job, e.code(), e.getMessage(), null, language);
     } catch (ResourceNotVisibleException e) {
       outcome = failed(job, ErrorCode.PLATFORM_UNAVAILABLE, e.getMessage(), null, language);
+    } catch (ResourceAccessDeniedException e) {
+      // A missing authorization: the incident names it, and is resolved once it is granted.
+      outcome = failed(job, ErrorCode.PLATFORM_REJECTED, e.getMessage(), null, language);
     } catch (ProvisioningException e) {
       // A denial of the invocation, while the grants of a new cluster propagate, is waited out.
       final var code =
