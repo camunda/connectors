@@ -23,11 +23,4 @@ public interface RuntimeToolContext {
 
   /** The agent context at the time of the call. It does not change while the call is executed. */
   AgentContext agentContext();
-
-  /**
-   * The documents the agent knows as of the start of the batch of calls this call belongs to. The
-   * documents the other calls of the batch return are not part of it, they are known to the next
-   * turn.
-   */
-  RuntimeToolDocuments documents();
 }

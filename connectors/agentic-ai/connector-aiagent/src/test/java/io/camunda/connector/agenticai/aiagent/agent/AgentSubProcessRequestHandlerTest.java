@@ -160,13 +160,6 @@ class AgentSubProcessRequestHandlerTest {
                           TextContent.textContent("Created the report."),
                           DocumentContent.documentContent(NEW_REPORT))));
 
-  /** A tool that tells how many documents the agent knows when the call starts. */
-  private static final RuntimeTool COUNT_DOCUMENTS_TOOL =
-      StubRuntimeTool.of(
-          "acme_count_documents",
-          (context, call) ->
-              RuntimeToolResult.success("documents: " + context.documents().all().size()));
-
   private static final RuntimeTool LOOKUP_TOOL =
       StubRuntimeTool.of(
           "acme_lookup", (context, call) -> RuntimeToolResult.success("found the customer"));
@@ -184,7 +177,7 @@ class AgentSubProcessRequestHandlerTest {
   @Spy
   private RuntimeTools runtimeTools =
       new RuntimeTools(
-          List.of(LOOKUP_TOOL, HIDDEN_TOOL, TOGGLE_TOOL, CREATE_REPORT_TOOL, COUNT_DOCUMENTS_TOOL),
+          List.of(LOOKUP_TOOL, HIDDEN_TOOL, TOGGLE_TOOL, CREATE_REPORT_TOOL),
           TestObjectMapperSupplier.INSTANCE);
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -1723,8 +1716,7 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(offered)
         .filteredOn(tool -> tool.kind() == ToolKind.RUNTIME)
         .extracting(ToolDefinition::name)
-        .containsExactly(
-            "acme_lookup", "acme_toggle", "acme_create_report", "acme_count_documents");
+        .containsExactly("acme_lookup", "acme_toggle", "acme_create_report");
     assertThat(offered)
         .filteredOn(tool -> tool.kind() == ToolKind.PROCESS)
         .containsExactlyElementsOf(TOOL_DEFINITIONS);
@@ -1927,53 +1919,6 @@ class AgentSubProcessRequestHandlerTest {
 
     assertThat(runs.get(0).documents()).hasSize(1);
     assertThat(runs.get(1).documents()).isEqualTo(runs.get(0).documents());
-  }
-
-  @Test
-  void theCallsOfOneMessageSeeTheDocumentsKnownAtTheStartAndTheNextRoundSeesTheReturnedOnes() {
-    mockSystemPrompt();
-    mockProceed(USER_MESSAGE);
-    when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new ReadyToConverse(CONTEXT_WITH_DOCUMENTS, List.of()));
-    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 2);
-    doReturn(chatModel).when(chatModelRegistry).resolve(any());
-    doReturn(
-            new ChatResult.Completed(
-                AssistantMessage.builder()
-                    .toolCalls(
-                        List.of(
-                            new ToolCall("call-1", "acme_create_report", Map.of()),
-                            new ToolCall("call-2", "acme_count_documents", Map.of())))
-                    .build(),
-                metrics))
-        .doReturn(
-            new ChatResult.Completed(
-                AssistantMessage.builder()
-                    .toolCalls(List.of(new ToolCall("call-3", "acme_count_documents", Map.of())))
-                    .build(),
-                metrics))
-        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
-        .when(chatModel)
-        .execute(chatModelRequestCaptor.capture());
-    mockResponseHandler();
-
-    requestHandler.handleRequest(agentExecutionContext);
-
-    final var requests = chatModelRequestCaptor.getAllValues();
-    // the call that counts does not see the document the call before it returned
-    assertThat(
-            ((ToolCallResultMessage) requests.get(1).snapshot().messages().getLast())
-                .results()
-                .get(1)
-                .content())
-        .containsExactly(TextContent.textContent("documents: 0"));
-    // the next round knows it
-    assertThat(
-            ((ToolCallResultMessage) requests.get(2).snapshot().messages().getLast())
-                .results()
-                .getFirst()
-                .content())
-        .containsExactly(TextContent.textContent("documents: 1"));
   }
 
   private List<ToolDefinition> toolDefinitionsOfTheAgentInstanceHistory() {
