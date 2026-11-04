@@ -1,9 +1,8 @@
 # Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH under one or more
 # contributor license agreements. Licensed under the Apache License, Version 2.0.
-"""Local entry point of the Python executor: runs one call, read from stdin, and writes the contract
-response to stdout. Always in local mode, so it only ever kills the process group of its own script.
-Every call gets a directory of its own under EXECUTOR_TMP, or the system's temporary directory, and
-the directory is removed after the call.
+"""Test driver of the Python wrapper core: runs one call, read from stdin, in local mode, and writes
+the contract response to stdout. The local provider ships its own entry point; this one only lets
+the wrapper tests exercise the core without depending on a provider.
 """
 
 import json

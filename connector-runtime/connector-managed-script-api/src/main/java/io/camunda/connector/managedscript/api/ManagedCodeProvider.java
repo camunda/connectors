@@ -29,24 +29,31 @@ public interface ManagedCodeProvider {
   String name();
 
   /**
-   * Makes sure the executors of the cluster exist, run the wrapper of this runtime and have the
-   * configured settings, and returns once they can be invoked. A provider whose executors are
-   * deployed separately checks them instead of creating them.
+   * Makes sure the executor of the language exists, runs the wrapper of this runtime and has the
+   * configured settings, and returns once it can be invoked. A provider whose executors are
+   * deployed separately checks it instead of creating it.
    *
-   * <p>The connector may call it in the background once the runtime is ready, from the first job
-   * that needs the executors, and again after {@link #execute} reported {@link
+   * <p>The connector calls it in the background once the runtime is ready, from the first job that
+   * needs the executor, and again after {@link #execute} reported {@link
    * ErrorCode#DEPLOYMENT_MISSING}, before it invokes the executor again (ADR-0008). It may
-   * therefore run on any thread and more than once in the life of a runtime. Must be idempotent:
-   * several runtime instances may call it at once.
+   * therefore run on any thread, more than once in the life of a runtime, and for different
+   * languages at once. Must be idempotent: several runtime instances may call it at once.
    *
-   * @throws ProvisioningException when the executors cannot be made ready
+   * @throws ProvisioningException when the executor cannot be made ready: its code tells whether
+   *     the connector tries again ({@link ErrorCode#retryable()}), and {@link
+   *     ProvisioningException#permissionDenied()} marks a denial that a new cluster's grants may
+   *     still lift
    */
-  void ensureExecutors();
+  void ensureExecutors(ScriptLanguage language);
 
   /**
    * Runs the script of the request on the executor of its language. Script and platform failures
    * are returned as a {@code FAILED} response, not thrown. A missing executor is reported with
    * {@link ErrorCode#DEPLOYMENT_MISSING}.
+   *
+   * @throws ProvisioningException only for {@link ProvisioningException#permissionDenied}, when the
+   *     platform denies the invocation: the job keeps its retries while the grants of a new cluster
+   *     propagate, and fails without retries after
    */
   ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request);
 }

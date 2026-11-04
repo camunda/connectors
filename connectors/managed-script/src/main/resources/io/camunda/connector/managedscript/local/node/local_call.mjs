@@ -1,5 +1,7 @@
-// Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH under one or more
-// contributor license agreements. Licensed under the Apache License, Version 2.0.
+// Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+// under one or more contributor license agreements. Licensed under a proprietary license.
+// See the License.txt file for more information. You may not use this file
+// except in compliance with the proprietary license.
 //
 // Local entry point of the Node.js executor: runs one call, read from stdin, and writes the
 // contract response to stdout. Always in local mode, so it only ever kills the process group of

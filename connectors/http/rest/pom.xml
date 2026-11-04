@@ -31,7 +31,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.</license.inlineheader>
 
-    <version.system-stubs>2.1.8</version.system-stubs>
   </properties>
 
   <dependencies>
@@ -44,7 +43,6 @@ limitations under the License.</license.inlineheader>
     <dependency>
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock-standalone</artifactId>
-      <version>${version.wiremock}</version>
       <scope>test</scope>
     </dependency>
 
@@ -84,7 +82,6 @@ limitations under the License.</license.inlineheader>
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>${project.version}</version>
         <configuration>
           <connectors>
             <connector>

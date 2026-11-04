@@ -57,6 +57,10 @@ public record AgentContext(
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
   }
 
+  public @Nullable AgentInstanceKey agentInstanceKey() {
+    return metadata != null ? metadata.agentInstanceKey() : null;
+  }
+
   public AgentContext withProperty(String key, Object value) {
     final var properties = new LinkedHashMap<>(properties());
     properties.put(key, value);

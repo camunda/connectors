@@ -1,9 +1,7 @@
 #!/usr/bin/env groovy
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-
-def mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)
+def T = new GroovyClassLoader(getClass().classLoader)
+    .parseClass(new File(project.basedir, '../bin/TemplateTransforms.groovy'))
 
 def compatiblePresets = [
     [id: "ollama", name: "Ollama",
@@ -43,12 +41,16 @@ static def tagLeafSteps(List steps, String tag) {
     }
 }
 
-((String) sourceFiles).eachLine { path ->
+T.requiredProperty(binding, 'sourceFiles').eachLine { path ->
     if (!path.trim()) return
     println("Transforming provider steps in ${path.trim()}")
-    def file = new File(path.trim())
-    def json = mapper.readValue(file, Map.class)
+    def file = T.existingFile(path)
+    def json = T.readJson(file)
+    if (!json.steps) {
+        T.fail("No provider steps found in ${file}")
+    }
     def presetsById = json.presets.collectEntries { [(it.id): it] }
+    def openAiFound = false
     def presets = []
     def steps = []
 
@@ -56,6 +58,9 @@ static def tagLeafSteps(List steps, String tag) {
     json.steps.each { step ->
         steps.add(step)
         def providerPreset = presetsById[step.presetId]
+        if (!providerPreset) {
+            T.fail("Preset '${step.presetId}' of provider step '${step.name}' not found in ${file}")
+        }
         def providerProperties = providerPreset.get("properties")
         def providerId = providerProperties["provider.type"]
         def backendProperty = json.get("properties").find {
@@ -85,6 +90,7 @@ static def tagLeafSteps(List steps, String tag) {
         }
 
         if (providerId == "openai") {
+            openAiFound = true
             def compatibleSteps = []
             compatiblePresets.each { preset ->
                 def presetId = "${prefix}_type_custom_${preset.id}".toString()
@@ -108,9 +114,18 @@ static def tagLeafSteps(List steps, String tag) {
         }
     }
 
+    if (!openAiFound) {
+        T.fail("OpenAI provider step with a backend type property not found in ${file}, cannot add the OpenAI compatible steps")
+    }
+    T.requireIds(
+        (List) json.get("properties"),
+        presets.collectMany { ((Map) it.get("properties")).keySet() }.unique(),
+        "Properties set by provider presets in ${file}"
+    )
+
     tagLeafSteps(steps, "AI Agent Task: ")
 
     json.presets = presets
     json.steps = steps
-    mapper.writeValue(file, json)
+    T.writeJson(file, json)
 }

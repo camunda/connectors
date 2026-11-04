@@ -221,6 +221,13 @@ High-frequency traps (detail behind each link):
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
   construct an "expected" message and compare it for equality against one built by the code under
   test will fail on `id` alone. `ai-agent.md` §6, [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
+- **Map iteration order differs between JVMs after a record builder copied the map**: the `@AgenticAiRecord`
+  builders copy maps and sets with `Map.copyOf` and `Set.copyOf`, whose iteration order changes with every JVM start.
+  Never let a hash, an id or any value compared across runs depend on that order. Sort the map keys where the value
+  is computed (`SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS` in `AgentConfiguration.fingerprint()`, which sorts
+  every map at any depth), and carry an order that has meaning, such as the order of the tool parameters, as a list.
+  No mapper flag sorts a set, so a hashed value must not contain one. Do not add a record annotation or a special
+  collection type to work around the copy. `ai-agent.md` §23.
 
 ## Architectural invariants
 
@@ -354,6 +361,15 @@ annotation's `version` attribute on the connector function; bumping it there bum
 template. The AI Agent Sub-process template is in turn derived from the AI Agent Task
 template via `connector-aiagent/bin/transform-ai-agent-sub-process-template.groovy` (gmavenplus-plugin, `process-classes`
 phase); the same script also derives the v2 AI Agent Sub-process template from the v2 AI Agent Task template.
+
+The transform scripts in `connector-aiagent/bin/` and `connector-a2a/bin/` find properties by hard-coded
+ids. They share generic helpers through [`bin/TemplateTransforms.groovy`](bin/TemplateTransforms.groovy), which
+fails the build when an expected property id or anchor is missing; AI Agent specific helpers live in
+[`connector-aiagent/bin/AgentTemplateTransforms.groovy`](connector-aiagent/bin/AgentTemplateTransforms.groovy). When you rename a property a script
+looks up, update the script in the same change. `AgentElementTemplateTransformsTest` (`connector-aiagent`)
+and `A2aElementTemplateTransformsTest` (`connector-a2a`) assert what the scripts inject into the
+generated JSON. They check what the scripts change, not property order, so reordering properties
+doesn't require test changes; review any generated template diff instead.
 
 To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the

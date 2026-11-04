@@ -8,13 +8,17 @@ package io.camunda.connector.managedscript;
 
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
+import io.camunda.connector.managedscript.local.LocalManagedCodeConfiguration;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Scope;
 
 @AutoConfiguration
@@ -23,17 +27,39 @@ import org.springframework.context.annotation.Scope;
     name = "enabled",
     havingValue = "true")
 @EnableConfigurationProperties(ManagedCodeProperties.class)
+@Import(LocalManagedCodeConfiguration.class)
 public class ManagedCodeAutoConfiguration {
 
   private static final int RESOURCE_CACHE_SIZE = 256;
 
+  /** Closed with the context, which stops its threads. */
+  @Bean
+  ExecutorReadiness managedCodeExecutorReadiness(
+      ObjectProvider<ManagedCodeProvider> providers, ManagedCodeProperties properties) {
+    return new ExecutorReadiness(
+        requireProvider(providers, properties),
+        properties.provisioningRetryBackoff(),
+        properties.grantPropagationWindow());
+  }
+
+  /** Once the runtime is ready, so that a slow provider does not hold back its startup. */
+  @Bean
+  ApplicationListener<ApplicationReadyEvent> managedCodeExecutorsOnReady(
+      ExecutorReadiness readiness) {
+    return event -> readiness.startAll();
+  }
+
   @Bean
   ManagedScriptJobHandler managedScriptJobHandler(
-      ObjectProvider<ManagedCodeProvider> providers, ManagedCodeProperties properties) {
+      ObjectProvider<ManagedCodeProvider> providers,
+      ExecutorReadiness readiness,
+      ManagedCodeProperties properties) {
     return new ManagedScriptJobHandler(
         requireProvider(providers, properties),
+        readiness,
         new ScriptResources(RESOURCE_CACHE_SIZE),
         ConnectorsObjectMapperSupplier.getCopy(),
+        properties.provisioningTimeout(),
         properties.executionTimeout(),
         properties.provisioningRetryBackoff());
   }
@@ -63,7 +89,8 @@ public class ManagedCodeAutoConfiguration {
     final var matching =
         providers
             .orderedStream()
-            .filter(provider -> properties.provider().equals(provider.name()))
+            // Ignoring case, as the condition on the property of a provider's configuration does.
+            .filter(provider -> properties.provider().equalsIgnoreCase(provider.name()))
             .toList();
     if (matching.isEmpty()) {
       throw new IllegalStateException(
