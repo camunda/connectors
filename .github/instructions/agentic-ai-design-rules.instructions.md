@@ -1,0 +1,1 @@
+../../connectors/agentic-ai/docs/design-rules.md
