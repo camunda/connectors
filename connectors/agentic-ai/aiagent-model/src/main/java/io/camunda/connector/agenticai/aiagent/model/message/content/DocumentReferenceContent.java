@@ -50,10 +50,10 @@ import org.jspecify.annotations.Nullable;
  * @param fileName the file name the model is shown, if known
  * @param contentType the content type the model is shown, if known
  * @param size the size in bytes the model is shown, if known
- * @param source where the document entered the conversation, the same value as the source of its
- *     workspace document; {@code null} for the block of a document that is a whole tool result. The tag
- *     shows the type of a user message or event source and the tool name and tool call id of a tool
- *     call source; the message id is not part of it
+ * @param origin where the document entered the conversation, the same value as the origin of its
+ *     workspace document; {@code null} for the block of a document that is a whole tool result. The
+ *     tag shows {@code user_message} or {@code event} for such an origin and the tool name and tool
+ *     call id of a tool call origin; the message id is not part of it
  * @param delivery how the document reaches the model, {@link DocumentDelivery#REFERENCE} if not
  *     given
  */
@@ -64,7 +64,7 @@ public record DocumentReferenceContent(
     @Nullable String fileName,
     @Nullable String contentType,
     @Nullable Long size,
-    @Nullable DocumentOrigin source,
+    @Nullable DocumentOrigin origin,
     DocumentDelivery delivery,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements Content {
@@ -84,7 +84,7 @@ public record DocumentReferenceContent(
   /** Returns the block with the given delivery. */
   public DocumentReferenceContent withDelivery(DocumentDelivery delivery) {
     return new DocumentReferenceContent(
-        id, fileName, contentType, size, source, delivery, metadata);
+        id, fileName, contentType, size, origin, delivery, metadata);
   }
 
   /** The tag the model sees for the document. */
@@ -94,9 +94,21 @@ public record DocumentReferenceContent(
     appendAttribute(sb, "fileName", fileName);
     appendAttribute(sb, "contentType", contentType);
     appendAttribute(sb, "size", size == null ? null : String.valueOf(size));
-    appendAttribute(sb, "source", source == null ? null : source.type().tagValue());
-    appendAttribute(sb, "toolName", source == null ? null : source.toolName());
-    appendAttribute(sb, "toolCallId", source == null ? null : source.toolCallId());
+    appendAttribute(
+        sb,
+        "source",
+        switch (origin) {
+          case DocumentOrigin.UserMessage ignored -> "user_message";
+          case DocumentOrigin.Event ignored -> "event";
+          case DocumentOrigin.ToolCall ignored -> null;
+          case null -> null;
+        });
+    appendAttribute(
+        sb, "toolName", origin instanceof DocumentOrigin.ToolCall call ? call.toolName() : null);
+    appendAttribute(
+        sb,
+        "toolCallId",
+        origin instanceof DocumentOrigin.ToolCall call ? call.toolCallId() : null);
     return sb.append(" />").toString();
   }
 

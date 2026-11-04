@@ -26,8 +26,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -487,7 +487,7 @@ class RuntimeToolsImplTest {
               final var found =
                   context.documents().find(DocumentHandle.idFor(report)).orElseThrow();
               seen.add(new String(found.document().asByteArray(), StandardCharsets.UTF_8));
-              seen.add(found.source());
+              seen.add(found.origin());
               return RuntimeToolResult.success("read");
             });
 

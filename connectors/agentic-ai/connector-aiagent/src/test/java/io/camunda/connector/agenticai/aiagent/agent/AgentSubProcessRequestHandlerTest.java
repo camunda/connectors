@@ -1719,9 +1719,7 @@ class AgentSubProcessRequestHandlerTest {
         .singleElement()
         .satisfies(entry -> {
           assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
-          assertThat(entry.source().type()).isEqualTo(DocumentOrigin.Type.TOOL_CALL);
-          assertThat(entry.source().toolName()).isEqualTo("search");
-          assertThat(entry.source().toolCallId()).isEqualTo("call-1");
+          assertThat(entry.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
           assertThat(entry.reference()).containsEntry("camunda.document.type", "camunda");
         });
     assertThat(response.variables().get("agentContext")).isEqualTo(context);
@@ -1761,7 +1759,7 @@ class AgentSubProcessRequestHandlerTest {
         .singleElement()
         .satisfies(entry -> {
           assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(NEW_REPORT));
-          assertThat(entry.source())
+          assertThat(entry.origin())
               .isEqualTo(DocumentOrigin.toolCall("acme_create_report", "call-1"));
         });
 
@@ -1793,7 +1791,7 @@ class AgentSubProcessRequestHandlerTest {
             "acme_create_report", CONTEXT_WITH_DOCUMENTS, processDocument, () -> {});
 
     assertThat(run.finalContext().documents())
-        .extracting(entry -> entry.id(), entry -> entry.source())
+        .extracting(entry -> entry.id(), entry -> entry.origin())
         .containsExactly(
             tuple(
                 DocumentHandle.idFor(NEW_REPORT),

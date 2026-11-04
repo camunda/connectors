@@ -13,9 +13,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference;
@@ -76,7 +76,7 @@ class DocumentWorkspaceTest {
         .hasValueSatisfying(entry -> {
           assertThat(DocumentHandle.fileNameFor(entry.reference())).isEqualTo("two.txt");
           assertThat(DocumentHandle.contentTypeFor(entry.reference())).isEqualTo("text/plain");
-          assertThat(entry.source()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
+          assertThat(entry.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
         });
   }
 
@@ -120,7 +120,8 @@ class DocumentWorkspaceTest {
 
     assertThat(workspace.size()).isEqualTo(1);
     assertThat(workspace.findById(DocumentHandle.idFor(doc)))
-        .hasValueSatisfying(entry -> assertThat(entry.source().toolCallId()).isEqualTo("call-1"));
+        .hasValueSatisfying(entry ->
+            assertThat(entry.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1")));
   }
 
   @Test
@@ -141,14 +142,11 @@ class DocumentWorkspaceTest {
   @Test
   void ofDeduplicatesEntriesByIdKeepingTheFirst() {
     final var entry1 =
-        new WorkspaceDocument(
-            DocumentId.of("a"), DocumentOrigin.userMessage(), Map.of("k", "1"));
+        new WorkspaceDocument(DocumentId.of("a"), DocumentOrigin.userMessage(), Map.of("k", "1"));
     final var entry2 =
-        new WorkspaceDocument(
-            DocumentId.of("a"), DocumentOrigin.userMessage(), Map.of("k", "2"));
+        new WorkspaceDocument(DocumentId.of("a"), DocumentOrigin.userMessage(), Map.of("k", "2"));
     final var entry3 =
-        new WorkspaceDocument(
-            DocumentId.of("b"), DocumentOrigin.userMessage(), Map.of("k", "3"));
+        new WorkspaceDocument(DocumentId.of("b"), DocumentOrigin.userMessage(), Map.of("k", "3"));
 
     assertThat(DocumentWorkspace.of(List.of(entry1, entry2, entry3)).entries())
         .containsExactly(entry1, entry3);

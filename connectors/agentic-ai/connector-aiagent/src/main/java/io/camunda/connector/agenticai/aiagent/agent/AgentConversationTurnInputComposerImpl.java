@@ -214,12 +214,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       content.add(textContent(userPromptText));
     }
 
-    final var source = DocumentOrigin.userMessage();
+    final var origin = DocumentOrigin.userMessage();
     if (documentFlow) {
       // add documents as references with the delivery content: the content is added, from the
       // registry, when the model is called
       for (var doc : userPrompt.documents()) {
-        content.add(DocumentReferences.from(doc, source).withDelivery(DocumentDelivery.CONTENT));
+        content.add(DocumentReferences.from(doc, origin).withDelivery(DocumentDelivery.CONTENT));
       }
     } else {
       // an agent instance without the documents feature keeps the documents as content
@@ -234,7 +234,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     if (documentFlow) {
       userPrompt
           .documents()
-          .forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, source)));
+          .forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, origin)));
     }
     return UserMessage.builder().content(content).metadata(MessageMetadata.defaults()).build();
   }
@@ -366,11 +366,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       userMessageContent.add(
           textContent(documentFlow ? EVENT_DOCUMENT_TAGS_PREAMBLE : EVENT_DOCUMENTS_PREAMBLE));
       if (documentFlow) {
-        final var source = DocumentOrigin.event();
+        final var origin = DocumentOrigin.event();
         for (var group : eventDocuments) {
           for (var doc : group.documents()) {
-            ingestedDocuments.add(new IngestedDocument(doc, source));
-            userMessageContent.add(DocumentReferences.from(doc, source));
+            ingestedDocuments.add(new IngestedDocument(doc, origin));
+            userMessageContent.add(DocumentReferences.from(doc, origin));
           }
         }
       } else {

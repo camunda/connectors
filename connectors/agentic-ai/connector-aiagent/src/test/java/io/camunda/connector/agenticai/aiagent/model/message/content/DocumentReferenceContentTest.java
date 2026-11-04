@@ -16,12 +16,12 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -232,12 +232,11 @@ class DocumentReferenceContentTest {
   @Test
   void workspaceDocumentOfAUserMessageDocumentRendersTheSource() {
     final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
-    final var entry =
-        DocumentIngestion.entryFor(new IngestedDocument(doc, DocumentOrigin.event()));
+    final var entry = DocumentIngestion.entryFor(new IngestedDocument(doc, DocumentOrigin.event()));
 
     assertThat(DocumentReferences.from(entry))
         .isEqualTo(DocumentReferences.from(doc, DocumentOrigin.event()));
-    assertThat(DocumentReferences.from(entry).source()).isEqualTo(DocumentOrigin.event());
+    assertThat(DocumentReferences.from(entry).origin()).isEqualTo(DocumentOrigin.event());
   }
 
   private static Document camundaDocumentWithSize(@Nullable Long size) {
@@ -323,14 +322,14 @@ class DocumentReferenceContentTest {
       @Nullable String source,
       @Nullable String toolName,
       @Nullable String toolCallId) {
-    final var type =
+    final DocumentOrigin documentSource =
         "user_message".equals(source)
-            ? DocumentOrigin.Type.USER_MESSAGE
-            : "event".equals(source) ? DocumentOrigin.Type.EVENT : DocumentOrigin.Type.TOOL_CALL;
-    final var documentSource =
-        type == DocumentOrigin.Type.TOOL_CALL && toolName == null && toolCallId == null
-            ? null
-            : new DocumentOrigin(type, toolName, toolCallId);
+            ? DocumentOrigin.userMessage()
+            : "event".equals(source)
+                ? DocumentOrigin.event()
+                : toolName == null && toolCallId == null
+                    ? null
+                    : DocumentOrigin.toolCall(toolName, toolCallId);
     return new DocumentReferenceContent(
         id == null ? null : DocumentId.of(id),
         fileName,
