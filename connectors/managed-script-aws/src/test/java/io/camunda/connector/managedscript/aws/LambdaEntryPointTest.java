@@ -33,6 +33,7 @@ class LambdaEntryPointTest {
 
   @TempDir Path task;
   @TempDir Path tmp;
+  @TempDir Path logs;
 
   @ParameterizedTest
   @EnumSource(ScriptLanguage.class)
@@ -58,11 +59,17 @@ class LambdaEntryPointTest {
     final var builder =
         new ProcessBuilder(command).directory(task.toFile()).redirectErrorStream(true);
     builder.environment().put("EXECUTOR_TMP", tmp.toString());
-    final var process = builder.start();
-    final var output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-    assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
+    // To a file, so that the deadline applies to an entry point that hangs: reading a pipe to its
+    // end waits as long as the process does.
+    final var log = Files.createTempFile(logs, "entry-point", ".log");
+    final var process = builder.redirectOutput(log.toFile()).start();
+    try {
+      assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
+    } finally {
+      process.destroyForcibly();
+    }
 
-    assertThat(process.exitValue()).as(output).isZero();
+    assertThat(process.exitValue()).as(Files.readString(log, StandardCharsets.UTF_8)).isZero();
     try (Stream<Path> left = Files.list(tmp)) {
       assertThat(left.toList()).isEmpty();
     }
@@ -74,9 +81,13 @@ class LambdaEntryPointTest {
           new ProcessBuilder(interpreter, "--version")
               .directory(task.toFile())
               .redirectErrorStream(true)
+              .redirectOutput(ProcessBuilder.Redirect.DISCARD)
               .start();
-      process.getInputStream().readAllBytes();
-      return process.waitFor(10, TimeUnit.SECONDS) && process.exitValue() == 0;
+      try {
+        return process.waitFor(10, TimeUnit.SECONDS) && process.exitValue() == 0;
+      } finally {
+        process.destroyForcibly();
+      }
     } catch (IOException | InterruptedException e) {
       return false;
     }
