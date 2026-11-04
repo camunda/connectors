@@ -25,9 +25,10 @@ other process variable. The language follows the file extension only. Dependenci
 supported: a task that links a `dependencies` resource fails with `UNSUPPORTED_DEPENDENCIES`.
 
 The runtime reads the script through the resource API of the Orchestration Cluster, so the client
-of the runtime needs the `READ` permission on the `RESOURCE` resource type, which the default
-`connectors` role does not grant. Without it, the job fails with `PLATFORM_REJECTED` and an incident
-that names the permission; resolve the incident once it is granted.
+of the runtime needs the `READ` permission on the `RESOURCE` resource type. The default
+`connectors` role grants it from 8.11; a custom role needs it added. Without it, the job fails with
+`PLATFORM_REJECTED` and an incident that names the permission; resolve the incident once it is
+granted.
 
 ```properties
 camunda.connector.managed-code.enabled=true
