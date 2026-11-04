@@ -475,6 +475,20 @@ class GcpCloudRunManagedCodeProviderTest {
     verify(create, never()).call(any(CreateFunctionRequest.class));
   }
 
+  @ParameterizedTest
+  @ValueSource(ints = {401, 403})
+  void reportsADeniedUploadAsAPermissionDenial(int status, WireMockRuntimeInfo wireMock) {
+    when(functions.getFunction(anyString())).thenThrow(error(Code.NOT_FOUND));
+    uploadTo(wireMock);
+    stubFor(put("/upload").willReturn(aResponse().withStatus(status)));
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(failure.permissionDenied()).isTrue();
+    verify(create, never()).call(any(CreateFunctionRequest.class));
+  }
+
   @Test
   void sendsTheScriptToTheUrlOfTheExecutorWithAnIdTokenThatCarriesTheEmail() throws IOException {
     ready(ScriptLanguage.JAVASCRIPT);

@@ -426,6 +426,13 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
                 .build(),
             HttpResponse.BodyHandlers.discarding());
     final int status = response.statusCode();
+    if (status == 401 || status == 403) {
+      // The URL comes from a grant the runtime was given, which may still propagate.
+      throw ProvisioningException.permissionDenied(
+          "GCP denied the upload of the source of Cloud Run executor '%s' (HTTP %d)"
+              .formatted(name, status),
+          null);
+    }
     if (status / 100 != 2) {
       throw new ProvisioningException(
           status == 429
