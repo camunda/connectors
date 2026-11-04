@@ -50,11 +50,12 @@ public final class DocumentReferences {
 
   /** Creates the block of a workspace document with the delivery {@code reference}. */
   public static DocumentReferenceContent from(WorkspaceDocument entry) {
+    final var reference = DocumentIngestion.referenceOf(entry);
     return new DocumentReferenceContent(
         entry.id(),
-        DocumentHandle.fileNameFor(entry.reference()),
-        DocumentHandle.contentTypeFor(entry.reference()),
-        DocumentHandle.sizeFor(entry.reference()),
+        DocumentHandle.fileNameFor(reference),
+        DocumentHandle.contentTypeFor(reference),
+        DocumentHandle.sizeFor(reference),
         entry.origin(),
         DocumentDelivery.REFERENCE,
         null);

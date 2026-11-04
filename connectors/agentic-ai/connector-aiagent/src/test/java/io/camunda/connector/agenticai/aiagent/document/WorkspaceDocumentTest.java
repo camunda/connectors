@@ -23,11 +23,13 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -71,12 +73,15 @@ class WorkspaceDocumentTest {
 
     assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
     assertThat(entry.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
-    assertThat(DocumentHandle.fileNameFor(entry.reference())).isEqualTo("report.pdf");
-    assertThat(DocumentHandle.contentTypeFor(entry.reference())).isEqualTo("application/pdf");
+    assertThat(DocumentHandle.fileNameFor(DocumentIngestion.referenceOf(entry)))
+        .isEqualTo("report.pdf");
+    assertThat(DocumentHandle.contentTypeFor(DocumentIngestion.referenceOf(entry)))
+        .isEqualTo("application/pdf");
     assertThat(entry.reference())
         .containsEntry("camunda.document.type", "camunda")
         .containsEntry("storeId", "in-memory")
-        .containsEntry("documentId", entry.id().value())
+        .containsEntry(
+            "documentId", ((CamundaDocumentReference) document.reference()).getDocumentId())
         .containsKeys("contentHash", "metadata");
 
     // the map is the JSON the standard serializer emits: it binds back to an equal document
@@ -95,6 +100,86 @@ class WorkspaceDocumentTest {
   }
 
   @Test
+  void storedCamundaReferenceReadsBackAsTheTypedReferenceOfTheDocument() {
+    final var document =
+        documentFactory.create(
+            DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
+                .contentType("application/pdf")
+                .fileName("report.pdf")
+                .timeToLive(Duration.ofHours(2))
+                .customProperties(Map.of("retention", Duration.ofMinutes(5), "owner", "alice"))
+                .build());
+
+    final var entry =
+        DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
+    final var read = DocumentIngestion.referenceOf(entry);
+
+    final var original = (CamundaDocumentReference) document.reference();
+    assertThat(read)
+        .isInstanceOfSatisfying(
+            CamundaDocumentReferenceModel.class,
+            model -> {
+              assertThat(model.getStoreId()).isEqualTo(original.getStoreId());
+              assertThat(model.getDocumentId()).isEqualTo(original.getDocumentId());
+              assertThat(model.getContentHash()).isEqualTo(original.getContentHash());
+              assertThat(model.getMetadata().getFileName()).isEqualTo("report.pdf");
+              assertThat(model.getMetadata().getContentType()).isEqualTo("application/pdf");
+              assertThat(model.getMetadata().getSize()).isEqualTo(document.metadata().getSize());
+              assertThat(model.getMetadata().getExpiresAt().toInstant())
+                  .isEqualTo(document.metadata().getExpiresAt().toInstant());
+              assertThat(model.getMetadata().getCustomProperties())
+                  .containsEntry("owner", "alice")
+                  .containsKey("retention");
+            });
+    assertThat(DocumentHandle.idFor(read)).isEqualTo(DocumentHandle.idFor(document));
+    assertThat(DocumentHandle.fileNameFor(read)).isEqualTo(DocumentHandle.fileNameFor(document));
+    assertThat(DocumentHandle.contentTypeFor(read))
+        .isEqualTo(DocumentHandle.contentTypeFor(document));
+    assertThat(DocumentHandle.sizeFor(read)).isEqualTo(DocumentHandle.sizeFor(document));
+  }
+
+  @Test
+  void storedExternalReferenceReadsBackAsTheTypedReferenceOfTheDocument() {
+    final var document =
+        documentWith(
+            new ExternalDocumentReferenceModel("https://example.com/a.pdf?token=secret", "a.pdf"),
+            null);
+
+    final var entry =
+        DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
+    final var read = DocumentIngestion.referenceOf(entry);
+
+    assertThat(read)
+        .isInstanceOfSatisfying(
+            ExternalDocumentReferenceModel.class,
+            model -> {
+              assertThat(model.url()).isEqualTo("https://example.com/a.pdf?token=secret");
+              assertThat(model.name()).isEqualTo("a.pdf");
+            });
+    assertThat(DocumentHandle.idFor(read)).isEqualTo(DocumentHandle.idFor(document));
+  }
+
+  @Test
+  void storedInlineReferenceReadsBackAsTheTypedReferenceOfTheDocument() {
+    final var document =
+        documentWith(new InlineDocumentReferenceModel("aGVsbG8=", "a.txt", "text/plain"), null);
+
+    final var entry =
+        DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
+    final var read = DocumentIngestion.referenceOf(entry);
+
+    assertThat(read)
+        .isInstanceOfSatisfying(
+            InlineDocumentReferenceModel.class,
+            model -> {
+              assertThat(model.content()).isEqualTo("aGVsbG8=");
+              assertThat(model.name()).isEqualTo("a.txt");
+              assertThat(model.contentType()).isEqualTo("text/plain");
+            });
+    assertThat(DocumentHandle.idFor(read)).isEqualTo(DocumentHandle.idFor(document));
+  }
+
+  @Test
   void externalDocumentKeepsTheUrl() {
     final var document =
         documentWith(
@@ -104,7 +189,7 @@ class WorkspaceDocumentTest {
     final var entry =
         DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
 
-    assertThat(entry.id().value()).startsWith("ext-");
+    assertThat(entry.id().value()).matches("doc_[0-9a-f]{12}");
     assertThat(entry.reference())
         .containsEntry("camunda.document.type", "external")
         .containsEntry("url", "https://example.com/a.pdf?token=secret")
@@ -180,7 +265,7 @@ class WorkspaceDocumentTest {
     final var entry =
         DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
 
-    assertThat(entry.id().value()).startsWith("inline-");
+    assertThat(entry.id().value()).matches("doc_[0-9a-f]{12}");
     assertThat(entry.reference())
         .containsEntry("camunda.document.type", "inline")
         .containsEntry("content", "aGVsbG8=");
