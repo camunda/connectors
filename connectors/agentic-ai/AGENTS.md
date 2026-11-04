@@ -29,6 +29,9 @@ Task guidance and architecture live in linked documents:
 - [`docs/adr/`](docs/adr/): architecture decision records
 - [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md): help text conventions for
   element templates
+- [`docs/coding-guidelines.md`](docs/coding-guidelines.md): general coding behavior and design rules
+- [`docs/domain-rules.md`](docs/domain-rules.md): domain rules from past review findings
+- [`docs/target-architecture.md`](docs/target-architecture.md): target state of the module
 - [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
 - E2E tests [`AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md): e2e
   modules, running e2e tests, real-LLM CPT coverage
@@ -236,6 +239,8 @@ High-frequency traps (detail behind each link):
 Before changing module structure or extension points, read the
 [architectural invariants](docs/design-guidelines.md#architectural-invariants).
 
+The [target architecture](docs/target-architecture.md) shows the target state beyond the invariants.
+
 ## Working in this module
 
 General coding behavior (think before coding, simplicity, surgical changes, goal-driven execution)
@@ -244,6 +249,14 @@ specifics.
 
 When designing stored shapes, names, defaults, limits or observability, read
 [`docs/design-guidelines.md`](docs/design-guidelines.md).
+
+@docs/coding-guidelines.md
+
+@docs/domain-rules.md
+
+If your tool does not resolve `@` imports, read [`docs/domain-rules.md`](docs/domain-rules.md) too.
+The [target architecture](docs/target-architecture.md) shows the target state of the module. Read it
+before you plan a structural change: a new module, collaborator, SPI or cross-module policy.
 
 ### Building & testing
 
@@ -296,6 +309,8 @@ Before claiming a change is complete:
 - [ ] Real-provider changes meet the [coverage requirements](docs/acceptance-testing.md#real-provider-coverage).
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
+- [ ] The change follows the [domain rules](docs/domain-rules.md) and the design rules in
+  [coding guidelines](docs/coding-guidelines.md).
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
   A break of `aiagent-api` or `aiagent-model` fails the build until it is accepted in the module's
