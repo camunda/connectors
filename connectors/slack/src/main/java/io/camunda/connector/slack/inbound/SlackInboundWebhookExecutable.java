@@ -31,12 +31,10 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,18 +149,31 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
                 payload.params()));
   }
 
+  /**
+   * Splits on {@code &} and the first {@code =} before URL-decoding, so encoded separators in a
+   * value (e.g. {@code %26} inside a JSON payload value) are not treated as separators.
+   */
+  private static Map<String, String> parseFormUrlEncoded(String body) {
+    Map<String, String> result = new LinkedHashMap<>();
+    for (String pair : body.split("&")) {
+      if (pair.isEmpty()) {
+        continue;
+      }
+      String[] parts = pair.split("=", 2);
+      result.putIfAbsent(
+          URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
+          parts.length > 1 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8) : "");
+    }
+    return result;
+  }
+
   private Map bodyAsMap(Map<String, String> headers, byte[] rawBody) {
     var caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     caseInsensitiveMap.putAll(headers);
     String contentTypeHeader =
         caseInsensitiveMap.getOrDefault(HttpHeaders.CONTENT_TYPE, "").toString();
     if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
-      String bodyAsString =
-          URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-      return Arrays.stream(bodyAsString.split("&"))
-          .filter(Objects::nonNull)
-          .map(param -> param.split("="))
-          .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
+      return parseFormUrlEncoded(new String(rawBody, StandardCharsets.UTF_8));
     } else {
       // Do our best to parse to JSON (throws exception otherwise)
       try {
