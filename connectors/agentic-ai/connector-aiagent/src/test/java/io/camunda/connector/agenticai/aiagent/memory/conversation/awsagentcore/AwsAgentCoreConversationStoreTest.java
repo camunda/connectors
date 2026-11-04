@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
@@ -34,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -893,7 +895,7 @@ class AwsAgentCoreConversationStoreTest {
                     .build());
     final var entry =
         DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
-    final var tag = DocumentReferences.from(entry).withDelivery(DocumentDelivery.CONTENT);
+    final var tag = DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT);
     final var tagOnlyMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
 
@@ -979,7 +981,9 @@ class AwsAgentCoreConversationStoreTest {
               assertThat(expanded.content()).hasSize(3);
               assertThat(expanded.content().subList(0, 2))
                   .containsExactly(
-                      TextContent.textContent("see"), TextContent.textContent(tag.toTag()));
+                      TextContent.textContent("see"),
+                      TextContent.textContent(
+                          DocumentTags.longTag(DocumentWorkspace.of(List.of(entry)), tag.id())));
               assertThat(expanded.content().get(2)).isInstanceOf(DocumentContent.class);
             });
     // the loaded conversation keeps the document reference only

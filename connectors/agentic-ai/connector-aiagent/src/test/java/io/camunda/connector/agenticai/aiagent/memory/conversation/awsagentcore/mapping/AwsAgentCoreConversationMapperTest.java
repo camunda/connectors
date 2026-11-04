@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.tuple;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
@@ -178,14 +177,7 @@ class AwsAgentCoreConversationMapperTest {
   void shouldRoundTripDocumentReferenceContentInOrderAsBlob() {
     // given - a document reference between plain texts keeps its delivery and its position
     var reference =
-        new DocumentReferenceContent(
-            DocumentId.of("d1"),
-            "a.txt",
-            "text/plain",
-            3L,
-            DocumentOrigin.userMessage(),
-            DocumentDelivery.CONTENT,
-            null);
+        new DocumentReferenceContent(DocumentId.of("d1"), DocumentDelivery.CONTENT, null);
     UserMessage original =
         UserMessage.builder()
             .content(List.of(textContent("before"), reference, textContent("after")))
@@ -223,7 +215,8 @@ class AwsAgentCoreConversationMapperTest {
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
 
     // then
-    assertThat(payloads.getFirst().conversational().content().text()).isEqualTo(reference.toTag());
+    assertThat(payloads.getFirst().conversational().content().text())
+        .isEqualTo("<doc id=\"%s\" />".formatted(reference.id()));
   }
 
   @Test

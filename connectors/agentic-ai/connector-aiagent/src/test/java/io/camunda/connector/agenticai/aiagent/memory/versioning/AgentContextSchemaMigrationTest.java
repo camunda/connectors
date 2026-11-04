@@ -657,13 +657,7 @@ class AgentContextSchemaMigrationTest {
           List.<Content>of(
               TextContent.textContent("Loaded the document."),
               new DocumentReferenceContent(
-                  DocumentId.of("doc-1"),
-                  "report.txt",
-                  "text/plain",
-                  10L,
-                  DocumentOrigin.toolCall("search", "call-1"),
-                  DocumentDelivery.REFERENCE,
-                  null),
+                  DocumentId.of("doc-1"), DocumentDelivery.REFERENCE, null),
               TextContent.textContent("Its content follows in the next message."));
       final var result =
           ToolCallResultContent.builder()

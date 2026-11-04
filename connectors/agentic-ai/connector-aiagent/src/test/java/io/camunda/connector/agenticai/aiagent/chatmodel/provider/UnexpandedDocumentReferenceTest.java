@@ -18,7 +18,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.too
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
@@ -40,15 +39,7 @@ class UnexpandedDocumentReferenceTest {
   private static final ObjectMapper OBJECT_MAPPER = TestObjectMapperSupplier.INSTANCE;
 
   private static final List<Content> CONTENT =
-      List.of(
-          new DocumentReferenceContent(
-              DocumentId.of("doc-1"),
-              "a.txt",
-              "text/plain",
-              3L,
-              DocumentOrigin.toolCall("tool", "call-1"),
-              DocumentDelivery.CONTENT,
-              null));
+      List.of(new DocumentReferenceContent(DocumentId.of("doc-1"), DocumentDelivery.CONTENT, null));
 
   static Stream<Named<Consumer<List<Content>>>> converters() {
     return Stream.of(

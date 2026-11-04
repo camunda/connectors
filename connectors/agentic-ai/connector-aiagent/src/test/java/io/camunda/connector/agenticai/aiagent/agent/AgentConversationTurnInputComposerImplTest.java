@@ -24,7 +24,9 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -32,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -252,29 +255,22 @@ class AgentConversationTurnInputComposerImplTest {
     var userMessage = (UserMessage) ((CompositionResult.NextTurn) result).messages().getFirst();
     assertThat(userMessage.content())
         .containsExactly(
-            textContent("Tell me a story"),
-            documentReference(
-                document,
-                "notes.txt",
-                "text/plain",
-                DocumentOrigin.userMessage(),
-                DocumentDelivery.CONTENT));
-    assertThat(((DocumentReferenceContent) userMessage.content().get(1)).toTag())
+            textContent("Tell me a story"), documentReference(document, DocumentDelivery.CONTENT));
+    final var ingested = ((CompositionResult.NextTurn) result).documents();
+    assertThat(ingested)
+        .containsExactly(new IngestedDocument(document, DocumentOrigin.userMessage()));
+    assertThat(
+            DocumentTags.longTag(
+                DocumentIngestion.withDocuments(DocumentWorkspace.empty(), ingested),
+                DocumentHandle.idFor(document)))
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"notes.txt\" contentType=\"text/plain\" source=\"user_message\" />"
                 .formatted(DocumentHandle.idFor(document)));
-    assertThat(((CompositionResult.NextTurn) result).documents())
-        .containsExactly(new IngestedDocument(document, DocumentOrigin.userMessage()));
   }
 
   private static DocumentReferenceContent documentReference(
-      Document document,
-      String fileName,
-      String contentType,
-      DocumentOrigin source,
-      DocumentDelivery delivery) {
-    return new DocumentReferenceContent(
-        DocumentHandle.idFor(document), fileName, contentType, null, source, delivery, null);
+      Document document, DocumentDelivery delivery) {
+    return new DocumentReferenceContent(DocumentHandle.idFor(document), delivery, null);
   }
 
   @Test
@@ -591,13 +587,7 @@ class AgentConversationTurnInputComposerImplTest {
                   .contains(
                       textContent(
                           AgentConversationTurnInputComposerImpl.EVENT_DOCUMENT_TAGS_PREAMBLE))
-                  .contains(
-                      documentReference(
-                          eventDoc,
-                          "event.pdf",
-                          "application/pdf",
-                          DocumentOrigin.event(),
-                          DocumentDelivery.REFERENCE))
+                  .contains(documentReference(eventDoc, DocumentDelivery.REFERENCE))
                   .noneMatch(DocumentContent.class::isInstance);
               assertThat(eventMessage.metadata())
                   .doesNotContainKey(UserMessage.METADATA_TOOL_CALL_DOCUMENTS);

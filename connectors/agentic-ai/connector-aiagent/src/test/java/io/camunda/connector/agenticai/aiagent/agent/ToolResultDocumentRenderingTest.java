@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -141,11 +142,11 @@ class ToolResultDocumentRenderingTest {
 
     // the providers never see a reference: the windowed result holds the tag of the document
     assertThat(windowed.results().get(0).content())
-        .containsExactly(TextContent.textContent(DocumentReferences.from(bare).toTag()));
+        .containsExactly(TextContent.textContent(DocumentTags.shortTag(bare)));
     assertThat(windowed.results().get(1).content())
         .containsExactly(
             ObjectContent.objectContent(
-                Map.of("status", 200, "file", DocumentReferences.from(nested).toTag())));
+                Map.of("status", 200, "file", DocumentTags.shortTag(nested))));
 
     for (int i = 0; i < results.size(); i++) {
       final var fileName = i == 0 ? "bare.pdf" : "nested.txt";

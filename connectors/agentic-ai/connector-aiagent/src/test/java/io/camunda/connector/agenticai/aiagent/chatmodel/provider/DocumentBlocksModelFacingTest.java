@@ -96,7 +96,7 @@ class DocumentBlocksModelFacingTest {
                         .content(
                             List.<Content>of(
                                 textContent("Loaded the document."),
-                                DocumentReferences.from(workspace.entries().getFirst()),
+                                DocumentReferences.from(report),
                                 textContent("Its content follows in the next message.")))
                         .build()))
             .build();

@@ -51,9 +51,9 @@ class DocumentExpanderTest {
             .build());
   }
 
-  private static DocumentWorkspace workspaceOf(Document document, DocumentOrigin source) {
+  private static DocumentWorkspace workspaceOf(Document document, DocumentOrigin origin) {
     return DocumentIngestion.withDocuments(
-        DocumentWorkspace.empty(), List.of(new IngestedDocument(document, source)));
+        DocumentWorkspace.empty(), List.of(new IngestedDocument(document, origin)));
   }
 
   private static UserMessage userMessage(Content... content) {
@@ -62,11 +62,17 @@ class DocumentExpanderTest {
 
   private static DocumentReferenceContent reference(
       DocumentWorkspace workspace, int index, DocumentDelivery delivery) {
-    return DocumentReferences.from(workspace.entries().get(index)).withDelivery(delivery);
+    return new DocumentReferenceContent(workspace.entries().get(index).id(), delivery, null);
   }
 
-  private static TextContent tagOf(DocumentReferenceContent reference) {
-    return textContent(reference.toTag());
+  private static TextContent tagOf(
+      DocumentWorkspace workspace, DocumentReferenceContent reference) {
+    return textContent(DocumentTags.longTag(workspace, reference.id()));
+  }
+
+  private static TextContent shortTagOf(
+      DocumentWorkspace workspace, DocumentReferenceContent reference) {
+    return textContent(DocumentTags.shortTag(workspace, reference.id()));
   }
 
   private List<Content> expand(List<Content> content, DocumentWorkspace workspace) {
@@ -97,7 +103,8 @@ class DocumentExpanderTest {
     final var expanded = expand(List.of(textContent("preamble"), reference), workspace);
 
     assertThat(expanded).hasSize(3);
-    assertThat(expanded.subList(0, 2)).containsExactly(textContent("preamble"), tagOf(reference));
+    assertThat(expanded.subList(0, 2))
+        .containsExactly(textContent("preamble"), tagOf(workspace, reference));
     assertRebuiltDocumentIs(expanded.get(2), document);
   }
 
@@ -119,9 +126,9 @@ class DocumentExpanderTest {
 
     final var content = ((UserMessage) expanded.getFirst()).content();
     assertThat(content).hasSize(3);
-    assertThat(content.get(0)).isEqualTo(tagOf(withContent));
+    assertThat(content.get(0)).isEqualTo(tagOf(workspace, withContent));
     assertRebuiltDocumentIs(content.get(1), documentWithContent);
-    assertThat(content.get(2)).isEqualTo(tagOf(referenced));
+    assertThat(content.get(2)).isEqualTo(tagOf(workspace, referenced));
   }
 
   @Test
@@ -133,7 +140,8 @@ class DocumentExpanderTest {
 
     final var expanded = expander.expandMessages(List.of(message), workspace);
 
-    assertThat(((UserMessage) expanded.getFirst()).content()).containsExactly(tagOf(reference));
+    assertThat(((UserMessage) expanded.getFirst()).content())
+        .containsExactly(tagOf(workspace, reference));
     assertThat(((UserMessage) expanded.getFirst()).id()).isEqualTo(message.id());
   }
 
@@ -148,13 +156,13 @@ class DocumentExpanderTest {
   @Test
   void expandingForTheModelKeepsTheTagWithoutContentWhenTheDocumentIsNotInTheWorkspace() {
     final var reference =
-        new DocumentReferenceContent(
-            DocumentId.of("unknown"), null, null, null, null, DocumentDelivery.CONTENT, null);
+        new DocumentReferenceContent(DocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
 
     final var expanded =
         expander.expandMessages(List.of(userMessage(reference)), DocumentWorkspace.empty());
 
-    assertThat(((UserMessage) expanded.getFirst()).content()).containsExactly(tagOf(reference));
+    assertThat(((UserMessage) expanded.getFirst()).content())
+        .containsExactly(tagOf(DocumentWorkspace.empty(), reference));
   }
 
   @Test
@@ -166,7 +174,7 @@ class DocumentExpanderTest {
     final var expanded = expander.expandContent(List.of(reference), workspace);
 
     assertThat(expanded).hasSize(2);
-    assertThat(expanded.get(0)).isEqualTo(tagOf(reference));
+    assertThat(expanded.get(0)).isEqualTo(tagOf(workspace, reference));
     assertRebuiltDocumentIs(expanded.get(1), document);
   }
 
@@ -181,7 +189,10 @@ class DocumentExpanderTest {
                 new IngestedDocument(external, DocumentOrigin.userMessage()),
                 new IngestedDocument(inline, DocumentOrigin.userMessage())));
     final var references =
-        workspace.entries().stream().<Content>map(DocumentReferences::from).toList();
+        workspace.entries().stream()
+            .<Content>map(
+                entry -> new DocumentReferenceContent(entry.id(), DocumentDelivery.REFERENCE, null))
+            .toList();
 
     final var expanded = expand(references, workspace);
 
@@ -199,17 +210,15 @@ class DocumentExpanderTest {
 
     assertThat(expand(content, workspace))
         .hasSize(2)
-        .containsExactly(tagOf(reference), DocumentContent.documentContent(document));
+        .containsExactly(tagOf(workspace, reference), DocumentContent.documentContent(document));
   }
 
   @Test
   void expandsAReferenceToItsTagOnlyWhenTheWorkspaceCannotSupplyTheDocument() {
     final var unknown =
-        new DocumentReferenceContent(
-            DocumentId.of("unknown"), null, null, null, null, DocumentDelivery.REFERENCE, null);
+        new DocumentReferenceContent(DocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);
     final var broken =
-        new DocumentReferenceContent(
-            DocumentId.of("broken"), null, null, null, null, DocumentDelivery.REFERENCE, null);
+        new DocumentReferenceContent(DocumentId.of("broken"), DocumentDelivery.REFERENCE, null);
     final var brokenWorkspace =
         DocumentWorkspace.of(
             List.of(
@@ -220,21 +229,22 @@ class DocumentExpanderTest {
 
     // for the history: no entry, and an entry whose reference cannot be read
     assertThat(expand(List.of(textContent("text"), unknown), DocumentWorkspace.empty()))
-        .containsExactly(textContent("text"), tagOf(unknown));
-    assertThat(expand(List.of(broken), brokenWorkspace)).containsExactly(tagOf(broken));
+        .containsExactly(textContent("text"), tagOf(DocumentWorkspace.empty(), unknown));
+    assertThat(expand(List.of(broken), brokenWorkspace))
+        .containsExactly(tagOf(brokenWorkspace, broken));
     // for the model: the same in a tool result
     assertThat(
             resultContent(
                 expander
                     .expandMessages(List.of(toolResultMessage(unknown)), DocumentWorkspace.empty())
                     .getFirst()))
-        .containsExactly(tagOf(unknown));
+        .containsExactly(shortTagOf(DocumentWorkspace.empty(), unknown));
     assertThat(
             resultContent(
                 expander
                     .expandMessages(List.of(toolResultMessage(broken)), brokenWorkspace)
                     .getFirst()))
-        .containsExactly(tagOf(broken));
+        .containsExactly(shortTagOf(brokenWorkspace, broken));
   }
 
   @Test
@@ -314,7 +324,7 @@ class DocumentExpanderTest {
     final var content = resultContent(expanded.getFirst());
     assertThat(content).hasSize(2);
     assertThat(content.get(0)).isEqualTo(textContent("before"));
-    assertThat(content.get(1)).isEqualTo(tagOf(reference));
+    assertThat(content.get(1)).isEqualTo(shortTagOf(workspace, reference));
   }
 
   @Test
@@ -322,22 +332,22 @@ class DocumentExpanderTest {
     final var document = camundaDocument("hello");
     final var workspace = workspaceOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
     final var reference = DocumentReferences.from(document);
-    final var entryReference = reference(workspace, 0, DocumentDelivery.REFERENCE);
 
     final var expanded =
         resultContent(
-            expander
-                .expandMessages(List.of(toolResultMessage(entryReference)), workspace)
-                .getFirst());
+            expander.expandMessages(List.of(toolResultMessage(reference)), workspace).getFirst());
     final var withoutWorkspace =
         resultContent(
             expander
                 .expandMessages(List.of(toolResultMessage(reference)), DocumentWorkspace.empty())
                 .getFirst());
 
-    assertThat(entryReference.toTag()).contains("toolName").contains("toolCallId");
-    assertThat(expanded).containsExactly(tagOf(reference));
-    assertThat(withoutWorkspace).containsExactly(tagOf(reference));
+    assertThat(DocumentTags.longTag(workspace, reference.id()))
+        .contains("toolName")
+        .contains("toolCallId");
+    assertThat(expanded).containsExactly(textContent(DocumentTags.shortTag(document)));
+    assertThat(withoutWorkspace)
+        .containsExactly(textContent(DocumentTags.idOnlyTag(reference.id())));
   }
 
   @Test
@@ -353,7 +363,7 @@ class DocumentExpanderTest {
             workspace);
 
     assertThat(resultContent(expanded.getFirst()))
-        .containsExactly(tagOf(DocumentReferences.from(document)));
+        .containsExactly(shortTagOf(workspace, DocumentReferences.from(document)));
   }
 
   @Test
@@ -389,7 +399,7 @@ class DocumentExpanderTest {
                     "status",
                     200,
                     "files",
-                    List.of(Map.of("file", DocumentReferences.from(document).toTag()))),
+                    List.of(Map.of("file", DocumentTags.shortTag(document)))),
                 metadata));
     assertThat(resultContent(message).getFirst())
         .isInstanceOfSatisfying(
@@ -410,7 +420,7 @@ class DocumentExpanderTest {
 
     assertThat(((UserMessage) expanded.getFirst()).content())
         .containsExactly(
-            ObjectContent.objectContent(Map.of("file", DocumentReferences.from(document).toTag())));
+            ObjectContent.objectContent(Map.of("file", DocumentTags.shortTag(document))));
   }
 
   @Test
@@ -437,8 +447,8 @@ class DocumentExpanderTest {
                 200,
                 "files",
                 List.of(
-                    Map.of("file", DocumentReferences.from(first).toTag()),
-                    Map.of("file", DocumentReferences.from(second).toTag()))));
+                    Map.of("file", DocumentTags.shortTag(first)),
+                    Map.of("file", DocumentTags.shortTag(second)))));
     assertThat(tagged.documents()).containsExactly(first, second);
   }
 

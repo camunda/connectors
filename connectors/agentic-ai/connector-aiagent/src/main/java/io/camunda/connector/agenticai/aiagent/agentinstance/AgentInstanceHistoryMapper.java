@@ -19,7 +19,7 @@ import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -247,7 +247,9 @@ public class AgentInstanceHistoryMapper {
     for (final var content : contents) {
       if (content instanceof DocumentReferenceContent reference) {
         final var expanded = documentExpander.expandContent(List.of(reference), workspace);
-        blocks.add(AgentInstanceHistoryContent.text(inlineCode(reference.toTag())));
+        blocks.add(
+            AgentInstanceHistoryContent.text(
+                inlineCode(DocumentTags.longTag(workspace, reference.id()))));
         expanded.stream().skip(1).forEach(document -> blocks.add(toHistoryContent(document)));
       } else {
         blocks.add(toHistoryContent(content));
@@ -275,12 +277,12 @@ public class AgentInstanceHistoryMapper {
         case DocumentContent documentContent ->
             addDocument(
                 blocks,
-                DocumentReferences.from(documentContent.document()),
+                DocumentTags.shortTag(documentContent.document()),
                 documentContent.document());
         case DocumentReferenceContent reference ->
             addDocument(
                 blocks,
-                reference,
+                DocumentTags.shortTag(workspace, reference.id()),
                 documentExpander.findDocument(workspace, reference.id()).orElse(null));
         case ObjectContent objectContent -> addObject(blocks, objectContent);
         default -> blocks.add(toHistoryContent(content));
@@ -290,12 +292,9 @@ public class AgentInstanceHistoryMapper {
   }
 
   private void addDocument(
-      List<AgentInstanceHistoryContent> blocks,
-      DocumentReferenceContent reference,
-      @Nullable Document document) {
+      List<AgentInstanceHistoryContent> blocks, String shortTag, @Nullable Document document) {
     // the tag the model reads for the document of a tool result, the short one
-    final var tag = document != null ? DocumentReferences.from(document) : reference;
-    blocks.add(AgentInstanceHistoryContent.text(inlineCode(tag.toTag())));
+    blocks.add(AgentInstanceHistoryContent.text(inlineCode(shortTag)));
     if (document != null && hasHistoryDocument(document)) {
       blocks.add(documentHistoryContent(DocumentContent.documentContent(document)));
     }
@@ -333,7 +332,7 @@ public class AgentInstanceHistoryMapper {
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
       case DocumentReferenceContent reference ->
-          AgentInstanceHistoryContent.text(reference.toTag());
+          AgentInstanceHistoryContent.text(DocumentTags.idOnlyTag(reference.id()));
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };

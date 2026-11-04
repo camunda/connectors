@@ -154,7 +154,7 @@ class InProcessConversationStoreTest {
     final var entry =
         DocumentIngestion.entryFor(
             new IngestedDocument(document, DocumentOrigin.toolCall("fetch", "call-1")));
-    final var reference = DocumentReferences.from(entry).withDelivery(DocumentDelivery.CONTENT);
+    final var reference = DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT);
     final var message =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), reference)).build();
 
