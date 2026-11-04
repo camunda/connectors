@@ -26,14 +26,12 @@ public interface RuntimeTools {
       AgentExecutionContext executionContext, AgentContext agentContext);
 
   /**
-   * Executes the calls, which must be calls of {@link
-   * io.camunda.connector.agenticai.aiagent.model.tool.ToolKind#RUNTIME runtime tools}, and returns
-   * one execution per call in call order.
+   * Executes the calls, which must be calls of runtime tools offered in this job, and returns one
+   * execution per call in call order.
    *
-   * <p>A call of a tool that does not exist or is not enabled when it is executed gets an error
-   * result, and so does a {@link
-   * io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException}. Any other exception
-   * propagates.
+   * <p>A call of a tool that is no longer enabled when it is executed gets an error result, and so
+   * does a {@link io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException}. Any other
+   * exception propagates.
    */
   List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls);

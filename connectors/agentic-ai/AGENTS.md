@@ -226,8 +226,9 @@ High-frequency traps (detail behind each link):
   computes it again. A call takes the kind of the tool of its name among the tools offered in the job; a name that is not
   offered is a runtime call. When the model issues runtime and process calls together, only the process calls are activated, and
   the runtime calls are executed when the next turn is composed, merged with the process results in call order. `ToolCall.kind` is
-  persisted (written only for `RUNTIME`, missing reads as `PROCESS`), so every conversation store must keep it. A runtime
-  call whose tool does not exist or is not enabled when it is executed gets an error result. `ai-agent.md` §9,
+  persisted (written only for `RUNTIME`, missing reads as `PROCESS`), so every conversation store must keep it. The agent
+  answers a runtime call whose tool is not offered with an error result itself (`executeAgentAnsweredCalls`), and
+  `RuntimeTools` only receives calls of offered tools. `ai-agent.md` §9,
   [ADR 016](docs/adr/016-runtime-tools.md).
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
