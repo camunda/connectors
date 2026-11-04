@@ -58,7 +58,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -1830,7 +1830,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
                         TextContent.textContent("Created the report."),
-                        TextContent.textContent(DocumentReferences.from(NEW_REPORT).toTag())));
+                        TextContent.textContent(DocumentTags.shortTag(NEW_REPORT))));
 
     // the history of the second round is written with the workspace that holds the document
     final var startContexts = ArgumentCaptor.forClass(AgentContext.class);
@@ -1866,7 +1866,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
                         TextContent.textContent("Created the report."),
-                        TextContent.textContent(DocumentReferences.from(NEW_REPORT).toTag())));
+                        TextContent.textContent(DocumentTags.shortTag(NEW_REPORT))));
   }
 
   @Test

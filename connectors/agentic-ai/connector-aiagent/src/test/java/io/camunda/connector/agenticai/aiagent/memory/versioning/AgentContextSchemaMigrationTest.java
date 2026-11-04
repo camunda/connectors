@@ -15,7 +15,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
@@ -531,13 +530,7 @@ class AgentContextSchemaMigrationTest {
           List.<Content>of(
               TextContent.textContent("Loaded the document."),
               new DocumentReferenceContent(
-                  DocumentId.of("doc-1"),
-                  "report.txt",
-                  "text/plain",
-                  10L,
-                  DocumentOrigin.toolCall("search", "call-1"),
-                  DocumentDelivery.REFERENCE,
-                  null),
+                  DocumentId.of("doc-1"), DocumentDelivery.REFERENCE, null),
               TextContent.textContent("Its content follows in the next message."));
       final var result =
           ToolCallResultContent.builder()

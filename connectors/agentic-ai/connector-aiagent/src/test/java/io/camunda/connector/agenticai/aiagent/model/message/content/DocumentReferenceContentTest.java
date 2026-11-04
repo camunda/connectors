@@ -8,399 +8,47 @@ package io.camunda.connector.agenticai.aiagent.model.message.content;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.InlineDocument;
-import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class DocumentReferenceContentTest {
 
-  private final DocumentFactoryImpl documentFactory =
-      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-
   @Test
-  void camundaDocumentRendersIdFileNameContentTypeAndToolOriginAndNeverItsStoreInternals() {
-    final var doc =
-        documentFactory.create(
-            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-                .contentType("application/pdf")
-                .fileName("report.pdf")
-                .build());
-
-    final var tag =
-        DocumentReferences.from(doc, DocumentOrigin.toolCall("search", "call_abc")).toTag();
-
-    assertThat(tag)
-        .isEqualTo(
-            "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" toolName=\"search\" toolCallId=\"call_abc\" />"
-                .formatted(DocumentHandle.idFor(doc)));
-    assertThat(tag).doesNotContain("storeId", "contentHash", "documentId", "metadata", "url");
-  }
-
-  @Test
-  void camundaDocumentWithoutToolOriginOmitsToolAttributes() {
-    final var doc =
-        documentFactory.create(
-            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-                .contentType("text/plain")
-                .fileName("a.txt")
-                .build());
-
-    assertThat(DocumentReferences.from(doc).toTag())
-        .isEqualTo(
-            "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" />"
-                .formatted(DocumentHandle.idFor(doc)));
-  }
-
-  @Test
-  void camundaDocumentWithoutMetadataOmitsFileNameAndContentType() {
-    final var doc =
-        documentFactory.create(
-            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8)).build());
-
-    assertThat(DocumentReferences.from(doc).toTag())
-        .startsWith("<doc id=\"%s\"".formatted(DocumentHandle.idFor(doc)))
-        .doesNotContain("fileName", "contentType", "toolName", "toolCallId");
-  }
-
-  @Test
-  void externalDocumentUsesReferenceNameAndNeverRendersTheUrlOrFetchesMetadata() {
-    // the downloader fails on use: rendering must not trigger a download for the content type
-    final var doc =
-        new ExternalDocument(
-            "https://example.com/files/report.pdf?X-Token=secret", "Quarterly Report", u -> null);
-
-    final var xml =
-        DocumentReferences.from(doc, DocumentOrigin.toolCall("search", "call_abc")).toTag();
-
-    assertThat(xml)
-        .isEqualTo(
-            "<doc id=\"%s\" fileName=\"Quarterly Report\" toolName=\"search\" toolCallId=\"call_abc\" />"
-                .formatted(DocumentHandle.idFor(doc)));
-    assertThat(xml).doesNotContain("example.com", "secret", "url");
-  }
-
-  @Test
-  void externalDocumentWithoutNameOmitsFileNameInsteadOfTakingItFromTheUrl() {
-    final var doc =
-        new ExternalDocument(
-            "https://example.com/a/b/my%20file.pdf?X-Token=secret#frag", null, u -> null);
-
-    assertThat(DocumentReferences.from(doc).toTag())
-        .isEqualTo("<doc id=\"%s\" />".formatted(DocumentHandle.idFor(doc)));
-    assertThat(
-            DocumentReferences.from(new ExternalDocument("https://example.com/x", "", u -> null))
-                .fileName())
-        .isNull();
-  }
-
-  @Test
-  void inlineDocumentWithoutContentTypeOmitsItInsteadOfResolvingItFromTheName() {
-    final var doc = new InlineDocument("{\"a\":1}", "data.json", null);
-
-    assertThat(DocumentReferences.from(doc).toTag())
-        .isEqualTo("<doc id=\"%s\" fileName=\"data.json\" />".formatted(DocumentHandle.idFor(doc)));
-  }
-
-  @Test
-  void inlineDocumentRendersNameAndContentType() {
+  void theBlockOfADocumentHoldsItsIdAndTheDeliveryReference() {
     final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
 
-    assertThat(DocumentReferences.from(doc, DocumentOrigin.toolCall("gen", "call_1")).toTag())
+    assertThat(DocumentReferences.from(doc))
         .isEqualTo(
-            "<doc id=\"%s\" fileName=\"data.json\" contentType=\"application/json\" toolName=\"gen\" toolCallId=\"call_1\" />"
-                .formatted(DocumentHandle.idFor(doc)));
-  }
-
-  @Test
-  void omitsAFileNameThatEqualsTheId() {
-    final var doc =
-        documentFactory.create(
-            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-                .documentId("0f6b0a1e-aaaa-bbbb-cccc-0123456789ab")
-                .fileName("0f6b0a1e-aaaa-bbbb-cccc-0123456789ab")
-                .contentType("text/plain")
-                .build());
-    final var entry =
-        DocumentIngestion.entryFor(
-            new IngestedDocument(doc, DocumentOrigin.toolCall("tool", "call_1")));
-    final var expected =
-        "<doc id=\"0f6b0a1e-aaaa-bbbb-cccc-0123456789ab\" contentType=\"text/plain\""
-            + " toolName=\"tool\" toolCallId=\"call_1\" />";
-
-    assertThat(DocumentReferences.from(doc, DocumentOrigin.toolCall("tool", "call_1")).toTag())
-        .isEqualTo(expected);
-    assertThat(DocumentReferences.from(entry).toTag()).isEqualTo(expected);
-  }
-
-  @Test
-  void keepsAFileNameThatDiffersFromTheId() {
-    assertThat(reference("doc-1", "doc-1.txt", null, null, null, null, null).toTag())
-        .isEqualTo("<doc id=\"doc-1\" fileName=\"doc-1.txt\" />");
-  }
-
-  @Test
-  void escapesSpecialCharactersInAttributes() {
-    final var doc = new ExternalDocument("https://example.com/x", "a<b>\"c\"&.pdf", u -> null);
-
-    assertThat(
-            DocumentReferences.from(doc, DocumentOrigin.toolCall("tool<with\"quotes>", "call_1"))
-                .toTag())
-        .contains("fileName=\"a&lt;b&gt;&quot;c&quot;&amp;.pdf\"")
-        .contains("toolName=\"tool&lt;with&quot;quotes&gt;\"");
-  }
-
-  @Test
-  void workspaceDocumentRendersTheSameTagAsTheDocument() {
-    final var documents =
-        List.<Document>of(
-            documentFactory.create(
-                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-                    .contentType("text/plain")
-                    .fileName("a.txt")
-                    .build()),
-            documentFactory.create(
-                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8)).build()),
-            new ExternalDocument(
-                "https://example.com/files/report.pdf?t=secret", "Report", u -> null),
-            new ExternalDocument("https://example.com/files/report.pdf?t=secret", null, u -> null),
-            new InlineDocument("{\"a\":1}", "data.json", "application/json"),
-            new InlineDocument("{\"a\":1}", "data.json", null));
-
-    for (final var doc : documents) {
-      for (final var origin : List.of(List.<String>of(), List.of("call_1", "tool"))) {
-        final var toolCallId = origin.isEmpty() ? null : origin.get(0);
-        final var toolName = origin.isEmpty() ? null : origin.get(1);
-        final var entry =
-            DocumentIngestion.entryFor(
-                new IngestedDocument(doc, DocumentOrigin.toolCall(toolName, toolCallId)));
-
-        assertThat(DocumentReferences.from(entry))
-            .as("%s from %s", doc.reference(), origin)
-            .isEqualTo(DocumentReferences.from(doc, DocumentOrigin.toolCall(toolName, toolCallId)));
-        assertThat(DocumentReferences.from(entry).toTag())
-            .isEqualTo(
-                DocumentReferences.from(doc, DocumentOrigin.toolCall(toolName, toolCallId))
-                    .toTag());
-      }
-    }
-  }
-
-  @Test
-  void userMessageAndEventDocumentsCarryTheSourceInsteadOfToolAttributes() {
-    final var doc =
-        documentFactory.create(
-            DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-                .contentType("text/plain")
-                .fileName("a.txt")
-                .build());
-
-    assertThat(DocumentReferences.from(doc, DocumentOrigin.userMessage()).toTag())
-        .isEqualTo(
-            "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"user_message\" />"
-                .formatted(DocumentHandle.idFor(doc)));
-    assertThat(DocumentReferences.from(doc, DocumentOrigin.event()).toTag())
-        .isEqualTo(
-            "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"event\" />"
-                .formatted(DocumentHandle.idFor(doc)));
-  }
-
-  @Test
-  void workspaceDocumentOfAUserMessageDocumentRendersTheSource() {
-    final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
-    final var entry = DocumentIngestion.entryFor(new IngestedDocument(doc, DocumentOrigin.event()));
-
-    assertThat(DocumentReferences.from(entry))
-        .isEqualTo(DocumentReferences.from(doc, DocumentOrigin.event()));
-    assertThat(DocumentReferences.from(entry).origin()).isEqualTo(DocumentOrigin.event());
-  }
-
-  private static Document camundaDocumentWithSize(@Nullable Long size) {
-    final var reference = mock(CamundaDocumentReference.class);
-    when(reference.getDocumentId()).thenReturn("doc-1");
-    final var metadata = mock(DocumentMetadata.class);
-    when(metadata.getFileName()).thenReturn("report.pdf");
-    when(metadata.getContentType()).thenReturn("application/pdf");
-    when(metadata.getSize()).thenReturn(size);
-    final var document = mock(Document.class);
-    when(document.reference()).thenReturn(reference);
-    when(document.metadata()).thenReturn(metadata);
-    return document;
-  }
-
-  @Test
-  void camundaDocumentWithASizeInItsMetadataRendersTheSizeAfterTheContentType() {
-    final var document = camundaDocumentWithSize(48213L);
-
-    assertThat(DocumentReferences.from(document).toTag())
-        .isEqualTo(
-            "<doc id=\"doc-1\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" />");
-  }
-
-  @Test
-  void theSizeIsReadFromTheMetadataWithoutReadingTheDocument() {
-    final var document = camundaDocumentWithSize(10L);
-
-    DocumentReferences.from(document, DocumentOrigin.toolCall("search", "call_1"));
-
-    verify(document, atLeastOnce()).reference();
-    verify(document, atLeastOnce()).metadata();
-    verifyNoMoreInteractions(document);
-  }
-
-  @Test
-  void workspaceDocumentRendersTheSizeOfItsCamundaReference() {
-    final var entry =
-        new WorkspaceDocument(
-            DocumentId.of("doc-1"),
-            DocumentOrigin.userMessage(),
-            Map.of(
-                "camunda.document.type",
-                "camunda",
-                "documentId",
-                "doc-1",
-                "metadata",
-                Map.of("fileName", "report.pdf", "contentType", "application/pdf", "size", 48213)));
-
-    assertThat(DocumentReferences.from(entry).toTag())
-        .isEqualTo(
-            "<doc id=\"doc-1\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" source=\"user_message\" />");
-    assertThat(
-            DocumentReferences.from(
-                    new WorkspaceDocument(
-                        DocumentId.of("ext"),
-                        DocumentOrigin.userMessage(),
-                        Map.of("camunda.document.type", "external", "size", 5)))
-                .toTag())
-        .doesNotContain("size=");
-  }
-
-  @Test
-  void aDocumentWithoutAKnownSizeRendersNone() {
-    assertThat(DocumentReferences.from(camundaDocumentWithSize(null)).toTag())
-        .doesNotContain("size=");
-    assertThat(
-            DocumentReferences.from(
-                    new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null))
-                .toTag())
-        .doesNotContain("size=");
-    assertThat(
-            DocumentReferences.from(new InlineDocument("{\"a\":1}", "d.json", "application/json"))
-                .toTag())
-        .doesNotContain("size=");
-  }
-
-  private static DocumentReferenceContent reference(
-      String id,
-      @Nullable String fileName,
-      @Nullable String contentType,
-      @Nullable Long size,
-      @Nullable String source,
-      @Nullable String toolName,
-      @Nullable String toolCallId) {
-    final DocumentOrigin documentSource =
-        "user_message".equals(source)
-            ? DocumentOrigin.userMessage()
-            : "event".equals(source)
-                ? DocumentOrigin.event()
-                : toolName == null && toolCallId == null
-                    ? null
-                    : DocumentOrigin.toolCall(toolName, toolCallId);
-    return new DocumentReferenceContent(
-        id == null ? null : DocumentId.of(id),
-        fileName,
-        contentType,
-        size,
-        documentSource,
-        DocumentDelivery.REFERENCE,
-        null);
-  }
-
-  @Test
-  void rendersAllAttributesInOrder() {
-    assertThat(
-            reference(
-                    "doc-1",
-                    "report.pdf",
-                    "application/pdf",
-                    48213L,
-                    "user_message",
-                    "search",
-                    "call_abc")
-                .toTag())
-        .isEqualTo(
-            "<doc id=\"doc-1\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" source=\"user_message\" toolName=\"search\" toolCallId=\"call_abc\" />");
-  }
-
-  @Test
-  void omitsNullAndBlankAttributes() {
-    assertThat(reference("doc-1", " ", "", null, "  ", null, "").toTag())
-        .isEqualTo("<doc id=\"doc-1\" />");
-  }
-
-  @Test
-  void theDeliveryDoesNotChangeTheTag() {
-    final var reference = reference("doc-1", "a.txt", "text/plain", 3L, "event", null, null);
-
-    assertThat(reference.withDelivery(DocumentDelivery.CONTENT).toTag())
-        .isEqualTo(reference.toTag());
+            new DocumentReferenceContent(
+                DocumentHandle.idFor(doc), DocumentDelivery.REFERENCE, null));
   }
 
   @Test
   void withDeliveryReturnsACopyWithTheDeliveryAndEverythingElseUnchanged() {
     final var reference =
         new DocumentReferenceContent(
-            DocumentId.of("doc-1"),
-            "a.txt",
-            "text/plain",
-            3L,
-            DocumentOrigin.toolCall("tool", "call_1"),
-            DocumentDelivery.REFERENCE,
-            Map.of("k", "v"));
+            DocumentId.of("doc-1"), DocumentDelivery.REFERENCE, Map.of("k", "v"));
 
     final var withContent = reference.withDelivery(DocumentDelivery.CONTENT);
 
     assertThat(withContent)
         .isEqualTo(
             new DocumentReferenceContent(
-                DocumentId.of("doc-1"),
-                "a.txt",
-                "text/plain",
-                3L,
-                DocumentOrigin.toolCall("tool", "call_1"),
-                DocumentDelivery.CONTENT,
-                Map.of("k", "v")));
+                DocumentId.of("doc-1"), DocumentDelivery.CONTENT, Map.of("k", "v")));
     assertThat(reference.delivery()).isEqualTo(DocumentDelivery.REFERENCE);
     assertThat(withContent.withDelivery(DocumentDelivery.REFERENCE)).isEqualTo(reference);
   }
 
   @Test
   void rejectsAMissingId() {
-    assertThatThrownBy(() -> reference(null, null, null, null, null, null, null))
+    assertThatThrownBy(() -> new DocumentReferenceContent(null, DocumentDelivery.REFERENCE, null))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -409,13 +57,7 @@ class DocumentReferenceContentTest {
     final var objectMapper = new ObjectMapper();
     final Content reference =
         new DocumentReferenceContent(
-            DocumentId.of("doc-1"),
-            "a.txt",
-            "text/plain",
-            3L,
-            DocumentOrigin.toolCall("tool", "call_1"),
-            DocumentDelivery.CONTENT,
-            Map.of("k", "v"));
+            DocumentId.of("doc-1"), DocumentDelivery.CONTENT, Map.of("k", "v"));
 
     final var serialized = objectMapper.writeValueAsString(reference);
 
@@ -427,23 +69,24 @@ class DocumentReferenceContentTest {
   @Test
   void serializesWithoutAbsentAttributesAndReadsAMissingDeliveryAsReference() throws Exception {
     final var objectMapper = new ObjectMapper();
-    final var reference = reference("doc-1", null, null, null, "event", null, null);
+    final var reference =
+        new DocumentReferenceContent(DocumentId.of("doc-1"), DocumentDelivery.REFERENCE, null);
 
     final var serialized = objectMapper.writeValueAsString(reference);
 
     assertThat(serialized)
-        .isEqualTo(
-            "{\"type\":\"documentReference\",\"id\":\"doc-1\",\"source\":{\"type\":\"EVENT\"},\"delivery\":\"reference\"}");
+        .isEqualTo("{\"type\":\"documentReference\",\"id\":\"doc-1\",\"delivery\":\"reference\"}");
     assertThat(
             objectMapper.readValue(
-                "{\"type\":\"documentReference\",\"id\":\"doc-1\",\"source\":{\"type\":\"EVENT\"}}",
-                Content.class))
+                "{\"type\":\"documentReference\",\"id\":\"doc-1\"}", Content.class))
         .isEqualTo(reference);
   }
 
   @Test
   void notExpandedFailureNamesTheTypeAndTheExpansion() {
-    final var failure = reference("doc-1", null, null, null, null, null, null).notExpandedFailure();
+    final var failure =
+        new DocumentReferenceContent(DocumentId.of("doc-1"), DocumentDelivery.REFERENCE, null)
+            .notExpandedFailure();
 
     assertThat(failure)
         .hasMessageContaining("DocumentReferenceContent")

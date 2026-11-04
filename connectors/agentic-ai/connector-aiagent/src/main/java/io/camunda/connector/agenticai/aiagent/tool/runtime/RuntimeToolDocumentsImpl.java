@@ -9,10 +9,10 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,10 +45,9 @@ public final class RuntimeToolDocumentsImpl implements RuntimeToolDocuments {
 
   @Override
   public DocumentReferenceContent reference(DocumentId id) {
-    return DocumentReferences.from(
-        workspace
-            .findById(id)
-            .orElseThrow(
-                () -> new IllegalArgumentException("The agent does not know the document " + id)));
+    if (!workspace.contains(id)) {
+      throw new IllegalArgumentException("The agent does not know the document " + id);
+    }
+    return new DocumentReferenceContent(id, DocumentDelivery.REFERENCE, null);
   }
 }

@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.*;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -24,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -241,7 +243,7 @@ class AgentConversationTest {
                     .build());
     var entry =
         DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
-    var reference = DocumentReferences.from(entry).withDelivery(DocumentDelivery.CONTENT);
+    var reference = DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT);
     var storedMessage =
         UserMessage.builder().content(List.of(textContent("see"), reference)).build();
     var conv =
@@ -262,7 +264,11 @@ class AgentConversationTest {
               assertThat(expanded.id()).isEqualTo(storedMessage.id());
               assertThat(expanded.content()).hasSize(3);
               assertThat(expanded.content().subList(0, 2))
-                  .containsExactly(textContent("see"), textContent(reference.toTag()));
+                  .containsExactly(
+                      textContent("see"),
+                      textContent(
+                          DocumentTags.longTag(
+                              DocumentWorkspace.of(List.of(entry)), reference.id())));
               assertThat(expanded.content().get(2))
                   .isInstanceOfSatisfying(
                       DocumentContent.class,
@@ -288,7 +294,7 @@ class AgentConversationTest {
                     .build());
     var entry =
         DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
-    var reference = DocumentReferences.from(entry);
+    var reference = DocumentReferences.from(document);
     var storedMessage =
         UserMessage.builder().content(List.of(textContent("see"), reference)).build();
     var conv =
@@ -308,7 +314,11 @@ class AgentConversationTest {
             expanded -> {
               assertThat(expanded.id()).isEqualTo(storedMessage.id());
               assertThat(expanded.content())
-                  .containsExactly(textContent("see"), textContent(reference.toTag()));
+                  .containsExactly(
+                      textContent("see"),
+                      textContent(
+                          DocumentTags.longTag(
+                              DocumentWorkspace.of(List.of(entry)), reference.id())));
             });
     assertThat(storedMessage.content()).containsExactly(textContent("see"), reference);
   }
@@ -329,7 +339,7 @@ class AgentConversationTest {
         withContent.withContent(
             List.of(
                 textContent("see"),
-                DocumentReferences.from(entry).withDelivery(DocumentDelivery.CONTENT)));
+                DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT)));
     var conv =
         AgentConversation.rehydrate(
             CONFIG,
