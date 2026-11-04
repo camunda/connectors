@@ -28,9 +28,10 @@ Review a rule when its SDK or API area changes. Remove a rule when a build check
    - The help text of a new provider shows the value format that the runtime accepts.
    - Why: a missing part fails at runtime without an error. (#7129)
 5. **Claim only the guarantees that the other system enforces.**
-   - In this module: send the job lease token only together with the job key and the history items. The engine checks the lease only there.
+   - In this module: send the job key and the job lease token on every agent instance command. The engine rejects a command without them.
+   - The engine rejects a stale lease only on create. On update, it accepts the command and skips the status change.
    - Do not document fencing that the engine does not do.
-   - Why: the engine ignores the lease on all other commands. (#8342)
+   - Why: older docs claimed fencing that the engine did not do. (#8342)
 6. **Tests pin the whole observable outcome.** An assertion covers the complete result and the number of interactions, not a subset. This rule applies to all test code, including the e2e module.
    - Compare complete payloads, schemas and messages. Do not assert only some of their fields.
    - When code calls an external system in a loop or a retry, assert the exact number of calls.
