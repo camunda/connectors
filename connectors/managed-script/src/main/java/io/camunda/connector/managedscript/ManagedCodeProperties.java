@@ -44,7 +44,7 @@ public record ManagedCodeProperties(
   private static final Duration DEFAULT_PROVISIONING_RETRY_BACKOFF = Duration.ofSeconds(10);
 
   public ManagedCodeProperties {
-    provider = provider == null ? "" : provider.strip();
+    provider = provider == null ? "" : provider;
     deploymentNamePrefix =
         deploymentNamePrefix == null || deploymentNamePrefix.isBlank()
             ? DEFAULT_DEPLOYMENT_NAME_PREFIX

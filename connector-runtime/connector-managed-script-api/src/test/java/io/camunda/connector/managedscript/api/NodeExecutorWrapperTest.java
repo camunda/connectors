@@ -36,9 +36,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Runs the JavaScript wrapper on a real {@code node}, through its local entry point. Skipped when
- * no {@code node} is on the PATH. The local mode only kills the process group of its own script, so
- * the tests never touch other processes of the host.
+ * Runs the JavaScript wrapper on a real {@code node}, through a test driver that calls its core.
+ * Skipped when no {@code node} is on the PATH. The local mode only kills the process group of its
+ * own script, so the tests never touch other processes of the host.
  */
 class NodeExecutorWrapperTest {
 
@@ -54,6 +54,9 @@ class NodeExecutorWrapperTest {
     node = findNode().filter(NodeExecutorWrapperTest::works);
     for (var file : ExecutorWrapper.of(ScriptLanguage.JAVASCRIPT).files().entrySet()) {
       Files.write(wrapper.resolve(file.getKey()), file.getValue());
+    }
+    try (var driver = NodeExecutorWrapperTest.class.getResourceAsStream("test_driver.mjs")) {
+      Files.write(wrapper.resolve("test_driver.mjs"), driver.readAllBytes());
     }
   }
 
@@ -391,7 +394,7 @@ class NodeExecutorWrapperTest {
     final var stdout = Files.createTempFile(callTmp, "response", ".json");
     final var builder =
         new ProcessBuilder(
-                node.orElseThrow().toString(), wrapper.resolve("local_call.mjs").toString())
+                node.orElseThrow().toString(), wrapper.resolve("test_driver.mjs").toString())
             .redirectError(ProcessBuilder.Redirect.DISCARD)
             .redirectOutput(stdout.toFile());
     builder.environment().put("EXECUTOR_TMP", executorTmp.toString());

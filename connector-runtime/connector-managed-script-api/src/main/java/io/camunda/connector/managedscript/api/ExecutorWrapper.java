@@ -36,10 +36,10 @@ import java.util.TreeMap;
  * executors from {@link #digest}, so that a runtime only calls executors whose wrapper it knows.
  *
  * <p>For JavaScript: {@code executor_core.mjs}, the shared core, which exports {@code
- * createExecutor}; {@code child.mjs}, the child runner; and {@code local_call.mjs}, an entry point
- * that runs one call read from stdin, in local mode. For Python, the same three files: {@code
- * executor_core.py}, which defines {@code create_executor}, {@code child.py} and {@code
- * local_call.py}.
+ * createExecutor}, and {@code child.mjs}, the child runner. For Python, the same two files: {@code
+ * executor_core.py}, which defines {@code create_executor}, and {@code child.py}. What connects the
+ * core to a platform, such as a Lambda handler or the stdin entry point of the local provider, is
+ * the adapter of the provider, added with {@link #with}.
  *
  * @param files file name to content, in name order
  */
@@ -49,10 +49,8 @@ public record ExecutorWrapper(ScriptLanguage language, Map<String, byte[]> files
   public static final int NAME_DIGEST_LENGTH = 12;
 
   private static final String ROOT = "/io/camunda/connector/managedscript/executor/";
-  private static final List<String> JAVASCRIPT_FILES =
-      List.of("child.mjs", "executor_core.mjs", "local_call.mjs");
-  private static final List<String> PYTHON_FILES =
-      List.of("child.py", "executor_core.py", "local_call.py");
+  private static final List<String> JAVASCRIPT_FILES = List.of("child.mjs", "executor_core.mjs");
+  private static final List<String> PYTHON_FILES = List.of("child.py", "executor_core.py");
 
   public ExecutorWrapper {
     final Map<String, byte[]> copy = new TreeMap<>();
