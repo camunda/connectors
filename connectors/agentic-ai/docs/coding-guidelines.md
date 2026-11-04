@@ -80,4 +80,4 @@ in an ADR or reference doc, not the method's javadoc.
 
 ## 6. Design
 
-Follow the [design rules](design-rules.md).
+Follow the [code design rules](code-design.md).

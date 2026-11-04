@@ -30,7 +30,7 @@ Task guidance and architecture live in linked documents:
 - [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md): help text conventions for
   element templates
 - [`docs/coding-guidelines.md`](docs/coding-guidelines.md): general coding behavior
-- [`docs/design-rules.md`](docs/design-rules.md): design rules for new code
+- [`docs/code-design.md`](docs/code-design.md): code design rules for new code
 - [`docs/domain-rules.md`](docs/domain-rules.md): domain rules from past review findings
 - [`docs/target-architecture.md`](docs/target-architecture.md): target state of the module
 - [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
@@ -253,11 +253,11 @@ When designing stored shapes, names, defaults, limits or observability, read
 
 @docs/coding-guidelines.md
 
-@docs/design-rules.md
+@docs/code-design.md
 
 @docs/domain-rules.md
 
-If your tool does not resolve `@` imports, read [`docs/design-rules.md`](docs/design-rules.md) and
+If your tool does not resolve `@` imports, read [`docs/code-design.md`](docs/code-design.md) and
 [`docs/domain-rules.md`](docs/domain-rules.md) too.
 The [target architecture](docs/target-architecture.md) shows the target state of the module. Read it
 before you plan a structural change: a new module, collaborator, SPI or cross-module policy.
@@ -314,7 +314,7 @@ Before claiming a change is complete:
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
 - [ ] The change follows the [domain rules](docs/domain-rules.md) and the
-  [design rules](docs/design-rules.md).
+  [code design rules](docs/code-design.md).
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
   A break of `aiagent-api` or `aiagent-model` fails the build until it is accepted in the module's
