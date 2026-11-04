@@ -171,7 +171,7 @@ class TurnReconstructorTest {
 
     var turn = result.turns().getFirst();
     assertThat(turn.toolCalls()).containsExactlyElementsOf(a1.toolCalls());
-    assertThat(turn.runtimeToolCalls()).extracting(ToolCall::id).containsExactly(RUNTIME_CALL_ID);
+    assertThat(turn.localToolCalls()).extracting(ToolCall::id).containsExactly(RUNTIME_CALL_ID);
     assertThat(turn.processToolCalls()).extracting(ToolCall::id).containsExactly(PROCESS_CALL_ID);
     assertThat(turn.toolCallsById().get(RUNTIME_CALL_ID).kind()).isEqualTo(ToolKind.RUNTIME);
     assertThat(turn.toolCallsById().get(PROCESS_CALL_ID).kind()).isEqualTo(ToolKind.PROCESS);

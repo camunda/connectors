@@ -588,13 +588,13 @@ class AgentConversationTurnInputComposerImplTest {
       AgentInput input,
       ToolCallResultContent... runtimeResults) {
     final var result = composer.compose(configuration, CTX_WITH_CONVERSATION, history, input);
-    if (result instanceof CompositionResult.RuntimeToolResultsRequired required) {
-      return composer.composeWithRuntimeToolResults(
+    if (result instanceof CompositionResult.LocalToolCallResultsRequired required) {
+      return composer.composeWithLocalToolCallResults(
           configuration,
           CTX_WITH_CONVERSATION,
           history,
           input,
-          executionsOf(required.runtimeToolCalls(), runtimeResults));
+          executionsOf(required.localToolCalls(), runtimeResults));
     }
     return result;
   }
@@ -605,7 +605,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void runtimeToolCalls_mergeWithTheArrivedProcessResultsInToolCallOrder() {
+  void localToolCalls_mergeWithTheArrivedProcessResultsInToolCallOrder() {
     // the first call is the runtime tool call, the result of the second one arrives
     var input = inputWith(TOOL_CALL_RESULTS.get(1));
 
@@ -621,7 +621,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void runtimeToolCalls_keepToolCallOrderWhenTheRuntimeCallComesLast() {
+  void localToolCalls_keepToolCallOrderWhenTheRuntimeCallComesLast() {
     var calls = List.of(TOOL_CALLS.get(0), TOOL_CALLS.get(1).withKind(ToolKind.RUNTIME));
     var input = inputWith(TOOL_CALL_RESULTS.getFirst());
 
@@ -667,10 +667,11 @@ class AgentConversationTurnInputComposerImplTest {
 
     var required = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    assertThat(required).isEqualTo(new CompositionResult.RuntimeToolResultsRequired(RUNTIME_CALLS));
+    assertThat(required)
+        .isEqualTo(new CompositionResult.LocalToolCallResultsRequired(RUNTIME_CALLS));
 
     var result =
-        composer.composeWithRuntimeToolResults(
+        composer.composeWithLocalToolCallResults(
             CONFIG,
             CTX_WITH_CONVERSATION,
             history,
@@ -683,7 +684,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void runtimeToolCalls_needTheirResultsOnceTheProcessResultsHaveArrived() {
+  void localToolCalls_needTheirResultsOnceTheProcessResultsHaveArrived() {
     var result =
         composer.compose(
             CONFIG,
@@ -693,11 +694,11 @@ class AgentConversationTurnInputComposerImplTest {
 
     assertThat(result)
         .isEqualTo(
-            new CompositionResult.RuntimeToolResultsRequired(List.of(MIXED_CALLS.getFirst())));
+            new CompositionResult.LocalToolCallResultsRequired(List.of(MIXED_CALLS.getFirst())));
   }
 
   @Test
-  void runtimeToolCalls_areNotRequiredWhileTheProcessResultsAreMissing() {
+  void localToolCalls_areNotRequiredWhileTheProcessResultsAreMissing() {
     var result =
         composer.compose(CONFIG, CTX_WITH_CONVERSATION, historyWith(MIXED_CALLS), inputWith());
 
@@ -706,7 +707,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void runtimeToolCalls_doNotGoThroughTheGatewayTransformation() {
+  void localToolCalls_doNotGoThroughTheGatewayTransformation() {
     composeWithRuntimeResults(
         CONFIG, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)), RUNTIME_RESULT);
 
@@ -715,7 +716,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void runtimeToolCalls_partialArrivalDefersAndCarriesOnlyTheProcessResults() {
+  void localToolCalls_partialArrivalDefersAndCarriesOnlyTheProcessResults() {
     var threeCalls =
         List.of(
             MIXED_CALLS.get(0),
@@ -734,7 +735,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void runtimeToolCalls_interruptCancelsOnlyTheMissingProcessCalls() {
+  void localToolCalls_interruptCancelsOnlyTheMissingProcessCalls() {
     var input = inputWith(ToolCallResult.builder().content("An event occurred").build());
 
     var result =
@@ -754,20 +755,20 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void runtimeToolCalls_interruptWithoutAnyProcessCallStillNeedsTheirResults() {
+  void localToolCalls_interruptWithoutAnyProcessCallStillNeedsTheirResults() {
     var input = inputWith(ToolCallResult.builder().content("An event occurred").build());
 
     var result =
         composer.compose(
             INTERRUPTING_CONFIG, CTX_WITH_CONVERSATION, historyWith(RUNTIME_CALLS), input);
 
-    assertThat(result).isEqualTo(new CompositionResult.RuntimeToolResultsRequired(RUNTIME_CALLS));
+    assertThat(result).isEqualTo(new CompositionResult.LocalToolCallResultsRequired(RUNTIME_CALLS));
   }
 
   @Test
   void composingWithRuntimeToolResults_neverRequiresThemAgain() {
     var result =
-        composer.composeWithRuntimeToolResults(
+        composer.composeWithLocalToolCallResults(
             CONFIG,
             CTX_WITH_CONVERSATION,
             historyWith(MIXED_CALLS),
@@ -780,7 +781,7 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void composingWithRuntimeToolResults_defersWhileTheProcessResultsAreMissing() {
     var result =
-        composer.composeWithRuntimeToolResults(
+        composer.composeWithLocalToolCallResults(
             CONFIG,
             CTX_WITH_CONVERSATION,
             historyWith(MIXED_CALLS),
@@ -796,7 +797,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input = inputWith(TOOL_CALL_RESULTS.get(1));
 
     assertThatThrownBy(() ->
-            composer.composeWithRuntimeToolResults(
+            composer.composeWithLocalToolCallResults(
                 CONFIG, CTX_WITH_CONVERSATION, history, input, List.of()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("abcdef");
@@ -810,7 +811,7 @@ class AgentConversationTurnInputComposerImplTest {
     var executions = executionsOf(TOOL_CALLS, RUNTIME_RESULT, SECOND_RUNTIME_RESULT);
 
     assertThatThrownBy(() ->
-            composer.composeWithRuntimeToolResults(
+            composer.composeWithLocalToolCallResults(
                 CONFIG, CTX_WITH_CONVERSATION, history, input, executions))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("abcdef")
@@ -824,7 +825,7 @@ class AgentConversationTurnInputComposerImplTest {
     var executions = executionsOf(MIXED_CALLS, RUNTIME_RESULT, RUNTIME_RESULT);
 
     assertThatThrownBy(() ->
-            composer.composeWithRuntimeToolResults(
+            composer.composeWithLocalToolCallResults(
                 CONFIG, CTX_WITH_CONVERSATION, history, input, executions))
         .isInstanceOf(IllegalStateException.class);
   }
@@ -836,7 +837,7 @@ class AgentConversationTurnInputComposerImplTest {
     var executions = executionsOf(MIXED_CALLS, RUNTIME_RESULT);
 
     assertThatThrownBy(() ->
-            composer.composeWithRuntimeToolResults(
+            composer.composeWithLocalToolCallResults(
                 CONFIG, CTX_WITH_CONVERSATION, history, input, executions))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("abcdef");
@@ -845,7 +846,7 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void composingWithoutExecutionsForATurnWithoutRuntimeToolCalls_composesTheTurn() {
     var result =
-        composer.composeWithRuntimeToolResults(
+        composer.composeWithLocalToolCallResults(
             CONFIG,
             CTX_WITH_CONVERSATION,
             historyWith(TOOL_CALLS),
@@ -859,7 +860,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void runtimeToolCalls_areNotRequiredForAPromptTurn() {
+  void localToolCalls_areNotRequiredForAPromptTurn() {
     var input = AgentInput.from(new UserPromptConfiguration("Hello?", List.of()), List.of());
     var history =
         TurnReconstructor.reconstruct(List.of(userMessage("hi"), assistantMessage("hello")));

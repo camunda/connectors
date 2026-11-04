@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
+import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -76,13 +77,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   @Override
-  public CompositionResult composeWithRuntimeToolResults(
+  public CompositionResult composeWithLocalToolCallResults(
       AgentConfiguration configuration,
       AgentContext agentContext,
       PreviousConversation previousConversation,
       AgentInput agentInput,
       List<RuntimeToolExecution> executions) {
-    requireExecutionsOfTheRuntimeToolCalls(previousConversation, executions);
+    requireResultsOfLocalToolCalls(previousConversation, executions);
     return compose(
         configuration, agentContext, previousConversation, agentInput, List.copyOf(executions));
   }
@@ -91,26 +92,26 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
    * @throws IllegalStateException if the executions are not exactly the executions of the runtime
    *     tool calls of the last turn of the previous conversation
    */
-  private void requireExecutionsOfTheRuntimeToolCalls(
+  private void requireResultsOfLocalToolCalls(
       PreviousConversation previousConversation, List<RuntimeToolExecution> executions) {
     final var expectedIds =
         previousConversation.turns().isEmpty()
             ? List.<String>of()
-            : previousConversation.turns().getLast().runtimeToolCalls().stream()
+            : previousConversation.turns().getLast().localToolCalls().stream()
                 .map(ToolCall::id)
                 .toList();
     final var givenIds = executions.stream().map(execution -> execution.call().id()).toList();
     if (givenIds.size() != expectedIds.size()
         || !new HashSet<>(givenIds).equals(new HashSet<>(expectedIds))) {
       throw new IllegalStateException(
-          "The executions must be exactly the executions of the runtime tool calls of the previous turn. Expected the tool call ids %s but got %s."
+          "The executions must be exactly the executions of the local tool calls of the previous turn. Expected the tool call ids %s but got %s."
               .formatted(expectedIds, givenIds));
     }
   }
 
   /**
-   * @param executions the executions of the runtime tool calls of the previous turn, empty while
-   *     none is given
+   * @param executions the executions of the local tool calls of the previous turn, empty while none
+   *     is given
    */
   private CompositionResult compose(
       AgentConfiguration configuration,
@@ -156,8 +157,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       if (!processResults.complete()) {
         return new CompositionResult.Deferred(processResults.arrivedResults());
       }
-      if (previousTurn.hasRuntimeToolCalls() && executions.isEmpty()) {
-        return new CompositionResult.RuntimeToolResultsRequired(previousTurn.runtimeToolCalls());
+      if (previousTurn.hasLocalToolCalls() && executions.isEmpty()) {
+        return new CompositionResult.LocalToolCallResultsRequired(previousTurn.localToolCalls());
       }
 
       messages.addAll(
@@ -271,10 +272,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             .collect(Collectors.toMap(execution -> execution.call().id(), Function.identity()));
     return toolCalls.stream()
         .map(toolCall ->
-            switch (toolCall.kind()) {
-              case PROCESS -> processEntry(toolCall, processResultsById.get(toolCall.id()));
-              case RUNTIME -> runtimeEntry(toolCall, executionsById.get(toolCall.id()));
-            })
+            AgentConversationTurn.isLocalToolCall(toolCall)
+                ? localEntry(toolCall, executionsById.get(toolCall.id()))
+                : processEntry(toolCall, processResultsById.get(toolCall.id())))
         .toList();
   }
 
@@ -291,7 +291,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return new ToolCallResultsInputBuilder.Entry(ToolCallResultContent.from(result), documents);
   }
 
-  private ToolCallResultsInputBuilder.Entry runtimeEntry(
+  private ToolCallResultsInputBuilder.Entry localEntry(
       ToolCall toolCall, @Nullable RuntimeToolExecution execution) {
     if (execution == null) {
       throw new IllegalStateException(

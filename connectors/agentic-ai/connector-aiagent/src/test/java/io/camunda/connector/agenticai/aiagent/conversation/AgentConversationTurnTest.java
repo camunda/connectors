@@ -91,17 +91,37 @@ class AgentConversationTurnTest {
     var turn = turnWithCalls(runtimeFirst, process, runtimeSecond);
 
     assertThat(turn.toolCalls()).containsExactly(runtimeFirst, process, runtimeSecond);
-    assertThat(turn.runtimeToolCalls()).containsExactly(runtimeFirst, runtimeSecond);
+    assertThat(turn.localToolCalls()).containsExactly(runtimeFirst, runtimeSecond);
     assertThat(turn.processToolCalls()).containsExactly(process);
-    assertThat(turn.hasRuntimeToolCalls()).isTrue();
+    assertThat(turn.hasLocalToolCalls()).isTrue();
     assertThat(turn.hasProcessToolCalls()).isTrue();
+  }
+
+  @Test
+  void aRejectedCallIsAnsweredByTheAgentAndNeverGoesToTheProcess() {
+    var rejected = new ToolCall("x1", "acme_unknown", Map.of()).withRejection("does not exist");
+    var process = new ToolCall("p1", "getWeather", Map.of());
+    var turn = turnWithCalls(rejected, process);
+
+    assertThat(turn.localToolCalls()).containsExactly(rejected);
+    assertThat(turn.processToolCalls()).containsExactly(process);
+    assertThat(turnWithCalls(rejected).hasProcessToolCalls()).isFalse();
+  }
+
+  @Test
+  void theAgentAnswersTheCallsOfRuntimeToolsAndRejectedCallsOnly() {
+    var process = new ToolCall("id", "name", Map.of());
+
+    assertThat(AgentConversationTurn.isLocalToolCall(process)).isFalse();
+    assertThat(AgentConversationTurn.isLocalToolCall(process.withKind(ToolKind.RUNTIME))).isTrue();
+    assertThat(AgentConversationTurn.isLocalToolCall(process.withRejection("no"))).isTrue();
   }
 
   @Test
   void aTurnOfRuntimeToolCallsOnlyHasNoProcessToolCalls() {
     var turn = turnWithCalls(new ToolCall("r1", "acme_a", Map.of()).withKind(ToolKind.RUNTIME));
 
-    assertThat(turn.hasRuntimeToolCalls()).isTrue();
+    assertThat(turn.hasLocalToolCalls()).isTrue();
     assertThat(turn.hasProcessToolCalls()).isFalse();
     assertThat(turn.processToolCalls()).isEmpty();
   }
@@ -115,9 +135,9 @@ class AgentConversationTurnTest {
         new AgentConversationTurn(1, List.of(userMessage("hi")), null, AgentMetrics.empty(), null);
 
     for (var t : List.of(turn, pending)) {
-      assertThat(t.hasRuntimeToolCalls()).isFalse();
+      assertThat(t.hasLocalToolCalls()).isFalse();
       assertThat(t.hasProcessToolCalls()).isFalse();
-      assertThat(t.runtimeToolCalls()).isEmpty();
+      assertThat(t.localToolCalls()).isEmpty();
       assertThat(t.processToolCalls()).isEmpty();
     }
   }

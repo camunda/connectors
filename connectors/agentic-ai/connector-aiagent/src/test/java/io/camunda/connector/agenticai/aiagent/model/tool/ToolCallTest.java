@@ -136,7 +136,40 @@ class ToolCallTest {
 
     assertThat(runtime.kind()).isEqualTo(ToolKind.RUNTIME);
     assertThat(runtime)
-        .isEqualTo(new ToolCall("id", "name", Map.of("a", 1), Map.of("k", "v"), ToolKind.RUNTIME));
+        .isEqualTo(
+            new ToolCall("id", "name", Map.of("a", 1), Map.of("k", "v"), ToolKind.RUNTIME, null));
     assertThat(runtime.withKind(ToolKind.PROCESS)).isEqualTo(process);
+  }
+
+  @Test
+  void aCallWithoutRejectionIsSerializedWithoutIt() throws Exception {
+    final String json =
+        objectMapper.writeValueAsString(new ToolCall("toolu_1", "get_weather", Map.of()));
+
+    assertThat(objectMapper.readTree(json).has("rejection")).isFalse();
+    assertThat(objectMapper.readValue(json, ToolCall.class).rejection()).isNull();
+  }
+
+  @Test
+  void aRejectedCallIsSerializedWithItsRejectionAndRoundTrips() throws Exception {
+    final var toolCall =
+        new ToolCall("toolu_1", "acme_unknown", Map.of("a", 1), Map.of("k", "v"))
+            .withRejection("The tool 'acme_unknown' does not exist.");
+
+    final String json = objectMapper.writeValueAsString(toolCall);
+
+    JSONAssert.assertEquals(
+        """
+        {
+          "id": "toolu_1",
+          "name": "acme_unknown",
+          "arguments": {"a": 1},
+          "metadata": {"k": "v"},
+          "rejection": "The tool 'acme_unknown' does not exist."
+        }
+        """,
+        json,
+        true);
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
   }
 }

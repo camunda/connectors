@@ -17,8 +17,13 @@ import org.jspecify.annotations.Nullable;
 /**
  * A call of a tool by the model.
  *
- * <p>{@code kind} says how the call is answered. It is written to JSON only for a {@link
- * ToolKind#RUNTIME} call; a missing value reads as {@link ToolKind#PROCESS}.
+ * <p>{@code kind} is the kind of the tool the call names, set once when the model response arrives.
+ * It is written to JSON only for a {@link ToolKind#RUNTIME} call; a missing value reads as {@link
+ * ToolKind#PROCESS}.
+ *
+ * <p>{@code rejection} is the error text that is the tool call result of a call that must not be
+ * carried out, such as the call of a tool that does not exist. It is set once, together with {@code
+ * kind}, and written to JSON only when set.
  */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolCall.ToolCallJacksonProxyBuilder.class)
@@ -29,13 +34,14 @@ public record ToolCall(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata,
     @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = ProcessKindFilter.class)
         @RecordBuilder.Initializer("DEFAULT_KIND")
-        ToolKind kind)
+        ToolKind kind,
+    @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String rejection)
     implements ToolCallBuilder.With {
 
   public static final ToolKind DEFAULT_KIND = ToolKind.PROCESS;
 
   public ToolCall(String id, String name, Map<String, Object> arguments) {
-    this(id, name, arguments, null, DEFAULT_KIND);
+    this(id, name, arguments, null, DEFAULT_KIND, null);
   }
 
   public ToolCall(
@@ -43,7 +49,7 @@ public record ToolCall(
       String name,
       Map<String, Object> arguments,
       @Nullable Map<String, Object> metadata) {
-    this(id, name, arguments, metadata, DEFAULT_KIND);
+    this(id, name, arguments, metadata, DEFAULT_KIND, null);
   }
 
   public static ToolCallBuilder builder() {

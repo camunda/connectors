@@ -42,7 +42,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
@@ -55,6 +54,7 @@ import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
@@ -143,13 +143,12 @@ public abstract class BaseAgentRequestHandler<
       var compositionResult =
           agentInputComposer.compose(configuration, agentContext, previousConversation, agentInput);
       if (compositionResult
-          instanceof CompositionResult.RuntimeToolResultsRequired(var runtimeToolCalls)) {
-        // the results of the process arrived: the agent executes its own calls now
-        final var executions =
-            executeAgentAnsweredCalls(
-                executionContext, agentContext, configuration.toolDefinitions(), runtimeToolCalls);
+          instanceof CompositionResult.LocalToolCallResultsRequired(var localToolCalls)) {
+        // the results of the process arrived: the agent produces the results of its own tool calls
+        // now
+        final var executions = localToolCallResults(executionContext, agentContext, localToolCalls);
         compositionResult =
-            agentInputComposer.composeWithRuntimeToolResults(
+            agentInputComposer.composeWithLocalToolCallResults(
                 configuration, agentContext, previousConversation, agentInput, executions);
       }
       return switch (compositionResult) {
@@ -163,9 +162,9 @@ public abstract class BaseAgentRequestHandler<
           LOGGER.debug("No input could be composed for this turn");
           yield handleNoInput(executionContext);
         }
-        case CompositionResult.RuntimeToolResultsRequired ignored ->
+        case CompositionResult.LocalToolCallResultsRequired ignored ->
             throw new IllegalStateException(
-                "The turn input was composed without the runtime tool results after they were computed");
+                "The turn input was composed without the results of the local tool calls after they were computed");
         case CompositionResult.NextTurn(var newMessages) ->
             proceed(
                 executionContext,
@@ -204,10 +203,10 @@ public abstract class BaseAgentRequestHandler<
 
   /**
    * Tags the calls with the kind of the offered tool of their name. A call of a name that is not
-   * offered is a runtime call: the agent answers it with an error result, and it never reaches the
-   * process.
+   * offered is rejected: its tool call result is an error, and it never reaches the process or a
+   * runtime tool, whatever the tools offered in a later job.
    */
-  private AssistantMessage withToolKinds(
+  private AssistantMessage tagToolCalls(
       List<ToolDefinition> offeredTools, AssistantMessage message) {
     if (!message.hasToolCalls()) {
       return message;
@@ -219,7 +218,12 @@ public abstract class BaseAgentRequestHandler<
                     ToolDefinition::name, ToolDefinition::kind, (first, second) -> first));
     return message.withToolCalls(
         message.toolCalls().stream()
-            .map(call -> call.withKind(kindsByName.getOrDefault(call.name(), ToolKind.RUNTIME)))
+            .map(call -> {
+              final var kind = kindsByName.get(call.name());
+              return kind == null
+                  ? call.withRejection("The tool '%s' does not exist.".formatted(call.name()))
+                  : call.withKind(kind);
+            })
             .toList());
   }
 
@@ -302,18 +306,21 @@ public abstract class BaseAgentRequestHandler<
      * called again to continue it.
      */
     CONTINUE,
-    /** The model called runtime tools only: the agent executes them and calls the model again. */
-    EXECUTE_RUNTIME_TOOLS
+    /**
+     * Every call of the message is a local tool call: the agent adds the results and calls the
+     * model again.
+     */
+    LOCAL_TOOL_CALL_RESULTS
   }
 
   private record ModelResponse(AgentConversation conversation, ChatResult chatResult) {}
 
   /**
    * Drives the chat model until a response needs no further round in this job, ingesting each round
-   * as its own turn. Further rounds follow a {@code Continuation} result and a message that calls
-   * runtime tools only; the agent executes those calls itself. A message that calls process tools
-   * ends the loop, also when it calls runtime tools too: those are executed when the turn that
-   * follows the process results is composed.
+   * as its own turn. Further rounds follow a {@code Continuation} result and a message that has
+   * local tool calls only, the calls of runtime tools and rejected calls. A message that calls
+   * process tools ends the loop, also when it has local tool calls too: their results are added
+   * when the turn that follows the process results is composed.
    */
   private AgentConversation driveContinuationLoop(
       C executionContext,
@@ -342,15 +349,15 @@ public abstract class BaseAgentRequestHandler<
           throwIfLimitsReached(workingConversation, agentConfiguration);
           workingConversation = workingConversation.nextContinuationRound();
         }
-        case EXECUTE_RUNTIME_TOOLS ->
+        case LOCAL_TOOL_CALL_RESULTS ->
             workingConversation =
-                executeRuntimeTools(
+                addLocalToolCallResults(
                     executionContext, agentConfiguration, workingConversation, agentInstanceKey);
         case STOP -> {
-          if (currentTurn.hasRuntimeToolCalls()) {
+          if (currentTurn.hasLocalToolCalls()) {
             LOGGER.debug(
-                "{} runtime tool calls of turn (iterationKey={}) are executed with the next turn; {} go to the process",
-                currentTurn.runtimeToolCalls().size(),
+                "{} calls of turn (iterationKey={}) get their results from the agent with the next turn; {} go to the process",
+                currentTurn.localToolCalls().size(),
                 currentTurn.iterationKey(),
                 currentTurn.processToolCalls().size());
           }
@@ -364,8 +371,8 @@ public abstract class BaseAgentRequestHandler<
     if (chatResult instanceof ChatResult.Continuation) {
       return NextStep.CONTINUE;
     }
-    return currentTurn.hasRuntimeToolCalls() && !currentTurn.hasProcessToolCalls()
-        ? NextStep.EXECUTE_RUNTIME_TOOLS
+    return currentTurn.hasLocalToolCalls() && !currentTurn.hasProcessToolCalls()
+        ? NextStep.LOCAL_TOOL_CALL_RESULTS
         : NextStep.STOP;
   }
 
@@ -380,9 +387,9 @@ public abstract class BaseAgentRequestHandler<
     final var windowedSnapshot = conversation.window(agentConfiguration.contextWindowSize());
     final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
-    // the one place the tool calls are tagged with the kind of their tool
+    // the one place the tool calls are tagged with the kind of their tool or rejected
     final var assistantMessage =
-        withToolKinds(agentConfiguration.toolDefinitions(), chatResult.assistantMessage());
+        tagToolCalls(agentConfiguration.toolDefinitions(), chatResult.assistantMessage());
     return new ModelResponse(
         conversation.ingest(assistantMessage, chatResult.metrics()), chatResult);
   }
@@ -410,23 +417,20 @@ public abstract class BaseAgentRequestHandler<
         status);
   }
 
-  private AgentConversation executeRuntimeTools(
+  private AgentConversation addLocalToolCallResults(
       C executionContext,
       AgentConfiguration agentConfiguration,
       AgentConversation conversation,
       @Nullable AgentInstanceKey agentInstanceKey) {
     final var currentTurn = conversation.currentTurn();
     LOGGER.debug(
-        "Executing the runtime tool calls of turn (iterationKey={}); calling the model again",
+        "Adding the results of the local tool calls of turn (iterationKey={}); calling the model again",
         currentTurn.iterationKey());
 
     throwIfLimitsReached(conversation, agentConfiguration);
     final var executions =
-        executeAgentAnsweredCalls(
-            executionContext,
-            conversation.persistedContext(),
-            agentConfiguration.toolDefinitions(),
-            currentTurn.runtimeToolCalls());
+        localToolCallResults(
+            executionContext, conversation.persistedContext(), currentTurn.localToolCalls());
     final var nextConversation =
         conversation.nextRuntimeToolRound(
             ToolCallResultsInputBuilder.build(
@@ -443,39 +447,26 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * Executes the calls the agent answers itself and returns one execution per call in call order. A
-   * call of an offered runtime tool is executed by the runtime tools; a call of a tool that is not
-   * offered gets an error result.
+   * Returns one execution per local tool call, in call order. A rejected call gets its rejection as
+   * an error result and is never executed; every other local tool call is the call of a runtime
+   * tool.
    */
-  private List<RuntimeToolExecution> executeAgentAnsweredCalls(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      List<ToolDefinition> offeredTools,
-      List<ToolCall> calls) {
-    final var runtimeToolNames =
-        offeredTools.stream()
-            .filter(tool -> tool.kind() == ToolKind.RUNTIME)
-            .map(ToolDefinition::name)
-            .collect(Collectors.toSet());
-    final var offeredCalls =
-        calls.stream().filter(call -> runtimeToolNames.contains(call.name())).toList();
-    final var executionsOfOfferedCalls =
-        (offeredCalls.isEmpty()
+  private List<RuntimeToolExecution> localToolCallResults(
+      AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
+    final var runtimeCalls = calls.stream().filter(call -> call.rejection() == null).toList();
+    final var executionsOfRuntimeCalls =
+        (runtimeCalls.isEmpty()
                 ? List.<RuntimeToolExecution>of()
-                : runtimeTools.execute(executionContext, agentContext, offeredCalls))
+                : runtimeTools.execute(executionContext, agentContext, runtimeCalls))
             .iterator();
     return calls.stream()
-        .map(call ->
-            runtimeToolNames.contains(call.name())
-                ? executionsOfOfferedCalls.next()
-                : doesNotExist(call))
+        .map(call -> call.rejection() == null ? executionsOfRuntimeCalls.next() : rejected(call))
         .toList();
   }
 
-  private static RuntimeToolExecution doesNotExist(ToolCall call) {
+  private static RuntimeToolExecution rejected(ToolCall call) {
     final var now = OffsetDateTime.now(ZoneId.systemDefault());
-    final var error =
-        RuntimeToolResult.error("The tool '%s' does not exist.".formatted(call.name()));
+    final var error = RuntimeToolResult.error(Objects.requireNonNull(call.rejection()));
     return new RuntimeToolExecution(
         call,
         ToolCallResultContent.builder()
