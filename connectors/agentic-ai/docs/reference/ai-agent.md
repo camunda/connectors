@@ -308,19 +308,23 @@ raises no incident. This is a deliberate exception to gating a persisted shape o
 `RuntimeTools` and the conversation read the features from the `AgentContext`; they are not part of the configuration
 fingerprint.
 
-**Documents.** `AgentContext.documents` is the document workspace: a list of entries `{id, source, reference}` (omitted when
+**Documents.** `AgentContext.documents` is the document workspace: a list of entries `{id, origin, reference}` (omitted when
 empty, no schema version bump; a missing field binds to an empty workspace), read and replaced through
-`AgentContext.documentWorkspace()` and `withDocumentWorkspace(...)`. `source` is `{type, toolName, toolCallId}`
-with the `type` `TOOL_CALL`, `USER_MESSAGE` or `EVENT`; `toolName` and `toolCallId` are present for `TOOL_CALL`. `reference` is the untouched JSON the standard
-`DocumentSerializer` emits (`DocumentIngestion.entryFor` maps it with a copy of the connectors object mapper); the file name
-and content type shown in tags are read from it, never stored. The workspace is immutable and insertion-ordered, the first
-registration of an id wins and a known id is never replaced. Because it rides in `agentContext`, it is independent of the
+`AgentContext.documentWorkspace()` and `withDocumentWorkspace(...)`. `origin` is the sealed `DocumentOrigin`
+(`UserMessage`, `Event`, `ToolCall`), persisted with the discriminator `type`: `{"type": "USER_MESSAGE"}`,
+`{"type": "EVENT"}` or `{"type": "TOOL_CALL", "toolName": ..., "toolCallId": ...}`. `reference` is the untouched JSON the standard
+`DocumentSerializer` emits (`DocumentIngestion.entryFor` maps it with a copy of the connectors object mapper); the file name,
+content type and size shown in tags are read from it, never stored, as the typed SDK reference
+(`DocumentIngestion.referenceOf`, which reads the map as a `DocumentReferenceModel` and needs no `DocumentFactory`). The workspace is immutable and insertion-ordered, the first
+registration of an id wins and a known id is never replaced; registering a document whose id belongs to a different
+document of the workspace fails with `DOCUMENT_ID_COLLISION` (§15). Because it rides in `agentContext`, it is independent of the
 conversation store and the context window. The persisted conversation is not self-contained: the content of a document
 comes from the workspace when the conversation is windowed, so replaying a conversation needs the workspace of the same
 `agentContext`; both are written by the same job completion. The workspace is never pruned. A Camunda document entry is about
 400 bytes; the bound is the broker message size of the job completion (4 MB), which matters together with the in-process
 store or inline documents (see "Document Extraction from Tool Call Results" in §19). The id of a document is a `DocumentId`
-(`aiagent.model.document`, persisted as a plain string). An 8.10 connector runtime ignores `features` and `documents` and
+(`aiagent.model.document`, persisted as a plain string) derived from the document: `doc_` followed by the first 12
+lowercase hex characters of the SHA-256 of its identity key (`DocumentHandle.idFor`, see "The tag" in §19). An 8.10 connector runtime ignores `features` and `documents` and
 drops them on its next write, and cannot read a conversation that holds a document reference block (the content type is
 unknown to it); a rollback after the new fields were written is not supported.
 
@@ -384,11 +388,10 @@ Neither is produced or consumed by the LangChain4j path yet; they exist so the s
 ready for chat model implementations that need them.
 
 `DocumentReferenceContent` (content type `documentReference`) is the persisted form of a document of an agent
-instance with the `documents` feature: the `DocumentId`, the attributes of its `<doc .../>` tag (`fileName`,
-`contentType`, `size`), its `source` (the `DocumentSource` of its workspace document, the same value; the tag shows its type,
-or its tool name and tool call id) and a `delivery`, `reference` or `content`. Its `toTag()`
-renders the tag the model sees. A document that is a whole tool result is persisted as such a block without a source
-(`DocumentReferences.withDocumentReferences`). The conversation window expands it before a request is built
+instance with the `documents` feature: the `DocumentId` and a `delivery`, `reference` or `content` (and the content
+`metadata`). The file name, content type, size and origin the model reads are those of the workspace document of the
+id: `DocumentTags` renders the tag the model sees from the workspace. A document that is a whole tool result is
+persisted as such a block, which is rendered as the short tag (`DocumentReferences.withDocumentReferences`). The conversation window expands it before a request is built
 (`DocumentExpander`, see §6): in a user message to the tag text and, with the delivery `content`, the document
 content; in a tool result to the tag text of the document. The provider content converters are not meant to be handed
 one: they fail with an `IllegalStateException`. The delivery is stored on each block, so earlier messages keep their bytes when the same
@@ -1121,7 +1124,7 @@ per-invocation resources without a shared singleton lifecycle. A `ChatModelFacto
 `ChatModelConfiguration` is a neutral descriptor a factory inspects to decide whether it can serve a
 request. It exposes just `provider()` (the provider discriminator) and `model()` (the model
 identifier) — enough for routing and agent-instance reporting — and is the type carried through
-`AgentConfiguration` (`chatModel()`) and dispatched on by the workspace, so a provider can supply its
+`AgentConfiguration` (`chatModel()`) and dispatched on by the registry, so a provider can supply its
 own configuration through the SPI rather than being confined to the module's built-in provider union.
 The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
 etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
@@ -1170,7 +1173,7 @@ LangChain4j is the first (and currently only) implementation behind the SPI, res
 factories:
 - `AgenticAiLangChain4JFrameworkConfiguration` wires the converter beans;
   `AgenticAiLangChain4JChatModelConfiguration` wires one `ChatModelFactory` bean per provider. Provider
-  selection is by `ChatModelFactory.supports(...)` via the SPI workspace, so the configuration loads
+  selection is by `ChatModelFactory.supports(...)` via the SPI registry, so the configuration loads
   unconditionally rather than behind a global framework toggle.
 - `LangChain4JChatModelFactory<T extends ProviderConfiguration>` (the v1 `ProviderConfiguration`) is the
   abstract base: `supports` matches a `ProviderConfiguration` whose `provider()` equals the factory's
@@ -1363,7 +1366,7 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 ### Key Differences from Standard Connectors
 
 1. **Dual activation modes**: Both an outbound connector (`AgentTaskV1Function`) and a job worker (`AgentSubProcessV1Function`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
-2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) allows the LangChain4j stack to be replaced or extended per provider. Provider selection is by `ChatModelFactory.supports(...)` via the SPI workspace; the LangChain4j configuration loads unconditionally.
+2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) allows the LangChain4j stack to be replaced or extended per provider. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry; the LangChain4j configuration loads unconditionally.
 3. **Pluggable system prompt contributors**: All `SystemPromptContributor` beans are auto-collected into `SystemPromptComposerImpl`.
 4. **Pluggable gateway tool handlers**: All `GatewayToolHandler` beans are auto-collected into `GatewayToolHandlerRegistryImpl`.
 5. **Caffeine caching of BPMN resolution**: Process definition fetch (API + XML parse + FEEL extraction) is cached with configurable TTL and max size.
@@ -1657,9 +1660,9 @@ The e2e modules, their test base classes and how to run them are described in th
 [e2e tests `AGENTS.md`](../../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md).
 
 The document workspace is covered by unit tests, each rule where it lives: the workspace and its entries, the document
-reference block, the composer and `ToolCallResultsInputBuilder` (document references, sources, the merge of runtime and
+reference block and the tags rendered from the workspace, the composer and `ToolCallResultsInputBuilder` (document references, origins, the merge of runtime and
 process results in call order), the expander and the window decorator, the runtime tool executor and the request handler
-with a test-only stateful tool, the history mapper, and the persistence round trips. A conversation persisted by Camunda
+with a test-only tool that returns a document, the history mapper, and the persistence round trips. A conversation persisted by Camunda
 8.10 pins the behavior of instances without the `documents` feature.
 
 ---
@@ -1820,15 +1823,26 @@ of the message ran, in the order of the calls and together with the documents of
 call that failed has none.
 
 **The tag.** `<doc id="..." fileName="..." contentType="..." size="..." source="..." toolName="..." toolCallId="..." />`,
-attributes in that order, XML-escaped, blank or unknown attributes omitted. `fileName` is the Camunda metadata file
-name, the external reference `name` or the inline `name`; it is omitted when it equals the id. `contentType` comes from
+attributes in that order, XML-escaped, blank or unknown attributes omitted. `DocumentTags` renders it from the workspace
+document of the id: the file name, content type and size are read from its stored reference, never by reading the
+document, and an id the workspace does not know is rendered as `<doc id="..." />`. `fileName` is the Camunda metadata file
+name, the external reference `name` or the inline `name`; it is omitted when it equals the Camunda document id of the
+reference (what a document stored without a name gets). `contentType` comes from
 the Camunda metadata or the `contentType` of an inline reference and is omitted for external documents (their metadata is
 available only after a download). `size` is the number of bytes, present for a Camunda document whose reference
-metadata carries one; it is never looked up by reading the document. `toolName` and `toolCallId` are present for the
-documents of a tool result, `source="user_message"` or `source="event"` for the others. A store id, a content hash and a URL
+metadata carries one. The long tag, for a user message and the documents of an event, adds the origin of the workspace
+document: `toolName` and `toolCallId` for a document of a tool result, `source="user_message"` or `source="event"` for
+the others. A store id, a content hash and a URL
 are never part of the tag. A document that is a whole tool
 result, and a document nested in the object of a result, shows the short tag without `source`, `toolName` and
-`toolCallId`. The id is stable per document (`DocumentHandle.idFor`).
+`toolCallId`.
+
+The id is `doc_` followed by the first 12 lowercase hex characters of the SHA-256 of the identity key of the document
+(`DocumentHandle.idFor`). The identity key is, per kind of reference, `camunda`, the store id and the document id; `external`
+and the URL; `inline` and the content. It is hashed as the concatenation of its parts, each as a 4-byte big-endian length
+and its UTF-8 bytes. The content hash and the metadata are not part of it, so the same document always gets the same id. Any
+other kind of reference, or an inline reference with blank content, fails with `FAILED_MODEL_CALL`. The id never exposes
+a store id, the id of the document in its store or a URL.
 
 **The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
 document goes out with the prompt, with no size limit and no type check, and a document the provider cannot read fails the
@@ -2284,8 +2298,8 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 ### 25.4 Add a runtime tool
 
-> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolDocuments`,
-> `AgentDocument`, `RuntimeToolResult` and `RuntimeToolException`, package `aiagent.api.tool` of `aiagent-api`) is
+> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`,
+> `RuntimeToolResult` and `RuntimeToolException`, package `aiagent.api.tool` of `aiagent-api`) is
 > experimental since 8.11 and may change in an
 > incompatible way in a minor release.
 
@@ -2306,8 +2320,7 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
    act on; any other exception fails the job. Keep no state in the tool: an agent runs one job after the other, possibly
    on different workers.
 4. Override `isEnabled` if the tool is offered only to some agents. It reads the invocation and the agent context from the
-   `RuntimeToolContext`, and is called when the tools of a job are assembled and again when a call is executed. A tool that
-   works with the document workspace requires the `documents` feature.
+   `RuntimeToolContext`, and is called when the tools of a job are assembled and again when a call is executed.
    Keep its answer stable while an agent instance runs: the tools are part of every model request, so a change
    invalidates the prompt cache of the provider and shows the model a different set of tools.
 5. Register the tool as a Spring bean of type `RuntimeTool`. `RuntimeTools` rejects blank and duplicate names and
@@ -2320,7 +2333,6 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
 - *Bounded execution time.* A call is executed in the thread of the job, without a timeout: stay well below the job timeout.
 - *Order and concurrency.* The results of a batch are applied in call order. `call` and `isEnabled` may be called from different
   threads, and a `RuntimeToolContext` is safe to read concurrently.
-  The calls of one message see the same `documents()`, the ones known when the batch starts.
 - *Mixed batches.* Runtime calls of a message that also calls process tools are executed in the job that composes the next turn
   (§9); a message that calls runtime tools only has them executed in the same job and calls the model again.
 - *Failures.* A call of a tool that is not offered in the job is rejected and gets the error result "does not exist" from the
@@ -2328,10 +2340,8 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   enabled when it is executed ("is not available"), a `RuntimeToolException` and `RuntimeToolResult.error` give an error
   result the model reads.
 
-**Documents.** `RuntimeToolContext#documents()` gives a read-only view of the documents the agent knows (`find`, `all`) and
-`reference(DocumentId)`, a content block the model reads as the tag of a known document. A `DocumentContent` block in the
-result is a new document: after the calls of the message ran, the agent registers it with the tool call as its source, and
-the model reads its tag only (§19). An error result registers nothing.
+**Documents.** A `DocumentContent` block in the result is a new document: after the calls of the message ran, the agent
+registers it with the tool call as its origin, and the model reads its tag only (§19). An error result registers nothing.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the
