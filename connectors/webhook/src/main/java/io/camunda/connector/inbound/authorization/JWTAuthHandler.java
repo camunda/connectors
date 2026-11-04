@@ -88,14 +88,13 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
     return Optional.ofNullable(verifiedJWT.getPayload())
         .map(payload -> Base64.getDecoder().decode(payload))
         .map(String::new)
-        .map(
-            decodedPayload -> {
-              try {
-                return objectMapper.readTree(decodedPayload);
-              } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-              }
-            })
+        .map(decodedPayload -> {
+          try {
+            return objectMapper.readTree(decodedPayload);
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .orElseThrow(() -> new RuntimeException("JWT payload is null!"));
   }
 
@@ -109,22 +108,21 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
       throws SignatureVerificationException, TokenExpiredException {
     DecodedJWT verifiedJWT =
         Optional.of(JWT.decode(jwtToken))
-            .map(
-                decodedJWT -> {
-                  try {
-                    Jwk jwk = jwkProvider.get(decodedJWT.getKeyId());
-                    var algorithmName =
-                        Optional.ofNullable(jwk.getAlgorithm()).orElse(decodedJWT.getAlgorithm());
-                    var algorithm = getAlgorithm(algorithmName, jwk.getPublicKey());
-                    return JWT.require(algorithm).build();
-                  } catch (InvalidPublicKeyException e) {
-                    LOGGER.warn("Token verification failed: {}", e.getMessage());
-                    throw new RuntimeException(e);
-                  } catch (JwkException e) {
-                    LOGGER.warn("Cannot find JWK for the JWT token: {}", e.getMessage());
-                    throw new RuntimeException(e);
-                  }
-                })
+            .map(decodedJWT -> {
+              try {
+                Jwk jwk = jwkProvider.get(decodedJWT.getKeyId());
+                var algorithmName =
+                    Optional.ofNullable(jwk.getAlgorithm()).orElse(decodedJWT.getAlgorithm());
+                var algorithm = getAlgorithm(algorithmName, jwk.getPublicKey());
+                return JWT.require(algorithm).build();
+              } catch (InvalidPublicKeyException e) {
+                LOGGER.warn("Token verification failed: {}", e.getMessage());
+                throw new RuntimeException(e);
+              } catch (JwkException e) {
+                LOGGER.warn("Cannot find JWK for the JWT token: {}", e.getMessage());
+                throw new RuntimeException(e);
+              }
+            })
             .map(jwtVerifier -> jwtVerifier.verify(jwtToken))
             .orElseThrow(() -> new RuntimeException("Cannot decode jwtToken!"));
     LOGGER.debug("Token verified successfully!");

@@ -16,11 +16,10 @@ public record ListChannelsOperation(ListChannels model) implements ChannelOperat
         .teams()
         .byTeamId(model.groupId())
         .allChannels()
-        .get(
-            getRequestConfiguration -> {
-              if (model.filter() != null && getRequestConfiguration.queryParameters != null) {
-                getRequestConfiguration.queryParameters.filter = model.filter();
-              }
-            });
+        .get(getRequestConfiguration -> {
+          if (model.filter() != null && getRequestConfiguration.queryParameters != null) {
+            getRequestConfiguration.queryParameters.filter = model.filter();
+          }
+        });
   }
 }

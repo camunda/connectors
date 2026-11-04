@@ -49,11 +49,12 @@ class AddItemOperationTest extends BaseDynamoDbOperationTest {
     // Given
     String input =
         """
-                     {
-                     "type": "addItem",
-                     "tableName": "secrets.TABLE_NAME_KEY",
-                     "item":{"item key":"secrets.ITEM_VALUE"}
-                     }""";
+        {
+        "type": "addItem",
+        "tableName": "secrets.TABLE_NAME_KEY",
+        "item":{"item key":"secrets.ITEM_VALUE"}
+        }\
+        """;
     OutboundConnectorContext context = getContextWithSecrets(input);
     // When
     AwsInput request = context.bindVariables(AwsInput.class);

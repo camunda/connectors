@@ -76,16 +76,15 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   void startEventProcessing() {
-    executorService.submit(
-        () -> {
-          try {
-            while (!Thread.currentThread().isInterrupted()) {
-              handleEvent(eventQueue.take()); // blocks until an event is available
-            }
-          } catch (InterruptedException e) {
-            LOG.error("Event processing thread interrupted", e);
-          }
-        });
+    executorService.submit(() -> {
+      try {
+        while (!Thread.currentThread().isInterrupted()) {
+          handleEvent(eventQueue.take()); // blocks until an event is available
+        }
+      } catch (InterruptedException e) {
+        LOG.error("Event processing thread interrupted", e);
+      }
+    });
   }
 
   @Override
@@ -143,11 +142,10 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
             groupElements(elements).stream()
                 .collect(Collectors.toMap(connector -> UUID.randomUUID(), connector -> connector));
 
-        groupedConnectors.forEach(
-            (id, connectorDetails) ->
-                connectorDetails
-                    .connectorElements()
-                    .forEach(element -> executablesByElement.put(element.element(), id)));
+        groupedConnectors.forEach((id, connectorDetails) ->
+            connectorDetails
+                .connectorElements()
+                .forEach(element -> executablesByElement.put(element.element(), id)));
 
         var activationResult =
             batchExecutableProcessor.activateBatch(groupedConnectors, cancellationCallback);
@@ -171,10 +169,9 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
       try {
         var executablesToDeactivate =
             executablesByElement.keySet().stream()
-                .filter(
-                    element ->
-                        element.tenantId().equals(deactivated.tenantId())
-                            && element.processDefinitionKey() == deactivated.processDefinitionKey())
+                .filter(element ->
+                    element.tenantId().equals(deactivated.tenantId())
+                        && element.processDefinitionKey() == deactivated.processDefinitionKey())
                 .map(executablesByElement::remove)
                 .map(executables::remove)
                 .toList();
@@ -253,12 +250,11 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         };
 
     return elements.stream()
-        .anyMatch(
-            element ->
-                processIdMatches(element, query)
-                    && typeMatches(type, query)
-                    && tenantIdMatches(element, query)
-                    && elementIdMatches(element.elementId(), query));
+        .anyMatch(element ->
+            processIdMatches(element, query)
+                && typeMatches(type, query)
+                && tenantIdMatches(element, query)
+                && elementIdMatches(element.elementId(), query));
   }
 
   private boolean processIdMatches(ProcessElement element, ActiveExecutableQuery query) {
@@ -332,31 +328,30 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                       case InvalidDefinition invalid -> invalid.data().type();
                     },
                 Collectors.toList()))
-        .forEach(
-            (type, list) -> {
-              var successfullyActivatedCount =
-                  list.stream().filter(Activated.class::isInstance).count();
-              LOG.info(
-                  ". '{}' - {}, of which {} successfully activated",
-                  type,
-                  list.size(),
-                  successfullyActivatedCount);
-              var groupedByTenant =
-                  list.stream()
-                      .collect(
-                          Collectors.groupingBy(
-                              activeExecutable ->
-                                  switch (activeExecutable) {
-                                    case Activated activated ->
-                                        activated.context().getDefinition().tenantId();
-                                    case FailedToActivate failed -> failed.data().tenantId();
-                                    case ConnectorNotRegistered notRegistered ->
-                                        notRegistered.data().tenantId();
-                                    case InvalidDefinition invalid -> invalid.data().tenantId();
-                                  },
-                              Collectors.counting()));
-              groupedByTenant.forEach(
-                  (tenant, count) -> LOG.info(". . {} for tenant {}", count, tenant));
-            });
+        .forEach((type, list) -> {
+          var successfullyActivatedCount =
+              list.stream().filter(Activated.class::isInstance).count();
+          LOG.info(
+              ". '{}' - {}, of which {} successfully activated",
+              type,
+              list.size(),
+              successfullyActivatedCount);
+          var groupedByTenant =
+              list.stream()
+                  .collect(
+                      Collectors.groupingBy(
+                          activeExecutable ->
+                              switch (activeExecutable) {
+                                case Activated activated ->
+                                    activated.context().getDefinition().tenantId();
+                                case FailedToActivate failed -> failed.data().tenantId();
+                                case ConnectorNotRegistered notRegistered ->
+                                    notRegistered.data().tenantId();
+                                case InvalidDefinition invalid -> invalid.data().tenantId();
+                              },
+                          Collectors.counting()));
+          groupedByTenant.forEach(
+              (tenant, count) -> LOG.info(". . {} for tenant {}", count, tenant));
+        });
   }
 }

@@ -43,11 +43,11 @@ class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
     // Given
     String input =
         """
-                {
-                  "type": "deleteTable",
-                  "tableName": "{{secrets.TABLE_NAME_KEY}}"
-                }
-                """;
+        {
+          "type": "deleteTable",
+          "tableName": "{{secrets.TABLE_NAME_KEY}}"
+        }
+        """;
     OutboundConnectorContext context = getContextWithSecrets(input);
     AwsInput request = context.bindVariables(AwsInput.class);
     // Then

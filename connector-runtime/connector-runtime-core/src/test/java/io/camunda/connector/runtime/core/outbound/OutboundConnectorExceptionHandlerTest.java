@@ -64,12 +64,11 @@ class OutboundConnectorExceptionHandlerTest {
   /** Answers only for the given names, and records what was asked for. */
   private void holdingOnly(Map<String, String> secrets) {
     when(secretProvider.getSecret(org.mockito.ArgumentMatchers.anyString()))
-        .thenAnswer(
-            invocation -> {
-              String name = invocation.getArgument(0);
-              requestedKeys.add(name);
-              return secrets.get(name);
-            });
+        .thenAnswer(invocation -> {
+          String name = invocation.getArgument(0);
+          requestedKeys.add(name);
+          return secrets.get(name);
+        });
   }
 
   @Test

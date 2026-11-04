@@ -177,16 +177,15 @@ public class PropertyUtil {
     for (var authentication : authentications) {
       var authProperties =
           HttpAuthentication.getPropertyPrefabs(authentication).stream()
-              .map(
-                  builder ->
-                      builder
-                          .condition(
-                              new AllMatch(
-                                  new Equals(AUTH_DISCRIMINATOR_PROPERTY_ID, authentication.id()),
-                                  new OneOf(
-                                      OPERATION_DISCRIMINATOR_PROPERTY_ID,
-                                      operationsWithoutCustomAuth)))
-                          .build())
+              .map(builder ->
+                  builder
+                      .condition(
+                          new AllMatch(
+                              new Equals(AUTH_DISCRIMINATOR_PROPERTY_ID, authentication.id()),
+                              new OneOf(
+                                  OPERATION_DISCRIMINATOR_PROPERTY_ID,
+                                  operationsWithoutCustomAuth)))
+                      .build())
               .toList();
 
       properties.addAll(authProperties);
@@ -212,20 +211,19 @@ public class PropertyUtil {
       for (var authentication : operation.authenticationOverride()) {
         var authProperties =
             HttpAuthentication.getPropertyPrefabs(authentication).stream()
-                .map(
-                    builder -> {
-                      builder.id(operation.id() + "_" + builder.getId()); // shade property ids
-                      if (addedDiscriminator) {
-                        builder.condition(
-                            new AllMatch(
-                                new Equals(authDiscriminator, authentication.id()),
-                                new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id())));
-                      } else {
-                        builder.condition(
-                            new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()));
-                      }
-                      return builder.build();
-                    })
+                .map(builder -> {
+                  builder.id(operation.id() + "_" + builder.getId()); // shade property ids
+                  if (addedDiscriminator) {
+                    builder.condition(
+                        new AllMatch(
+                            new Equals(authDiscriminator, authentication.id()),
+                            new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id())));
+                  } else {
+                    builder.condition(
+                        new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()));
+                  }
+                  return builder.build();
+                })
                 .toList();
         properties.addAll(authProperties);
       }

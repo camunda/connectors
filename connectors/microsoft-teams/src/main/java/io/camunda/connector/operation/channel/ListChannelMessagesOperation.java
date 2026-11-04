@@ -21,16 +21,15 @@ public record ListChannelMessagesOperation(ListChannelMessages model) implements
         .channels()
         .byChannelId(model.channelId())
         .messages()
-        .get(
-            requestConfiguration -> {
-              if (requestConfiguration.queryParameters != null) {
-                if (model.top() != null) {
-                  requestConfiguration.queryParameters.top = Integer.parseInt(model.top());
-                }
-                if (Boolean.parseBoolean(model.isExpand())) {
-                  requestConfiguration.queryParameters.expand = new String[] {EXPAND_VALUE};
-                }
-              }
-            });
+        .get(requestConfiguration -> {
+          if (requestConfiguration.queryParameters != null) {
+            if (model.top() != null) {
+              requestConfiguration.queryParameters.top = Integer.parseInt(model.top());
+            }
+            if (Boolean.parseBoolean(model.isExpand())) {
+              requestConfiguration.queryParameters.expand = new String[] {EXPAND_VALUE};
+            }
+          }
+        });
   }
 }

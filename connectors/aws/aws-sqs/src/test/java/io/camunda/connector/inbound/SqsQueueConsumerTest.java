@@ -72,10 +72,9 @@ public class SqsQueueConsumerTest {
     when(context.correlateWithResult(any())).thenReturn(new MessagePublished(null, 1L, null));
     // when
     Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+        new Thread(() -> {
+          consumer.run();
+        });
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();
@@ -108,10 +107,9 @@ public class SqsQueueConsumerTest {
 
     // when
     Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+        new Thread(() -> {
+          consumer.run();
+        });
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();
@@ -135,10 +133,9 @@ public class SqsQueueConsumerTest {
     when(context.correlateWithResult(any())).thenReturn(new Other(new RuntimeException()));
     // when
     Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+        new Thread(() -> {
+          consumer.run();
+        });
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();
@@ -158,10 +155,9 @@ public class SqsQueueConsumerTest {
     when(context.correlateWithResult(any())).thenReturn(new ActivationConditionNotMet(true));
     // when
     Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+        new Thread(() -> {
+          consumer.run();
+        });
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();
@@ -179,11 +175,10 @@ public class SqsQueueConsumerTest {
             ReceiveMessageResponse.builder().messages(Collections.<Message>emptyList()).build());
     // when
     Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-              verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
-            });
+        new Thread(() -> {
+          consumer.run();
+          verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
+        });
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();

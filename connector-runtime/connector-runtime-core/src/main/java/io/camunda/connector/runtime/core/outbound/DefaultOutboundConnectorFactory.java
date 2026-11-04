@@ -55,10 +55,8 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   public OutboundConnectorFunction getInstance(String type) {
     return Optional.ofNullable(connectorConfigs.get(type))
         .map(this::createInstance)
-        .orElseThrow(
-            () ->
-                new NoSuchElementException(
-                    "Outbound connector \"" + type + "\" is not registered"));
+        .orElseThrow(() ->
+            new NoSuchElementException("Outbound connector \"" + type + "\" is not registered"));
   }
 
   private OutboundConnectorFunction createInstance(OutboundConnectorConfiguration config) {

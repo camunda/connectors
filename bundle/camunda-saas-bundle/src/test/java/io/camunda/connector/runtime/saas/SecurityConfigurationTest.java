@@ -78,11 +78,10 @@ public class SecurityConfigurationTest {
   public void publishLogsEndpoint_fromLocalhost_returns200() throws Exception {
     mvc.perform(
             post("/inbound/logs")
-                .with(
-                    request -> {
-                      request.setRemoteAddr("127.0.0.1");
-                      return request;
-                    }))
+                .with(request -> {
+                  request.setRemoteAddr("127.0.0.1");
+                  return request;
+                }))
         .andExpect(status().isOk());
   }
 
@@ -92,11 +91,10 @@ public class SecurityConfigurationTest {
       throws Exception {
     mvc.perform(
             post("/inbound/logs")
-                .with(
-                    request -> {
-                      request.setRemoteAddr(unauthorizedIp);
-                      return request;
-                    }))
+                .with(request -> {
+                  request.setRemoteAddr(unauthorizedIp);
+                  return request;
+                }))
         .andExpect(status().isForbidden());
   }
 

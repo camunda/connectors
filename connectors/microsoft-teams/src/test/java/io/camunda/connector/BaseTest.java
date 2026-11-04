@@ -191,14 +191,13 @@ public abstract class BaseTest {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
     var array = objectMapper.readValue(cases, ArrayList.class);
     return array.stream()
-        .map(
-            s -> {
-              try {
-                return objectMapper.writer().writeValueAsString(s);
-              } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-              }
-            })
+        .map(s -> {
+          try {
+            return objectMapper.writer().writeValueAsString(s);
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .map(Arguments::of);
   }
 

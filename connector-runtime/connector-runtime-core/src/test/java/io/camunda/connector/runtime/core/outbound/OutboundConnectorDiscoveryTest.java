@@ -177,12 +177,11 @@ public class OutboundConnectorDiscoveryTest {
       Long timeout) {
 
     Assertions.assertThatList(registrations)
-        .anyMatch(
-            registration ->
-                (registration.name().equals(name)
-                    && registration.type().equals(type)
-                    && Arrays.equals(registration.inputVariables(), inputVariables)
-                    && registration.connectorClass().getName().equals(functionCls)
-                    && Objects.equals(registration.timeout(), timeout)));
+        .anyMatch(registration ->
+            (registration.name().equals(name)
+                && registration.type().equals(type)
+                && Arrays.equals(registration.inputVariables(), inputVariables)
+                && registration.connectorClass().getName().equals(functionCls)
+                && Objects.equals(registration.timeout(), timeout)));
   }
 }

@@ -128,14 +128,13 @@ public abstract class BaseTest {
     ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     var array = objectMapper.readValue(cases, ArrayList.class);
     return array.stream()
-        .map(
-            value -> {
-              try {
-                return objectMapper.writeValueAsString(value);
-              } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-              }
-            })
+        .map(value -> {
+          try {
+            return objectMapper.writeValueAsString(value);
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .map(Arguments::of);
   }
 }

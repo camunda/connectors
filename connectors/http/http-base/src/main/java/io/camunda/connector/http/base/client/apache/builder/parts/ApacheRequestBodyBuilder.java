@@ -105,11 +105,10 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   private HttpEntity createUrlEncodedFormEntity(Map<?, ?> body) {
     return HttpEntities.createUrlEncoded(
         body.entrySet().stream()
-            .map(
-                e ->
-                    new BasicNameValuePair(
-                        String.valueOf(e.getKey()),
-                        Optional.ofNullable(e.getValue()).map(String::valueOf).orElse(null)))
+            .map(e ->
+                new BasicNameValuePair(
+                    String.valueOf(e.getKey()),
+                    Optional.ofNullable(e.getValue()).map(String::valueOf).orElse(null)))
             .collect(Collectors.toList()),
         StandardCharsets.UTF_8);
   }

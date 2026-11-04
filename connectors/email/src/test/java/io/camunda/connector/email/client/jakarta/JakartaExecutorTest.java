@@ -72,21 +72,19 @@ class JakartaExecutorTest {
 
     verify(transport, times(1))
         .sendMessage(
-            argThat(
-                argument -> {
-                  try {
-                    return Arrays.stream(argument.getFrom())
-                            .allMatch(address -> address.toString().contains("myself"))
-                        && isMultipartBodyWithSinglePlaintextFormat(argument.getContent(), "body");
-                  } catch (MessagingException | IOException e) {
-                    throw new RuntimeException(e);
-                  }
-                }),
-            argThat(
-                argument ->
-                    Arrays.toString(argument).contains("to")
-                        && Arrays.toString(argument).contains("cc")
-                        && Arrays.toString(argument).contains("bcc")));
+            argThat(argument -> {
+              try {
+                return Arrays.stream(argument.getFrom())
+                        .allMatch(address -> address.toString().contains("myself"))
+                    && isMultipartBodyWithSinglePlaintextFormat(argument.getContent(), "body");
+              } catch (MessagingException | IOException e) {
+                throw new RuntimeException(e);
+              }
+            }),
+            argThat(argument ->
+                Arrays.toString(argument).contains("to")
+                    && Arrays.toString(argument).contains("cc")
+                    && Arrays.toString(argument).contains("bcc")));
   }
 
   private boolean isMultipartBodyWithSinglePlaintextFormat(Object content, String expectedContent) {

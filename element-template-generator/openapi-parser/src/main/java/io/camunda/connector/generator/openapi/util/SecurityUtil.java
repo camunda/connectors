@@ -46,27 +46,25 @@ public class SecurityUtil {
     AtomicBoolean foundErrors = new AtomicBoolean(false);
 
     security.stream()
-        .filter(
-            requirement -> {
-              if (requirement.isEmpty()) {
-                result.add(NoAuth.INSTANCE);
-                return false;
-              }
-              return true;
-            })
+        .filter(requirement -> {
+          if (requirement.isEmpty()) {
+            result.add(NoAuth.INSTANCE);
+            return false;
+          }
+          return true;
+        })
         .flatMap(s -> s.entrySet().stream())
-        .map(
-            schemeRef -> {
-              var customScopes = new HashSet<>(schemeRef.getValue());
-              var scheme = components.getSecuritySchemes().get(schemeRef.getKey());
-              try {
-                return transformToAuthentication(scheme, customScopes);
-              } catch (Exception e) {
-                foundErrors.set(true);
-                LOG.warn("Could not parse security scheme {}", schemeRef.getKey(), e);
-                return null;
-              }
-            })
+        .map(schemeRef -> {
+          var customScopes = new HashSet<>(schemeRef.getValue());
+          var scheme = components.getSecuritySchemes().get(schemeRef.getKey());
+          try {
+            return transformToAuthentication(scheme, customScopes);
+          } catch (Exception e) {
+            foundErrors.set(true);
+            LOG.warn("Could not parse security scheme {}", schemeRef.getKey(), e);
+            return null;
+          }
+        })
         .filter(Objects::nonNull)
         .forEach(result::add);
 

@@ -63,12 +63,11 @@ public class ToXmlMapper {
 
   public String toXmlPartString(Map<String, Object> jsonNode) {
     return jsonNode.entrySet().stream()
-        .map(
-            e -> {
-              ElementXmlNode node = new ElementXmlNode(e.getKey());
-              decorateElement(node, objectMapper.valueToTree(e.getValue()));
-              return node.toXmlString();
-            })
+        .map(e -> {
+          ElementXmlNode node = new ElementXmlNode(e.getKey());
+          decorateElement(node, objectMapper.valueToTree(e.getValue()));
+          return node.toXmlString();
+        })
         .collect(Collectors.joining(""));
   }
 
@@ -89,39 +88,36 @@ public class ToXmlMapper {
     } else if (jsonNode instanceof ObjectNode objectNode) {
       objectNode
           .properties()
-          .forEach(
-              e -> {
-                if (e.getKey().equals(contentName)) {
-                  if (e.getValue() instanceof TextNode textNode) {
-                    element.getValue().add(new TextXmlNode(textNode.textValue()));
-                  } else {
-                    throw new IllegalStateException("Value has to be text value");
-                  }
-                } else if (e.getKey().startsWith(attributePrefix)) {
-                  if (e.getValue() instanceof TextNode textNode) {
-                    element.getAttributes().put(e.getKey().substring(1), textNode.textValue());
-                  } else {
-                    throw new IllegalStateException("Attributes have to have text values");
-                  }
-                } else {
-                  if (e.getValue() instanceof ArrayNode arrayNode) {
-                    arrayNode.forEach(
-                        child -> {
-                          ElementXmlNode childElement = new ElementXmlNode(e.getKey());
-                          decorateElement(childElement, child);
-                          element.getValue().add(childElement);
-                        });
-                  } else if (e.getValue() instanceof ObjectNode
-                      || e.getValue() instanceof ValueNode) {
-                    ElementXmlNode childElement = new ElementXmlNode(e.getKey());
-                    decorateElement(childElement, e.getValue());
-                    element.getValue().add(childElement);
-                  } else {
-                    throw new IllegalStateException(
-                        "Unexpected node type " + e.getValue().getClass().getSimpleName());
-                  }
-                }
-              });
+          .forEach(e -> {
+            if (e.getKey().equals(contentName)) {
+              if (e.getValue() instanceof TextNode textNode) {
+                element.getValue().add(new TextXmlNode(textNode.textValue()));
+              } else {
+                throw new IllegalStateException("Value has to be text value");
+              }
+            } else if (e.getKey().startsWith(attributePrefix)) {
+              if (e.getValue() instanceof TextNode textNode) {
+                element.getAttributes().put(e.getKey().substring(1), textNode.textValue());
+              } else {
+                throw new IllegalStateException("Attributes have to have text values");
+              }
+            } else {
+              if (e.getValue() instanceof ArrayNode arrayNode) {
+                arrayNode.forEach(child -> {
+                  ElementXmlNode childElement = new ElementXmlNode(e.getKey());
+                  decorateElement(childElement, child);
+                  element.getValue().add(childElement);
+                });
+              } else if (e.getValue() instanceof ObjectNode || e.getValue() instanceof ValueNode) {
+                ElementXmlNode childElement = new ElementXmlNode(e.getKey());
+                decorateElement(childElement, e.getValue());
+                element.getValue().add(childElement);
+              } else {
+                throw new IllegalStateException(
+                    "Unexpected node type " + e.getValue().getClass().getSimpleName());
+              }
+            }
+          });
     } else {
       throw new IllegalStateException(
           "Unexpected node type " + jsonNode.getClass().getSimpleName());

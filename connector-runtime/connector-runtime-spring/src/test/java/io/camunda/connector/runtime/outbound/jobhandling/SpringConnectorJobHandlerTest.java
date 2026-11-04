@@ -73,11 +73,10 @@ class SpringConnectorJobHandlerTest {
     assertThat(appender.list)
         .filteredOn(event -> event.getFormattedMessage().startsWith("Exception while processing"))
         .singleElement()
-        .satisfies(
-            event -> {
-              assertThat(event.getFormattedMessage()).doesNotContain("old-value");
-              assertThat(event.getThrowableProxy()).isNull();
-            });
+        .satisfies(event -> {
+          assertThat(event.getFormattedMessage()).doesNotContain("old-value");
+          assertThat(event.getThrowableProxy()).isNull();
+        });
   }
 
   private SpringConnectorJobHandler connectorThrowingTheBoundToken(

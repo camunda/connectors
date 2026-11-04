@@ -303,10 +303,8 @@ public class SecretUtilTests {
 
   @Test
   void shouldRejectANonObjectRoot() throws Exception {
-    assertThatThrownBy(
-            () ->
-                SecretUtil.replaceSecrets(
-                    OBJECT_MAPPER.readTree("[\"secrets.KEY\"]"), ignored -> "V"))
+    assertThatThrownBy(() ->
+            SecretUtil.replaceSecrets(OBJECT_MAPPER.readTree("[\"secrets.KEY\"]"), ignored -> "V"))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("input must be an ObjectNode.");
   }

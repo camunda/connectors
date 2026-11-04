@@ -113,13 +113,13 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       BasicProperties properties = new BasicProperties.Builder().build();
       String body =
           """
-              <note>
-                <to>Tove</to>
-                <from>Jani</from>
-                <heading>Reminder</heading>
-                <body>Don't forget me this weekend!</body>
-              </note>
-              """;
+          <note>
+            <to>Tove</to>
+            <from>Jani</from>
+            <heading>Reminder</heading>
+            <body>Don't forget me this weekend!</body>
+          </note>
+          """;
 
       // When
       consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());

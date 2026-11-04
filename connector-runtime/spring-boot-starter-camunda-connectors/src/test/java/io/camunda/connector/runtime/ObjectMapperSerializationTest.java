@@ -87,7 +87,8 @@ public class ObjectMapperSerializationTest {
         {
          "name": "= \\"test \\" + \\"Name\\" ",
          "greetingSupplier": "= \\"Hello\\""
-        }""";
+        }\
+        """;
     var feelClass = objectMapper.readValue(json, TestFeelClass.class);
     assertThat(feelClass.name).isEqualTo("test Name");
     assertThat(feelClass.greetingSupplier.get()).isEqualTo("Hello");

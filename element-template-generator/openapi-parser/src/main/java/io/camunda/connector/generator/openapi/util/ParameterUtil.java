@@ -150,14 +150,11 @@ public class ParameterUtil {
       case "object" -> {
         Map<String, Object> nested = new HashMap<>();
         schema.getProperties().entrySet().stream()
-            .map(
-                entry ->
-                    Map.entry(
-                        entry.getKey(), getSchemaOrFromComponents(entry.getValue(), components)))
-            .forEach(
-                entry ->
-                    nested.put(
-                        entry.getKey(), generateFakeDataFromSchema(entry.getValue(), components)));
+            .map(entry ->
+                Map.entry(entry.getKey(), getSchemaOrFromComponents(entry.getValue(), components)))
+            .forEach(entry ->
+                nested.put(
+                    entry.getKey(), generateFakeDataFromSchema(entry.getValue(), components)));
         return nested;
       }
       case "array" -> {

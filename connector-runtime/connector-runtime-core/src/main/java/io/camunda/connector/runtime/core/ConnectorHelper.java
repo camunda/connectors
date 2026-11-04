@@ -78,20 +78,18 @@ public class ConnectorHelper {
     final var errorExpression = jobHeaders.get(Keywords.ERROR_EXPRESSION_KEYWORD);
     return Optional.ofNullable(errorExpression)
         .filter(s -> !s.isBlank())
-        .map(
-            expression ->
-                FEEL_ENGINE_WRAPPER.evaluateToJson(
-                    expression, responseContent, wrapResponse(responseContent), jobContext))
+        .map(expression ->
+            FEEL_ENGINE_WRAPPER.evaluateToJson(
+                expression, responseContent, wrapResponse(responseContent), jobContext))
         .filter(json -> !json.equals("null"))
         .filter(json -> !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression).isEmpty())
         .map(json -> parseJsonVarsAsTypeOrThrow(json, ConnectorError.class, errorExpression))
-        .filter(
-            error -> {
-              if (error instanceof BpmnError bpmnError) {
-                return bpmnError.hasCode();
-              }
-              return true;
-            });
+        .filter(error -> {
+          if (error instanceof BpmnError bpmnError) {
+            return bpmnError.hasCode();
+          }
+          return true;
+        });
   }
 
   public static <T> T instantiateConnector(Class<? extends T> connectorClass) {

@@ -74,22 +74,21 @@ public class GitCrawler {
 
   private void analyzeCommit(RevCommit commit) {
     new ElementTemplateIterator(repository, commit)
-        .forEachRemaining(
-            elementTemplateFile -> {
-              if (result.containsKey(elementTemplateFile.elementTemplate().id())) {
-                result
-                    .get(elementTemplateFile.elementTemplate().id())
-                    .putIfAbsent(
-                        elementTemplateFile.elementTemplate().version(),
-                        RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()));
-              } else {
-                Map<Integer, String> version = new HashMap<>();
-                version.put(
+        .forEachRemaining(elementTemplateFile -> {
+          if (result.containsKey(elementTemplateFile.elementTemplate().id())) {
+            result
+                .get(elementTemplateFile.elementTemplate().id())
+                .putIfAbsent(
                     elementTemplateFile.elementTemplate().version(),
                     RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()));
-                result.put(elementTemplateFile.elementTemplate().id(), version);
-              }
-            });
+          } else {
+            Map<Integer, String> version = new HashMap<>();
+            version.put(
+                elementTemplateFile.elementTemplate().version(),
+                RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()));
+            result.put(elementTemplateFile.elementTemplate().id(), version);
+          }
+        });
   }
 
   public GitCrawler persist(String location) {
@@ -105,17 +104,15 @@ public class GitCrawler {
   private Map<String, List<OutputElementTemplate>> fromMap(
       Map<String, Map<Integer, String>> result) {
     return result.entrySet().stream()
-        .map(
-            stringMapEntry ->
-                Map.entry(
-                    stringMapEntry.getKey(),
-                    stringMapEntry.getValue().entrySet().stream()
-                        .map(
-                            integerStringEntry ->
-                                new OutputElementTemplate(
-                                    integerStringEntry.getKey(), integerStringEntry.getValue()))
-                        .sorted((o1, o2) -> o2.version() - o1.version())
-                        .toList()))
+        .map(stringMapEntry ->
+            Map.entry(
+                stringMapEntry.getKey(),
+                stringMapEntry.getValue().entrySet().stream()
+                    .map(integerStringEntry ->
+                        new OutputElementTemplate(
+                            integerStringEntry.getKey(), integerStringEntry.getValue()))
+                    .sorted((o1, o2) -> o2.version() - o1.version())
+                    .toList()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
