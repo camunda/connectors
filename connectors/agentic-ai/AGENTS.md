@@ -244,23 +244,16 @@ The [target architecture](docs/target-architecture.md) shows the target state be
 
 ## Working in this module
 
-General coding behavior (think before coding, simplicity, surgical changes, goal-driven execution)
-lives in [`docs/coding-guidelines.md`](docs/coding-guidelines.md). The rules below are the module
-specifics.
+Read these files before you plan, implement or review a change:
 
-When designing stored shapes, names, defaults, limits or observability, read
-[`docs/design-guidelines.md`](docs/design-guidelines.md).
+- [`docs/coding-guidelines.md`](docs/coding-guidelines.md): how to approach a change
+- [`docs/code-design.md`](docs/code-design.md): rules for the structure of new code
+- [`docs/domain-rules.md`](docs/domain-rules.md): rules from past review findings
 
-@docs/coding-guidelines.md
-
-@docs/code-design.md
-
-@docs/domain-rules.md
-
-If your tool does not resolve `@` imports, read [`docs/code-design.md`](docs/code-design.md) and
-[`docs/domain-rules.md`](docs/domain-rules.md) too.
-The [target architecture](docs/target-architecture.md) shows the target state of the module. Read it
-before you plan a structural change: a new module, collaborator, SPI or cross-module policy.
+Before you design stored shapes, names, defaults, limits or observability, also read
+[`docs/design-guidelines.md`](docs/design-guidelines.md). Before you plan a structural change (a new
+module, collaborator, SPI or cross-module policy), also read the
+[target architecture](docs/target-architecture.md). The sections below are the module specifics.
 
 ### Building & testing
 
