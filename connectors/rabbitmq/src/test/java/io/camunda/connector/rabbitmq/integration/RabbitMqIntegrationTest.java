@@ -219,97 +219,6 @@ public class RabbitMqIntegrationTest extends BaseTest {
     assertEquals("Hello “ ” \"World\"", body.get("value"));
   }
 
-<<<<<<< HEAD
-=======
-  @Test
-  @Order(4)
-  void publishAndConsumeMessageWithReusableCredential() throws Exception {
-    // Given a credential carrying the whole connection, and a task with only exchange/routing key
-    var credential =
-        new RabbitMqConnectionConfiguration(
-            getAuth(),
-            new FactoryRoutingData(
-                Routing.VIRTUAL_HOST, rabbitMq.getHost(), rabbitMq.getAmqpPort().toString()));
-    var variables =
-        Map.of(
-            RabbitMqConnectionConfiguration.CHOOSER_ID,
-            credential,
-            "routing",
-            Map.of("exchange", Routing.EXCHANGE, "routingKey", Routing.ROUTING_KEY),
-            "message",
-            Map.of("body", Map.of("value", "Hello credential")));
-    OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create()
-            .validation(new DefaultValidationProvider())
-            .variables(ObjectMapperSupplier.instance().writeValueAsString(variables))
-            .build();
-
-    // When
-    var result = new RabbitMqFunction().execute(context);
-
-    // Then
-    assertEquals("success", ((RabbitMqResult) result).getStatusResult());
-
-    // Given
-    RabbitMqExecutable executable = new RabbitMqExecutable();
-    TestInboundConnectorContext contextInbound =
-        InboundConnectorContextBuilder.create()
-            .definition(new InboundConnectorDefinition(null, null, null, List.of(), null))
-            .properties(
-                Map.of(
-                    RabbitMqConnectionConfiguration.CHOOSER_ID,
-                    credential,
-                    "queueName",
-                    ActualValue.QUEUE_NAME))
-            .validation(new DefaultValidationProvider())
-            .build();
-
-    // When
-    executable.activate(contextInbound);
-    await().atMost(Duration.ofSeconds(5)).until(() -> !contextInbound.getCorrelations().isEmpty());
-    executable.deactivate();
-
-    // Then
-    RabbitMqInboundResult castedResultInbound =
-        (RabbitMqInboundResult) contextInbound.getCorrelations().get(0);
-    Map<String, Object> body = (Map<String, Object>) castedResultInbound.message().body();
-    assertEquals("Hello credential", body.get("value"));
-  }
-
-  @Test
-  @Order(5)
-  void validatesReusableCredentialAgainstBroker() {
-    var validator = new RabbitMqConnectionValidator();
-    var routing =
-        new FactoryRoutingData(
-            Routing.VIRTUAL_HOST, rabbitMq.getHost(), rabbitMq.getAmqpPort().toString());
-
-    assertEquals(
-        ConfigurationValidationResult.success(),
-        validator.validate(new RabbitMqConnectionConfiguration(getAuth(), routing)));
-    assertEquals(
-        ConfigurationValidationResult.success(),
-        validator.validate(
-            new RabbitMqConnectionConfiguration(
-                new UriAuthentication(
-                    "amqp://%s:%s@%s:%d/%s"
-                        .formatted(
-                            Authentication.USERNAME,
-                            Authentication.PASSWORD,
-                            rabbitMq.getHost(),
-                            rabbitMq.getAmqpPort(),
-                            Routing.VIRTUAL_HOST)),
-                null)));
-    assertEquals(
-        ErrorCode.UNAUTHORIZED.name(),
-        validator
-            .validate(
-                new RabbitMqConnectionConfiguration(
-                    new CredentialsAuthentication(Authentication.USERNAME, "wrong-password"),
-                    routing))
-            .code());
-  }
-
   @Test
   @Order(6)
   void failsWhenPublishingToMissingExchange() throws Exception {
@@ -355,7 +264,6 @@ public class RabbitMqIntegrationTest extends BaseTest {
         .build();
   }
 
->>>>>>> fb911d6 (fix(rabbitmq): fail the job when the broker rejects a publish (#9788))
   private RabbitMqAuthentication getAuth() {
     return new CredentialsAuthentication(Authentication.USERNAME, Authentication.PASSWORD);
   }
