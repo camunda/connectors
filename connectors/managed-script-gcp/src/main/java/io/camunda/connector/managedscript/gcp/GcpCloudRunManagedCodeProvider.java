@@ -296,7 +296,8 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
     final HttpResponse<String> response;
     try {
       response =
-          http.send(
+          GcpClients.send(
+              http,
               HttpRequest.newBuilder(URI.create(url))
                   .timeout(Duration.ofSeconds(functionTimeoutSeconds).plus(INVOCATION_MARGIN))
                   .header("Authorization", "Bearer " + token)
@@ -418,7 +419,8 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
   private void upload(String name, String url, byte[] zip)
       throws IOException, InterruptedException {
     final var response =
-        http.send(
+        GcpClients.send(
+            http,
             HttpRequest.newBuilder(URI.create(url))
                 .timeout(UPLOAD_TIMEOUT)
                 .header("Content-Type", "application/zip")

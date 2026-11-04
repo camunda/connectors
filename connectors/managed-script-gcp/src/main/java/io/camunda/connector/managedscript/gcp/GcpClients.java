@@ -15,8 +15,14 @@ import com.google.cloud.functions.v2.FunctionServiceClient;
 import com.google.cloud.functions.v2.FunctionServiceSettings;
 import java.io.IOException;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * The GCP clients of the provider. Credentials come from the application default credentials only:
@@ -82,6 +88,44 @@ final class GcpClients {
         .connectTimeout(CONNECT_TIMEOUT)
         .followRedirects(HttpClient.Redirect.NEVER)
         .build();
+  }
+
+  /**
+   * Sends the request and bounds the whole exchange by its timeout. {@code HttpRequest.timeout}
+   * only bounds the wait for the response headers: a response that sends its headers and then
+   * stalls its body would block {@code send} until the server gives up, which can outlast the lease
+   * of a job. On expiry the exchange is cancelled, which closes its connection.
+   *
+   * @throws HttpTimeoutException when no complete response arrived within the timeout of the
+   *     request
+   */
+  static <T> HttpResponse<T> send(
+      HttpClient http, HttpRequest request, HttpResponse.BodyHandler<T> handler)
+      throws IOException, InterruptedException {
+    final var limit = request.timeout().orElseThrow();
+    final var exchange = http.sendAsync(request, handler);
+    try {
+      return exchange.get(limit.toNanos(), TimeUnit.NANOSECONDS);
+    } catch (TimeoutException e) {
+      exchange.cancel(true);
+      throw new HttpTimeoutException(
+          "no complete response within %d s".formatted(limit.toSeconds()));
+    } catch (InterruptedException e) {
+      exchange.cancel(true);
+      throw e;
+    } catch (ExecutionException e) {
+      final var cause = e.getCause();
+      if (cause instanceof IOException io) {
+        throw io;
+      }
+      if (cause instanceof RuntimeException runtime) {
+        throw runtime;
+      }
+      if (cause instanceof Error error) {
+        throw error;
+      }
+      throw new IOException(cause);
+    }
   }
 
   /** The application default credentials; replaced in tests. */
