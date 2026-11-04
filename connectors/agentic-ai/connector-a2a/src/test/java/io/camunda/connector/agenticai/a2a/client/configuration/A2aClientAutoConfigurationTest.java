@@ -12,17 +12,18 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartConverter;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aTaskNotificationParser;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aDocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aPartConverter;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aClientPollingExecutable;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.A2aClientWebhookExecutable;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientOutboundConnectorFunction;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSender;
-import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -41,12 +42,13 @@ class A2aClientAutoConfigurationTest {
           A2aPartConverter.class,
           A2aSdkObjectConverter.class,
           A2aAgentCardFetcher.class,
+          A2aDocumentToPartConverter.class,
+          A2aSendMessageResponseHandler.class,
+          A2aTaskNotificationParser.class,
           A2aSdkClientFactory.class);
 
   private static final List<Class<?>> A2A_OUTBOUND_BEANS =
       List.of(
-          A2aDocumentToPartConverter.class,
-          A2aSendMessageResponseHandler.class,
           A2aMessageSender.class,
           A2aClientRequestHandler.class,
           A2aClientOutboundConnectorFunction.class);

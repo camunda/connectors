@@ -4,17 +4,19 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.common.convert;
+package io.camunda.connector.agenticai.a2a.client.common.sdk.convert;
 
-import io.a2a.spec.Message;
-import io.a2a.spec.Task;
-import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import java.util.List;
+import org.a2aproject.sdk.spec.Message;
+import org.a2aproject.sdk.spec.Task;
+import org.a2aproject.sdk.spec.TaskState;
+import org.a2aproject.sdk.spec.TaskStatus;
+import org.jspecify.annotations.Nullable;
 
 public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
 
@@ -26,15 +28,17 @@ public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
 
   @Override
   public A2aMessage convert(Message message) {
-    List<A2aPart> contents = partConverter.convert(message.getParts());
+    List<A2aPart> contents = partConverter.convert(message.parts());
     return A2aMessage.builder()
         .role(
-            message.getRole() == Message.Role.AGENT ? A2aMessage.Role.AGENT : A2aMessage.Role.USER)
-        .messageId(message.getMessageId())
-        .contextId(message.getContextId())
-        .referenceTaskIds(message.getReferenceTaskIds())
-        .taskId(message.getTaskId())
-        .metadata(message.getMetadata())
+            message.role() == Message.Role.ROLE_AGENT
+                ? A2aMessage.Role.AGENT
+                : A2aMessage.Role.USER)
+        .messageId(message.messageId())
+        .contextId(message.contextId())
+        .referenceTaskIds(message.referenceTaskIds())
+        .taskId(message.taskId())
+        .metadata(message.metadata())
         .contents(contents)
         .build();
   }
@@ -42,16 +46,16 @@ public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
   @Override
   public A2aTask convert(Task task) {
     return A2aTask.builder()
-        .id(task.getId())
-        .contextId(task.getContextId())
-        .status(convertStatus(task.getStatus()))
-        .metadata(task.getMetadata())
+        .id(task.id())
+        .contextId(task.contextId())
+        .status(convertStatus(task.status()))
+        .metadata(task.metadata())
         .artifacts(convertArtifacts(task))
-        .history(convertHistory(task.getHistory()))
+        .history(convertHistory(task.history()))
         .build();
   }
 
-  private List<A2aMessage> convertHistory(List<Message> history) {
+  private List<A2aMessage> convertHistory(@Nullable List<Message> history) {
     if (history == null) {
       return List.of();
     }
@@ -59,10 +63,10 @@ public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
   }
 
   private List<A2aArtifact> convertArtifacts(Task task) {
-    if (task.getArtifacts() == null) {
+    if (task.artifacts() == null) {
       return List.of();
     }
-    return task.getArtifacts().stream()
+    return task.artifacts().stream()
         .map(artifact ->
             A2aArtifact.builder()
                 .artifactId(artifact.artifactId())
@@ -74,9 +78,23 @@ public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
         .toList();
   }
 
+  private static A2aTaskStatus.TaskState convertState(TaskState state) {
+    return switch (state) {
+      case TASK_STATE_SUBMITTED -> A2aTaskStatus.TaskState.SUBMITTED;
+      case TASK_STATE_WORKING -> A2aTaskStatus.TaskState.WORKING;
+      case TASK_STATE_INPUT_REQUIRED -> A2aTaskStatus.TaskState.INPUT_REQUIRED;
+      case TASK_STATE_AUTH_REQUIRED -> A2aTaskStatus.TaskState.AUTH_REQUIRED;
+      case TASK_STATE_COMPLETED -> A2aTaskStatus.TaskState.COMPLETED;
+      case TASK_STATE_CANCELED -> A2aTaskStatus.TaskState.CANCELED;
+      case TASK_STATE_FAILED -> A2aTaskStatus.TaskState.FAILED;
+      case TASK_STATE_REJECTED -> A2aTaskStatus.TaskState.REJECTED;
+      case TASK_STATE_UNSPECIFIED -> A2aTaskStatus.TaskState.UNKNOWN;
+    };
+  }
+
   private A2aTaskStatus convertStatus(TaskStatus status) {
     return A2aTaskStatus.builder()
-        .state(A2aTaskStatus.TaskState.fromString(status.state().asString()))
+        .state(convertState(status.state()))
         .message(status.message() != null ? convert(status.message()) : null)
         .timestamp(status.timestamp())
         .build();

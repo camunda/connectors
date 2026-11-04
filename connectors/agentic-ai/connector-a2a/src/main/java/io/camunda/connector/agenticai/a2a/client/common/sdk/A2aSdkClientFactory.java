@@ -6,11 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common.sdk;
 
-import io.a2a.client.ClientEvent;
-import io.a2a.spec.AgentCard;
-import java.util.function.BiConsumer;
-
 public interface A2aSdkClientFactory {
   A2aSdkClient buildClient(
-      AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer, A2aSdkClientConfig config);
+      A2aSdkAgentCard agentCard, A2aSdkClientListener listener, A2aSdkClientConfig config);
 }

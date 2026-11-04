@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.agenticai.a2a.client.outbound;
 
-import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkAgentCard;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 
 public interface A2aMessageSender {
   A2aSendMessageResult sendMessage(
-      AgentCard agentCard, SendMessageOperationConfiguration sendMessageOperation);
+      A2aSdkAgentCard agentCard, SendMessageOperationConfiguration sendMessageOperation);
 }

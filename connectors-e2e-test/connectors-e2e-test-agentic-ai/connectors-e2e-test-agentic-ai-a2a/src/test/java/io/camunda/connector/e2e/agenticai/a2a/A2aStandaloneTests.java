@@ -199,7 +199,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
     WireMock.verify(
         postRequestedFor(urlPathEqualTo("/travel-agent"))
-            .withRequestBody(WireMock.containing("message/send"))
+            .withRequestBody(WireMock.containing("SendMessage"))
             .withRequestBody(WireMock.containing(token)));
   }
 
@@ -275,7 +275,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-working.json").get()),
         Map.of(
-            "X-HMAC-Signature", "d2515228699764ba7e6df716539d1ddabbb8cc329e99fc70448c2753cc37bd92"),
+            "X-HMAC-Signature", "4582851d52fbfb5d2f278006576b8a7a89d78609ceea1f5d1c00c3dbaff1e91d"),
         100);
 
     // Post completed state with invalid HMAC signature - should NOT activate webhook
@@ -286,7 +286,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 .get()
                 .replaceAll("ctx-001", "ctx-002")),
         Map.of(
-            "X-HMAC-Signature", "d2515228699764ba7e6df716539d1ddabbb8cc329e99fc70448c2753cc37bd92"),
+            "X-HMAC-Signature", "4582851d52fbfb5d2f278006576b8a7a89d78609ceea1f5d1c00c3dbaff1e91d"),
         300);
 
     // Post completed state - should activate webhook
@@ -294,7 +294,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-completed.json").get()),
         Map.of(
-            "X-HMAC-Signature", "1fe75a1c849df2aacb18952f187938b64edff510f341c9ab55df03783aee85a0"),
+            "X-HMAC-Signature", "a1225d90e8fabeab78c187110d21b716a48771fa15e973a43890010779a64e98"),
         500);
 
     awaitProcessCompletion(zeebeTest);
@@ -396,7 +396,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
     stubFor(
         post(urlPathEqualTo("/travel-agent"))
-            .withRequestBody(WireMock.containing("message/send"))
+            .withRequestBody(WireMock.containing("SendMessage"))
             .willReturn(
                 aResponse()
                     .withBody(testFileContent("travel-agent-response-submitted.json").get())));
@@ -405,19 +405,30 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
         post(urlPathEqualTo("/travel-agent"))
             .inScenario("polling")
             .whenScenarioStateIs(STARTED)
-            .withRequestBody(WireMock.containing("tasks/get"))
-            .willReturn(
-                aResponse().withBody(testFileContent("travel-agent-response-working.json").get()))
+            .withRequestBody(WireMock.containing("GetTask"))
+            .willReturn(aResponse().withBody(getTaskResponse("travel-agent-response-working.json")))
             .willSetStateTo("complete-task"));
 
     stubFor(
         post(urlPathEqualTo("/travel-agent"))
             .inScenario("polling")
             .whenScenarioStateIs("complete-task")
-            .withRequestBody(WireMock.containing("tasks/get"))
+            .withRequestBody(WireMock.containing("GetTask"))
             .willReturn(
-                aResponse()
-                    .withBody(testFileContent("travel-agent-response-completed.json").get())));
+                aResponse().withBody(getTaskResponse("travel-agent-response-completed.json"))));
+  }
+
+  // GetTask returns the bare Task as JSON-RPC result, SendMessage wraps it in a "task" field
+  private String getTaskResponse(String fixture) {
+    try {
+      var root =
+          (com.fasterxml.jackson.databind.node.ObjectNode)
+              objectMapper.readTree(testFileContent(fixture).get());
+      root.set("result", root.get("result").get("task"));
+      return objectMapper.writeValueAsString(root);
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   private String extractTaskFromJsonRpc(String jsonRpcResponse) throws Exception {

@@ -4,15 +4,15 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.common.convert;
+package io.camunda.connector.agenticai.a2a.client.common.sdk;
 
-import io.a2a.spec.Message;
-import io.a2a.spec.Task;
-import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
+import org.a2aproject.sdk.client.ClientEvent;
+import org.a2aproject.sdk.spec.Task;
 
-public interface A2aSdkObjectConverter {
-  A2aMessage convert(Message message);
+public interface A2aSendMessageResponseHandler {
+  A2aSendMessageResult handleClientEvent(ClientEvent clientEvent);
 
-  A2aTask convert(Task task);
+  A2aTask handleTask(Task task);
 }

@@ -4,20 +4,22 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.common;
+package io.camunda.connector.agenticai.a2a.client.common.sdk;
 
 import static io.camunda.connector.agenticai.a2a.client.common.A2aErrorCodes.ERROR_CODE_A2A_CLIENT_AGENT_CARD_RETRIEVAL_FAILED;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
-import io.a2a.A2A;
-import io.a2a.client.http.A2AHttpClient;
-import io.a2a.spec.A2AClientError;
-import io.a2a.spec.AgentCard;
+import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.http.A2aHttpClientFactory;
 import io.camunda.connector.api.error.ConnectorException;
-import java.util.Collections;
+import java.util.Map;
+import org.a2aproject.sdk.A2A;
+import org.a2aproject.sdk.client.http.A2AHttpClient;
+import org.a2aproject.sdk.spec.A2AClientError;
+import org.a2aproject.sdk.spec.A2AClientJSONError;
+import org.a2aproject.sdk.spec.AgentCard;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +28,11 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aAgentCardFetcherImpl.class);
   private static final String DEFAULT_AGENT_CARD_PATH = ".well-known/agent-card.json";
+
+  private static final String A2A_VERSION_HEADER = "A2A-Version";
+  private static final String A2A_VERSION = "1.0";
+  private static final String UNSUPPORTED_CARD_HINT =
+      "The A2A client supports only A2A 1.0 servers. A2A 0.3 agent cards are not supported.";
 
   private final A2AHttpClient httpClient;
 
@@ -36,25 +43,47 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
   @Override
   public A2aAgentCard fetchAgentCard(A2aConnectionConfiguration connection) {
     LOGGER.debug("Fetching agent-card from URL: {}", connection.url());
-    AgentCard agentCard = fetchAgentCardRaw(connection);
+    AgentCard agentCard = fetchSdkAgentCard(connection);
     return convertAgentCard(agentCard);
   }
 
   @Override
-  public AgentCard fetchAgentCardRaw(A2aConnectionConfiguration connection) {
+  public A2aSdkAgentCard fetchAgentCardRaw(A2aConnectionConfiguration connection) {
+    return new A2aSdkAgentCard(fetchSdkAgentCard(connection));
+  }
+
+  private AgentCard fetchSdkAgentCard(A2aConnectionConfiguration connection) {
     final var relativeCardPath =
         isNotBlank(connection.agentCardLocation())
             ? connection.agentCardLocation()
             : DEFAULT_AGENT_CARD_PATH;
+    final AgentCard agentCard;
     try {
-      return A2A.getAgentCard(
-          httpClient, connection.url(), relativeCardPath, Collections.emptyMap());
+      agentCard =
+          A2A.getAgentCard(
+              httpClient,
+              connection.url(),
+              relativeCardPath,
+              Map.of(A2A_VERSION_HEADER, A2A_VERSION));
+    } catch (A2AClientJSONError e) {
+      throw new ConnectorException(
+          ERROR_CODE_A2A_CLIENT_AGENT_CARD_RETRIEVAL_FAILED,
+          "Failed to parse agent card from %s. %s"
+              .formatted(relativeCardPath, UNSUPPORTED_CARD_HINT),
+          e);
     } catch (A2AClientError e) {
       throw new ConnectorException(
           ERROR_CODE_A2A_CLIENT_AGENT_CARD_RETRIEVAL_FAILED,
-          "Failed to load agent card from %s".formatted(relativeCardPath),
+          "Failed to load agent card from %s: %s".formatted(relativeCardPath, rootCauseMessage(e)),
           e);
     }
+    if (agentCard.supportedInterfaces() == null || agentCard.supportedInterfaces().isEmpty()) {
+      throw new ConnectorException(
+          ERROR_CODE_A2A_CLIENT_AGENT_CARD_RETRIEVAL_FAILED,
+          "Agent card from %s has no supportedInterfaces. %s"
+              .formatted(relativeCardPath, UNSUPPORTED_CARD_HINT));
+    }
+    return agentCard;
   }
 
   private A2aAgentCard convertAgentCard(AgentCard agentCard) {
@@ -78,5 +107,14 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
                     .build())
             .toList();
     return new A2aAgentCard(agentCard.name(), agentCard.description(), agentSkills);
+  }
+
+  private static String rootCauseMessage(Throwable e) {
+    Throwable root = e;
+    Throwable next;
+    while ((next = root.getCause()) != null && !next.equals(root)) {
+      root = next;
+    }
+    return root.getClass().getSimpleName() + ": " + root.getMessage();
   }
 }

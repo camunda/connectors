@@ -6,9 +6,10 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common.sdk.http;
 
-import io.a2a.client.http.A2AHttpClient;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import java.net.http.HttpClient;
+import org.a2aproject.sdk.client.http.A2AHttpClient;
+import org.a2aproject.sdk.client.http.JdkA2AHttpClient;
 
 /** Factory for creating proxy-configured {@link A2AHttpClient} instances. */
 public class A2aHttpClientFactory {
@@ -26,9 +27,10 @@ public class A2aHttpClientFactory {
             .configure(
                 HttpClient.newBuilder()
                     .version(HttpClient.Version.HTTP_2)
-                    .followRedirects(HttpClient.Redirect.NORMAL))
+                    // the SDK client follows redirects itself and rejects native redirects
+                    .followRedirects(HttpClient.Redirect.NEVER))
             .build();
 
-    return new CustomJdkA2AHttpClient(httpClient);
+    return new JdkA2AHttpClient(httpClient);
   }
 }

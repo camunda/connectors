@@ -5,7 +5,7 @@
     "id": "task-001",
     "contextId": "ctx-001",
     "status": {
-      "state": "completed",
+      "state": "TASK_STATE_COMPLETED",
       "timestamp": "2024-03-15T10:11:00Z"
     },
     "artifacts": [
@@ -14,7 +14,6 @@
         "name": "WeatherInfo",
         "parts": [
           {
-            "kind": "text",
             "text": "It's sunny in London!"
           }
         ]
@@ -22,19 +21,16 @@
     ],
     "history": [
       {
-        "role": "user",
+        "role": "ROLE_USER",
         "parts": [
           {
-            "kind": "text",
             "text": "What's the weather in London?"
           }
         ],
         "messageId": "msg-001",
         "taskId": "task-001",
-        "contextId": "ctx-001",
-        "kind": "message"
+        "contextId": "ctx-001"
       }
-    ],
-    "kind": "task"
+    ]
   }
 }

@@ -61,17 +61,17 @@ becomes a single tool the LLM can send messages to. A2A supports multi-turn conv
 ## 3. Connector Types
 
 **A2A Client Outbound** (`A2aClientOutboundConnectorFunction`):
-- Type: `io.camunda.agenticai:a2aclient:0`
+- Type: `io.camunda.agenticai:a2aclient:1`
 - Sends messages to remote A2A agents and fetches agent cards
 - Two modes: standalone and AI Agent tool
 
 **A2A Client Polling Inbound** (`A2aClientPollingExecutable`):
-- Type: `io.camunda.agenticai:a2aclient:polling:0`
+- Type: `io.camunda.agenticai:a2aclient:polling:1`
 - Intermediate catch event / receive task
 - Polls remote A2A server for task completion (async tasks)
 
 **A2A Client Webhook Inbound** (`A2aClientWebhookExecutable`):
-- Type: `io.camunda.agenticai:a2aclient:webhook:0`
+- Type: `io.camunda.agenticai:a2aclient:webhook:1`
 - Intermediate catch event / receive task
 - Receives push notifications from A2A servers
 - HMAC signature verification for security
@@ -255,27 +255,45 @@ Discriminated by `type`:
 
 ## 10. SDK Client Layer
 
+The connectors use the A2A Java SDK 1.x (`org.a2aproject.sdk`) and support only A2A 1.0 servers. All SDK imports
+live in the adapter package `a2a.client.common.sdk` and its sub-packages. `VendorSdkArchTest` enforces this rule.
+Code outside the package uses the connector types `A2aSdkAgentCard` (opaque Agent Card handle), `A2aOutgoingMessage`,
+`A2aSdkClientListener` and `A2aTaskNotificationParser`. An SDK major upgrade therefore stays inside this package.
+
 ### A2aSdkClientFactory / A2aSdkClientFactoryImpl
 
-Creates an `A2aSdkClient` from an `AgentCard`, event handler, and `A2aSdkClientConfig`.
+Creates an `A2aSdkClient` from an `A2aSdkAgentCard`, an `A2aSdkClientListener`, and an `A2aSdkClientConfig`.
 
-Transport selection based on what the remote `AgentCard` advertises:
+Transport selection based on the `supportedInterfaces` of the remote Agent Card:
 - `JSONRPCTransport` — JSON-RPC over HTTP
 - `RestTransport` — REST
 - `GrpcTransport` — gRPC (using `ManagedChannelFactory` for channel lifecycle)
 
+The HTTP transports use the SDK `JdkA2AHttpClient`, built from the proxy-configured JDK `HttpClient`
+(`A2aHttpClientFactory`).
+
 ### A2aSdkClient (AutoCloseable)
 
 Thin wrapper around the A2A SDK `Client`:
-- `sendMessage(Message)` — wraps `A2AClientException` in `ConnectorException`
-- `getTask(TaskQueryParams)` — wraps `A2AClientException` in `ConnectorException`
+- `sendMessage(A2aOutgoingMessage)` — builds the SDK user message, wraps `A2AClientException` in `ConnectorException`
+- `getTask(String, int)` — returns the connector `A2aTask`, wraps `A2AClientException` in `ConnectorException`
 - `close()` — shuts down SDK client and gRPC channels
 
 ### A2aSdkClientConfig
 
 - `historyLength: int` — number of history messages to request
 - `blocking: boolean` — SDK polls internally and blocks
-- `pushNotificationConfig: PushNotificationConfig` — webhook config (mutually exclusive with blocking)
+- `pushNotificationConfig: PushNotificationConfig` — webhook config (mutually exclusive with blocking).
+  A2A 1.0 supports one authentication scheme, so the first value of `authenticationSchemes` is used.
+
+### A2aTaskNotificationParser
+
+Parses the body of an A2A 1.0 push notification (`{"task": {...}}`) into an `A2aTask`. The webhook connector uses it.
+It accepts only task notifications. The header that carries the notification token in A2A 1.0 is an open question
+(specification R8). The connector adds no header for it.
+
+All requests carry the header `A2A-Version: 1.0`. The SDK transports set it on calls, and the Agent Card fetcher sets it
+on the Agent Card request. An A2A 0.3 Agent Card fails with an error that states the supported protocol version.
 
 ### ManagedChannelFactory
 
@@ -311,7 +329,7 @@ forced shutdown.
 
 **`A2aSendMessageResponseHandler` / `A2aSendMessageResponseHandlerImpl`**: Handles A2A SDK `ClientEvent`:
 - `MessageEvent` → converts via `A2aSdkObjectConverter.convert(Message)`
-- `TaskEvent` → converts via `A2aSdkObjectConverter.convert(Task)`; throws on `AUTH_REQUIRED` state
+- `TaskEvent` → converts via `A2aSdkObjectConverter.convert(Task)`; throws on `TASK_STATE_AUTH_REQUIRED` state
 
 ---
 
@@ -390,7 +408,8 @@ Imports `A2aClientOutboundConnectorConfiguration`, `A2aClientPollingConfiguratio
 ### A2aClientCommonConfiguration
 
 Active when at least one of the outbound, polling or webhook configurations is enabled. Registers: `A2aPartConverter`, `A2aSdkObjectConverter`,
-`A2aAgentCardFetcher`, `A2aSdkClientFactory`
+`A2aAgentCardFetcher`, `A2aDocumentToPartConverter`, `A2aSendMessageResponseHandler`, `A2aTaskNotificationParser`,
+`A2aSdkClientFactory`
 
 Config: `camunda.connector.agenticai.a2a.client.transport.grpc.useTls` (default: `true`)
 
@@ -398,8 +417,7 @@ Config: `camunda.connector.agenticai.a2a.client.transport.grpc.useTls` (default:
 
 **Condition**: `camunda.connector.agenticai.a2a.client.outbound.enabled` (default: **true**)
 
-Registers: `A2aDocumentToPartConverter`, `A2aSendMessageResponseHandler`, `A2aMessageSender`,
-`A2aClientRequestHandler`, `A2aClientOutboundConnectorFunction`
+Registers: `A2aMessageSender`, `A2aClientRequestHandler`, `A2aClientOutboundConnectorFunction`
 
 ### A2aClientAgenticToolAutoConfiguration
 

@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common;
 
-import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkAgentCard;
 
 public interface A2aAgentCardFetcher {
   A2aAgentCard fetchAgentCard(A2aConnectionConfiguration connection);
 
-  AgentCard fetchAgentCardRaw(A2aConnectionConfiguration connection);
+  A2aSdkAgentCard fetchAgentCardRaw(A2aConnectionConfiguration connection);
 }

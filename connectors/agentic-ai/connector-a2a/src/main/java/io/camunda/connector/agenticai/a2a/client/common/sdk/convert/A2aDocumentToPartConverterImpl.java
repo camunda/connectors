@@ -4,17 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.outbound.convert;
+package io.camunda.connector.agenticai.a2a.client.common.sdk.convert;
 
 import static io.camunda.connector.agenticai.common.json.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.a2a.spec.DataPart;
-import io.a2a.spec.FilePart;
-import io.a2a.spec.FileWithBytes;
-import io.a2a.spec.Part;
-import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.common.json.ObjectMapperConstants;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -23,7 +18,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import org.a2aproject.sdk.spec.DataPart;
+import org.a2aproject.sdk.spec.FilePart;
+import org.a2aproject.sdk.spec.FileWithBytes;
+import org.a2aproject.sdk.spec.Part;
+import org.a2aproject.sdk.spec.TextPart;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.ContentType;
 
@@ -70,9 +71,9 @@ public class A2aDocumentToPartConverterImpl implements A2aDocumentToPartConverte
       FileWithBytes fileWithBytes =
           new FileWithBytes(
               contentType.getMimeType(),
-              camundaDocument.metadata().getFileName(),
+              Objects.requireNonNullElse(camundaDocument.metadata().getFileName(), "document"),
               camundaDocument.asBase64());
-      return new FilePart(fileWithBytes);
+      return new FilePart(fileWithBytes, null);
     }
 
     throw new A2aDocumentConversionException(

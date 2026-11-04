@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.outbound.convert;
+package io.camunda.connector.agenticai.a2a.client.common.sdk.convert;
 
 /**
  * Thrown when a Camunda {@link io.camunda.connector.api.document.Document} cannot be converted to

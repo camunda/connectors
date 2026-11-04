@@ -18,7 +18,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.a2asdk>0.3.3.Final</version.a2asdk>
+    <version.a2asdk>1.5.0.Final</version.a2asdk>
   </properties>
 
   <licenses>
@@ -85,42 +85,42 @@
 
     <!-- A2A Java SDK -->
     <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-common</artifactId>
+      <groupId>org.a2aproject.sdk</groupId>
+      <artifactId>a2a-java-sdk-jsonrpc-common</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.a2asdk</groupId>
+      <groupId>org.a2aproject.sdk</groupId>
       <artifactId>a2a-java-sdk-spec</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.a2asdk</groupId>
+      <groupId>org.a2aproject.sdk</groupId>
       <artifactId>a2a-java-sdk-http-client</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.a2asdk</groupId>
+      <groupId>org.a2aproject.sdk</groupId>
       <artifactId>a2a-java-sdk-client</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.a2asdk</groupId>
+      <groupId>org.a2aproject.sdk</groupId>
       <artifactId>a2a-java-sdk-client-transport-spi</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.a2asdk</groupId>
+      <groupId>org.a2aproject.sdk</groupId>
       <artifactId>a2a-java-sdk-client-transport-grpc</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.a2asdk</groupId>
+      <groupId>org.a2aproject.sdk</groupId>
       <artifactId>a2a-java-sdk-client-transport-rest</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.a2asdk</groupId>
+      <groupId>org.a2aproject.sdk</groupId>
       <artifactId>a2a-java-sdk-client-transport-jsonrpc</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>

@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.outbound.convert;
+package io.camunda.connector.agenticai.a2a.client.common.sdk.convert;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -14,13 +14,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.a2a.spec.DataPart;
-import io.a2a.spec.FilePart;
-import io.a2a.spec.FileWithBytes;
-import io.a2a.spec.TextPart;
 import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Map;
+import org.a2aproject.sdk.spec.DataPart;
+import org.a2aproject.sdk.spec.FilePart;
+import org.a2aproject.sdk.spec.FileWithBytes;
+import org.a2aproject.sdk.spec.TextPart;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,7 +53,7 @@ public class A2aDocumentToPartConverterTest {
 
     assertThat(content)
         .asInstanceOf(InstanceOfAssertFactories.type(TextPart.class))
-        .satisfies(textPart -> assertThat(textPart.getText()).isEqualTo(TEXT_FILE_CONTENT));
+        .satisfies(textPart -> assertThat(textPart.text()).isEqualTo(TEXT_FILE_CONTENT));
 
     verify(document, never()).asBase64();
     verify(document, never()).asInputStream();
@@ -78,7 +78,7 @@ public class A2aDocumentToPartConverterTest {
 
     assertThat(content)
         .asInstanceOf(InstanceOfAssertFactories.type(TextPart.class))
-        .satisfies(textPart -> assertThat(textPart.getText()).isEqualTo(TEXT_FILE_CONTENT));
+        .satisfies(textPart -> assertThat(textPart.text()).isEqualTo(TEXT_FILE_CONTENT));
 
     verify(document, never()).asBase64();
     verify(document, never()).asInputStream();
@@ -105,7 +105,7 @@ public class A2aDocumentToPartConverterTest {
         Map.of("key1", "value1", "key2", 42, "key3", Map.of("nestedKey", "nestedValue"));
     assertThat(content)
         .asInstanceOf(InstanceOfAssertFactories.type(DataPart.class))
-        .satisfies(dataPart -> assertThat(dataPart.getData()).isEqualTo(expectedData));
+        .satisfies(dataPart -> assertThat(dataPart.data()).isEqualTo(expectedData));
 
     verify(document, never()).asBase64();
     verify(document, never()).asInputStream();
@@ -122,9 +122,9 @@ public class A2aDocumentToPartConverterTest {
     assertThat(content)
         .asInstanceOf(InstanceOfAssertFactories.type(FilePart.class))
         .satisfies(filePart -> {
-          assertThat(filePart.getFile().mimeType()).isEqualTo(mediaType);
-          assertThat(filePart.getFile()).isInstanceOf(FileWithBytes.class);
-          assertThat(((FileWithBytes) filePart.getFile()).bytes()).isEqualTo(DUMMY_B64_VALUE);
+          assertThat(filePart.file().mimeType()).isEqualTo(mediaType);
+          assertThat(filePart.file()).isInstanceOf(FileWithBytes.class);
+          assertThat(((FileWithBytes) filePart.file()).bytes()).isEqualTo(DUMMY_B64_VALUE);
         });
 
     verify(document, never()).asByteArray();
@@ -198,18 +198,18 @@ public class A2aDocumentToPartConverterTest {
         .satisfiesExactly(
             first -> {
               assertThat(first).isInstanceOf(TextPart.class);
-              assertThat(((TextPart) first).getText()).isEqualTo("Hello World");
+              assertThat(((TextPart) first).text()).isEqualTo("Hello World");
             },
             second -> {
               assertThat(second).isInstanceOf(DataPart.class);
-              assertThat(((DataPart) second).getData())
+              assertThat(((DataPart) second).data())
                   .isEqualTo(Map.of("name", "test", "value", 123));
             },
             third -> {
               assertThat(third).isInstanceOf(FilePart.class);
               FilePart filePart = (FilePart) third;
-              assertThat(filePart.getFile().mimeType()).isEqualTo("image/png");
-              assertThat(((FileWithBytes) filePart.getFile()).bytes()).isEqualTo(DUMMY_B64_VALUE);
+              assertThat(filePart.file().mimeType()).isEqualTo("image/png");
+              assertThat(((FileWithBytes) filePart.file()).bytes()).isEqualTo(DUMMY_B64_VALUE);
             });
   }
 

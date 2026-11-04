@@ -4,17 +4,17 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.outbound;
+package io.camunda.connector.agenticai.a2a.client.common.sdk;
 
-import io.a2a.client.ClientEvent;
-import io.a2a.client.MessageEvent;
-import io.a2a.client.TaskEvent;
-import io.a2a.spec.Task;
-import io.a2a.spec.TaskState;
-import io.a2a.spec.TaskStatus;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aSdkObjectConverter;
+import org.a2aproject.sdk.client.ClientEvent;
+import org.a2aproject.sdk.client.MessageEvent;
+import org.a2aproject.sdk.client.TaskEvent;
+import org.a2aproject.sdk.spec.Task;
+import org.a2aproject.sdk.spec.TaskState;
+import org.a2aproject.sdk.spec.TaskStatus;
 
 public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponseHandler {
 
@@ -36,10 +36,9 @@ public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponse
 
   @Override
   public A2aTask handleTask(Task task) {
-    TaskStatus status = task.getStatus();
-    if (status.state() == TaskState.AUTH_REQUIRED) {
-      throw new RuntimeException(
-          "Task status %s is not supported yet.".formatted(status.state().asString()));
+    TaskStatus status = task.status();
+    if (status.state() == TaskState.TASK_STATE_AUTH_REQUIRED) {
+      throw new RuntimeException("Task status %s is not supported yet.".formatted(status.state()));
     }
 
     return sdkObjectConverter.convert(task);

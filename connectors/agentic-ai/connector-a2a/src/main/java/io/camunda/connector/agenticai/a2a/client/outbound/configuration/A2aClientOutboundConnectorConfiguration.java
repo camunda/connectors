@@ -9,17 +9,12 @@ package io.camunda.connector.agenticai.a2a.client.outbound.configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfiguration;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientOutboundConnectorFunction;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientRequestHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSenderImpl;
-import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponseHandlerImpl;
-import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
-import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverterImpl;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -37,26 +32,8 @@ import org.springframework.context.annotation.Scope;
 public class A2aClientOutboundConnectorConfiguration {
   @Bean
   @ConditionalOnMissingBean
-  public A2aDocumentToPartConverter a2aDocumentToPartConverter(
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new A2aDocumentToPartConverterImpl(objectMapper);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public A2aSendMessageResponseHandler a2aSendMessageResponseHandler(
-      A2aSdkObjectConverter sdkObjectConverter) {
-    return new A2aSendMessageResponseHandlerImpl(sdkObjectConverter);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public A2aMessageSender a2aMessageSender(
-      A2aDocumentToPartConverter documentToPartConverter,
-      A2aSendMessageResponseHandler sendMessageResponseHandler,
-      A2aSdkClientFactory a2ASdkClientFactory) {
-    return new A2aMessageSenderImpl(
-        documentToPartConverter, sendMessageResponseHandler, a2ASdkClientFactory);
+  public A2aMessageSender a2aMessageSender(A2aSdkClientFactory a2ASdkClientFactory) {
+    return new A2aMessageSenderImpl(a2ASdkClientFactory);
   }
 
   @Bean

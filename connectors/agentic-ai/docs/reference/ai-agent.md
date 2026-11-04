@@ -1693,9 +1693,9 @@ For the complete MCP reference including data model, client lifecycle, transport
 
 A2A (Agent-to-Agent) enables the AI Agent to interact with remote autonomous agents. Unlike MCP (discrete tools), A2A exposes **entire agents** as single tools.
 
-- **A2A Client Outbound** (`A2aClientOutboundConnectorFunction`, type `io.camunda.agenticai:a2aclient:0`)
-- **A2A Client Polling Inbound** (`A2aClientPollingExecutable`, type `io.camunda.agenticai:a2aclient:polling:0`)
-- **A2A Client Webhook Inbound** (`A2aClientWebhookExecutable`, type `io.camunda.agenticai:a2aclient:webhook:0`)
+- **A2A Client Outbound** (`A2aClientOutboundConnectorFunction`, type `io.camunda.agenticai:a2aclient:1`)
+- **A2A Client Polling Inbound** (`A2aClientPollingExecutable`, type `io.camunda.agenticai:a2aclient:polling:1`)
+- **A2A Client Webhook Inbound** (`A2aClientWebhookExecutable`, type `io.camunda.agenticai:a2aclient:webhook:1`)
 
 Tool naming: `A2A_<elementName>`. `A2aSystemPromptContributor` injects protocol instructions when A2A tools are detected.
 

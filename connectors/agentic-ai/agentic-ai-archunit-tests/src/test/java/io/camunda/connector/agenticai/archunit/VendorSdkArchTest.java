@@ -36,7 +36,7 @@ class VendorSdkArchTest {
   private static final String AWS_AGENTCORE_MEMORY =
       AgenticAiModules.pkg("aiagent.memory.conversation.awsagentcore..");
   private static final String PROXY = AgenticAiModules.pkg("aiagent.proxy..");
-  private static final String A2A_CLIENT = AgenticAiModules.pkg("a2a.client..");
+  private static final String A2A_SDK_ADAPTER = AgenticAiModules.pkg("a2a.client.common.sdk..");
   private static final String MCP_CLIENT_FRAMEWORK = AgenticAiModules.pkg("mcp.client.framework..");
 
   private static final List<VendorSdk> VENDOR_SDKS =
@@ -90,9 +90,9 @@ class VendorSdkArchTest {
               LANGCHAIN4J),
           new VendorSdk(
               "A2A SDK",
-              "io.a2a..",
-              "the A2A client can be extracted into its own module",
-              A2A_CLIENT),
+              "org.a2aproject.sdk..",
+              "a vendor SDK major upgrade stays inside the A2A SDK adapter package",
+              A2A_SDK_ADAPTER),
           new VendorSdk(
               "MCP SDK",
               "io.modelcontextprotocol..",

@@ -2,40 +2,37 @@
   "jsonrpc": "2.0",
   "id": "req-001",
   "result": {
-    "id": "task-001",
-    "contextId": "ctx-001",
-    "status": {
-      "state": "submitted",
-      "message": {
-        "role": "agent",
-        "parts": [
-          {
-            "kind": "text",
-            "text": "Task received. I will start searching for the weather forecast shortly."
-          }
-        ],
-        "messageId": "msg-002",
-        "taskId": "task-001",
-        "contextId": "ctx-001",
-        "kind": "message"
+    "task": {
+      "id": "task-001",
+      "contextId": "ctx-001",
+      "status": {
+        "state": "TASK_STATE_SUBMITTED",
+        "message": {
+          "role": "ROLE_AGENT",
+          "parts": [
+            {
+              "text": "Task received. I will start searching for the weather forecast shortly."
+            }
+          ],
+          "messageId": "msg-002",
+          "taskId": "task-001",
+          "contextId": "ctx-001"
+        },
+        "timestamp": "2024-03-15T10:10:00Z"
       },
-      "timestamp": "2024-03-15T10:10:00Z"
-    },
-    "history": [
-      {
-        "role": "user",
-        "parts": [
-          {
-            "kind": "text",
-            "text": "What's the weather in London?"
-          }
-        ],
-        "messageId": "msg-001",
-        "taskId": "task-001",
-        "contextId": "ctx-001",
-        "kind": "message"
-      }
-    ],
-    "kind": "task"
+      "history": [
+        {
+          "role": "ROLE_USER",
+          "parts": [
+            {
+              "text": "What's the weather in London?"
+            }
+          ],
+          "messageId": "msg-001",
+          "taskId": "task-001",
+          "contextId": "ctx-001"
+        }
+      ]
+    }
   }
 }

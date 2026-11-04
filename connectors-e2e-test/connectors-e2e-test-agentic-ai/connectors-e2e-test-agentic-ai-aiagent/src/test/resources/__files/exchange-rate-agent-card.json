@@ -1,16 +1,18 @@
 {
   "name": "Exchange rate agent",
   "description": "Helps with exchanging currency rates",
-  "url": "%s/exchange-rate-agent",
   "version": "1.0.0",
   "documentationUrl": "http://example.com/docs",
   "capabilities": {
     "streaming": false,
-    "pushNotifications": true,
-    "stateTransitionHistory": false
+    "pushNotifications": true
   },
-  "defaultInputModes": ["text"],
-  "defaultOutputModes": ["text"],
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text"
+  ],
   "skills": [
     {
       "id": "currency-exchange",
@@ -26,5 +28,11 @@
       ]
     }
   ],
-  "protocolVersion": "0.3.0"
+  "supportedInterfaces": [
+    {
+      "protocolBinding": "JSONRPC",
+      "url": "%s/exchange-rate-agent",
+      "protocolVersion": "1.0"
+    }
+  ]
 }

@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.a2a.client.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aClientResponse;
@@ -15,6 +14,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aClientRe
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkAgentCard;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode.Notification;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode.Polling;
@@ -73,7 +73,7 @@ public class A2aClientRequestHandlerImpl implements A2aClientRequestHandler {
 
   private A2aClientResponse handleSendMessage(
       A2aClientRequest request, SendMessageOperationConfiguration sendMessageOperation) {
-    AgentCard agentCard = agentCardFetcher.fetchAgentCardRaw(request.data().connection());
+    A2aSdkAgentCard agentCard = agentCardFetcher.fetchAgentCardRaw(request.data().connection());
     A2aSendMessageResult a2aSendMessageResult =
         a2aMessageSender.sendMessage(agentCard, sendMessageOperation);
 

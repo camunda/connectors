@@ -4,31 +4,29 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.outbound;
+package io.camunda.connector.agenticai.a2a.client.common.sdk;
 
 import static io.camunda.connector.agenticai.a2a.client.common.model.part.A2aTextPart.textPart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.a2a.client.ClientEvent;
-import io.a2a.client.MessageEvent;
-import io.a2a.client.TaskEvent;
-import io.a2a.client.TaskUpdateEvent;
-import io.a2a.spec.Message;
-import io.a2a.spec.Task;
-import io.a2a.spec.TaskState;
-import io.a2a.spec.TaskStatus;
-import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aSdkObjectConverter;
 import java.util.List;
-import java.util.Map;
+import org.a2aproject.sdk.client.ClientEvent;
+import org.a2aproject.sdk.client.MessageEvent;
+import org.a2aproject.sdk.client.TaskEvent;
+import org.a2aproject.sdk.client.TaskUpdateEvent;
+import org.a2aproject.sdk.spec.Message;
+import org.a2aproject.sdk.spec.Task;
+import org.a2aproject.sdk.spec.TaskState;
+import org.a2aproject.sdk.spec.TaskStatus;
+import org.a2aproject.sdk.spec.TextPart;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -56,11 +54,11 @@ class A2aSendMessageResponseHandlerTest {
     @Test
     void shouldConvertMessageEventToMessageResult() {
       Message message =
-          new Message.Builder()
+          Message.builder()
               .messageId("msg-123")
               .contextId("ctx-456")
-              .role(Message.Role.AGENT)
-              .parts(List.of(new TextPart("Hello from agent")))
+              .role(Message.Role.ROLE_AGENT)
+              .parts(List.of(new TextPart("Hello from agent", null)))
               .build();
       MessageEvent event = new MessageEvent(message);
 
@@ -81,7 +79,7 @@ class A2aSendMessageResponseHandlerTest {
 
     @Test
     void shouldConvertTaskEventToTaskResult() {
-      Task task = createTask("task-1", "ctx-1", TaskState.COMPLETED);
+      Task task = createTask("task-1", "ctx-1", TaskState.TASK_STATE_COMPLETED);
       TaskEvent event = new TaskEvent(task);
 
       A2aTask a2aTask =
@@ -115,7 +113,7 @@ class A2aSendMessageResponseHandlerTest {
     @EnumSource(
         value = TaskState.class,
         mode = EnumSource.Mode.EXCLUDE,
-        names = {"INPUT_REQUIRED", "AUTH_REQUIRED"})
+        names = {"TASK_STATE_AUTH_REQUIRED", "TASK_STATE_UNSPECIFIED"})
     void shouldHandleSupportedTaskStates(TaskState taskState) {
       Task task = createTask("task-" + taskState.name(), "ctx-1", taskState);
 
@@ -125,7 +123,9 @@ class A2aSendMessageResponseHandlerTest {
               .contextId("ctx-1")
               .status(
                   A2aTaskStatus.builder()
-                      .state(A2aTaskStatus.TaskState.valueOf(taskState.name()))
+                      .state(
+                          A2aTaskStatus.TaskState.valueOf(
+                              taskState.name().replace("TASK_STATE_", "")))
                       .build())
               .build();
       when(sdkObjectConverter.convert(task)).thenReturn(expectedTask);
@@ -137,28 +137,20 @@ class A2aSendMessageResponseHandlerTest {
 
     @Test
     void shouldThrowForNotSupportedState() {
-      Task task = createTask("task-input", "ctx-1", TaskState.AUTH_REQUIRED);
+      Task task = createTask("task-input", "ctx-1", TaskState.TASK_STATE_AUTH_REQUIRED);
 
       assertThatThrownBy(() -> handler.handleTask(task))
           .isInstanceOf(RuntimeException.class)
           .hasMessage(
-              "Task status %s is not supported yet.".formatted(TaskState.AUTH_REQUIRED.asString()));
+              "Task status %s is not supported yet.".formatted(TaskState.TASK_STATE_AUTH_REQUIRED));
     }
   }
 
   private Task createTask(String taskId, String contextId, TaskState state) {
-    TaskStatus status = mock(TaskStatus.class);
-    when(status.state()).thenReturn(state);
-    lenient().when(status.message()).thenReturn(null);
-    lenient().when(status.timestamp()).thenReturn(null);
-
-    Task task = mock(Task.class);
-    lenient().when(task.getId()).thenReturn(taskId);
-    lenient().when(task.getContextId()).thenReturn(contextId);
-    lenient().when(task.getStatus()).thenReturn(status);
-    lenient().when(task.getMetadata()).thenReturn(Map.of());
-    lenient().when(task.getArtifacts()).thenReturn(List.of());
-
-    return task;
+    return Task.builder()
+        .id(taskId)
+        .contextId(contextId)
+        .status(new TaskStatus(state, null, null))
+        .build();
   }
 }
