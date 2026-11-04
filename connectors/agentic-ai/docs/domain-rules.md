@@ -18,7 +18,8 @@ Review a rule when its SDK or API area changes. Remove a rule when a build check
    - Map a protocol ID only to the field with the same meaning. Example: use the output item ID, not the response ID.
    - Why: a conversation can change to a different provider. The target provider rejects data from a different provider or data in the wrong field. (#8343, #8272, #8279)
 3. **Parse structured values. Do not join them as strings.**
-   - In this module: normalize a custom endpoint URL as a URL.
+   - Parse the URL and build the result with the URI API. Do not use string joins or suffix checks on the URL text.
+   - In this module: normalize custom endpoint URLs this way.
    - Write a test for each case: trailing slashes, an existing suffix, a query and a fragment.
    - Why: string joins made incorrect paths. (#8393)
 4. **Each implementation of an extension point fulfills the full contract.**
