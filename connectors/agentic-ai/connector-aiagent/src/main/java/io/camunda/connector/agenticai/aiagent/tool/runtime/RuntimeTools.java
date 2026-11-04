@@ -40,7 +40,6 @@ public class RuntimeTools {
 
   private final Map<String, Registration> registrationsByName;
   private final ObjectMapper argumentsMapper;
-  private final ObjectMapper objectMapper;
 
   /**
    * @throws IllegalStateException if two tools have the same name, a name is blank or a definition
@@ -49,7 +48,6 @@ public class RuntimeTools {
   public RuntimeTools(List<RuntimeTool> tools, ObjectMapper objectMapper) {
     this.registrationsByName = register(tools);
     this.argumentsMapper = RuntimeToolCallImpl.argumentsMapper(objectMapper);
-    this.objectMapper = objectMapper;
   }
 
   /** The definitions of the enabled tools in registration order. */
@@ -58,7 +56,7 @@ public class RuntimeTools {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return List.of();
     }
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
+    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
     return registrationsByName.values().stream()
         .filter(registration -> registration.tool().isEnabled(context))
         .map(Registration::definition)
@@ -74,7 +72,7 @@ public class RuntimeTools {
    */
   public List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
+    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
     return calls.stream().map(call -> execute(context, call)).toList();
   }
 
