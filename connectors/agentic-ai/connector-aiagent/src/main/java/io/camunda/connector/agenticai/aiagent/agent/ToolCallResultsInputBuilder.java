@@ -16,12 +16,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Builds the input of the turn that follows a turn with tool calls, from the results of all calls.
@@ -56,7 +53,7 @@ final class ToolCallResultsInputBuilder {
     messages.add(
         ToolCallResultMessage.builder()
             .results(entries.stream().map(Entry::result).toList())
-            .metadata(defaultMessageMetadata())
+            .metadata(MessageMetadata.defaults())
             .build());
 
     final var documentGroups =
@@ -71,7 +68,7 @@ final class ToolCallResultsInputBuilder {
       content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
       content.addAll(documentPairs(documentGroups));
 
-      final var metadata = new HashMap<>(defaultMessageMetadata());
+      final var metadata = new HashMap<>(MessageMetadata.defaults());
       metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
       messages.add(UserMessage.builder().content(content).metadata(metadata).build());
     }
@@ -91,9 +88,5 @@ final class ToolCallResultsInputBuilder {
       }
     }
     return content;
-  }
-
-  static Map<String, Object> defaultMessageMetadata() {
-    return Map.of("timestamp", ZonedDateTime.now(ZoneId.systemDefault()));
   }
 }

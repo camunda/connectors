@@ -292,8 +292,11 @@ public abstract class BaseAgentRequestHandler<
   private enum NextStep {
     /** The turn is complete: the response is handed out. */
     STOP,
-    /** The provider has not finished its response: the model is called again. */
-    CONTINUE_RESPONSE,
+    /**
+     * The provider paused the turn (for example Anthropic's {@code pause_turn}): the model is
+     * called again to continue it.
+     */
+    CONTINUE,
     /** The model called runtime tools only: the agent runs them and calls the model again. */
     RUN_RUNTIME_TOOLS
   }
@@ -326,7 +329,7 @@ public abstract class BaseAgentRequestHandler<
           executionContext, agentInstanceKey, workingConversation, nextStep != NextStep.STOP);
 
       switch (nextStep) {
-        case CONTINUE_RESPONSE -> {
+        case CONTINUE -> {
           LOGGER.debug(
               "Provider requested continuation (iterationKey={}); resuming with another round",
               currentTurn.iterationKey());
@@ -354,7 +357,7 @@ public abstract class BaseAgentRequestHandler<
 
   private static NextStep nextStep(ChatResult chatResult, AgentConversationTurn currentTurn) {
     if (chatResult instanceof ChatResult.Continuation) {
-      return NextStep.CONTINUE_RESPONSE;
+      return NextStep.CONTINUE;
     }
     return currentTurn.hasRuntimeToolCalls() && !currentTurn.hasProcessToolCalls()
         ? NextStep.RUN_RUNTIME_TOOLS
