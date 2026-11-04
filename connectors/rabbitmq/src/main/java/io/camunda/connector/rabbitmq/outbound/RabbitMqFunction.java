@@ -6,13 +6,18 @@
  */
 package io.camunda.connector.rabbitmq.outbound;
 
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ShutdownSignalException;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 @OutboundConnector(
     name = "RabbitMQ Producer",
@@ -34,6 +39,9 @@ import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
     icon = "icon.svg")
 public class RabbitMqFunction implements OutboundConnectorFunction {
+
+  static final String PUBLISH_FAILED_ERROR_CODE = "RABBITMQ_PUBLISH_FAILED";
+  private static final long PUBLISH_CONFIRM_TIMEOUT_MILLIS = 30_000;
 
   private final ConnectionFactorySupplier connectionFactorySupplier;
 
@@ -59,13 +67,38 @@ public class RabbitMqFunction implements OutboundConnectorFunction {
 
     try (Connection connection = openConnection(request)) {
       final var channel = connection.createChannel();
-      channel.basicPublish(
-          request.routing().exchange(),
-          request.routing().routingKey(),
-          messageProperties,
-          messageInByteArray);
+      channel.confirmSelect();
+      try {
+        channel.basicPublish(
+            request.routing().exchange(),
+            request.routing().routingKey(),
+            messageProperties,
+            messageInByteArray);
+        channel.waitForConfirmsOrDie(PUBLISH_CONFIRM_TIMEOUT_MILLIS);
+      } catch (ShutdownSignalException e) {
+        throw new ConnectorException(
+            PUBLISH_FAILED_ERROR_CODE, "RabbitMQ rejected the message: " + describeShutdown(e), e);
+      } catch (IOException e) {
+        throw new ConnectorException(
+            PUBLISH_FAILED_ERROR_CODE, "RabbitMQ did not accept the message: " + e.getMessage(), e);
+      } catch (TimeoutException e) {
+        throw new ConnectorException(
+            PUBLISH_FAILED_ERROR_CODE,
+            "RabbitMQ did not confirm the message within " + PUBLISH_CONFIRM_TIMEOUT_MILLIS + " ms",
+            e);
+      }
       return RabbitMqResult.success();
     }
+  }
+
+  private static String describeShutdown(ShutdownSignalException e) {
+    if (e.getReason() instanceof AMQP.Channel.Close close) {
+      return close.getReplyText();
+    }
+    if (e.getReason() instanceof AMQP.Connection.Close close) {
+      return close.getReplyText();
+    }
+    return e.getMessage();
   }
 
   private Connection openConnection(RabbitMqRequest request) throws Exception {
