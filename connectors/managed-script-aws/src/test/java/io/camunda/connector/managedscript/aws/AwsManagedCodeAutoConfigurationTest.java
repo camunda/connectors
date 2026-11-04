@@ -108,23 +108,22 @@ class AwsManagedCodeAutoConfigurationTest {
 
   @Test
   void keepsTheRetriesOfTheSdkForTheControlPlane() {
-    try (var lambda = AwsClients.lambda("eu-central-1")) {
+    try (var lambda = AwsClients.lambda("eu-central-1", AwsClients.credentials())) {
       assertThat(lambda.serviceClientConfiguration().overrideConfiguration().retryStrategy())
           .hasValueSatisfying(strategy -> assertThat(strategy.maxAttempts()).isGreaterThan(1));
     }
   }
 
   @Test
-  void takesCredentialsFromTheDefaultChainOnly() {
-    try (var lambda = AwsClients.lambda("eu-central-1");
-        var invoker = AwsClients.invoker("eu-central-1", 35, AwsClients.credentials());
-        var logs = AwsClients.logs("eu-central-1")) {
-      assertThat(lambda.serviceClientConfiguration().credentialsProvider())
-          .isInstanceOf(DefaultCredentialsProvider.class);
-      assertThat(invoker.serviceClientConfiguration().credentialsProvider())
-          .isInstanceOf(DefaultCredentialsProvider.class);
-      assertThat(logs.serviceClientConfiguration().credentialsProvider())
-          .isInstanceOf(DefaultCredentialsProvider.class);
+  void sharesOneDefaultChainAcrossTheClients() {
+    final var credentials = AwsClients.credentials();
+    try (var lambda = AwsClients.lambda("eu-central-1", credentials);
+        var invoker = AwsClients.invoker("eu-central-1", 35, credentials);
+        var logs = AwsClients.logs("eu-central-1", credentials)) {
+      assertThat(credentials).isInstanceOf(DefaultCredentialsProvider.class);
+      assertThat(lambda.serviceClientConfiguration().credentialsProvider()).isSameAs(credentials);
+      assertThat(invoker.serviceClientConfiguration().credentialsProvider()).isSameAs(credentials);
+      assertThat(logs.serviceClientConfiguration().credentialsProvider()).isSameAs(credentials);
     }
   }
 
