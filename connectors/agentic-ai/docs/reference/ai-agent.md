@@ -2455,9 +2455,9 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 ### 25.4 Add a runtime tool
 
-> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult`,
-> `RuntimeToolException` and `DocumentSchemas`, package `aiagent.api.tool` of `aiagent-api`) is experimental since 8.11
-> and may change in an incompatible way in a minor release.
+> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolDocuments`,
+> `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException` and `DocumentSchemas`, package `aiagent.api.tool` of
+> `aiagent-api`) is experimental since 8.11 and may change in an incompatible way in a minor release.
 
 A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
 definition next to the tools of the process and the agent executes the call, in process. The connector registers no
@@ -2489,6 +2489,7 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
 - *Bounded execution time.* A call is executed in the thread of the job, without a timeout: stay well below the job timeout.
 - *Order and concurrency.* The results of a batch are applied in call order. `call` and `isEnabled` may be called from different
   threads, and a `RuntimeToolContext` is safe to read concurrently.
+  The calls of one message see the same `documents()`, the ones known when the batch starts.
 - *Mixed batches.* Runtime calls of a message that also calls process tools are executed in the job that composes the next turn
   (§9); a message that calls runtime tools only has them executed in the same job and calls the model again.
 - *Failures.* A call of a tool that is not offered in the job is rejected and gets the error result "does not exist" from the
@@ -2504,8 +2505,10 @@ model passed for any other value; a union parameter holds an `AgentDocumentId` i
 error and the tool is not called. A runtime tool whose definition gains a document parameter between the jobs of a mixed
 batch fails the job (`IllegalStateException`) for a call admitted before, instead of giving the model an error.
 
-**Documents.** A `DocumentContent` block in the result is a new document: after the calls of the message ran, the agent
-registers it with the tool call as its origin, and the model reads its handle only (§19). An error result registers nothing.
+**Documents.** `RuntimeToolContext#documents()` gives a read-only view of the documents the agent knows (`find`, `all`) and
+`reference(AgentDocumentId)`, a content block the model reads as the handle of a known document. A `DocumentContent` block in the
+result is a new document: after the calls of the message ran, the agent registers it with the tool call as its origin, and
+the model reads its handle only (§19). An error result registers nothing.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the

@@ -264,7 +264,8 @@ High-frequency traps (detail behind each link):
   (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
-  documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order. A tool
+  documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order; a runtime
+  tool reads the documents known when the batch starts. A tool
   parameter of the type `document` of `fromAi` is the object schema of a handle (no format marker, no hint, sent to the
   provider as it is) and holds the handle object the model passed or a string with its JSON, never a bare id;
   a union parameter (an `anyOf` or `oneOf` with more than one alternative and a handle schema inside an alternative, also in an object or

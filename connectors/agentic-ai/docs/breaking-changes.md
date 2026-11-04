@@ -273,8 +273,9 @@ factory of the job.
   This is a deliberate exception to gating a change of the persisted shape on the feature.
 - To add a tool of your own, implement `RuntimeTool` (`definition`, `isEnabled(RuntimeToolContext)`,
   `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see §25.4 of the
-  [reference](reference/ai-agent.md)). A tool can return documents in its result, which the agent registers after all
-  calls of the message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
+  [reference](reference/ai-agent.md)). `RuntimeToolContext.documents()` gives the documents the agent knows when the
+  batch of calls starts; a tool can return documents in its result, which the agent registers after all calls of the
+  message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
   call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
   error result from `RuntimeTools`; neither goes to the process.
 - A tool parameter that carries a document is declared with the type `document` of `fromAi`, or with
@@ -331,7 +332,7 @@ factory of the job.
   persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
-  `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) and `DocumentSchemas`, which replaces `RuntimeToolSchemas` and
+  `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`) and `DocumentSchemas`, which replaces `RuntimeToolSchemas` and
   declares the document parameters of runtime tools and of gateway tools, are in `aiagent.api.tool` of `aiagent-api`.
 - A document parameter in a tool definition is the object schema of a document handle: `type: object` with the required
   properties `type` (`enum: ["camunda.agenticai.document"]`) and `id` (`string`), and the description as authored

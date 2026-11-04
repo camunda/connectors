@@ -29,7 +29,8 @@ import java.util.Objects;
  * (one created with the {@link
  * io.camunda.connector.agenticai.aiagent.model.AgentFeatures#DOCUMENTS} feature), the document is
  * new to the agent: the agent registers it, and the model reads its handle, never its content,
- * store id, content hash or URL. For an instance without the feature, the model reads the document
+ * store id, content hash or URL; a {@link RuntimeToolDocuments#reference reference} to a known document
+ * is shown as its handle, too. For an instance without the feature, the model reads the document
  * reference in the tool result and the content of the document in a message after the tool results,
  * as for a tool of the process.
  */
@@ -42,7 +43,8 @@ public sealed interface RuntimeToolResult {
   }
 
   /**
-   * A successful result with the given blocks as its content, in the order the model reads them.
+   * A successful result with the given blocks as its content, in the order the model reads them:
+   * text, objects, documents and references to known documents.
    */
   static RuntimeToolResult success(List<Content> content) {
     return new Success(content);
