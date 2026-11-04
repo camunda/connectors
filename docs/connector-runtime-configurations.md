@@ -134,7 +134,9 @@ camunda.connector.managed-code.aws.log-retention-days=30
   before any call. A throttled invocation fails with `PLATFORM_THROTTLED`, a service error or a
   connection that could not be made with `PLATFORM_UNAVAILABLE`. A Lambda function error, such as
   the function timeout or memory, a connection lost after the request was sent, and a response
-  outside the contract fail with `PLATFORM_EXECUTION_FAILED`: the script may have run.
+  outside the contract fail with `PLATFORM_EXECUTION_FAILED`: the script may have run. A call
+  cut because the runtime stops fails with `PLATFORM_INTERRUPTED` and keeps its retries, as with
+  the other providers: Lambda still runs the script to its end, so it may run again.
 - A denied call, while making the executors ready or invoking them, is retried as long as the grants
   of a new cluster may still be propagating, and then fails with `PLATFORM_REJECTED`.
 - The runtime never deletes an executor or its log group. After an upgrade of the wrapper, delete

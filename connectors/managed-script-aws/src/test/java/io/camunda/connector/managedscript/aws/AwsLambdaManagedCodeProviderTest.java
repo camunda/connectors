@@ -26,6 +26,7 @@ import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -530,6 +531,23 @@ class AwsLambdaManagedCodeProviderTest {
 
     assertThat(response.error().code()).isEqualTo(ErrorCode.PLATFORM_UNAVAILABLE.name());
     assertThat(response.error().retryable()).isTrue();
+  }
+
+  @Test
+  void reportsACallCutByTheRuntimeStoppingAsInterrupted() {
+    // Closing the provider closes the invocation client under the running call.
+    when(invoker.invoke(any(InvokeRequest.class)))
+        .thenAnswer(invocation -> {
+          provider.close();
+          throw SdkClientException.create(
+              "Unable to execute HTTP request: Socket closed",
+              new SocketException("Socket closed"));
+        });
+
+    final var response = provider.execute(ScriptLanguage.PYTHON, request("s"));
+
+    assertThat(response.error().code()).isEqualTo(ErrorCode.PLATFORM_INTERRUPTED.name());
+    assertThat(ErrorCode.PLATFORM_INTERRUPTED.retries()).isEqualTo(ErrorCode.Retries.UNCHANGED);
   }
 
   @Test

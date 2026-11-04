@@ -113,6 +113,9 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
   private final Duration pollInterval;
   private final Sleeper sleeper;
 
+  /** Set once the runtime stops: a call cut by closing the clients is interrupted, not lost. */
+  private volatile boolean closing;
+
   /**
    * @param lambda the control-plane client, with the SDK's retries
    * @param invoker the client of the invocations: no SDK retries, and a read timeout longer than
@@ -278,6 +281,14 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
           invocationCode(e),
           bounded("Lambda executor '%s' was not called: %s".formatted(name, message(e))));
     } catch (SdkClientException e) {
+      if (closing) {
+        // The runtime stops: as for the other providers, the job keeps its retries (ADR-0008),
+        // although the function may still run the script to its end.
+        return ExecutionResponse.failed(
+            ErrorCode.PLATFORM_INTERRUPTED,
+            "The call to Lambda executor '%s' was interrupted: the runtime is stopping"
+                .formatted(name));
+      }
       if (notSent(e)) {
         return ExecutionResponse.failed(
             ErrorCode.PLATFORM_UNAVAILABLE,
@@ -332,6 +343,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
 
   @Override
   public void close() {
+    closing = true;
     lambda.close();
     invoker.close();
     logs.close();
