@@ -246,7 +246,8 @@ custom bean built with `new` needs the extra argument; inject it as a bean.
   `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see §25.4 of the
   [reference](reference/ai-agent.md)). Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
   `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A call of a
-  runtime tool that does not exist or is not enabled when it is executed gets an error result and does not go to the process.
+  tool that is not offered gets an error result from the agent, and a call of a runtime tool that is not enabled when it is
+  executed gets an error result from the executor; neither goes to the process.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 

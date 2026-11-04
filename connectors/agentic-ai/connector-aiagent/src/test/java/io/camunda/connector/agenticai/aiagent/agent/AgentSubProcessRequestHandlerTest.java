@@ -1441,7 +1441,10 @@ class AgentSubProcessRequestHandlerTest {
 
     requestHandler.handleRequest(agentExecutionContext);
 
+    // the agent answers the call in the same job and calls the model again; no runtime tool
+    // receives the call
     verify(chatModel, times(2)).execute(any());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
             ToolCallResultMessage.class,
@@ -1453,6 +1456,82 @@ class AgentSubProcessRequestHandlerTest {
                             .containsExactly(
                                 TextContent.textContent(
                                     "The tool 'acme_unknown' does not exist."))));
+  }
+
+  @Test
+  void answersTheCallsOfAToolThatIsNotOfferedWithoutHandingThemToTheRuntimeToolsInCallOrder() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    final var unknownBefore = new ToolCall("call-1", "acme_unknown", Map.of());
+    final var lookupCall = new ToolCall("call-2", "acme_lookup", Map.of());
+    final var unknownAfter = new ToolCall("call-3", "acme_other", Map.of());
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 3);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder()
+                    .toolCalls(List.of(unknownBefore, lookupCall, unknownAfter))
+                    .build(),
+                metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    requestHandler.handleRequest(agentExecutionContext);
+
+    @SuppressWarnings("unchecked")
+    final ArgumentCaptor<List<ToolCall>> executedCalls = ArgumentCaptor.forClass(List.class);
+    verify(runtimeTools).execute(any(), any(), executedCalls.capture());
+    assertThat(executedCalls.getValue()).extracting(ToolCall::id).containsExactly("call-2");
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .containsExactly(
+                        tuple(
+                            "call-1",
+                            List.of(
+                                TextContent.textContent(
+                                    "The tool 'acme_unknown' does not exist."))),
+                        tuple("call-2", List.of(TextContent.textContent("found the customer"))),
+                        tuple(
+                            "call-3",
+                            List.of(
+                                TextContent.textContent(
+                                    "The tool 'acme_other' does not exist.")))));
+  }
+
+  @Test
+  void answersTheCallOfAToolThatIsNotOfferedInTheJobThatFollowsTheResultsOfTheProcess() {
+    final var chatRequests =
+        handleBatchInTwoJobs(
+            List.of(
+                new ToolCall("call-1", "acme_unknown", Map.of()),
+                new ToolCall("call-2", "acme_lookup", Map.of()),
+                new ToolCall("call-3", "getWeather", Map.of("location", "MUC"))),
+            () -> {});
+
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
+    assertThat(chatRequests).hasSize(2);
+    assertThat(chatRequests.get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .containsExactly(
+                        tuple(
+                            "call-1",
+                            List.of(
+                                TextContent.textContent(
+                                    "The tool 'acme_unknown' does not exist."))),
+                        tuple("call-2", List.of(TextContent.textContent("found the customer"))),
+                        tuple("call-3", List.of(TextContent.textContent("Sunny")))));
   }
 
   @Test
@@ -1592,19 +1671,27 @@ class AgentSubProcessRequestHandlerTest {
    */
   private List<ChatRequest> handleMixedBatchInTwoJobs(
       String runtimeToolName, Runnable betweenJobs) {
+    return handleBatchInTwoJobs(
+        List.of(
+            new ToolCall("call-1", runtimeToolName, Map.of()),
+            new ToolCall("call-2", "getWeather", Map.of("location", "MUC"))),
+        betweenJobs);
+  }
+
+  /**
+   * Handles a message that calls the tool of the process {@code getWeather} and other tools in one
+   * job, then the job that follows the result of the process.
+   *
+   * @return the requests sent to the chat model, one per job
+   */
+  private List<ChatRequest> handleBatchInTwoJobs(List<ToolCall> calls, Runnable betweenJobs) {
+    final var processCall =
+        calls.stream().filter(call -> call.name().equals("getWeather")).findFirst().orElseThrow();
     mockSystemPrompt();
     composeWithTheRealComposer();
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
-    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 2);
-    doReturn(
-            new ChatResult.Completed(
-                AssistantMessage.builder()
-                    .toolCalls(
-                        List.of(
-                            new ToolCall("call-1", runtimeToolName, Map.of()),
-                            new ToolCall("call-2", "getWeather", Map.of("location", "MUC"))))
-                    .build(),
-                metrics))
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), calls.size());
+    doReturn(new ChatResult.Completed(AssistantMessage.builder().toolCalls(calls).build(), metrics))
         .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
         .when(chatModel)
         .execute(chatModelRequestCaptor.capture());
@@ -1615,13 +1702,13 @@ class AgentSubProcessRequestHandlerTest {
     final var firstJob = requestHandler.handleRequest(agentExecutionContext);
     assertThat(firstJob.responseValue().toolCalls())
         .extracting(call -> call.metadata().id())
-        .containsExactly("call-2");
+        .containsExactly(processCall.id());
     verify(runtimeTools, never()).execute(any(), any(), anyList());
 
     betweenJobs.run();
 
     final var processResult =
-        ToolCallResult.builder().id("call-2").name("getWeather").content("Sunny").build();
+        ToolCallResult.builder().id(processCall.id()).name("getWeather").content("Sunny").build();
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(
             new ReadyToConverse(firstJob.responseValue().context(), List.of(processResult)));

@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSessi
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
@@ -45,6 +46,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
@@ -145,7 +147,8 @@ public abstract class BaseAgentRequestHandler<
           instanceof CompositionResult.RuntimeToolResultsRequired(var runtimeToolCalls)) {
         // the results of the process arrived: the agent executes its own calls now
         final var executions =
-            runtimeTools.execute(executionContext, agentContext, runtimeToolCalls);
+            executeAgentAnsweredCalls(
+                executionContext, agentContext, configuration.toolDefinitions(), runtimeToolCalls);
         compositionResult =
             agentInputComposer.composeWithRuntimeToolResults(
                 configuration, agentContext, previousConversation, agentInput, executions);
@@ -423,8 +426,11 @@ public abstract class BaseAgentRequestHandler<
 
     throwIfLimitsReached(conversation, agentConfiguration);
     final var executions =
-        runtimeTools.execute(
-            executionContext, conversation.persistedContext(), currentTurn.runtimeToolCalls());
+        executeAgentAnsweredCalls(
+            executionContext,
+            conversation.persistedContext(),
+            agentConfiguration.toolDefinitions(),
+            currentTurn.runtimeToolCalls());
     final var nextConversation =
         conversation.nextRuntimeToolRound(
             ToolCallResultsInputBuilder.build(
@@ -438,6 +444,52 @@ public abstract class BaseAgentRequestHandler<
         nextConversation.lastTurn(),
         OffsetDateTime.now(ZoneId.systemDefault()));
     return nextConversation;
+  }
+
+  /**
+   * Executes the calls the agent answers itself and returns one execution per call in call order. A
+   * call of an offered runtime tool is executed by the runtime tools; a call of a tool that is not
+   * offered gets an error result.
+   */
+  private List<RuntimeToolExecution> executeAgentAnsweredCalls(
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      List<ToolDefinition> offeredTools,
+      List<ToolCall> calls) {
+    final var runtimeToolNames =
+        offeredTools.stream()
+            .filter(tool -> tool.kind() == ToolKind.RUNTIME)
+            .map(ToolDefinition::name)
+            .collect(Collectors.toSet());
+    final var offeredCalls =
+        calls.stream().filter(call -> runtimeToolNames.contains(call.name())).toList();
+    final var executionsOfOfferedCalls =
+        (offeredCalls.isEmpty()
+                ? List.<RuntimeToolExecution>of()
+                : runtimeTools.execute(executionContext, agentContext, offeredCalls))
+            .iterator();
+    return calls.stream()
+        .map(call ->
+            runtimeToolNames.contains(call.name())
+                ? executionsOfOfferedCalls.next()
+                : doesNotExist(call))
+        .toList();
+  }
+
+  private static RuntimeToolExecution doesNotExist(ToolCall call) {
+    final var now = OffsetDateTime.now(ZoneId.systemDefault());
+    final var error =
+        RuntimeToolResult.error("The tool '%s' does not exist.".formatted(call.name()));
+    return new RuntimeToolExecution(
+        call,
+        ToolCallResultContent.builder()
+            .id(call.id())
+            .name(call.name())
+            .content(error.content())
+            .completedAt(now)
+            .build(),
+        now,
+        now);
   }
 
   /**

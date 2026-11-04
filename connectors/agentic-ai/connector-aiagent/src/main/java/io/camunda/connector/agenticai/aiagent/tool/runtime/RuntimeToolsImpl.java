@@ -75,7 +75,7 @@ public class RuntimeToolsImpl implements RuntimeTools {
             .map(tool -> callTool(context, tool, toolCall))
             .orElseGet(() ->
                 RuntimeToolResult.error(
-                    "The tool '%s' does not exist.".formatted(toolCall.name())));
+                    "The tool '%s' is not available.".formatted(toolCall.name())));
     final var completedAt = OffsetDateTime.now(ZoneId.systemDefault());
     return new RuntimeToolExecution(
         toolCall, resultContent(toolCall, result.content(), completedAt), startedAt, completedAt);

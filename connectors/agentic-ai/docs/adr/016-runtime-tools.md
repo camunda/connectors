@@ -95,8 +95,9 @@ The agent tags every tool call of an assistant message with the kind of its tool
 it receives the message from the model, before the conversation takes the message in. For an agent instance with the
 `runtimeTools` feature every call is matched against the tools offered in the job: it takes the kind of the tool with its
 name. A call whose name is not offered, as a model may invent one or a tool may have been disabled, is a runtime call: the
-agent answers it with an error result that says the tool does not exist, and it never goes to the process. The tag is
-persisted with the message and never computed again. Only process calls are activated. The definition of a runtime tool
+tag says that the agent answers the call and that the process never gets it. The agent answers a call of a tool that is
+not offered with an error result that says the tool does not exist; this is a step of the agent, not of a tool. The tag
+is persisted with the message and never computed again. Only process calls are activated. The definition of a runtime tool
 declares the kind runtime and the registration rejects other tools at start-up; the tag of a call, not the definition,
 decides how a call is answered.
 
@@ -133,8 +134,8 @@ The contract is stated in the javadoc of the SPI. A tool author can rely on it, 
 * **Below the job timeout.** The framework neither cancels nor times out a call.
 * **Failures** as described above.
 
-A runtime call whose tool does not exist or is not enabled when it is executed gets an error result and never goes to the
-process.
+A runtime call whose tool is not offered gets an error result from the agent, and one whose tool is no longer enabled
+when it is executed gets an error result from the executor. Neither goes to the process.
 
 The executor keeps the start and completion time of every call, so later metrics and events with durations need no
 change of the contract.

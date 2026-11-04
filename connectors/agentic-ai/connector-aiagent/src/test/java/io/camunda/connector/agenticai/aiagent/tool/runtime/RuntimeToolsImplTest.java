@@ -318,20 +318,20 @@ class RuntimeToolsImplTest {
         .singleElement()
         .satisfies(execution -> {
           assertThat(execution.result().id()).isEqualTo("n1");
-          assertThat(text(execution)).isEqualTo("The tool 'acme_note' does not exist.");
+          assertThat(text(execution)).isEqualTo("The tool 'acme_note' is not available.");
           assertThat(execution.startedAt()).isNotNull();
           assertThat(execution.completedAt()).isNotNull();
         });
   }
 
   @Test
-  void givesACallOfAnUnknownToolAnErrorResult() {
+  void givesACallOfAToolThatIsNotRegisteredAnErrorResult() {
     final var executions = execute(tools, WITH_MEMORY, runtimeCall("u1", "acme_unknown", Map.of()));
 
     assertThat(executions)
         .singleElement()
         .satisfies(execution ->
-            assertThat(text(execution)).isEqualTo("The tool 'acme_unknown' does not exist."));
+            assertThat(text(execution)).isEqualTo("The tool 'acme_unknown' is not available."));
   }
 
   @Test
@@ -340,7 +340,7 @@ class RuntimeToolsImplTest {
 
     assertThat(executions)
         .singleElement()
-        .satisfies(execution -> assertThat(text(execution)).contains("does not exist"));
+        .satisfies(execution -> assertThat(text(execution)).contains("is not available"));
   }
 
   @Test
@@ -356,7 +356,7 @@ class RuntimeToolsImplTest {
 
     assertThat(without)
         .singleElement()
-        .satisfies(execution -> assertThat(text(execution)).contains("does not exist"));
+        .satisfies(execution -> assertThat(text(execution)).contains("is not available"));
     assertThat(with)
         .singleElement()
         .satisfies(execution -> assertThat(text(execution)).isEqualTo("ok"));
