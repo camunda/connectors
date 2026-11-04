@@ -267,17 +267,18 @@ public class BedrockConverseRequestConverter {
       return;
     }
 
+    final CachePointBlock cachePoint = cachePoint(promptCaching.ttl());
     if (!system.isEmpty()) {
-      system.add(SystemContentBlock.fromCachePoint(defaultCachePoint()));
+      system.add(SystemContentBlock.fromCachePoint(cachePoint));
     } else if (!tools.isEmpty()) {
-      tools.add(Tool.fromCachePoint(defaultCachePoint()));
+      tools.add(Tool.fromCachePoint(cachePoint));
     }
 
     final int index = lastCacheableMessageIndex(messages);
     if (index >= 0) {
       final Message target = messages.get(index);
       final List<ContentBlock> content = new ArrayList<>(target.content());
-      content.add(ContentBlock.fromCachePoint(defaultCachePoint()));
+      content.add(ContentBlock.fromCachePoint(cachePoint));
       messages.set(index, target.toBuilder().content(content).build());
     }
   }
@@ -307,8 +308,8 @@ public class BedrockConverseRequestConverter {
     return -1;
   }
 
-  private static CachePointBlock defaultCachePoint() {
-    return CachePointBlock.builder().type(CachePointType.DEFAULT).build();
+  private static CachePointBlock cachePoint(String ttl) {
+    return CachePointBlock.builder().type(CachePointType.DEFAULT).ttl(ttl).build();
   }
 
   /**
