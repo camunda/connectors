@@ -159,7 +159,9 @@ has no element. In a mixed batch the results carry the turn start of the job tha
 * The model receives the results of the runtime calls of a mixed batch with the next request, together with the process
   results. A process call that never completes holds that request back, as it does for every result of the batch.
 * A tool is executed in the thread of the job without a timeout, so a slow or blocking tool holds the job.
-* Every enabled runtime tool adds its definition to every model request, and reserves its name in every process.
+* Every enabled runtime tool adds its definition to every model request, and a tool of the process cannot use its name
+  while the tool is enabled. A change of what a tool enables changes the request and invalidates the prompt cache of the
+  provider.
 
 ## Follow-up
 

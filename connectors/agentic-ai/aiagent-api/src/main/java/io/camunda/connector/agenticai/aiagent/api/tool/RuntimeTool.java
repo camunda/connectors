@@ -58,6 +58,10 @@ public interface RuntimeTool {
    * Whether the tool is shown to the model and its calls are executed. The agent calls this method
    * on every job and again when it executes a call, so it must be cheap and free of side effects.
    * An exception fails the job.
+   *
+   * <p>Keep the answer stable while an agent instance runs. The tools are part of every model
+   * request, so a change shows the model a different set of tools and invalidates the prompt cache
+   * of the provider.
    */
   default boolean isEnabled(RuntimeToolContext context) {
     return true;
