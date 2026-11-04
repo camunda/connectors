@@ -500,6 +500,21 @@ class AwsLambdaManagedCodeProviderTest {
   }
 
   @Test
+  void reportsAnInvocationThatGotNoPooledConnectionAsUnavailable() {
+    // The Apache client waits for a free connection while the others run scripts.
+    when(invoker.invoke(any(InvokeRequest.class)))
+        .thenThrow(
+            SdkClientException.create(
+                "Unable to execute HTTP request",
+                new ConnectionRequestTimeoutException("Timeout deadline: 3000 MILLISECONDS")));
+
+    final var response = provider.execute(ScriptLanguage.PYTHON, request("s"));
+
+    assertThat(response.error().code()).isEqualTo(ErrorCode.PLATFORM_UNAVAILABLE.name());
+    assertThat(response.error().retryable()).isTrue();
+  }
+
+  @Test
   void reportsAnInvocationLostAfterItWasSentAsAPlatformExecutionFailure() {
     when(invoker.invoke(any(InvokeRequest.class)))
         .thenThrow(
@@ -611,5 +626,12 @@ class AwsLambdaManagedCodeProviderTest {
       }
     }
     return entries;
+  }
+
+  /** Named as the pool timeout of the Apache client, which this module does not depend on. */
+  private static final class ConnectionRequestTimeoutException extends IOException {
+    ConnectionRequestTimeoutException(String message) {
+      super(message);
+    }
   }
 }

@@ -301,8 +301,10 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
       if (cause instanceof ConnectException
           || cause instanceof UnknownHostException
           || cause instanceof NoRouteToHostException
-          // The connect timeout of the Apache client, without depending on its class.
-          || cause.getClass().getSimpleName().equals("ConnectTimeoutException")) {
+          // The connect timeout of the Apache client, and its timeout waiting for a pooled
+          // connection, without depending on their classes.
+          || cause.getClass().getSimpleName().equals("ConnectTimeoutException")
+          || cause.getClass().getSimpleName().equals("ConnectionRequestTimeoutException")) {
         return true;
       }
     }
