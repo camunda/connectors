@@ -249,8 +249,8 @@ High-frequency traps (detail behind each link):
   window decorator (`DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content
   from the workspace; in a tool result it renders the short tag as text, so the providers have no document specific code.
   A user prompt document is a reference with the delivery `content`. The documents a runtime tool returns are registered
-  after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`. A tool parameter of the type
-  `document` of `fromAi` holds a tag the model passed; `DocumentParameterResolver` turns it into the Camunda document
+  after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known when the batch
+  starts. A tool parameter of the type `document` of `fromAi` holds a tag the model passed; `DocumentParameterResolver` turns it into the Camunda document
   reference for a process tool (`AgentResponseHandlerImpl`) and into a `DocumentId` for a runtime tool (`RuntimeToolsImpl`),
   and the stored messages and the history keep the tag. A process tool call whose value is not the tag of a known document
   is rejected at tagging; a runtime tool call with such a value gets an error result and the tool is not called.
