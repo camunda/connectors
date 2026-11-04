@@ -31,4 +31,8 @@ final class GeminiEndpoints {
     }
     return "https://%s-aiplatform.googleapis.com".formatted(region);
   }
+
+  static String modelsUrl(String baseUrl) {
+    return baseUrl + "/v1/models";
+  }
 }
