@@ -15,7 +15,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -60,6 +59,11 @@ public record AgentContext(
     Objects.requireNonNull(state, "Agent state must not be null");
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
+    requireNoRuntimeTools(toolDefinitions);
+    Objects.requireNonNull(features, "Features must not be null");
+  }
+
+  private static void requireNoRuntimeTools(List<ToolDefinition> toolDefinitions) {
     toolDefinitions.stream()
         .filter(tool -> tool.kind() == ToolKind.RUNTIME)
         .findFirst()
@@ -68,8 +72,6 @@ public record AgentContext(
               "The runtime tool '%s' must not be part of the persisted tool definitions"
                   .formatted(tool.name()));
         });
-    Objects.requireNonNull(features, "Features must not be null");
-    features = List.copyOf(new LinkedHashSet<>(features));
   }
 
   public boolean supports(String feature) {

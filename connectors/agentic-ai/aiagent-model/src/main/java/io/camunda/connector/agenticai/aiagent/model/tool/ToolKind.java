@@ -15,6 +15,7 @@ public enum ToolKind {
    */
   @JsonProperty("process")
   PROCESS,
+
   /** A tool the agent executes itself, without activating a BPMN element. */
   @JsonProperty("runtime")
   RUNTIME
