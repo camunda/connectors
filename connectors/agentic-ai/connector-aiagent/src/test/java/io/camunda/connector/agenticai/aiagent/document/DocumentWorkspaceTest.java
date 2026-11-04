@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_DOCUMENT_ID_COLLISION;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,7 +49,7 @@ class DocumentWorkspaceTest {
   }
 
   @Test
-  void emptyRegistryHasNoEntries() {
+  void emptyWorkspaceHasNoEntries() {
     final var workspace = DocumentWorkspace.empty();
 
     assertThat(workspace.isEmpty()).isTrue();
@@ -139,6 +140,33 @@ class DocumentWorkspaceTest {
                 workspace, List.of(new IngestedDocument(doc, DocumentOrigin.toolCall("t", "c")))))
         .isSameAs(workspace);
     assertThat(DocumentIngestion.withDocuments(workspace, List.of())).isSameAs(workspace);
+  }
+
+  @Test
+  void aDocumentWithTheIdOfADifferentDocumentOfTheWorkspaceIsRejected() {
+    final var registered = document("one", "one.txt");
+    final var other = document("two", "two.txt");
+    // the workspace holds `registered` under the id `other` gets
+    final var workspace =
+        DocumentWorkspace.of(
+            List.of(
+                new WorkspaceDocument(
+                    DocumentHandle.idFor(other),
+                    DocumentOrigin.userMessage(),
+                    DocumentIngestion.entryFor(
+                            new IngestedDocument(registered, DocumentOrigin.userMessage()))
+                        .reference())));
+
+    assertThatThrownBy(() ->
+            DocumentIngestion.withDocuments(
+                workspace, List.of(new IngestedDocument(other, DocumentOrigin.toolCall("t", "c")))))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_DOCUMENT_ID_COLLISION);
+              assertThat(e.getMessage())
+                  .contains("'" + DocumentHandle.idFor(other) + "'", "two different documents");
+            });
   }
 
   @Test

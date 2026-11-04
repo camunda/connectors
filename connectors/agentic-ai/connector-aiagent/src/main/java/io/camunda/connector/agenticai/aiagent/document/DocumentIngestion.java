@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_DOCUMENT_ID_COLLISION;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -65,6 +66,9 @@ public final class DocumentIngestion {
    * @throws ConnectorException with {@code ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE} if a new document
    *     is an inline document with more than {@link #MAX_INLINE_CONTENT_LENGTH} characters of
    *     content
+   * @throws ConnectorException with {@code ERROR_CODE_DOCUMENT_ID_COLLISION} if a document gets the
+   *     id of a different document that the workspace already holds. Registering the same document
+   *     again is not an error.
    */
   public static DocumentWorkspace withDocuments(
       DocumentWorkspace workspace, List<IngestedDocument> documents) {
@@ -74,8 +78,15 @@ public final class DocumentIngestion {
     final var newIds = new HashSet<DocumentId>();
     final var newEntries = new ArrayList<WorkspaceDocument>();
     for (final var ingested : documents) {
-      final var id = DocumentHandle.idFor(ingested.document());
-      if (!workspace.contains(id) && newIds.add(id)) {
+      final var reference = ingested.document().reference();
+      final var id = DocumentHandle.idFor(reference);
+      final var known = workspace.findById(id);
+      if (known.isPresent()) {
+        rejectCollision(
+            id,
+            DocumentHandle.identityKey(referenceOf(known.get())),
+            DocumentHandle.identityKey(reference));
+      } else if (newIds.add(id)) {
         newEntries.add(entryFor(ingested));
       }
     }
@@ -90,6 +101,8 @@ public final class DocumentIngestion {
    * @throws ConnectorException with {@code ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE} if a new document
    *     is an inline document with more than {@link #MAX_INLINE_CONTENT_LENGTH} characters of
    *     content
+   * @throws ConnectorException with {@code ERROR_CODE_DOCUMENT_ID_COLLISION} if a document gets the
+   *     id of a different document that the workspace already holds
    */
   public static AgentContext register(AgentContext agentContext, List<IngestedDocument> documents) {
     if (documents.isEmpty()) {
@@ -110,6 +123,15 @@ public final class DocumentIngestion {
     rejectLargeInlineContent(document);
     return new WorkspaceDocument(
         DocumentHandle.idFor(document), ingested.origin(), serializeReference(document));
+  }
+
+  private static void rejectCollision(DocumentId id, List<String> knownKey, List<String> newKey) {
+    if (!knownKey.equals(newKey)) {
+      throw new ConnectorException(
+          ERROR_CODE_DOCUMENT_ID_COLLISION,
+          "The document id '%s' is shared by two different documents, so the document cannot be told apart from the one the agent already knows."
+              .formatted(id));
+    }
   }
 
   private static void rejectLargeInlineContent(Document document) {
