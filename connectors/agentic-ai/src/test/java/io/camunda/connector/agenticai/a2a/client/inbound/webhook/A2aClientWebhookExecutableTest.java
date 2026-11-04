@@ -126,6 +126,58 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
+  void triggerWebhook_TaskWithValidStatusAndHistoryMessages_ReturnsMappedRequest() {
+    String body =
+        """
+        {
+          "kind": "task",
+          "id": "task-123",
+          "contextId": "ctx-123",
+          "status": {
+            "state": "completed",
+            "message": {
+              "kind": "message",
+              "messageId": "m-2",
+              "role": "agent",
+              "parts": [{"kind": "text", "text": "done"}]
+            }
+          },
+          "artifacts": [],
+          "history": [
+            {
+              "kind": "message",
+              "messageId": "m-1",
+              "role": "user",
+              "parts": [{"kind": "text", "text": "hi"}]
+            }
+          ]
+        }
+        """;
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "a2aWebhookContext",
+                        "clientResponse", "=task",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn(HttpMethods.post.name());
+    when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    when(payload.rawBody()).thenReturn(body.getBytes(StandardCharsets.UTF_8));
+
+    webhookExecutable.activate(ctx);
+    var result = webhookExecutable.triggerWebhook(payload);
+
+    assertThat(result.request().body()).isInstanceOf(A2aTask.class);
+    assertThat(((A2aTask) result.request().body()).id()).isEqualTo("task-123");
+  }
+
+  @Test
   void triggerWebhook_InvalidJson_ThrowsException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
@@ -159,7 +211,20 @@ class A2aClientWebhookExecutableTest {
         "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\"}",
         "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\", \"status\": {}}",
         "{\"kind\": \"task\", \"id\": \"task-123\", \"status\": {\"state\": \"completed\"}}",
-        "{\"kind\": \"message\", \"messageId\": \"m-1\", \"role\": \"agent\", \"parts\": []}"
+        "{\"kind\": \"message\", \"messageId\": \"m-1\", \"role\": \"agent\", \"parts\": []}",
+        // history message without role (would silently be converted to USER)
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\","
+            + " \"status\": {\"state\": \"completed\"},"
+            + " \"history\": [{\"kind\": \"message\", \"messageId\": \"m-1\", \"parts\": []}]}",
+        // status message without role
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\","
+            + " \"status\": {\"state\": \"completed\","
+            + " \"message\": {\"kind\": \"message\", \"messageId\": \"m-1\", \"parts\": []}}}",
+        // null list entries
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\","
+            + " \"status\": {\"state\": \"completed\"}, \"history\": [null]}",
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\","
+            + " \"status\": {\"state\": \"completed\"}, \"artifacts\": [null]}"
       })
   void triggerWebhook_PayloadIsNotAValidTask_ThrowsWrappedParsingException(String body) {
     InboundConnectorContext ctx =
