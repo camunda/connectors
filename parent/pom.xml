@@ -144,7 +144,7 @@ limitations under the License.</license.inlineheader>
     <version.reactor-netty>1.3.8</version.reactor-netty>
     <!-- CVE-2026-59949: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.1
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
-    <version.lz4-java>1.12.1</version.lz4-java>
+    <version.lz4-java>1.13.0</version.lz4-java>
 
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
     <version.azure-identity>1.19.0</version.azure-identity>
