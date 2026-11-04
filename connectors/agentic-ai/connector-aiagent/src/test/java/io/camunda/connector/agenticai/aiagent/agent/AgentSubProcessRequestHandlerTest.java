@@ -818,7 +818,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void runsABatchOfRuntimeToolCallsInTheJobAndCallsTheModelAgain() {
+  void executesABatchOfRuntimeToolCallsInTheJobAndCallsTheModelAgain() {
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -1154,9 +1154,10 @@ class AgentSubProcessRequestHandlerTest {
 
   @Test
   void executesTheRuntimeToolCallsOfAMixedBatchInTheJobThatFollowsTheResultsOfTheProcess() {
-    final var chatRequests = runMixedBatchInTwoJobs("acme_lookup", () -> {});
+    final var chatRequests = handleMixedBatchInTwoJobs("acme_lookup", () -> {});
 
-    // the first job hands out the call of the process only and runs no tool, the second one runs
+    // the first job hands out the call of the process only and executes no tool, the second one
+    // executes
     // the tool and returns the results of all calls in the order of the calls
     verify(runtimeTools, times(1)).execute(any(), any(), anyList());
     assertThat(chatRequests).hasSize(2);
@@ -1173,7 +1174,8 @@ class AgentSubProcessRequestHandlerTest {
 
   @Test
   void givesTheRuntimeToolCallOfAToolThatIsDisabledBetweenTheTwoJobsAnErrorResult() {
-    final var chatRequests = runMixedBatchInTwoJobs("acme_toggle", () -> TOGGLE_ENABLED.set(false));
+    final var chatRequests =
+        handleMixedBatchInTwoJobs("acme_toggle", () -> TOGGLE_ENABLED.set(false));
 
     // the call was tagged in the first job: it gets an error result and is not left to the process
     // forever
@@ -1193,7 +1195,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void anInterruptedMixedBatchCancelsOnlyTheCallsOfTheProcessAndStillRunsTheRuntimeTools() {
+  void anInterruptedMixedBatchCancelsOnlyTheCallsOfTheProcessAndStillExecutesTheRuntimeTools() {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
@@ -1289,7 +1291,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void throwsWhenTheModelCallLimitIsReachedAfterARuntimeToolRoundAndRunsNoFurtherTool() {
+  void throwsWhenTheModelCallLimitIsReachedAfterARuntimeToolRoundAndExecutesNoFurtherTool() {
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentExecutionContext.configuration())
@@ -1329,7 +1331,8 @@ class AgentSubProcessRequestHandlerTest {
                     .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
 
     verify(chatModel, times(2)).execute(any());
-    // the tool of the first round ran; the limit stopped the second round before its tool ran
+    // the tool of the first round was executed; the limit stopped the second round before its
+    // tool was executed
     verify(runtimeTools, times(1)).execute(any(), any(), anyList());
   }
 
@@ -1581,13 +1584,14 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   /**
-   * Runs a message that calls the runtime tool {@code runtimeToolName} and a tool of the process in
-   * one job, then the job that follows the result of the process.
+   * Handles a message that calls the runtime tool {@code runtimeToolName} and a tool of the process
+   * in one job, then the job that follows the result of the process.
    *
    * @param betweenJobs what happens after the first job
    * @return the requests sent to the chat model, one per job
    */
-  private List<ChatRequest> runMixedBatchInTwoJobs(String runtimeToolName, Runnable betweenJobs) {
+  private List<ChatRequest> handleMixedBatchInTwoJobs(
+      String runtimeToolName, Runnable betweenJobs) {
     mockSystemPrompt();
     composeWithTheRealComposer();
     doReturn(chatModel).when(chatModelRegistry).resolve(any());

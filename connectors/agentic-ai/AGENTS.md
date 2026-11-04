@@ -221,13 +221,13 @@ High-frequency traps (detail behind each link):
   instance without the `runtimeTools` feature (created before it) has no runtime tools and no tool element is checked
   against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
   `AgentContext.supports(...)`. [ADR 016](docs/adr/016-runtime-tools.md).
-- **Runtime tool calls are tagged once and run in the job that composes the next turn**: the agent tags every tool call of
+- **Runtime tool calls are tagged once and executed in the job that composes the next turn**: the agent tags every tool call of
   an assistant message with its `ToolKind` (`PROCESS` or `RUNTIME`) before the message enters the conversation, and never
   computes it again. A call takes the kind of the tool of its name among the tools offered in the job; a name that is not
   offered is a runtime call. When the model issues runtime and process calls together, only the process calls are activated, and
-  the runtime calls run when the next turn is composed, merged with the process results in call order. `ToolCall.kind` is
+  the runtime calls are executed when the next turn is composed, merged with the process results in call order. `ToolCall.kind` is
   persisted (written only for `RUNTIME`, missing reads as `PROCESS`), so every conversation store must keep it. A runtime
-  call whose tool does not exist or is not enabled when it runs gets an error result. `ai-agent.md` §9,
+  call whose tool does not exist or is not enabled when it is executed gets an error result. `ai-agent.md` §9,
   [ADR 016](docs/adr/016-runtime-tools.md).
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
@@ -362,7 +362,7 @@ Before claiming a change is complete:
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
-tool (a tool the connector runtime runs itself, without activating a BPMN element; a process tool must not have its name)
+tool (a tool the connector runtime executes itself, without activating a BPMN element; a process tool must not have its name)
 by implementing the SPI and registering a Spring bean. A runtime tool is the three-method interface `RuntimeTool`
 (`definition`, `isEnabled`, `call`), an experimental SPI in 8.11. Where to start (SPI + reference implementation per
 type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and [ADR 016](docs/adr/016-runtime-tools.md)).

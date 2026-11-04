@@ -32,7 +32,7 @@ public interface RuntimeToolContext {
   /**
    * The persisted state of the agent, including its {@link AgentContext#features() features} and
    * {@link AgentContext#properties() properties}, but not the metrics and iteration bookkeeping of
-   * the running job. It does not change while the call runs.
+   * the running job. It does not change while the call is executed.
    */
   AgentContext agentContext();
 }

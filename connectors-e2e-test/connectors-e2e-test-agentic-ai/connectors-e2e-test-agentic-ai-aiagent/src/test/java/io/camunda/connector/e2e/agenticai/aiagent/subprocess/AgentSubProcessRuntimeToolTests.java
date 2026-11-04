@@ -54,7 +54,7 @@ public class AgentSubProcessRuntimeToolTests extends BaseAgentSubProcessTest {
       Map.of("echo-1", "echo: hello", "flux-1", "24");
 
   @Test
-  void runsTheRuntimeToolInTheAgentJobAndCallsTheModelAgain() throws Exception {
+  void executesTheRuntimeToolInTheAgentJobAndCallsTheModelAgain() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(AI_TOOL_CALL_TEXT, 10, 20, ECHO_CALL), Turn.text(AI_FINAL_TEXT, 11, 22));
     enqueueUserFeedback(userSatisfiedFeedback());

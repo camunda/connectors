@@ -10,25 +10,26 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 
 /**
- * A tool the connector runtime runs itself, without activating a BPMN element. Register it as a
+ * A tool the connector runtime executes itself, without activating a BPMN element. Register it as a
  * Spring bean of this type. {@link Experimental}.
  *
  * <h2>Execution contract</h2>
  *
  * <ul>
- *   <li><b>At least once.</b> A job that fails after the tool ran is retried and runs the call
- *       again, so side effects outside the agent must be idempotent.
- *   <li><b>Concurrency.</b> The calls of one assistant message may run concurrently, their results
- *       are applied in call order. {@link #call} and {@link #isEnabled} may be called from
+ *   <li><b>At least once.</b> A job that fails after the call was executed is retried and executes
+ *       the call again, so side effects outside the agent must be idempotent.
+ *   <li><b>Concurrency.</b> The calls of one assistant message may be executed concurrently, their
+ *       results are applied in call order. {@link #call} and {@link #isEnabled} may be called from
  *       different threads.
- *   <li><b>Bounded run time.</b> A call runs within the agent job and is neither cancelled nor
- *       timed out by the framework, so it must return well within the job timeout.
+ *   <li><b>Bounded execution time.</b> A call is executed within the agent job and is neither
+ *       cancelled nor timed out by the framework, so it must return well within the job timeout.
  *   <li><b>Mixed batches.</b> When an assistant message calls runtime tools and tools of the
- *       process, the job activates the process elements only; the runtime tool calls run in the job
- *       that composes the next turn from the results of the process. When it calls runtime tools
- *       only, they run in the same job and the model is called again right away.
+ *       process, the job activates the process elements only; the runtime tool calls are executed
+ *       in the job that composes the next turn from the results of the process. When it calls
+ *       runtime tools only, they are executed in the same job and the model is called again right
+ *       away.
  *   <li><b>Enabled tools.</b> A call of a registered tool that is not {@link #isEnabled enabled}
- *       when the call runs gets an error result and never goes to the process.
+ *       when the call is executed gets an error result and never goes to the process.
  *   <li><b>Failures.</b> A failure the model can act on is returned as {@link
  *       RuntimeToolResult#error} or thrown as a {@link RuntimeToolException}. Any other exception
  *       fails the job.
@@ -54,17 +55,17 @@ public interface RuntimeTool {
   ToolDefinition definition();
 
   /**
-   * Whether the tool is shown to the model and its calls are run. The agent calls this method on
-   * every job and again when it runs a call, so it must be cheap and free of side effects. An
-   * exception fails the job.
+   * Whether the tool is shown to the model and its calls are executed. The agent calls this method
+   * on every job and again when it executes a call, so it must be cheap and free of side effects.
+   * An exception fails the job.
    */
   default boolean isEnabled(RuntimeToolContext context) {
     return true;
   }
 
   /**
-   * Runs the tool for {@code call}, only when the tool is enabled. A {@link RuntimeToolException}
-   * becomes an error result; any other exception fails the job.
+   * Handles {@code call}, only when the tool is enabled. A {@link RuntimeToolException} becomes an
+   * error result; any other exception fails the job.
    *
    * @return the result, never {@code null}
    */
