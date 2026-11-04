@@ -14,7 +14,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,8 +37,7 @@ public class AgentSubProcessRequestHandler
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      RuntimeToolRegistry runtimeToolRegistry,
-      RuntimeToolExecutor runtimeToolExecutor) {
+      RuntimeTools runtimeTools) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -47,8 +46,7 @@ public class AgentSubProcessRequestHandler
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        runtimeToolRegistry,
-        runtimeToolExecutor);
+        runtimeTools);
   }
 
   @Override

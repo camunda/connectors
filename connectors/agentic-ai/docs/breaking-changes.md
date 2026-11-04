@@ -231,22 +231,22 @@ extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate
 ### Replaceable bean constructors
 
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take a
-`RuntimeToolRegistry` and a `RuntimeToolExecutor`. The auto-configuration provides the beans `RuntimeToolRegistry` and
-`RuntimeToolExecutor`, both `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra arguments; inject
-them as beans.
+single `RuntimeTools`. The auto-configuration provides the bean `RuntimeTools`, which is `@ConditionalOnMissingBean`. A
+custom bean built with `new` needs the extra argument; inject it as a bean.
 
 ### Runtime tools and tool names
 
 - Agent instances created from 8.11 on have the `runtimeTools` feature. An agent job fails with the error code
-  `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of a registered runtime tool, whether the tool is
-  enabled or not. The connector registers no runtime tool itself, so only the runtime tools of your own runtime matter;
+  `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime tool that is
+  not enabled reserves no name. The connector registers no runtime tool itself, so only the runtime tools of your own runtime matter;
   give them a name with a prefix of your own. Agent instances created before keep their behavior: they are offered no
-  runtime tool and no name is checked.
+  runtime tool and no name is checked. Every tool call of an agent instance with the feature is matched against the tools
+  offered in the job: a call of a tool name that is not offered no longer reaches the process but gets an error result.
 - To add a tool of your own, implement `RuntimeTool` (`definition`, `isEnabled(RuntimeToolContext)`,
   `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see §25.4 of the
   [reference](reference/ai-agent.md)). Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
   `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A call of a
-  registered runtime tool that is not enabled when it runs gets an error result and does not go to the process.
+  runtime tool that does not exist or is not enabled when it runs gets an error result and does not go to the process.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 

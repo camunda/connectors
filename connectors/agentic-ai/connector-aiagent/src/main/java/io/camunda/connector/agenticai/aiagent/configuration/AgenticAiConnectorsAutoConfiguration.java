@@ -21,8 +21,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandle
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
-import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolExecutor;
-import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolExecutorImpl;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
@@ -53,8 +51,8 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerImpl;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolsImpl;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
@@ -95,8 +93,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public RuntimeToolRegistry aiAgentRuntimeToolRegistry(List<RuntimeTool> runtimeTools) {
-    return new RuntimeToolRegistryImpl(runtimeTools);
+  public RuntimeTools aiAgentRuntimeTools(
+      List<RuntimeTool> runtimeTools, @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new RuntimeToolsImpl(runtimeTools, objectMapper);
   }
 
   @Bean
@@ -226,13 +225,6 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public RuntimeToolExecutor aiAgentRuntimeToolExecutor(
-      RuntimeToolRegistry runtimeToolRegistry, @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new RuntimeToolExecutorImpl(runtimeToolRegistry, objectMapper);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public AgentResponseHandler aiAgentResponseHandler(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       GatewayToolHandlerRegistry gatewayToolHandlers) {
@@ -265,8 +257,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      RuntimeToolRegistry runtimeToolRegistry,
-      RuntimeToolExecutor runtimeToolExecutor) {
+      RuntimeTools runtimeTools) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -275,8 +266,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        runtimeToolRegistry,
-        runtimeToolExecutor);
+        runtimeTools);
   }
 
   @Bean
@@ -311,8 +301,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      RuntimeToolRegistry runtimeToolRegistry,
-      RuntimeToolExecutor runtimeToolExecutor) {
+      RuntimeTools runtimeTools) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -321,8 +310,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        runtimeToolRegistry,
-        runtimeToolExecutor);
+        runtimeTools);
   }
 
   @Bean

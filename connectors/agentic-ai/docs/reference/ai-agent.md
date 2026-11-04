@@ -199,7 +199,7 @@ The loop operates as a distributed state machine between the connector runtime a
      `RuntimeToolResultsRequired` / `NextTurn`). The composer resolves the results of the process tool calls only. When
      they are complete (or the missing ones are cancelled by an interrupting event) and the previous turn also has runtime
      tool calls, the result is `RuntimeToolResultsRequired`: the handler executes the runtime tool calls
-     (`RuntimeToolExecutor.execute`) and composes again with their executions
+     (`RuntimeTools.execute`) and composes again with their executions
      (`composeWithRuntimeToolResults`), which merges the results with the process results in call order
    - On `NextTurn`: compose the system message, `AgentConversation.rehydrate` into a pending turn, check the model-call limit
    - Resolve a `ChatModel` for the configured provider via `ChatModelRegistry` and call
@@ -295,7 +295,7 @@ current features when its context is created at its first job (`AgentInitializer
 A context that exists without `features` belongs to an instance created before the features and never gets features
 added later, so its behavior stays as it was created. The reasons are in [ADR 016](../adr/016-runtime-tools.md); in
 short, an instance without `runtimeTools` has no runtime tool and no tool element checked against runtime tool names.
-The runtime tool registry reads the features from the `AgentContext`; they are not part of the configuration fingerprint.
+`RuntimeTools` reads the features from the `AgentContext`; they are not part of the configuration fingerprint.
 
 ### AgentExecutionContext (the transient request context)
 
@@ -828,7 +828,7 @@ The method correlates and gateway (MCP/A2A) transforms the process results, then
 assistant message against them (`ProcessToolCallResults(resultsById, arrivedResults, complete)`):
 - If all present: `complete` is `true`. When the turn has no runtime tool calls, `compose` builds the `ToolCallResultMessage`
   from the process results. Otherwise it returns `CompositionResult.RuntimeToolResultsRequired` with the runtime tool
-  calls; the handler executes them (`RuntimeToolExecutor`, the one place they run) and `composeWithRuntimeToolResults`
+  calls; the handler executes them (`RuntimeTools`, the one place they run) and `composeWithRuntimeToolResults`
   builds the `ToolCallResultMessage` from the process results and the runtime tool results, ordered to match the original
   tool call order
 - If missing and NOT interrupting: `complete` is `false`; `arrivedResults` holds only the process
@@ -840,13 +840,14 @@ assistant message against them (`ProcessToolCallResults(resultsById, arrivedResu
 
 **Tool call kind.** Every `ToolCall` carries a `kind` (`ToolKind`): `PROCESS` for a tool that is a BPMN element, `RUNTIME`
 for a tool the agent runs itself (§25.4). The agent tags the calls of an assistant message once, between the model result
-and `AgentConversation.ingest`: a call is `RUNTIME` if the agent instance has the
-`runtimeTools` feature and a registered runtime tool has the name, whether the tool is enabled or not. The tag is persisted with
+and `AgentConversation.ingest`. For an agent instance with the `runtimeTools` feature, a call takes the kind of the tool
+of its name in the tool list of the job (the tools of the process and the enabled runtime tools); a call whose name is
+not in the list is `RUNTIME`. An instance without the feature keeps every call `PROCESS`. The tag is persisted with
 the message and never computed again. The JSON of a tool call holds `kind` (`"runtime"`) only for `RUNTIME`, and a missing value reads as
 `PROCESS`, so state written before the tag exists loads unchanged. A conversation store must keep the tag; a store that
 drops it turns a runtime tool call into a process tool call that never gets a result. A change of what a runtime tool
-enables therefore cannot misroute a call: a call of a runtime tool that is not enabled when it runs gets an
-error result and never goes to the process.
+enables therefore cannot misroute a call: a runtime call whose tool does not exist or is not enabled when it runs gets an
+error result (`The tool '<name>' does not exist.`) and never goes to the process.
 
 Only `PROCESS` calls are activated and handed to the process (`AgentResponse.toolCalls`, built from
 `AgentConversationTurn.processToolCalls()`). What happens to the `RUNTIME` calls depends on the message:
@@ -858,7 +859,7 @@ Only `PROCESS` calls are activated and handed to the process (`AgentResponse.too
   request, together with the process results. A process call that never completes holds that request back, as it holds
   back every other result of the batch.
 
-`RuntimeToolExecutor.execute` runs the calls in call order, one after the other. Its contract allows the calls of one
+`RuntimeTools.execute` runs the calls in call order, one after the other. Its contract allows the calls of one
 message to run concurrently, with the results applied in call order. Every execution (`RuntimeToolExecution`) keeps the
 call, the tool call result and the time the call started and completed. No state about runtime tool calls is persisted
 between jobs apart from the tag. See [ADR 016](../adr/016-runtime-tools.md).
@@ -1243,7 +1244,7 @@ on).
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
-| `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`                 | `RUNTIME_TOOL_NAME_CONFLICT`                   | a tool of the process of an agent instance with the `runtimeTools` feature has the name of a registered runtime tool |
+| `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`                 | `RUNTIME_TOOL_NAME_CONFLICT`                   | a tool of the process of an agent instance with the `runtimeTools` feature has the name of an enabled runtime tool |
 | `ERROR_CODE_AGENT_INSTANCE_SUPERSEDED`                  | `AGENT_INSTANCE_SUPERSEDED`                    | a batched agent instance update was rejected because the job activation was superseded (zero retries) |
 
 Additional errors from `CamundaClientProcessDefinitionAdHocToolElementsResolver`:
@@ -1359,18 +1360,18 @@ instance itself, so its key is invariant.
 
 ### Core Agent Logic
 - `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → load + reconstruct → compose → rehydrate → LLM (continuation loop) → ingest → persist → complete
-- `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → ChatModelRejectedException handling → ingest → … } while (continued)` — the turn-based continuation loop ([§12](#12-framework-abstraction)); a message with runtime tool calls only opens another round (`nextRuntimeToolRound`) after `RuntimeToolExecutor.execute`
+- `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → ChatModelRejectedException handling → ingest → … } while (continued)` — the turn-based continuation loop ([§12](#12-framework-abstraction)); a message with runtime tool calls only opens another round (`nextRuntimeToolRound`) after `RuntimeTools.execute`
 - `AgentInitializerImpl.initializeAgent()` → State machine / initialization
 - `TurnReconstructor.reconstruct()` → Rebuilds turns + system message from the stored flat message list
 - `AgentConversationTurnInputComposerImpl.compose()` / `composeWithRuntimeToolResults()` → Turn input assembly (tool results, events, user prompt) → `CompositionResult`; runs no tool
 - `AgentConversationTurnInputComposerImpl.resolveProcessToolCallResults()` → Process tool result matching & missing detection; the runtime tool results are merged in call order
-- `BaseAgentRequestHandler.driveContinuationLoop()` → Tags each tool call of an assistant message with its kind (`PROCESS` / `RUNTIME`), before `ingest`
-- `RuntimeToolExecutorImpl.execute()` → Runs runtime tool calls, the one place a `RuntimeTool` runs
+- `BaseAgentRequestHandler.callModel()` → Tags each tool call of an assistant message with its kind (`PROCESS` / `RUNTIME`), before `ingest`
+- `RuntimeToolsImpl.execute()` → Runs runtime tool calls, the one place a `RuntimeTool` runs
 - `ToolCallResultsInputBuilder.build()` → Builds the tool call result message (and the document message) from the results of all tool calls of a turn, for the composer and the runtime tool round
 - `AgentConversation.rehydrate()` / `ingest()` / `window()` / `nextContinuationRound()` / `nextRuntimeToolRound()` / `toAgentContext()` → Immutable turn aggregate lifecycle
 - `BaseAgentRequestHandler.throwIfLimitsReached()` → Model-call limit check (reads `totalMetrics().modelCalls()`)
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting; hands the process tool calls of the last turn to the gateway handlers
-- `RuntimeToolRegistryImpl` → Registry of the runtime tools (§25.4)
+- `RuntimeToolsImpl.enabledDefinitions()` → The enabled runtime tools of a job, registered as beans (§25.4)
 
 ### Job Completion
 - `AgentSubProcessConnectorResponse.elementActivations()` → AHSP element activations from tool calls
@@ -1455,10 +1456,7 @@ classDiagram
     class AgentResponseHandler {
         <<interface>>
     }
-    class RuntimeToolExecutor {
-        <<interface>>
-    }
-    class RuntimeToolRegistry {
+    class RuntimeTools {
         <<interface>>
     }
     class RuntimeTool {
@@ -1469,10 +1467,8 @@ classDiagram
     BaseAgentRequestHandler --> AgentConversationTurnInputComposer
     BaseAgentRequestHandler --> ChatModelRegistry
     BaseAgentRequestHandler --> AgentResponseHandler
-    BaseAgentRequestHandler --> RuntimeToolRegistry
-    BaseAgentRequestHandler --> RuntimeToolExecutor
-    RuntimeToolExecutor --> RuntimeToolRegistry
-    RuntimeToolRegistry o-- RuntimeTool : collects *
+    BaseAgentRequestHandler --> RuntimeTools
+    RuntimeTools o-- RuntimeTool : collects *
     BaseAgentRequestHandler --> ConversationStoreRegistry
     BaseAgentRequestHandler --> SystemPromptComposer
     BaseAgentRequestHandler ..> AgentConversation : builds
@@ -2141,14 +2137,14 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 A runtime tool is a tool the connector runtime runs itself, without activating a BPMN element: the model sees its
 definition next to the tools of the process and the agent executes the call, in process. The connector registers no
-runtime tool of its own; the registry is empty until a runtime registers a bean. The rationale is in
+runtime tool of its own; `RuntimeTools` has no tool until a runtime registers a bean. The rationale is in
 [ADR 016](../adr/016-runtime-tools.md). The contract of every type is in its javadoc; `RuntimeTool` is the entry point,
 and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small example.
 
 **To add a tool**
 
-1. Pick a name with a vendor prefix such as `acme_`. A tool of the process must not have the name, whether the tool is
-   enabled or not: the agent job fails with `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`.
+1. Pick a name with a vendor prefix such as `acme_`. A tool of the process must not have the name while the tool is
+   enabled: the agent job fails with `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`.
 2. Build the definition with `ToolDefinition.runtime(...)` and `LinkedHashMap`s for the schema: the order of a map such
    as `Map.of` differs between JVMs, and the order of the parameters is part of the configuration fingerprint.
 3. Implement `call`. Return `RuntimeToolResult.error(...)` or throw a `RuntimeToolException` for a failure the model can
@@ -2156,7 +2152,7 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
    on different workers.
 4. Override `isEnabled` if the tool is offered only to some agents. It reads the invocation and the agent context from the
    `RuntimeToolContext`, and is called when the tools of a job are assembled and again when a call runs.
-5. Register the tool as a Spring bean of type `RuntimeTool`. The registry rejects blank and duplicate names and
+5. Register the tool as a Spring bean of type `RuntimeTool`. `RuntimeTools` rejects blank and duplicate names and
    definitions that do not declare the kind `RUNTIME` at startup. An agent instance without the `runtimeTools` feature is
    offered no runtime tool.
 
@@ -2168,7 +2164,7 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   threads, and a `RuntimeToolContext` is safe to read concurrently.
 - *Mixed batches.* Runtime calls of a message that also calls process tools run in the job that composes the next turn
   (§9); a message that calls runtime tools only runs them in the same job and calls the model again.
-- *Failures.* A call of a registered tool that is not enabled when it runs, a `RuntimeToolException` and
+- *Failures.* A call of a tool that does not exist or is not enabled when it runs, a `RuntimeToolException` and
   `RuntimeToolResult.error` give an error result the model reads.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
