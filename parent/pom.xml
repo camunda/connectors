@@ -147,7 +147,7 @@ limitations under the License.</license.inlineheader>
          4.1.139.Final if linkage problems show up. -->
     <version.netty>4.2.20.Final</version.netty>
     <version.amqp-client>5.37.0</version.amqp-client>
-    <version.lz4-java>1.12.1</version.lz4-java>
+    <version.lz4-java>1.13.0</version.lz4-java>
 
     <!-- CVE-2026-87795: zstd-jni transitive override — kafka-clients 3.9.2 ships zstd-jni 1.5.6-4,
          below the 1.5.7-14 that fixes the ZstdDictCompress out-of-bounds read. Unlike stable/8.7+,
