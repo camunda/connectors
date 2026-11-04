@@ -37,7 +37,6 @@ public class RuntimeToolsImpl implements RuntimeTools {
   private record Registration(RuntimeTool tool, ToolDefinition definition) {}
 
   private final Map<String, Registration> registrationsByName;
-  private final ObjectMapper objectMapper;
   private final ObjectMapper argumentsMapper;
 
   /**
@@ -46,7 +45,6 @@ public class RuntimeToolsImpl implements RuntimeTools {
    */
   public RuntimeToolsImpl(List<RuntimeTool> tools, ObjectMapper objectMapper) {
     this.registrationsByName = register(tools);
-    this.objectMapper = objectMapper;
     this.argumentsMapper = RuntimeToolCallImpl.argumentsMapper(objectMapper);
   }
 
@@ -56,7 +54,7 @@ public class RuntimeToolsImpl implements RuntimeTools {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return List.of();
     }
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
+    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
     return registrationsByName.values().stream()
         .filter(registration -> registration.tool().isEnabled(context))
         .map(Registration::definition)
@@ -66,7 +64,7 @@ public class RuntimeToolsImpl implements RuntimeTools {
   @Override
   public List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
+    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
     return calls.stream().map(call -> execute(context, call)).toList();
   }
 
