@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.a2a.client.inbound.webhook;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.a2a.json.JsonProcessingException;
+import io.a2a.json.JsonUtil;
 import io.a2a.spec.Task;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
@@ -32,7 +34,7 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.HMACScope;
 import io.camunda.connector.inbound.signature.HMACVerifier;
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
@@ -206,10 +208,11 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
 
   private MappedHttpRequest mapRequest(WebhookProcessingPayload payload) {
     try {
-      Task task = objectMapper.readValue(payload.rawBody(), Task.TYPE_REFERENCE);
+      Task task =
+          JsonUtil.fromJson(new String(payload.rawBody(), StandardCharsets.UTF_8), Task.class);
       A2aTask a2aTask = a2aSdkObjectConverter.convert(task);
       return new MappedHttpRequest(a2aTask, payload.headers(), payload.params());
-    } catch (IOException e) {
+    } catch (JsonProcessingException e) {
       this.context.log(activity ->
           activity
               .withSeverity(Severity.ERROR)
