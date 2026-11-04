@@ -237,13 +237,18 @@ High-frequency traps (detail behind each link):
   the process tool calls are activated, and the agent adds the tool call results of the local tool calls when the next
   turn is composed, merged with the process results in call order. `ai-agent.md` §9, [ADR 016](docs/adr/016-runtime-tools.md).
 - **Documents are persisted as references and expanded for the model**: for an instance with the `documents` feature the
-  conversation holds typed document references (`DocumentReferenceContent`), also for a document that is a whole tool
-  result, and the workspace in `AgentContext.documents` holds what the references stand for. The window decorator
-  (`DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content from the workspace;
-  in a tool result it renders the short tag as text, so the providers have no document specific code. A user prompt
-  document is a reference with the delivery `content`. The documents a runtime tool returns are registered after the calls
-  of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known when the batch
-  starts. [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
+  conversation holds typed document references (`DocumentReferenceContent`: the id and the delivery), also for a document
+  that is a whole tool result, and the workspace in `AgentContext.documents` holds what the references stand for: per
+  document its id, its `DocumentOrigin` (sealed: user message, event or tool call, persisted with the discriminator
+  `type`) and its Camunda document reference. The id is `doc_` and 12 hex characters of a SHA-256 over the identity of the
+  document (`DocumentHandle.idFor`), never the id in the store; registering a different document under a known id fails
+  with `DOCUMENT_ID_COLLISION`. A reference holds no file name, size or origin: `DocumentTags` renders the tag from the
+  workspace document, the long one with the origin for user messages and events, the short one for tool results. The
+  window decorator (`DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content
+  from the workspace; in a tool result it renders the short tag as text, so the providers have no document specific code.
+  A user prompt document is a reference with the delivery `content`. The documents a runtime tool returns are registered
+  after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`.
+  [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently

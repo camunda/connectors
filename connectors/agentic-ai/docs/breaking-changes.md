@@ -270,9 +270,8 @@ are. The request handler passes `DocumentExpander.windowDecorator(conversation)`
   This is a deliberate exception to gating a change of the persisted shape on the feature.
 - To add a tool of your own, implement `RuntimeTool` (`definition`, `isEnabled(RuntimeToolContext)`,
   `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see §25.4 of the
-  [reference](reference/ai-agent.md)). `RuntimeToolContext.documents()` gives the documents the agent knows when the
-  batch of calls starts; a tool can return documents in its result, which the agent registers after all calls of the
-  message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
+  [reference](reference/ai-agent.md)). A tool can return documents in its result, which the agent registers after all
+  calls of the message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
   call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
   error result from the executor; neither goes to the process.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
@@ -295,14 +294,18 @@ are. The request handler passes `DocumentExpander.windowDecorator(conversation)`
   the reference JSON, and its content is not added. A custom `ChatModel` that handles `DocumentContent` in tool results
   therefore sees text for these instances; instances without the feature keep the earlier form.
 - New in the model: `DocumentId`, the value type of a document id (persisted as a plain string), used by the document
-  workspace and `DocumentReferenceContent`. The `source` of a `DocumentReferenceContent` is the `DocumentSource` of the
-  workspace document.
+  workspace and `DocumentReferenceContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the
+  identity of the document (the store and the id in the store of a Camunda document, the URL of an external document, the
+  content of an inline document), so it is no longer the id of the document in its store.
+  `DocumentReferenceContent` holds the `DocumentId`, the `delivery` and the content `metadata`; the file name, content
+  type, size and origin the model reads are those of the workspace document of the id, and `aiagent.document.DocumentTags`
+  renders the tag.
 - Renamed: `DocumentReferenceXmlTag` (see the [module split](#module-split)) is `aiagent.document.LegacyDocumentReferenceXmlTag`,
   which only agent instances without the `documents` feature use.
-- New in the libraries: the persisted document state (`DocumentWorkspace`, `WorkspaceDocument`, `DocumentSource`) is in
+- New in the libraries: the persisted document state (`DocumentWorkspace`, `WorkspaceDocument` and the sealed
+  `DocumentOrigin`, persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`) is in
   `aiagent.model.document` of `aiagent-model`, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
-  `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`) is in
-  `aiagent.api.tool` of `aiagent-api`.
+  `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
 
 <a id="persisted-data-8-11"></a>
 
