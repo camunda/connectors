@@ -240,8 +240,13 @@ custom bean built with `new` needs the extra argument; inject it as a bean.
   `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime tool that is
   not enabled reserves no name. The connector registers no runtime tool itself, so only the runtime tools of your own runtime matter;
   give them a name with a prefix of your own. Agent instances created before keep their behavior: they are offered no
-  runtime tool and no name is checked. Every tool call of an agent instance with the feature is matched against the tools
-  offered in the job: a call of a tool name that is not offered no longer reaches the process but gets an error result.
+  runtime tool and no name is checked.
+- Behavior change for every agent instance, with or without the `runtimeTools` feature, in both flavors: every tool call
+  is matched against the tools offered in the job. A call of a tool name that is not offered, for example a name the model
+  invented, no longer reaches the process. The agent answers it in the same job with the error result
+  `The tool '<name>' does not exist.` and calls the model again; the process activates no element for it. Before, an agent
+  instance without the feature handed such a call to the process, which never answered it, and the instance waited for a
+  result forever.
 - To add a tool of your own, implement `RuntimeTool` (`definition`, `isEnabled(RuntimeToolContext)`,
   `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see §25.4 of the
   [reference](reference/ai-agent.md)). Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
@@ -271,8 +276,9 @@ custom bean built with `new` needs the extra argument; inject it as a bean.
   one additional `CONFIGURATION` history item on its first job after the upgrade.
 - `AgentContext` gains `features`. There is no schema version bump, and a missing field binds to its empty value, so
   state written by 8.10 loads unchanged. An 8.10 connector runtime ignores `features` and drops it on its next write.
-- A `ToolCall` of a stored assistant message carries `kind`. The JSON holds it only for a call of a runtime tool, and a
-  missing value reads as `PROCESS`, so state written by 8.10 loads unchanged. The agent never computes the kind again, so a
+- A `ToolCall` of a stored assistant message carries `kind`, also in an agent instance created before 8.11 and without the
+  `runtimeTools` feature: a call of an unknown tool name is tagged `RUNTIME`. The JSON holds it only for a call of a runtime
+  tool, and a missing value reads as `PROCESS`, so state written by 8.10 loads unchanged. The agent never computes the kind again, so a
   custom `ConversationStore` must keep it: a store that drops it turns a runtime tool call into a process tool call that
   never gets a result. Serializing the `ToolCall` record with Jackson keeps it.
 - The assistant message in the `responseMessage` of an `AgentResponse` (`includeAssistantMessage`) also carries `kind`

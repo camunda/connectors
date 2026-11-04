@@ -218,13 +218,14 @@ High-frequency traps (detail behind each link):
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
-  instance without the `runtimeTools` feature (created before it) has no runtime tools and no tool element is checked
-  against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
-  `AgentContext.supports(...)`. [ADR 016](docs/adr/016-runtime-tools.md).
+  instance without the `runtimeTools` feature (created before it) is offered no runtime tools and no tool element is
+  checked against runtime tool names; the feature gates only what is offered, so every instance gets the tool call tags
+  and the answer for a call of a tool that is not offered. Gate new behavior that changes the wire format or the persisted
+  shape on `AgentContext.supports(...)`. [ADR 016](docs/adr/016-runtime-tools.md).
 - **Runtime tool calls are tagged once and executed in the job that composes the next turn**: the agent tags every tool call of
   an assistant message with its `ToolKind` (`PROCESS` or `RUNTIME`) before the message enters the conversation, and never
-  computes it again. A call takes the kind of the tool of its name among the tools offered in the job; a name that is not
-  offered is a runtime call. When the model issues runtime and process calls together, only the process calls are activated, and
+  computes it again, for every agent instance, with or without the `runtimeTools` feature. A call takes the kind of the tool
+  of its name among the tools offered in the job; a name that is not offered is a runtime call. When the model issues runtime and process calls together, only the process calls are activated, and
   the runtime calls are executed when the next turn is composed, merged with the process results in call order. `ToolCall.kind` is
   persisted (written only for `RUNTIME`, missing reads as `PROCESS`), so every conversation store must keep it. The agent
   answers a runtime call whose tool is not offered with an error result itself (`executeAgentAnsweredCalls`), and

@@ -1614,30 +1614,93 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void keepsAnAgentInstanceWithoutTheRuntimeToolsFeatureWithoutRuntimeTools() {
+  void offersAnAgentInstanceWithoutTheRuntimeToolsFeatureNoRuntimeTool() {
     final var legacyContext =
         AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(legacyContext, List.of()));
-    // every call belongs to the process of such an instance, whatever its name
-    final var lookupCall = new ToolCall("call-1", "acme_lookup", Map.of());
-    final var unknownCall = new ToolCall("call-2", "acme_unknown", Map.of());
-    mockChatModelExecution(
-        AssistantMessage.builder().toolCalls(List.of(lookupCall, unknownCall)).build());
+    mockChatModelExecution(assistantMessage("done"));
     mockResponseHandler();
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    verify(chatModel, times(1)).execute(any());
     assertThat(chatModelRequestCaptor.getValue().snapshot().toolDefinitions())
-        .extracting(ToolDefinition::name)
-        .doesNotContain("acme_lookup");
-    assertThat(response.responseValue().toolCalls())
-        .containsExactly(
-            ToolCallProcessVariable.from(lookupCall), ToolCallProcessVariable.from(unknownCall));
+        .containsExactlyElementsOf(TOOL_DEFINITIONS);
     assertThat(response.responseValue().context().features()).isEmpty();
+  }
+
+  @Test
+  void answersTheCallsOfToolsThatAreNotOfferedToAnAgentInstanceWithoutTheRuntimeToolsFeature() {
+    final var legacyContext =
+        AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(legacyContext, List.of()));
+    // the runtime tool is not offered to such an instance, so its name is as unknown as any other
+    final var lookupCall = new ToolCall("call-1", "acme_lookup", Map.of());
+    final var unknownCall = new ToolCall("call-2", "acme_unknown", Map.of());
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 2);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder().toolCalls(List.of(lookupCall, unknownCall)).build(),
+                metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    assertThat(response.responseValue().toolCalls()).isEmpty();
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .containsExactly(
+                        tuple(
+                            "call-1",
+                            List.of(
+                                TextContent.textContent("The tool 'acme_lookup' does not exist."))),
+                        tuple(
+                            "call-2",
+                            List.of(
+                                TextContent.textContent(
+                                    "The tool 'acme_unknown' does not exist.")))));
+  }
+
+  @Test
+  void tagsTheCallsOfAnAgentInstanceWithoutTheRuntimeToolsFeatureByTheToolsOfTheRound() {
+    final var legacyContext =
+        AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(legacyContext, List.of()));
+    final var processCall = new ToolCall("call-1", "getWeather", Map.of("location", "MUC"));
+    final var unknownCall = new ToolCall("call-2", "acme_unknown", Map.of());
+    mockChatModelExecution(
+        AssistantMessage.builder().toolCalls(List.of(unknownCall, processCall)).build());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(agentInstanceClient)
+        .applyTurnCompletion(eq(agentExecutionContext), any(), turnCaptor.capture(), any(), any());
+    assertThat(turnCaptor.getValue().toolCalls())
+        .containsExactly(
+            unknownCall.withKind(ToolKind.RUNTIME), processCall.withKind(ToolKind.PROCESS));
+    // only the call of the process goes to the process
+    assertThat(response.responseValue().toolCalls())
+        .containsExactly(ToolCallProcessVariable.from(processCall));
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
   }
 
   private void composeWithTheRealComposer() {

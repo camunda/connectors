@@ -19,7 +19,6 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.SUPERFLUX_PRODUCT_TOOL_NAME;
 import static io.camunda.connector.e2e.agenticai.aiagent.common.RuntimeToolTestConfiguration.EchoRuntimeTool;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -31,7 +30,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -140,45 +138,9 @@ public class AgentSubProcessRuntimeToolTests extends BaseAgentSubProcessTest {
   }
 
   @Test
-  void answersACallOfAnUnknownToolWithAnErrorAndCallsTheModelAgain() throws Exception {
+  void answersAnUnknownToolNextToARuntimeToolInCallOrderInTheSameJob() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
-        Turn.toolCalls(AI_TOOL_CALL_TEXT, 10, 20, UNKNOWN_CALL), Turn.text(AI_FINAL_TEXT, 11, 22));
-    enqueueUserFeedback(userSatisfiedFeedback());
-
-    final var zeebeTest =
-        awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", USER_PROMPT)));
-
-    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertThat(recorded.modelCallCount()).isEqualTo(2);
-
-    assertConversationMessages(
-        recorded.lastRequest(),
-        ExpectedMessage.system(expectedSystemPrompt()),
-        ExpectedMessage.user(USER_PROMPT),
-        ExpectedMessage.assistantWithToolCalls(AI_TOOL_CALL_TEXT, UNKNOWN_TOOL_NAME),
-        ExpectedMessage.toolCallResult("unknown-1", UNKNOWN_TOOL_ERROR));
-
-    // the unknown call is answered by the agent and never handed to the process: no element of
-    // that name was requested for activation, so no incident was raised
-    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-        .hasNoActiveIncidents()
-        .hasNotActivatedElements(UNKNOWN_TOOL_NAME);
-
-    assertAgentResponse(
-        zeebeTest,
-        agentResponse ->
-            AgentSubProcessResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasLastIterationKey(2)
-                .hasResponseText(AI_FINAL_TEXT));
-
-    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
-  }
-
-  @Test
-  void answersAnUnknownToolNextToAToolOfTheProcessInCallOrder() throws Exception {
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        Turn.toolCalls(AI_TOOL_CALL_TEXT, 10, 20, UNKNOWN_CALL, SUPERFLUX_CALL),
+        Turn.toolCalls(AI_TOOL_CALL_TEXT, 10, 20, UNKNOWN_CALL, ECHO_CALL),
         Turn.text(AI_FINAL_TEXT, 11, 22));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -193,13 +155,12 @@ public class AgentSubProcessRuntimeToolTests extends BaseAgentSubProcessTest {
         ExpectedMessage.system(expectedSystemPrompt()),
         ExpectedMessage.user(USER_PROMPT),
         ExpectedMessage.assistantWithToolCalls(
-            AI_TOOL_CALL_TEXT, UNKNOWN_TOOL_NAME, SUPERFLUX_PRODUCT_TOOL_NAME),
+            AI_TOOL_CALL_TEXT, UNKNOWN_TOOL_NAME, EchoRuntimeTool.NAME),
         ExpectedMessage.toolCallResult("unknown-1", UNKNOWN_TOOL_ERROR),
-        ExpectedMessage.toolCallResult("flux-1", "24"));
+        ExpectedMessage.toolCallResult("echo-1", "echo: hello"));
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasNoActiveIncidents()
-        .hasCompletedElement(SUPERFLUX_PRODUCT_TOOL_NAME, 1)
         .hasNotActivatedElements(UNKNOWN_TOOL_NAME);
 
     assertAgentResponse(
@@ -214,45 +175,42 @@ public class AgentSubProcessRuntimeToolTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * An agent instance created without the runtime tools feature (its persisted context has no
-   * features) keeps the behavior it started with: the calls of names that are not offered are not
-   * tagged as runtime calls but handed to the process, i.e. the element of that name is requested
-   * for activation. The agent never answers the call itself, so the model is not called again.
+   * An agent instance created without the runtime tools feature has no features in its persisted
+   * context: the agent starts with that context instead of creating a new one, and offers it no
+   * runtime tool.
    */
   @Test
-  void anUnknownToolStaysWithTheProcessForAnAgentInstanceWithoutTheRuntimeToolsFeature()
-      throws Exception {
+  void offersNoRuntimeToolToAnAgentInstanceWithoutTheRuntimeToolsFeature() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
-        Turn.toolCalls(AI_TOOL_CALL_TEXT, 10, 20, UNKNOWN_CALL), Turn.text(AI_FINAL_TEXT, 11, 22));
+        Turn.toolCalls(AI_TOOL_CALL_TEXT, 10, 20, ECHO_CALL), Turn.text(AI_FINAL_TEXT, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
 
-    // an initial agent context without features: the agent starts with it instead of creating a
-    // new one, which would carry the current features
     final var zeebeTest =
-        createProcessInstance(
-            Map.of(
-                "userPrompt",
-                USER_PROMPT,
-                "agent",
-                Map.of("context", Map.of("state", "INITIALIZING"))));
+        awaitProcessCompletion(
+            createProcessInstance(
+                Map.of(
+                    "userPrompt",
+                    USER_PROMPT,
+                    "agent",
+                    Map.of("context", Map.of("state", "INITIALIZING")))));
 
-    await()
-        .atMost(Duration.ofSeconds(30))
-        .untilAsserted(() ->
-            assertThat(OpenAiCompletionsRecordedConversation.recorded().modelCallCount())
-                .isEqualTo(1));
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(2);
+    assertThat(recorded.requests().getFirst().toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .contains(SUPERFLUX_PRODUCT_TOOL_NAME)
+        .doesNotContain(EchoRuntimeTool.NAME);
 
-    // the engine does not turn the requested activation of the unknown element into a result for
-    // the agent: the agent is not called again, so no request ever contains the answer of a
-    // runtime tool for the unknown call
-    await()
-        .during(Duration.ofSeconds(3))
-        .atMost(Duration.ofSeconds(10))
-        .untilAsserted(() ->
-            assertThat(OpenAiCompletionsRecordedConversation.recorded().modelCallCount())
-                .isEqualTo(1));
+    assertConversationMessages(
+        recorded.lastRequest(),
+        ExpectedMessage.system(expectedSystemPrompt()),
+        ExpectedMessage.user(USER_PROMPT),
+        ExpectedMessage.assistantWithToolCalls(AI_TOOL_CALL_TEXT, EchoRuntimeTool.NAME),
+        ExpectedMessage.toolCallResult(
+            "echo-1", "The tool '%s' does not exist.".formatted(EchoRuntimeTool.NAME)));
+
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-        .hasActiveElements("AI_Agent")
-        .hasNotActivatedElements(UNKNOWN_TOOL_NAME);
-    assertThat(userFeedbackJobWorkerCounter.get()).isZero();
+        .hasNoActiveIncidents()
+        .hasNotActivatedElements(EchoRuntimeTool.NAME);
   }
 }

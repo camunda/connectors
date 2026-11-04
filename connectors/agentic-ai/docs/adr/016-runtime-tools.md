@@ -87,17 +87,19 @@ changes the wire format or the persisted shape is gated on a feature, so an inst
 behavior existed keeps the behavior it started with. A feature is never added to an existing instance.
 
 The first feature is `runtimeTools`. An instance without it is offered no runtime tool and checks no tool name, because
-its process, which may already contain an element with such a name, must keep running.
+its process, which may already contain an element with such a name, must keep running. The feature gates only what is
+offered. The answer for a call of a tool that is not offered applies to every agent instance, because the process never
+activates an element for such a call and an instance that hands it to the process waits for a result forever.
 
 ### Tagging, one execution site, and mixed batches
 
 The agent tags every tool call of an assistant message with the kind of its tool, process or runtime, exactly once: when
-it receives the message from the model, before the conversation takes the message in. For an agent instance with the
-`runtimeTools` feature every call is matched against the tools offered in the job: it takes the kind of the tool with its
-name. A call whose name is not offered, as a model may invent one or a tool may have been disabled, is a runtime call: the
+it receives the message from the model, before the conversation takes the message in. Every call, of every agent instance,
+is matched against the tools offered in the job: it takes the kind of the tool with its name. A call whose name is not offered, as a model may invent one or a tool may have been disabled, is a runtime call: the
 tag says that the agent answers the call and that the process never gets it. The agent answers a call of a tool that is
 not offered with an error result that says the tool does not exist; this is a step of the agent, not of a tool. The tag
-is persisted with the message and never computed again. Only process calls are activated. The definition of a runtime tool
+is persisted with the message and never computed again, so it may appear in the state of any agent instance, also of
+one created before runtime tools existed. Only process calls are activated. The definition of a runtime tool
 declares the kind runtime and the registration rejects other tools at start-up; the tag of a call, not the definition,
 decides how a call is answered.
 
@@ -154,7 +156,8 @@ has no element. In a mixed batch the results carry the turn start of the job tha
 ### Negative Consequences
 
 * **Every conversation store must keep the tag.** A store that drops it turns a runtime call into a process call that
-  never gets a result. A missing tag reads as a process call, so existing data keeps working.
+  never gets a result, for an agent instance with or without the `runtimeTools` feature. A missing tag reads as a process
+  call, so existing data keeps working.
 * A tool call that names a tool that is not offered, or a runtime tool that is not enabled when it is executed, gets an
   error result, and the model has to recover.
 * The model receives the results of the runtime calls of a mixed batch with the next request, together with the process
