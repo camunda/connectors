@@ -10,6 +10,8 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.en
 
 import io.a2a.json.JsonProcessingException;
 import io.a2a.json.JsonUtil;
+import io.a2a.spec.Artifact;
+import io.a2a.spec.Message;
 import io.a2a.spec.Task;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
@@ -229,8 +231,10 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
   /**
    * Parses the webhook body into an SDK {@link Task}. The SDK's Gson-based parser only wraps syntax
    * errors: it returns {@code null} for an empty body, bypasses the {@link Task} constructor null
-   * checks, and lets constructor failures of nested types escape as unchecked exceptions. All of
-   * these are reported as {@link JsonProcessingException}.
+   * checks (including those of nested messages), accepts {@code null} list entries, and lets
+   * constructor failures of nested types escape as unchecked exceptions. The required fields are
+   * therefore validated explicitly, and every failure is reported as {@link
+   * JsonProcessingException}.
    */
   private Task parseTask(byte[] rawBody) throws JsonProcessingException {
     final Task task;
@@ -248,7 +252,37 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
       throw new JsonProcessingException(
           "Payload is not a valid A2A task: id, contextId and status.state are required");
     }
+
+    if (task.getStatus().message() != null) {
+      validateMessage(task.getStatus().message(), "status.message");
+    }
+    if (task.getHistory() != null) {
+      for (Message message : task.getHistory()) {
+        validateMessage(message, "history entry");
+      }
+    }
+    if (task.getArtifacts() != null) {
+      for (Artifact artifact : task.getArtifacts()) {
+        if (artifact == null) {
+          throw new JsonProcessingException("Payload is not a valid A2A task: null artifact entry");
+        }
+      }
+    }
     return task;
+  }
+
+  private void validateMessage(@Nullable Message message, String location)
+      throws JsonProcessingException {
+    if (message == null) {
+      throw new JsonProcessingException("Payload is not a valid A2A task: null " + location);
+    }
+
+    try {
+      message.check();
+    } catch (RuntimeException e) {
+      throw new JsonProcessingException(
+          "Payload is not a valid A2A task: invalid " + location + ": " + e.getMessage(), e);
+    }
   }
 
   private void verifyHmac(
