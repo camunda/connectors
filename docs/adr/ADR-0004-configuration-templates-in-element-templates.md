@@ -155,8 +155,6 @@ which provider-specific properties to show
   would still need to know which variant is in use, and a bound credential does not reveal that.
 - Do not work around this by adding one credential type per variant. Either find a design that needs
   one type, or leave the connector on inline fields for now.
-- One option for connectors whose variants really are different products is to split them into separate
-  element templates, each with its own single credential type, rather than one template with several.
 
 This is a guideline for connector authors, not a limitation of the generator: it can emit several
 choosers and credential templates, and nothing enforces the rule. The Webhook connector's initial
@@ -174,6 +172,8 @@ That is one option, not the only one. The decoupling win of GAP-001 comes solely
 - **Generic runtime/SDK bind-layer merge** — the design doc's stated preference; zero connector change, uniform, but front-loads generalizing the merge (esp. explicitly-set detection) across all connectors, and makes the precedence invisible at the point business code reads the request. Rejected as too much complexity for what a human needs to understand in the request model; see the maintainability trade-off called out for this POC.
 
 This choice does not block the ETG work: the element template emits the identical chooser + `configuration` binding regardless of where the merge lives.
+
+**(c) Connectors whose variants need different credential types — open.** The [one credential type per connector](#one-credential-type-per-connector) guideline leaves these connectors on inline fields; it does not yet say how they get a chooser. One untested idea is to split such a connector into separate element templates, one per variant (for example one per model provider), each with its own single credential type. No connector has done this yet, so it is not guidance until one does and the trade-offs (more templates to maintain, switching variant means switching template) are known.
 
 ## Consequences
 
