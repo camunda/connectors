@@ -10,10 +10,13 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.doc.parsing.DefaultTextSegmentExtractor;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
 import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
+import io.camunda.connector.embeddingstore.SegmentSizeLimit;
 import io.camunda.connector.fixture.EmbeddingsVectorDBRequestFixture;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -48,6 +51,24 @@ class DefaultEmbeddingActionProcessorTest {
     Assertions.assertThat(batches.getAllValues())
         .extracting(List::size)
         .containsExactly(100, 100, 50);
+  }
+
+  @Test
+  void embed_ChecksSegmentSizesBeforeWritingAnything() {
+    final var store = Mockito.mock(ClosableEmbeddingStore.class);
+    final var limitedStore =
+        Mockito.mock(
+            EmbeddingStore.class, Mockito.withSettings().extraInterfaces(SegmentSizeLimit.class));
+    Mockito.when(store.getEmbeddingStore()).thenReturn(limitedStore);
+    Mockito.doThrow(new ConnectorException("chunk 150 too large"))
+        .when((SegmentSizeLimit) limitedStore)
+        .checkSegments(ArgumentMatchers.anyList());
+
+    Assertions.assertThatThrownBy(() -> embed(store, segments(250)))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessage("chunk 150 too large");
+    Mockito.verify(store, Mockito.never())
+        .addAll(ArgumentMatchers.anyList(), ArgumentMatchers.anyList());
   }
 
   @SuppressWarnings("unchecked")

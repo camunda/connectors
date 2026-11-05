@@ -12,6 +12,7 @@ import io.camunda.connector.doc.parsing.DefaultTextSegmentExtractor;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
 import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
+import io.camunda.connector.embeddingstore.SegmentSizeLimit;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 import java.util.ArrayList;
@@ -53,6 +54,9 @@ public class DefaultEmbeddingActionProcessor implements EmbeddingActionProcessor
       // split incoming documents into chunks (segments) so that converting those
       // to vector-normal formal preserves maximum amount of properties.
       final var segments = textSegmentExtractor.fromRequest(request);
+      if (store.getEmbeddingStore() instanceof SegmentSizeLimit limit) {
+        limit.checkSegments(segments);
+      }
 
       // convert chunks (segments) into vector form, persist
       // in a vector DB and return chunks identifiers

@@ -11,6 +11,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import software.amazon.awssdk.services.s3vectors.S3VectorsClient;
 import software.amazon.awssdk.services.s3vectors.model.ConflictException;
@@ -24,11 +25,13 @@ import software.amazon.awssdk.services.s3vectors.model.NotFoundException;
 
 /**
  * Amazon S3 Vectors store. The chunk text is stored as non-filterable metadata, because S3 Vectors
- * allows at most 2 KB of filterable metadata per vector.
+ * allows at most 2 KB of filterable metadata per vector. All metadata of a vector together is
+ * limited to 40 KB, which caps the size of a chunk.
  */
-class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore {
+class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore implements SegmentSizeLimit {
 
   static final String TEXT_METADATA_KEY = S3VectorsEmbeddingStore.DEFAULT_TEXT_METADATA_KEY;
+  static final int MAX_METADATA_BYTES = 40_960;
   private static final Duration INDEX_READY_TIMEOUT = Duration.ofSeconds(30);
 
   private final S3VectorsClient client;
@@ -51,6 +54,43 @@ class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore {
   @Override
   protected String name() {
     return "Amazon S3 Vectors";
+  }
+
+  @Override
+  public void checkSegments(List<TextSegment> segments) {
+    for (int i = 0; i < segments.size(); i++) {
+      int size = metadataSize(segments.get(i).text());
+      if (size > MAX_METADATA_BYTES) {
+        throw new ConnectorException(
+            ("Chunk %d of the document needs %d bytes of metadata, but Amazon S3 Vectors allows at"
+                    + " most %d bytes per vector. Use the Recursive document splitter with a lower"
+                    + " Max chars.")
+                .formatted(i + 1, size, MAX_METADATA_BYTES));
+      }
+    }
+  }
+
+  /** Size of {"_page_content":"text"} as UTF-8 JSON, an upper bound of what S3 Vectors counts. */
+  static int metadataSize(String text) {
+    int size = TEXT_METADATA_KEY.length() + 7;
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      if (c == '"' || c == '\\' || c == '\n' || c == '\r' || c == '\t' || c == '\b' || c == '\f') {
+        size += 2;
+      } else if (c < 0x20) {
+        size += 6;
+      } else if (c < 0x80) {
+        size += 1;
+      } else if (c < 0x800) {
+        size += 2;
+      } else if (Character.isHighSurrogate(c)) {
+        size += 4;
+        i++;
+      } else {
+        size += 3;
+      }
+    }
+    return size;
   }
 
   @Override

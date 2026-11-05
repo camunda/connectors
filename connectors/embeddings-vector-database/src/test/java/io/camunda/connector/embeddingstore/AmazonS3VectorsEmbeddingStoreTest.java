@@ -180,6 +180,36 @@ class AmazonS3VectorsEmbeddingStoreTest {
             INDEX + " must declare '_page_content' as a non-filterable metadata key");
   }
 
+  @Test
+  void checkSegmentsAcceptsChunksUpToTheMetadataLimit() {
+    // {"_page_content":"..."} adds 20 bytes around the text
+    var largest = TextSegment.from("a".repeat(40_940));
+
+    store.checkSegments(List.of(TextSegment.from("small"), largest));
+
+    verifyNoInteractions(client);
+  }
+
+  @Test
+  void checkSegmentsRejectsAChunkOverTheMetadataLimit() {
+    var tooLarge = TextSegment.from("a".repeat(40_941));
+
+    assertThatThrownBy(() -> store.checkSegments(List.of(TextSegment.from("small"), tooLarge)))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessage(
+            "Chunk 2 of the document needs 40961 bytes of metadata, but Amazon S3 Vectors allows"
+                + " at most 40960 bytes per vector. Use the Recursive document splitter with a"
+                + " lower Max chars.");
+  }
+
+  @Test
+  void metadataSizeCountsJsonEscapesAndUtf8Bytes() {
+    assertThat(AmazonS3VectorsEmbeddingStore.metadataSize("")).isEqualTo(20);
+    assertThat(AmazonS3VectorsEmbeddingStore.metadataSize("a\n\"\\")).isEqualTo(20 + 1 + 6);
+    assertThat(AmazonS3VectorsEmbeddingStore.metadataSize("\u0001")).isEqualTo(20 + 6);
+    assertThat(AmazonS3VectorsEmbeddingStore.metadataSize("é€😀")).isEqualTo(20 + 2 + 3 + 4);
+  }
+
   private static EmbeddingSearchRequest searchRequest(int maxResults) {
     return EmbeddingSearchRequest.builder()
         .queryEmbedding(Embedding.from(new float[] {1, 2, 3}))
