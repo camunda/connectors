@@ -8,7 +8,9 @@ package io.camunda.connector.agenticai.aiagent.model.document;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -200,6 +202,27 @@ class AgentDocumentsTest {
         .isInstanceOf(DocumentIdCollisionException.class)
         .hasMessageContaining("'" + AgentDocumentId.of(other) + "'")
         .hasMessageContaining("two different documents");
+  }
+
+  @Test
+  void twoDifferentDocumentsOfOneBatchWithTheSameIdAreRejected() {
+    final var first = document("one", "one.txt");
+    final var second = document("two", "two.txt");
+
+    // a real id collision needs a hash collision, so the id of the second document is forced
+    try (var ids = mockStatic(AgentDocumentId.class, CALLS_REAL_METHODS)) {
+      final var firstId = AgentDocumentId.of(first);
+      ids.when(() -> AgentDocumentId.of(second)).thenReturn(firstId);
+
+      assertThatThrownBy(() ->
+              AgentDocuments.empty()
+                  .register(
+                      List.of(
+                          new NewDocument(first, DocumentOrigin.userMessage()),
+                          new NewDocument(second, DocumentOrigin.userMessage()))))
+          .isInstanceOf(DocumentIdCollisionException.class)
+          .hasMessageContaining("'" + firstId + "'");
+    }
   }
 
   @Test
