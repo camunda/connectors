@@ -2062,7 +2062,7 @@ result returns are registered:
 
 Every note is plain text with no incident; the model retries or goes another way. The builder follows the tool result
 message with a user message with the preamble `System message, not written by the user: the content of the
-documents loaded for the tool results above follows.` and, in the order the documents were asked for, a block with the delivery `content`
+documents requested for the tool results above follows, or a note says why a document cannot be loaded.` and, in the order the documents were asked for, a block with the delivery `content`
 or a note per document. Its
 metadata `toolCallDocuments` makes it leave the context window together with its tool results (`MessageWindowFilter`). The
 tag text and the content are added from the agent documents when the request is built (`DocumentExpander`). Passing the tag of a document to

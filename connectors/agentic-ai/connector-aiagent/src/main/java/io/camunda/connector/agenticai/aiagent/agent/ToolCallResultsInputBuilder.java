@@ -44,7 +44,7 @@ public class ToolCallResultsInputBuilder {
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
   static final String DOCUMENT_CONTENT_PREAMBLE =
-      "System message, not written by the user: the content of the documents loaded for the tool results above follows.";
+      "System message, not written by the user: the content of the documents requested for the tool results above follows, or a note says why a document cannot be loaded.";
 
   private final DocumentContentDelivery contentDelivery;
 
