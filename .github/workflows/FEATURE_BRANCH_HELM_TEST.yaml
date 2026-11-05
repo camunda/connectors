@@ -13,7 +13,7 @@ jobs:
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Import Secrets
         id: secrets
@@ -181,7 +181,7 @@ jobs:
     permissions: { }
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
         uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
