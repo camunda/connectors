@@ -14,19 +14,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -151,15 +151,14 @@ class InProcessConversationStoreTest {
       throws Exception {
     final var objectMapper = TestObjectMapperSupplier.INSTANCE;
     final var document = createDocument("report", "report.txt");
-    final var entry =
-        DocumentIngestion.entryFor(
-            new IngestedDocument(document, DocumentOrigin.toolCall("fetch", "call-1")));
-    final var reference = DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT);
+    final var entry = AgentDocument.of(document, DocumentOrigin.toolCall("fetch", "call-1"));
+    final var reference =
+        AgentDocumentContent.of(AgentDocumentId.of(document))
+            .withDelivery(DocumentDelivery.CONTENT);
     final var message =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), reference)).build();
 
-    final var agentContext =
-        AgentContext.empty().withDocumentWorkspace(DocumentWorkspace.of(List.of(entry)));
+    final var agentContext = AgentContext.empty().withDocuments(AgentDocuments.of(List.of(entry)));
     AgentContext storedAgentContext;
     try (var session = store.createSession(executionContext, agentContext)) {
       session.loadMessages(agentContext);
@@ -173,7 +172,7 @@ class InProcessConversationStoreTest {
         objectMapper.readValue(
             objectMapper.writeValueAsString(storedAgentContext), AgentContext.class);
 
-    assertThat(reloadedAgentContext.documents()).containsExactly(entry);
+    assertThat(reloadedAgentContext.documents().all()).containsExactly(entry);
     try (var session = store.createSession(executionContext, reloadedAgentContext)) {
       assertThat(session.loadMessages(reloadedAgentContext).messages())
           .singleElement()

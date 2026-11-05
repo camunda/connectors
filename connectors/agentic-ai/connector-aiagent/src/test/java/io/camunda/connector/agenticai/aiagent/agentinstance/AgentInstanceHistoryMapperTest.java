@@ -13,34 +13,33 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -76,7 +75,8 @@ class AgentInstanceHistoryMapperTest {
   private final AgentInstanceHistoryMapper mapper =
       new AgentInstanceHistoryMapper(
           Mockito.mock(GatewayToolHandlerRegistry.class),
-          new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
+          TestDocuments.documentRestorer(),
+          TestDocuments.objectTagRenderer());
 
   @Test
   void userMessageUsesThePassedInTurnIngestionTimestamp() {
@@ -84,7 +84,8 @@ class AgentInstanceHistoryMapperTest {
         UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build();
 
     final var items =
-        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NEW_INSTANCE);
+        mapper.inputHistoryItems(
+            userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NEW_INSTANCE.documentHandling());
 
     assertThat(items).singleElement().extracting("producedAt").isEqualTo(TURN_INGESTION_TIMESTAMP);
   }
@@ -106,10 +107,9 @@ class AgentInstanceHistoryMapperTest {
                     .fileName("report.txt")
                     .build());
     final var workspace =
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            List.of(new IngestedDocument(document, DocumentOrigin.userMessage())));
-    final var tag = DocumentReferences.from(document);
+        AgentDocuments.empty()
+            .register(List.of(new NewDocument(document, DocumentOrigin.userMessage())));
+    final var tag = AgentDocumentContent.of(AgentDocumentId.of(document));
     final var userMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
 
@@ -118,7 +118,7 @@ class AgentInstanceHistoryMapperTest {
             userMessage,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.withDocumentWorkspace(workspace));
+            WITH_DOCUMENTS.withDocuments(workspace).documentHandling());
 
     assertThat(items)
         .singleElement()
@@ -134,11 +134,12 @@ class AgentInstanceHistoryMapperTest {
   @Test
   void aDocumentTagOfAnUnknownDocumentIsReportedAsTextOnly() {
     final var tag =
-        new DocumentReferenceContent(DocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);
+        new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);
     final var userMessage = UserMessage.builder().content(List.of(tag)).build();
 
     final var items =
-        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, WITH_DOCUMENTS);
+        mapper.inputHistoryItems(
+            userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, WITH_DOCUMENTS.documentHandling());
 
     assertThat(items)
         .singleElement()
@@ -159,7 +160,8 @@ class AgentInstanceHistoryMapperTest {
         UserMessage.builder().content(List.of(TextContent.textContent(text))).build();
 
     final var items =
-        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, WITH_DOCUMENTS);
+        mapper.inputHistoryItems(
+            userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, WITH_DOCUMENTS.documentHandling());
 
     assertThat(items)
         .singleElement()
@@ -186,7 +188,7 @@ class AgentInstanceHistoryMapperTest {
             ToolCallResultMessage.builder().results(List.of(result)).build(),
             Map.of("call-1", toolCall),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS);
+            WITH_DOCUMENTS.documentHandling());
 
     assertThat(items)
         .singleElement()
@@ -222,7 +224,8 @@ class AgentInstanceHistoryMapperTest {
 
     assertThat(texts(mapper.assistantContent(assistant))).containsExactly("I use " + tag);
     final var userItems =
-        mapper.inputHistoryItems(user, Map.of(), TURN_INGESTION_TIMESTAMP, withoutDocumentFlow);
+        mapper.inputHistoryItems(
+            user, Map.of(), TURN_INGESTION_TIMESTAMP, withoutDocumentFlow.documentHandling());
     assertThat(texts(userItems.getFirst().content())).containsExactly(tag, "see " + tag);
   }
 
@@ -241,7 +244,10 @@ class AgentInstanceHistoryMapperTest {
 
     final var items =
         mapper.inputHistoryItems(
-            message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP, NEW_INSTANCE);
+            message,
+            Map.of("call-1", toolCall),
+            TURN_INGESTION_TIMESTAMP,
+            NEW_INSTANCE.documentHandling());
 
     assertThat(items)
         .singleElement()
@@ -281,7 +287,7 @@ class AgentInstanceHistoryMapperTest {
             message,
             Map.of("fast", fastToolCall, "slow", slowToolCall),
             TURN_INGESTION_TIMESTAMP,
-            NEW_INSTANCE);
+            NEW_INSTANCE.documentHandling());
 
     assertThat(items).hasSize(2);
     assertThat(items.get(0).producedAt()).isEqualTo(fastCompletedAt);
@@ -305,7 +311,10 @@ class AgentInstanceHistoryMapperTest {
 
     assertThatThrownBy(() ->
             mapper.inputHistoryItems(
-                message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP, NEW_INSTANCE))
+                message,
+                Map.of("call-1", toolCall),
+                TURN_INGESTION_TIMESTAMP,
+                NEW_INSTANCE.documentHandling()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("call-1")
         .hasMessageContaining("completedAt");
@@ -335,7 +344,7 @@ class AgentInstanceHistoryMapperTest {
             ToolCallResultMessage.builder().results(List.of(result)).build(),
             Map.of("call-1", toolCall),
             TURN_INGESTION_TIMESTAMP,
-            NEW_INSTANCE);
+            NEW_INSTANCE.documentHandling());
 
     assertThat(assistantCalls)
         .singleElement()
@@ -581,19 +590,19 @@ class AgentInstanceHistoryMapperTest {
     private final String tag = DocumentTags.shortTag(document);
     private final String otherTag = DocumentTags.shortTag(otherDocument);
 
-    private final DocumentWorkspace workspace =
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            List.of(
-                new IngestedDocument(document, DocumentOrigin.toolCall("fetch", "call-1")),
-                new IngestedDocument(otherDocument, DocumentOrigin.toolCall("fetch", "call-1"))));
-    private final AgentContext agentContext = WITH_DOCUMENTS.withDocumentWorkspace(workspace);
+    private final AgentDocuments workspace =
+        AgentDocuments.empty()
+            .register(
+                List.of(
+                    new NewDocument(document, DocumentOrigin.toolCall("fetch", "call-1")),
+                    new NewDocument(otherDocument, DocumentOrigin.toolCall("fetch", "call-1"))));
+    private final AgentContext agentContext = WITH_DOCUMENTS.withDocuments(workspace);
 
     private final ToolCall call =
         ToolCall.builder()
             .id("call-1")
             .name("fetch")
-            .arguments(Map.of("document", DocumentHandle.idFor(document), "n", 1))
+            .arguments(Map.of("document", AgentDocumentId.of(document), "n", 1))
             .build();
 
     private ToolCallResultMessage message(Content... content) {
@@ -614,7 +623,10 @@ class AgentInstanceHistoryMapperTest {
         ToolCallResultMessage message, AgentContext agentContext) {
       final var items =
           mapper.inputHistoryItems(
-              message, Map.of("call-1", call), TURN_INGESTION_TIMESTAMP, agentContext);
+              message,
+              Map.of("call-1", call),
+              TURN_INGESTION_TIMESTAMP,
+              agentContext.documentHandling());
       assertThat(items).hasSize(1);
       return items.getFirst();
     }
@@ -674,11 +686,15 @@ class AgentInstanceHistoryMapperTest {
         throws Exception {
       final var liveMessage = message(DocumentContent.documentContent(document));
       final var live = item(liveMessage, agentContext);
-      final var stored = item(message(DocumentReferences.from(document)), agentContext);
+      final var stored =
+          item(message(AgentDocumentContent.of(AgentDocumentId.of(document))), agentContext);
 
       // the early write knows no document of this turn yet
       final var early = item(liveMessage, WITH_DOCUMENTS);
-      final var later = item(persisted(message(DocumentReferences.from(document))), agentContext);
+      final var later =
+          item(
+              persisted(message(AgentDocumentContent.of(AgentDocumentId.of(document)))),
+              agentContext);
 
       assertThat(described(stored)).isEqualTo(described(live));
       assertThat(described(later)).isEqualTo(described(early)).hasSize(2);
@@ -688,7 +704,7 @@ class AgentInstanceHistoryMapperTest {
     void aReferenceBlockBetweenTextsIsTheShortTagInInlineCodeAndTheDocumentInTheOrderOfTheBlocks() {
       // the workspace knows the tool call that returned the document, but the model reads the short
       // tag of a document in a tool result
-      final var block = DocumentReferences.from(document);
+      final var block = AgentDocumentContent.of(AgentDocumentId.of(document));
 
       final var item =
           item(
@@ -716,7 +732,7 @@ class AgentInstanceHistoryMapperTest {
           item(
               message(
                   TextContent.textContent("The tool wrote " + tag),
-                  DocumentReferences.from(otherDocument)),
+                  AgentDocumentContent.of(AgentDocumentId.of(otherDocument))),
               agentContext);
 
       assertThat(texts(item.content()).getFirst()).isEqualTo("The tool wrote " + tag);
@@ -726,7 +742,7 @@ class AgentInstanceHistoryMapperTest {
     @Test
     void aTypedReferenceOfAnUnknownDocumentIsItsTagOnly() {
       final var unknown =
-          new DocumentReferenceContent(DocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);
+          new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);
 
       final var item = item(message(unknown), WITH_DOCUMENTS);
 
@@ -766,8 +782,11 @@ class AgentInstanceHistoryMapperTest {
       assertThat(reported).isEqualTo(Map.of("file", tag));
       final var modelFacing =
           (ToolCallResultMessage)
-              new DocumentExpander(objectMapper)
-                  .expandMessages(List.of(message), DocumentWorkspace.empty())
+              TestDocuments.documentExpander()
+                  .expand(
+                      new ConversationSnapshot(List.of(message), List.of()),
+                      new DocumentHandling.Tracked(AgentDocuments.empty()))
+                  .messages()
                   .getFirst();
       assertThat(modelFacing.results().getFirst().content())
           .containsExactly(ObjectContent.objectContent(reported));
@@ -839,7 +858,7 @@ class AgentInstanceHistoryMapperTest {
           item(
               message(
                   TextContent.textContent("done"),
-                  DocumentReferences.from(otherDocument),
+                  AgentDocumentContent.of(AgentDocumentId.of(otherDocument)),
                   ObjectContent.objectContent(Map.of("file", document))),
               agentContext);
 

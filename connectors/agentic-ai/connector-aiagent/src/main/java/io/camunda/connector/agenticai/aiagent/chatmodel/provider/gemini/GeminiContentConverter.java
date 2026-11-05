@@ -15,9 +15,10 @@ import com.google.genai.JsonSerializable;
 import com.google.genai.types.Blob;
 import com.google.genai.types.FunctionResponse;
 import com.google.genai.types.Part;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -78,7 +79,7 @@ public class GeminiContentConverter {
       switch (c) {
         case TextContent text -> parts.add(toTextPart(text));
         case DocumentContent doc -> parts.add(toDocumentPart(doc));
-        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
+        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj -> parts.add(Part.fromText(writeAsJson(obj.content())));
         // Content tagged for a different provider is dropped rather than replayed: a Gemini part
         // built from an Anthropic/OpenAI-native payload can fail conversion or send invalid
@@ -122,7 +123,7 @@ public class GeminiContentConverter {
     for (final Content c : content) {
       switch (c) {
         case TextContent text -> parts.add(toFunctionResponsePart(text.text()));
-        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
+        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj -> parts.add(toFunctionResponsePart(writeAsJson(obj.content())));
         case DocumentContent doc -> parts.add(toFunctionResponsePart(writeAsJson(doc.document())));
         default -> parts.add(toFunctionResponsePart(writeAsJson(c)));

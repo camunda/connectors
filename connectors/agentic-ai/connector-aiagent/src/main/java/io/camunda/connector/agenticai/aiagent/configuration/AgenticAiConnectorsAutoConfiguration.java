@@ -40,6 +40,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
+import io.camunda.connector.agenticai.aiagent.document.ObjectTagRenderer;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -124,8 +126,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceHistoryMapper aiAgentInstanceHistoryMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers, DocumentExpander documentExpander) {
-    return new AgentInstanceHistoryMapper(gatewayToolHandlers, documentExpander);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      DocumentRestorer documentRestorer,
+      ObjectTagRenderer objectTagRenderer) {
+    return new AgentInstanceHistoryMapper(gatewayToolHandlers, documentRestorer, objectTagRenderer);
   }
 
   @Bean
@@ -248,9 +252,22 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public DocumentExpander aiAgentDocumentExpander(
+  public DocumentRestorer aiAgentDocumentRestorer(DocumentFactory documentFactory) {
+    return new DocumentRestorer(documentFactory);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ObjectTagRenderer aiAgentObjectTagRenderer(
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new DocumentExpander(objectMapper);
+    return new ObjectTagRenderer(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public DocumentExpander aiAgentDocumentExpander(
+      DocumentRestorer documentRestorer, ObjectTagRenderer objectTagRenderer) {
+    return new DocumentExpander(documentRestorer, objectTagRenderer);
   }
 
   @Bean

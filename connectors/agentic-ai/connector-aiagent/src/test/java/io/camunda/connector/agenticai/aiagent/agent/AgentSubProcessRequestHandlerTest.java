@@ -58,9 +58,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -70,6 +68,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -92,9 +95,13 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -143,9 +150,7 @@ class AgentSubProcessRequestHandlerTest {
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
 
-  @Spy
-  private DocumentExpander documentExpander =
-      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
+  @Spy private DocumentExpander documentExpander = TestDocuments.documentExpander();
 
   /** The document a runtime tool of the test returns without the agent knowing it before. */
   private static final Document NEW_REPORT = createDocument("new report", "new-report.txt");
@@ -1746,7 +1751,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertThat(response.responseValue().context().documents()).isEmpty();
+    assertThat(response.responseValue().context().documents().all()).isEmpty();
     assertThat(response.responseValue().context().features()).isEmpty();
   }
 
@@ -1761,8 +1766,7 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(
             new TurnInput(
                 List.of(USER_MESSAGE),
-                List.of(
-                    new IngestedDocument(document, DocumentOrigin.toolCall("search", "call-1")))));
+                List.of(new NewDocument(document, DocumentOrigin.toolCall("search", "call-1")))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_DOCUMENTS, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -1771,22 +1775,71 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     final var context = response.responseValue().context();
-    assertThat(context.documents())
+    assertThat(context.documents().all())
         .singleElement()
         .satisfies(entry -> {
-          assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
+          assertThat(entry.id()).isEqualTo(AgentDocumentId.of(document));
           assertThat(entry.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
-          assertThat(entry.reference()).containsEntry("camunda.document.type", "camunda");
+          assertThat(entry.reference()).isInstanceOf(CamundaDocumentReference.class);
         });
     assertThat(response.variables().get("agentContext")).isEqualTo(context);
 
     // the agent instance history is written with the workspace of the turn
-    final var startContext = ArgumentCaptor.forClass(AgentContext.class);
+    final var startHandling = ArgumentCaptor.forClass(DocumentHandling.class);
     verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), any(), any(), any(), startContext.capture());
-    assertThat(startContext.getValue().documentWorkspace().findById(DocumentHandle.idFor(document)))
+            eq(agentExecutionContext), any(), any(), any(), any(), any(), startHandling.capture());
+    assertThat(trackedDocuments(startHandling.getValue()).find(AgentDocumentId.of(document)))
         .isPresent();
+  }
+
+  @Test
+  void failsWithTheCodeOfTheFailureWhenTheDocumentsOfTheTurnCannotBeRegistered() {
+    final var registered = createDocument("one", "one.txt");
+    final var other = createDocument("two", "two.txt");
+    // the context holds `registered` under the id `other` gets
+    final var collidingContext =
+        CONTEXT_WITH_DOCUMENTS.withDocuments(
+            AgentDocuments.of(
+                List.of(
+                    new AgentDocument(
+                        AgentDocumentId.of(other),
+                        DocumentOrigin.userMessage(),
+                        AgentDocument.of(registered, DocumentOrigin.userMessage()).reference()))));
+    final var tooLarge = mock(Document.class);
+    when(tooLarge.reference())
+        .thenReturn(
+            new InlineDocumentReferenceModel(
+                "x".repeat(AgentDocuments.MAX_INLINE_CONTENT_LENGTH + 1), "big.txt", "text/plain"));
+    final var unsupported = mock(Document.class);
+    when(unsupported.reference()).thenReturn(new DocumentReference() {});
+
+    assertThat(failureCodeOfRegistering(collidingContext, other))
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_DOCUMENT_ID_COLLISION);
+    assertThat(failureCodeOfRegistering(CONTEXT_WITH_DOCUMENTS, tooLarge))
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE);
+    assertThat(failureCodeOfRegistering(CONTEXT_WITH_DOCUMENTS, unsupported))
+        .isEqualTo(AgentErrorCodes.ERROR_CODE_UNSUPPORTED_DOCUMENT_REFERENCE);
+  }
+
+  private String failureCodeOfRegistering(AgentContext context, Document document) {
+    reset(agentInitializer, agentInputComposer);
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
+        .thenReturn(CompositionResult.Ready.of(context, ToolCallBatch.of(List.of())));
+    when(agentInputComposer.assemble(any()))
+        .thenReturn(
+            new TurnInput(
+                List.of(USER_MESSAGE),
+                List.of(new NewDocument(document, DocumentOrigin.userMessage()))));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(context, List.of()));
+
+    try {
+      requestHandler.handleRequest(agentExecutionContext);
+    } catch (ConnectorException e) {
+      return e.getErrorCode();
+    }
+    throw new AssertionError("expected the request to fail with a ConnectorException");
   }
 
   @Test
@@ -1811,10 +1864,10 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     // the document is registered with the call that returned it
-    assertThat(response.responseValue().context().documents())
+    assertThat(response.responseValue().context().documents().all())
         .singleElement()
         .satisfies(entry -> {
-          assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(NEW_REPORT));
+          assertThat(entry.id()).isEqualTo(AgentDocumentId.of(NEW_REPORT));
           assertThat(entry.origin())
               .isEqualTo(DocumentOrigin.toolCall("acme_create_report", "call-1"));
         });
@@ -1830,12 +1883,12 @@ class AgentSubProcessRequestHandlerTest {
                         TextContent.textContent(DocumentTags.shortTag(NEW_REPORT))));
 
     // the history of the second round is written with the workspace that holds the document
-    final var startContexts = ArgumentCaptor.forClass(AgentContext.class);
+    final var startHandlings = ArgumentCaptor.forClass(DocumentHandling.class);
     verify(agentInstanceClient, times(2))
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), any(), any(), any(), startContexts.capture());
-    assertThat(startContexts.getAllValues().get(0).documents()).isEmpty();
-    assertThat(startContexts.getAllValues().get(1).documents()).hasSize(1);
+            eq(agentExecutionContext), any(), any(), any(), any(), any(), startHandlings.capture());
+    assertThat(trackedDocuments(startHandlings.getAllValues().get(0)).all()).isEmpty();
+    assertThat(trackedDocuments(startHandlings.getAllValues().get(1)).all()).hasSize(1);
   }
 
   @Test
@@ -1846,14 +1899,14 @@ class AgentSubProcessRequestHandlerTest {
         runMixedBatchInTwoJobs(
             "acme_create_report", CONTEXT_WITH_DOCUMENTS, processDocument, () -> {});
 
-    assertThat(run.finalContext().documents())
+    assertThat(run.finalContext().documents().all())
         .extracting(entry -> entry.id(), entry -> entry.origin())
         .containsExactly(
             tuple(
-                DocumentHandle.idFor(NEW_REPORT),
+                AgentDocumentId.of(NEW_REPORT),
                 DocumentOrigin.toolCall("acme_create_report", "call-1")),
             tuple(
-                DocumentHandle.idFor(processDocument),
+                AgentDocumentId.of(processDocument),
                 DocumentOrigin.toolCall("getWeather", "call-2")));
     // the document of the runtime tool is shown as its tag in the tool result of the next request
     assertThat(run.chatRequests().get(1).snapshot().messages().getLast())
@@ -1888,7 +1941,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertThat(response.responseValue().context().documents()).isEmpty();
+    assertThat(response.responseValue().context().documents().all()).isEmpty();
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
             ToolCallResultMessage.class,
@@ -1922,8 +1975,12 @@ class AgentSubProcessRequestHandlerTest {
       runs.add(requestHandler.handleRequest(agentExecutionContext).responseValue().context());
     }
 
-    assertThat(runs.get(0).documents()).hasSize(1);
+    assertThat(runs.get(0).documents().all()).hasSize(1);
     assertThat(runs.get(1).documents()).isEqualTo(runs.get(0).documents());
+  }
+
+  private static AgentDocuments trackedDocuments(DocumentHandling handling) {
+    return ((DocumentHandling.Tracked) handling).documents();
   }
 
   private List<ToolDefinition> toolDefinitionsOfTheAgentInstanceHistory() {

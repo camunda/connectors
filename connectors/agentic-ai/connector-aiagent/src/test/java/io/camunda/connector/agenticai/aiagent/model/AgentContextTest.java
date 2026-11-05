@@ -14,11 +14,17 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -159,7 +165,7 @@ class AgentContextTest {
   @Test
   void documentsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty() throws JsonProcessingException {
     final var context = AgentContext.empty();
-    assertThat(context.documents()).isEmpty();
+    assertThat(context.documents().all()).isEmpty();
 
     final var serialized = objectMapper.writeValueAsString(context);
     assertThat(serialized).doesNotContain("documents");
@@ -180,7 +186,7 @@ class AgentContextTest {
 
     final var context = objectMapper.readValue(json, AgentContext.class);
 
-    assertThat(context.documents()).isEmpty();
+    assertThat(context.documents().all()).isEmpty();
     assertThat(context.state()).isEqualTo(AgentState.READY);
     assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
   }
@@ -188,35 +194,117 @@ class AgentContextTest {
   @Test
   void documentsAreSerializedAndDeserialized() throws JsonProcessingException {
     final var entry =
-        new WorkspaceDocument(
-            DocumentId.of("doc-1"),
+        new AgentDocument(
+            AgentDocumentId.of("doc-1"),
             DocumentOrigin.toolCall("search", "call-1"),
-            Map.of(
-                "camunda.document.type", "camunda", "storeId", "in-memory", "documentId", "doc-1"));
-    final var context = AgentContext.builder().documents(List.of(entry)).build();
+            new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null));
+    final var context = AgentContext.builder().documents(AgentDocuments.of(List.of(entry))).build();
 
     final var serialized = objectMapper.writeValueAsString(context);
     final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
 
     assertThat(serialized).contains("\"documents\"");
-    assertThat(deserialized.documents()).containsExactly(entry);
+    assertThat(deserialized.documents().all()).containsExactly(entry);
     assertThat(deserialized).isEqualTo(context);
   }
 
   @Test
-  void theDocumentWorkspaceIsReadFromAndWrittenToTheDocuments() {
-    final var entry =
-        new WorkspaceDocument(
-            DocumentId.of("doc-1"),
-            DocumentOrigin.userMessage(),
-            Map.of("camunda.document.type", "camunda"));
-
+  void documentsArePersistedAsAListOfIdOriginAndReference() throws JsonProcessingException {
     final var context =
-        AgentContext.empty().withDocumentWorkspace(DocumentWorkspace.of(List.of(entry)));
+        AgentContext.builder()
+            .documents(
+                AgentDocuments.of(
+                    List.of(
+                        new AgentDocument(
+                            AgentDocumentId.of("doc_6d97d0f7b602"),
+                            DocumentOrigin.toolCall("search", "call-1"),
+                            new CamundaDocumentReferenceModel(
+                                "in-memory",
+                                "doc-1",
+                                "hash-1",
+                                new CamundaDocumentMetadataModel(
+                                    "application/pdf",
+                                    OffsetDateTime.parse("2030-01-02T03:04:05Z"),
+                                    48213L,
+                                    "report.pdf",
+                                    null,
+                                    null,
+                                    null))),
+                        new AgentDocument(
+                            AgentDocumentId.of("doc_54f786b4cd7b"),
+                            DocumentOrigin.event(),
+                            new ExternalDocumentReferenceModel(
+                                "https://example.com/a.pdf?token=secret", "a.pdf")))))
+            .build();
 
-    assertThat(context.documents()).containsExactly(entry);
-    assertThat(context.documentWorkspace().findById(DocumentId.of("doc-1"))).contains(entry);
-    assertThat(AgentContext.empty().documentWorkspace().isEmpty()).isTrue();
+    final var json =
+        TestObjectMapperSupplier.INSTANCE
+            .readTree(TestObjectMapperSupplier.INSTANCE.writeValueAsString(context))
+            .get("documents");
+
+    assertThat(json)
+        .isEqualTo(
+            TestObjectMapperSupplier.INSTANCE.readTree(
+                """
+                [{"id":"doc_6d97d0f7b602",
+                  "origin":{"type":"TOOL_CALL","toolName":"search","toolCallId":"call-1"},
+                  "reference":{"camunda.document.type":"camunda","storeId":"in-memory",
+                    "documentId":"doc-1","contentHash":"hash-1",
+                    "metadata":{"contentType":"application/pdf","expiresAt":"2030-01-02T03:04:05Z",
+                      "size":48213,"fileName":"report.pdf"}}},
+                 {"id":"doc_54f786b4cd7b","origin":{"type":"EVENT"},
+                  "reference":{"camunda.document.type":"external",
+                    "url":"https://example.com/a.pdf?token=secret","name":"a.pdf"}}]\
+                """));
+    assertThat(
+            TestObjectMapperSupplier.INSTANCE.readValue(
+                TestObjectMapperSupplier.INSTANCE.writeValueAsString(context), AgentContext.class))
+        .isEqualTo(context);
+  }
+
+  @Test
+  void documentsAreReadFromAndWrittenToTheDocumentsOfTheContext() {
+    final var entry =
+        new AgentDocument(
+            AgentDocumentId.of("doc-1"),
+            DocumentOrigin.userMessage(),
+            new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null));
+
+    final var context = AgentContext.empty().withDocuments(AgentDocuments.of(List.of(entry)));
+
+    assertThat(context.documents().all()).containsExactly(entry);
+    assertThat(context.documents().find(AgentDocumentId.of("doc-1"))).contains(entry);
+    assertThat(AgentContext.empty().documents().all()).isEmpty();
+  }
+
+  @Test
+  void anAgentInstanceWithTheDocumentsFeatureTracksItsDocuments() {
+    final var documents =
+        AgentDocuments.of(
+            List.of(
+                new AgentDocument(
+                    AgentDocumentId.of("doc-1"),
+                    DocumentOrigin.userMessage(),
+                    new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null))));
+    final var tracking =
+        AgentContext.builder()
+            .features(List.of(AgentFeatures.DOCUMENTS))
+            .documents(documents)
+            .build();
+
+    assertThat(tracking.documentHandling()).isEqualTo(new DocumentHandling.Tracked(documents));
+    assertThat(AgentContext.empty().documentHandling()).isEqualTo(new DocumentHandling.Untracked());
+    assertThat(AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()).documentHandling())
+        .isEqualTo(new DocumentHandling.Untracked());
+  }
+
+  @Test
+  void theDocumentHandlingIsNotPersisted() throws JsonProcessingException {
+    final var serialized =
+        objectMapper.writeValueAsString(
+            AgentContext.builder().features(List.of(AgentFeatures.DOCUMENTS)).build());
+
+    assertThat(serialized).doesNotContain("documentHandling").doesNotContain("Tracked");
   }
 
   @Test
@@ -315,7 +403,7 @@ class AgentContextTest {
                 metrics,
                 toolDefinitions,
                 InProcessConversationContext.builder("test-conversation").build(),
-                List.of(),
+                AgentDocuments.empty(),
                 List.of(),
                 Map.of()))
         .isInstanceOf(NullPointerException.class)

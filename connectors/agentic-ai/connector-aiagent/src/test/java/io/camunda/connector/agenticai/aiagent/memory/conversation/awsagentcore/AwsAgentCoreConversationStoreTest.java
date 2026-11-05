@@ -23,34 +23,33 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -893,9 +892,10 @@ class AwsAgentCoreConversationStoreTest {
                     .contentType("application/pdf")
                     .fileName("report.pdf")
                     .build());
-    final var entry =
-        DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
-    final var tag = DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT);
+    final var entry = AgentDocument.of(document, DocumentOrigin.userMessage());
+    final var tag =
+        AgentDocumentContent.of(AgentDocumentId.of(document))
+            .withDelivery(DocumentDelivery.CONTENT);
     final var tagOnlyMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
 
@@ -908,7 +908,7 @@ class AwsAgentCoreConversationStoreTest {
                     .build())
             .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
             .build()
-            .withDocuments(List.of(entry));
+            .withDocuments(AgentDocuments.of(List.of(entry)));
 
     mockListEventsResponse(List.of());
     when(bedrockClient.createEvent(any(CreateEventRequest.class)))
@@ -951,7 +951,7 @@ class AwsAgentCoreConversationStoreTest {
               assertThat(user.content()).containsExactly(TextContent.textContent("see"), tag);
               assertThat(user.content().get(1))
                   .isInstanceOfSatisfying(
-                      DocumentReferenceContent.class,
+                      AgentDocumentContent.class,
                       reference -> {
                         assertThat(reference.id()).isEqualTo(entry.id());
                         assertThat(reference.delivery()).isEqualTo(DocumentDelivery.CONTENT);
@@ -967,11 +967,8 @@ class AwsAgentCoreConversationStoreTest {
             null,
             List.of(userMessage("next")));
     final var windowed =
-        conversation
-            .window(
-                20,
-                new DocumentExpander(TestObjectMapperSupplier.INSTANCE)
-                    .windowDecorator(conversation))
+        TestDocuments.documentExpander()
+            .expand(conversation.window(20), conversation.persistedContext().documentHandling())
             .messages();
 
     assertThat(windowed.get(0))
@@ -983,7 +980,7 @@ class AwsAgentCoreConversationStoreTest {
                   .containsExactly(
                       TextContent.textContent("see"),
                       TextContent.textContent(
-                          DocumentTags.longTag(DocumentWorkspace.of(List.of(entry)), tag.id())));
+                          DocumentTags.longTag(AgentDocuments.of(List.of(entry)), tag.id())));
               assertThat(expanded.content().get(2)).isInstanceOf(DocumentContent.class);
             });
     // the loaded conversation keeps the document reference only

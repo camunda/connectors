@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
@@ -55,8 +55,8 @@ public interface AgentInstanceClient {
    * {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the agent-instance
    * feature).
    *
-   * @param agentContext the persisted state of the agent: its features decide how the documents of
-   *     the messages are shown, its document workspace is what the document tags are expanded with
+   * @param documentHandling how the agent handles its documents, which decides how the documents of
+   *     the messages are shown
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -69,7 +69,7 @@ public interface AgentInstanceClient {
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
-      AgentContext agentContext);
+      DocumentHandling documentHandling);
 
   /**
    * Records the completion of a turn: sets the agent instance's status to {@code status} and
@@ -95,7 +95,7 @@ public interface AgentInstanceClient {
    * without changing the agent instance's status. Silently skips when {@code agentInstanceKey} is
    * {@code null}.
    *
-   * @param agentContext the persisted state of the agent: its features decide how the documents of
+   * @param documentHandling how the agent handles its documents, which decides how the documents of
    *     the results are shown
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
@@ -107,5 +107,5 @@ public interface AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn,
-      AgentContext agentContext);
+      DocumentHandling documentHandling);
 }

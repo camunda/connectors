@@ -6,298 +6,157 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.util.TokenBuffer;
-import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.UnaryOperator;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * Turns the persisted {@link DocumentReferenceContent document references} in user messages and
- * tool results into the form the model providers and the agent instance history see.
+ * Expands the {@link AgentDocumentContent document blocks} of the conversation into the form the
+ * chat model providers see, so that no provider has document specific code.
  *
- * <p>The persisted form of a document is its reference only; the document is read from the {@link
- * DocumentWorkspace}. In a user message the model gets the tag text of every reference and the
- * document content of the references with {@link DocumentDelivery#CONTENT} ({@link
- * #expandMessages}); the history shows the document of every reference ({@link #expandContent}). A
- * document the workspace does not know, or whose reference cannot be read, leaves the tag text
- * alone. A tag a user typed into a prompt is text and stays text.
+ * <p>The persisted form of a document is its block only; the document is restored from the agent
+ * documents. In a user message the model gets the tag text of every block and the document content
+ * of the blocks with {@link DocumentDelivery#CONTENT}. A document the agent does not know, or that
+ * cannot be restored, leaves the tag text alone. A tag a user typed into a prompt is text and stays
+ * text.
  *
- * <p>In a tool result a reference becomes the tag text of the document read from the workspace, or
- * the tag text of the reference when the workspace cannot supply the document. The delivery of such
- * a reference is not read: the model gets a document of a tool result as its tag only. A document
- * nested in an object is replaced by its tag in the object, in a tool result as well as in a user
- * message.
+ * <p>In a tool result a block becomes the tag text of the document, which for the model is the tag
+ * only: the delivery of such a block is not read. A document nested in an object is replaced by its
+ * tag in the object, in a tool result as well as in a user message.
  *
- * <p>The result depends only on the messages and the workspace, never on time or call order, so it
- * is stable across requests (prompt caching). Nothing that is stored is changed.
+ * <p>The result depends only on the messages and the agent documents, never on time or call order,
+ * so it is stable across requests (prompt caching). Nothing that is stored is changed.
  */
 public final class DocumentExpander {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DocumentExpander.class);
+  private final DocumentRestorer restorer;
+  private final ObjectTagRenderer objectTagRenderer;
 
-  private static final String COLLECTED_DOCUMENTS = "collectedDocuments";
-
-  private final ObjectMapper objectMapper;
-  private final ObjectMapper taggingMapper;
-
-  /**
-   * @param objectMapper the mapper that binds a document reference to a {@link Document}, the one
-   *     that reads the documents of persisted messages
-   */
-  public DocumentExpander(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
-    this.taggingMapper =
-        objectMapper.copy().registerModule(new SimpleModule().addSerializer(new TagCollector()));
+  public DocumentExpander(DocumentRestorer restorer, ObjectTagRenderer objectTagRenderer) {
+    this.restorer = restorer;
+    this.objectTagRenderer = objectTagRenderer;
   }
 
   /**
-   * An object with every document at any depth replaced by its tag, as the model reads it, and the
-   * documents that were replaced, in order of appearance.
-   *
-   * @param tree the object as plain JSON values (maps, lists, strings, numbers)
-   * @param documents the documents the tags stand for, one entry per occurrence
+   * The snapshot the model is called with: for an agent instance that tracks its documents the
+   * messages are expanded, for one that does not they are left as they are.
    */
-  public record TaggedObject(Object tree, List<Document> documents) {}
-
-  /**
-   * Renders the object the way the model reads it, a {@link Document} at any depth as its tag (see
-   * {@link DocumentTags#shortTag(Document)}), and returns the rendered tree with the documents it
-   * replaced.
-   */
-  public TaggedObject renderWithTags(Object value) {
-    final var documents = new ArrayList<Document>();
-    try (var buffer = new TokenBuffer(taggingMapper, false)) {
-      taggingMapper
-          .writer()
-          .withAttribute(COLLECTED_DOCUMENTS, documents)
-          .writeValue(buffer, value);
-      final Object tree = taggingMapper.readValue(buffer.asParser(), Object.class);
-      return new TaggedObject(tree, List.copyOf(documents));
-    } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException("Failed to render the object with document tags", e);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-  }
-
-  /** The document of the workspace entry with the given id; empty when unknown or unreadable. */
-  public Optional<Document> findDocument(DocumentWorkspace workspace, DocumentId id) {
-    return Optional.ofNullable(rehydrate(workspace, id));
+  public ConversationSnapshot expand(ConversationSnapshot snapshot, DocumentHandling handling) {
+    return switch (handling) {
+      case DocumentHandling.Untracked ignored -> snapshot;
+      case DocumentHandling.Tracked tracked ->
+          new ConversationSnapshot(
+              expandMessages(snapshot.messages(), tracked.documents()), snapshot.toolDefinitions());
+    };
   }
 
   /**
-   * The decorator for the windowed messages of the conversation. For an agent instance with the
-   * documents feature it expands the messages as {@link #expandMessages} does; for one without, the
-   * messages are left as they are.
+   * The messages expanded for the model: in a user message the tag text of every document block,
+   * followed by the document for the blocks with the delivery {@code content}; in a tool result the
+   * tag text of every block. In both, a document nested in an object is replaced by its tag.
    */
-  public UnaryOperator<List<Message>> windowDecorator(AgentConversation conversation) {
-    if (!conversation.persistedContext().supports(AgentFeatures.DOCUMENTS)) {
-      return UnaryOperator.identity();
-    }
-    final var workspace = conversation.documentWorkspace();
-    return windowed -> expandMessages(windowed, workspace);
-  }
-
-  /**
-   * Returns the messages expanded for the model: in a user message the tag text of every document
-   * reference, followed by the document for the references with the delivery {@code content}; in a
-   * tool result the tag text of every reference, the tag of the document of the workspace or the
-   * one of the reference when the workspace has no readable document. In both, a document nested in
-   * an object is replaced by its tag.
-   */
-  // Identity check detects that nothing changed, so the input is returned as is
-  @SuppressWarnings("ReferenceEquality")
-  public List<Message> expandMessages(List<Message> messages, DocumentWorkspace workspace) {
+  List<Message> expandMessages(List<Message> messages, AgentDocuments documents) {
     final var expanded = new ArrayList<Message>(messages.size());
-    boolean changed = false;
     for (final var message : messages) {
-      if (message instanceof UserMessage userMessage) {
-        final var content = expand(userMessage.content(), workspace, true);
-        if (content != userMessage.content()) {
-          expanded.add(userMessage.withContent(content));
-          changed = true;
-          continue;
-        }
-      } else if (message instanceof ToolCallResultMessage toolCallResultMessage) {
-        final var results = expandResults(toolCallResultMessage.results(), workspace);
-        if (results != toolCallResultMessage.results()) {
-          expanded.add(toolCallResultMessage.withResults(results));
-          changed = true;
-          continue;
-        }
-      }
-      expanded.add(message);
-    }
-    return changed ? List.copyOf(expanded) : messages;
-  }
-
-  /**
-   * Returns the content expanded to the tag text and the document of every document reference, or
-   * the same list when nothing needs to change.
-   */
-  public List<Content> expandContent(List<Content> content, DocumentWorkspace workspace) {
-    return expand(content, workspace, false);
-  }
-
-  // Identity check detects that nothing changed, so the input is returned as is
-  @SuppressWarnings("ReferenceEquality")
-  private List<Content> expand(
-      List<Content> content, DocumentWorkspace workspace, boolean forModel) {
-    final var expanded = new ArrayList<Content>(content.size());
-    boolean changed = false;
-    for (int i = 0; i < content.size(); i++) {
-      final var current = content.get(i);
-      final var next = i + 1 < content.size() ? content.get(i + 1) : null;
-      if (forModel && current instanceof ObjectContent objectContent) {
-        final var rendered = renderObject(objectContent);
-        expanded.add(rendered);
-        changed |= rendered != objectContent;
-        continue;
-      }
-      if (!(current instanceof DocumentReferenceContent reference)) {
-        expanded.add(current);
-        continue;
-      }
-
       expanded.add(
-          new TextContent(DocumentTags.longTag(workspace, reference.id()), reference.metadata()));
-      changed = true;
-      final var withContent = !forModel || reference.delivery() == DocumentDelivery.CONTENT;
-      if (withContent
-          && !(next instanceof DocumentContent following
-              && isDocumentWithId(following.document(), reference.id()))) {
-        final var document = rehydrate(workspace, reference.id());
-        if (document != null) {
-          expanded.add(DocumentContent.documentContent(document));
-        }
-      }
+          switch (message) {
+            case UserMessage userMessage ->
+                userMessage.withContent(expandUserContent(userMessage.content(), documents));
+            case ToolCallResultMessage resultMessage ->
+                resultMessage.withResults(expandResults(resultMessage.results(), documents));
+            default -> message;
+          });
     }
-    return changed ? List.copyOf(expanded) : content;
+    return List.copyOf(expanded);
   }
 
-  // Identity check detects that nothing changed, so the input is returned as is
-  @SuppressWarnings("ReferenceEquality")
-  private List<ToolCallResultContent> expandResults(
-      List<ToolCallResultContent> results, DocumentWorkspace workspace) {
-    final var expanded = new ArrayList<ToolCallResultContent>(results.size());
-    boolean changed = false;
-    for (final var result : results) {
-      final var content = expandResultContent(result.content(), workspace);
-      if (content != result.content()) {
-        expanded.add(result.withContent(content));
-        changed = true;
-      } else {
-        expanded.add(result);
-      }
-    }
-    return changed ? List.copyOf(expanded) : results;
-  }
-
-  // Identity check detects that nothing changed, so the input is returned as is
-  @SuppressWarnings("ReferenceEquality")
-  private List<Content> expandResultContent(List<Content> content, DocumentWorkspace workspace) {
-    final var expanded = new ArrayList<Content>(content.size());
-    boolean changed = false;
-    for (final var current : content) {
-      switch (current) {
-        case DocumentReferenceContent reference -> {
-          // the short tag of the document, without source, tool name and tool call id
+  private List<Content> expandUserContent(List<Content> contents, AgentDocuments documents) {
+    final var expanded = new ArrayList<Content>(contents.size());
+    for (int i = 0; i < contents.size(); i++) {
+      switch (contents.get(i)) {
+        case AgentDocumentContent block -> {
           expanded.add(
-              new TextContent(
-                  DocumentTags.shortTag(workspace, reference.id()), reference.metadata()));
-          changed = true;
+              new TextContent(DocumentTags.longTag(documents, block.id()), block.metadata()));
+          final var next = i + 1 < contents.size() ? contents.get(i + 1) : null;
+          if (block.delivery() == DocumentDelivery.CONTENT
+              && !isFollowedByDocument(next, block.id())) {
+            restorer
+                .restore(documents, block.id())
+                .map(DocumentContent::documentContent)
+                .ifPresent(expanded::add);
+          }
         }
-        case ObjectContent objectContent -> {
-          final var rendered = renderObject(objectContent);
-          expanded.add(rendered);
-          changed |= rendered != objectContent;
-        }
-        default -> expanded.add(current);
+        case ObjectContent objectContent -> expanded.add(renderObject(objectContent));
+        case TextContent content -> expanded.add(content);
+        case DocumentContent content -> expanded.add(content);
+        case ReasoningContent content -> expanded.add(content);
+        case ProviderContent content -> expanded.add(content);
       }
     }
-    return changed ? List.copyOf(expanded) : content;
+    return List.copyOf(expanded);
+  }
+
+  private List<ToolCallResultContent> expandResults(
+      List<ToolCallResultContent> results, AgentDocuments documents) {
+    return results.stream()
+        .map(result -> result.withContent(expandResultContent(result.content(), documents)))
+        .toList();
+  }
+
+  private List<Content> expandResultContent(List<Content> contents, AgentDocuments documents) {
+    final var expanded = new ArrayList<Content>(contents.size());
+    for (final var content : contents) {
+      expanded.add(
+          switch (content) {
+            // the short tag of the document, without source, tool name and tool call id
+            case AgentDocumentContent block ->
+                new TextContent(DocumentTags.shortTag(documents, block.id()), block.metadata());
+            case ObjectContent objectContent -> renderObject(objectContent);
+            case TextContent textContent -> textContent;
+            case DocumentContent documentContent -> documentContent;
+            case ReasoningContent reasoningContent -> reasoningContent;
+            case ProviderContent providerContent -> providerContent;
+          });
+    }
+    return List.copyOf(expanded);
   }
 
   /** The object with its documents replaced by their tags, or the same object when it has none. */
   private ObjectContent renderObject(ObjectContent objectContent) {
-    final var tagged = renderWithTags(objectContent.content());
+    final var tagged = objectTagRenderer.render(objectContent.content());
     return tagged.documents().isEmpty()
         ? objectContent
         : new ObjectContent(tagged.tree(), objectContent.metadata());
   }
 
-  private static boolean isDocumentWithId(Document document, DocumentId id) {
-    return isTaggable(document) && id.equals(DocumentHandle.idFor(document));
+  private static boolean isFollowedByDocument(@Nullable Content next, AgentDocumentId id) {
+    return next instanceof DocumentContent following
+        && isTaggable(following.document())
+        && id.equals(AgentDocumentId.of(following.document()));
   }
 
   /** Only Camunda and external documents get a tag, inline documents are left as they are. */
   private static boolean isTaggable(Document document) {
     return document.reference() instanceof CamundaDocumentReference
         || document.reference() instanceof ExternalDocumentReference;
-  }
-
-  private @Nullable Document rehydrate(DocumentWorkspace workspace, DocumentId id) {
-    final var entry = workspace.findById(id);
-    if (entry.isEmpty()) {
-      LOGGER.debug("Document {} is not in the workspace, leaving its tag without content", id);
-      return null;
-    }
-    try {
-      return entry.get().toDocument(objectMapper);
-    } catch (RuntimeException e) {
-      LOGGER.warn(
-          "Document {} could not be read from its workspace reference, leaving its tag without content",
-          id,
-          e);
-      return null;
-    }
-  }
-
-  private static final class TagCollector extends JsonSerializer<Document> {
-
-    @Override
-    public Class<Document> handledType() {
-      return Document.class;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void serialize(Document document, JsonGenerator gen, SerializerProvider provider)
-        throws IOException {
-      final var collected = (List<Document>) provider.getAttribute(COLLECTED_DOCUMENTS);
-      if (collected != null) {
-        collected.add(document);
-      }
-      gen.writeString(DocumentTags.shortTag(document));
-    }
   }
 }

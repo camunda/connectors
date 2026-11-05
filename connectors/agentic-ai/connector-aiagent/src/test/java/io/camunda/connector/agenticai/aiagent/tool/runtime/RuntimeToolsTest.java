@@ -502,6 +502,6 @@ class RuntimeToolsTest {
         .last()
         .isInstanceOf(DocumentContent.class);
     // the agent context is the one the tools were given
-    assertThat(NEW_INSTANCE.documents()).isEmpty();
+    assertThat(NEW_INSTANCE.documents().all()).isEmpty();
   }
 }

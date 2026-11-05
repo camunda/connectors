@@ -11,10 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -23,18 +20,20 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -45,8 +44,7 @@ import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
 
-  private static final DocumentExpander DOCUMENT_EXPANDER =
-      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
+  private static final DocumentExpander DOCUMENT_EXPANDER = TestDocuments.documentExpander();
 
   private static final AgentContext BASE_CONTEXT =
       AgentContext.builder()
@@ -180,11 +178,17 @@ class AgentConversationTest {
     assertThat(conv.allMessages()).containsExactly(input);
   }
 
+  private static List<Message> windowedForTheModel(AgentConversation conv, int size) {
+    return DOCUMENT_EXPANDER
+        .expand(conv.window(size), conv.persistedContext().documentHandling())
+        .messages();
+  }
+
   @Test
   void window_returnsConversationSnapshot_withToolDefinitions() {
     var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
     var conv = rehydrate(storedMessages, List.of(userMessage("next")));
-    var snapshot = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv));
+    var snapshot = conv.window(20);
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
   }
@@ -202,9 +206,8 @@ class AgentConversationTest {
         UserMessage.builder()
             .content(List.of(textContent("see"), DocumentContent.documentContent(document)))
             .build();
-    var entry =
-        DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
-    var context = BASE_CONTEXT.withDocuments(List.of(entry));
+    var entry = AgentDocument.of(document, DocumentOrigin.userMessage());
+    var context = BASE_CONTEXT.withDocuments(AgentDocuments.of(List.of(entry)));
     var conv =
         AgentConversation.rehydrate(
             CONFIG,
@@ -218,7 +221,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("next")));
 
-    var windowed = conv.window(2, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
+    var windowed = windowedForTheModel(conv, 2);
     var allBefore = conv.allMessages();
 
     // the document message is outside of the window and nothing takes its place
@@ -241,20 +244,21 @@ class AgentConversationTest {
                     .contentType("application/pdf")
                     .fileName("report.pdf")
                     .build());
-    var entry =
-        DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
-    var reference = DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT);
+    var entry = AgentDocument.of(document, DocumentOrigin.userMessage());
+    var reference =
+        AgentDocumentContent.of(AgentDocumentId.of(document))
+            .withDelivery(DocumentDelivery.CONTENT);
     var storedMessage =
         UserMessage.builder().content(List.of(textContent("see"), reference)).build();
     var conv =
         AgentConversation.rehydrate(
             CONFIG,
-            BASE_CONTEXT.withDocuments(List.of(entry)),
+            BASE_CONTEXT.withDocuments(AgentDocuments.of(List.of(entry))),
             TurnReconstructor.reconstruct(List.of()),
             SYSTEM_MESSAGE,
             List.of(storedMessage));
 
-    var windowed = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
+    var windowed = windowedForTheModel(conv, 20);
 
     assertThat(windowed).hasSize(2);
     assertThat(windowed.getLast())
@@ -267,16 +271,16 @@ class AgentConversationTest {
                   .containsExactly(
                       textContent("see"),
                       textContent(
-                          DocumentTags.longTag(
-                              DocumentWorkspace.of(List.of(entry)), reference.id())));
+                          DocumentTags.longTag(AgentDocuments.of(List.of(entry)), reference.id())));
               assertThat(expanded.content().get(2))
                   .isInstanceOfSatisfying(
                       DocumentContent.class,
-                      documentContent ->
-                          assertThat(
-                                  TestObjectMapperSupplier.INSTANCE.convertValue(
-                                      documentContent.document(), Map.class))
-                              .isEqualTo(entry.reference()));
+                      documentContent -> {
+                        assertThat(AgentDocumentId.of(documentContent.document()))
+                            .isEqualTo(entry.id());
+                        assertThat(documentContent.document().reference())
+                            .isEqualTo(entry.reference());
+                      });
             });
     // the stored conversation keeps the document reference only
     assertThat(conv.allMessages().getLast()).isSameAs(storedMessage);
@@ -292,20 +296,19 @@ class AgentConversationTest {
                     .contentType("application/pdf")
                     .fileName("report.pdf")
                     .build());
-    var entry =
-        DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
-    var reference = DocumentReferences.from(document);
+    var entry = AgentDocument.of(document, DocumentOrigin.userMessage());
+    var reference = AgentDocumentContent.of(AgentDocumentId.of(document));
     var storedMessage =
         UserMessage.builder().content(List.of(textContent("see"), reference)).build();
     var conv =
         AgentConversation.rehydrate(
             CONFIG,
-            BASE_CONTEXT.withDocuments(List.of(entry)),
+            BASE_CONTEXT.withDocuments(AgentDocuments.of(List.of(entry))),
             TurnReconstructor.reconstruct(List.of()),
             SYSTEM_MESSAGE,
             List.of(storedMessage));
 
-    var windowed = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
+    var windowed = windowedForTheModel(conv, 20);
 
     assertThat(windowed).hasSize(2);
     assertThat(windowed.getLast())
@@ -317,8 +320,7 @@ class AgentConversationTest {
                   .containsExactly(
                       textContent("see"),
                       textContent(
-                          DocumentTags.longTag(
-                              DocumentWorkspace.of(List.of(entry)), reference.id())));
+                          DocumentTags.longTag(AgentDocuments.of(List.of(entry)), reference.id())));
             });
     assertThat(storedMessage.content()).containsExactly(textContent("see"), reference);
   }
@@ -333,17 +335,17 @@ class AgentConversationTest {
                     .fileName("report.pdf")
                     .build());
     var withContent = UserMessage.builder().content(List.of(textContent("see"))).build();
-    var entry =
-        DocumentIngestion.entryFor(new IngestedDocument(document, DocumentOrigin.userMessage()));
+    var entry = AgentDocument.of(document, DocumentOrigin.userMessage());
     var evictedMessage =
         withContent.withContent(
             List.of(
                 textContent("see"),
-                DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT)));
+                AgentDocumentContent.of(AgentDocumentId.of(document))
+                    .withDelivery(DocumentDelivery.CONTENT)));
     var conv =
         AgentConversation.rehydrate(
             CONFIG,
-            BASE_CONTEXT.withDocuments(List.of(entry)),
+            BASE_CONTEXT.withDocuments(AgentDocuments.of(List.of(entry))),
             TurnReconstructor.reconstruct(
                 List.of(
                     evictedMessage,
@@ -353,7 +355,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("next")));
 
-    var windowed = conv.window(3, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
+    var windowed = windowedForTheModel(conv, 3);
 
     assertThat(windowed).noneMatch(message -> message.id().equals(evictedMessage.id()));
     assertThat(windowed)
@@ -364,13 +366,13 @@ class AgentConversationTest {
   }
 
   @Test
-  void documentWorkspaceOfTheRehydratedContextSurvivesEveryCopyOnWrite() {
+  void documentsOfTheRehydratedContextSurviveEveryCopyOnWrite() {
     var entry =
-        new WorkspaceDocument(
-            DocumentId.of("doc-1"),
+        new AgentDocument(
+            AgentDocumentId.of("doc-1"),
             DocumentOrigin.userMessage(),
-            Map.of("camunda.document.type", "camunda"));
-    var context = BASE_CONTEXT.withDocuments(List.of(entry));
+            new CamundaDocumentReferenceModel("store", "doc-1", null, null));
+    var context = BASE_CONTEXT.withDocuments(AgentDocuments.of(List.of(entry)));
     var conv =
         AgentConversation.rehydrate(
             CONFIG,
@@ -383,9 +385,9 @@ class AgentConversationTest {
     var stored =
         ingested.withStoredConversation(InProcessConversationContext.builder("conv").build());
 
-    assertThat(ingested.toAgentContext().documents()).containsExactly(entry);
-    assertThat(stored.toAgentContext().documents()).containsExactly(entry);
-    assertThat(ingested.nextContinuationRound().toAgentContext().documents())
+    assertThat(ingested.toAgentContext().documents().all()).containsExactly(entry);
+    assertThat(stored.toAgentContext().documents().all()).containsExactly(entry);
+    assertThat(ingested.nextContinuationRound().toAgentContext().documents().all())
         .containsExactly(entry);
   }
 
@@ -561,7 +563,7 @@ class AgentConversationTest {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", TOOL_CALLS), firstRound)
-            .nextRuntimeToolRound(List.of(results));
+            .nextRuntimeToolRound(List.of(results), BASE_CONTEXT);
 
     assertThat(conv.currentTurn().iterationKey()).isEqualTo(2);
     assertThat(conv.currentTurn().inputMessages()).containsExactly(results);
@@ -577,7 +579,7 @@ class AgentConversationTest {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty())
-            .nextRuntimeToolRound(List.of(results, followUp));
+            .nextRuntimeToolRound(List.of(results, followUp), BASE_CONTEXT);
 
     assertThat(conv.currentTurn().inputMessages()).containsExactly(results, followUp);
   }
@@ -586,8 +588,9 @@ class AgentConversationTest {
   void nextRuntimeToolRound_throwsBeforeTheCurrentTurnIsIngested() {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
 
-    assertThatThrownBy(
-            () -> conv.nextRuntimeToolRound(List.of(toolCallResultMessage(TOOL_CALL_RESULTS))))
+    assertThatThrownBy(() ->
+            conv.nextRuntimeToolRound(
+                List.of(toolCallResultMessage(TOOL_CALL_RESULTS)), BASE_CONTEXT))
         .isInstanceOf(IllegalStateException.class);
   }
 
@@ -598,14 +601,12 @@ class AgentConversationTest {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(calling, AgentMetrics.empty())
-            .nextRuntimeToolRound(List.of(results));
+            .nextRuntimeToolRound(List.of(results), BASE_CONTEXT);
 
     assertThat(conv.allMessages()).containsSubsequence(calling, results);
     // system message + user + assistant + results; evicting the assistant evicts its results
-    assertThat(conv.window(3, DOCUMENT_EXPANDER.windowDecorator(conv)).messages())
-        .containsExactly(SYSTEM_MESSAGE, calling, results);
-    assertThat(conv.window(2, DOCUMENT_EXPANDER.windowDecorator(conv)).messages())
-        .containsExactly(SYSTEM_MESSAGE);
+    assertThat(conv.window(3).messages()).containsExactly(SYSTEM_MESSAGE, calling, results);
+    assertThat(conv.window(2).messages()).containsExactly(SYSTEM_MESSAGE);
   }
 
   @Test
@@ -622,7 +623,7 @@ class AgentConversationTest {
                 List.of(userMessage("hi"), assistantMessage("calling", TOOL_CALLS)),
                 List.of(interrupted))
             .ingest(assistantMessage("calling again", TOOL_CALLS), AgentMetrics.empty())
-            .nextRuntimeToolRound(List.of(toolCallResultMessage(TOOL_CALL_RESULTS)));
+            .nextRuntimeToolRound(List.of(toolCallResultMessage(TOOL_CALL_RESULTS)), BASE_CONTEXT);
 
     assertThat(conv.currentTurn().hasInterruptedToolCallResults()).isFalse();
     assertThat(conv.hasInterruptedToolCallResultsInInvocation()).isTrue();
@@ -657,30 +658,28 @@ class AgentConversationTest {
   }
 
   @Test
-  void withPersistedContext_replacesThePersistedContextOnly() {
-    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+  void nextRuntimeToolRound_continuesWithTheGivenAgentContext() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty());
     final var entry =
-        new WorkspaceDocument(
-            DocumentId.of("doc-a"),
+        new AgentDocument(
+            AgentDocumentId.of("doc-a"),
             DocumentOrigin.userMessage(),
-            Map.of("camunda.document.type", "camunda", "documentId", "doc-a"));
+            new CamundaDocumentReferenceModel("store", "doc-a", null, null));
+    final var context =
+        conv.persistedContext()
+            .withDocuments(AgentDocuments.of(List.of(entry)))
+            .withProperty("note", "x");
 
-    var updated =
-        conv.withPersistedContext(
-            conv.persistedContext().withDocuments(List.of(entry)).withProperty("note", "x"));
+    var next =
+        conv.nextRuntimeToolRound(List.of(toolCallResultMessage(TOOL_CALL_RESULTS)), context);
 
-    assertThat(conv.documentWorkspace().isEmpty()).isTrue();
-    assertThat(updated.documentWorkspace().entries()).containsExactly(entry);
-    assertThat(updated.toAgentContext().documents()).containsExactly(entry);
-    assertThat(updated.toAgentContext().properties()).containsEntry("note", "x");
+    assertThat(conv.persistedContext().documents()).isEqualTo(AgentDocuments.empty());
+    assertThat(next.persistedContext()).isSameAs(context);
+    assertThat(next.toAgentContext().documents().all()).containsExactly(entry);
+    assertThat(next.toAgentContext().properties()).containsEntry("note", "x");
     // the metrics of the persisted context are not touched by a change of it
-    assertThat(updated.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());
-  }
-
-  @Test
-  void withPersistedContext_returnsTheSameInstanceForTheSameContext() {
-    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
-
-    assertThat(conv.withPersistedContext(conv.persistedContext())).isSameAs(conv);
+    assertThat(next.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());
   }
 }

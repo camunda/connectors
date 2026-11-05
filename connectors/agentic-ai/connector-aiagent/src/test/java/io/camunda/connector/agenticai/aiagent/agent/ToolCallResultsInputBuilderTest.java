@@ -11,13 +11,14 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -76,9 +77,9 @@ class ToolCallResultsInputBuilderTest {
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(input.documents())
         .containsExactly(
-            new IngestedDocument(first, DocumentOrigin.toolCall("alpha", "c1")),
-            new IngestedDocument(nested, DocumentOrigin.toolCall("gamma", "c3")),
-            new IngestedDocument(third, DocumentOrigin.toolCall("gamma", "c3")));
+            new NewDocument(first, DocumentOrigin.toolCall("alpha", "c1")),
+            new NewDocument(nested, DocumentOrigin.toolCall("gamma", "c3")),
+            new NewDocument(third, DocumentOrigin.toolCall("gamma", "c3")));
   }
 
   @Test
@@ -87,7 +88,7 @@ class ToolCallResultsInputBuilderTest {
 
     final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();
     assertThat(results.get(0).content())
-        .containsExactly(textContent("one"), DocumentReferences.from(first));
+        .containsExactly(textContent("one"), AgentDocumentContent.of(AgentDocumentId.of(first)));
     assertThat(results.get(1).content()).containsExactly(textContent("two"));
     assertThat(results.get(2).content())
         .containsExactly(objectContent(Map.of("file", nested, "again", third)));

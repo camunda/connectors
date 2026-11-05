@@ -20,7 +20,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.versioning.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -38,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -132,7 +132,7 @@ class LegacyDocumentConversationTest {
 
     assertThat(context.features()).isEmpty();
     assertThat(context.supports(AgentFeatures.DOCUMENTS)).isFalse();
-    assertThat(context.documents()).isEmpty();
+    assertThat(context.documents().all()).isEmpty();
   }
 
   @Test
@@ -233,8 +233,8 @@ class LegacyDocumentConversationTest {
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());
     final var snapshot =
-        conversation
-            .window(100, new DocumentExpander(objectMapper).windowDecorator(conversation))
+        TestDocuments.documentExpander()
+            .expand(conversation.window(100), conversation.persistedContext().documentHandling())
             .messages();
 
     // no tag is inserted or rewritten: the window holds the stored messages and the new input as
@@ -253,7 +253,7 @@ class LegacyDocumentConversationTest {
         .isEqualTo("document");
     final var storedContext = conversation.toAgentContext();
     assertThat(storedContext.features()).isEmpty();
-    assertThat(storedContext.documents()).isEmpty();
+    assertThat(storedContext.documents().all()).isEmpty();
     final var serialized = objectMapper.valueToTree(storedContext);
     assertThat(serialized.has("features")).isFalse();
     assertThat(serialized.has("documents")).isFalse();
@@ -273,8 +273,8 @@ class LegacyDocumentConversationTest {
             List.of(TestMessagesFixture.userMessage("Next")));
 
     final var snapshot =
-        conversation
-            .window(100, new DocumentExpander(objectMapper).windowDecorator(conversation))
+        TestDocuments.documentExpander()
+            .expand(conversation.window(100), conversation.persistedContext().documentHandling())
             .messages();
 
     final var toolResult =

@@ -27,24 +27,23 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.c
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -75,14 +74,13 @@ class DocumentBlocksModelFacingTest {
 
   private List<Message> windowed() {
     final var workspace =
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            List.of(new IngestedDocument(report, DocumentOrigin.userMessage())));
+        AgentDocuments.empty()
+            .register(List.of(new NewDocument(report, DocumentOrigin.userMessage())));
     final var call =
         new ToolCall(
             "call-1",
             "load_document",
-            Map.of("id", "<doc id=\"" + DocumentHandle.idFor(report) + "\" />"));
+            Map.of("id", "<doc id=\"" + AgentDocumentId.of(report) + "\" />"));
     final var previous =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("loading", List.of(call))));
@@ -96,7 +94,7 @@ class DocumentBlocksModelFacingTest {
                         .content(
                             List.<Content>of(
                                 textContent("Loaded the document."),
-                                DocumentReferences.from(report),
+                                AgentDocumentContent.of(AgentDocumentId.of(report)),
                                 textContent("Its content follows in the next message.")))
                         .build()))
             .build();
@@ -115,11 +113,11 @@ class DocumentBlocksModelFacingTest {
             .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
             .conversation(InProcessConversationContext.builder("conv").build())
             .build()
-            .withDocuments(workspace.entries());
+            .withDocuments(workspace);
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, List.of(answer));
-    return conversation
-        .window(100, new DocumentExpander(OBJECT_MAPPER).windowDecorator(conversation))
+    return TestDocuments.documentExpander()
+        .expand(conversation.window(100), conversation.persistedContext().documentHandling())
         .messages();
   }
 
@@ -140,7 +138,7 @@ class DocumentBlocksModelFacingTest {
 
   private String loadedTag() {
     return "<doc id=\"%s\" fileName=\"report.txt\" contentType=\"text/plain\" />"
-        .formatted(DocumentHandle.idFor(report));
+        .formatted(AgentDocumentId.of(report));
   }
 
   @Test
