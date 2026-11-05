@@ -344,7 +344,12 @@ class ToolCallResultsInputBuilderTest {
 
     final var input = builder.build(knowing(archive), batch, Set.of());
 
-    assertThat(((UserMessage) input.messages().get(1)).content()).hasSize(2);
+    assertThat(((UserMessage) input.messages().get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+            textContent(
+                "The document %s is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."
+                    .formatted(idOf(archive))));
   }
 
   @Test
@@ -373,6 +378,20 @@ class ToolCallResultsInputBuilderTest {
     assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("unknown");
+  }
+
+  @Test
+  void withoutTheDocumentsFeatureAResultCannotAskForTheContentOfADocumentItReturns() {
+    final var entry =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
+                .withDocumentContent(first));
+
+    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry), Set.of()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(idOf(first).value());
   }
 
   @Test
