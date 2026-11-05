@@ -60,6 +60,13 @@
       "automerge": true
     },
     {
+      "description": "Automerge major updates too (as separate PRs, not grouped) once CI is green. Placed before the github-actions rule so GitHub Actions majors keep automerge disabled.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": true
+    },
+    {
       "matchManagers": [
         "maven",
         "dockerfile"
