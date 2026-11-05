@@ -11,17 +11,20 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder.Entry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -32,6 +35,12 @@ class ToolCallResultsInputBuilderTest {
   private final Document nested = createDocument("nested", "nested.txt");
   private final Document third = createDocument("third", "third.txt");
 
+  private final ToolCallResultsInputBuilder builder = new ToolCallResultsInputBuilder();
+
+  private static final AgentContext WITH_DOCUMENTS =
+      AgentContext.builder().features(List.of(AgentFeatures.DOCUMENTS)).build();
+  private static final AgentContext WITHOUT_DOCUMENTS = AgentContext.empty();
+
   private static ToolCallResultContent result(String id, String name, Content... content) {
     return ToolCallResultContent.builder()
         .id(id)
@@ -41,20 +50,28 @@ class ToolCallResultsInputBuilderTest {
         .build();
   }
 
-  private List<Entry> entries() {
-    return List.of(
-        new Entry(
+  private static ToolCallBatch batch(ToolCallBatch.Entry... entries) {
+    final var calls =
+        Arrays.stream(entries)
+            .map(entry -> new ToolCall(entry.result().id(), entry.result().name(), Map.of()))
+            .toList();
+    return ToolCallBatch.of(calls).withEntries(List.of(entries));
+  }
+
+  private ToolCallBatch batch() {
+    return batch(
+        new ToolCallBatch.Entry(
             result("c1", "alpha", textContent("one"), DocumentContent.documentContent(first)),
             List.of(first)),
-        new Entry(result("c2", "beta", textContent("two")), List.of()),
-        new Entry(
+        new ToolCallBatch.Entry(result("c2", "beta", textContent("two")), List.of()),
+        new ToolCallBatch.Entry(
             result("c3", "gamma", objectContent(Map.of("file", nested, "again", third))),
             List.of(nested, third)));
   }
 
   @Test
   void withTheDocumentsFeatureTheResultsAreOneMessageAndTheDocumentsAreReportedInCallOrder() {
-    final var input = ToolCallResultsInputBuilder.build(entries(), true);
+    final var input = builder.build(WITH_DOCUMENTS, batch());
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(input.documents())
@@ -66,7 +83,7 @@ class ToolCallResultsInputBuilderTest {
 
   @Test
   void withTheDocumentsFeatureADocumentThatIsAWholeResultIsItsTagAndANestedOneStaysADocument() {
-    final var input = ToolCallResultsInputBuilder.build(entries(), true);
+    final var input = builder.build(WITH_DOCUMENTS, batch());
 
     final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();
     assertThat(results.get(0).content())
@@ -79,8 +96,9 @@ class ToolCallResultsInputBuilderTest {
   @Test
   void withTheDocumentsFeatureAResultWithoutDocumentsReportsNone() {
     final var input =
-        ToolCallResultsInputBuilder.build(
-            List.of(new Entry(result("c2", "beta", textContent("two")), List.of())), true);
+        builder.build(
+            WITH_DOCUMENTS,
+            batch(new ToolCallBatch.Entry(result("c2", "beta", textContent("two")), List.of())));
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(input.documents()).isEmpty();
@@ -88,7 +106,7 @@ class ToolCallResultsInputBuilderTest {
 
   @Test
   void withoutTheDocumentsFeatureTheDocumentsFollowTheResultsInAMessageAndNoneIsReported() {
-    final var input = ToolCallResultsInputBuilder.build(entries(), false);
+    final var input = builder.build(WITHOUT_DOCUMENTS, batch());
 
     assertThat(input.documents()).isEmpty();
     assertThat(input.messages()).hasSize(2);

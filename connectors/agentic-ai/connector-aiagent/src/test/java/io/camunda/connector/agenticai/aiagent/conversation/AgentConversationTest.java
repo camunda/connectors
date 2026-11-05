@@ -650,6 +650,13 @@ class AgentConversationTest {
   }
 
   @Test
+  void persistedContext_isTheContextTheConversationIsBuiltOn() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+
+    assertThat(conv.persistedContext()).isSameAs(BASE_CONTEXT);
+  }
+
+  @Test
   void withPersistedContext_replacesThePersistedContextOnly() {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
     final var entry =

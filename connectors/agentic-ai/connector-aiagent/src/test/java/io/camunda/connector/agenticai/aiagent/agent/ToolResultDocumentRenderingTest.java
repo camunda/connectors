@@ -84,7 +84,9 @@ class ToolResultDocumentRenderingTest {
     when(gatewayToolHandlers.transformToolCallResults(any(), any()))
         .thenAnswer(invocation -> invocation.getArgument(1));
     when(gatewayToolHandlers.handlerForToolDefinition(any())).thenReturn(Optional.empty());
-    composer = new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
+    composer =
+        new AgentConversationTurnInputComposerImpl(
+            gatewayToolHandlers, new ToolCallResultsInputBuilder());
   }
 
   private Document document(String content, String fileName, String contentType) {
@@ -112,12 +114,14 @@ class ToolResultDocumentRenderingTest {
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
     final var nextTurn =
-        (CompositionResult.NextTurn)
-            composer.compose(
-                CONFIGURATION,
-                CONTEXT,
-                previous,
-                AgentInput.from(new UserPromptConfiguration("user input", List.of()), results));
+        composer.assemble(
+            (CompositionResult.Ready)
+                composer.resolve(
+                    CONFIGURATION,
+                    CONTEXT,
+                    previous,
+                    AgentInput.from(
+                        new UserPromptConfiguration("user input", List.of()), results)));
 
     // the stored message holds the bare document as a reference and the nested one as it is
     final var stored = (ToolCallResultMessage) nextTurn.messages().getFirst();

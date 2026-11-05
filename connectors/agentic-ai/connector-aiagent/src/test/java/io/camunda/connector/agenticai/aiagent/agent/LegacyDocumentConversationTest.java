@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
+import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -35,7 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolsImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -105,13 +106,24 @@ class LegacyDocumentConversationTest {
         .formatted(toolAttributes, reference.getDocumentId(), document.metadata().getFileName());
   }
 
+  private TurnInput compose(
+      AgentConfiguration configuration,
+      AgentContext context,
+      PreviousConversation previous,
+      AgentInput input) {
+    return composer.assemble(
+        (CompositionResult.Ready) composer.resolve(configuration, context, previous, input));
+  }
+
   @org.junit.jupiter.api.BeforeEach
   void setUp() {
     final var gatewayToolHandlers = mock(GatewayToolHandlerRegistry.class);
     when(gatewayToolHandlers.transformToolCallResults(any(), any()))
         .thenAnswer(invocation -> invocation.getArgument(1));
     when(gatewayToolHandlers.handlerForToolDefinition(any())).thenReturn(Optional.empty());
-    composer = new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
+    composer =
+        new AgentConversationTurnInputComposerImpl(
+            gatewayToolHandlers, new ToolCallResultsInputBuilder());
   }
 
   @Test
@@ -131,8 +143,8 @@ class LegacyDocumentConversationTest {
     final var eventResult =
         ToolCallResult.builder().content(Map.of("attachment", eventDocument)).build();
 
-    final var composition =
-        composer.compose(
+    final var nextTurn =
+        compose(
             configuration(),
             context,
             TurnReconstructor.reconstruct(messagesOf(context), context.metadata()),
@@ -140,7 +152,6 @@ class LegacyDocumentConversationTest {
                 new UserPromptConfiguration("Next", List.of(promptDocument)),
                 List.of(eventResult)));
 
-    final var nextTurn = (CompositionResult.NextTurn) composition;
     assertThat(nextTurn.documents()).isEmpty();
     assertThat(nextTurn.messages()).hasSize(2);
 
@@ -183,14 +194,13 @@ class LegacyDocumentConversationTest {
             .content(Map.of("file", document))
             .build();
 
-    final var composition =
-        composer.compose(
+    final var nextTurn =
+        compose(
             configuration(),
             context,
             TurnReconstructor.reconstruct(messages, context.metadata()),
             AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(toolResult)));
 
-    final var nextTurn = (CompositionResult.NextTurn) composition;
     assertThat(nextTurn.documents()).isEmpty();
     assertThat(nextTurn.messages()).hasSize(2);
     assertThat(nextTurn.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
@@ -213,14 +223,12 @@ class LegacyDocumentConversationTest {
     final var configuration = configuration();
     final var previous = TurnReconstructor.reconstruct(messages, context.metadata());
     final var nextTurn =
-        (CompositionResult.NextTurn)
-            composer.compose(
-                configuration,
-                context,
-                previous,
-                AgentInput.from(
-                    new UserPromptConfiguration("Next", List.of(newDocument("next.txt"))),
-                    List.of()));
+        compose(
+            configuration,
+            context,
+            previous,
+            AgentInput.from(
+                new UserPromptConfiguration("Next", List.of(newDocument("next.txt"))), List.of()));
 
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());
@@ -296,7 +304,7 @@ class LegacyDocumentConversationTest {
     final var context = loadContext();
     final var configuration = configuration();
     final var runtimeTools =
-        new RuntimeToolsImpl(
+        new RuntimeTools(
             List.of(StubRuntimeTool.of("acme_lookup", (toolContext, call) -> null)),
             TestObjectMapperSupplier.INSTANCE);
 

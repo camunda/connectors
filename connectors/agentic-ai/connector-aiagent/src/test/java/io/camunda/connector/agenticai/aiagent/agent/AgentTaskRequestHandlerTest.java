@@ -130,7 +130,8 @@ class AgentTaskRequestHandlerTest {
             agentInstanceClient,
             runtimeTools,
             new ToolCallAdmission(),
-            new LocalToolCallExecutor(runtimeTools));
+            new LocalToolCallExecutor(runtimeTools),
+            documentExpander);
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
@@ -444,14 +445,17 @@ class AgentTaskRequestHandlerTest {
    */
   private void mockProceed(Message... inputMessages) {
     when(agentInputComposer.resolve(any(), any(), any(), any()))
-        .thenReturn(CompositionResult.Ready.of(ToolCallBatch.of(List.of())));
+        .thenAnswer(invocation ->
+            CompositionResult.Ready.of(
+                invocation.getArgument(1, AgentContext.class), ToolCallBatch.of(List.of())));
     lenient()
         .when(agentInputComposer.assemble(any()))
         .thenAnswer(invocation -> {
           final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
           return ready.toolCallBatch().toolCalls().isEmpty()
               ? new TurnInput(List.of(inputMessages))
-              : new TurnInput(new ToolCallResultsInputBuilder().build(ready.toolCallBatch()));
+              : new ToolCallResultsInputBuilder()
+                  .build(ready.agentContext(), ready.toolCallBatch());
         });
   }
 
