@@ -262,7 +262,7 @@ public final class DocumentParameterResolver {
     if (!(value instanceof String text)) {
       return value;
     }
-    final var tagId = DocumentTag.idOfSingleTag(text);
+    final var tagId = DocumentTags.idOfSingleTag(text);
     if (tagId == null) {
       return text;
     }
@@ -287,7 +287,7 @@ public final class DocumentParameterResolver {
               .formatted(path));
       return value == null ? "" : value;
     }
-    final var tagId = DocumentTag.idOfSingleTag(text);
+    final var tagId = DocumentTags.idOfSingleTag(text);
     final var entry = tagId == null ? Optional.<AgentDocument>empty() : documents.find(tagId);
     if (entry.isEmpty()) {
       problems.add(invalidDocumentProblem(path, text));
