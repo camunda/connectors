@@ -171,7 +171,7 @@ limitations under the License.</license.inlineheader>
 
     <version.sendGrid>4.10.3</version.sendGrid>
 
-    <version.slack>1.53.0</version.slack>
+    <version.slack>1.54.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
