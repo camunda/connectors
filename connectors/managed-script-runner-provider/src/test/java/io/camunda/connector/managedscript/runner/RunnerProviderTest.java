@@ -104,6 +104,31 @@ class RunnerProviderTest {
   }
 
   @Test
+  void sendsItsVersionInTheUserAgentInTheFormThatTheRunnerCounts() {
+    stubAnswer(aResponse().withStatus(200).withBody(completed()));
+
+    provider.execute(ScriptLanguage.PYTHON, REQUEST);
+
+    runner.verifyThat(
+        1,
+        postRequestedFor(urlEqualTo("/v1/executions"))
+            .withHeader(
+                "User-Agent",
+                WireMock.matching("camunda-connectors/[0-9A-Za-z][0-9A-Za-z.+_-]{0,31}")));
+  }
+
+  @Test
+  void namesTheVersionOfTheJarInTheUserAgent() {
+    assertThat(RunnerProvider.userAgent("8.10.8")).isEqualTo("camunda-connectors/8.10.8");
+  }
+
+  @Test
+  void namesAnUnknownVersionWhenThereIsNoManifest() {
+    assertThat(RunnerProvider.userAgent(null)).isEqualTo("camunda-connectors/unknown");
+    assertThat(RunnerProvider.userAgent(" ")).isEqualTo("camunda-connectors/unknown");
+  }
+
+  @Test
   void keepsTheLanguageTheRuntimeAndTheTokenWhateverTheInputHolds() {
     stubAnswer(aResponse().withStatus(200).withBody(completed()));
     final var request =

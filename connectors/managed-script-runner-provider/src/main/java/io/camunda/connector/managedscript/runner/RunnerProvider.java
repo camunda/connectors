@@ -64,6 +64,13 @@ public final class RunnerProvider implements ManagedCodeProvider {
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
 
   /**
+   * The runner counts the calls by the version in this header, so that it can tell when no
+   * supported Connectors version uses a contract version any more.
+   */
+  private static final String USER_AGENT =
+      userAgent(RunnerProvider.class.getPackage().getImplementationVersion());
+
+  /**
    * Time for an answer on top of the timeout of the script: Knative holds a call in its activator
    * while it starts a runner pod from zero.
    */
@@ -93,6 +100,14 @@ public final class RunnerProvider implements ManagedCodeProvider {
     this.tokenPath = Path.of(properties.tokenPath());
     this.runtimes = properties.runtimes();
     this.answerMargin = answerMargin;
+  }
+
+  /**
+   * Returns the User-Agent for a version from the manifest of the jar, or for no version. The
+   * version is {@code null} when the class does not run from a jar.
+   */
+  static String userAgent(String version) {
+    return "camunda-connectors/" + (version == null || version.isBlank() ? "unknown" : version);
   }
 
   @Override
@@ -144,6 +159,7 @@ public final class RunnerProvider implements ManagedCodeProvider {
               .header("Authorization", "Bearer " + token)
               .header("Content-Type", "application/json")
               .header("Accept", "application/json")
+              .header("User-Agent", USER_AGENT)
               .POST(HttpRequest.BodyPublishers.ofByteArray(body))
               .build();
     } catch (IllegalArgumentException e) {
