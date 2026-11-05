@@ -236,7 +236,7 @@ class AgentConversationTest {
   }
 
   @Test
-  void window_expandsDocumentReferencesFromTheWorkspaceAndLeavesTheStoredMessagesAlone() {
+  void window_expandsDocumentBlocksFromTheAgentDocumentsAndLeavesTheStoredMessagesAlone() {
     var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -288,7 +288,7 @@ class AgentConversationTest {
   }
 
   @Test
-  void window_expandsAReferenceWithReferenceDeliveryToItsTagWithoutContent() {
+  void window_expandsABlockWithReferenceDeliveryToItsTagWithoutContent() {
     var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -326,7 +326,7 @@ class AgentConversationTest {
   }
 
   @Test
-  void window_addsNoDocumentContentForAReferenceWithContentThatLeftTheWindow() {
+  void window_addsNoDocumentContentForABlockWithContentThatLeftTheWindow() {
     var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(

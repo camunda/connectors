@@ -1730,7 +1730,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void keepsAnAgentInstanceWithoutTheDocumentsFeatureWithoutWorkspace() {
+  void keepsAnAgentInstanceWithoutTheDocumentsFeatureWithoutAgentDocuments() {
     final var historic = createDocument("historic", "historic.txt");
     final var history =
         List.<Message>of(
@@ -1784,7 +1784,7 @@ class AgentSubProcessRequestHandlerTest {
         });
     assertThat(response.variables().get("agentContext")).isEqualTo(context);
 
-    // the agent instance history is written with the workspace of the turn
+    // the agent instance history is written with the agent documents of the turn
     final var startHandling = ArgumentCaptor.forClass(DocumentHandling.class);
     verify(agentInstanceClient)
         .applyTurnStart(
@@ -1882,7 +1882,7 @@ class AgentSubProcessRequestHandlerTest {
                         TextContent.textContent("Created the report."),
                         TextContent.textContent(DocumentTags.shortTag(NEW_REPORT))));
 
-    // the history of the second round is written with the workspace that holds the document
+    // the history of the second round is written with the agent documents that holds the document
     final var startHandlings = ArgumentCaptor.forClass(DocumentHandling.class);
     verify(agentInstanceClient, times(2))
         .applyTurnStart(

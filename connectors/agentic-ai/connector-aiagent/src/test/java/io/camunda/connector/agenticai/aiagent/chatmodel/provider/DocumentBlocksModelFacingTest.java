@@ -73,7 +73,7 @@ class DocumentBlocksModelFacingTest {
   }
 
   private List<Message> windowed() {
-    final var workspace =
+    final var agentDocuments =
         AgentDocuments.empty()
             .register(List.of(new NewDocument(report, DocumentOrigin.userMessage())));
     final var call =
@@ -113,7 +113,7 @@ class DocumentBlocksModelFacingTest {
             .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
             .conversation(InProcessConversationContext.builder("conv").build())
             .build()
-            .withDocuments(workspace);
+            .withDocuments(agentDocuments);
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, List.of(answer));
     return TestDocuments.documentExpander()

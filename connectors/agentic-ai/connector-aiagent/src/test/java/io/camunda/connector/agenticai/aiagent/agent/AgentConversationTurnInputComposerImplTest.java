@@ -472,7 +472,7 @@ class AgentConversationTurnInputComposerImplTest {
   void toolResultTurn_bareDocumentResult_isPersistedAsItsReferenceWithoutADocumentMessage() {
     // a tool call result whose whole content is a Document (not nested in an object) is persisted
     // as the reference that renders the tag the model sees, and is still ingested into the
-    // workspace
+    // agent documents
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
         AgentInput.from(

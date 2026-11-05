@@ -53,9 +53,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Golden-fixture test: an agent instance created by Camunda 8.10 (no features, documents stored as
- * bare content or as a tag in the older attribute format followed by the content, no workspace)
- * loads and continues with new documents of every kind in the form Camunda 8.10 composes them, and
- * never gets a workspace, features, response documents or runtime tools.
+ * bare content or as a tag in the older attribute format followed by the content, no agent
+ * documents) loads and continues with new documents of every kind in the form Camunda 8.10 composes
+ * them, and never gets agent documents, features, response documents or runtime tools.
  */
 class LegacyDocumentConversationTest {
 
@@ -127,7 +127,7 @@ class LegacyDocumentConversationTest {
   }
 
   @Test
-  void loadsWithoutFeaturesAndWithoutAWorkspace() throws IOException {
+  void loadsWithoutFeaturesAndWithoutAgentDocuments() throws IOException {
     final var context = loadContext();
 
     assertThat(context.features()).isEmpty();
@@ -247,7 +247,7 @@ class LegacyDocumentConversationTest {
             text -> assertThat(text).isEqualTo(textContent("Next")),
             content -> assertThat(content).isInstanceOf(DocumentContent.class));
 
-    // the persisted shape holds the document content, and no workspace or features
+    // the persisted shape holds the document content, and no agent documents or features
     final var stored = conversation.allMessages().getLast();
     assertThat(objectMapper.valueToTree(stored).at("/content/1/type").asText())
         .isEqualTo("document");
