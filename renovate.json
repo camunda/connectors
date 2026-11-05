@@ -60,7 +60,7 @@
       "automerge": true
     },
     {
-      "description": "Automerge major updates too (as separate PRs, not grouped) once CI is green. Placed before the github-actions rule so GitHub Actions majors keep automerge disabled.",
+      "description": "Automerge major updates too (as separate PRs, not grouped) once CI is green, on main and on stable/* branches. Placed before the github-actions rule so GitHub Actions majors keep automerge disabled. Per-package major holds below (and the io.camunda* hold on stable/*) still apply.",
       "matchUpdateTypes": [
         "major"
       ],
@@ -99,15 +99,6 @@
         "patch"
       ],
       "automerge": false
-    },
-    {
-      "matchBaseBranches": [
-        "stable/*"
-      ],
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "enabled": false
     },
     {
       "matchBaseBranches": [
