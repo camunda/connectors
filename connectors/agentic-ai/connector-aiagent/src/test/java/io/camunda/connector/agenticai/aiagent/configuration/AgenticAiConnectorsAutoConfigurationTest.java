@@ -371,7 +371,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
                 .rootCause()
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(
-                    "The property camunda.connector.agenticai.aiagent.document.content-limits.pdf must be positive."));
+                    "The content limit of pdf documents must be positive, but is 0 bytes."));
   }
 
   @Test
