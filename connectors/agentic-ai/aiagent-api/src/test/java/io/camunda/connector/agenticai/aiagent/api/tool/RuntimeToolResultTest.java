@@ -10,7 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Test;
 
 class RuntimeToolResultTest {
 
-  private static final DocumentId DOC_1 = DocumentId.of("doc-1");
-  private static final DocumentId DOC_2 = DocumentId.of("doc-2");
+  private static final AgentDocumentId DOC_1 = AgentDocumentId.of("doc-1");
+  private static final AgentDocumentId DOC_2 = AgentDocumentId.of("doc-2");
 
   @Test
   void aTextBecomesTheContent() {

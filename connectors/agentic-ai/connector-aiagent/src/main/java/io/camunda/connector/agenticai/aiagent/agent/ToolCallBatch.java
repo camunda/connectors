@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -106,7 +106,9 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
    *     were named
    */
   public record Entry(
-      ToolCallResultContent result, List<Document> documents, List<DocumentId> documentContent) {
+      ToolCallResultContent result,
+      List<Document> documents,
+      List<AgentDocumentId> documentContent) {
 
     public Entry {
       Objects.requireNonNull(result.id(), "The tool call result of an entry must have an id");
@@ -158,7 +160,7 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      * The entry of a result with structured content that asks for the content of documents; the
      * documents are the ones of its content.
      */
-    public static Entry from(ToolCallResultContent result, List<DocumentId> documentContent) {
+    public static Entry from(ToolCallResultContent result, List<AgentDocumentId> documentContent) {
       return new Entry(
           result, ToolCallResultDocumentExtractor.documentsOf(result.content()), documentContent);
     }

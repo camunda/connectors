@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
@@ -78,11 +78,11 @@ public sealed interface RuntimeToolResult {
   List<Content> content();
 
   /** The documents whose content the agent adds to the request, in order; empty for an error. */
-  default List<DocumentId> documentContent() {
+  default List<AgentDocumentId> documentContent() {
     return List.of();
   }
 
-  record Success(List<Content> content, List<DocumentId> documentContent)
+  record Success(List<Content> content, List<AgentDocumentId> documentContent)
       implements RuntimeToolResult {
 
     public Success {
@@ -98,8 +98,8 @@ public sealed interface RuntimeToolResult {
     /**
      * Returns a copy that also asks the agent to add the content of a known document to the request
      * that follows the tool results, as if the user had sent it. The id is the one of a document in
-     * {@link RuntimeToolDocuments}, or of a document this result returns: the id of a Camunda
-     * document is the id of the document in its store.
+     * {@link RuntimeToolDocuments}, or of a document this result returns ({@link
+     * AgentDocumentId#of(io.camunda.connector.api.document.Document)}).
      *
      * <p>The agent runs its content guard before it adds anything: when the document is not allowed
      * as content, for example because of its type or its size, it turns the whole result into an
@@ -112,7 +112,7 @@ public sealed interface RuntimeToolResult {
      * documents feature, so a tool that adds content is enabled for agents that have it (see {@link
      * RuntimeTool#isEnabled}).
      */
-    public Success withDocumentContent(DocumentId id) {
+    public Success withDocumentContent(AgentDocumentId id) {
       final var updated = new ArrayList<>(documentContent);
       updated.add(Objects.requireNonNull(id));
       return new Success(content, updated);

@@ -6,40 +6,41 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A document of the workspace; the document is read from its reference when it is asked for. Safe
- * to read from several threads: reading the reference twice gives equal documents.
+ * A document the agent knows; the document is restored from its reference when it is asked for.
+ * Safe to read from several threads: restoring the reference twice gives equal documents.
  */
 final class AgentDocumentImpl implements AgentDocument {
 
-  private final WorkspaceDocument entry;
+  private final io.camunda.connector.agenticai.aiagent.model.document.AgentDocument agentDocument;
   private final boolean contentInConversation;
-  private final ObjectMapper objectMapper;
+  private final DocumentFactory documentFactory;
   private volatile @Nullable Document document;
 
   AgentDocumentImpl(
-      WorkspaceDocument entry, boolean contentInConversation, ObjectMapper objectMapper) {
-    this.entry = entry;
+      io.camunda.connector.agenticai.aiagent.model.document.AgentDocument agentDocument,
+      boolean contentInConversation,
+      DocumentFactory documentFactory) {
+    this.agentDocument = agentDocument;
     this.contentInConversation = contentInConversation;
-    this.objectMapper = objectMapper;
+    this.documentFactory = documentFactory;
   }
 
   @Override
-  public DocumentId id() {
-    return entry.id();
+  public AgentDocumentId id() {
+    return agentDocument.id();
   }
 
   @Override
   public AgentDocumentOrigin origin() {
-    return entry.origin();
+    return agentDocument.origin();
   }
 
   @Override
@@ -52,10 +53,11 @@ final class AgentDocumentImpl implements AgentDocument {
     var restored = document;
     if (restored == null) {
       try {
-        restored = entry.toDocument(objectMapper);
-      } catch (IllegalArgumentException e) {
+        restored = agentDocument.toDocument(documentFactory);
+      } catch (RuntimeException e) {
         throw new IllegalStateException(
-            "The document %s cannot be restored from its reference".formatted(entry.id()), e);
+            "The document %s cannot be restored from its reference".formatted(agentDocument.id()),
+            e);
       }
       document = restored;
     }

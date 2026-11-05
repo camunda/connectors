@@ -123,8 +123,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   public RuntimeTools aiAgentRuntimeTools(
       List<RuntimeTool> runtimeTools,
       @ConnectorsObjectMapper ObjectMapper objectMapper,
+      DocumentFactory documentFactory,
       DocumentParameterResolver documentParameterResolver) {
-    return new RuntimeTools(runtimeTools, objectMapper, documentParameterResolver);
+    return new RuntimeTools(runtimeTools, objectMapper, documentFactory, documentParameterResolver);
   }
 
   @Bean
