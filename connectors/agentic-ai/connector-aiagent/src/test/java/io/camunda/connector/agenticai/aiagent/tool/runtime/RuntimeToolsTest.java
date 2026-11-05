@@ -602,7 +602,7 @@ class RuntimeToolsTest {
   }
 
   @Test
-  void answersAValueThatIsNotATagOfARuntimeToolWithAnErrorAndDoesNotRunIt() {
+  void aCallWithAnInvalidDocumentParameterFailsAndDoesNotRunTheTool() {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
@@ -613,17 +613,13 @@ class RuntimeToolsTest {
             });
     final var call = runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"));
 
-    final var executions =
-        toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(), List.of(call));
-
+    assertThatThrownBy(
+            () -> toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(), List.of(call)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The call 'r1' of the tool 'c8__read_file' is admitted, but its document parameters are invalid: "
+                + BOGUS_FILE);
     assertThat(runs).hasValue(0);
-    assertThat(executions)
-        .singleElement()
-        .satisfies(execution -> {
-          assertThat(execution.call()).isEqualTo(call);
-          assertThat(execution.result().id()).isEqualTo("r1");
-          assertThat(text(execution)).isEqualTo(BOGUS_FILE);
-        });
   }
 
   @Test
