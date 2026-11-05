@@ -8,9 +8,13 @@ package io.camunda.connector.agenticai.aiagent.model.document;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -24,6 +28,7 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocum
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import java.io.IOException;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -47,7 +52,9 @@ import org.jspecify.annotations.Nullable;
 public record AgentDocument(
     AgentDocumentId id,
     DocumentOrigin origin,
-    @JsonDeserialize(as = DocumentReferenceModel.class) DocumentReference reference) {
+    @JsonSerialize(using = ReferenceSerializer.class)
+        @JsonDeserialize(as = DocumentReferenceModel.class)
+        DocumentReference reference) {
 
   // the persisted reference keeps the numeric form of the durations in the custom properties
   private static final ObjectMapper REFERENCE_MAPPER =
@@ -158,6 +165,16 @@ public record AgentDocument(
           fileName != null && fileName.equals(reference.getDocumentId()) ? null : fileName,
           StringUtils.trimToNull(metadata.getContentType()),
           metadata.getSize());
+    }
+  }
+
+  /** Writes the reference without its absent parts, whatever the mapper that writes the context. */
+  private static final class ReferenceSerializer extends JsonSerializer<DocumentReference> {
+    @Override
+    public void serialize(
+        DocumentReference reference, JsonGenerator generator, SerializerProvider provider)
+        throws IOException {
+      generator.writeTree(REFERENCE_MAPPER.valueToTree(toModel(reference)));
     }
   }
 

@@ -244,6 +244,32 @@ class AgentDocumentTest {
   }
 
   @Test
+  void absentPartsOfTheReferenceAreNotWrittenAsNull() throws JsonProcessingException {
+    final var camundaWithoutDetails =
+        AgentDocument.of(
+            documentOf(new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null)),
+            DocumentOrigin.event());
+    final var externalWithoutName =
+        AgentDocument.of(
+            documentOf(new ExternalDocumentReferenceModel("https://x/y", null)),
+            DocumentOrigin.event());
+    final var inlineWithoutDetails =
+        AgentDocument.of(
+            documentOf(new InlineDocumentReferenceModel("aGVsbG8=", null, null)),
+            DocumentOrigin.event());
+
+    assertThat(objectMapper.writeValueAsString(camundaWithoutDetails))
+        .doesNotContain("null")
+        .contains("\"documentId\":\"doc-1\"");
+    assertThat(objectMapper.writeValueAsString(externalWithoutName))
+        .doesNotContain("null")
+        .contains("\"url\":\"https://x/y\"");
+    assertThat(objectMapper.writeValueAsString(inlineWithoutDetails))
+        .doesNotContain("null")
+        .contains("\"content\":\"aGVsbG8=\"");
+  }
+
+  @Test
   void readsTheStoredJsonOfEveryReferenceType() throws JsonProcessingException {
     final var camunda =
         objectMapper.readValue(
