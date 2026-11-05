@@ -431,4 +431,46 @@ class LocalToolCallExecutorTest {
                 List.of(),
                 List.of()));
   }
+
+  @Test
+  void aCallNeverSelectsADocumentAnotherCallReturned() {
+    var returned = createDocument("returned", "returned.txt");
+    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var returning =
+        new RuntimeToolExecution(
+            RUNTIME_CALL,
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned))),
+            now,
+            now);
+    var selecting =
+        new RuntimeToolExecution(
+            SECOND_RUNTIME_CALL,
+            RuntimeToolResult.success("a")
+                .withResponseDocument("k", AgentDocumentId.of(returned), null),
+            now,
+            now);
+    var calls = List.of(RUNTIME_CALL, SECOND_RUNTIME_CALL);
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, calls))
+        .thenReturn(List.of(returning, selecting));
+
+    assertThatThrownBy(() -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, calls))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("'getDateTime'")
+        .hasMessageContaining(AgentDocumentId.of(returned).value());
+  }
+
+  @Test
+  void anAgentWithoutDocumentsKnowsNoDocumentToSelect() {
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(
+            List.of(
+                runtimeExecution(
+                    RuntimeToolResult.success("a").withResponseDocument("k", KNOWN_ID, null))));
+
+    assertThatThrownBy(
+            () -> executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'getWeather' refers to a document by its id, which an agent instance that does not track its documents does not support");
+  }
 }
