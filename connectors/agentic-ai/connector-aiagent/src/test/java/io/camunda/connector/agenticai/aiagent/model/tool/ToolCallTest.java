@@ -198,7 +198,7 @@ class ToolCallTest {
   @Test
   void aRejectedRuntimeCallIsSerializedWithKindAndRejectionAndRoundTrips() throws Exception {
     final var toolCall =
-        new ToolCall("toolu_1", "acme_note", Map.of())
+        new ToolCall("toolu_1", "acme_note", Map.of(), Map.of("k", "v"))
             .withKind(ToolKind.RUNTIME)
             .withRejection("The argument 'a' is missing.");
 
@@ -210,6 +210,7 @@ class ToolCallTest {
           "id": "toolu_1",
           "name": "acme_note",
           "arguments": {},
+          "metadata": {"k": "v"},
           "kind": "runtime",
           "rejection": "The argument 'a' is missing."
         }
