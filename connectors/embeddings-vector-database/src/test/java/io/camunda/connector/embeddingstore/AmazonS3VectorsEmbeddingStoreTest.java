@@ -24,6 +24,8 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.s3vectors.S3VectorsClient;
@@ -180,19 +182,29 @@ class AmazonS3VectorsEmbeddingStoreTest {
             INDEX + " must declare '_page_content' as a non-filterable metadata key");
   }
 
-  @Test
-  void checkSegmentsAcceptsChunksUpToTheMetadataLimit() {
-    // {"_page_content":"..."} adds 20 bytes around the text
-    var largest = TextSegment.from("a".repeat(40_940));
+  // Boundaries measured against S3 Vectors: the largest texts it accepted, and the next size up,
+  // which it rejected with "Metadata object must have at most 40960 bytes".
+  @ParameterizedTest(name = "U+{0} x {1}")
+  @CsvSource({"0061, 40935", "00E9, 20467", "20AC, 13645", "1F600, 10233"})
+  void checkSegmentsMatchesTheS3VectorsLimit(String codePoint, int largestAccepted) {
+    var character = Character.toString(Integer.parseInt(codePoint, 16));
+    store.checkSegments(List.of(TextSegment.from(character.repeat(largestAccepted))));
 
-    store.checkSegments(List.of(TextSegment.from("small"), largest));
-
+    assertThatThrownBy(() ->
+            store.checkSegments(List.of(TextSegment.from(character.repeat(largestAccepted + 1)))))
+        .isInstanceOf(ConnectorException.class);
     verifyNoInteractions(client);
   }
 
   @Test
-  void checkSegmentsRejectsAChunkOverTheMetadataLimit() {
-    var tooLarge = TextSegment.from("a".repeat(40_941));
+  void metadataSizeCountsANewlineAsOneByte() {
+    // S3 Vectors accepted 40,935 newlines too, so they are not counted as JSON escapes
+    assertThat(AmazonS3VectorsEmbeddingStore.metadataSize("a\n")).isEqualTo(25 + 2);
+  }
+
+  @Test
+  void checkSegmentsNamesTheChunkThatIsTooLarge() {
+    var tooLarge = TextSegment.from("a".repeat(40_936));
 
     assertThatThrownBy(() -> store.checkSegments(List.of(TextSegment.from("small"), tooLarge)))
         .isInstanceOf(ConnectorException.class)
@@ -200,14 +212,6 @@ class AmazonS3VectorsEmbeddingStoreTest {
             "Chunk 2 of the document needs 40961 bytes of metadata, but Amazon S3 Vectors allows"
                 + " at most 40960 bytes per vector. Use the Recursive document splitter with a"
                 + " lower Max chars.");
-  }
-
-  @Test
-  void metadataSizeCountsJsonEscapesAndUtf8Bytes() {
-    assertThat(AmazonS3VectorsEmbeddingStore.metadataSize("")).isEqualTo(20);
-    assertThat(AmazonS3VectorsEmbeddingStore.metadataSize("a\n\"\\")).isEqualTo(20 + 1 + 6);
-    assertThat(AmazonS3VectorsEmbeddingStore.metadataSize("\u0001")).isEqualTo(20 + 6);
-    assertThat(AmazonS3VectorsEmbeddingStore.metadataSize("é€😀")).isEqualTo(20 + 2 + 3 + 4);
   }
 
   private static EmbeddingSearchRequest searchRequest(int maxResults) {

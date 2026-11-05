@@ -10,6 +10,7 @@ import dev.langchain4j.community.store.embedding.s3.S3VectorsEmbeddingStore;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.camunda.connector.api.error.ConnectorException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +33,7 @@ class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore implements S
 
   static final String TEXT_METADATA_KEY = S3VectorsEmbeddingStore.DEFAULT_TEXT_METADATA_KEY;
   static final int MAX_METADATA_BYTES = 40_960;
+  private static final int METADATA_OVERHEAD_BYTES = 25;
   private static final Duration INDEX_READY_TIMEOUT = Duration.ofSeconds(30);
 
   private final S3VectorsClient client;
@@ -70,27 +72,13 @@ class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore implements S
     }
   }
 
-  /** Size of {"_page_content":"text"} as UTF-8 JSON, an upper bound of what S3 Vectors counts. */
+  /**
+   * Metadata size as S3 Vectors counts it: the UTF-8 bytes of the text plus a fixed 25 bytes for
+   * the text key. Measured against S3 Vectors, which accepted at most 40,935 bytes of text for any
+   * mix of 1- to 4-byte characters.
+   */
   static int metadataSize(String text) {
-    int size = TEXT_METADATA_KEY.length() + 7;
-    for (int i = 0; i < text.length(); i++) {
-      char c = text.charAt(i);
-      if (c == '"' || c == '\\' || c == '\n' || c == '\r' || c == '\t' || c == '\b' || c == '\f') {
-        size += 2;
-      } else if (c < 0x20) {
-        size += 6;
-      } else if (c < 0x80) {
-        size += 1;
-      } else if (c < 0x800) {
-        size += 2;
-      } else if (Character.isHighSurrogate(c)) {
-        size += 4;
-        i++;
-      } else {
-        size += 3;
-      }
-    }
-    return size;
+    return text.getBytes(StandardCharsets.UTF_8).length + METADATA_OVERHEAD_BYTES;
   }
 
   @Override
