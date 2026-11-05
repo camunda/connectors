@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import java.util.regex.Pattern;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jspecify.annotations.Nullable;
@@ -30,7 +30,7 @@ public final class DocumentTag {
    * {@code null} for any other text: text around the tag, more than one tag, or a tag without an
    * id.
    */
-  public static @Nullable DocumentId idOfSingleTag(String text) {
+  public static @Nullable AgentDocumentId idOfSingleTag(String text) {
     final var tag = SINGLE_TAG.matcher(text.strip());
     if (!tag.matches() || tag.group(1) == null) {
       return null;
@@ -40,6 +40,6 @@ public final class DocumentTag {
       return null;
     }
     final var unescaped = StringEscapeUtils.unescapeXml(id.group(1));
-    return unescaped.isBlank() ? null : DocumentId.of(unescaped);
+    return unescaped.isBlank() ? null : AgentDocumentId.of(unescaped);
   }
 }

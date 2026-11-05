@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -41,15 +41,15 @@ public final class RuntimeToolCallImpl implements RuntimeToolCall {
 
   /**
    * A copy of the mapper that binds the arguments of a call. It ignores arguments the type has no
-   * property for, as a model sends them now and then, and hands a {@link DocumentId} on as the
-   * object it is, so that it binds to a property of the type {@link DocumentId} and to a property
-   * of the type {@link Object} alike, instead of as the string it is serialized to.
+   * property for, as a model sends them now and then, and hands a {@link AgentDocumentId} on as the
+   * object it is, so that it binds to a property of the type {@link AgentDocumentId} and to a
+   * property of the type {@link Object} alike, instead of as the string it is serialized to.
    */
   public static ObjectMapper argumentsMapper(ObjectMapper objectMapper) {
     return objectMapper
         .copy()
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-        .registerModule(new SimpleModule().addSerializer(new DocumentIdAsObjectSerializer()));
+        .registerModule(new SimpleModule().addSerializer(new AgentDocumentIdAsObjectSerializer()));
   }
 
   @Override
@@ -78,15 +78,16 @@ public final class RuntimeToolCallImpl implements RuntimeToolCall {
     }
   }
 
-  private static final class DocumentIdAsObjectSerializer extends JsonSerializer<DocumentId> {
+  private static final class AgentDocumentIdAsObjectSerializer
+      extends JsonSerializer<AgentDocumentId> {
 
     @Override
-    public Class<DocumentId> handledType() {
-      return DocumentId.class;
+    public Class<AgentDocumentId> handledType() {
+      return AgentDocumentId.class;
     }
 
     @Override
-    public void serialize(DocumentId id, JsonGenerator gen, SerializerProvider provider)
+    public void serialize(AgentDocumentId id, JsonGenerator gen, SerializerProvider provider)
         throws IOException {
       // convertValue writes to a token buffer, which keeps the object as an embedded value
       gen.writeEmbeddedObject(id);
