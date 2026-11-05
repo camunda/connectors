@@ -34,7 +34,7 @@ import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryCommitStatus;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.api.search.response.AgentInstanceHistory;
-import io.camunda.connector.agenticai.aiagent.document.AgentDocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.common.AgentCoreMemoryTestConfiguration;
@@ -434,7 +434,7 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
       AgentInstanceHistoryContent.DocumentContent document) {
     final var reference = document.getDocumentReference();
     final var id =
-        AgentDocumentHandle.idFor(
+        AgentDocumentId.of(
             new CamundaDocumentReferenceImpl(
                 reference.getStoreId(), reference.getDocumentId(), null, null));
     final var tagStart = "<doc id=\"" + id.value() + "\"";

@@ -26,8 +26,9 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.fi
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
+import io.camunda.connector.agenticai.aiagent.document.ProviderToolDefinitions;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
@@ -97,7 +98,7 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
     assertThat(body.path("type").asText()).isEqualTo("string");
     assertThat(body.path("description").asText())
         .startsWith("The message body.")
-        .endsWith(DocumentParameterSchema.UNION_HINT);
+        .endsWith(ProviderToolDefinitions.UNION_HINT);
 
     assertAgentResponse(
         zeebeTest,
@@ -107,13 +108,14 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
               .hasResponseText(FINAL_TEXT);
           // the tool gets the Camunda document reference of the document the tag names
           final var camundaDocumentId =
-              agentResponse
-                  .context()
-                  .documentWorkspace()
-                  .findById(DocumentId.of(id))
-                  .orElseThrow()
-                  .reference()
-                  .get("documentId");
+              ((CamundaDocumentReference)
+                      agentResponse
+                          .context()
+                          .documents()
+                          .find(AgentDocumentId.of(id))
+                          .orElseThrow()
+                          .reference())
+                  .getDocumentId();
           assertThat(toolResult(messages, TAG_CALL_ID)).contains("document:" + camundaDocumentId);
           // the persisted definition keeps the alternatives with the document format, without the
           // hint
@@ -125,7 +127,7 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
           assertThat(send.inputSchema().toString())
               .contains("anyOf", "format=camunda-document-id")
               .contains("The message body.")
-              .doesNotContain(DocumentParameterSchema.UNION_HINT);
+              .doesNotContain(ProviderToolDefinitions.UNION_HINT);
         });
     assertNoDocumentInternalsInLlmRequests();
   }

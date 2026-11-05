@@ -25,13 +25,15 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
+import io.camunda.connector.agenticai.aiagent.document.ProviderToolDefinitions;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -251,10 +253,18 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
       OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
     // the model sees the tools of the process next to the built-in c8__ tools
     final var expected = new ArrayList<>(expectedTools());
-    final var objectMapper = new ObjectMapper();
-    expected.addAll(
-        DocumentParameterSchema.toProviderToolDefinitions(
-            List.of(new GetDocumentTool().definition())));
+    ProviderToolDefinitions.of(
+            List.of(new GetDocumentTool().definition()),
+            new DocumentHandling.Tracked(AgentDocuments.empty()))
+        .stream()
+        // a recorded request does not tell the kind of a tool
+        .map(definition ->
+            new ToolDefinition(
+                definition.name(),
+                definition.description(),
+                definition.inputSchema(),
+                ToolKind.PROCESS))
+        .forEach(expected::add);
     assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }
 

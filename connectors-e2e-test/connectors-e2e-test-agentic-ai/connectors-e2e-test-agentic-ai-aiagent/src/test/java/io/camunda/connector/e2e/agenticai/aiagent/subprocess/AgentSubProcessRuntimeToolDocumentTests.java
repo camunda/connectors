@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
@@ -172,14 +173,17 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(FINAL_TEXT);
-          assertThat(agentResponse.context().documents())
+          assertThat(agentResponse.context().documents().all())
               .singleElement()
               .satisfies(entry -> {
                 assertThat(entry.id()).isEqualTo(tag.id());
                 assertThat(entry.origin())
                     .isEqualTo(AgentDocumentOrigin.toolCall(REPORT_TOOL, CREATE_CALL_ID));
-                // the reference stays in the workspace, the model never reads it
-                assertThat(entry.reference()).containsKey("storeId");
+                // the reference stays in the agent documents, the model never reads it
+                assertThat(entry.reference())
+                    .isInstanceOfSatisfying(
+                        CamundaDocumentReference.class,
+                        reference -> assertThat(reference.getStoreId()).isNotNull());
               });
         });
   }

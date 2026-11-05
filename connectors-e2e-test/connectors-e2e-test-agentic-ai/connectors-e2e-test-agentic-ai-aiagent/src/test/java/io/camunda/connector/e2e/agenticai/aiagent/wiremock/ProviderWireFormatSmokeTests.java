@@ -225,15 +225,12 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
-    // the document is referenced by its tag; its content is sent only for a template without a
-    // delivery of the prompt documents
+    // the model gets the tag of the document and its content
     assertThat(fixture.modelCallCount()).isEqualTo(1);
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-        fixture.promptDocumentsAsContent()
-            ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt)
-            : ProviderWireFormatExpectedMessage.userWithDocumentTag(userPrompt));
+        ProviderWireFormatExpectedMessage.userWithDocument(userPrompt));
 
     assertAgentResponse(
         zeebeTest,
@@ -270,32 +267,15 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
     assertThat(fixture.modelCallCount()).isEqualTo(2);
-    if (fixture.promptDocumentsAsContent()) {
-      // the content of the document is in the conversation already
-      ProviderWireFormatExpectedMessage.assertConversationMessages(
-          fixture.lastRecordedRequest(),
-          ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-          ProviderWireFormatExpectedMessage.userWithDocument(userPrompt),
-          ProviderWireFormatExpectedMessage.assistantWithToolCalls(
-              toolCallMessage, "c8__get_document"),
-          ProviderWireFormatExpectedMessage.toolCallResultMatching(
-              "get111", "Document doc_[0-9a-f]{12} is already in the conversation\\."));
-    } else {
-      // the content of the document follows the tool result, next to its tag; the answer is a
-      // text, the tag and a text, which the recorded text joins by a newline (chat completions
-      // formats) or by nothing (formats with a part per block)
-      ProviderWireFormatExpectedMessage.assertConversationMessages(
-          fixture.lastRecordedRequest(),
-          ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-          ProviderWireFormatExpectedMessage.userWithDocumentTag(userPrompt),
-          ProviderWireFormatExpectedMessage.assistantWithToolCalls(
-              toolCallMessage, "c8__get_document"),
-          ProviderWireFormatExpectedMessage.toolCallResultMatching(
-              "get111",
-              "Loaded the document\\.\n?<doc id=\"doc_[0-9a-f]{12}\"[^>]*/>\n?Its content follows in the next message\\."),
-          ProviderWireFormatExpectedMessage.userWithDocument(
-              "System message, not written by the user: the content of the documents loaded for the tool results above follows."));
-    }
+    // the content of the document is in the conversation already
+    ProviderWireFormatExpectedMessage.assertConversationMessages(
+        fixture.lastRecordedRequest(),
+        ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+        ProviderWireFormatExpectedMessage.userWithDocument(userPrompt),
+        ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+            toolCallMessage, "c8__get_document"),
+        ProviderWireFormatExpectedMessage.toolCallResultMatching(
+            "get111", "Document doc_[0-9a-f]{12} is already in the conversation\\."));
 
     assertAgentResponse(
         zeebeTest,
