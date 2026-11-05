@@ -504,6 +504,14 @@ It logs a warning at startup. Windows is not supported.
   with no fallback to the previous ones: a few seconds on AWS, up to a minute on GCP, longer when
   the creation is throttled. A job that waits longer than the provisioning timeout fails with
   `PROVISIONING_PENDING`, its retries unchanged, and runs after the operator's backoff.
+- The runtime does not pace its control-plane writes across clusters (GAP-012). Clusters that
+  share an AWS account or GCP project and create executors at the same time, as in a rollout of a
+  new wrapper, are throttled: 500 clusters on one GCP project need 1,000 creations at 60 writes per
+  minute. Each runtime backs off on its own, so this delays jobs rather than failing them, unless
+  the throttling lasts longer than twice the provisioning timeout: waiting jobs then consume their
+  retries and can end in incidents. Self-Managed is not affected, with usually one cluster per
+  account or project. In SaaS, a rollout of a new wrapper goes in waves that fit the write limit of
+  the shared account or project.
 - Cleanup depends on Controller, which needs list and delete rights on the functions projects and
   accounts. In Self-Managed, the operator cleans up by hand.
 - A configuration change updates the executors in place. During a rolling update, instances that
