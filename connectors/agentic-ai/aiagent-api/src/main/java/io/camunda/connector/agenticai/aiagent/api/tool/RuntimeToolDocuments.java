@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 import java.util.List;
 import java.util.Optional;
@@ -24,7 +24,7 @@ import java.util.Optional;
 public interface RuntimeToolDocuments {
 
   /** The document with the given id, or empty if the agent does not know it. */
-  Optional<AgentDocument> find(DocumentId id);
+  Optional<AgentDocument> find(AgentDocumentId id);
 
   /** All documents the agent knows, in the order they entered the conversation. */
   List<AgentDocument> all();
@@ -37,5 +37,5 @@ public interface RuntimeToolDocuments {
    *
    * @throws IllegalArgumentException if the agent does not know a document with this id
    */
-  DocumentReferenceContent reference(DocumentId id);
+  AgentDocumentContent reference(AgentDocumentId id);
 }

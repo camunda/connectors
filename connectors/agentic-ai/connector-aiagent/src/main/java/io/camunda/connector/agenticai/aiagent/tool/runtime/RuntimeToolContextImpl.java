@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.util.Set;
 
 public record RuntimeToolContextImpl(
@@ -21,22 +21,22 @@ public record RuntimeToolContextImpl(
     implements RuntimeToolContext {
 
   /**
-   * The context of the given agent state. Its documents are the ones of the document workspace of
-   * {@code agentContext}.
+   * The context of the given agent state. Its documents are the agent documents of {@code
+   * agentContext}.
    *
    * @param documentIdsWithContent the ids of the documents whose content the model reads
-   * @param objectMapper the mapper that reads a document from its reference
+   * @param documentFactory restores a document from its reference
    */
   public static RuntimeToolContextImpl of(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      Set<DocumentId> documentIdsWithContent,
-      ObjectMapper objectMapper) {
+      Set<AgentDocumentId> documentIdsWithContent,
+      DocumentFactory documentFactory) {
     return new RuntimeToolContextImpl(
         executionContext,
         agentContext,
         new RuntimeToolDocumentsImpl(
-            agentContext.documentWorkspace(), documentIdsWithContent, objectMapper));
+            agentContext.documents(), documentIdsWithContent, documentFactory));
   }
 
   /**
@@ -46,7 +46,7 @@ public record RuntimeToolContextImpl(
   public static RuntimeToolContextImpl of(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      ObjectMapper objectMapper) {
-    return of(executionContext, agentContext, Set.of(), objectMapper);
+      DocumentFactory documentFactory) {
+    return of(executionContext, agentContext, Set.of(), documentFactory);
   }
 }

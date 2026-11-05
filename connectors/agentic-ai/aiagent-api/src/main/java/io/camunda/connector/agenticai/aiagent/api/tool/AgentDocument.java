@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 import io.camunda.connector.api.document.Document;
 
@@ -21,7 +21,7 @@ import io.camunda.connector.api.document.Document;
 public interface AgentDocument {
 
   /** The stable id of the document, the one in its tag. */
-  DocumentId id();
+  AgentDocumentId id();
 
   /** Where the document entered the conversation. */
   AgentDocumentOrigin origin();

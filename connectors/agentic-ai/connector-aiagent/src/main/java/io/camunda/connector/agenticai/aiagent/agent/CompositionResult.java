@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
@@ -50,7 +50,7 @@ public sealed interface CompositionResult {
    */
   record Ready(
       AgentContext agentContext,
-      Set<DocumentId> documentIdsWithContent,
+      Set<AgentDocumentId> documentIdsWithContent,
       ToolCallBatch toolCallBatch,
       TurnInput userPrompt,
       TurnInput events)
@@ -67,7 +67,7 @@ public sealed interface CompositionResult {
     /** The next turn that answers the calls of the batch only. */
     public static Ready of(
         AgentContext agentContext,
-        Set<DocumentId> documentIdsWithContent,
+        Set<AgentDocumentId> documentIdsWithContent,
         ToolCallBatch toolCallBatch) {
       return new Ready(
           agentContext,

@@ -21,13 +21,14 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.OffsetDateTime;
@@ -60,7 +61,7 @@ public class RuntimeTools {
    */
   private static final ObjectMapper PLAIN_READER = JsonMapper.builder().build();
 
-  private final ObjectMapper objectMapper;
+  private final DocumentFactory documentFactory;
   private final ObjectMapper argumentsMapper;
   private final ObjectMapper resultMapper;
   private final DocumentParameterResolver documentParameterResolver;
@@ -72,9 +73,10 @@ public class RuntimeTools {
   public RuntimeTools(
       List<RuntimeTool> tools,
       ObjectMapper objectMapper,
+      DocumentFactory documentFactory,
       DocumentParameterResolver documentParameterResolver) {
     this.registrationsByName = register(tools);
-    this.objectMapper = objectMapper;
+    this.documentFactory = documentFactory;
     this.argumentsMapper = RuntimeToolCallImpl.argumentsMapper(objectMapper);
     this.resultMapper =
         objectMapper.copy().registerModule(new SimpleModule().addSerializer(new DocumentAsItIs()));
@@ -87,7 +89,7 @@ public class RuntimeTools {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return List.of();
     }
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
+    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, documentFactory);
     return registrationsByName.values().stream()
         .filter(registration -> registration.tool().isEnabled(context))
         .map(Registration::definition)
@@ -114,11 +116,11 @@ public class RuntimeTools {
   public List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      Set<DocumentId> documentIdsWithContent,
+      Set<AgentDocumentId> documentIdsWithContent,
       List<ToolCall> calls) {
     final var context =
         RuntimeToolContextImpl.of(
-            executionContext, agentContext, documentIdsWithContent, objectMapper);
+            executionContext, agentContext, documentIdsWithContent, documentFactory);
     return calls.stream().map(call -> execute(context, call)).toList();
   }
 

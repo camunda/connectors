@@ -8,13 +8,13 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolSchemas;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,11 +54,11 @@ public final class GetDocumentTool implements RuntimeTool {
           schema());
 
   /** The arguments of a call: the document to load. */
-  record Arguments(@Nullable DocumentId id) {}
+  record Arguments(@Nullable AgentDocumentId id) {}
 
   private static Map<String, Object> schema() {
     final var properties = new LinkedHashMap<String, Object>();
-    properties.put(PARAMETER_ID, RuntimeToolSchemas.document("The document to load."));
+    properties.put(PARAMETER_ID, DocumentSchemas.document("The document to load."));
     final var schema = new LinkedHashMap<String, Object>();
     schema.put("type", "object");
     schema.put("properties", properties);
@@ -71,9 +71,7 @@ public final class GetDocumentTool implements RuntimeTool {
     return DEFINITION;
   }
 
-  /**
-   * The tool works with the document workspace: only an agent with the documents feature has it.
-   */
+  /** The tool works with the agent documents: only an agent with the documents feature has it. */
   @Override
   public boolean isEnabled(RuntimeToolContext context) {
     return context.agentContext().supports(AgentFeatures.DOCUMENTS);

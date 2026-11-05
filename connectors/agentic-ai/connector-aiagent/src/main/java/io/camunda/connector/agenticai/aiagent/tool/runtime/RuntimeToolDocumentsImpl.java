@@ -6,56 +6,58 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-/** The documents of a workspace, as a runtime tool reads them. */
+/** The agent documents, as a runtime tool reads them. */
 public final class RuntimeToolDocumentsImpl implements RuntimeToolDocuments {
 
-  private final DocumentWorkspace workspace;
-  private final Set<DocumentId> idsWithContent;
-  private final ObjectMapper objectMapper;
+  private final AgentDocuments documents;
+  private final Set<AgentDocumentId> idsWithContent;
+  private final DocumentFactory documentFactory;
 
   /**
-   * @param workspace the documents the agent knows
+   * @param documents the documents the agent knows
    * @param idsWithContent the ids of the documents whose content the model reads
-   * @param objectMapper the mapper that reads a document from its reference
+   * @param documentFactory restores a document from its reference
    */
   public RuntimeToolDocumentsImpl(
-      DocumentWorkspace workspace, Set<DocumentId> idsWithContent, ObjectMapper objectMapper) {
-    this.workspace = workspace;
+      AgentDocuments documents,
+      Set<AgentDocumentId> idsWithContent,
+      DocumentFactory documentFactory) {
+    this.documents = documents;
     this.idsWithContent = Set.copyOf(idsWithContent);
-    this.objectMapper = objectMapper;
+    this.documentFactory = documentFactory;
   }
 
   @Override
-  public Optional<AgentDocument> find(DocumentId id) {
-    return workspace.findById(id).map(this::documentOf);
+  public Optional<AgentDocument> find(AgentDocumentId id) {
+    return documents.find(id).map(this::documentOf);
   }
 
   @Override
   public List<AgentDocument> all() {
-    return workspace.entries().stream().map(this::documentOf).toList();
+    return documents.all().stream().map(this::documentOf).toList();
   }
 
-  private AgentDocument documentOf(WorkspaceDocument entry) {
-    return new AgentDocumentImpl(entry, idsWithContent.contains(entry.id()), objectMapper);
+  private AgentDocument documentOf(
+      io.camunda.connector.agenticai.aiagent.model.document.AgentDocument agentDocument) {
+    return new AgentDocumentImpl(
+        agentDocument, idsWithContent.contains(agentDocument.id()), documentFactory);
   }
 
   @Override
-  public DocumentReferenceContent reference(DocumentId id) {
-    if (!workspace.contains(id)) {
+  public AgentDocumentContent reference(AgentDocumentId id) {
+    if (documents.find(id).isEmpty()) {
       throw new IllegalArgumentException("The agent does not know the document " + id);
     }
-    return new DocumentReferenceContent(id, DocumentDelivery.REFERENCE, null);
+    return AgentDocumentContent.of(id);
   }
 }
