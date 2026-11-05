@@ -115,15 +115,14 @@ class EmbeddingsVectorDBRequestValidationTest {
             sampleOperation(),
             new OpenAiEmbeddingModelProvider(
                 new OpenAiEmbeddingModelProvider.Configuration(
-                    null, "", null, null, null, null, null, emptyMap(), null)),
+                    "", null, null, null, null, null, emptyMap(), null)),
             sampleVectorStore());
     var violations = validator.validate(request);
     assertThat(violations).hasSize(2);
     assertThat(violations)
         .anySatisfy(violation -> {
-          assertThat(violation.getMessage())
-              .isEqualTo("No API key provided by the credential or the element template");
-          assertThat(violation.getPropertyPath().toString()).contains("apiKeyPresent");
+          assertThat(violation.getMessage()).isEqualTo("must not be blank");
+          assertThat(violation.getPropertyPath().toString()).contains("apiKey");
         });
     assertThat(violations)
         .anySatisfy(violation -> {
@@ -140,7 +139,7 @@ class EmbeddingsVectorDBRequestValidationTest {
             sampleModelProvider(),
             new AzureAiSearchVectorStore(
                 new AzureAiSearchVectorStore.Configuration(
-                    null, null, new AzureAuthentication.AzureApiKeyAuthentication(null), " ")));
+                    null, new AzureAuthentication.AzureApiKeyAuthentication(null), " ")));
     var violations = validator.validate(request);
     assertThat(violations).hasSize(3);
     assertThat(violations)
@@ -171,12 +170,12 @@ class EmbeddingsVectorDBRequestValidationTest {
   private EmbeddingModelProvider sampleModelProvider() {
     return new OpenAiEmbeddingModelProvider(
         new OpenAiEmbeddingModelProvider.Configuration(
-            null, "API_KEY", "MODEL_NAME", null, null, null, null, emptyMap(), null));
+            "API_KEY", "MODEL_NAME", null, null, null, null, emptyMap(), null));
   }
 
   private EmbeddingsVectorStore sampleVectorStore() {
     return new ElasticsearchVectorStore(
         new ElasticsearchVectorStore.Configuration(
-            "http://localhost:9200", null, "username", "password", "index-name"));
+            "http://localhost:9200", "username", "password", "index-name"));
   }
 }
