@@ -229,16 +229,76 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
-    // an instance with the documents feature gives the model the handle of the document and its
-    // content, an instance without it the content only
+    // the document is referenced by its handle; its content is sent only for a template without a
+    // delivery of the prompt documents
     assertThat(fixture.modelCallCount()).isEqualTo(1);
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-        fixture.documentsFeature()
+        fixture.promptDocumentsAsContent()
             ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt)
-            : ProviderWireFormatExpectedMessage.userWithDocumentContent(userPrompt));
-    assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
+            : ProviderWireFormatExpectedMessage.userWithDocumentHandle(userPrompt));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(responseText));
+  }
+
+  @Test
+  void documentRequestedByTheModel() throws Exception {
+    final var userPrompt = "Summarize the following document";
+    final var toolCallMessage = "I will read the document.";
+    final var responseText = "TL;DR: it is pretty interesting";
+
+    fixture.stubConversation(
+        TurnStub.toolCalls(
+            toolCallMessage,
+            10,
+            20,
+            new ToolCallStub(
+                "get111",
+                "c8__load_document",
+                "{\"id\": {\"type\":\"camunda.agenticai.document\",\"id\":\"@@DOC_ID_0@@\"}}")),
+        TurnStub.text(responseText, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                Map.of(
+                    "userPrompt",
+                    userPrompt,
+                    "downloadUrls",
+                    List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
+
+    assertThat(fixture.modelCallCount()).isEqualTo(2);
+    if (fixture.promptDocumentsAsContent()) {
+      // the content of the document is in the conversation already
+      ProviderWireFormatExpectedMessage.assertConversationMessages(
+          fixture.lastRecordedRequest(),
+          ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+          ProviderWireFormatExpectedMessage.userWithDocument(userPrompt),
+          ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+              toolCallMessage, "c8__load_document"),
+          ProviderWireFormatExpectedMessage.toolCallResultMatching(
+              "get111",
+              "The content of " + DOCUMENT_REF_REGEX + " is already in the conversation\\."));
+    } else {
+      // the content of the document follows the tool result in a message of its own
+      ProviderWireFormatExpectedMessage.assertConversationMessages(
+          fixture.lastRecordedRequest(),
+          ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+          ProviderWireFormatExpectedMessage.userWithDocumentHandle(userPrompt),
+          ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+              toolCallMessage, "c8__load_document"),
+          ProviderWireFormatExpectedMessage.toolCallResultMatching(
+              "get111", "The content of " + DOCUMENT_REF_REGEX + " follows in the next message\\."),
+          ProviderWireFormatExpectedMessage.userWithDocument(
+              ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
+    }
 
     assertAgentResponse(
         zeebeTest,
