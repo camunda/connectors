@@ -16,9 +16,9 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
+import io.a2a.json.JsonProcessingException;
 import io.a2a.spec.Task;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
@@ -45,6 +45,8 @@ import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -77,7 +79,7 @@ class A2aClientWebhookExecutableTest {
   @BeforeEach
   void beforeEach() {
     A2aSdkObjectConverter a2aSdkObjectConverter = mock(A2aSdkObjectConverter.class);
-    webhookExecutable = new A2aClientWebhookExecutable(a2aSdkObjectConverter, new ObjectMapper());
+    webhookExecutable = new A2aClientWebhookExecutable(a2aSdkObjectConverter);
 
     lenient()
         .when(a2aSdkObjectConverter.convert(any(Task.class)))
@@ -124,6 +126,58 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
+  void triggerWebhook_TaskWithValidStatusAndHistoryMessages_ReturnsMappedRequest() {
+    String body =
+        """
+        {
+          "kind": "task",
+          "id": "task-123",
+          "contextId": "ctx-123",
+          "status": {
+            "state": "completed",
+            "message": {
+              "kind": "message",
+              "messageId": "m-2",
+              "role": "agent",
+              "parts": [{"kind": "text", "text": "done"}]
+            }
+          },
+          "artifacts": [],
+          "history": [
+            {
+              "kind": "message",
+              "messageId": "m-1",
+              "role": "user",
+              "parts": [{"kind": "text", "text": "hi"}]
+            }
+          ]
+        }
+        """;
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "a2aWebhookContext",
+                        "clientResponse", "=task",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn(HttpMethods.post.name());
+    when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    when(payload.rawBody()).thenReturn(body.getBytes(StandardCharsets.UTF_8));
+
+    webhookExecutable.activate(ctx);
+    var result = webhookExecutable.triggerWebhook(payload);
+
+    assertThat(result.request().body()).isInstanceOf(A2aTask.class);
+    assertThat(((A2aTask) result.request().body()).id()).isEqualTo("task-123");
+  }
+
+  @Test
   void triggerWebhook_InvalidJson_ThrowsException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
@@ -143,6 +197,55 @@ class A2aClientWebhookExecutableTest {
 
     assertThatThrownBy(() -> webhookExecutable.triggerWebhook(payload))
         .isInstanceOf(RuntimeException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "",
+        "   ",
+        "null",
+        "{}",
+        "[]",
+        "{\"kind\": \"task\"}",
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\"}",
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\", \"status\": {}}",
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"status\": {\"state\": \"completed\"}}",
+        "{\"kind\": \"message\", \"messageId\": \"m-1\", \"role\": \"agent\", \"parts\": []}",
+        // history message without role (would silently be converted to USER)
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\","
+            + " \"status\": {\"state\": \"completed\"},"
+            + " \"history\": [{\"kind\": \"message\", \"messageId\": \"m-1\", \"parts\": []}]}",
+        // status message without role
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\","
+            + " \"status\": {\"state\": \"completed\","
+            + " \"message\": {\"kind\": \"message\", \"messageId\": \"m-1\", \"parts\": []}}}",
+        // null list entries
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\","
+            + " \"status\": {\"state\": \"completed\"}, \"history\": [null]}",
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\","
+            + " \"status\": {\"state\": \"completed\"}, \"artifacts\": [null]}"
+      })
+  void triggerWebhook_PayloadIsNotAValidTask_ThrowsWrappedParsingException(String body) {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "a2aWebhookContext",
+                        "clientResponse", "=task",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.rawBody()).thenReturn(body.getBytes(StandardCharsets.UTF_8));
+
+    webhookExecutable.activate(ctx);
+
+    assertThatThrownBy(() -> webhookExecutable.triggerWebhook(payload))
+        .isInstanceOf(RuntimeException.class)
+        .hasCauseInstanceOf(JsonProcessingException.class);
   }
 
   @Test
