@@ -336,7 +336,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             "get111",
             "Requested the content of the document\\.\n?<doc id=\"doc_[0-9a-f]{12}\"[^>]*/>\n?It follows in the next message, or a note says why it cannot be loaded\\."),
         ProviderWireFormatExpectedMessage.userWithDocument(
-            "System message, not written by the user: the content of the documents loaded for the tool results above follows."));
+            "System message, not written by the user: the content of the documents requested for the tool results above follows, or a note says why a document cannot be loaded."));
 
     assertAgentResponse(
         zeebeTest,
