@@ -40,6 +40,15 @@ class ToolCallAdmissionTest {
   private static final ToolDefinition RUNTIME_UPLOAD_TOOL =
       ToolDefinition.runtime("acme_upload", "Upload", documentSchema());
 
+  private static final ToolDefinition PROCESS_SEND_TOOL =
+      new ToolDefinition("send", "Send", unionSchema());
+  private static final ToolDefinition RUNTIME_SEND_TOOL =
+      ToolDefinition.runtime("acme_send", "Send", unionSchema());
+
+  private static final String UNKNOWN_BODY =
+      "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document."
+          + " Pass the tag of a document exactly as you read it, or pass other text.";
+
   private static final String BOGUS_DOC =
       "Parameter 'doc' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'.";
 
@@ -196,6 +205,55 @@ class ToolCallAdmissionTest {
 
     assertThat(admitted.toolCalls())
         .containsExactly(processCall, runtimeCall.withKind(ToolKind.RUNTIME));
+  }
+
+  @Test
+  void aCallOfEitherKindWithTheTagOfAnUnknownDocumentInAUnionParameterIsRejectedAndKeepsItsKind() {
+    final var processCall = new ToolCall("p1", "send", Map.of("body", "<doc id=\"nope\" />"));
+    final var runtimeCall = new ToolCall("r1", "acme_send", Map.of("body", "<doc id=\"nope\" />"));
+
+    final var admitted =
+        admission.admit(
+            messageWith(processCall, runtimeCall),
+            List.of(PROCESS_SEND_TOOL, RUNTIME_SEND_TOOL),
+            KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(
+            processCall.withRejection(UNKNOWN_BODY),
+            runtimeCall.withKind(ToolKind.RUNTIME).withRejection(UNKNOWN_BODY));
+    assertThat(admitted.toolCalls())
+        .extracting(ToolCall::kind)
+        .containsExactly(ToolKind.PROCESS, ToolKind.RUNTIME);
+  }
+
+  @Test
+  void aCallOfEitherKindWithTextOrTheTagOfAKnownDocumentInAUnionParameterIsAdmitted() {
+    final var processText = new ToolCall("p1", "send", Map.of("body", "hello"));
+    final var processTag = new ToolCall("p2", "send", Map.of("body", REPORT_TAG));
+    final var runtimeText = new ToolCall("r1", "acme_send", Map.of("body", "hello"));
+    final var runtimeTag = new ToolCall("r2", "acme_send", Map.of("body", REPORT_TAG));
+
+    final var admitted =
+        admission.admit(
+            messageWith(processText, processTag, runtimeText, runtimeTag),
+            List.of(PROCESS_SEND_TOOL, RUNTIME_SEND_TOOL),
+            KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(
+            processText,
+            processTag,
+            runtimeText.withKind(ToolKind.RUNTIME),
+            runtimeTag.withKind(ToolKind.RUNTIME));
+  }
+
+  private static Map<String, Object> unionSchema() {
+    return Map.of(
+        "type",
+        "object",
+        "properties",
+        Map.of("body", RuntimeToolSchemas.textOrDocument("The body")));
   }
 
   private static Map<String, Object> documentSchema() {
