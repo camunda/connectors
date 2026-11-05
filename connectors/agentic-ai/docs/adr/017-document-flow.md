@@ -280,6 +280,19 @@ Content enters the request in two ways, which share one guard and one persisted 
   that always comes with a short PDF or a tool that returns a text file. Events, MCP tools and A2A tools stay references;
   a gateway handler can set the delivery on the tool definitions it creates.
 
+The opt-in of a tool activity is the same request a runtime tool makes: the agent gives the result of a tool with the
+delivery `content` a request for the content of each of its documents, so one rule decides the guard, a document the
+model reads already, and the note for a rejected document, whoever asks. The user prompt uses the same decision for an
+explicit `content`; the only documents it exempts are those of an external URL. The delivery of the prompt is read at the
+edge of the request: a process that sets none is its own case in the domain, not a missing value. A value of the
+extension property that is neither `reference` nor `content` is a modeling error and fails the tool discovery with a
+message that names the element, instead of silently keeping the references. The delivery of a tool is part of the stored
+tool definition but not of what the model providers get.
+
+Upgrading a task or sub-process to the v2 template version that has the dropdown in the Modeler applies its default
+`reference`. This is intended: it is the default for newly modeled processes, and the documents of a tool result are
+references by default, where content was the only behavior before.
+
 Content is sticky: a loaded document stays in every request until the message that holds it leaves the window. An
 explicit removal or a summary would need its own design.
 

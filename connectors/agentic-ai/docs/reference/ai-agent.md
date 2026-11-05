@@ -2209,11 +2209,11 @@ file as a Camunda document instead.
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
 
-**Limits.** A document that expires in its store is not noticed by the agent. Documents named only in the content of an
-evicted assistant message are not tracked, and handles the model writes in the final text are not interpreted. A
-content type is not sniffed from the bytes for documents of unknown type. The extension property of the delivery is set
-by hand in the properties panel. The follow-ups that close these limits are
-listed in [ADR 017](../adr/017-document-flow.md).
+**Limits.** The delivery is stored on each block, so the history can show the same document with different deliveries. A
+document that expires in its store is not noticed by the agent. Documents named only in the content of an evicted
+assistant message are not tracked, and handles the model writes in the final text are not interpreted. A content type is
+not sniffed from the bytes for documents of unknown type. The extension property of the delivery is set by hand in the
+properties panel. The follow-ups that close these limits are listed in [ADR 017](../adr/017-document-flow.md).
 
 `ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` for each
 process tool call result, before `ToolCallResultsInputBuilder` builds the `ToolCallResultMessage`. For each result it asks the registry which handler manages
