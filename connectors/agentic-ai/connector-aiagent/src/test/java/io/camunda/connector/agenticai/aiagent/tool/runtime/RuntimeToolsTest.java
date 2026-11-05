@@ -651,7 +651,7 @@ class RuntimeToolsTest {
   }
 
   @Test
-  void answersATagOfAnUnknownDocumentInAUnionParameterOfARuntimeToolWithAnErrorAndDoesNotRunIt() {
+  void aCallWithATagOfAnUnknownDocumentInAUnionParameterFailsAndDoesNotRunTheTool() {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
@@ -660,16 +660,15 @@ class RuntimeToolsTest {
               runs.incrementAndGet();
               return RuntimeToolResult.success("sent");
             });
+    final var call = runtimeCall("r1", "c8__send", Map.of("body", "<doc id=\"nope\" />"));
 
-    final var executions =
-        toolsOf(tool)
-            .execute(
-                WITH_MEMORY,
-                knowingWithDocumentsFeature(),
-                List.of(runtimeCall("r1", "c8__send", Map.of("body", "<doc id=\"nope\" />"))));
-
+    assertThatThrownBy(
+            () -> toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(), List.of(call)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The call 'r1' of the tool 'c8__send' is admitted, but its document parameters are invalid: "
+                + UNKNOWN_BODY);
     assertThat(runs).hasValue(0);
-    assertThat(text(executions.getFirst())).isEqualTo(UNKNOWN_BODY);
   }
 
   @Test

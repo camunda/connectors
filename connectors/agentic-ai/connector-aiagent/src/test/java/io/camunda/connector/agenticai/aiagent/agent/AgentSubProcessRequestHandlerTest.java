@@ -2418,7 +2418,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // a call with text in the union parameter goes to the process, the rejected one does not
     verify(chatModel, times(1)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     final var agentResponse = response.responseValue();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(textCall));
@@ -2735,6 +2735,7 @@ class AgentSubProcessRequestHandlerTest {
 
   private static final String BOGUS_DOCUMENT =
       "Parameter 'doc' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'.";
+
   private static ToolCall rejectedForUnknownBody(ToolCall call) {
     return call.withRejection(
         "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document."
