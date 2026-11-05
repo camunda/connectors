@@ -165,7 +165,7 @@ jobs:
           password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
 
       - name: Build and Push Docker Image - connector-runtime
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
@@ -175,7 +175,7 @@ jobs:
 
       - name: Build and Push Docker Image tag SNAPSHOT - connector-runtime
         if: steps.version.outputs.is_main == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
@@ -192,7 +192,7 @@ jobs:
           fi
 
       - name: Build and Push Docker Image - bundle-default
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: bundle/default-bundle/
           push: true
@@ -202,7 +202,7 @@ jobs:
 
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-default
         if: steps.version.outputs.is_main == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: bundle/default-bundle/
           push: true
@@ -219,7 +219,7 @@ jobs:
           fi
 
       - name: Build and Push Docker Image - bundle-saas
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: bundle/camunda-saas-bundle/
           push: true
@@ -229,7 +229,7 @@ jobs:
 
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-saas
         if: steps.version.outputs.is_main == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: bundle/camunda-saas-bundle/
           push: true
