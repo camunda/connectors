@@ -83,6 +83,15 @@ public record ToolCall(
     return resultSource() != ResultSource.PROCESS;
   }
 
+  /**
+   * The call with the given arguments. Unlike {@link #withArguments}, it keeps a {@code null} value
+   * in the arguments, which a model can send explicitly and the immutable copy of the builder
+   * rejects.
+   */
+  public ToolCall withResolvedArguments(Map<String, Object> resolvedArguments) {
+    return new ToolCall(id, name, resolvedArguments, metadata, kind, rejection);
+  }
+
   public static ToolCallBuilder builder() {
     return ToolCallBuilder.builder();
   }
