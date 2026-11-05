@@ -11,13 +11,12 @@ import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocume
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolSchemas;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -55,15 +54,14 @@ class ToolCallAdmissionTest {
       AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
 
   private static final Document REPORT = createDocument("report data", "report.txt");
-  private static final String REPORT_TAG = "<doc id=\"" + DocumentHandle.idFor(REPORT) + "\" />";
+  private static final String REPORT_TAG = "<doc id=\"" + AgentDocumentId.of(REPORT) + "\" />";
 
   private static final AgentContext KNOWING_REPORT =
       AgentContext.empty()
           .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
-          .withDocumentWorkspace(
-              DocumentIngestion.withDocuments(
-                  DocumentWorkspace.empty(),
-                  List.of(new IngestedDocument(REPORT, DocumentOrigin.userMessage()))));
+          .withDocuments(
+              AgentDocuments.empty()
+                  .register(List.of(new NewDocument(REPORT, DocumentOrigin.userMessage()))));
 
   private final ToolCallAdmission admission = new ToolCallAdmission();
 

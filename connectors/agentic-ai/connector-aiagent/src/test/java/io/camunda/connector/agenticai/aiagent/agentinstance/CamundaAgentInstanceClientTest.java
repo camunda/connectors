@@ -50,7 +50,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -76,6 +80,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAut
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
@@ -1416,27 +1421,24 @@ class CamundaAgentInstanceClientTest {
                       .contentType("text/plain")
                       .fileName("report.txt")
                       .build());
-      final var documentTag = "<doc id=\"" + DocumentHandle.idFor(document) + "\" />";
-      final var firstWorkspace =
-          DocumentIngestion.withDocuments(
-              DocumentWorkspace.empty(),
+      final var documentTag = "<doc id=\"" + AgentDocumentId.of(document) + "\" />";
+      final var firstDocuments =
+          AgentDocuments.empty()
+              .register(
+                  List.of(
+                      new NewDocument(document, DocumentOrigin.toolCall("Download", "download"))));
+      final var laterDocuments =
+          firstDocuments.register(
               List.of(
-                  new IngestedDocument(document, DocumentOrigin.toolCall("Download", "download"))));
-      final var laterWorkspace =
-          DocumentIngestion.withDocuments(
-              firstWorkspace,
-              List.of(
-                  new IngestedDocument(
+                  new NewDocument(
                       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
                           .create(
                               DocumentCreationRequest.from("other".getBytes(StandardCharsets.UTF_8))
                                   .fileName("other.txt")
                                   .build()),
                       DocumentOrigin.userMessage())));
-      final var withDocuments =
-          NEW_INSTANCE.withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
-      final var first = withDocuments.withDocumentWorkspace(firstWorkspace);
-      final var later = withDocuments.withDocumentWorkspace(laterWorkspace);
+      final var first = new DocumentHandling.Tracked(firstDocuments);
+      final var later = new DocumentHandling.Tracked(laterDocuments);
 
       final var runtimeResult =
           ToolCallResultContent.builder()

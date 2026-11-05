@@ -24,17 +24,15 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -47,6 +45,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
@@ -446,18 +445,17 @@ class AgentResponseHandlerTest {
         ToolDefinition.builder().name("getWeather").inputSchema(Map.of("type", "object")).build();
 
     private final Document report = createDocument("report", "report.txt");
-    private final DocumentId reportId = DocumentHandle.idFor(report);
-    private final DocumentWorkspace workspace =
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            List.of(new IngestedDocument(report, DocumentOrigin.userMessage())));
+    private final AgentDocumentId reportId = AgentDocumentId.of(report);
+    private final AgentDocuments documents =
+        AgentDocuments.empty()
+            .register(List.of(new NewDocument(report, DocumentOrigin.userMessage())));
 
     private AgentConversation conversation(List<String> features, ToolCall... calls) {
       final var context =
           AgentContext.empty()
               .withState(AgentState.READY)
               .withFeatures(features)
-              .withDocumentWorkspace(workspace)
+              .withDocuments(documents)
               .withToolDefinitions(List.of(UPLOAD, SEND, WEATHER));
       return AgentConversation.rehydrate(
               new AgentConfiguration(
@@ -487,7 +485,8 @@ class AgentResponseHandlerTest {
           .satisfies(toolCall -> {
             assertThat(toolCall.metadata().id()).isEqualTo("u1");
             assertThat(toolCall.arguments())
-                .containsEntry("doc", workspace.findById(reportId).orElseThrow().reference());
+                .containsEntry(
+                    "doc", TestDocuments.referenceJson(documents.find(reportId).orElseThrow()));
           });
     }
 
@@ -502,7 +501,7 @@ class AgentResponseHandlerTest {
       assertThat(response.toolCalls())
           .extracting(call -> call.metadata().id(), call -> call.arguments().get("body"))
           .containsExactly(
-              tuple("s1", workspace.findById(reportId).orElseThrow().reference()),
+              tuple("s1", TestDocuments.referenceJson(documents.find(reportId).orElseThrow())),
               tuple("s2", "hello " + reportId));
     }
 
@@ -539,7 +538,7 @@ class AgentResponseHandlerTest {
       assertThat(response.toolCalls())
           .extracting(call -> call.metadata().id(), call -> call.arguments().get("doc"))
           .containsExactly(
-              tuple("u1", workspace.findById(reportId).orElseThrow().reference()),
+              tuple("u1", TestDocuments.referenceJson(documents.find(reportId).orElseThrow())),
               tuple("w1", "nope"));
     }
 
@@ -557,7 +556,8 @@ class AgentResponseHandlerTest {
           .singleElement()
           .satisfies(toolCall ->
               assertThat(toolCall.arguments())
-                  .containsEntry("doc", workspace.findById(reportId).orElseThrow().reference()));
+                  .containsEntry(
+                      "doc", TestDocuments.referenceJson(documents.find(reportId).orElseThrow())));
     }
 
     @Test

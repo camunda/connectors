@@ -610,12 +610,11 @@ class AgentInstanceHistoryMapperTest {
                     .contentType("text/plain")
                     .fileName("report.txt")
                     .build());
-    private final DocumentId documentId = DocumentHandle.idFor(document);
-    private final DocumentWorkspace workspace =
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            List.of(new IngestedDocument(document, DocumentOrigin.userMessage())));
-    private final AgentContext agentContext = WITH_DOCUMENTS.withDocumentWorkspace(workspace);
+    private final AgentDocumentId documentId = AgentDocumentId.of(document);
+    private final AgentDocuments documents =
+        AgentDocuments.empty()
+            .register(List.of(new NewDocument(document, DocumentOrigin.userMessage())));
+    private final AgentContext agentContext = WITH_DOCUMENTS.withDocuments(documents);
 
     private final ToolCall uploadCall =
         ToolCall.builder()
@@ -658,7 +657,8 @@ class AgentInstanceHistoryMapperTest {
               ToolCallResultMessage.builder().results(List.of(result)).build(),
               Map.of("call-1", uploadCall),
               TURN_INGESTION_TIMESTAMP,
-              agentContext);
+              agentContext.documentHandling(),
+              TestDocuments.documentFactory());
 
       assertThat(items)
           .singleElement()
@@ -715,7 +715,8 @@ class AgentInstanceHistoryMapperTest {
               ToolCallResultMessage.builder().results(List.of(result)).build(),
               Map.of("call-3", rejected),
               TURN_INGESTION_TIMESTAMP,
-              agentContext);
+              agentContext.documentHandling(),
+              TestDocuments.documentFactory());
 
       assertThat(calls)
           .singleElement()
@@ -750,7 +751,8 @@ class AgentInstanceHistoryMapperTest {
               ToolCallResultMessage.builder().results(List.of(result)).build(),
               Map.of("call-1", uploadCall),
               TURN_INGESTION_TIMESTAMP,
-              NEW_INSTANCE);
+              NEW_INSTANCE.documentHandling(),
+              TestDocuments.documentFactory());
 
       assertThat(items)
           .singleElement()
@@ -1244,7 +1246,7 @@ class AgentInstanceHistoryMapperTest {
       final var item =
           item(
               message(
-                  DocumentReferences.from(document),
+                  AgentDocumentContent.of(AgentDocumentId.of(document)),
                   ObjectContent.objectContent(Map.of("file", otherDocument))),
               agentContext);
 
