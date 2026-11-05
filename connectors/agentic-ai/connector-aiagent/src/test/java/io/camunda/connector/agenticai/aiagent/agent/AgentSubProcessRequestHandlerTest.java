@@ -17,6 +17,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCal
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static io.camunda.connector.agenticai.testutil.MessageAssertions.assertMessagesEqualIgnoringSystemMessageId;
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
+import static io.camunda.connector.api.document.InlineSizeGuard.MAX_INLINE_BYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -1810,7 +1811,7 @@ class AgentSubProcessRequestHandlerTest {
     when(tooLarge.reference())
         .thenReturn(
             new InlineDocumentReferenceModel(
-                "x".repeat(AgentDocuments.MAX_INLINE_CONTENT_LENGTH + 1), "big.txt", "text/plain"));
+                "x".repeat((int) MAX_INLINE_BYTES + 1), "big.txt", "text/plain"));
     final var unsupported = mock(Document.class);
     when(unsupported.reference()).thenReturn(new DocumentReference() {});
 

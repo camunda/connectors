@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
+import io.camunda.connector.api.document.InlineSizeGuard;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,18 +25,11 @@ import java.util.Optional;
  * <p>Serializes as the JSON list of its documents. The first document of an id wins.
  *
  * <p>The reference of an inline document holds its content in the context and in the tool result,
- * both of which are part of the job completion. An inline document whose content exceeds {@link
- * #MAX_INLINE_CONTENT_LENGTH} is therefore rejected.
+ * both of which are part of the job completion. An inline document whose content exceeds the
+ * variable size limit of a job completion ({@link InlineSizeGuard#MAX_INLINE_BYTES}) can never be
+ * completed, so it is rejected when it is registered, before the model is called.
  */
 public final class AgentDocuments {
-
-  /**
-   * The largest content of an inline document the agent accepts, counted in characters of the
-   * content the reference holds (base64 for binary documents, text otherwise). A larger document is
-   * rejected so that the job completion, which carries the content several times, stays well below
-   * the message size limit of the broker.
-   */
-  public static final int MAX_INLINE_CONTENT_LENGTH = 1024 * 1024;
 
   private static final AgentDocuments EMPTY = new AgentDocuments(Map.of());
 
@@ -74,7 +69,7 @@ public final class AgentDocuments {
    * it is, with its first origin.
    *
    * @throws InlineDocumentTooLargeException if the document is new and an inline document with more
-   *     than {@link #MAX_INLINE_CONTENT_LENGTH} characters of content
+   *     than {@link InlineSizeGuard#MAX_INLINE_BYTES} bytes of content
    * @throws DocumentIdCollisionException if the document gets the id of a different document
    * @throws UnsupportedDocumentReferenceException if the reference type of the document is not
    *     supported
@@ -88,7 +83,7 @@ public final class AgentDocuments {
    * is left as it is, with its first origin.
    *
    * @throws InlineDocumentTooLargeException if a new document is an inline document with more than
-   *     {@link #MAX_INLINE_CONTENT_LENGTH} characters of content
+   *     {@link InlineSizeGuard#MAX_INLINE_BYTES} bytes of content
    * @throws DocumentIdCollisionException if a document gets the id of a different document, one the
    *     collection holds or one of the batch
    * @throws UnsupportedDocumentReferenceException if the reference type of a document is not
@@ -117,12 +112,14 @@ public final class AgentDocuments {
   }
 
   private static void rejectLargeInlineContent(AgentDocument document) {
-    if (document.reference() instanceof InlineDocumentReference inline
-        && inline.content() != null
-        && inline.content().length() > MAX_INLINE_CONTENT_LENGTH) {
+    if (!(document.reference() instanceof InlineDocumentReference inline)
+        || inline.content() == null) {
+      return;
+    }
+    final long bytes = inline.content().getBytes(StandardCharsets.UTF_8).length;
+    if (bytes > InlineSizeGuard.MAX_INLINE_BYTES) {
       final var name = document.fileName();
-      throw new InlineDocumentTooLargeException(
-          name != null ? name : document.id().value(), inline.content().length());
+      throw new InlineDocumentTooLargeException(name != null ? name : document.id().value(), bytes);
     }
   }
 
