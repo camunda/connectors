@@ -222,16 +222,17 @@ implement the response handler interface directly, hand only the process tool ca
 
 ### Agent instance client and mappers
 
-- `AgentInstanceClient.applyTurnStart` takes the `AgentContext` as a last parameter. Its features decide how the documents of
-  the messages are shown, and its document workspace is what document tags are expanded with.
+- `AgentInstanceClient.applyTurnStart` takes the `DocumentHandling` of the agent instance
+  (`AgentContext.documentHandling()`) as a last parameter. It decides how the documents of the messages are shown, and
+  the agent documents of a `Tracked` instance are what document tags are expanded with.
 - `AgentInstanceClient.applyToolCallResults` takes `List<ToolCallResultContent>` instead of `List<ToolCallResult>` and the
-  `AgentContext` as a last parameter, whose features decide how the documents of the results are shown; convert with
+  `DocumentHandling` as a last parameter, which decides how the documents of the results are shown; convert with
   `ToolCallResultContent.from(result)`.
 - `AgentInstanceToolMapper` and `AgentInstanceHistoryMapper` keep their API. A runtime tool, decided by
   `ToolDefinition.kind()`, and a local tool call and its result, decided by `ToolCall.isLocal()` (a runtime tool call or
   a rejected call), are reported without an element id.
-- `AgentInstanceHistoryMapper`: the constructor takes a `DocumentExpander`, and `inputHistoryItems` takes the
-  `AgentContext`.
+- `AgentInstanceHistoryMapper`: the constructor takes a `DocumentRestorer` and an `ObjectTagRenderer`, and
+  `inputHistoryItems` takes the `DocumentHandling`.
 
 Migration: if you implement or decorate `AgentInstanceClient.applyToolCallResults`, convert as described above. Most
 extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate them instead.
@@ -245,9 +246,9 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
 
 ### Conversation window
 
-`AgentConversation.window(int size)` is replaced by `window(int size, UnaryOperator<List<Message>> decorator)`. The
-decorator turns the windowed messages into the messages of the snapshot; `UnaryOperator.identity()` leaves them as they
-are. The request handler passes `DocumentExpander.windowDecorator(conversation)`.
+`AgentConversation.window(int size)` keeps its signature. The request handler hands the snapshot to
+`DocumentExpander.expand(snapshot, documentHandling)` before it calls the model.
+`AgentConversation.nextRuntimeToolRound` takes the `AgentContext` the next round continues with as a second parameter.
 
 ### Runtime tools and tool names
 
@@ -278,32 +279,34 @@ are. The request handler passes `DocumentExpander.windowDecorator(conversation)`
 
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builder, or for `ToolCall` the constructors with three or four arguments and for `ToolDefinition` the constructor with
-  three arguments: `AgentContext` (`documents`, a list of workspace documents, and `features`, a list), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`
+  three arguments: `AgentContext` (`documents`, the `AgentDocuments`, and `features`, a list), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`
   by default, and `rejection`, an optional error text, none by default; the canonical constructor has the six components
   `id`, `name`, `arguments`, `metadata`, `kind` and `rejection`) and `ToolDefinition` (`kind`, `PROCESS` by default; a
   runtime tool declares `RUNTIME`, for example with `ToolDefinition.runtime(...)`). The agent sets the kind and the
   rejection of the tool calls of an assistant message once, when it receives the message. `ToolCall.resultSource()`
   (`PROCESS`, `RUNTIME` or `REJECTED`) and `ToolCall.isLocal()` derive who produces the tool call result; neither is
   written to JSON.
-- The sealed `Content` interface permits `DocumentReferenceContent` (content type `documentReference`). A `switch` over
-  `Content` must handle it. A custom chat model provider never receives it: the conversation window expands it before the
-  request is built.
+- The sealed `Content` interface permits `AgentDocumentContent` (content type `agentDocument`). A `switch` over
+  `Content` must handle it. A custom chat model provider never receives it: the agent expands it before the request is
+  built.
 - For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
   document goes out as content, as before. A document in a tool result is text, its tag, instead of a `DocumentContent` or
   the reference JSON, and its content is not added. A custom `ChatModel` that handles `DocumentContent` in tool results
   therefore sees text for these instances; instances without the feature keep the earlier form.
-- New in the model: `DocumentId`, the value type of a document id (persisted as a plain string), used by the document
-  workspace and `DocumentReferenceContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the
+- New in the model: `AgentDocumentId`, the value type of a document id (persisted as a plain string), used by the agent
+  documents and `AgentDocumentContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the
   identity of the document (the store and the id in the store of a Camunda document, the URL of an external document, the
   content of an inline document), so it is no longer the id of the document in its store.
-  `DocumentReferenceContent` holds the `DocumentId`, the `delivery` and the content `metadata`; the file name, content
-  type, size and origin the model reads are those of the workspace document of the id, and `aiagent.document.DocumentTags`
-  renders the tag.
+  `AgentDocumentContent` holds the `AgentDocumentId`, the `delivery` and the content `metadata`; the file name, content
+  type, size and origin the model reads are those of the agent document of the id, and `aiagent.document.DocumentTags`
+  renders the tag. `DocumentContent` stays the content of a new document; `AgentDocumentContent` is the persisted form of
+  a document the agent knows.
 - Renamed: `DocumentReferenceXmlTag` (see the [module split](#module-split)) is `aiagent.document.LegacyDocumentReferenceXmlTag`,
   which only agent instances without the `documents` feature use.
-- New in the libraries: the persisted document state (`DocumentWorkspace`, `WorkspaceDocument` and the sealed
-  `DocumentOrigin`, persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`) is in
-  `aiagent.model.document` of `aiagent-model`, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
+- New in the libraries: the persisted document state (`AgentDocuments`, `AgentDocument`, the sealed `DocumentOrigin`,
+  persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`, and the sealed `DocumentHandling` of an
+  agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
+  `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
   `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
 
 <a id="persisted-data-8-11"></a>
@@ -313,8 +316,8 @@ are. The request handler passes `DocumentExpander.windowDecorator(conversation)`
 - The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
   SHA-256 over a JSON serialization of the configuration. Every running agent instance, also one created before 8.11, writes
   one additional `CONFIGURATION` history item on its first job after the upgrade.
-- `AgentContext` gains `features` and `documents` (the document workspace), and the conversation of an agent instance with
-  the `documents` feature can contain `documentReference` content blocks. There is no schema version bump, and a missing
+- `AgentContext` gains `features` and `documents` (the agent documents), and the conversation of an agent instance with
+  the `documents` feature can contain `agentDocument` content blocks. There is no schema version bump, and a missing
   field binds to its empty value, so state written by 8.10 loads unchanged. An 8.10 connector runtime ignores the new
   fields and drops them on its next write.
 - A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
@@ -324,11 +327,11 @@ are. The request handler passes `DocumentExpander.windowDecorator(conversation)`
   state written by 8.10 loads unchanged. The agent never computes them again, so a custom `ConversationStore` must keep
   them: a store that drops them turns a runtime tool call or a rejected call into a process tool call that never gets a
   result. Serializing the `ToolCall` record with Jackson keeps them.
-- A stored message can hold a `DocumentReferenceContent`, which a custom `ConversationStore` must keep like any other
-  content block (serializing `Content` with Jackson keeps it). What a reference stands for is in the workspace of the agent
+- A stored message can hold an `AgentDocumentContent`, which a custom `ConversationStore` must keep like any other
+  content block (serializing `Content` with Jackson keeps it). What a block stands for is in the agent documents of the agent
   context, not in the store, so code that rewrites the agent context must keep `documents`.
 - Rolling back to 8.10 after 8.11 wrote the conversation of an agent instance with the `documents` feature is not
-  supported: an 8.10 runtime fails to read a conversation that contains a `documentReference` block (an unknown content
+  supported: an 8.10 runtime fails to read a conversation that contains an `agentDocument` block (an unknown content
   type).
 - **Mixed worker versions affect only a call of a runtime tool and a rejected call.** The JSON of every other tool call
   is unchanged, so an agent instance that calls only tools of the process runs on any worker. A connector runtime that

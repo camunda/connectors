@@ -1,4 +1,4 @@
-# Document flow: a workspace, short tags and content on demand
+# Document flow: agent documents, short tags and content on demand
 
 * Deciders: Agentic AI Team
 * Date: Oct 19, 2026
@@ -56,9 +56,9 @@ MCP and A2A tools, whose schemas come from the remote side, Modeler support and 
 ## Considered Options
 
 1. Keep ADR 004: content of every document in the request, as a follow-up user message.
-2. References by default, a document workspace in the agent context, content on request or by opt-in (chosen).
-3. References by default, with the known documents derived from the messages of the conversation instead of a
-   persisted workspace (dismissed: a window or a compaction that drops a message drops its documents, an inline
+2. References by default, the agent documents in the agent context, content on request or by opt-in (chosen).
+3. References by default, with the known documents derived from the messages of the conversation instead of
+   persisted agent documents (dismissed: a window or a compaction that drops a message drops its documents, an inline
    document is stored in every message that holds it, and the same document in several messages needs a rule for the
    occurrence that wins).
 
@@ -72,59 +72,74 @@ designer knows it up front.
 
 ### Vocabulary
 
-| Term                     | Meaning                                                                                              |
-|--------------------------|------------------------------------------------------------------------------------------------------|
-| **Document workspace**   | The documents an agent instance knows, a field of the agent context.                                 |
-| **Workspace document**   | One entry of the workspace: the document id, its origin and its complete Camunda document reference. |
-| **Document origin**      | Where a document entered the conversation: the user prompt, an event, or a tool call.                |
-| **Document id**          | The stable handle of a workspace document, derived from the document.                                |
-| **Document reference block** | The content of a message that names a workspace document by id and holds its delivery.           |
-| **Tag**                  | The `<doc/>` text the model reads for a document reference block.                                    |
-| **Agent document**       | The read-only view of a workspace document that a runtime tool reads.                                |
+| Term                       | Meaning                                                                                                |
+|----------------------------|--------------------------------------------------------------------------------------------------------|
+| **Agent documents**        | The documents an agent instance knows, a field of the agent context (`AgentDocuments`).                |
+| **Agent document**         | One of them: the document id, its origin and its Camunda document reference (`AgentDocument`).         |
+| **Document origin**        | Where a document entered the conversation: the user prompt, an event, or a tool call.                  |
+| **Document id**            | The stable handle of an agent document, derived from the document (`AgentDocumentId`).                 |
+| **Document block**         | The content of a message that names an agent document by id and holds its delivery (`AgentDocumentContent`). |
+| **New document block**     | The content of a message that holds a live document of the connector SDK (`DocumentContent`).          |
+| **Tag**                    | The `<doc/>` text the model reads for a document block.                                                |
+| **Document handling**      | How an agent instance treats its documents: `Untracked` or `Tracked`, derived from the `documents` feature. |
 
-### Document workspace in the agent context, typed block in the conversation
+### New and known documents
 
-The agent keeps a document workspace: a flat set of the documents the agent instance knows, addressed by id. It is a
-field of the agent context, persisted by the same job completion as the rest of the context. A workspace document holds
-the id, the origin of the document and its complete Camunda document reference, once. The workspace is append-only and
-has no paths and no listing. An entry is not changed after it was added; state per document, such as the selection for
-the final response, could become part of an entry later.
+A document is new or known to the agent, and the two have different content types:
 
-A document is persisted in the conversation as a typed content block, `DocumentReferenceContent`, that holds the id and
-the delivery. What the model is told about the document (file name, content type, size and origin) is read from the
-workspace document when the tag is rendered, so the conversation and the workspace never hold the same fact twice.
+* A **new document** is a `DocumentContent`, the live document of the connector SDK. It is the content at the places
+  where a document enters the conversation: the user prompt, events, the results of process tools and a runtime tool that
+  returns a new document. It is the content of every document of an instance that does not track its documents. It is
+  also the only document block a chat model provider sees, after the expansion.
+* A **known document** is an `AgentDocumentContent`, the persisted form of a document for an instance that tracks its
+  documents. It never reaches a provider: the expansion turns it into its tag text and, when it is delivered as content,
+  a `DocumentContent`.
+
+The content for the model comes only from the agent, through the delivery, never from a block that a tool authors.
+
+### Agent documents in the agent context, typed block in the conversation
+
+The agent keeps the agent documents: a flat set of the documents the agent instance knows, addressed by id. It is a
+field of the agent context, persisted by the same job completion as the rest of the context. An agent document holds
+the id, the origin of the document and its Camunda document reference in the format of the connector SDK, once. The set is
+append-only and has no paths and no listing. An agent document is not changed after it was added; state per document, such
+as the selection for the final response, could become part of it later.
+
+A document is persisted in the conversation as a typed content block, `AgentDocumentContent`, that holds the id and the
+delivery. What the model is told about the document (file name, content type, size and origin) is read from the agent
+document when the tag is rendered, so the conversation and the agent documents never hold the same fact twice.
 
 Alternatives:
 
 * *Keep the document as content in the messages.* Every later call pays for the bytes, an inline document is stored
   several times, and an evicted message loses the document.
-* *Derive the workspace from the messages.* A document would be known only while a message that holds it is in the
+* *Derive the agent documents from the messages.* A document would be known only while a message that holds it is in the
   window, and a compaction that drops messages would lose it. An inline document would be stored in every message that
   holds it and grow the variable. The same document can occur in several messages, which needs a rule for the occurrence
   that wins. Documents nested in tool results or extracted by gateway handlers are hard to find again.
-* *A workspace next to the messages in each conversation store.* Three stores would need an implementation, and the
-  workspace would not commit atomically with the job.
+* *Agent documents next to the messages in each conversation store.* Three stores would need an implementation, and the
+  documents would not commit atomically with the job.
 * *A tag as text.* The id and the delivery would have to be parsed back, and a tag a user typed would look like one the
   agent wrote.
 
 Consequences accepted:
 
-* The agent context grows with every document of the conversation, and the workspace is never pruned. The bound is the
+* The agent context grows with every document of the conversation, and the agent documents are never pruned. The bound is the
   message size of the broker for a job completion.
 * The persisted conversation is not self-contained: a block holds the id and the delivery only, and the tag and the
-  content come from the workspace when the conversation is windowed, so replaying needs the workspace of the same agent
-  context. Both are written by the same job completion.
-* There is no schema version bump: a missing field binds to an empty workspace, so earlier state loads.
+  content come from the agent documents when the conversation is windowed, so replaying needs the agent documents of the same
+  agent context. Both are written by the same job completion.
+* There is no schema version bump: a missing field binds to no agent documents, so earlier state loads.
 
 ### Document ids
 
-A document has a stable id, the value type `DocumentId`. It is the handle of the document in the tag, in the arguments
-of a tool call and in the workspace. The id is derived from the document: `doc_` followed by 12 hexadecimal characters of
+A document has a stable id, the value type `AgentDocumentId`. It is the handle of the document in the tag, in the arguments
+of a tool call and in the agent documents. The id is derived from the document: `doc_` followed by 12 hexadecimal characters of
 a SHA-256 over the identity of the document. The identity is, by kind of reference, the store and the id in the store of a
 Camunda document, the URL of an external document, and the content of an inline document. The same document gets the same
-id in every job, so registering a document again adds nothing, and a job that runs again computes the same workspace. Registering a
-document whose id belongs to a different document in the workspace fails with an error and never merges the two; with
-48 bits this is not expected to happen.
+id in every job, so registering a document again adds nothing, and a job that runs again computes the same agent documents. Registering a
+document whose id belongs to a different document, one the agent knows or one registered with it, fails with an error
+and never merges the two; with 48 bits this is not expected to happen.
 
 The model never reads a store id, the id of a document in its store or a URL; the id is opaque, and short because it is
 repeated in every tag.
@@ -153,7 +168,7 @@ A runtime tool reads the documents the agent knows when the batch of calls start
 the documents the other calls returned, and the next turn knows them. This follows the contract of
 [ADR 016](016-runtime-tools.md): the calls of one message may run concurrently and a call must not depend on another
 call of the same message. The registration is a function of the agent context and the results only, so a job that runs
-again from the same context computes the same workspace.
+again from the same context computes the same agent documents.
 
 Alternatives: *register the documents while the calls run* lets a call see the documents of an earlier call and ties the
 contract to a sequential execution; *a method of the tool context that registers a document* gives a tool write access
@@ -237,7 +252,7 @@ Only a value that is exactly one tag is a document. A plain string stays text ev
 that equals an id never turns into a document by accident. Documents are not searched for in the alternatives of a union
 that are objects or arrays, because a value cannot be assigned to one alternative reliably.
 
-A process tool receives the Camunda document reference of the workspace document, a runtime tool the `DocumentId`. Passing a
+A process tool receives the Camunda document reference of the agent document, a runtime tool the `AgentDocumentId`. Passing a
 tag to a tool never adds content. The agent resolves the parameters once, when it receives the message of the model, on
 the call the model made, before a gateway handler transforms it. A gateway handler that defines its tools itself can declare document
 parameters and receives the references. The MCP and A2A handlers declare none: the schema of an MCP tool comes from the
@@ -264,11 +279,15 @@ tool SPI of ADR 016.
 The content of a document is never persisted in the conversation. One component expands the persisted blocks into what
 the providers see, when the conversation is windowed: in a user message the tag and, for the delivery `content`, the
 content after it; in a tool result the tag as text. Providers have no code for documents in tool results. The component
-is a decorator of the window, and for an instance without the `documents` feature it is the identity.
+is a named step of the model call that follows the window, and for an instance that does not track its documents it
+leaves the messages as they are.
 
 Alternatives: *render the tag in every provider converter* means six converters with the same rule to keep in sync; *a
 marker interface and a global serialization mode* is hidden state that is easy to get wrong for instances that must not
 change.
+
+A provider that is handed an `AgentDocumentContent` fails loudly, so a block that was not expanded never produces a
+request that silently drops a document.
 
 Consequence accepted: no provider receives a document inside a tool result, so the content reaches the model only in a
 user message after the tool results. Providers and models that accept documents in tool results would make this an
@@ -276,7 +295,7 @@ optimization, and the persisted form needs no change for it (see Follow-up).
 
 ### Documents outside the window
 
-The window never announces a document whose message it hides. The workspace still resolves the tag of such a document, so
+The window never announces a document whose message it hides. The agent documents still resolve the tag of such a document, so
 a tag that is still in the model's context can be passed to a tool or loaded again within the guard.
 
 A note that lists the hidden documents was considered and dropped. It costs one tag per document in every request for the
@@ -285,16 +304,19 @@ model calls to list the known documents costs tokens only when needed, and is a 
 
 ### Inline documents are limited
 
-An inline document holds its content in the workspace, in the tool result and in the response documents, about three
-times. The workspace rejects an inline document above 1 MiB, and inline documents above 1 MiB in total, with an error
+An inline document holds its content in the agent documents, in the tool result and in the response documents, about
+three times. The agent documents reject an inline document above 1 MiB, and inline documents above 1 MiB in total, with an error
 code for each, instead of letting the job completion fail with an opaque error of the broker. The total keeps the
 content within about three quarters of the message size of the broker. There is no fallback to a reference-only entry.
 
 ### Instance features and the legacy path
 
 The agent context lists the features an agent instance was created with: `runtimeTools` and `documents`. A feature is
-assigned when the instance is created and never added later. An instance without `documents` keeps the handling it was
-created with: documents are content in the conversation with the earlier tag format, there is no workspace, no response
+assigned when the instance is created and never added later. The `documents` feature decides the document handling of the
+instance, the sealed `DocumentHandling` of the model: `Untracked` without the feature, `Tracked` with the agent documents
+with it. Every place that treats documents differently for the two matches both variants, so a third kind of handling
+cannot be forgotten anywhere. An instance without `documents` keeps the handling it was
+created with: documents are content in the conversation with the earlier tag format, there are no agent documents, no response
 documents and no document parameters, and a document in a tool result renders as its reference JSON.
 
 Alternatives: *migrate running instances* is not possible for an append-only store, and a conversation with messages in
@@ -329,7 +351,7 @@ history back after a document flow and requires it.
 
 ### Negative Consequences
 
-* The agent context grows with the workspace, which is never pruned, and inline documents are held several times.
+* The agent context grows with the agent documents, which are never pruned, and inline documents are held several times.
 * The limits are global and byte-based, so they are as strict as the strictest provider and are a poor measure of
   tokens.
 * The content reaches the model only in a user message, and stays in every request until its message leaves the window.
@@ -338,12 +360,15 @@ history back after a document flow and requires it.
 
 ## Follow-up
 
+* **A typed provider input.** The chat model providers read the messages of the conversation, so the type system cannot
+  say that an `AgentDocumentContent` never reaches them. A content hierarchy for the model without that block, handed over
+  together with the next change of the chat model SPI, replaces the failure of each provider.
 * **`c8__list_documents` built-in.** A runtime tool that lists the known documents when the model needs them. It
   replaces the note about documents that left the window, which cost a tag per document in every request.
 * **A switch for the built-in document tools.** A setting frozen at instance creation as part of the agent configuration
   (not a FEEL expression evaluated per job). Every new instance is offered both tools, which costs tokens and
   can change tool selection for agents that never use documents. ADR 016 lists the general allow and deny list.
-* **Per-tool document scoping.** Allowed document sources per tool. Any workspace document can be passed to any tool by
+* **Per-tool document scoping.** Allowed document sources per tool. Any agent document can be passed to any tool by
   tag, so text a tool returned can name another document.
 * **Per-provider limits and native tool-result documents.** A capability matrix of the providers would
   reject a type before the load and replace the global limits, and would let the window place content in the tool
@@ -354,19 +379,19 @@ history back after a document flow and requires it.
   can bound the work; external documents are reference-only on request of a tool.
 * **History reporting of documents.** External document URLs are reported to the history and can expose a URL with a
   token, and an inline document in a user message makes the history mapper fail. Both should be reported as tags.
-* **Response documents in the workspace.** The selections of `c8__return_document` could become a marker on the
-  workspace documents, which removes a selection that points to no document. A document may be selected under several
+* **Response documents in the agent documents.** The selections of `c8__return_document` could become a marker on the
+  agent documents, which removes a selection that points to no document. A document may be selected under several
   keys, and the order of selection differs from the order of registration.
-* **Workspace pruning and a size budget.** Entries nobody references could be pruned.
-* **Compaction.** A compaction that rewrites or drops messages must keep the workspace intact and decide what happens to
+* **Pruning and a size budget of the agent documents.** Documents nobody references could be pruned.
+* **Compaction.** A compaction that rewrites or drops messages must keep the agent documents intact and decide what happens to
   references with the delivery `content` and the follow-up messages that hold them.
 * **Ranges for `c8__get_document`.** Pages, lines or bytes, as an additive field of the reference and an optional
   argument.
 * **MCP and A2A tools that take documents.** Needs a mapping from the remote schema and from a document reference into
   the format the remote side expects.
-* **A reference-only entry for inline documents.** It would replace the limits above and the several copies.
+* **A reference-only agent document for inline documents.** It would replace the limits above and the several copies.
 * **Content type sniffing** for documents of unknown type.
-* **Expiry of a document in its store.** The agent does not notice it; whether it drops the entry and tells the model, or
+* **Expiry of a document in its store.** The agent does not notice it; whether it drops the document and tells the model, or
   leaves it to the tool that dereferences the document, is open.
 * **Documents named only in the content of an evicted assistant message,** and tags the model writes in the final text,
   are not tracked or interpreted.
