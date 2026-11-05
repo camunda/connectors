@@ -268,10 +268,14 @@ High-frequency traps (detail behind each link):
   documents of a turn input, also those a runtime tool returns; the documents a runtime tool returns are registered, and
   the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
   a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
-  and gets content only through `c8__get_document`: the agent runs the content guard (`DocumentContentGuard`, limits in
-  `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document whose content a tool asks for, and
-  turns a result with a document that fails it (an external document, a type no provider renders, a size above the limit)
-  into an error result, no incident. Passing a handle to a tool never adds content. A tool
+  and gets content only through `c8__get_document`: a tool asks for content with the sealed `ToolCallEffect`
+  `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` runs the content guard
+  (`DocumentContentGuard`, limits in `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document
+  whose content a tool asks for. A document that fails it (an external document, a type no provider renders, a size above
+  the limit) stays a reference: the result stays as the tool returned it and the message that follows the tool results
+  carries a note, no incident. A new document in a tool result is a `DocumentContent`, a known one an
+  `AgentDocumentContent`, and content comes only through the effect; `LocalToolCallExecutor` fails the job when a result
+  breaks this. Passing a handle to a tool never adds content. A tool
   parameter of the type `document` of `fromAi` is the object schema of a handle (no format marker, no hint, sent to the
   provider as it is) and holds the handle object the model passed or a string with its JSON, never a bare id;
   a union parameter (an `anyOf` or `oneOf` with more than one alternative and a handle schema inside an alternative, also in an object or

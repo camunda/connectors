@@ -1078,7 +1078,9 @@ message to be executed concurrently, with the results applied in call order. Eve
 the call, the `RuntimeToolResult` the tool returned (with the effects of a successful one), the time the call started and
 completed, and derives the tool call result that becomes part of the conversation (`toolCallResult()`). The executor also
 receives the ids of the documents whose content the model reads as of the start of the batch (`Ready.documentIdsWithContent`),
-which the tools read as `AgentDocument.contentInConversation()`. No state about the local tool calls is persisted between
+which the tools read as `RuntimeToolDocuments.hasContentInConversation(AgentDocumentId)`. The executor turns an execution into a
+`ToolCallBatch.Entry` (the result, its documents and its effects) with an exhaustive switch over `Success` and `Error`, and
+checks the result of a runtime tool against the documents known at the start of the batch (§25.4). No state about the local tool calls is persisted between
 jobs apart from the `kind` and the `rejection` of the calls. See [ADR 016](../adr/016-runtime-tools.md).
 
 ### No-Op Detection in BaseAgentRequestHandler
@@ -1540,8 +1542,9 @@ API timeout (`aiagent.chatModel.api.*`), and the size limits of the document con
 The agent adds the content of a document to the conversation only when the document passes the content guard (see "The
 guard" under "Document Extraction from Tool Call Results" in §19). The size limits of the guard are properties of the
 connector, not of a job: the operator sets them for every agent of the runtime, and they are not FEEL expressions. A value
-is a Spring `DataSize` such as `256KB` or `4MB` and must be positive; a bean of type `DocumentContentGuard` replaces the
-configuration.
+is a Spring `DataSize` such as `256KB` or `4MB` and must be positive; a limit that is not set is the default of
+`DocumentContentLimits.defaults()`, the one place of the defaults and of the validation. A bean of type
+`DocumentContentGuard` replaces the configuration.
 
 | Property                                                            | Default           | Limit of                        |
 |---------------------------------------------------------------------|-------------------|---------------------------------|
@@ -1705,6 +1708,7 @@ classDiagram
         <<interface>>
     }
     class ToolCallResultsInputBuilder
+    class DocumentContentDelivery
     class DocumentContentGuard
     class DocumentExpander
 
@@ -1718,7 +1722,8 @@ classDiagram
     LocalToolCallExecutor --> RuntimeTools
     BaseAgentRequestHandler --> DocumentExpander
     AgentConversationTurnInputComposer --> ToolCallResultsInputBuilder
-    ToolCallResultsInputBuilder --> DocumentContentGuard
+    ToolCallResultsInputBuilder --> DocumentContentDelivery
+    DocumentContentDelivery --> DocumentContentGuard
     RuntimeTools o-- RuntimeTool : collects *
     BaseAgentRequestHandler --> ConversationStoreRegistry
     BaseAgentRequestHandler --> SystemPromptComposer
@@ -2037,25 +2042,28 @@ a store id, the id of the document in its store or a URL.
 **Loading content: `c8__get_document`.** The model calls it with the tag of a document (`id`, a document parameter; the
 tool receives an `AgentDocumentId`). It loads the whole document, no ranges. The tool answers without asking for content when the
 document is already in the windowed conversation (a block with the delivery `content` in a windowed user message,
-`AgentDocument.contentInConversation()`): success, `Document <id> is already in the conversation.`; loadable again after
-that message left the window. Otherwise the result is the text `Loaded the document.`, a reference block of the document
-(the tag the model saw, the delivery `reference`) and the text `Its content follows in the next message.`, and it asks the
-agent to add the content (`RuntimeToolResult.Success.withDocumentContent`). The agent, not the tool, applies the effect
-after all calls of the message ran, in the order of the calls, in `ToolCallResultsInputBuilder`: it runs the content guard
-for every document a result names, and does not add the content of a document the model reads already or an earlier
-result of the same message asked for. A document the guard rejects turns the whole result into an error result, whose
-documents are not registered:
+`RuntimeToolDocuments.hasContentInConversation`): success, `Document <id> is already in the conversation.`; loadable again after
+that message left the window. Otherwise the result is the text `Requested the content of the document.`, a reference block of
+the document (the tag the model saw, the delivery `reference`) and the text `It follows in the next message, or a note says
+why it cannot be loaded.`, and it asks the agent to add the content (`RuntimeToolResult.Success.withDocumentContent`, the
+effect `ToolCallEffect.AddDocumentContent`). The agent, not the tool, applies the effect after all calls of the message ran,
+in the order of the calls, in `ToolCallResultsInputBuilder`: `DocumentContentDelivery` decides for every document a result
+names, with the content guard, whether the content is added, and adds nothing for a document the model reads already or an
+earlier result of the same message dealt with. The result stays as the tool returned it, whatever the decision; the
+document stays a reference. A document the guard rejects gets a note in the message that follows, and the documents the
+result returns are registered:
 
-| Check | Answer |
-|-------|--------|
-| the document is an external one (a URL) | error, `The document is an external document, which cannot be loaded into the conversation; pass its tag to a tool that processes it.` |
-| the content type is missing or no model provider renders it | error, `The document is of type X which cannot be loaded into the conversation; pass its tag to a tool that processes it.` (`The document has no content type, so it cannot be loaded into the conversation; ...` without a content type) |
-| the size exceeds the limit of the kind of content | error, `The document is N KB, too large to load into the conversation (limit L KB); pass its tag to a tool that processes it.` |
-| the size cannot be read | error, `The document could not be read; it is not loaded.` (the cause is logged); the model can retry |
+| Check | Note |
+|-------|------|
+| the document is an external one (a URL) | `The document <id> is an external document, which cannot be loaded into the conversation; pass its tag to a tool that processes it.` |
+| the content type is missing or no model provider renders it | `The document <id> is of type X which cannot be loaded into the conversation; pass its tag to a tool that processes it.` (`The document <id> has no content type, so it cannot be loaded into the conversation; ...` without a content type) |
+| the size exceeds the limit of the kind of content | `The document <id> is N KB, too large to load into the conversation (limit L KB); pass its tag to a tool that processes it.` |
+| the size cannot be read | `The document <id> could not be read, so its content is not loaded.` (the cause is logged); the model can retry |
 
-Every answer is plain text with no incident; the model retries or goes another way. The builder then follows the tool
-result message with a user message with the preamble `System message, not written by the user: the content of the
-documents loaded for the tool results above follows.` and a block with the delivery `content` per document. Its
+Every note is plain text with no incident; the model retries or goes another way. The builder follows the tool result
+message with a user message with the preamble `System message, not written by the user: the content of the
+documents loaded for the tool results above follows.` and, in the order the documents were asked for, a block with the delivery `content`
+or a note per document. Its
 metadata `toolCallDocuments` makes it leave the context window together with its tool results (`MessageWindowFilter`). The
 tag text and the content are added from the agent documents when the request is built (`DocumentExpander`). Passing the tag of a document to
 a tool parameter declared with `fromAi(..., "document")` never adds content: the tool receives the full Camunda document
@@ -2545,7 +2553,7 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 ### 25.4 Add a runtime tool
 
 > **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolDocuments`,
-> `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException` and `DocumentSchemas`, package `aiagent.api.tool` of
+> `RuntimeToolResult`, `RuntimeToolException` and `DocumentSchemas`, package `aiagent.api.tool` of
 > `aiagent-api`) is experimental since 8.11 and may change in an incompatible way in a minor release.
 
 A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
@@ -2603,18 +2611,24 @@ error and the tool is not called. A runtime tool whose definition gains a docume
 batch fails the job (`IllegalStateException`) for a call admitted before, instead of giving the model an error.
 
 **Documents.** `RuntimeToolContext#documents()` gives a read-only view of the documents the agent knows (`find`, `all`) and
-`reference(AgentDocumentId)`, a content block the model reads as the handle of a known document. A `DocumentContent` block in the
+`reference(AgentDocumentId)`, a content block the model reads as the handle of a known document. `find` and `all` return
+the persisted `AgentDocument` of `aiagent-model`; `document(AgentDocumentId)` restores the live `Document` (an unknown id is
+an `IllegalArgumentException`, a reference that cannot be restored an `IllegalStateException`). A `DocumentContent` block in the
 result is a new document: after the calls of the message ran, the agent registers it with the tool call as its origin, and
-the model reads its handle only (§19). An error result registers nothing.
-`AgentDocument#contentInConversation()` tells a tool whether the model reads the content of a document already.
+the model reads its handle only (§19). An error result registers nothing. `hasContentInConversation(AgentDocumentId)` tells a tool
+whether the model reads the content of a document already.
 
-**Effects.** `RuntimeToolResult.success(...)` returns a `Success`, which has the effect `withDocumentContent(AgentDocumentId)`:
-the agent adds the content of a known document, or of one the result returns itself, to the request that follows the tool
-results. `GetDocumentTool` is the reference. The agent runs the content guard (`DocumentContentGuard`: the content type and
-the size limit of its kind) before it adds anything. A document that is not allowed turns the whole result into an error
-result, drops its effects and registers none of its documents; a document the model reads already, or that an earlier result
-of the message asked for, is not added again. A document an effect names that neither the agent nor the result knows is a
-defect of the tool and fails the job with an `IllegalArgumentException`.
+**Effects.** `RuntimeToolResult.success(...)` returns a `Success`, which has the effect `withDocumentContent(AgentDocumentId)`
+(or `withDocumentContent(Document)` for a document the result returns itself): the agent adds the content of a known
+document, or of one the result returns itself, to the request that follows the tool results. An effect is a variant of the
+sealed `ToolCallEffect` (`aiagent-model`); `Success.effects()` lists them, `with*` methods append. `GetDocumentTool` is the
+reference. The agent runs the content guard (`DocumentContentGuard`: the content type and the size limit of its kind) before
+it adds anything. A document that is not allowed leaves the result as it is, the document a reference, and the model reads
+a note in the message that follows the tool results; a document the model reads already, or that an earlier result of the
+message asked for, is not added again. The rule for the documents in a result: a new document is a `DocumentContent`, a
+known one an `AgentDocumentContent` reference, and content comes only through the effect. A reference block with the
+delivery `content`, and a reference block or an effect that names a document that neither the agent knew when the batch
+started nor the result returns, are defects of the tool and fail the job with an `IllegalArgumentException`.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the

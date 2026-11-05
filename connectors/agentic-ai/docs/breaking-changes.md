@@ -250,8 +250,9 @@ extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take
 `RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`. The constructor of
 `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`, and the `ToolCallResultsInputBuilder`
-takes the `DocumentContentGuard`, the check of the documents whose content the agent adds, and the `DocumentRestorer`
-that restores a document from its reference. `RuntimeTools` also takes the SDK `DocumentFactory`, with which a runtime
+takes the `DocumentContentDelivery`, which decides whether the content of a document is added and takes the
+`DocumentContentGuard`, the check of the documents whose content the agent adds, and the `DocumentRestorer` that restores a
+document from its reference. `RuntimeTools` also takes the SDK `DocumentFactory`, with which a runtime
 tool restores the documents it reads. The size limits of the guard are set by the properties
 `camunda.connector.agenticai.aiagent.document.content-limits.*` (see §16 of the [reference](reference/ai-agent.md)). The
 auto-configuration provides these beans and the built-in runtime tool, each `@ConditionalOnMissingBean`. A custom bean
@@ -286,9 +287,14 @@ factory of the job.
   batch of calls starts; a tool can return documents in its result, which the agent registers after all calls of the
   message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`); a `Success` can
   ask the agent to add the content of a known document to the request that follows the tool results
-  (`withDocumentContent(AgentDocumentId)`), which the agent applies after all calls of the message ran, in call order, and
-  after its content guard accepted the document. An error result has no effects, and `AgentDocument` gains
-  `contentInConversation()`. The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A
+  (`withDocumentContent(AgentDocumentId)` or `withDocumentContent(Document)`; they add a variant of the sealed
+  `ToolCallEffect`, listed by `Success.effects()`), which the agent applies after all calls of the message ran, in call
+  order, and after its content guard accepted the document; a document the guard rejects stays a reference and a note
+  follows the tool results. An error result has no effects. A reference block with the delivery `content` in a result, and
+  a reference block or an effect that names a document neither known to the agent nor returned by the result, fail the job.
+  `RuntimeToolDocuments` returns the `AgentDocument` of `aiagent-model`, restores the live document with
+  `document(AgentDocumentId)` and tells with `hasContentInConversation(AgentDocumentId)` whether the model reads the content
+  of a document. The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A
   rejected call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is
   executed gets an error result from `RuntimeTools`; neither goes to the process.
 - A tool parameter that carries a document is declared with the type `document` of `fromAi`, or with
@@ -346,7 +352,7 @@ factory of the job.
   persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
-  `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`) and `DocumentSchemas`, which replaces `RuntimeToolSchemas` and
+  `RuntimeToolContext`, `RuntimeToolDocuments`, `RuntimeToolResult`, `RuntimeToolException`) and `DocumentSchemas`, which replaces `RuntimeToolSchemas` and
   declares the document parameters of runtime tools and of gateway tools, are in `aiagent.api.tool` of `aiagent-api`. The
   four-argument `RuntimeTools.execute` takes the ids of the documents whose content the model reads as of the start of the
   batch before the calls, and a `RuntimeToolExecution` carries the `RuntimeToolResult` the tool returned (`result()`); the

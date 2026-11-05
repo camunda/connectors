@@ -179,7 +179,8 @@ to the state of the agent, which ADR 016 avoids.
 A runtime tool does not change the agent context ([ADR 016](016-runtime-tools.md)). What the document flow needs beyond
 the content of a result is a request to the agent, and a successful result names it: add the content of a known document
 to the request that follows the tool results. The effects belong to a successful result only. An error result has none,
-so a failed call never applies half of what it asked for.
+so a failed call never applies half of what it asked for. The effects are a closed set, a sealed type, so a new kind of
+effect fails to compile wherever effects are applied.
 
 The agent applies the effects after all calls of a message ran, in the order of the calls, in the place that registers
 the returned documents and builds the input of the next turn. The composer of a mixed batch and the runtime tool round of
@@ -187,8 +188,9 @@ a job share that place, so both give the same input. A call neither sees nor dep
 follows the contract of ADR 016. Whether an effect is applied depends on the agent context, the results and the documents
 whose content the model reads as of the start of the batch only, so a job that runs again computes the same input. A
 result can name a document it returns itself. A document that nobody knows is a defect of the tool and fails the job. The
-content guard checks every document: when it rejects one, the whole result becomes an error result and the documents it
-returned are not registered. A document whose content the model reads already, or that an earlier result of the same
+content guard checks every document: when it rejects one, the result stays as the tool returned it, the document stays a
+reference, and a note in the message that follows the tool results tells the model why the content is not loaded. A
+document whose content the model reads already, or that an earlier result of the same
 message asked for, is not added again.
 
 Alternatives:
@@ -284,8 +286,8 @@ One guard decides every addition of content, whoever asks:
   external document in a user prompt whatever the delivery, as it reads every document of a user prompt.
 * What the model reads about a rejection is a fixed sentence with the content type, the size and the limit at most. The
   text is persisted and a failure message can hold a URL with a token, so the cause goes to the log only.
-* A rejection on request is an error result and no incident. A rejection in an opt-in leaves the document a reference and
-  adds a note, because the model could not have read the document anyway.
+* A rejection leaves the document a reference and adds a note, whoever asked, and is no incident: the result of the tool
+  and the documents it returns stay as they are, and the model could not have read the document anyway.
 
 Bytes are a poor proxy for tokens (a small PDF can cost many input tokens), and limits that are the same for every
 provider are as strict as the strictest one. Both are accepted until a token-based guard and a provider capability
