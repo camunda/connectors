@@ -7,13 +7,14 @@
 package io.camunda.connector.agenticai.tools.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.api.tool.TypePropertyBasedGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +82,7 @@ class AdHocToolsSchemaResolverTest {
     final var element =
         AdHocToolElement.builder()
             .elementId("Test_Tool")
-            .properties(Map.of(AdHocToolsSchemaResolver.DOCUMENT_DELIVERY_EXTENSION, value))
+            .properties(Map.of(DocumentDelivery.EXTENSION_PROPERTY, value))
             .build();
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
@@ -93,19 +94,38 @@ class AdHocToolsSchemaResolverTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"reference", "", "unknown"})
-  void keepsTheDocumentsOfAToolByReferenceForAnyOtherValue(String value) {
+  @ValueSource(strings = {"reference", "Reference", " ", ""})
+  void setsTheDeliveryReferenceForAToolWhoseActivityRequestsIt(String value) {
     final var element =
         AdHocToolElement.builder()
             .elementId("Test_Tool")
-            .properties(Map.of(AdHocToolsSchemaResolver.DOCUMENT_DELIVERY_EXTENSION, value))
+            .properties(Map.of(DocumentDelivery.EXTENSION_PROPERTY, value))
             .build();
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
 
     assertThat(resolver.resolveAdHocToolsSchema(List.of(element)).toolDefinitions())
         .singleElement()
-        .satisfies(toolDefinition -> assertThat(toolDefinition.documentDelivery()).isNull());
+        .satisfies(toolDefinition ->
+            assertThat(toolDefinition.documentDelivery()).isEqualTo(DocumentDelivery.REFERENCE));
+  }
+
+  @Test
+  void failsForADeliveryThatIsNeitherReferenceNorContent() {
+    final var element =
+        AdHocToolElement.builder()
+            .elementId("Test_Tool")
+            .properties(Map.of(DocumentDelivery.EXTENSION_PROPERTY, "contnet"))
+            .build();
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
+
+    assertThatThrownBy(() -> resolver.resolveAdHocToolsSchema(List.of(element)))
+        .isInstanceOf(AdHocToolSchemaGenerationException.class)
+        .hasMessageContaining("'Test_Tool'")
+        .hasMessageContaining(DocumentDelivery.EXTENSION_PROPERTY)
+        .hasMessageContaining("'contnet'")
+        .hasMessageContaining("reference, content");
   }
 
   @Test

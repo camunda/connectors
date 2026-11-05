@@ -197,7 +197,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
    * The delivery of the documents a process tool returns. An agent instance that does not track its
    * documents ignores the delivery of a tool.
    */
-  private static DocumentDelivery documentDeliveryOf(AgentContext agentContext, String toolName) {
+  private static DocumentDelivery documentDeliveryOf(
+      AgentContext agentContext, @Nullable String toolName) {
+    if (toolName == null) {
+      return DocumentDelivery.REFERENCE;
+    }
     return switch (agentContext.documentHandling()) {
       case DocumentHandling.Tracked ignored -> agentContext.documentDeliveryOf(toolName);
       case DocumentHandling.Untracked ignored -> DocumentDelivery.REFERENCE;
@@ -224,9 +228,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         userPrompt.documents().forEach(doc -> newDocuments.add(new NewDocument(doc, origin)));
         content.addAll(
             trackedPromptDocuments(
-                userPrompt,
-                tracked.documents().register(newDocuments),
-                idsWithContent));
+                userPrompt, tracked.documents().register(newDocuments), idsWithContent));
       }
       case DocumentHandling.Untracked ignored ->
           userPrompt.documents().stream()
@@ -248,9 +250,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
    * bound them.
    */
   private List<Content> trackedPromptDocuments(
-      AgentInput.UserPrompt userPrompt,
-      AgentDocuments known,
-      Set<AgentDocumentId> idsWithContent) {
+      AgentInput.UserPrompt userPrompt, AgentDocuments known, Set<AgentDocumentId> idsWithContent) {
     final var handled = new HashSet<>(idsWithContent);
     final var blocks = new ArrayList<Content>();
     for (final var doc : userPrompt.documents()) {

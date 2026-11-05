@@ -123,8 +123,8 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
 
     /**
      * The entry of a result as the process returned it, from a tool with the given document
-     * delivery. With the delivery {@link DocumentDelivery#CONTENT} the entry asks for the content of
-     * every document of the result.
+     * delivery. With the delivery {@link DocumentDelivery#CONTENT} the entry asks for the content
+     * of every document of the result.
      */
     public static Entry from(
         ToolCallResult result,
@@ -139,9 +139,8 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
             case REFERENCE -> List.<ToolCallEffect>of();
             case CONTENT ->
                 documents.stream()
-                    .<ToolCallEffect>map(
-                        document ->
-                            new ToolCallEffect.AddDocumentContent(AgentDocumentId.of(document)))
+                    .<ToolCallEffect>map(document ->
+                        new ToolCallEffect.AddDocumentContent(AgentDocumentId.of(document)))
                     .toList();
           };
       return new Entry(ToolCallResultContent.from(result), documents, effects);

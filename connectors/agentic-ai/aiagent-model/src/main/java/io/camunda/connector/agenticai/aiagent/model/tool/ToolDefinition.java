@@ -52,15 +52,6 @@ public record ToolDefinition(
     this(name, description, inputSchema, DEFAULT_KIND, null);
   }
 
-  /** Creates a tool definition with the given document delivery. */
-  public ToolDefinition(
-      String name,
-      @Nullable String description,
-      Map<String, Object> inputSchema,
-      @Nullable DocumentDelivery documentDelivery) {
-    this(name, description, inputSchema, DEFAULT_KIND, documentDelivery);
-  }
-
   public static ToolDefinition runtime(
       String name, @Nullable String description, Map<String, Object> inputSchema) {
     return new ToolDefinition(name, description, inputSchema, ToolKind.RUNTIME, null);

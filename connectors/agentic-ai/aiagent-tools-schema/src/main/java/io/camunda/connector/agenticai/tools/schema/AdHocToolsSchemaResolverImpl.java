@@ -7,14 +7,13 @@
 package io.camunda.connector.agenticai.tools.schema;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -70,12 +69,21 @@ public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
         .build();
   }
 
+  /**
+   * The delivery set by the extension property of the element, none when the element has no such
+   * property.
+   */
   private static @Nullable DocumentDelivery documentDelivery(AdHocToolElement element) {
     final var properties = element.properties();
-    return properties != null
-            && DOCUMENT_DELIVERY_CONTENT.equalsIgnoreCase(
-                StringUtils.trim(properties.get(DOCUMENT_DELIVERY_EXTENSION)))
-        ? DocumentDelivery.CONTENT
-        : null;
+    if (properties == null || !properties.containsKey(DocumentDelivery.EXTENSION_PROPERTY)) {
+      return null;
+    }
+    try {
+      return DocumentDelivery.fromExtension(properties.get(DocumentDelivery.EXTENSION_PROPERTY));
+    } catch (IllegalArgumentException e) {
+      throw new AdHocToolSchemaGenerationException(
+          "Failed to resolve ad-hoc tool element '%s'. Property '%s': %s."
+              .formatted(element.elementId(), DocumentDelivery.EXTENSION_PROPERTY, e.getMessage()));
+    }
   }
 }
