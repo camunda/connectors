@@ -135,9 +135,9 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-services-drive>v3-rev20261023-2.9.2</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.55.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.56.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.91.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.92.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
     <!-- keep in sync with langchain4j-google-genai -->
     <version.google-genai>1.80.0</version.google-genai>
