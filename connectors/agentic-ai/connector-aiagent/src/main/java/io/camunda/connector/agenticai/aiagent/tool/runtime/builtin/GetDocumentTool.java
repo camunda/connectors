@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -61,13 +62,13 @@ public final class GetDocumentTool implements RuntimeTool {
   record Arguments(@Nullable AgentDocumentId id) {}
 
   private static Map<String, Object> schema() {
-    return Map.of(
-        PROPERTY_TYPE,
-        TYPE_OBJECT,
+    final var schema = new LinkedHashMap<String, Object>();
+    schema.put(PROPERTY_TYPE, TYPE_OBJECT);
+    schema.put(
         PROPERTY_PROPERTIES,
-        Map.of(PARAMETER_ID, DocumentSchemas.document("The document to load.")),
-        PROPERTY_REQUIRED,
-        List.of(PARAMETER_ID));
+        Map.of(PARAMETER_ID, DocumentSchemas.document("The document to load.")));
+    schema.put(PROPERTY_REQUIRED, List.of(PARAMETER_ID));
+    return schema;
   }
 
   @Override
