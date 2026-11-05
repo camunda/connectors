@@ -6,14 +6,16 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.document;
 
-/** The content of an inline document exceeds {@link AgentDocuments#MAX_INLINE_CONTENT_LENGTH}. */
+import io.camunda.connector.api.document.InlineSizeGuard;
+
+/** The content of an inline document exceeds {@link InlineSizeGuard#MAX_INLINE_BYTES}. */
 public class InlineDocumentTooLargeException extends RuntimeException {
 
-  public InlineDocumentTooLargeException(String documentName, int length) {
+  public InlineDocumentTooLargeException(String documentName, long bytes) {
     super(
-        ("The inline document '%s' is too large: its content has %d characters, the limit is %d."
+        ("The inline document '%s' is too large: its content has %d bytes, the limit is %d."
                 + " Model the process so that the file is returned as a Camunda document instead of"
                 + " inline content.")
-            .formatted(documentName, length, AgentDocuments.MAX_INLINE_CONTENT_LENGTH));
+            .formatted(documentName, bytes, InlineSizeGuard.MAX_INLINE_BYTES));
   }
 }

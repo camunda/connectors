@@ -318,8 +318,8 @@ on the SDK for it. The file name, content type and size shown in tags are read f
 `AgentDocuments` is immutable and insertion-ordered, the first registration of an id wins and a known id is never
 replaced; `register(Document, DocumentOrigin)` and `register(List<NewDocument>)` return the collection that holds the
 documents. Registering a document whose id belongs to a different document, one the agent knows or one of the same batch,
-fails with a `DocumentIdCollisionException`, an inline document above 1 MiB (`AgentDocuments.MAX_INLINE_CONTENT_LENGTH`)
-with an `InlineDocumentTooLargeException` and a reference of an unsupported type with an
+fails with a `DocumentIdCollisionException`, an inline document above the variable size limit of a job
+completion (`InlineSizeGuard.MAX_INLINE_BYTES`, 1.5 MB) with an `InlineDocumentTooLargeException` and a reference of an unsupported type with an
 `UnsupportedDocumentReferenceException`; the request handler turns them into `DOCUMENT_ID_COLLISION`,
 `INLINE_DOCUMENT_TOO_LARGE` and `UNSUPPORTED_DOCUMENT_REFERENCE` (§15). Because it rides in `agentContext`, it is
 independent of the conversation store and the context window. The persisted conversation is not self-contained: the
@@ -1332,7 +1332,7 @@ on).
 | `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`        | `MODEL_RESPONSE_GUARDRAIL_INTERVENED`          | provider blocked the model response with a guardrail policy             |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
-| `ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE`                  | `INLINE_DOCUMENT_TOO_LARGE`                    | a document with inline content (a reference that holds its content) has more than 1 MiB of content (`AgentDocuments.MAX_INLINE_CONTENT_LENGTH`, characters of base64 or text) when it enters the agent documents; Camunda and external documents are unaffected |
+| `ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE`                  | `INLINE_DOCUMENT_TOO_LARGE`                    | a document with inline content (a reference that holds its content) has more content than a job completion may carry (`InlineSizeGuard.MAX_INLINE_BYTES`, 1.5 MB, UTF-8 bytes of the base64 or text content) when it enters the agent documents; Camunda and external documents are unaffected |
 | `ERROR_CODE_DOCUMENT_ID_COLLISION`                      | `DOCUMENT_ID_COLLISION`                        | a document gets the id of a different document the agent already knows or one registered with it (the ids are derived from the identity key of the document, so this needs a hash collision of the 48 bit id) |
 | `ERROR_CODE_UNSUPPORTED_DOCUMENT_REFERENCE`             | `UNSUPPORTED_DOCUMENT_REFERENCE`               | the reference of a document is not a Camunda reference, an external reference or an inline reference with content, so the agent cannot derive an id |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
@@ -1867,10 +1867,10 @@ document goes out with the prompt, with no size limit and no type check, and a d
 model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
 
 A document with inline content (a reference that holds the content itself, as opposed to a Camunda or an external
-document) is registered only if its content has at most 1 MiB (`AgentDocuments.MAX_INLINE_CONTENT_LENGTH`,
-counted in characters of the base64 or text content). A larger one fails the job with the error code
-`INLINE_DOCUMENT_TOO_LARGE`, because the content would be held in the agent documents and in the tool result, which together can
-exceed the message size limit of the broker; the message names the document, its size and the limit and asks to return the
+document) is registered only if its content fits into a job completion (`InlineSizeGuard.MAX_INLINE_BYTES`, 1.5 MB,
+counted in UTF-8 bytes of the base64 or text content). A larger one fails the job with the error code
+`INLINE_DOCUMENT_TOO_LARGE` before the model is called, because the agent context holds the content and the runtime rejects
+a job completion above that size; the message names the document, its size and the limit and asks to return the
 file as a Camunda document instead.
 
 **Instances without the `documents` feature.** An agent instance created before the feature (no `features` in its

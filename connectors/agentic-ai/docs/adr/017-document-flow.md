@@ -304,10 +304,11 @@ model calls to list the known documents costs tokens only when needed, and is a 
 
 ### Inline documents are limited
 
-An inline document holds its content in the agent documents, in the tool result and in the response documents, about
-three times. The agent documents reject an inline document above 1 MiB, and inline documents above 1 MiB in total, with an error
-code for each, instead of letting the job completion fail with an opaque error of the broker. The total keeps the
-content within about three quarters of the message size of the broker. There is no fallback to a reference-only entry.
+The connector runtime limits the variables of a job completion (`InlineSizeGuard`, 1.5 MB), and an inline document
+holds its content in the agent context. An inline document above that limit can never be completed, so the agent
+documents reject it when it is registered, before the model is called, with an error code of its own instead of the
+generic error of the job completion. Everything else, such as several inline documents that are too large together, is
+left to the check of the runtime. There is no fallback to a reference-only entry.
 
 ### Instance features and the legacy path
 

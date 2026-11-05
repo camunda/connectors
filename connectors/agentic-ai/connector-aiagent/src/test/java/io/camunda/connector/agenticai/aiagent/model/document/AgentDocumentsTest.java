@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.document;
 
+import static io.camunda.connector.api.document.InlineSizeGuard.MAX_INLINE_BYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -103,20 +104,20 @@ class AgentDocumentsTest {
         List.of(
             new NewDocument(document("one", "one.txt"), DocumentOrigin.userMessage()),
             new NewDocument(
-                inline("x".repeat(AgentDocuments.MAX_INLINE_CONTENT_LENGTH + 1), "big.png"),
+                inline("x".repeat((int) MAX_INLINE_BYTES + 1), "big.png"),
                 DocumentOrigin.userMessage()));
 
     assertThatThrownBy(() -> AgentDocuments.empty().register(batch))
         .isInstanceOf(InlineDocumentTooLargeException.class)
         .hasMessageContaining("'big.png'")
-        .hasMessageContaining("1048577 characters")
-        .hasMessageContaining("limit is 1048576")
+        .hasMessageContaining("1572865 bytes")
+        .hasMessageContaining("limit is 1572864")
         .hasMessageContaining("Camunda document");
   }
 
   @Test
   void anInlineDocumentWithTheLimitAsContentLengthIsAccepted() {
-    final var content = "x".repeat(AgentDocuments.MAX_INLINE_CONTENT_LENGTH);
+    final var content = "x".repeat((int) MAX_INLINE_BYTES);
 
     final var documents =
         AgentDocuments.empty().register(inline(content, "limit.txt"), DocumentOrigin.userMessage());
@@ -126,7 +127,7 @@ class AgentDocumentsTest {
 
   @Test
   void anInlineDocumentAboveTheLimitWithoutANameIsRejectedWithItsId() {
-    final var tooLarge = inline("x".repeat(AgentDocuments.MAX_INLINE_CONTENT_LENGTH + 1), null);
+    final var tooLarge = inline("x".repeat((int) MAX_INLINE_BYTES + 1), null);
 
     assertThatThrownBy(() -> AgentDocuments.empty().register(tooLarge, DocumentOrigin.event()))
         .isInstanceOf(InlineDocumentTooLargeException.class)
@@ -137,7 +138,7 @@ class AgentDocumentsTest {
   void camundaAndExternalDocumentsAreAcceptedWhateverTheirSize() {
     final var camunda =
         documentFactory.create(
-            DocumentCreationRequest.from(new byte[2 * AgentDocuments.MAX_INLINE_CONTENT_LENGTH])
+            DocumentCreationRequest.from(new byte[2 * (int) MAX_INLINE_BYTES])
                 .contentType("application/octet-stream")
                 .fileName("large.bin")
                 .build());
@@ -145,8 +146,7 @@ class AgentDocumentsTest {
         documentWith(
             new io.camunda.connector.document.jackson.DocumentReferenceModel
                 .ExternalDocumentReferenceModel(
-                "https://example.com/" + "a".repeat(2 * AgentDocuments.MAX_INLINE_CONTENT_LENGTH),
-                "large.bin"));
+                "https://example.com/" + "a".repeat(2 * (int) MAX_INLINE_BYTES), "large.bin"));
 
     final var documents =
         AgentDocuments.empty()
