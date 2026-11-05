@@ -19,7 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import java.util.HashMap;
@@ -82,7 +82,7 @@ public final class ToolCallResultDocumentAssertions {
         .as("tag attributes")
         .isSubsetOf("id", "fileName", "contentType", "size", "source", "toolName", "toolCallId");
     return new ParsedDocumentTag(
-        DocumentId.of(attributes.get("id")),
+        AgentDocumentId.of(attributes.get("id")),
         attributes.get("fileName"),
         attributes.get("contentType"),
         attributes.containsKey("size") ? Long.valueOf(attributes.get("size")) : null,
@@ -227,7 +227,7 @@ public final class ToolCallResultDocumentAssertions {
    * @param attributes the attributes of the tag as rendered
    */
   public record ParsedDocumentTag(
-      DocumentId id,
+      AgentDocumentId id,
       @Nullable String fileName,
       @Nullable String contentType,
       @Nullable Long size,
