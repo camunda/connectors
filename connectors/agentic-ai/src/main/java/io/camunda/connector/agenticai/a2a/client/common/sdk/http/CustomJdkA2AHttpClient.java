@@ -13,6 +13,8 @@ import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 
 import io.a2a.client.http.A2AHttpClient;
 import io.a2a.client.http.A2AHttpResponse;
+import io.a2a.client.http.ServerSentEvent;
+import io.a2a.client.http.ServerSentEventParser;
 import io.a2a.common.A2AErrorMessages;
 import java.io.IOException;
 import java.net.URI;
@@ -40,8 +42,12 @@ import org.jspecify.annotations.Nullable;
  * <p>Original source: <a
  * href="https://github.com/a2aproject/a2a-java/blob/main/http-client/src/main/java/io/a2a/client/http/JdkA2AHttpClient.java">JdkA2AHttpClient.java</a>
  *
- * <p>TODO: Remove this class once the upstream PR is released: <a
- * href="https://github.com/a2aproject/a2a-java/pull/745">a2a-java#745</a>
+ * <p>Kept in sync with the A2A SDK 0.3.x line, which does not ship the {@code HttpClient}
+ * constructor added upstream in <a
+ * href="https://github.com/a2aproject/a2a-java/pull/745">a2a-java#745</a> (released from 1.1.0
+ * onwards, not in 0.3.x).
+ *
+ * <p>TODO: Remove this class once the SDK is upgraded to a version containing a2a-java#745.
  */
 public class CustomJdkA2AHttpClient implements A2AHttpClient {
 
@@ -113,11 +119,21 @@ public class CustomJdkA2AHttpClient implements A2AHttpClient {
       return builder;
     }
 
+    protected void checkAuthErrors(HttpResponse<String> response) throws IOException {
+      if (response.statusCode() == HTTP_UNAUTHORIZED) {
+        throw new IOException(A2AErrorMessages.AUTHENTICATION_FAILED);
+      } else if (response.statusCode() == HTTP_FORBIDDEN) {
+        throw new IOException(A2AErrorMessages.AUTHORIZATION_FAILED);
+      }
+    }
+
     protected CompletableFuture<Void> asyncRequest(
         HttpRequest request,
-        Consumer<String> messageConsumer,
+        Consumer<ServerSentEvent> messageConsumer,
         Consumer<Throwable> errorConsumer,
         Runnable completeRunnable) {
+      ServerSentEventParser sseParser = new ServerSentEventParser(messageConsumer, errorConsumer);
+
       Flow.Subscriber<String> subscriber =
           new Flow.Subscriber<String>() {
             private Flow.@Nullable Subscription subscription;
@@ -131,12 +147,8 @@ public class CustomJdkA2AHttpClient implements A2AHttpClient {
 
             @Override
             public void onNext(String item) {
-              // SSE messages sometimes start with "data:". Strip that off
-              if (item != null && item.startsWith("data:")) {
-                item = item.substring(5).trim();
-                if (!item.isEmpty()) {
-                  messageConsumer.accept(item);
-                }
+              if (item != null) {
+                sseParser.processLine(item);
               }
               if (subscription != null) {
                 subscription.request(1);
@@ -157,6 +169,7 @@ public class CustomJdkA2AHttpClient implements A2AHttpClient {
             @Override
             public void onComplete() {
               if (!errorRaised) {
+                sseParser.flush();
                 completeRunnable.run();
               }
               if (subscription != null) {
@@ -216,11 +229,7 @@ public class CustomJdkA2AHttpClient implements A2AHttpClient {
                 && response.statusCode() != HTTP_UNAUTHORIZED
                 && response.statusCode() != HTTP_FORBIDDEN) {
               subscriber.onError(
-                  new IOException(
-                      "Request failed with status "
-                          + response.statusCode()
-                          + ":"
-                          + response.body()));
+                  new IOException("Request failed with status " + response.statusCode()));
             }
           });
     }
@@ -241,12 +250,13 @@ public class CustomJdkA2AHttpClient implements A2AHttpClient {
       HttpRequest request = createRequestBuilder(false).build();
       HttpResponse<String> response =
           httpClient.send(request, BodyHandlers.ofString(StandardCharsets.UTF_8));
+      checkAuthErrors(response);
       return new JdkHttpResponse(response);
     }
 
     @Override
     public CompletableFuture<Void> getAsyncSSE(
-        Consumer<String> messageConsumer,
+        Consumer<ServerSentEvent> messageConsumer,
         Consumer<Throwable> errorConsumer,
         Runnable completeRunnable)
         throws IOException, InterruptedException {
@@ -263,6 +273,7 @@ public class CustomJdkA2AHttpClient implements A2AHttpClient {
       HttpRequest request = super.createRequestBuilder().DELETE().build();
       HttpResponse<String> response =
           httpClient.send(request, BodyHandlers.ofString(StandardCharsets.UTF_8));
+      checkAuthErrors(response);
       return new JdkHttpResponse(response);
     }
   }
@@ -296,18 +307,14 @@ public class CustomJdkA2AHttpClient implements A2AHttpClient {
       HttpResponse<String> response =
           httpClient.send(request, BodyHandlers.ofString(StandardCharsets.UTF_8));
 
-      if (response.statusCode() == HTTP_UNAUTHORIZED) {
-        throw new IOException(A2AErrorMessages.AUTHENTICATION_FAILED);
-      } else if (response.statusCode() == HTTP_FORBIDDEN) {
-        throw new IOException(A2AErrorMessages.AUTHORIZATION_FAILED);
-      }
+      checkAuthErrors(response);
 
       return new JdkHttpResponse(response);
     }
 
     @Override
     public CompletableFuture<Void> postAsyncSSE(
-        Consumer<String> messageConsumer,
+        Consumer<ServerSentEvent> messageConsumer,
         Consumer<Throwable> errorConsumer,
         Runnable completeRunnable)
         throws IOException, InterruptedException {

@@ -8,7 +8,10 @@ package io.camunda.connector.agenticai.a2a.client.inbound.webhook;
 
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.a2a.json.JsonProcessingException;
+import io.a2a.json.JsonUtil;
+import io.a2a.spec.Artifact;
+import io.a2a.spec.Message;
 import io.a2a.spec.Task;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
@@ -32,7 +35,7 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.HMACScope;
 import io.camunda.connector.inbound.signature.HMACVerifier;
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
@@ -76,17 +79,14 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aClientWebhookExecutable.class);
 
   private final A2aSdkObjectConverter a2aSdkObjectConverter;
-  private final ObjectMapper objectMapper;
 
   private A2aWebhookProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
   private InboundConnectorContext context;
   private HMACVerifier hmacVerifier;
 
-  public A2aClientWebhookExecutable(
-      A2aSdkObjectConverter a2aSdkObjectConverter, ObjectMapper objectMapper) {
+  public A2aClientWebhookExecutable(A2aSdkObjectConverter a2aSdkObjectConverter) {
     this.a2aSdkObjectConverter = a2aSdkObjectConverter;
-    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -206,16 +206,72 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
 
   private MappedHttpRequest mapRequest(WebhookProcessingPayload payload) {
     try {
-      Task task = objectMapper.readValue(payload.rawBody(), Task.TYPE_REFERENCE);
+      Task task = parseTask(payload.rawBody());
       A2aTask a2aTask = a2aSdkObjectConverter.convert(task);
       return new MappedHttpRequest(a2aTask, payload.headers(), payload.params());
-    } catch (IOException e) {
+    } catch (JsonProcessingException e) {
       this.context.log(activity ->
           activity
               .withSeverity(Severity.ERROR)
               .withTag("a2a-webhook-request")
               .withMessage("Error deserializing A2A Webhook payload: " + e.getMessage()));
       throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Parses the webhook body into an SDK {@link Task}. The SDK's Gson-based parser only wraps syntax
+   * errors: it returns {@code null} for an empty body, bypasses the {@link Task} constructor null
+   * checks (including those of nested messages), accepts {@code null} list entries, and lets
+   * constructor failures of nested types escape as unchecked exceptions. The required fields are
+   * therefore validated explicitly, and every failure is reported as {@link
+   * JsonProcessingException}.
+   */
+  private Task parseTask(byte[] rawBody) throws JsonProcessingException {
+    final Task task;
+    try {
+      task = JsonUtil.fromJson(new String(rawBody, StandardCharsets.UTF_8), Task.class);
+    } catch (RuntimeException e) {
+      throw new JsonProcessingException("Failed to parse A2A task: " + e.getMessage(), e);
+    }
+
+    if (task == null
+        || task.getId() == null
+        || task.getContextId() == null
+        || task.getStatus() == null
+        || task.getStatus().state() == null) {
+      throw new JsonProcessingException(
+          "Payload is not a valid A2A task: id, contextId and status.state are required");
+    }
+
+    if (task.getStatus().message() != null) {
+      validateMessage(task.getStatus().message(), "status.message");
+    }
+    if (task.getHistory() != null) {
+      for (Message message : task.getHistory()) {
+        validateMessage(message, "history entry");
+      }
+    }
+    if (task.getArtifacts() != null) {
+      for (Artifact artifact : task.getArtifacts()) {
+        if (artifact == null) {
+          throw new JsonProcessingException("Payload is not a valid A2A task: null artifact entry");
+        }
+      }
+    }
+    return task;
+  }
+
+  private void validateMessage(Message message, String location) throws JsonProcessingException {
+    if (message == null) {
+      throw new JsonProcessingException("Payload is not a valid A2A task: null " + location);
+    }
+
+    try {
+      message.check();
+    } catch (RuntimeException e) {
+      throw new JsonProcessingException(
+          "Payload is not a valid A2A task: invalid " + location + ": " + e.getMessage(), e);
     }
   }
 
