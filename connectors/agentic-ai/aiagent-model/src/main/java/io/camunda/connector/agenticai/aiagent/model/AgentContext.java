@@ -44,13 +44,13 @@ public record AgentContext(
     @RecordBuilder.Initializer(source = AgentDocuments.class, value = "empty")
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         AgentDocuments documents,
-    // the documents selected for the final response, in the order they were selected; the keys are
-    // unique
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ResponseDocumentSelection> responseDocuments,
     // the features the agent instance was created with, fixed at creation and never added later: an
     // instance without a feature keeps the behavior it started with
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> features,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties,
+    // the documents selected for the final response, in the order they were selected; the keys are
+    // unique
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ResponseDocumentSelection> responseDocuments)
     implements AgentContextBuilder.With {
 
   /**
