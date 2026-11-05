@@ -9,6 +9,7 @@ package io.camunda.connector.gemini.model;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
@@ -17,41 +18,16 @@ public record GeminiRequestData(
         String projectId,
     @TemplateProperty(label = "Region", group = "input", feel = FeelMode.disabled) @NotNull
         String region,
-    @TemplateProperty(
+    @FEEL
+        @TemplateProperty(
             label = "Model",
             group = "input",
-            feel = FeelMode.disabled,
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_2_5_PRO",
-                  label = "gemini-2.5-pro"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_2_5_FLASH",
-                  label = "gemini-2.5-flash"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_2_5_FLASH_IMAGE",
-                  label = "gemini-2.5-flash-image"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_2_5_FLASH_LITE",
-                  label = "gemini-2.5-flash-lite"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_2_0_FLASH",
-                  label = "gemini-2.0-flash"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_2_0_FLASH_LITE",
-                  label = "gemini-2.0-flash-lite"),
-              @TemplateProperty.DropdownPropertyChoice(value = "CUSTOM", label = "Custom")
-            })
-        @NotNull
-        ModelVersion model,
-    @TemplateProperty(
-            label = "Custom model name",
-            group = "input",
             feel = FeelMode.optional,
-            condition =
-                @TemplateProperty.PropertyCondition(property = "input.model", equals = "CUSTOM"),
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        String customModelName,
+            placeholder = "gemini-3-pro-preview",
+            tooltip = "Model ID available in your Vertex AI project.")
+        @NotBlank
+        String model,
+    @TemplateProperty(ignore = true) String customModelName,
     @FEEL @TemplateProperty(label = "Prompts", group = "input", feel = FeelMode.required) @NotNull
         List<Object> prompts,
     @TemplateProperty(
@@ -317,10 +293,15 @@ public record GeminiRequestData(
         List<Object> functionCalls) {
 
   public String resolveModelName() {
-    if (model == ModelVersion.CUSTOM) {
+    if (ModelVersion.CUSTOM.name().equalsIgnoreCase(model)) {
       return customModelName;
     }
-    return model.getVersion();
+    for (ModelVersion legacyModel : ModelVersion.values()) {
+      if (legacyModel.name().equalsIgnoreCase(model)) {
+        return legacyModel.getVersion();
+      }
+    }
+    return model;
   }
 
   // Custom toString() to use resolveModelName() for clearer runtime representation

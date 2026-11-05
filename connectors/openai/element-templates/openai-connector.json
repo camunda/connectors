@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "OpenAI Outbound Connector",
   "id": "io.camunda.connectors.OpenAI.v1",
-  "version": 8,
+  "version": 9,
   "engines": {
     "camunda": "^8.3"
   },
@@ -193,32 +193,12 @@
     {
       "label": "Model",
       "id": "model",
-      "tooltip": "Choose a listed model, or Custom to enter a model version as free text.",
+      "tooltip": "Model ID to invoke. See the available <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">OpenAI models</a>.",
+      "placeholder": "gpt-5.5",
       "group": "input",
-      "type": "Dropdown",
-      "value": "gpt-3.5-turbo",
-      "choices": [
-        {
-          "name": "Custom",
-          "value": "custom"
-        },
-        {
-          "name": "GPT-3.5-turbo",
-          "value": "gpt-3.5-turbo"
-        },
-        {
-          "name": "GPT-4",
-          "value": "gpt-4"
-        },
-        {
-          "name": "GPT-4-turbo",
-          "value": "gpt-4-turbo"
-        },
-        {
-          "name": "GPT-4o",
-          "value": "gpt-4o"
-        }
-      ],
+      "type": "String",
+      "feel": "optional",
+      "value": "",
       "binding": {
         "type": "zeebe:input",
         "name": "internal_model"
@@ -226,21 +206,6 @@
       "condition": {
         "property": "operation",
         "equals": "chat"
-      }
-    },
-    {
-      "label": "Custom model version",
-      "tooltip": "Model version to invoke. See the available <a href=\"https://platform.openai.com/docs/models/overview\" target=\"_blank\">OpenAI models</a>.",
-      "placeholder": "gpt-4o-mini",
-      "group": "input",
-      "type": "Text",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "internal_custom_model"
-      },
-      "condition": {
-        "property": "model",
-        "equals": "custom"
       },
       "constraints": {
         "notEmpty": true
@@ -357,7 +322,7 @@
     },
     {
       "type": "Hidden",
-      "value": "={\"model\": if is defined(internal_custom_model) then internal_custom_model else internal_model, \"messages\": internal_messages, \"n\": number(internal_choices), \"temperature\": number(internal_temperature)}",
+      "value": "={\"model\": if internal_model = \"custom\" and is defined(internal_custom_model) then internal_custom_model else internal_model, \"messages\": internal_messages, \"n\": number(internal_choices), \"temperature\": number(internal_temperature)}",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
@@ -436,7 +401,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "8",
+      "value": "9",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",

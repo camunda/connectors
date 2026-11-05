@@ -30,9 +30,13 @@ import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.vertexai.VertexAiEmbeddingModel;
 import io.camunda.connector.fixture.EmbeddingModelProviderFixture;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider.AzureAuthentication;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider.AzureAuthentication.AzureApiKeyAuthentication;
+import io.camunda.connector.model.embedding.models.BedrockDimensions;
+import io.camunda.connector.model.embedding.models.BedrockEmbeddingModelProvider;
+import io.camunda.connector.model.embedding.models.BedrockModels;
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
@@ -44,6 +48,8 @@ import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
@@ -59,6 +65,53 @@ class DefaultEmbeddingModelFactoryTest {
 
   @Nested
   class BedrockEmbeddingModelTests {
+
+    @ParameterizedTest
+    @CsvSource({
+      "amazon.titan-embed-text-v2:0,unused,amazon.titan-embed-text-v2:0,true",
+      "TitanEmbedTextV2,unused,amazon.titan-embed-text-v2:0,true",
+      "TitanEmbedTextV1,unused,amazon.titan-embed-text-v1,false",
+      "amazon.titan-future-embed,stale-custom-model,amazon.titan-future-embed,false",
+      "Custom,amazon.titan-custom-embed,amazon.titan-custom-embed,false"
+    })
+    void forwardsModelIdsAndPreservesTitanV2Options(
+        String modelName, String customModelName, String expected, boolean titanV2)
+        throws Exception {
+      var config =
+          ConnectorsObjectMapperSupplier.getCopy()
+              .convertValue(
+                  Map.of(
+                      "region", "us-east-1",
+                      "accessKey", "ACCESS_KEY",
+                      "secretKey", "SECRET_KEY",
+                      "modelName", modelName,
+                      "customModelName", customModelName,
+                      "dimensions", "D1024",
+                      "normalize", true),
+                  BedrockEmbeddingModelProvider.Configuration.class);
+      var builder = mock(BedrockTitanEmbeddingModel.Builder.class, Answers.RETURNS_SELF);
+      when(builder.build()).thenReturn(mock(BedrockTitanEmbeddingModel.class));
+      try (var modelMock = mockStatic(BedrockTitanEmbeddingModel.class)) {
+        modelMock.when(BedrockTitanEmbeddingModel::builder).thenReturn(builder);
+        factory.createEmbeddingModel(new BedrockEmbeddingModelProvider(config));
+        verify(builder).model(expected);
+        verify(builder).dimensions(titanV2 ? BedrockDimensions.D1024.getDimensions() : null);
+        verify(builder).normalize(titanV2 ? true : null);
+      }
+    }
+
+    @ParameterizedTest
+    @EnumSource(BedrockModels.class)
+    void resolvesEveryLegacyDropdownSelection(BedrockModels model) {
+      var config =
+          ConnectorsObjectMapperSupplier.getCopy()
+              .convertValue(
+                  Map.of("modelName", model.name(), "customModelName", "amazon.titan-custom-embed"),
+                  BedrockEmbeddingModelProvider.Configuration.class);
+      assertThat(config.resolveSelectedModelName())
+          .isEqualTo(
+              model == BedrockModels.Custom ? "amazon.titan-custom-embed" : model.getModelName());
+    }
 
     @Test
     void createBedrockEmbeddingModelWithoutProxyConfigured() {

@@ -19,7 +19,7 @@ public class EmbeddingModelProviderFixture {
             "ACCESS_KEY",
             "SECRET_KEY",
             "us-east-1",
-            BedrockModels.TitanEmbedTextV2,
+            BedrockModels.TitanEmbedTextV2.name(),
             null,
             BedrockDimensions.D1024,
             false,

@@ -14,9 +14,21 @@ Please refer to the [example API use-cases](https://platform.openai.com/examples
 
 ## Model selection
 
-Refer to the [Models](https://platform.openai.com/docs/models/models) section of OpenAI documentation.
-Selection of models is user-specific and depends on your account privileges. Therefore, some models (e.g. GPT-4 at the time of writing)
-may appear as non-existing when you attempt to use them, although they are defined in the element template.
+Enter a model ID in the **Model** field, either as text or a FEEL expression.
+The placeholder is an example, not a default: you must explicitly select a model.
+Refer to the [Models](https://platform.openai.com/docs/models) section of OpenAI documentation
+for current models. Availability depends on your account privileges.
+
+Template version 9 replaces the model dropdown. Existing named selections remain valid.
+Before upgrading a template that uses **Custom**, save **Custom model version**, then paste it
+into **Model** after the upgrade. The request expression also supports legacy `custom` selections when
+the `internal_custom_model` input is still present. Older template versions remain available.
+
+The Google Gemini and Bedrock embeddings templates follow the same free-text pattern starting
+with version 5. Their connectors still accept legacy dropdown values. When upgrading a **Custom**
+selection, save **Custom model name** and paste it into the new model field after the upgrade.
+Bedrock embeddings require a model compatible with the Amazon Titan embedding API;
+dimensions and normalization are available for `amazon.titan-embed-text-v2:0`.
 
 ## Moderation
 

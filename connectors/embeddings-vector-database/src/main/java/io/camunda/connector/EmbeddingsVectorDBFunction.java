@@ -43,7 +43,7 @@ import io.camunda.connector.model.embedding.vector.store.OpenSearchCredential;
       OpenSearchCredential.class,
       ElasticsearchCredential.class
     },
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "query", label = "Query"),
