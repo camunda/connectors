@@ -88,11 +88,6 @@ public class ToolCallResultsInputBuilder {
       DocumentHandling documentHandling,
       List<ToolCallBatch.Entry> entries,
       Set<AgentDocumentId> documentIdsWithContent) {
-    final var agentDocuments =
-        switch (documentHandling) {
-          case DocumentHandling.Tracked tracked -> tracked.documents();
-          case DocumentHandling.Untracked ignored -> AgentDocuments.empty();
-        };
     final var handledIds = new HashSet<>(documentIdsWithContent);
     final var followUp = new ArrayList<Content>();
 
@@ -107,7 +102,12 @@ public class ToolCallResultsInputBuilder {
         continue;
       }
 
-      final var known = agentDocuments.register(newDocumentsOf(entry));
+      final var known =
+          switch (documentHandling) {
+            case DocumentHandling.Tracked tracked ->
+                tracked.documents().register(newDocumentsOf(entry));
+            case DocumentHandling.Untracked ignored -> AgentDocuments.empty();
+          };
       for (final var outcome : contentDelivery.deliver(known, requestedContent, handledIds)) {
         switch (outcome) {
           case DocumentContentDelivery.Outcome.Delivered delivered ->
