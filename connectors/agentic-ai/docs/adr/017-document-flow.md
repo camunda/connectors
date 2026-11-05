@@ -272,17 +272,14 @@ element. Alternatives: *accept an id or a handle* is friendlier to a model that 
 anywhere in the text* would replace a tool argument that happens to contain an id. The model reads handles, so asking for
 what it reads is the least surprising contract.
 
-Who answers a call is decided once, when the agent receives the message of the model (ADR 016). A call of a tool of the
-process with an invalid document parameter is tagged as a call the connector runtime answers, as the call of a runtime
-tool is: the tag `RUNTIME` stands for "answered by the connector runtime", either because a runtime tool owns the name or
-because the call was rejected for its document parameters. The rejection text is not stored: the agent computes it again
-from the call and the agent context wherever it answers the call, which gives the same text in a retried job and in the
-job that composes a mixed batch. Alternatives: *a third kind of call for rejected calls* adds a state to every consumer of
-the tag for a call that is answered like a runtime tool call; *answering when the message is received* needs a place for
-the answer between jobs, which the conversation does not have; *activating the call and letting the element fail* runs a
-process element with an argument it cannot read. Consequence accepted: a process migration between the two jobs of a mixed
-batch that changes the definition of the tool can make the agent compute no rejection for a call tagged as rejected, and
-the model then reads that the tool is not enabled instead of the reason.
+Whether a call is carried out is decided once, when the agent admits the message of the model (ADR 016). A call of a
+tool of either kind with an invalid document parameter is rejected at admission: it keeps its kind, its rejection is the
+error text, and the rejection is persisted with the call, so a retried job and the job that composes a mixed batch give
+the same answer. Execution then only resolves the parameters of an admitted call. Alternatives: *validating a runtime
+call when it runs* checks the same rule in a second place and lets the outcome depend on the job that runs the call;
+*activating the call and letting the element fail* runs a process element with an argument it cannot read. Consequence
+accepted: a change of the definition of a runtime tool between the two jobs of a mixed batch that adds a document
+parameter makes an admitted call fail the job instead of giving the model an error.
 
 Parameters that take text or a document are unions, declared in full: `anyOf`, `oneOf` and the type array shorthand.
 Only a value that is exactly one handle is a document. A plain string stays text even when it equals a known id, so a word

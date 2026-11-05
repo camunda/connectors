@@ -779,21 +779,19 @@ parameter that is not an array `Parameter 'p' must be an array.`). A missing or 
 
 `DocumentParameterResolver` resolves the document parameters of a call from the call, the tool definition and the document
 workspace only. A process tool receives the Camunda document reference JSON of the workspace document (`resolveProcessCall`), a
-runtime tool the `DocumentId` of the document (`resolveRuntimeCall`). An agent instance without the `documents` feature has
+runtime tool the `DocumentId` of the document (`resolveRuntimeCall`); `check` validates the call of a tool of either kind. An agent instance without the `documents` feature has
 no document parameters: the calls are not touched. The agent uses the resolver at three places, and the tool call of the
 assistant message is never rewritten, so the stored conversation and the history keep what the model sent:
 
-- **The rejection of a process tool call.** `BaseAgentRequestHandler.tagToolCalls` tags the tool calls of an assistant
-  message before it is ingested (see [§9](#9-tool-completion)). A call of a tool of the process, found by name in
-  `AgentContext.toolDefinitions()`, whose document parameters are invalid keeps the kind `PROCESS` and gets the sentences
-  above as its `ToolCall.rejection`. Like every rejected call it is answered by the request handler with the rejection
-  as its tool call result and is never activated.
+- **The admission of a call.** `ToolCallAdmission` admits the tool calls of an assistant message before it is ingested
+  (see [§9](#9-tool-completion)). A call of a tool of either kind whose document parameters are invalid keeps its kind and
+  gets the sentences above as its `ToolCall.rejection`. Like every rejected call it is answered by `LocalToolCallExecutor`
+  with the rejection as its tool call result and is never executed or activated.
 - **The call that goes to the process.** `AgentResponseHandlerImpl` resolves the document parameters of the process tool
   calls of the last turn into the Camunda document references before the gateway transformation, and the response carries
   them.
-- **The execution of a runtime call.** `RuntimeToolsImpl` resolves the document parameters of the call of a runtime tool
-  into `DocumentId`s when it runs the call, before it calls the tool, and answers the call with the sentences above
-  without calling the tool when a value is invalid.
+- **The execution of a runtime call.** `RuntimeTools` resolves the document parameters of an admitted runtime tool call
+  into `DocumentId`s before it calls the tool.
 
 The output of the Ad-Hoc Tools Schema Resolver carries the format `camunda-document-id`, so another LLM connector that sends it
 to its provider needs the same rewrite. The shorthand type `document` is normalized only for `fromAi()` parameters. See

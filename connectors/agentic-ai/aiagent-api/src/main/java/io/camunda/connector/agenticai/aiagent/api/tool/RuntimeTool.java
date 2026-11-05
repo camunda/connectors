@@ -11,8 +11,8 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
 
 /**
  * A tool the connector runtime executes itself, without activating a BPMN element. Register it as a
- * Spring bean of this type. The tool types of this package, including {@link RuntimeToolDocuments},
- * {@link AgentDocument} and {@link RuntimeToolSchemas}, are {@link Experimental}.
+ * Spring bean of this type. The tool types of this package, including {@link RuntimeToolSchemas},
+ * are {@link Experimental}.
  *
  * <h2>Execution contract</h2>
  *

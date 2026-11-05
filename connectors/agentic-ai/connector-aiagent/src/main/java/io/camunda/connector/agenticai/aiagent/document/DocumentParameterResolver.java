@@ -112,7 +112,6 @@ public final class DocumentParameterResolver {
     return check(agentContext, toolCall, definition);
   }
 
-
   private static Resolution unchanged(ToolCall toolCall) {
     return new Resolution.Resolved(toolCall.arguments() == null ? Map.of() : toolCall.arguments());
   }
