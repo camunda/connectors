@@ -47,7 +47,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.un
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadCount;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withUploadTool;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
