@@ -35,17 +35,17 @@ class DocumentTagsTest {
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
-  private static AgentDocuments workspaceOf(Document document, DocumentOrigin origin) {
+  private static AgentDocuments agentDocumentsOf(Document document, DocumentOrigin origin) {
     return AgentDocuments.empty().register(document, origin);
   }
 
   private static String longTag(Document document, DocumentOrigin origin) {
-    return DocumentTags.longTag(workspaceOf(document, origin), AgentDocumentId.of(document));
+    return DocumentTags.longTag(agentDocumentsOf(document, origin), AgentDocumentId.of(document));
   }
 
   private static String shortTag(Document document) {
     return DocumentTags.shortTag(
-        workspaceOf(document, DocumentOrigin.userMessage()), AgentDocumentId.of(document));
+        agentDocumentsOf(document, DocumentOrigin.userMessage()), AgentDocumentId.of(document));
   }
 
   private Document camundaDocument(@Nullable String fileName, @Nullable String contentType) {
@@ -211,7 +211,7 @@ class DocumentTagsTest {
             DocumentOrigin.userMessage(),
             DocumentOrigin.event(),
             DocumentOrigin.toolCall("search", "call_1"))) {
-      assertThat(DocumentTags.shortTag(workspaceOf(doc, origin), AgentDocumentId.of(doc)))
+      assertThat(DocumentTags.shortTag(agentDocumentsOf(doc, origin), AgentDocumentId.of(doc)))
           .isEqualTo(expected);
     }
     assertThat(DocumentTags.shortTag(doc)).isEqualTo(expected);

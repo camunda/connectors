@@ -446,7 +446,7 @@ class CamundaDocumentConversationStoreTest {
   }
 
   @Test
-  void keepsDocumentReferencesWhenTheStoredConversationIsLoadedAgainAndLeavesTheWorkspaceAlone()
+  void keepsDocumentBlocksWhenTheStoredConversationIsLoadedAgainAndLeavesTheAgentDocumentsAlone()
       throws Exception {
     mockJobContext();
     final var document = createDocument("report", "report.txt");
@@ -473,7 +473,7 @@ class CamundaDocumentConversationStoreTest {
     final var storedContent = documentCreationRequestCaptor.getValue().content().readAllBytes();
     when(storedDocument.asInputStream()).thenReturn(new ByteArrayInputStream(storedContent));
 
-    // the workspace is part of the agent context, which the store does not touch
+    // the agent documents is part of the agent context, which the store does not touch
     assertThat(storedAgentContext.documents().all()).containsExactly(entry);
     try (var session = store.createSession(executionContext, storedAgentContext)) {
       assertThat(session.loadMessages(storedAgentContext).messages())

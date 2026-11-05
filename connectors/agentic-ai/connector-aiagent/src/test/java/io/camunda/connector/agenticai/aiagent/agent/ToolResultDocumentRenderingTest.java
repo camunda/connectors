@@ -53,7 +53,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The model gets the tag of a document in a tool result: the composed messages are windowed through
- * the workspace and every provider converter renders the result of the window with the tags.
+ * the agent documents and every provider converter renders the result of the window with the tags.
  */
 class ToolResultDocumentRenderingTest {
 
@@ -130,10 +130,14 @@ class ToolResultDocumentRenderingTest {
         .containsExactly(AgentDocumentContent.of(AgentDocumentId.of(bare)));
     assertThat(stored.results().get(1).content()).singleElement().isInstanceOf(ObjectContent.class);
 
-    final var workspace = AgentDocuments.empty().register(nextTurn.documents());
+    final var agentDocuments = AgentDocuments.empty().register(nextTurn.documents());
     final var conversation =
         AgentConversation.rehydrate(
-            CONFIGURATION, CONTEXT.withDocuments(workspace), previous, null, nextTurn.messages());
+            CONFIGURATION,
+            CONTEXT.withDocuments(agentDocuments),
+            previous,
+            null,
+            nextTurn.messages());
     final var windowed =
         expander
             .expand(conversation.window(100), conversation.persistedContext().documentHandling())

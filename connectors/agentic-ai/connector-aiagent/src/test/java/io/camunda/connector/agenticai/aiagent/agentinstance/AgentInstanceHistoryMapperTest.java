@@ -98,7 +98,7 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void aUserMessageWithADocumentTagIsReportedWithTheTagAndTheDocumentFromTheWorkspace() {
+  void aUserMessageWithADocumentTagIsReportedWithTheTagAndTheDocumentFromTheAgentDocuments() {
     final var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -106,7 +106,7 @@ class AgentInstanceHistoryMapperTest {
                     .contentType("text/plain")
                     .fileName("report.txt")
                     .build());
-    final var workspace =
+    final var agentDocuments =
         AgentDocuments.empty()
             .register(List.of(new NewDocument(document, DocumentOrigin.userMessage())));
     final var tag = AgentDocumentContent.of(AgentDocumentId.of(document));
@@ -118,14 +118,14 @@ class AgentInstanceHistoryMapperTest {
             userMessage,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.withDocuments(workspace).documentHandling());
+            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling());
 
     assertThat(items)
         .singleElement()
         .satisfies(item -> {
           assertThat(item.content()).hasSize(3);
           assertThat(texts(item.content()))
-              .containsExactly("see", "`" + DocumentTags.longTag(workspace, tag.id()) + "`");
+              .containsExactly("see", "`" + DocumentTags.longTag(agentDocuments, tag.id()) + "`");
           assertThat(item.content().get(2))
               .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
         });
@@ -590,13 +590,13 @@ class AgentInstanceHistoryMapperTest {
     private final String tag = DocumentTags.shortTag(document);
     private final String otherTag = DocumentTags.shortTag(otherDocument);
 
-    private final AgentDocuments workspace =
+    private final AgentDocuments agentDocuments =
         AgentDocuments.empty()
             .register(
                 List.of(
                     new NewDocument(document, DocumentOrigin.toolCall("fetch", "call-1")),
                     new NewDocument(otherDocument, DocumentOrigin.toolCall("fetch", "call-1"))));
-    private final AgentContext agentContext = WITH_DOCUMENTS.withDocuments(workspace);
+    private final AgentContext agentContext = WITH_DOCUMENTS.withDocuments(agentDocuments);
 
     private final ToolCall call =
         ToolCall.builder()
@@ -702,7 +702,8 @@ class AgentInstanceHistoryMapperTest {
 
     @Test
     void aReferenceBlockBetweenTextsIsTheShortTagInInlineCodeAndTheDocumentInTheOrderOfTheBlocks() {
-      // the workspace knows the tool call that returned the document, but the model reads the short
+      // the agent documents knows the tool call that returned the document, but the model reads the
+      // short
       // tag of a document in a tool result
       final var block = AgentDocumentContent.of(AgentDocumentId.of(document));
 
@@ -714,7 +715,7 @@ class AgentInstanceHistoryMapperTest {
                   TextContent.textContent("Its content follows in the next message.")),
               agentContext);
 
-      assertThat(DocumentTags.longTag(workspace, block.id()))
+      assertThat(DocumentTags.longTag(agentDocuments, block.id()))
           .contains("toolName")
           .contains("toolCallId");
       assertThat(tag).doesNotContain("toolName").doesNotContain("toolCallId");

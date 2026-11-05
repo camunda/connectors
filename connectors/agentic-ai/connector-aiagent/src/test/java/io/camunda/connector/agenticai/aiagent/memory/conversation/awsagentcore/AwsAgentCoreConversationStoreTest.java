@@ -884,7 +884,8 @@ class AwsAgentCoreConversationStoreTest {
   }
 
   @Test
-  void aDocumentReferenceWithTheDeliveryContentSurvivesStoreAndLoadAndIsExpandedFromTheWorkspace() {
+  void
+      aDocumentBlockWithTheDeliveryContentSurvivesStoreAndLoadAndIsExpandedFromTheAgentDocuments() {
     final var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(

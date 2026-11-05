@@ -2052,7 +2052,7 @@ lease-fenced `update()` mechanism).
   paginated history API and need not be joined back to the `ASSISTANT` item. Event results
   (`id == null`) have no originating call and carry `{}`; a result with a non-null id and no matching
   tool call is an invariant violation and fails the turn.
-- The tag of a document reference or of a document of a tool result is shown in backticks, and a text is reported as it
+- The tag of a document block or of a document of a tool result is shown in backticks, and a text is reported as it
   is, also when it holds a tag; the persisted messages and the text the model reads are not changed. A tool result that is
   a document, or an object with documents in it (replaced by their tags, the documents follow it), is reported block by
   block; an inline document of a tool result has its tag only, and an inline document of a user message cannot be mapped.

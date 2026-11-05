@@ -147,7 +147,7 @@ class InProcessConversationStoreTest {
   }
 
   @Test
-  void keepsDocumentReferencesAndTheWorkspaceWhenTheAgentContextIsSerializedAndLoadedAgain()
+  void keepsDocumentBlocksAndTheAgentDocumentsWhenTheAgentContextIsSerializedAndLoadedAgain()
       throws Exception {
     final var objectMapper = TestObjectMapperSupplier.INSTANCE;
     final var document = createDocument("report", "report.txt");

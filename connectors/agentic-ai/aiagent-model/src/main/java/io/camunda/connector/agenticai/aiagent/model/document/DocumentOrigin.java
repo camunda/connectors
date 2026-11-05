@@ -13,9 +13,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Where a document entered the conversation, as persisted in the document workspace. It is
- * serialized with the discriminator {@code type}: {@code USER_MESSAGE}, {@code EVENT} or {@code
- * TOOL_CALL}.
+ * Where a document entered the conversation, as persisted in the agent documents. It is serialized
+ * with the discriminator {@code type}: {@code USER_MESSAGE}, {@code EVENT} or {@code TOOL_CALL}.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
