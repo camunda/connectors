@@ -286,8 +286,13 @@ class AgentContextTest {
 
     assertThat(tracking.documentHandling()).isEqualTo(new DocumentHandling.Tracked(documents));
     assertThat(AgentContext.empty().documentHandling()).isEqualTo(new DocumentHandling.Untracked());
-    assertThat(AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()).documentHandling())
+    assertThat(
+            AgentContext.empty()
+                .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
+                .documentHandling())
         .isEqualTo(new DocumentHandling.Untracked());
+    assertThat(AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()).documentHandling())
+        .isEqualTo(new DocumentHandling.Tracked(AgentDocuments.empty()));
   }
 
   @Test

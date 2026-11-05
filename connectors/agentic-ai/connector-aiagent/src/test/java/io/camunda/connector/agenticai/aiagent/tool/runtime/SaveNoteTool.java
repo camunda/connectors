@@ -13,11 +13,11 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.runtime.core.document.InlineDocument;
 import java.nio.charset.StandardCharsets;
@@ -89,10 +89,10 @@ public final class SaveNoteTool implements RuntimeTool {
   }
 
   /** The texts of the notes among the documents the agent knows, in registration order. */
-  public static List<String> notesOf(DocumentWorkspace workspace) {
+  public static List<String> notesOf(AgentDocuments documents) {
     return notesOf(
-        workspace.entries().stream()
-            .map(entry -> entry.toDocument(TestObjectMapperSupplier.INSTANCE)));
+        documents.all().stream()
+            .map(agentDocument -> agentDocument.toDocument(TestDocuments.documentFactory())));
   }
 
   private static List<String> notesOf(java.util.stream.Stream<Document> documents) {

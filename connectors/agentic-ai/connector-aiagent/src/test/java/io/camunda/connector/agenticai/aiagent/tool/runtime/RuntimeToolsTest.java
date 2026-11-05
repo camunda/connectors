@@ -104,6 +104,7 @@ class RuntimeToolsTest {
     return new RuntimeTools(
         List.of(tools),
         TestObjectMapperSupplier.INSTANCE,
+        TestDocuments.documentFactory(),
         new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
   }
 
@@ -501,17 +502,6 @@ class RuntimeToolsTest {
     assertThat(tools.execute(WITH_MEMORY, NEW_INSTANCE, Set.of(), List.of())).isEmpty();
   }
 
-  private static AgentContext knowing(Document... documents) {
-    return NEW_INSTANCE.withDocumentWorkspace(
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            Arrays.stream(documents)
-                .map(document ->
-                    new IngestedDocument(
-                        document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
-                .toList()));
-  }
-
   @Test
   void aToolCanBeEnabledOnlyWhileTheAgentKnowsADocument() {
     final var needsDocuments =
@@ -531,8 +521,7 @@ class RuntimeToolsTest {
             "acme_reading",
             (context, call) -> {
               seen.add(context.documents().all().stream().map(AgentDocument::id).toList());
-              final var found =
-                  context.documents().find(AgentDocumentHandle.idFor(report)).orElseThrow();
+              final var found = context.documents().find(AgentDocumentId.of(report)).orElseThrow();
               seen.add(new String(found.document().asByteArray(), StandardCharsets.UTF_8));
               seen.add(found.origin());
               return RuntimeToolResult.success("read");
@@ -547,7 +536,7 @@ class RuntimeToolsTest {
 
     assertThat(seen)
         .containsExactly(
-            List.of(AgentDocumentHandle.idFor(report)),
+            List.of(AgentDocumentId.of(report)),
             "report",
             AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
   }
@@ -621,7 +610,7 @@ class RuntimeToolsTest {
         .execute(
             WITH_MEMORY,
             knowing(read, unread),
-            Set.of(AgentDocumentHandle.idFor(read)),
+            Set.of(AgentDocumentId.of(read)),
             List.of(runtimeCall("r1", "acme_reading", Map.of())));
 
     assertThat(seen).containsExactly(true, false);
@@ -630,7 +619,7 @@ class RuntimeToolsTest {
   @Test
   void theExecutionKeepsTheEffectsOfASuccessfulResultAndNoneOfAnErrorResult() {
     final var report = createDocument("report", "report.txt");
-    final var id = AgentDocumentHandle.idFor(report);
+    final var id = AgentDocumentId.of(report);
     final var loading =
         StubRuntimeTool.of(
             "acme_load",
