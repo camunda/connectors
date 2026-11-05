@@ -43,6 +43,7 @@ import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
@@ -667,6 +668,37 @@ class AgentInstanceHistoryMapperTest {
 
     private List<String> described(AgentInstanceHistoryMapper.InputHistoryItem item) {
       return item.content().stream().map(this::describe).toList();
+    }
+
+    @Test
+    void theExpiryOfADocumentKeepsItsOffsetWithoutTrackingAndIsInUtcWithTracking() {
+      final var metadata = Mockito.mock(DocumentMetadata.class);
+      Mockito.when(metadata.getExpiresAt())
+          .thenReturn(OffsetDateTime.parse("2026-07-02T12:00:00+02:00"));
+      Mockito.when(metadata.getFileName()).thenReturn("report.pdf");
+      Mockito.when(metadata.getContentType()).thenReturn("application/pdf");
+      final var reference = Mockito.mock(CamundaDocumentReference.class);
+      Mockito.when(reference.getStoreId()).thenReturn("in-memory");
+      Mockito.when(reference.getDocumentId()).thenReturn("expiring");
+      Mockito.when(reference.getContentHash()).thenReturn("hash");
+      Mockito.when(reference.getMetadata()).thenReturn(metadata);
+      final var expiring = Mockito.mock(Document.class);
+      Mockito.when(expiring.reference()).thenReturn(reference);
+      Mockito.when(expiring.metadata()).thenReturn(metadata);
+      final var message = message(DocumentContent.documentContent(expiring));
+
+      assertThat(expiresAtOf(item(message, NEW_INSTANCE))).isEqualTo("2026-07-02T12:00+02:00");
+      assertThat(expiresAtOf(item(message, agentContext))).isEqualTo("2026-07-02T10:00Z");
+    }
+
+    private String expiresAtOf(AgentInstanceHistoryMapper.InputHistoryItem item) {
+      return item.content().stream()
+          .filter(AgentInstanceHistoryContent.DocumentContent.class::isInstance)
+          .map(AgentInstanceHistoryContent.DocumentContent.class::cast)
+          .map(content ->
+              String.valueOf(content.getDocumentReference().getMetadata().getExpiresAt()))
+          .findFirst()
+          .orElseThrow();
     }
 
     @Test
