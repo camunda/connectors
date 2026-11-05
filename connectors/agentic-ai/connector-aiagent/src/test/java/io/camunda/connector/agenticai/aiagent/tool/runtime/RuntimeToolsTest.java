@@ -14,12 +14,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolSchemas;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -554,7 +554,7 @@ class RuntimeToolsTest {
                 "c8__read_file",
                 Map.of(
                     "file",
-                    RuntimeToolSchemas.document("The file"),
+                    DocumentSchemas.document("The file"),
                     "files",
                     Map.of("type", "array", "items", Map.of("type", "string")))),
             (context, call) -> {
@@ -581,7 +581,7 @@ class RuntimeToolsTest {
     final var received = new ArrayList<Object>();
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__read_file", Map.of("file", RuntimeToolSchemas.document("The file"))),
+            definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file"))),
             (context, call) -> {
               received.add(call.arguments());
               return RuntimeToolResult.success("read");
@@ -608,7 +608,7 @@ class RuntimeToolsTest {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__read_file", Map.of("file", RuntimeToolSchemas.document("The file"))),
+            definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file"))),
             (context, call) -> {
               runs.incrementAndGet();
               return RuntimeToolResult.success("read");
@@ -631,7 +631,7 @@ class RuntimeToolsTest {
     record Args(Object body) {}
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__send", Map.of("body", RuntimeToolSchemas.textOrDocument("The body"))),
+            definitionOf("c8__send", Map.of("body", DocumentSchemas.textOrDocument("The body"))),
             (context, call) -> {
               received.add(call.argumentsAs(Args.class).body());
               return RuntimeToolResult.success("sent");
@@ -653,7 +653,7 @@ class RuntimeToolsTest {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__send", Map.of("body", RuntimeToolSchemas.textOrDocument("The body"))),
+            definitionOf("c8__send", Map.of("body", DocumentSchemas.textOrDocument("The body"))),
             (context, call) -> {
               runs.incrementAndGet();
               return RuntimeToolResult.success("sent");
@@ -674,7 +674,7 @@ class RuntimeToolsTest {
     final var received = new ArrayList<Object>();
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__read_file", Map.of("file", RuntimeToolSchemas.document("The file"))),
+            definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file"))),
             (context, call) -> {
               received.add(call.arguments());
               return RuntimeToolResult.success("read");

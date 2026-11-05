@@ -14,7 +14,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -307,7 +306,7 @@ class McpClientGatewayToolHandlerTest {
     }
 
     @Test
-    void discoveredToolsDeclareNoDocumentParametersAndReachTheModelProviderAsTheyAre() {
+    void discoveredToolsDeclareNoDocumentParameters() {
       var inputSchema =
           Map.<String, Object>of(
               "type",
@@ -331,10 +330,7 @@ class McpClientGatewayToolHandlerTest {
       assertThat(result).hasSize(1);
       var toolDefinition = result.getFirst();
       assertThat(toolDefinition.inputSchema()).isEqualTo(inputSchema);
-      assertThat(DocumentParameterSchema.hasDocumentParameters(toolDefinition.inputSchema()))
-          .isFalse();
-      assertThat(DocumentParameterSchema.toProviderToolDefinitions(result).getFirst())
-          .isSameAs(toolDefinition);
+      assertThat(toolDefinition.documentParameters()).isEmpty();
     }
 
     @Test

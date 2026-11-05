@@ -27,7 +27,6 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -269,7 +268,7 @@ class A2aGatewayToolHandlerTest {
     }
 
     @Test
-    void discoveredToolsDeclareNoDocumentParametersAndReachTheModelProviderAsTheyAre() {
+    void discoveredToolsDeclareNoDocumentParameters() {
       var toolDiscoveryResults =
           List.of(
               createToolCallResultWithContent(
@@ -279,10 +278,7 @@ class A2aGatewayToolHandlerTest {
 
       assertThat(result).hasSize(1);
       var toolDefinition = result.getFirst();
-      assertThat(DocumentParameterSchema.hasDocumentParameters(toolDefinition.inputSchema()))
-          .isFalse();
-      assertThat(DocumentParameterSchema.toProviderToolDefinitions(result).getFirst())
-          .isSameAs(toolDefinition);
+      assertThat(toolDefinition.documentParameters()).isEmpty();
     }
 
     @Test

@@ -13,9 +13,8 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema.DocumentParameter;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema.Step;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter.Step;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -31,9 +30,9 @@ import org.jspecify.annotations.Nullable;
 /**
  * Resolves the document parameters of a tool call. The document parameters are the schema nodes
  * with the document format of the tool's input schema and its union parameters (see {@link
- * DocumentParameterSchema}), found at the top level, as array items and nested in objects; the
- * arguments of a tool call mirror the schema, so each such node addresses the argument values that
- * carry a document.
+ * DocumentParameter}), found at the top level, as array items and nested in objects; the arguments
+ * of a tool call mirror the schema, so each such node addresses the argument values that carry a
+ * document.
  *
  * <p>For a document parameter the model passes the {@code <doc />} tag of a known document: a value
  * that is exactly one tag, surrounded by whitespace at most, stands for the document of its {@code
@@ -91,8 +90,7 @@ public final class DocumentParameterResolver {
       case DocumentHandling.Tracked tracked ->
           agentContext.toolDefinitions().stream()
               .filter(definition -> definition.name().equals(toolCall.name()))
-              .filter(definition ->
-                  DocumentParameterSchema.hasDocumentParameters(definition.inputSchema()))
+              .filter(definition -> !definition.documentParameters().isEmpty())
               .findFirst()
               .map(definition -> resolve(toolCall, definition, tracked.documents()))
               .orElseGet(() -> unchanged(toolCall));
@@ -106,7 +104,7 @@ public final class DocumentParameterResolver {
    */
   public static Resolution check(
       AgentContext agentContext, ToolCall toolCall, ToolDefinition definition) {
-    if (!DocumentParameterSchema.hasDocumentParameters(definition.inputSchema())) {
+    if (definition.documentParameters().isEmpty()) {
       return unchanged(toolCall);
     }
     return switch (agentContext.documentHandling()) {
@@ -181,8 +179,7 @@ public final class DocumentParameterResolver {
       Function<AgentDocument, Object> replacement,
       List<String> problems) {
     @Nullable Object resolved = arguments;
-    for (final var parameter :
-        DocumentParameterSchema.documentParameters(toolDefinition.inputSchema())) {
+    for (final var parameter : toolDefinition.documentParameters()) {
       resolved = walk(resolved, parameter, 0, "", documents, replacement, problems);
     }
     // the root is the arguments object, which is never replaced by null
@@ -199,9 +196,12 @@ public final class DocumentParameterResolver {
       List<String> problems) {
     final var steps = parameter.path();
     if (index == steps.size()) {
-      return parameter.union()
-          ? resolveUnion(node, path, documents, replacement, problems)
-          : resolveId(node, path, documents, replacement, problems);
+      return switch (parameter) {
+        case DocumentParameter.Document ignored ->
+            resolveId(node, path, documents, replacement, problems);
+        case DocumentParameter.TextOrDocument ignored ->
+            resolveUnion(node, path, documents, replacement, problems);
+      };
     }
 
     return switch (steps.get(index)) {

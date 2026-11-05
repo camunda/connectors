@@ -15,7 +15,7 @@ import java.util.Map;
  * methods in a later release. {@link Experimental}, see {@link RuntimeTool}.
  *
  * <p>The arguments are the values the model sent, except that a parameter that carries a document
- * (see {@link RuntimeToolSchemas}) holds the {@link AgentDocumentId} of the document instead of the
+ * (see {@link DocumentSchemas}) holds the {@link AgentDocumentId} of the document instead of the
  * {@code <doc id="..." />} tag the model wrote.
  */
 @Experimental
@@ -32,10 +32,10 @@ public interface RuntimeToolCall {
    *
    * <ul>
    *   <li>A document parameter holds a {@link AgentDocumentId}.
-   *   <li>A union parameter (text or a document, see {@link RuntimeToolSchemas#textOrDocument})
-   *       holds a {@link AgentDocumentId} when the model passed exactly one document tag, and the
-   *       value the model passed, usually a {@link String}, otherwise. A text that equals the id of
-   *       a document stays text: only a tag stands for a document.
+   *   <li>A union parameter (text or a document, see {@link DocumentSchemas#textOrDocument}) holds
+   *       a {@link AgentDocumentId} when the model passed exactly one document tag, and the value
+   *       the model passed, usually a {@link String}, otherwise. A text that equals the id of a
+   *       document stays text: only a tag stands for a document.
    * </ul>
    */
   Map<String, Object> arguments();

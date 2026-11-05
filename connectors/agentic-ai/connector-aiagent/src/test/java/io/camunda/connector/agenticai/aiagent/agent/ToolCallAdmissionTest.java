@@ -10,7 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolSchemas;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -244,15 +244,12 @@ class ToolCallAdmissionTest {
 
   private static Map<String, Object> unionSchema() {
     return Map.of(
-        "type",
-        "object",
-        "properties",
-        Map.of("body", RuntimeToolSchemas.textOrDocument("The body")));
+        "type", "object", "properties", Map.of("body", DocumentSchemas.textOrDocument("The body")));
   }
 
   private static Map<String, Object> documentSchema() {
     return Map.of(
-        "type", "object", "properties", Map.of("doc", RuntimeToolSchemas.document("The file")));
+        "type", "object", "properties", Map.of("doc", DocumentSchemas.document("The file")));
   }
 
   private static AssistantMessage messageWith(ToolCall... calls) {

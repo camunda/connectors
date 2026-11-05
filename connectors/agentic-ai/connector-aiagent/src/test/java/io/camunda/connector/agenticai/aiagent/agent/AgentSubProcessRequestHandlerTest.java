@@ -53,9 +53,9 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredExcep
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolSchemas;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
@@ -234,7 +234,7 @@ class AgentSubProcessRequestHandlerTest {
                       "type",
                       "object",
                       "properties",
-                      Map.of("doc", RuntimeToolSchemas.document("The file")))),
+                      Map.of("doc", DocumentSchemas.document("The file")))),
               (context, call) -> RuntimeToolResult.success("uploaded"))
           .enabledWhen(context -> UPLOAD_ENABLED.get());
 
