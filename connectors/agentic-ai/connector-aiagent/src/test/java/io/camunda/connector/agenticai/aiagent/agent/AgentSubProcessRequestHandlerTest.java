@@ -84,7 +84,6 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolsImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
@@ -148,7 +147,7 @@ class AgentSubProcessRequestHandlerTest {
 
   @Spy
   private RuntimeTools runtimeTools =
-      new RuntimeToolsImpl(
+      new RuntimeTools(
           List.of(LOOKUP_TOOL, HIDDEN_TOOL, TOGGLE_TOOL), TestObjectMapperSupplier.INSTANCE);
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)

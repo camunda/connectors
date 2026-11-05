@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 
-class RuntimeToolsImplTest {
+class RuntimeToolsTest {
 
   private static final AgentExecutionContext PLAIN =
       withConfiguration(
@@ -86,7 +86,7 @@ class RuntimeToolsImplTest {
   private final RuntimeTools tools = toolsOf(NOTE_TOOL);
 
   private static RuntimeTools toolsOf(RuntimeTool... tools) {
-    return new RuntimeToolsImpl(List.of(tools), TestObjectMapperSupplier.INSTANCE);
+    return new RuntimeTools(List.of(tools), TestObjectMapperSupplier.INSTANCE);
   }
 
   private static RuntimeTool tool(String name, Predicate<RuntimeToolContext> enabled) {

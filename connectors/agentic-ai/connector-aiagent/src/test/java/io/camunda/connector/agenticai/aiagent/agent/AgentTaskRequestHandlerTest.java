@@ -58,7 +58,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolsImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
@@ -103,7 +102,7 @@ class AgentTaskRequestHandlerTest {
 
   @Spy
   private RuntimeTools runtimeTools =
-      new RuntimeToolsImpl(
+      new RuntimeTools(
           List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
           TestObjectMapperSupplier.INSTANCE);
 
