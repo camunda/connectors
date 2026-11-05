@@ -303,6 +303,8 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
   a document the agent knows.
 - Renamed: `DocumentReferenceXmlTag` (see the [module split](#module-split)) is `aiagent.document.LegacyDocumentReferenceXmlTag`,
   which only agent instances without the `documents` feature use.
+- Removed: `aiagent.document.DocumentHandle`. Derive the id of a document with `AgentDocumentId.of(Document)` or
+  `AgentDocumentId.of(DocumentReference)`; the id has the format described above.
 - New in the libraries: the persisted document state (`AgentDocuments`, `AgentDocument`, the sealed `DocumentOrigin`,
   persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
