@@ -285,6 +285,67 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                 .hasResponseText(responseText));
   }
 
+  /**
+   * A tool returns a document and the model asks for its content: the tool result holds the tag and
+   * the answer of the get-document tool, and the content follows in a message of its own.
+   */
+  @Test
+  void documentOfAToolResultRequestedByTheModel() throws Exception {
+    assumeThat(fixture.supportsDocumentIdPlaceholders()).isTrue();
+    final var userPrompt = "Download the document and summarize it";
+    final var downloadMessage = "I will download the document.";
+    final var toolCallMessage = "I will read the document.";
+    final var responseText = "TL;DR: it is pretty interesting";
+
+    fixture.stubConversation(
+        TurnStub.toolCalls(
+            downloadMessage,
+            10,
+            20,
+            new ToolCallStub(
+                "dl1111",
+                "Download_A_File",
+                "{\"url\": \"" + wireMock.getHttpBaseUrl() + "/test.jpg\"}")),
+        TurnStub.toolCalls(
+            toolCallMessage,
+            10,
+            20,
+            new ToolCallStub(
+                "get111", "c8__get_document", "{\"id\": \"<doc id=\\\"@@DOC_ID_0@@\\\" />\"}")),
+        TurnStub.text(responseText, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
+
+    assertThat(fixture.modelCallCount()).isEqualTo(3);
+    // the answer of the get-document tool is a text, the tag and a text, which the recorded text
+    // joins by a newline (chat completions formats) or by nothing (formats with a part per block)
+    ProviderWireFormatExpectedMessage.assertConversationMessages(
+        fixture.lastRecordedRequest(),
+        ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+        ProviderWireFormatExpectedMessage.user(userPrompt),
+        ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+            downloadMessage, "Download_A_File"),
+        ProviderWireFormatExpectedMessage.toolCallResultMatching(
+            "dl1111",
+            "\\{\"status\":200,\"document\":\"<doc id=\\\\\"doc_[0-9a-f]{12}\\\\\"[^}]*/>\"\\}"),
+        ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+            toolCallMessage, "c8__get_document"),
+        ProviderWireFormatExpectedMessage.toolCallResultMatching(
+            "get111",
+            "Requested the content of the document\\.\n?<doc id=\"doc_[0-9a-f]{12}\"[^>]*/>\n?It follows in the next message, or a note says why it cannot be loaded\\."),
+        ProviderWireFormatExpectedMessage.userWithDocument(
+            "System message, not written by the user: the content of the documents loaded for the tool results above follows."));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(responseText));
+  }
+
   private static final Map<String, Object> HAIKU_SCHEMA =
       Map.of(
           "type", "object",
