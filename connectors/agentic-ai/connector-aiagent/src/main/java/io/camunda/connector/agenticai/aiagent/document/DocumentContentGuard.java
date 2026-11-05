@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.io.IOException;
 import java.util.Optional;
@@ -123,7 +123,7 @@ public final class DocumentContentGuard {
     }
 
     final var limit = limitFor(kind);
-    final var size = AgentDocument.Descriptors.of(document.reference()).size();
+    final var size = sizeOf(document);
     if (size != null) {
       return size > limit
           ? Optional.of(tooLarge("is " + kilobytes(size), limit))
@@ -138,6 +138,15 @@ public final class DocumentContentGuard {
       return Optional.of(
           new Rejection(Rejection.Reason.UNREADABLE, "could not be read to check its size", e));
     }
+  }
+
+  /** The size from the metadata of a Camunda document, which is known without reading it. */
+  private static @Nullable Long sizeOf(Document document) {
+    if (!(document.reference() instanceof CamundaDocumentReference)) {
+      return null;
+    }
+    final var metadata = document.metadata();
+    return metadata != null ? metadata.getSize() : null;
   }
 
   /**
