@@ -291,7 +291,7 @@ factory of the job.
   message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`); a `Success` can
   ask the agent to add the content of a known document to the request that follows the tool results
   (`withDocumentContent(AgentDocumentId)` or `withDocumentContent(Document)`) or to select a known document for the final
-  response (`withResponseDocument(key, AgentDocumentId, description)`); each adds a variant of the sealed
+  response (`withResponseDocument(key, AgentDocumentId, description)` or `withResponseDocument(key, Document, description)`); each adds a variant of the sealed
   `ToolCallEffect`, listed by `Success.effects()`, which the agent applies after all calls of the message ran, in call
   order, and for the content effect after its content guard accepted the document; a document the guard rejects stays a
   reference, and the agent writes into the tool result that the content is not loaded and why. The agent also writes,
@@ -321,8 +321,8 @@ factory of the job.
   implementation returns the `OutboundConnectorContext` of the job, which is a `DocumentFactory`.
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builder, or for `ToolCall` the constructors with three or four arguments and for `ToolDefinition` the constructor with
-  three arguments: `AgentContext` (`documents`, the `AgentDocuments`, `responseDocuments`, a list of selections with a `key`, and
-  `features`, a list), `AgentResponse` and `AgentSubProcessResponse` (`responseDocuments`, a map by key; the order of its
+  three arguments: `AgentContext` (`documents`, the `AgentDocuments`, `features`, a list, and, as its last component,
+  `responseDocuments`, a list of selections with a `key`), `AgentResponse` and `AgentSubProcessResponse` (`responseDocuments`, a map by key; the order of its
   entries is not specified), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`
   by default, and `rejection`, an optional error text, none by default; the canonical constructor has the six components
   `id`, `name`, `arguments`, `metadata`, `kind` and `rejection`) and `ToolDefinition` (`kind`, `PROCESS` by default; a

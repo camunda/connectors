@@ -1440,8 +1440,8 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
    `responseDocuments` is a map from the key of each response document of the agent context to `{document, description?}`,
    where `document` is the Camunda document reference of the agent document. The response documents stay in the returned
    `agentContext`, so every later final response of the agent instance carries the documents returned earlier as well as
-   new ones (a key selected again replaces its entry). The field is omitted when there are no response documents, and the
-   order of the entries is not specified (the order of selection is kept by the `responseDocuments` list of the context).
+   new ones (a key selected again replaces its entry). The map is never null and the field is omitted from the JSON when it is empty. A selection whose
+   document is not in the agent documents is an invariant violation and fails the job. The order of the entries is not specified (the order of selection is kept by the `responseDocuments` list of the context).
    A response with tool calls carries none.
 
 ### Job Worker Response Variables
@@ -2103,13 +2103,14 @@ reference. The same holds for a union parameter, a parameter that takes a docume
 **Returning documents: `c8__return_document`.** The model calls it once per document with `key` (required, matching
 `[A-Za-z_][A-Za-z0-9_-]*`), `document` (required, the handle of a known document, a document parameter) and `description`
 (optional, a blank one is left out). A valid call is answered `Returned the document under the key 'k'.` and asks the
-agent to select the document for the final response (`RuntimeToolResult.Success.withResponseDocument`). The agent applies
+agent to select the document for the final response (`RuntimeToolResult.Success.withResponseDocument`; the key rule is
+checked by `ResponseDocumentSelection`, which every selection passes through). The agent applies
 the effect after all calls of the message ran, in call order, in `ToolCallResultsInputBuilder`: the selection goes into
 `AgentContext.responseDocuments` (`{key, document, description?}`, in the order of selection); a key that is already used,
 by an earlier call or an earlier turn, is replaced in place and keeps its position. An invalid key, a missing parameter or
-an unknown document is answered with an error result, and an error result changes nothing. A result whose content the
-guard rejects is an error result and selects nothing. A document the tool does not know when the batch starts cannot be
-selected by it, also when another call of the same message returned it: the next turn knows it. The selections stay in the
+an unknown document is answered with an error result, and an error result changes nothing. The content guard has no say in
+a selection. A document the tool does not know when the batch starts cannot be selected by it, also when another call of
+the same message returned it (a defect of the tool, the job fails): the next turn knows it. The selections stay in the
 context for the lifetime of the agent instance, so every final response (a response without tool calls) carries all of them
 as `responseDocuments` (§14), for example after a user feedback turn. There is no tool to remove a key. A sub-process agent
 exposes them as `agent.responseDocuments.<key>.document`.
@@ -2673,8 +2674,8 @@ including the messages this turn adds.
 **Effects.** `RuntimeToolResult.success(...)` returns a `Success`, which has the effects `withDocumentContent(AgentDocumentId)`
 (or `withDocumentContent(Document)` for a document the result returns itself): the agent adds the content of a known
 document, or of one the result returns itself, to the request that follows the tool results; `LoadDocumentTool` is the
-reference. `withResponseDocument(key, AgentDocumentId, description)` selects a known document, or one the result returns
-itself, for the final response (§19); `ReturnDocumentTool` is the reference. An effect is a variant of the sealed
+reference. `withResponseDocument(key, AgentDocumentId, description)` (or `withResponseDocument(key, Document, description)`) selects a
+known document, or one the result returns itself, for the final response (§19); `ReturnDocumentTool` is the reference. An effect is a variant of the sealed
 `ToolCallEffect` (`aiagent-model`: `AddDocumentContent`, `SelectResponseDocument`); `Success.effects()` lists them, `with*`
 methods append. The agent runs the content guard (`DocumentContentGuard`: the content type and the size limit of its kind)
 before it adds any content. A document that is not allowed stays a reference, and the agent writes into the result that the
