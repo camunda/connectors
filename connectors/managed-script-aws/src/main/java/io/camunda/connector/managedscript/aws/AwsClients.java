@@ -30,12 +30,12 @@ final class AwsClients {
   private AwsClients() {}
 
   /** Lambda control plane, with the SDK's default retries. */
-  static LambdaClient lambda(String region) {
-    return configure(LambdaClient.builder(), region, credentials()).build();
+  static LambdaClient lambda(String region, AwsCredentialsProvider credentials) {
+    return configure(LambdaClient.builder(), region, credentials).build();
   }
 
-  static CloudWatchLogsClient logs(String region) {
-    return configure(CloudWatchLogsClient.builder(), region, credentials()).build();
+  static CloudWatchLogsClient logs(String region, AwsCredentialsProvider credentials) {
+    return configure(CloudWatchLogsClient.builder(), region, credentials).build();
   }
 
   /**
@@ -55,7 +55,10 @@ final class AwsClients {
         .build();
   }
 
-  /** The default chain, which the invocations share with the provider. */
+  /**
+   * The default chain, which the three clients share: the provider resolves it before its calls,
+   * and the runtime exchanges a web-identity token once, not once per client.
+   */
   static AwsCredentialsProvider credentials() {
     return DefaultCredentialsProvider.builder().build();
   }

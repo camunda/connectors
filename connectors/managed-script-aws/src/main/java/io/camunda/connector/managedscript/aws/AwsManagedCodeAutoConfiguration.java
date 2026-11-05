@@ -39,10 +39,10 @@ public class AwsManagedCodeAutoConfiguration {
         AwsLambdaManagedCodeProvider.functionTimeoutSeconds(shared.executionTimeout());
     final var credentials = AwsClients.credentials();
     return new AwsLambdaManagedCodeProvider(
-        AwsClients.lambda(aws.region()),
+        AwsClients.lambda(aws.region(), credentials),
         AwsClients.invoker(aws.region(), functionTimeoutSeconds, credentials),
         credentials,
-        AwsClients.logs(aws.region()),
+        AwsClients.logs(aws.region(), credentials),
         ConnectorsObjectMapperSupplier.getCopy(),
         shared.deploymentNamePrefix(),
         aws,

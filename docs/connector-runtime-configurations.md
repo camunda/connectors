@@ -137,6 +137,21 @@ camunda.connector.managed-code.aws.log-retention-days=30
   token file (`AWS_WEB_IDENTITY_TOKEN_FILE` and `AWS_ROLE_ARN`, as set by IRSA on EKS), the profile
   files, then the container or instance metadata. The provider works without the metadata server.
   The configuration holds no access key.
+  - The chain takes the first source that it finds: access keys in the environment win over a
+    web-identity token file, and nothing says so in the log.
+  - When the web-identity exchange fails, the chain goes on to the metadata server. On EKS, require
+    IMDSv2 (`HttpTokens=required`) with a hop limit of 1 on the nodes, so that a broken trust does
+    not let a pod run as the node role. The hop limit does not protect a pod with
+    `hostNetwork: true`, which reaches the metadata server without the extra hop. Where the runtime
+    must never fall back to the node role, disable the metadata credentials of the SDK in the
+    runtime, with the environment variable `AWS_EC2_METADATA_DISABLED=true` or the JVM property
+    `aws.disableEc2Metadata=true`, or block `169.254.169.254` with a network policy. Without the
+    metadata server, the region of STS can no longer come from the instance metadata.
+  - STS, which exchanges the web-identity token, takes its region from the region chain of the AWS
+    SDK, not from `camunda.connector.managed-code.aws.region`: the JVM property `aws.region`, which
+    wins over the environment variable `AWS_REGION`, then the `region` of the profile files, then
+    the instance metadata. When none of them gives a region, the SDK uses the global endpoint
+    `sts.amazonaws.com`: set `AWS_REGION` where that endpoint is blocked.
 - A script is invoked synchronously, never retried by the SDK, so that it runs at most once per job
   attempt. A request above 6 MB, the script and its input as JSON, fails with `RESOURCE_LIMIT`
   before any call. A throttled invocation fails with `PLATFORM_THROTTLED`, a service error or a
@@ -146,7 +161,12 @@ camunda.connector.managed-code.aws.log-retention-days=30
   cut because the runtime stops fails with `PLATFORM_INTERRUPTED` and keeps its retries, as with
   the other providers: Lambda still runs the script to its end, so it may run again.
 - A denied call, while making the executors ready or invoking them, is retried as long as the grants
-  of a new cluster may still be propagating, and then fails with `PLATFORM_REJECTED`.
+  of a new cluster may still be propagating, and then fails with `PLATFORM_REJECTED`. So are
+  credentials that no source of the chain can provide, such as a web-identity exchange that STS
+  denies, a token for another audience or a missing token file: the message names the failure of
+  the web-identity token first. The same goes for a token file that becomes missing or unreadable
+  after the credentials resolved, when they are refreshed. Once the credentials have resolved, a
+  refresh that cannot reach STS or the metadata server fails with `PLATFORM_UNAVAILABLE`.
 - The runtime never deletes an executor or its log group. After an upgrade of the wrapper, delete
   the functions and log groups under the prefix that no runtime instance uses any more.
 
