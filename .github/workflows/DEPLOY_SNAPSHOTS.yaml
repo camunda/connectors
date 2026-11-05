@@ -75,7 +75,7 @@ jobs:
       # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml so that
       # this job doesn't save a second ~1 GB copy. Keep the key in sync with that workflow.
       - name: Restore cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         continue-on-error: true  # Cache failures should not fail the build
         with:
           path: ~/.m2/repository
