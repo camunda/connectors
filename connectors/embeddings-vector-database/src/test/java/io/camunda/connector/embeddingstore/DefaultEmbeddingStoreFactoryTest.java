@@ -65,6 +65,32 @@ class DefaultEmbeddingStoreFactoryTest {
   }
 
   @Test
+  void createsAmazonS3VectorsVectorStore() {
+    DefaultEmbeddingStoreFactory factory =
+        new DefaultEmbeddingStoreFactory(ProxyConfiguration.NONE);
+    final var mockModel = Mockito.mock(EmbeddingModel.class);
+
+    try (var store =
+        factory.initializeVectorStore(
+            EmbeddingsVectorStoreFixture.createAmazonS3VectorsVectorStore(), mockModel, null)) {
+      assertThat(store.getEmbeddingStore()).isInstanceOf(AmazonS3VectorsEmbeddingStore.class);
+    }
+  }
+
+  @Test
+  void createsAmazonDynamoDbVectorStore() {
+    DefaultEmbeddingStoreFactory factory =
+        new DefaultEmbeddingStoreFactory(ProxyConfiguration.NONE);
+    final var mockModel = Mockito.mock(EmbeddingModel.class);
+
+    try (var store =
+        factory.initializeVectorStore(
+            EmbeddingsVectorStoreFixture.createAmazonDynamoDbVectorStore(), mockModel, null)) {
+      assertThat(store.getEmbeddingStore()).isInstanceOf(AmazonDynamoDbEmbeddingStore.class);
+    }
+  }
+
+  @Test
   void createsAzureCosmosDbNoSqlVectorStore() {
     final var mockModel = Mockito.mock(EmbeddingModel.class);
     Mockito.when(mockModel.dimension()).thenReturn(512);
