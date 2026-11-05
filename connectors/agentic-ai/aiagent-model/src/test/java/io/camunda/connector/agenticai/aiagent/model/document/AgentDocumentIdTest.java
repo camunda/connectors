@@ -13,31 +13,32 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class DocumentIdTest {
+class AgentDocumentIdTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
   void serializesAsABareStringAlsoInsideAnObject() throws Exception {
-    assertThat(objectMapper.writeValueAsString(DocumentId.of("doc-1"))).isEqualTo("\"doc-1\"");
-    assertThat(objectMapper.writeValueAsString(Map.of("id", DocumentId.of("doc-1"))))
+    assertThat(objectMapper.writeValueAsString(AgentDocumentId.of("doc-1"))).isEqualTo("\"doc-1\"");
+    assertThat(objectMapper.writeValueAsString(Map.of("id", AgentDocumentId.of("doc-1"))))
         .isEqualTo("{\"id\":\"doc-1\"}");
   }
 
   @Test
   void readsABareString() throws Exception {
-    assertThat(objectMapper.readValue("\"doc-1\"", DocumentId.class))
-        .isEqualTo(DocumentId.of("doc-1"));
+    assertThat(objectMapper.readValue("\"doc-1\"", AgentDocumentId.class))
+        .isEqualTo(AgentDocumentId.of("doc-1"));
   }
 
   @Test
   void rendersAsItsValue() {
-    assertThat(DocumentId.of("doc-1")).hasToString("doc-1");
+    assertThat(AgentDocumentId.of("doc-1")).hasToString("doc-1");
   }
 
   @Test
   void rejectsABlankId() {
-    assertThatThrownBy(() -> DocumentId.of(" ")).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> DocumentId.of(null)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> AgentDocumentId.of(" ")).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> AgentDocumentId.of((String) null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 }

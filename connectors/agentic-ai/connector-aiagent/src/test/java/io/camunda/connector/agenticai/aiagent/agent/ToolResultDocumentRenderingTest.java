@@ -23,21 +23,22 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -74,7 +75,7 @@ class ToolResultDocumentRenderingTest {
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-  private final DocumentExpander expander = new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
+  private final DocumentExpander expander = TestDocuments.documentExpander();
 
   private AgentConversationTurnInputComposerImpl composer;
 
@@ -125,20 +126,19 @@ class ToolResultDocumentRenderingTest {
 
     // the stored message holds the bare document as a reference and the nested one as it is
     final var stored = (ToolCallResultMessage) nextTurn.messages().getFirst();
-    assertThat(stored.results().get(0).content()).containsExactly(DocumentReferences.from(bare));
+    assertThat(stored.results().get(0).content())
+        .containsExactly(AgentDocumentContent.of(AgentDocumentId.of(bare)));
     assertThat(stored.results().get(1).content()).singleElement().isInstanceOf(ObjectContent.class);
 
-    final var workspace =
-        DocumentIngestion.withDocuments(DocumentWorkspace.empty(), nextTurn.documents());
+    final var workspace = AgentDocuments.empty().register(nextTurn.documents());
     final var conversation =
         AgentConversation.rehydrate(
-            CONFIGURATION,
-            CONTEXT.withDocuments(workspace.entries()),
-            previous,
-            null,
-            nextTurn.messages());
+            CONFIGURATION, CONTEXT.withDocuments(workspace), previous, null, nextTurn.messages());
     final var windowed =
-        conversation.window(100, expander.windowDecorator(conversation)).messages().stream()
+        expander
+            .expand(conversation.window(100), conversation.persistedContext().documentHandling())
+            .messages()
+            .stream()
             .filter(ToolCallResultMessage.class::isInstance)
             .map(ToolCallResultMessage.class::cast)
             .findFirst()

@@ -15,8 +15,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
@@ -24,12 +24,11 @@ import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -177,7 +176,7 @@ class AwsAgentCoreConversationMapperTest {
   void shouldRoundTripDocumentReferenceContentInOrderAsBlob() {
     // given - a document reference between plain texts keeps its delivery and its position
     var reference =
-        new DocumentReferenceContent(DocumentId.of("d1"), DocumentDelivery.CONTENT, null);
+        new AgentDocumentContent(AgentDocumentId.of("d1"), DocumentDelivery.CONTENT, null);
     UserMessage original =
         UserMessage.builder()
             .content(List.of(textContent("before"), reference, textContent("after")))
@@ -199,7 +198,8 @@ class AwsAgentCoreConversationMapperTest {
   @Test
   void shouldSummarizeADocumentReferenceInAToolResultAsItsTag() {
     // given
-    var reference = DocumentReferences.from(new InlineDocument("{}", "d.json", null));
+    var reference =
+        AgentDocumentContent.of(AgentDocumentId.of(new InlineDocument("{}", "d.json", null)));
     ToolCallResultMessage original =
         ToolCallResultMessage.builder()
             .results(

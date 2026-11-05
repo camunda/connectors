@@ -17,10 +17,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.doc
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.List;
@@ -34,12 +34,13 @@ import org.junit.jupiter.params.provider.MethodSource;
  * A document reference is expanded to its tag text and document content before a request is built,
  * so no provider converter accepts it.
  */
-class UnexpandedDocumentReferenceTest {
+class UnexpandedAgentDocumentContentTest {
 
   private static final ObjectMapper OBJECT_MAPPER = TestObjectMapperSupplier.INSTANCE;
 
   private static final List<Content> CONTENT =
-      List.of(new DocumentReferenceContent(DocumentId.of("doc-1"), DocumentDelivery.CONTENT, null));
+      List.of(
+          new AgentDocumentContent(AgentDocumentId.of("doc-1"), DocumentDelivery.CONTENT, null));
 
   static Stream<Named<Consumer<List<Content>>>> converters() {
     return Stream.of(
@@ -108,7 +109,7 @@ class UnexpandedDocumentReferenceTest {
   void failsLoudlyForADocumentReference(Consumer<List<Content>> converter) {
     assertThatThrownBy(() -> converter.accept(CONTENT))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("DocumentReferenceContent")
+        .hasMessageContaining("AgentDocumentContent")
         .hasMessageContaining("expanded");
   }
 }

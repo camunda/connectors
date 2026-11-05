@@ -23,29 +23,27 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -263,20 +261,18 @@ class AgentConversationTurnInputComposerImplTest {
         .containsExactly(
             textContent("Tell me a story"), documentReference(document, DocumentDelivery.CONTENT));
     final var ingested = inputOf(result).documents();
-    assertThat(ingested)
-        .containsExactly(new IngestedDocument(document, DocumentOrigin.userMessage()));
+    assertThat(ingested).containsExactly(new NewDocument(document, DocumentOrigin.userMessage()));
     assertThat(
             DocumentTags.longTag(
-                DocumentIngestion.withDocuments(DocumentWorkspace.empty(), ingested),
-                DocumentHandle.idFor(document)))
+                AgentDocuments.empty().register(ingested), AgentDocumentId.of(document)))
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"notes.txt\" contentType=\"text/plain\" source=\"user_message\" />"
-                .formatted(DocumentHandle.idFor(document)));
+                .formatted(AgentDocumentId.of(document)));
   }
 
-  private static DocumentReferenceContent documentReference(
+  private static AgentDocumentContent documentReference(
       Document document, DocumentDelivery delivery) {
-    return new DocumentReferenceContent(DocumentHandle.idFor(document), delivery, null);
+    return new AgentDocumentContent(AgentDocumentId.of(document), delivery, null);
   }
 
   @Test
@@ -469,7 +465,7 @@ class AgentConversationTurnInputComposerImplTest {
                         Map.of("result", "Sunny", "attachment", weatherDoc))));
     assertThat(nextTurn.documents())
         .containsExactly(
-            new IngestedDocument(weatherDoc, DocumentOrigin.toolCall("getWeather", "abcdef")));
+            new NewDocument(weatherDoc, DocumentOrigin.toolCall("getWeather", "abcdef")));
   }
 
   @Test
@@ -504,11 +500,12 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(toolCallResultMessage.results())
         .filteredOn(r -> "abcdef".equals(r.id()))
         .first()
-        .satisfies(
-            r -> assertThat(r.content()).containsExactly(DocumentReferences.from(weatherDoc)));
+        .satisfies(r ->
+            assertThat(r.content())
+                .containsExactly(AgentDocumentContent.of(AgentDocumentId.of(weatherDoc))));
     assertThat(nextTurn.documents())
         .containsExactly(
-            new IngestedDocument(weatherDoc, DocumentOrigin.toolCall("getWeather", "abcdef")));
+            new NewDocument(weatherDoc, DocumentOrigin.toolCall("getWeather", "abcdef")));
   }
 
   @Test
@@ -635,11 +632,11 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(nextTurn.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
     assertThat(nextTurn.documents())
         .containsExactlyInAnyOrder(
-            new IngestedDocument(toolDoc, DocumentOrigin.toolCall("getWeather", "abcdef")),
-            new IngestedDocument(nestedToolDoc, DocumentOrigin.toolCall("getWeather", "abcdef")),
-            new IngestedDocument(eventDoc, DocumentOrigin.event()))
+            new NewDocument(toolDoc, DocumentOrigin.toolCall("getWeather", "abcdef")),
+            new NewDocument(nestedToolDoc, DocumentOrigin.toolCall("getWeather", "abcdef")),
+            new NewDocument(eventDoc, DocumentOrigin.event()))
         .last()
-        .isEqualTo(new IngestedDocument(eventDoc, DocumentOrigin.event()));
+        .isEqualTo(new NewDocument(eventDoc, DocumentOrigin.event()));
   }
 
   private static final ToolCallResultContent RUNTIME_RESULT =
@@ -745,11 +742,11 @@ class AgentConversationTurnInputComposerImplTest {
         assembleWithLocalResults(CONFIG, historyWith(MIXED_CALLS), input, runtimeResult);
 
     assertThat(resultsOf(turnInput).getFirst().content())
-        .containsExactly(DocumentReferences.from(document));
+        .containsExactly(AgentDocumentContent.of(AgentDocumentId.of(document)));
     // the document of the result of a runtime tool is registered with the call that returned it
     assertThat(turnInput.documents())
         .containsExactly(
-            new IngestedDocument(document, DocumentOrigin.toolCall("getWeather", "abcdef")));
+            new NewDocument(document, DocumentOrigin.toolCall("getWeather", "abcdef")));
   }
 
   @Test
@@ -777,11 +774,9 @@ class AgentConversationTurnInputComposerImplTest {
     // the first call is the runtime tool call, the second one belongs to the process
     assertThat(turnInput.documents())
         .containsExactly(
-            new IngestedDocument(runtimeDocument, DocumentOrigin.toolCall("getWeather", "abcdef")),
-            new IngestedDocument(
-                nestedRuntimeDocument, DocumentOrigin.toolCall("getWeather", "abcdef")),
-            new IngestedDocument(
-                processDocument, DocumentOrigin.toolCall("getDateTime", "fedcba")));
+            new NewDocument(runtimeDocument, DocumentOrigin.toolCall("getWeather", "abcdef")),
+            new NewDocument(nestedRuntimeDocument, DocumentOrigin.toolCall("getWeather", "abcdef")),
+            new NewDocument(processDocument, DocumentOrigin.toolCall("getDateTime", "fedcba")));
   }
 
   @Test

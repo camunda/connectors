@@ -14,7 +14,7 @@ import java.util.Map;
 @JsonSubTypes({
   @JsonSubTypes.Type(value = TextContent.class, name = "text"),
   @JsonSubTypes.Type(value = DocumentContent.class, name = "document"),
-  @JsonSubTypes.Type(value = DocumentReferenceContent.class, name = "documentReference"),
+  @JsonSubTypes.Type(value = AgentDocumentContent.class, name = "agentDocument"),
   @JsonSubTypes.Type(value = ObjectContent.class, name = "object"),
   @JsonSubTypes.Type(value = ReasoningContent.class, name = "reasoning"),
   @JsonSubTypes.Type(value = ProviderContent.class, name = "provider")
@@ -22,7 +22,7 @@ import java.util.Map;
 public sealed interface Content
     permits TextContent,
         DocumentContent,
-        DocumentReferenceContent,
+        AgentDocumentContent,
         ObjectContent,
         ReasoningContent,
         ProviderContent {

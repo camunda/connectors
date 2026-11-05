@@ -12,10 +12,9 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -209,7 +208,7 @@ class ToolCallResultContentTest {
   }
 
   @Nested
-  class WithDocumentReferences {
+  class WithDocumentsAsReferences {
 
     private final Document document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
@@ -230,10 +229,9 @@ class ToolCallResultContentTest {
     @Test
     void aTopLevelDocumentBecomesItsReferenceWithoutASource() {
       final var converted =
-          DocumentReferences.withDocumentReferences(
-              result(DocumentContent.documentContent(document)));
+          result(DocumentContent.documentContent(document)).withDocumentsAsReferences();
 
-      assertThat(converted.content()).singleElement().isInstanceOf(DocumentReferenceContent.class);
+      assertThat(converted.content()).singleElement().isInstanceOf(AgentDocumentContent.class);
       assertThat(converted.id()).isEqualTo("call-1");
     }
 
@@ -242,16 +240,15 @@ class ToolCallResultContentTest {
       final var nested = ObjectContent.objectContent(Map.of("file", document));
       final var original = result(TextContent.textContent("text"), nested);
 
-      assertThat(DocumentReferences.withDocumentReferences(original)).isSameAs(original);
+      assertThat(original.withDocumentsAsReferences()).isSameAs(original);
     }
 
     @Test
     void convertingTwiceGivesTheSameResult() {
       final var once =
-          DocumentReferences.withDocumentReferences(
-              result(DocumentContent.documentContent(document)));
+          result(DocumentContent.documentContent(document)).withDocumentsAsReferences();
 
-      assertThat(DocumentReferences.withDocumentReferences(once)).isSameAs(once);
+      assertThat(once.withDocumentsAsReferences()).isSameAs(once);
     }
   }
 }

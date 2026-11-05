@@ -10,26 +10,27 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assista
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.ExternalDocument;
-import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
@@ -39,9 +40,12 @@ import org.junit.jupiter.api.Test;
 
 class DocumentExpanderTest {
 
-  private final DocumentExpander expander = new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+  private final DocumentExpander expander =
+      new DocumentExpander(
+          new DocumentRestorer(documentFactory),
+          new ObjectTagRenderer(TestObjectMapperSupplier.INSTANCE));
 
   private Document camundaDocument(String content) {
     return documentFactory.create(
@@ -51,32 +55,25 @@ class DocumentExpanderTest {
             .build());
   }
 
-  private static DocumentWorkspace workspaceOf(Document document, DocumentOrigin origin) {
-    return DocumentIngestion.withDocuments(
-        DocumentWorkspace.empty(), List.of(new IngestedDocument(document, origin)));
+  private static AgentDocuments workspaceOf(Document document, DocumentOrigin origin) {
+    return AgentDocuments.empty().register(document, origin);
   }
 
   private static UserMessage userMessage(Content... content) {
     return UserMessage.builder().content(List.of(content)).build();
   }
 
-  private static DocumentReferenceContent reference(
-      DocumentWorkspace workspace, int index, DocumentDelivery delivery) {
-    return new DocumentReferenceContent(workspace.entries().get(index).id(), delivery, null);
+  private static AgentDocumentContent reference(
+      AgentDocuments workspace, int index, DocumentDelivery delivery) {
+    return new AgentDocumentContent(workspace.all().get(index).id(), delivery, null);
   }
 
-  private static TextContent tagOf(
-      DocumentWorkspace workspace, DocumentReferenceContent reference) {
+  private static TextContent tagOf(AgentDocuments workspace, AgentDocumentContent reference) {
     return textContent(DocumentTags.longTag(workspace, reference.id()));
   }
 
-  private static TextContent shortTagOf(
-      DocumentWorkspace workspace, DocumentReferenceContent reference) {
+  private static TextContent shortTagOf(AgentDocuments workspace, AgentDocumentContent reference) {
     return textContent(DocumentTags.shortTag(workspace, reference.id()));
-  }
-
-  private List<Content> expand(List<Content> content, DocumentWorkspace workspace) {
-    return expander.expandContent(content, workspace);
   }
 
   private static Map<?, ?> referenceOf(Document document) {
@@ -88,24 +85,10 @@ class DocumentExpanderTest {
         .isInstanceOfSatisfying(
             DocumentContent.class,
             documentContent -> {
-              assertThat(DocumentHandle.idFor(documentContent.document()))
-                  .isEqualTo(DocumentHandle.idFor(expected));
+              assertThat(AgentDocumentId.of(documentContent.document()))
+                  .isEqualTo(AgentDocumentId.of(expected));
               assertThat(referenceOf(documentContent.document())).isEqualTo(referenceOf(expected));
             });
-  }
-
-  @Test
-  void expandsAReferenceToItsTagAndTheDocumentFromTheWorkspaceForTheHistory() {
-    final var document = camundaDocument("hello");
-    final var workspace = workspaceOf(document, DocumentOrigin.toolCall("search", "call-1"));
-    final var reference = reference(workspace, 0, DocumentDelivery.REFERENCE);
-
-    final var expanded = expand(List.of(textContent("preamble"), reference), workspace);
-
-    assertThat(expanded).hasSize(3);
-    assertThat(expanded.subList(0, 2))
-        .containsExactly(textContent("preamble"), tagOf(workspace, reference));
-    assertRebuiltDocumentIs(expanded.get(2), document);
   }
 
   @Test
@@ -113,11 +96,11 @@ class DocumentExpanderTest {
     final var documentWithContent = camundaDocument("loaded");
     final var referencedDocument = camundaDocument("referenced");
     final var workspace =
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            List.of(
-                new IngestedDocument(documentWithContent, DocumentOrigin.userMessage()),
-                new IngestedDocument(referencedDocument, DocumentOrigin.userMessage())));
+        AgentDocuments.empty()
+            .register(
+                List.of(
+                    new NewDocument(documentWithContent, DocumentOrigin.userMessage()),
+                    new NewDocument(referencedDocument, DocumentOrigin.userMessage())));
     final var withContent = reference(workspace, 0, DocumentDelivery.CONTENT);
     final var referenced = reference(workspace, 1, DocumentDelivery.REFERENCE);
     final var message = userMessage(withContent, referenced);
@@ -146,105 +129,80 @@ class DocumentExpanderTest {
   }
 
   @Test
-  void expandingForTheModelLeavesAMessageWithoutDocumentReferencesAlone() {
+  void leavesAMessageWithoutDocumentBlocksAlone() {
     final var messages =
         List.<Message>of(userMessage(textContent("hello")), assistantMessage("hi"));
 
-    assertThat(expander.expandMessages(messages, DocumentWorkspace.empty())).isSameAs(messages);
+    assertThat(expander.expandMessages(messages, AgentDocuments.empty())).isEqualTo(messages);
   }
 
   @Test
   void expandingForTheModelKeepsTheTagWithoutContentWhenTheDocumentIsNotInTheWorkspace() {
     final var reference =
-        new DocumentReferenceContent(DocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
+        new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
 
     final var expanded =
-        expander.expandMessages(List.of(userMessage(reference)), DocumentWorkspace.empty());
+        expander.expandMessages(List.of(userMessage(reference)), AgentDocuments.empty());
 
     assertThat(((UserMessage) expanded.getFirst()).content())
-        .containsExactly(tagOf(DocumentWorkspace.empty(), reference));
-  }
-
-  @Test
-  void expandingForTheHistoryAddsTheDocumentAfterEveryReference() {
-    final var document = camundaDocument("hello");
-    final var workspace = workspaceOf(document, DocumentOrigin.userMessage());
-    final var reference = reference(workspace, 0, DocumentDelivery.REFERENCE);
-
-    final var expanded = expander.expandContent(List.of(reference), workspace);
-
-    assertThat(expanded).hasSize(2);
-    assertThat(expanded.get(0)).isEqualTo(tagOf(workspace, reference));
-    assertRebuiltDocumentIs(expanded.get(1), document);
-  }
-
-  @Test
-  void rebuildsAnExternalAndAnInlineDocumentFromTheirReference() {
-    final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
-    final var inline = new InlineDocument("{\"a\":1}", "data.json", "application/json");
-    final var workspace =
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            List.of(
-                new IngestedDocument(external, DocumentOrigin.userMessage()),
-                new IngestedDocument(inline, DocumentOrigin.userMessage())));
-    final var references =
-        workspace.entries().stream()
-            .<Content>map(
-                entry -> new DocumentReferenceContent(entry.id(), DocumentDelivery.REFERENCE, null))
-            .toList();
-
-    final var expanded = expand(references, workspace);
-
-    assertThat(expanded).hasSize(4);
-    assertRebuiltDocumentIs(expanded.get(1), external);
-    assertRebuiltDocumentIs(expanded.get(3), inline);
+        .containsExactly(tagOf(AgentDocuments.empty(), reference));
   }
 
   @Test
   void doesNotAddTheDocumentAgainWhenItAlreadyFollowsTheReference() {
     final var document = camundaDocument("hello");
     final var workspace = workspaceOf(document, DocumentOrigin.userMessage());
-    final var reference = reference(workspace, 0, DocumentDelivery.REFERENCE);
-    final var content = List.<Content>of(reference, DocumentContent.documentContent(document));
+    final var reference = reference(workspace, 0, DocumentDelivery.CONTENT);
+    final var message = userMessage(reference, DocumentContent.documentContent(document));
 
-    assertThat(expand(content, workspace))
+    assertThat(
+            ((UserMessage) expander.expandMessages(List.of(message), workspace).getFirst())
+                .content())
         .hasSize(2)
         .containsExactly(tagOf(workspace, reference), DocumentContent.documentContent(document));
   }
 
   @Test
-  void expandsAReferenceToItsTagOnlyWhenTheWorkspaceCannotSupplyTheDocument() {
+  void expandsABlockToItsTagOnlyWhenTheAgentCannotSupplyTheDocument() {
     final var unknown =
-        new DocumentReferenceContent(DocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);
-    final var broken =
-        new DocumentReferenceContent(DocumentId.of("broken"), DocumentDelivery.REFERENCE, null);
-    final var brokenWorkspace =
-        DocumentWorkspace.of(
-            List.of(
-                new WorkspaceDocument(
-                    DocumentId.of("broken"),
-                    DocumentOrigin.toolCall("fetch", "call-1"),
-                    Map.of("camunda.document.type", "unsupported"))));
+        new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
+    final var document = camundaDocument("hello");
+    final var documents = workspaceOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
+    final var known = reference(documents, 0, DocumentDelivery.CONTENT);
+    final var failingExpander =
+        new DocumentExpander(
+            new DocumentRestorer(
+                new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE) {
+                  @Override
+                  public Document resolve(
+                      io.camunda.connector.api.document.DocumentReference reference) {
+                    throw new IllegalStateException("store unavailable");
+                  }
+                }),
+            new ObjectTagRenderer(TestObjectMapperSupplier.INSTANCE));
 
-    // for the history: no entry, and an entry whose reference cannot be read
-    assertThat(expand(List.of(textContent("text"), unknown), DocumentWorkspace.empty()))
-        .containsExactly(textContent("text"), tagOf(DocumentWorkspace.empty(), unknown));
-    assertThat(expand(List.of(broken), brokenWorkspace))
-        .containsExactly(tagOf(brokenWorkspace, broken));
-    // for the model: the same in a tool result
+    assertThat(
+            ((UserMessage)
+                    expander
+                        .expandMessages(
+                            List.of(userMessage(textContent("text"), unknown)),
+                            AgentDocuments.empty())
+                        .getFirst())
+                .content())
+        .containsExactly(textContent("text"), tagOf(AgentDocuments.empty(), unknown));
+    assertThat(
+            ((UserMessage)
+                    failingExpander
+                        .expandMessages(List.of(userMessage(known)), documents)
+                        .getFirst())
+                .content())
+        .containsExactly(tagOf(documents, known));
     assertThat(
             resultContent(
                 expander
-                    .expandMessages(List.of(toolResultMessage(unknown)), DocumentWorkspace.empty())
+                    .expandMessages(List.of(toolResultMessage(unknown)), AgentDocuments.empty())
                     .getFirst()))
-        .containsExactly(shortTagOf(DocumentWorkspace.empty(), unknown));
-    assertThat(
-            resultContent(
-                expander
-                    .expandMessages(List.of(toolResultMessage(broken)), brokenWorkspace)
-                    .getFirst()))
-        .containsExactly(shortTagOf(brokenWorkspace, broken));
+        .containsExactly(shortTagOf(AgentDocuments.empty(), unknown));
   }
 
   @Test
@@ -252,24 +210,31 @@ class DocumentExpanderTest {
     final var document = camundaDocument("hello");
     final var workspace = workspaceOf(document, DocumentOrigin.userMessage());
     final var literal =
-        "<doc id=\"%s\" fileName=\"report.pdf\" />".formatted(DocumentHandle.idFor(document));
+        "<doc id=\"%s\" fileName=\"report.pdf\" />".formatted(AgentDocumentId.of(document));
     final var content = List.<Content>of(textContent("See " + literal), textContent(literal));
 
-    assertThat(expand(content, workspace)).isSameAs(content);
+    assertThat(
+            ((UserMessage)
+                    expander
+                        .expandMessages(
+                            List.of(userMessage(content.toArray(Content[]::new))), workspace)
+                        .getFirst())
+                .content())
+        .isEqualTo(content);
   }
 
   @Test
   void expandingTheResultOfAnExpansionChangesNothing() {
     final var document = camundaDocument("hello");
     final var workspace = workspaceOf(document, DocumentOrigin.event());
-    final var content = List.<Content>of(reference(workspace, 0, DocumentDelivery.REFERENCE));
-    final var messages = List.<Message>of(toolResultMessage(DocumentReferences.from(document)));
+    final var messages =
+        List.<Message>of(
+            userMessage(reference(workspace, 0, DocumentDelivery.CONTENT)),
+            toolResultMessage(AgentDocumentContent.of(AgentDocumentId.of(document))));
 
-    final var once = expand(content, workspace);
-    final var onceForTheModel = expander.expandMessages(messages, workspace);
+    final var once = expander.expandMessages(messages, workspace);
 
-    assertThat(expand(once, workspace)).isSameAs(once);
-    assertThat(expander.expandMessages(onceForTheModel, workspace)).isSameAs(onceForTheModel);
+    assertThat(expander.expandMessages(once, workspace)).isEqualTo(once);
   }
 
   @Test
@@ -285,7 +250,7 @@ class DocumentExpanderTest {
 
     assertThat(expanded).hasSize(3);
     assertThat(expanded.get(0)).isSameAs(assistant);
-    assertThat(expanded.get(1)).isSameAs(plainUser);
+    assertThat(expanded.get(1)).isEqualTo(plainUser);
     assertThat(expanded.get(2).id()).isEqualTo(documentUser.id());
     assertThat(((UserMessage) expanded.get(2)).content()).hasSize(2);
     assertThat(expander.expandMessages(List.of(assistant, plainUser), workspace))
@@ -313,7 +278,7 @@ class DocumentExpanderTest {
   void expandsAReferenceInAToolResultToItsTagText() {
     final var document = camundaDocument("hello");
     final var workspace = workspaceOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
-    final var reference = DocumentReferences.from(document);
+    final var reference = AgentDocumentContent.of(AgentDocumentId.of(document));
     final var message = toolResultMessage(textContent("before"), reference);
 
     final var expanded = expander.expandMessages(List.of(message), workspace);
@@ -331,7 +296,7 @@ class DocumentExpanderTest {
   void aReferenceInAToolResultBecomesTheShortTagOfTheDocumentOfTheWorkspace() {
     final var document = camundaDocument("hello");
     final var workspace = workspaceOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
-    final var reference = DocumentReferences.from(document);
+    final var reference = AgentDocumentContent.of(AgentDocumentId.of(document));
 
     final var expanded =
         resultContent(
@@ -339,7 +304,7 @@ class DocumentExpanderTest {
     final var withoutWorkspace =
         resultContent(
             expander
-                .expandMessages(List.of(toolResultMessage(reference)), DocumentWorkspace.empty())
+                .expandMessages(List.of(toolResultMessage(reference)), AgentDocuments.empty())
                 .getFirst());
 
     assertThat(DocumentTags.longTag(workspace, reference.id()))
@@ -359,11 +324,13 @@ class DocumentExpanderTest {
         expander.expandMessages(
             List.of(
                 toolResultMessage(
-                    DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT))),
+                    AgentDocumentContent.of(AgentDocumentId.of(document))
+                        .withDelivery(DocumentDelivery.CONTENT))),
             workspace);
 
     assertThat(resultContent(expanded.getFirst()))
-        .containsExactly(shortTagOf(workspace, DocumentReferences.from(document)));
+        .containsExactly(
+            shortTagOf(workspace, AgentDocumentContent.of(AgentDocumentId.of(document))));
   }
 
   @Test
@@ -377,7 +344,7 @@ class DocumentExpanderTest {
                 DocumentContent.documentContent(document),
                 ObjectContent.objectContent(Map.of("status", 200))));
 
-    assertThat(expander.expandMessages(messages, workspace)).isSameAs(messages);
+    assertThat(expander.expandMessages(messages, workspace)).isEqualTo(messages);
   }
 
   @Test
@@ -416,7 +383,7 @@ class DocumentExpanderTest {
     final var expanded =
         expander.expandMessages(
             List.of(userMessage(ObjectContent.objectContent(Map.of("file", document)))),
-            DocumentWorkspace.empty());
+            AgentDocuments.empty());
 
     assertThat(((UserMessage) expanded.getFirst()).content())
         .containsExactly(
@@ -424,43 +391,30 @@ class DocumentExpanderTest {
   }
 
   @Test
-  void leavesTheObjectsOfTheHistoryContentAlone() {
-    final var content =
-        List.<Content>of(ObjectContent.objectContent(Map.of("file", camundaDocument("hello"))));
-
-    assertThat(expand(content, DocumentWorkspace.empty())).isSameAs(content);
-  }
-
-  @Test
-  void rendersADocumentAtAnyDepthAsItsTagAndCollectsTheDocuments() {
-    final var first = camundaDocument("one");
-    final var second = camundaDocument("two");
-
-    final var tagged =
-        expander.renderWithTags(
-            Map.of("status", 200, "files", List.of(Map.of("file", first), Map.of("file", second))));
-
-    assertThat(tagged.tree())
-        .isEqualTo(
-            Map.of(
-                "status",
-                200,
-                "files",
-                List.of(
-                    Map.of("file", DocumentTags.shortTag(first)),
-                    Map.of("file", DocumentTags.shortTag(second)))));
-    assertThat(tagged.documents()).containsExactly(first, second);
-  }
-
-  @Test
-  void findsTheDocumentOfAWorkspaceDocumentOnly() {
+  void expandsTheSnapshotOfAnAgentThatTracksItsDocumentsAndKeepsItsToolDefinitions() {
     final var document = camundaDocument("hello");
-    final var workspace = workspaceOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
+    final var workspace = workspaceOf(document, DocumentOrigin.userMessage());
+    final var reference = reference(workspace, 0, DocumentDelivery.CONTENT);
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(userMessage(reference)),
+            List.of(ToolDefinition.builder().name("tool").description("d").build()));
 
-    assertRebuiltDocumentIs(
-        DocumentContent.documentContent(
-            expander.findDocument(workspace, DocumentHandle.idFor(document)).orElseThrow()),
-        document);
-    assertThat(expander.findDocument(workspace, DocumentId.of("unknown"))).isEmpty();
+    final var expanded = expander.expand(snapshot, new DocumentHandling.Tracked(workspace));
+
+    assertThat(expanded.toolDefinitions()).isEqualTo(snapshot.toolDefinitions());
+    assertThat(((UserMessage) expanded.messages().getFirst()).content())
+        .hasSize(2)
+        .startsWith(tagOf(workspace, reference));
+  }
+
+  @Test
+  void leavesTheSnapshotOfAnAgentThatDoesNotTrackItsDocumentsAlone() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(userMessage(DocumentContent.documentContent(camundaDocument("hello")))),
+            List.of());
+
+    assertThat(expander.expand(snapshot, new DocumentHandling.Untracked())).isSameAs(snapshot);
   }
 }

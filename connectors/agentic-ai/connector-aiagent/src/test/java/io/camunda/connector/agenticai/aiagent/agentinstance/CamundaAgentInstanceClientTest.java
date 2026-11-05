@@ -42,7 +42,6 @@ import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgent
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -51,6 +50,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -75,7 +75,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -107,8 +107,8 @@ class CamundaAgentInstanceClientTest {
   private static final RetriesProperties RETRIES_CONFIGURATION =
       new RetriesProperties(4, Duration.ofSeconds(1));
 
-  private static final AgentContext NEW_INSTANCE =
-      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+  private static final DocumentHandling NEW_INSTANCE =
+      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()).documentHandling();
 
   private static final long ELEMENT_INSTANCE_KEY = 77L;
 
@@ -150,7 +150,9 @@ class CamundaAgentInstanceClientTest {
     recordedSleeps = new ArrayList<>();
     var historyMapper =
         new AgentInstanceHistoryMapper(
-            gatewayToolHandlers, new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
+            gatewayToolHandlers,
+            TestDocuments.documentRestorer(),
+            TestDocuments.objectTagRenderer());
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
@@ -182,7 +184,9 @@ class CamundaAgentInstanceClientTest {
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
                 new AgentInstanceHistoryMapper(
-                    gatewayToolHandlers, new DocumentExpander(TestObjectMapperSupplier.INSTANCE)),
+                    gatewayToolHandlers,
+                    TestDocuments.documentRestorer(),
+                    TestDocuments.objectTagRenderer()),
                 new AgentInstanceToolMapper(gatewayToolHandlers))
             .create(executionContext);
 

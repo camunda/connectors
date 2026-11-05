@@ -14,9 +14,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -116,7 +117,7 @@ public class ToolCallConverterImpl implements ToolCallConverter {
     try {
       return switch (content) {
         case TextContent t -> t.text();
-        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
+        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent o -> objectMapper.writeValueAsString(o.content());
         case DocumentContent d -> objectMapper.writeValueAsString(d.document());
         case ReasoningContent ignored ->

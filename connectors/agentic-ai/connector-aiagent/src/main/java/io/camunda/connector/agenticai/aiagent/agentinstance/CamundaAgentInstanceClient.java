@@ -21,9 +21,9 @@ import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgent
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -217,7 +217,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
-      AgentContext agentContext) {
+      DocumentHandling documentHandling) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance turn start: no agent instance key");
       return;
@@ -230,7 +230,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     }
     historyItems.addAll(
         inputHistoryItems(
-            turn, previousTurn, turnIngestionTimestamp, turn.iterationKey(), agentContext));
+            turn, previousTurn, turnIngestionTimestamp, turn.iterationKey(), documentHandling));
 
     applyBatchedUpdate(
         executionContext,
@@ -268,14 +268,14 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
       int iterationKey,
-      AgentContext agentContext) {
+      DocumentHandling documentHandling) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
           historyMapper.inputHistoryItems(
-              message, toolCallsById, turnIngestionTimestamp, agentContext)) {
+              message, toolCallsById, turnIngestionTimestamp, documentHandling)) {
         items.add(toHistoryItem(item, iterationKey));
       }
     }
@@ -336,7 +336,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn,
-      AgentContext agentContext) {
+      DocumentHandling documentHandling) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance tool call results: no agent instance key");
       return;
@@ -354,7 +354,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             syntheticMessage,
             toolCallsById,
             OffsetDateTime.now(ZoneId.systemDefault()),
-            agentContext)) {
+            documentHandling)) {
       items.add(toHistoryItem(item, iteration));
     }
 

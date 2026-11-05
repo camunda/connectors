@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
@@ -16,9 +17,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -413,7 +414,7 @@ public class AwsAgentCoreConversationMapper {
       case TextContent text -> text.text();
       case ObjectContent object -> contentToString(object.content());
       case DocumentContent document -> contentToString(document.document());
-      case DocumentReferenceContent reference -> "<doc id=\"%s\" />".formatted(reference.id());
+      case AgentDocumentContent block -> DocumentTags.idOnlyTag(block.id());
       // preserve the opaque provider payload as its (best-effort) JSON representation; the
       // blob envelope carries the lossless structure regardless.
       case ReasoningContent reasoning ->

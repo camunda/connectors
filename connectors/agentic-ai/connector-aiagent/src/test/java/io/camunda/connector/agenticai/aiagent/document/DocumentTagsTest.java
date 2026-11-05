@@ -13,10 +13,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference;
@@ -28,7 +27,6 @@ import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
@@ -37,18 +35,17 @@ class DocumentTagsTest {
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
-  private static DocumentWorkspace workspaceOf(Document document, DocumentOrigin origin) {
-    return DocumentWorkspace.of(
-        List.of(DocumentIngestion.entryFor(new IngestedDocument(document, origin))));
+  private static AgentDocuments workspaceOf(Document document, DocumentOrigin origin) {
+    return AgentDocuments.empty().register(document, origin);
   }
 
   private static String longTag(Document document, DocumentOrigin origin) {
-    return DocumentTags.longTag(workspaceOf(document, origin), DocumentHandle.idFor(document));
+    return DocumentTags.longTag(workspaceOf(document, origin), AgentDocumentId.of(document));
   }
 
   private static String shortTag(Document document) {
     return DocumentTags.shortTag(
-        workspaceOf(document, DocumentOrigin.userMessage()), DocumentHandle.idFor(document));
+        workspaceOf(document, DocumentOrigin.userMessage()), AgentDocumentId.of(document));
   }
 
   private Document camundaDocument(@Nullable String fileName, @Nullable String contentType) {
@@ -87,7 +84,7 @@ class DocumentTagsTest {
     assertThat(tag)
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" toolName=\"search\" toolCallId=\"call_abc\" />"
-                .formatted(DocumentHandle.idFor(doc)));
+                .formatted(AgentDocumentId.of(doc)));
     assertThat(tag).doesNotContain("storeId", "contentHash", "documentId", "metadata", "url");
   }
 
@@ -96,7 +93,7 @@ class DocumentTagsTest {
     final var doc = camundaDocument(null, null);
 
     assertThat(longTag(doc, DocumentOrigin.toolCall("search", "call_abc")))
-        .startsWith("<doc id=\"%s\"".formatted(DocumentHandle.idFor(doc)))
+        .startsWith("<doc id=\"%s\"".formatted(AgentDocumentId.of(doc)))
         .doesNotContain("fileName", "contentType");
   }
 
@@ -112,7 +109,7 @@ class DocumentTagsTest {
     assertThat(tag)
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"Quarterly Report\" toolName=\"search\" toolCallId=\"call_abc\" />"
-                .formatted(DocumentHandle.idFor(doc)));
+                .formatted(AgentDocumentId.of(doc)));
     assertThat(tag).doesNotContain("example.com", "secret", "url");
   }
 
@@ -122,7 +119,7 @@ class DocumentTagsTest {
         new ExternalDocument(
             "https://example.com/a/b/my%20file.pdf?X-Token=secret#frag", null, u -> null);
 
-    assertThat(shortTag(doc)).isEqualTo("<doc id=\"%s\" />".formatted(DocumentHandle.idFor(doc)));
+    assertThat(shortTag(doc)).isEqualTo("<doc id=\"%s\" />".formatted(AgentDocumentId.of(doc)));
     assertThat(shortTag(new ExternalDocument("https://example.com/x", "", u -> null)))
         .doesNotContain("fileName");
   }
@@ -132,7 +129,7 @@ class DocumentTagsTest {
     final var doc = new InlineDocument("{\"a\":1}", "data.json", null);
 
     assertThat(shortTag(doc))
-        .isEqualTo("<doc id=\"%s\" fileName=\"data.json\" />".formatted(DocumentHandle.idFor(doc)));
+        .isEqualTo("<doc id=\"%s\" fileName=\"data.json\" />".formatted(AgentDocumentId.of(doc)));
   }
 
   @Test
@@ -142,7 +139,7 @@ class DocumentTagsTest {
     assertThat(longTag(doc, DocumentOrigin.toolCall("gen", "call_1")))
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"data.json\" contentType=\"application/json\" toolName=\"gen\" toolCallId=\"call_1\" />"
-                .formatted(DocumentHandle.idFor(doc)));
+                .formatted(AgentDocumentId.of(doc)));
   }
 
   @Test
@@ -154,7 +151,7 @@ class DocumentTagsTest {
                 .fileName("0f6b0a1e-aaaa-bbbb-cccc-0123456789ab")
                 .contentType("text/plain")
                 .build());
-    final var id = DocumentHandle.idFor(doc);
+    final var id = AgentDocumentId.of(doc);
     final var origin = DocumentOrigin.toolCall("tool", "call_1");
 
     assertThat(longTag(doc, origin))
@@ -175,7 +172,7 @@ class DocumentTagsTest {
                 .build());
 
     assertThat(shortTag(doc))
-        .isEqualTo("<doc id=\"%s\" fileName=\"doc-1.txt\" />".formatted(DocumentHandle.idFor(doc)));
+        .isEqualTo("<doc id=\"%s\" fileName=\"doc-1.txt\" />".formatted(AgentDocumentId.of(doc)));
   }
 
   @Test
@@ -190,7 +187,7 @@ class DocumentTagsTest {
   @Test
   void userMessageAndEventDocumentsCarryTheSourceInsteadOfToolAttributes() {
     final var doc = camundaDocument("a.txt", "text/plain");
-    final var id = DocumentHandle.idFor(doc);
+    final var id = AgentDocumentId.of(doc);
 
     assertThat(longTag(doc, DocumentOrigin.userMessage()))
         .isEqualTo(
@@ -207,14 +204,14 @@ class DocumentTagsTest {
     final var doc = camundaDocument("a.txt", "text/plain");
     final var expected =
         "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" />"
-            .formatted(DocumentHandle.idFor(doc));
+            .formatted(AgentDocumentId.of(doc));
 
     for (final var origin :
         List.of(
             DocumentOrigin.userMessage(),
             DocumentOrigin.event(),
             DocumentOrigin.toolCall("search", "call_1"))) {
-      assertThat(DocumentTags.shortTag(workspaceOf(doc, origin), DocumentHandle.idFor(doc)))
+      assertThat(DocumentTags.shortTag(workspaceOf(doc, origin), AgentDocumentId.of(doc)))
           .isEqualTo(expected);
     }
     assertThat(DocumentTags.shortTag(doc)).isEqualTo(expected);
@@ -223,7 +220,7 @@ class DocumentTagsTest {
   @Test
   void rendersAllAttributesInOrder() {
     final var doc = camundaDocumentWithSize(48213L);
-    final var id = DocumentHandle.idFor(doc);
+    final var id = AgentDocumentId.of(doc);
 
     assertThat(longTag(doc, DocumentOrigin.userMessage()))
         .isEqualTo(
@@ -242,7 +239,6 @@ class DocumentTagsTest {
     assertThat(DocumentTags.shortTag(document)).contains("size=\"10\"");
 
     verify(document, atLeastOnce()).reference();
-    verify(document, atLeastOnce()).metadata();
     verifyNoMoreInteractions(document);
   }
 
@@ -256,7 +252,7 @@ class DocumentTagsTest {
   }
 
   @Test
-  void shortTagOfADocumentEqualsTheShortTagOfItsWorkspaceDocument() {
+  void shortTagOfADocumentEqualsTheShortTagOfItsAgentDocument() {
     final var documents =
         List.<Document>of(
             camundaDocument("a.txt", "text/plain"),
@@ -274,29 +270,13 @@ class DocumentTagsTest {
   }
 
   @Test
-  void aDocumentTheWorkspaceDoesNotKnowIsRenderedWithItsIdOnly() {
-    final var id = DocumentId.of("doc_000000000000");
+  void aDocumentTheAgentDoesNotKnowIsRenderedWithItsIdOnly() {
+    final var id = AgentDocumentId.of("doc_000000000000");
 
-    assertThat(DocumentTags.longTag(DocumentWorkspace.empty(), id))
+    assertThat(DocumentTags.longTag(AgentDocuments.empty(), id))
         .isEqualTo("<doc id=\"doc_000000000000\" />");
-    assertThat(DocumentTags.shortTag(DocumentWorkspace.empty(), id))
+    assertThat(DocumentTags.shortTag(AgentDocuments.empty(), id))
         .isEqualTo("<doc id=\"doc_000000000000\" />");
     assertThat(DocumentTags.idOnlyTag(id)).isEqualTo("<doc id=\"doc_000000000000\" />");
-  }
-
-  @Test
-  void aStoredReferenceThatCannotBeReadIsRenderedWithItsIdAndOriginOnly() {
-    final var id = DocumentId.of("doc_000000000000");
-    final var workspace =
-        DocumentWorkspace.of(
-            List.of(
-                new WorkspaceDocument(
-                    id,
-                    DocumentOrigin.toolCall("search", "call_1"),
-                    Map.of("camunda.document.type", "unknown"))));
-
-    assertThat(DocumentTags.longTag(workspace, id))
-        .isEqualTo("<doc id=\"doc_000000000000\" toolName=\"search\" toolCallId=\"call_1\" />");
-    assertThat(DocumentTags.shortTag(workspace, id)).isEqualTo("<doc id=\"doc_000000000000\" />");
   }
 }

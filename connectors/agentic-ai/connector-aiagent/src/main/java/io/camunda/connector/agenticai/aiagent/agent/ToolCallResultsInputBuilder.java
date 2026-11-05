@@ -8,17 +8,17 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,9 +26,9 @@ import java.util.List;
 /**
  * Builds the input of the turn that follows a batch of tool calls from its results, in call order.
  *
- * <p>An agent instance with the documents feature shows a document as its tag inside the tool
- * result and reports it for the document workspace. An agent instance without it keeps the document
- * in a message of its own, next to its tag.
+ * <p>An agent instance that tracks its documents shows a document as its tag inside the tool result
+ * and reports it to be registered in its documents. An agent instance that does not keeps the
+ * document in a message of its own, next to its tag.
  */
 public class ToolCallResultsInputBuilder {
 
@@ -38,15 +38,16 @@ public class ToolCallResultsInputBuilder {
   /**
    * Builds the input of the turn that follows the batch.
    *
-   * @return the messages and, for an agent instance with the documents feature, the documents of
-   *     the results to register, in call order
+   * @return the messages and, for an agent instance that tracks its documents, the documents of the
+   *     results to register, in call order
    * @throws IllegalStateException if a call of the batch has no result
    */
   public TurnInput build(AgentContext agentContext, ToolCallBatch batch) {
     final var entries = batch.entriesInCallOrder();
-    return agentContext.supports(AgentFeatures.DOCUMENTS)
-        ? buildWithDocumentTags(entries)
-        : buildWithDocumentMessage(entries);
+    return switch (agentContext.documentHandling()) {
+      case DocumentHandling.Tracked ignored -> buildWithDocumentTags(entries);
+      case DocumentHandling.Untracked ignored -> buildWithDocumentMessage(entries);
+    };
   }
 
   /**
@@ -57,12 +58,12 @@ public class ToolCallResultsInputBuilder {
     final var results =
         entries.stream()
             .map(ToolCallBatch.Entry::result)
-            .map(DocumentReferences::withDocumentReferences)
+            .map(ToolCallResultContent::withDocumentsAsReferences)
             .toList();
-    final var documents = new ArrayList<IngestedDocument>();
+    final var documents = new ArrayList<NewDocument>();
     for (final var entry : entries) {
       final var origin = DocumentOrigin.toolCall(entry.result().name(), entry.result().id());
-      entry.documents().forEach(document -> documents.add(new IngestedDocument(document, origin)));
+      entry.documents().forEach(document -> documents.add(new NewDocument(document, origin)));
     }
     return new TurnInput(
         List.of(

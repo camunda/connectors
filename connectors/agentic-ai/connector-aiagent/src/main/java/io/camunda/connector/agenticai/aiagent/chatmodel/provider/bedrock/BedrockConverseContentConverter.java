@@ -12,15 +12,18 @@ import static io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseC
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -97,7 +100,7 @@ public class BedrockConverseContentConverter {
       switch (c) {
         case TextContent text -> blocks.add(ContentBlock.fromText(text.text()));
         case DocumentContent doc -> blocks.add(documentContentBlock(doc));
-        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
+        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj -> blocks.add(ContentBlock.fromText(writeAsJson(obj.content())));
         case ReasoningContent rc when BEDROCK_CONVERSE_ID.equals(rc.provider()) ->
             blocks.add(toReasoningContentBlock(rc));
@@ -124,7 +127,7 @@ public class BedrockConverseContentConverter {
       switch (c) {
         case TextContent text -> blocks.add(ToolResultContentBlock.fromText(text.text()));
         case DocumentContent doc -> blocks.add(toolResultContentBlock(doc.document()));
-        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
+        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj -> blocks.add(toolResultContentBlock(obj.content()));
         case ReasoningContent rc ->
             throw new ConnectorException(
@@ -184,17 +187,44 @@ public class BedrockConverseContentConverter {
   }
 
   /**
-   * Derives Bedrock's {@code DocumentBlock.name} from {@link DocumentHandle#idFor(Document)} by
-   * hashing it: deterministic (same document -> same name across requests, or prompt caching
-   * silently never hits) and always within Bedrock's charset, regardless of what the underlying id
-   * contains.
+   * Derives Bedrock's {@code DocumentBlock.name} by hashing the legacy id of the document:
+   * deterministic (same document -> same name across requests, or prompt caching silently never
+   * hits) and always within Bedrock's charset, regardless of what the underlying id contains. The
+   * name does not change with the agent instance, so it stays the same for the instances that
+   * existed before.
    */
   private static String bedrockDocumentName(Document document) {
+    return "doc-" + sha256Prefix(legacyDocumentId(document), 40);
+  }
+
+  /**
+   * The id of the document from which the name is derived: the document id of a Camunda document,
+   * {@code "ext-"} and the first 12 hex characters of the SHA-256 of the URL of an external one,
+   * {@code "inline-"} and the first 12 hex characters of the SHA-256 of the content of an inline
+   * one.
+   */
+  private static String legacyDocumentId(Document document) {
+    final var reference = document.reference();
+    return switch (reference) {
+      case CamundaDocumentReference ref -> ref.getDocumentId();
+      case ExternalDocumentReference ref -> "ext-" + sha256Prefix(ref.url(), 12);
+      case InlineDocumentReference ref when ref.content() != null && !ref.content().isBlank() ->
+          "inline-" + sha256Prefix(ref.content(), 12);
+      case null, default ->
+          throw new ConnectorException(
+              ERROR_CODE_FAILED_MODEL_CALL,
+              "Unsupported document reference type '%s' for document with reference '%s'"
+                  .formatted(
+                      reference == null ? "null" : reference.getClass().getSimpleName(),
+                      reference));
+    };
+  }
+
+  private static String sha256Prefix(String input, int hexChars) {
     try {
       final var digest = MessageDigest.getInstance("SHA-256");
-      final var bytes =
-          digest.digest(DocumentHandle.idFor(document).value().getBytes(StandardCharsets.UTF_8));
-      return "doc-" + HEX_FORMAT.formatHex(bytes).substring(0, 40);
+      final var bytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+      return HEX_FORMAT.formatHex(bytes).substring(0, hexChars);
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 not available", e);
     }

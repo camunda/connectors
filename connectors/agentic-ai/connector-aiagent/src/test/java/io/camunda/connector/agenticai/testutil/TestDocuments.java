@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.agenticai.testutil;
 
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
+import io.camunda.connector.agenticai.aiagent.document.ObjectTagRenderer;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -15,6 +18,19 @@ import java.nio.charset.StandardCharsets;
 public final class TestDocuments {
 
   private TestDocuments() {}
+
+  /** Restores the documents of the in-memory store. */
+  public static DocumentRestorer documentRestorer() {
+    return new DocumentRestorer(new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+  }
+
+  public static ObjectTagRenderer objectTagRenderer() {
+    return new ObjectTagRenderer(TestObjectMapperSupplier.INSTANCE);
+  }
+
+  public static DocumentExpander documentExpander() {
+    return new DocumentExpander(documentRestorer(), objectTagRenderer());
+  }
 
   /** A {@code text/plain} document with the given content and file name in the in-memory store. */
   public static Document createDocument(String content, String fileName) {

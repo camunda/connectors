@@ -12,18 +12,19 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -57,7 +58,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
   static final String EVENT_DOCUMENT_TAGS_PREAMBLE = "Documents attached to the event:";
 
-  // the preamble of the tag and content pairs of an agent instance without the documents feature
+  // the preamble of the tag and content pairs of an agent instance that does not track its
+  // documents
   static final String EVENT_DOCUMENTS_PREAMBLE =
       "Documents extracted from event data (<doc /> tag + content pair):";
 
@@ -87,14 +89,17 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
-    final boolean documentFlow = agentContext.supports(AgentFeatures.DOCUMENTS);
+    final var documentHandling = agentContext.documentHandling();
 
-    final var eventDocuments = new ArrayList<IngestedDocument>();
+    final var eventDocuments = new ArrayList<NewDocument>();
     final List<Message> eventMessages =
         agentInput.eventMessages().stream()
             .map(eventResult ->
                 createEventMessage(
-                    eventResult, interruptToolCallsOnEventResults, documentFlow, eventDocuments))
+                    eventResult,
+                    interruptToolCallsOnEventResults,
+                    documentHandling,
+                    eventDocuments))
             .toList();
     final var events = new TurnInput(eventMessages, eventDocuments);
 
@@ -135,9 +140,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return new CompositionResult.Ready(agentContext, batch, TurnInput.empty(), events);
     }
 
-    final var promptDocuments = new ArrayList<IngestedDocument>();
+    final var promptDocuments = new ArrayList<NewDocument>();
     final var userPrompt =
-        createUserPromptMessage(agentInput.userPrompt(), documentFlow, promptDocuments);
+        createUserPromptMessage(agentInput.userPrompt(), documentHandling, promptDocuments);
     if (userPrompt == null && eventMessages.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
@@ -162,8 +167,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
   private @Nullable UserMessage createUserPromptMessage(
       AgentInput.UserPrompt userPrompt,
-      boolean documentFlow,
-      List<IngestedDocument> ingestedDocuments) {
+      DocumentHandling documentHandling,
+      List<NewDocument> newDocuments) {
 
     final var content = new ArrayList<Content>();
 
@@ -173,27 +178,27 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       content.add(textContent(userPromptText));
     }
 
-    final var origin = DocumentOrigin.userMessage();
-    if (documentFlow) {
-      // add documents as references with the delivery content: the content is added, from the
-      // workspace, when the model is called
-      for (var doc : userPrompt.documents()) {
-        content.add(DocumentReferences.from(doc).withDelivery(DocumentDelivery.CONTENT));
+    switch (documentHandling) {
+      case DocumentHandling.Tracked ignored -> {
+        // add the documents as blocks with the delivery content: the content is added when the
+        // model is called
+        final var origin = DocumentOrigin.userMessage();
+        for (var doc : userPrompt.documents()) {
+          content.add(
+              AgentDocumentContent.of(AgentDocumentId.of(doc))
+                  .withDelivery(DocumentDelivery.CONTENT));
+          newDocuments.add(new NewDocument(doc, origin));
+        }
       }
-    } else {
-      // an agent instance without the documents feature keeps the documents as content
-      userPrompt.documents().stream().map(DocumentContent::documentContent).forEach(content::add);
+      case DocumentHandling.Untracked ignored ->
+          userPrompt.documents().stream()
+              .map(DocumentContent::documentContent)
+              .forEach(content::add);
     }
 
     if (content.isEmpty()) {
       LOGGER.debug("Not adding user message as no user content was found to add.");
       return null;
-    }
-
-    if (documentFlow) {
-      userPrompt
-          .documents()
-          .forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, origin)));
     }
     return UserMessage.builder().content(content).metadata(MessageMetadata.defaults()).build();
   }
@@ -251,8 +256,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private Message createEventMessage(
       ToolCallResult eventResult,
       boolean interruptToolCallsOnEventResults,
-      boolean documentFlow,
-      List<IngestedDocument> ingestedDocuments) {
+      DocumentHandling documentHandling,
+      List<NewDocument> newDocuments) {
     Object eventContent = eventResult.content();
 
     List<Content> userMessageContent = new ArrayList<>();
@@ -273,18 +278,21 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     // events arrive as ToolCallResult with null id/name, so their documents have no tool call
     final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
     if (!eventDocuments.isEmpty()) {
-      userMessageContent.add(
-          textContent(documentFlow ? EVENT_DOCUMENT_TAGS_PREAMBLE : EVENT_DOCUMENTS_PREAMBLE));
-      if (documentFlow) {
-        final var origin = DocumentOrigin.event();
-        for (var group : eventDocuments) {
-          for (var doc : group.documents()) {
-            ingestedDocuments.add(new IngestedDocument(doc, origin));
-            userMessageContent.add(DocumentReferences.from(doc));
+      switch (documentHandling) {
+        case DocumentHandling.Tracked ignored -> {
+          userMessageContent.add(textContent(EVENT_DOCUMENT_TAGS_PREAMBLE));
+          final var origin = DocumentOrigin.event();
+          for (var group : eventDocuments) {
+            for (var doc : group.documents()) {
+              newDocuments.add(new NewDocument(doc, origin));
+              userMessageContent.add(AgentDocumentContent.of(AgentDocumentId.of(doc)));
+            }
           }
         }
-      } else {
-        userMessageContent.addAll(ToolCallResultsInputBuilder.documentPairs(eventDocuments));
+        case DocumentHandling.Untracked ignored -> {
+          userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
+          userMessageContent.addAll(ToolCallResultsInputBuilder.documentPairs(eventDocuments));
+        }
       }
     }
 

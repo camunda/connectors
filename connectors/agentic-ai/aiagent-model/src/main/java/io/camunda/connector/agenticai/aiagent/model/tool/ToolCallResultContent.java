@@ -12,9 +12,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.camunda.connector.agenticai.common.json.FeelOffsetDateTimeDeserializer;
@@ -113,6 +117,36 @@ public record ToolCallResultContent(
       case Document document -> List.of(DocumentContent.documentContent(document));
       default -> List.of(ObjectContent.objectContent(content));
     };
+  }
+
+  /**
+   * The result with every document that is the whole content of the result (a top-level {@link
+   * DocumentContent}) as an {@link AgentDocumentContent}, which the model sees as the short tag.
+   * Documents nested in an {@link ObjectContent} stay documents. A result that holds no top-level
+   * document is returned as it is, so applying this twice gives the same result.
+   *
+   * @throws
+   *     io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException
+   *     if the reference type of a document is not supported
+   */
+  public ToolCallResultContent withDocumentsAsReferences() {
+    if (content.stream().noneMatch(DocumentContent.class::isInstance)) {
+      return this;
+    }
+    return withContent(
+        content.stream()
+            .map(block ->
+                switch (block) {
+                  case DocumentContent documentContent ->
+                      (Content)
+                          AgentDocumentContent.of(AgentDocumentId.of(documentContent.document()));
+                  case TextContent ignored -> block;
+                  case AgentDocumentContent ignored -> block;
+                  case ObjectContent ignored -> block;
+                  case ReasoningContent ignored -> block;
+                  case ProviderContent ignored -> block;
+                })
+            .toList());
   }
 
   /**

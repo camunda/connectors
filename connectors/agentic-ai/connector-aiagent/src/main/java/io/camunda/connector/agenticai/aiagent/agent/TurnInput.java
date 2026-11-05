@@ -6,7 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentIdCollisionException;
+import io.camunda.connector.agenticai.aiagent.model.document.InlineDocumentTooLargeException;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,10 +19,10 @@ import java.util.List;
  * Input messages of the next turn, ready to be applied to the conversation.
  *
  * @param documents the documents that enter the conversation with the messages, in order, to be
- *     registered in the document workspace; empty for an agent instance without the documents
- *     feature
+ *     registered in the documents of the agent context; empty for an agent instance that does not
+ *     track its documents
  */
-public record TurnInput(List<Message> messages, List<IngestedDocument> documents) {
+public record TurnInput(List<Message> messages, List<AgentDocuments.NewDocument> documents) {
 
   public TurnInput {
     messages = List.copyOf(messages);
@@ -31,6 +35,24 @@ public record TurnInput(List<Message> messages, List<IngestedDocument> documents
 
   public static TurnInput empty() {
     return new TurnInput(List.of());
+  }
+
+  /**
+   * The agent context with the documents of this input registered. It depends on the context and
+   * the input only, so a job that runs again computes the same context.
+   *
+   * @throws InlineDocumentTooLargeException if a new document is an inline document with too much
+   *     content
+   * @throws DocumentIdCollisionException if a document gets the id of a different document the
+   *     context already holds, or of another document of this input
+   * @throws UnsupportedDocumentReferenceException if the reference type of a document is not
+   *     supported
+   */
+  public AgentContext applyTo(AgentContext agentContext) {
+    if (documents.isEmpty()) {
+      return agentContext;
+    }
+    return agentContext.withDocuments(agentContext.documents().register(documents));
   }
 
   public boolean isEmpty() {

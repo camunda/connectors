@@ -4,14 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.document;
+package io.camunda.connector.agenticai.aiagent.model.document;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
@@ -20,7 +20,7 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
-class DocumentHandleTest {
+class AgentDocumentIdDerivationTest {
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
@@ -42,8 +42,8 @@ class DocumentHandleTest {
                 .fileName("b.txt")
                 .build());
 
-    assertThat(DocumentHandle.idFor(first)).isEqualTo(DocumentHandle.idFor(second));
-    assertThat(DocumentHandle.idFor(first).value()).isEqualTo("doc_6d97d0f7b602");
+    assertThat(AgentDocumentId.of(first)).isEqualTo(AgentDocumentId.of(second));
+    assertThat(AgentDocumentId.of(first).value()).isEqualTo("doc_6d97d0f7b602");
   }
 
   @Test
@@ -53,7 +53,7 @@ class DocumentHandleTest {
             DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8)).build());
     final var ref = (CamundaDocumentReference) doc.reference();
 
-    assertThat(DocumentHandle.idFor(doc).value()).doesNotContain(ref.getDocumentId());
+    assertThat(AgentDocumentId.of(doc).value()).doesNotContain(ref.getDocumentId());
   }
 
   @Test
@@ -62,12 +62,12 @@ class DocumentHandleTest {
         documentFactory.create(
             DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8)).build());
 
-    assertThat(DocumentHandle.idFor(camunda).value()).matches("doc_[0-9a-f]{12}");
+    assertThat(AgentDocumentId.of(camunda).value()).matches("doc_[0-9a-f]{12}");
     assertThat(
-            DocumentHandle.idFor(new ExternalDocument("https://example.com/a", null, u -> null))
+            AgentDocumentId.of(new ExternalDocument("https://example.com/a", null, u -> null))
                 .value())
         .matches("doc_[0-9a-f]{12}");
-    assertThat(DocumentHandle.idFor(new InlineDocument("content", null, null)).value())
+    assertThat(AgentDocumentId.of(new InlineDocument("content", null, null)).value())
         .matches("doc_[0-9a-f]{12}");
   }
 
@@ -79,8 +79,8 @@ class DocumentHandleTest {
     final var doc1 = new ExternalDocument(url, "Report A", u -> null);
     final var doc2 = new ExternalDocument(url, "Report B", u -> null);
 
-    assertThat(DocumentHandle.idFor(doc1)).isEqualTo(DocumentHandle.idFor(doc2));
-    assertThat(DocumentHandle.idFor(doc1).value()).isEqualTo("doc_f089beca8872");
+    assertThat(AgentDocumentId.of(doc1)).isEqualTo(AgentDocumentId.of(doc2));
+    assertThat(AgentDocumentId.of(doc1).value()).isEqualTo("doc_f089beca8872");
   }
 
   @Test
@@ -88,7 +88,7 @@ class DocumentHandleTest {
     final var doc1 = new ExternalDocument("https://example.com/a.pdf", null, u -> null);
     final var doc2 = new ExternalDocument("https://example.com/b.pdf", null, u -> null);
 
-    assertThat(DocumentHandle.idFor(doc1).value()).isNotEqualTo(DocumentHandle.idFor(doc2).value());
+    assertThat(AgentDocumentId.of(doc1).value()).isNotEqualTo(AgentDocumentId.of(doc2).value());
   }
 
   @Test
@@ -96,7 +96,7 @@ class DocumentHandleTest {
     final var url = "https://example.com/secret.pdf";
     final var doc = new ExternalDocument(url, "Secret", u -> null);
 
-    assertThat(DocumentHandle.idFor(doc).value())
+    assertThat(AgentDocumentId.of(doc).value())
         .doesNotContain("example.com")
         .doesNotContain("secret");
   }
@@ -108,8 +108,8 @@ class DocumentHandleTest {
     final var doc1 = new InlineDocument("hello", "a.txt", "text/plain");
     final var doc2 = new InlineDocument("hello", "b.txt", "text/csv");
 
-    assertThat(DocumentHandle.idFor(doc1)).isEqualTo(DocumentHandle.idFor(doc2));
-    assertThat(DocumentHandle.idFor(doc1).value()).isEqualTo("doc_735f6a9cc2fd");
+    assertThat(AgentDocumentId.of(doc1)).isEqualTo(AgentDocumentId.of(doc2));
+    assertThat(AgentDocumentId.of(doc1).value()).isEqualTo("doc_735f6a9cc2fd");
   }
 
   @Test
@@ -117,7 +117,7 @@ class DocumentHandleTest {
     final var doc1 = new InlineDocument("content A", "file.txt", null);
     final var doc2 = new InlineDocument("content B", "file.txt", null);
 
-    assertThat(DocumentHandle.idFor(doc1).value()).isNotEqualTo(DocumentHandle.idFor(doc2).value());
+    assertThat(AgentDocumentId.of(doc1).value()).isNotEqualTo(AgentDocumentId.of(doc2).value());
   }
 
   @Test
@@ -125,19 +125,38 @@ class DocumentHandleTest {
     final var camundaA = new CamundaDocumentReferenceModel("ab", "c", null, null);
     final var camundaB = new CamundaDocumentReferenceModel("a", "bc", null, null);
 
-    assertThat(DocumentHandle.identityKey(camundaA)).containsExactly("camunda", "ab", "c");
-    assertThat(DocumentHandle.idFor(camundaA)).isNotEqualTo(DocumentHandle.idFor(camundaB));
+    assertThat(AgentDocumentId.identityKey(camundaA)).containsExactly("camunda", "ab", "c");
+    assertThat(AgentDocumentId.of(camundaA)).isNotEqualTo(AgentDocumentId.of(camundaB));
+  }
+
+  @Test
+  void aMissingStoreIdIsNotHashedAsTheTextNull() {
+    final var withoutStore = new CamundaDocumentReferenceModel(null, "c", null, null);
+    final var withStoreNamedNull = new CamundaDocumentReferenceModel("null", "c", null, null);
+
+    assertThat(AgentDocumentId.identityKey(withoutStore)).containsExactly("camunda", null, "c");
+    assertThat(AgentDocumentId.of(withoutStore))
+        .isNotEqualTo(AgentDocumentId.of(withStoreNamedNull));
   }
 
   // ── Blank-content inline document (unsupported) ─────────────────────────────
 
   @Test
-  void inlineDocumentWithBlankContentThrowsConnectorException() {
+  void inlineDocumentWithBlankContentIsRejected() {
     final var doc = new InlineDocument("   ", "file.txt", "text/plain");
 
-    assertThatThrownBy(() -> DocumentHandle.idFor(doc).value())
-        .isInstanceOf(ConnectorException.class)
-        .hasFieldOrPropertyWithValue("errorCode", "FAILED_MODEL_CALL");
+    assertThatThrownBy(() -> AgentDocumentId.of(doc))
+        .isInstanceOf(UnsupportedDocumentReferenceException.class)
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void unsupportedReferenceTypeIsRejected() {
+    final var reference = new DocumentReference() {};
+
+    assertThatThrownBy(() -> AgentDocumentId.of(reference))
+        .isInstanceOf(UnsupportedDocumentReferenceException.class)
+        .hasMessageContaining("Unsupported document reference type");
   }
 
   // ── Custom (non-UUID) document id ─────────────────────────────────────────
@@ -150,6 +169,6 @@ class DocumentHandleTest {
                 .documentId("custom:doc_id/with spaces")
                 .build());
 
-    assertThat(DocumentHandle.idFor(doc).value()).matches("doc_[0-9a-f]{12}");
+    assertThat(AgentDocumentId.of(doc).value()).matches("doc_[0-9a-f]{12}");
   }
 }
