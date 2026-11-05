@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,15 +30,15 @@ class RuntimeToolCallImplTest {
 
   record CountArguments(int count) {}
 
-  record DocumentArguments(DocumentId document, @Nullable String note) {}
+  record DocumentArguments(AgentDocumentId document, @Nullable String note) {}
 
   record UnionArguments(Object body) {}
 
   record TextArguments(@Nullable String body) {}
 
-  record DocumentsArguments(List<DocumentId> documents) {}
+  record DocumentsArguments(List<AgentDocumentId> documents) {}
 
-  private static final DocumentId DOC = DocumentId.of("doc-1");
+  private static final AgentDocumentId DOC = AgentDocumentId.of("doc-1");
 
   private RuntimeToolCallImpl call(Map<String, Object> arguments) {
     return new RuntimeToolCallImpl("call-1", "tool", arguments, argumentsMapper);
@@ -85,7 +85,7 @@ class RuntimeToolCallImplTest {
     final var tag = call(Map.of("body", DOC)).argumentsAs(UnionArguments.class);
     final var text = call(Map.of("body", "doc-1")).argumentsAs(UnionArguments.class);
 
-    assertThat(tag.body()).isInstanceOf(DocumentId.class).isEqualTo(DOC);
+    assertThat(tag.body()).isInstanceOf(AgentDocumentId.class).isEqualTo(DOC);
     assertThat(text.body()).isInstanceOf(String.class).isEqualTo("doc-1");
   }
 
@@ -106,7 +106,7 @@ class RuntimeToolCallImplTest {
 
   @Test
   void documentsInAListBindToDocumentIds() {
-    final var other = DocumentId.of("doc-2");
+    final var other = AgentDocumentId.of("doc-2");
 
     final var arguments =
         call(Map.of("documents", List.of(DOC, other))).argumentsAs(DocumentsArguments.class);

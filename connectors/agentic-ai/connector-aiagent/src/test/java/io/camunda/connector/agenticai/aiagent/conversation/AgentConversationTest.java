@@ -279,7 +279,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("hi")));
 
-    var snapshot = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv));
+    var snapshot = conv.window(20);
 
     assertThat(snapshot.toolDefinitions().getFirst().inputSchema())
         .isEqualTo(

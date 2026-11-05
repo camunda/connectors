@@ -12,9 +12,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver.Resolution;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
@@ -29,21 +30,21 @@ class DocumentParameterResolverTest {
 
   private final Document first = createDocument("first", "first.txt");
   private final Document second = createDocument("second", "second.txt");
-  private final DocumentWorkspace workspace =
-      DocumentIngestion.withDocuments(
-          DocumentWorkspace.empty(),
-          List.of(
-              new IngestedDocument(
-                  first, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
-              new IngestedDocument(
-                  second, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
+  private final AgentDocuments documents =
+      AgentDocuments.empty()
+          .register(
+              List.of(
+                  AgentDocument.of(
+                      first, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
+                  AgentDocument.of(
+                      second, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
 
-  private final DocumentId firstId = AgentDocumentHandle.idFor(first);
-  private final DocumentId secondId = AgentDocumentHandle.idFor(second);
+  private final AgentDocumentId firstId = AgentDocumentId.of(first);
+  private final AgentDocumentId secondId = AgentDocumentId.of(second);
   private final String firstTag = tag(firstId);
   private final String secondTag = tag(secondId);
 
-  private static String tag(DocumentId id) {
+  private static String tag(AgentDocumentId id) {
     return "<doc id=\"" + id + "\" />";
   }
 
@@ -65,8 +66,8 @@ class DocumentParameterResolverTest {
         + " Pass the tag of a document exactly as you read it, or pass other text.";
   }
 
-  private Map<String, Object> reference(DocumentId id) {
-    return workspace.findById(id).orElseThrow().reference();
+  private Map<String, Object> reference(AgentDocumentId id) {
+    return TestDocuments.referenceJson(documents.find(id).orElseThrow());
   }
 
   @Test
@@ -80,7 +81,9 @@ class DocumentParameterResolverTest {
                 assertThat(resolved.arguments())
                     .containsEntry("doc", reference(firstId))
                     .containsEntry("other", "kept"));
-    assertThat(reference(firstId)).containsKey("camunda.document.type");
+    assertThat(reference(firstId))
+        .containsEntry("camunda.document.type", "camunda")
+        .containsKeys("storeId", "documentId", "contentHash");
   }
 
   @Test
@@ -357,7 +360,8 @@ class DocumentParameterResolverTest {
 
   @Test
   void rejectsTheCallOfARuntimeToolThatDoesNotNameAKnownDocument() {
-    final var call = new ToolCall("call", "c8__read", Map.of("file", tag(DocumentId.of("none"))));
+    final var call =
+        new ToolCall("call", "c8__read", Map.of("file", tag(AgentDocumentId.of("none"))));
 
     final var result =
         DocumentParameterResolver.resolveRuntimeCall(
@@ -573,7 +577,7 @@ class DocumentParameterResolverTest {
 
   @Test
   void rejectsTheCallOfAToolOfTheProcessWithATagOfAnUnknownDocumentInAUnionParameter() {
-    final var call = new ToolCall("call", "send", Map.of("body", tag(DocumentId.of("none"))));
+    final var call = new ToolCall("call", "send", Map.of("body", tag(AgentDocumentId.of("none"))));
 
     assertThat(DocumentParameterResolver.resolveProcessCall(agentContext(), call))
         .isEqualTo(new Resolution.Invalid(List.of(unionProblem("body", "none"))));
@@ -593,7 +597,8 @@ class DocumentParameterResolverTest {
 
   @Test
   void rejectsTheCallOfARuntimeToolWithATagOfAnUnknownDocumentInAUnionParameter() {
-    final var call = new ToolCall("call", "c8__send", Map.of("body", tag(DocumentId.of("none"))));
+    final var call =
+        new ToolCall("call", "c8__send", Map.of("body", tag(AgentDocumentId.of("none"))));
 
     assertThat(
             DocumentParameterResolver.resolveRuntimeCall(
@@ -613,7 +618,7 @@ class DocumentParameterResolverTest {
   private AgentContext agentContext() {
     return AgentContext.empty()
         .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
-        .withDocumentWorkspace(workspace)
+        .withDocuments(documents)
         .withToolDefinitions(
             List.of(
                 definition("upload", object("doc", DOC)),
@@ -655,12 +660,12 @@ class DocumentParameterResolverTest {
   private Resolution resolve(Map<String, Object> arguments, Map<String, Object> inputSchema) {
     final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
     return DocumentParameterResolver.resolve(
-        new ToolCall("call", "tool", arguments), definition, workspace);
+        new ToolCall("call", "tool", arguments), definition, documents);
   }
 
   private Resolution resolveIds(Map<String, Object> arguments, Map<String, Object> inputSchema) {
     final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
     return DocumentParameterResolver.resolveIds(
-        new ToolCall("call", "tool", arguments), definition, workspace);
+        new ToolCall("call", "tool", arguments), definition, documents);
   }
 }

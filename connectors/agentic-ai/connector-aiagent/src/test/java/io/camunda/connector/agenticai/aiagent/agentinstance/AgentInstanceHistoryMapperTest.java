@@ -607,14 +607,14 @@ class AgentInstanceHistoryMapperTest {
                     .contentType("text/plain")
                     .fileName("report.txt")
                     .build());
-    private final DocumentId documentId = AgentDocumentHandle.idFor(document);
-    private final DocumentWorkspace workspace =
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            List.of(
-                new IngestedDocument(
-                    document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
-    private final AgentContext agentContext = WITH_DOCUMENTS.withDocumentWorkspace(workspace);
+    private final AgentDocumentId documentId = AgentDocumentId.of(document);
+    private final AgentDocuments documents =
+        AgentDocuments.empty()
+            .register(
+                List.of(
+                    AgentDocument.of(
+                        document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
+    private final AgentContext agentContext = WITH_DOCUMENTS.withDocuments(documents);
 
     private final ToolCall uploadCall =
         ToolCall.builder()
@@ -657,7 +657,7 @@ class AgentInstanceHistoryMapperTest {
               ToolCallResultMessage.builder().results(List.of(result)).build(),
               Map.of("call-1", uploadCall),
               TURN_INGESTION_TIMESTAMP,
-              agentContext);
+              historyDocuments(agentContext.documentHandling()));
 
       assertThat(items)
           .singleElement()
@@ -714,7 +714,7 @@ class AgentInstanceHistoryMapperTest {
               ToolCallResultMessage.builder().results(List.of(result)).build(),
               Map.of("call-3", rejected),
               TURN_INGESTION_TIMESTAMP,
-              agentContext);
+              historyDocuments(agentContext.documentHandling()));
 
       assertThat(calls)
           .singleElement()
@@ -749,7 +749,7 @@ class AgentInstanceHistoryMapperTest {
               ToolCallResultMessage.builder().results(List.of(result)).build(),
               Map.of("call-1", uploadCall),
               TURN_INGESTION_TIMESTAMP,
-              NEW_INSTANCE);
+              historyDocuments(NEW_INSTANCE.documentHandling()));
 
       assertThat(items)
           .singleElement()
@@ -1214,7 +1214,7 @@ class AgentInstanceHistoryMapperTest {
       final var item =
           item(
               message(
-                  DocumentReferences.from(document),
+                  AgentDocumentContent.of(AgentDocumentId.of(document)),
                   ObjectContent.objectContent(Map.of("file", otherDocument))),
               agentContext);
 

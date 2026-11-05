@@ -19,23 +19,22 @@ import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryIniti
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.AgentDocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -58,11 +57,11 @@ class GatewayToolDocumentParametersTest {
       List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS);
 
   private final Document report = createDocument("report", "report.txt");
-  private final DocumentId reportId = AgentDocumentHandle.idFor(report);
-  private final DocumentWorkspace workspace =
-      DocumentIngestion.withDocuments(
-          DocumentWorkspace.empty(),
-          List.of(new IngestedDocument(report, AgentDocumentOrigin.toolCall("search", "call-1"))));
+  private final AgentDocumentId reportId = AgentDocumentId.of(report);
+  private final AgentDocuments documents =
+      AgentDocuments.empty()
+          .register(
+              List.of(AgentDocument.of(report, AgentDocumentOrigin.toolCall("search", "call-1"))));
 
   private FilesGatewayToolHandler filesHandler;
   private GatewayToolHandlerRegistryImpl gatewayToolHandlers;
@@ -98,7 +97,8 @@ class GatewayToolDocumentParametersTest {
     final var received = filesHandler.receivedCalls.getFirst();
     assertThat(received.name()).isEqualTo(UPLOAD_TOOL);
     assertThat(received.arguments())
-        .containsEntry("document", workspace.findById(reportId).orElseThrow().reference())
+        .containsEntry(
+            "document", TestDocuments.referenceJson(documents.find(reportId).orElseThrow()))
         .containsEntry("folder", "/inbox");
     assertThat(received.arguments().get("document"))
         .asInstanceOf(InstanceOfAssertFactories.MAP)
@@ -126,7 +126,7 @@ class GatewayToolDocumentParametersTest {
             .state(AgentState.READY)
             .features(FEATURES)
             .toolDefinitions(discoveredContext.toolDefinitions())
-            .documents(workspace.entries())
+            .documents(documents)
             .build();
     return AgentConversation.rehydrate(
             config,

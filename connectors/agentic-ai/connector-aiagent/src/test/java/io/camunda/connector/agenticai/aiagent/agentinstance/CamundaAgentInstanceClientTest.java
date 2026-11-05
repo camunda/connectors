@@ -42,6 +42,7 @@ import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgent
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -50,6 +51,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -75,6 +81,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAut
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
@@ -1417,28 +1424,31 @@ class CamundaAgentInstanceClientTest {
                       .contentType("text/plain")
                       .fileName("report.txt")
                       .build());
-      final var documentTag = "<doc id=\"" + AgentDocumentHandle.idFor(document) + "\" />";
-      final var firstWorkspace =
-          DocumentIngestion.withDocuments(
-              DocumentWorkspace.empty(),
+      final var documentTag = "<doc id=\"" + AgentDocumentId.of(document) + "\" />";
+      final var firstDocuments =
+          AgentDocuments.empty()
+              .register(
+                  List.of(
+                      AgentDocument.of(
+                          document, AgentDocumentOrigin.toolCall("Download", "download"))));
+      final var laterDocuments =
+          firstDocuments.register(
               List.of(
-                  new IngestedDocument(
-                      document, AgentDocumentOrigin.toolCall("Download", "download"))));
-      final var laterWorkspace =
-          DocumentIngestion.withDocuments(
-              firstWorkspace,
-              List.of(
-                  new IngestedDocument(
+                  AgentDocument.of(
                       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
                           .create(
                               DocumentCreationRequest.from("other".getBytes(StandardCharsets.UTF_8))
                                   .fileName("other.txt")
                                   .build()),
                       AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
-      final var withDocuments =
-          NEW_INSTANCE.withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
-      final var first = withDocuments.withDocumentWorkspace(firstWorkspace);
-      final var later = withDocuments.withDocumentWorkspace(laterWorkspace);
+      final var first =
+          new HistoryDocuments(
+              new DocumentHandling.Tracked(firstDocuments),
+              new DocumentRestorer(TestAgentExecutionContext.withLimits().documentFactory()));
+      final var later =
+          new HistoryDocuments(
+              new DocumentHandling.Tracked(laterDocuments),
+              new DocumentRestorer(TestAgentExecutionContext.withLimits().documentFactory()));
 
       final var runtimeResult =
           ToolCallResultContent.builder()

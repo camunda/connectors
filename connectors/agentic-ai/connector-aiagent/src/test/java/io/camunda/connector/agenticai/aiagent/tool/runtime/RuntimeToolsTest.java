@@ -20,16 +20,14 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolSchemas;
-import io.camunda.connector.agenticai.aiagent.document.AgentDocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -525,14 +523,14 @@ class RuntimeToolsTest {
   }
 
   private static AgentContext knowing(Document... documents) {
-    return NEW_INSTANCE.withDocumentWorkspace(
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            Arrays.stream(documents)
-                .map(document ->
-                    new IngestedDocument(
-                        document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
-                .toList()));
+    return NEW_INSTANCE.withDocuments(
+        AgentDocuments.empty()
+            .register(
+                Arrays.stream(documents)
+                    .map(document ->
+                        AgentDocument.of(
+                            document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
+                    .toList()));
   }
 
   private static AgentContext knowingWithDocumentsFeature(Document... documents) {
@@ -541,14 +539,14 @@ class RuntimeToolsTest {
   }
 
   private static String tagOf(Document document) {
-    return "<doc id=\"" + AgentDocumentHandle.idFor(document) + "\" />";
+    return "<doc id=\"" + AgentDocumentId.of(document) + "\" />";
   }
 
   @Test
   void handsTheIdsOfTheDocumentParametersToARuntimeToolAfterCheckingThem() {
     final var report = createDocument("report", "report.txt");
     final var received = new ArrayList<Object>();
-    record Args(DocumentId file, List<String> files) {}
+    record Args(AgentDocumentId file, List<String> files) {}
     final var tool =
         StubRuntimeTool.of(
             definitionOf(
@@ -573,7 +571,7 @@ class RuntimeToolsTest {
                 List.of(runtimeCall("r1", "c8__read_file", Map.of("file", tagOf(report)))));
 
     assertThat(text(executions.getFirst())).isEqualTo("read");
-    assertThat(received).containsExactly(AgentDocumentHandle.idFor(report), null);
+    assertThat(received).containsExactly(AgentDocumentId.of(report), null);
   }
 
   @Test
@@ -590,7 +588,7 @@ class RuntimeToolsTest {
     final var arguments =
         Map.<String, Object>of(
             "file",
-            "<doc id=\"" + AgentDocumentHandle.idFor(report) + "\" fileName=\"report.txt\" />",
+            "<doc id=\"" + AgentDocumentId.of(report) + "\" fileName=\"report.txt\" />",
             "other",
             "kept");
 
@@ -601,7 +599,7 @@ class RuntimeToolsTest {
             List.of(runtimeCall("r1", "c8__read_file", arguments)));
 
     assertThat(received)
-        .containsExactly(Map.of("file", AgentDocumentHandle.idFor(report), "other", "kept"));
+        .containsExactly(Map.of("file", AgentDocumentId.of(report), "other", "kept"));
   }
 
   @Test
@@ -646,7 +644,7 @@ class RuntimeToolsTest {
                 runtimeCall("r1", "c8__send", Map.of("body", tagOf(report))),
                 runtimeCall("r2", "c8__send", Map.of("body", "hello"))));
 
-    assertThat(received).containsExactly(AgentDocumentHandle.idFor(report), "hello");
+    assertThat(received).containsExactly(AgentDocumentId.of(report), "hello");
   }
 
   @Test

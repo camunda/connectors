@@ -2171,8 +2171,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
     final var goodCall =
-        new ToolCall(
-            "call-2", "upload", Map.of("doc", docTag(AgentDocumentHandle.idFor(document))));
+        new ToolCall("call-2", "upload", Map.of("doc", docTag(AgentDocumentId.of(document))));
     final var firstMessage = AssistantMessage.builder().toolCalls(List.of(badCall)).build();
     final var secondMessage = AssistantMessage.builder().toolCalls(List.of(goodCall)).build();
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
@@ -2666,7 +2665,7 @@ class AgentSubProcessRequestHandlerTest {
     when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
   }
 
-  private static String docTag(DocumentId documentId) {
+  private static String docTag(AgentDocumentId documentId) {
     return "<doc id=\"" + documentId + "\" />";
   }
 
@@ -2675,7 +2674,7 @@ class AgentSubProcessRequestHandlerTest {
         new TurnInput(
             List.of(USER_MESSAGE),
             List.of(
-                new IngestedDocument(
+                AgentDocument.of(
                     document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))));
   }
 

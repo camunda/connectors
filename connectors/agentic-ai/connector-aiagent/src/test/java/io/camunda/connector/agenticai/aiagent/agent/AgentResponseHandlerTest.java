@@ -24,17 +24,15 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.AgentDocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -447,20 +445,20 @@ class AgentResponseHandlerTest {
         ToolDefinition.builder().name("getWeather").inputSchema(Map.of("type", "object")).build();
 
     private final Document report = createDocument("report", "report.txt");
-    private final DocumentId reportId = AgentDocumentHandle.idFor(report);
-    private final DocumentWorkspace workspace =
-        DocumentIngestion.withDocuments(
-            DocumentWorkspace.empty(),
-            List.of(
-                new IngestedDocument(
-                    report, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
+    private final AgentDocumentId reportId = AgentDocumentId.of(report);
+    private final AgentDocuments documents =
+        AgentDocuments.empty()
+            .register(
+                List.of(
+                    AgentDocument.of(
+                        report, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
 
     private AgentConversation conversation(List<String> features, ToolCall... calls) {
       final var context =
           AgentContext.empty()
               .withState(AgentState.READY)
               .withFeatures(features)
-              .withDocumentWorkspace(workspace)
+              .withDocuments(documents)
               .withToolDefinitions(List.of(UPLOAD, SEND, WEATHER));
       return AgentConversation.rehydrate(
               new AgentConfiguration(
@@ -490,7 +488,8 @@ class AgentResponseHandlerTest {
           .satisfies(toolCall -> {
             assertThat(toolCall.metadata().id()).isEqualTo("u1");
             assertThat(toolCall.arguments())
-                .containsEntry("doc", workspace.findById(reportId).orElseThrow().reference());
+                .containsEntry(
+                    "doc", TestDocuments.referenceJson(documents.find(reportId).orElseThrow()));
           });
     }
 
@@ -505,7 +504,7 @@ class AgentResponseHandlerTest {
       assertThat(response.toolCalls())
           .extracting(call -> call.metadata().id(), call -> call.arguments().get("body"))
           .containsExactly(
-              tuple("s1", workspace.findById(reportId).orElseThrow().reference()),
+              tuple("s1", TestDocuments.referenceJson(documents.find(reportId).orElseThrow())),
               tuple("s2", "hello " + reportId));
     }
 
@@ -542,7 +541,7 @@ class AgentResponseHandlerTest {
       assertThat(response.toolCalls())
           .extracting(call -> call.metadata().id(), call -> call.arguments().get("doc"))
           .containsExactly(
-              tuple("u1", workspace.findById(reportId).orElseThrow().reference()),
+              tuple("u1", TestDocuments.referenceJson(documents.find(reportId).orElseThrow())),
               tuple("w1", "nope"));
     }
 
@@ -560,7 +559,8 @@ class AgentResponseHandlerTest {
           .singleElement()
           .satisfies(toolCall ->
               assertThat(toolCall.arguments())
-                  .containsEntry("doc", workspace.findById(reportId).orElseThrow().reference()));
+                  .containsEntry(
+                      "doc", TestDocuments.referenceJson(documents.find(reportId).orElseThrow())));
     }
 
     @Test

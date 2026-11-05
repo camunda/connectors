@@ -8,36 +8,39 @@ package io.camunda.connector.agenticai.aiagent.document;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import org.junit.jupiter.api.Test;
 
 class DocumentTagTest {
 
   @Test
   void readsTheIdOfARenderedTag() {
-    final var tag = DocumentTags.idOnlyTag(DocumentId.of("a&b\"c"));
+    final var tag = DocumentTags.idOnlyTag(AgentDocumentId.of("a&b\"c"));
 
-    assertThat(DocumentTag.idOfSingleTag(tag)).isEqualTo(DocumentId.of("a&b\"c"));
-    assertThat(DocumentTag.idOfSingleTag("  \n" + tag + "\t ")).isEqualTo(DocumentId.of("a&b\"c"));
+    assertThat(DocumentTag.idOfSingleTag(tag)).isEqualTo(AgentDocumentId.of("a&b\"c"));
+    assertThat(DocumentTag.idOfSingleTag("  \n" + tag + "\t "))
+        .isEqualTo(AgentDocumentId.of("a&b\"c"));
   }
 
   @Test
   void readsTheIdOfATagWithOnlyAnId() {
-    assertThat(DocumentTag.idOfSingleTag("<doc id=\"doc-1\" />")).isEqualTo(DocumentId.of("doc-1"));
-    assertThat(DocumentTag.idOfSingleTag("<doc id=\"doc-1\"/>")).isEqualTo(DocumentId.of("doc-1"));
+    assertThat(DocumentTag.idOfSingleTag("<doc id=\"doc-1\" />"))
+        .isEqualTo(AgentDocumentId.of("doc-1"));
+    assertThat(DocumentTag.idOfSingleTag("<doc id=\"doc-1\"/>"))
+        .isEqualTo(AgentDocumentId.of("doc-1"));
   }
 
   @Test
   void unescapesTheId() {
     assertThat(DocumentTag.idOfSingleTag("<doc id=\"a&amp;b&quot;c&lt;&gt;\" />"))
-        .isEqualTo(DocumentId.of("a&b\"c<>"));
+        .isEqualTo(AgentDocumentId.of("a&b\"c<>"));
   }
 
   @Test
   void readsTheIdAttributeNotAnAttributeThatEndsInId() {
     assertThat(
             DocumentTag.idOfSingleTag("<doc toolCallId=\"call_1\" id=\"doc-1\" fileName=\"x\" />"))
-        .isEqualTo(DocumentId.of("doc-1"));
+        .isEqualTo(AgentDocumentId.of("doc-1"));
     assertThat(DocumentTag.idOfSingleTag("<doc toolCallId=\"call_1\" />")).isNull();
   }
 
