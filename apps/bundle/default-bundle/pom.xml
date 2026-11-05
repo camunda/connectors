@@ -91,6 +91,17 @@
       <artifactId>connector-managed-script</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <!-- Providers of managed scripts: inactive unless managed code is enabled with their name -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-managed-script-aws</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-managed-script-gcp</artifactId>
+      <scope>runtime</scope>
+    </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-sqs</artifactId>

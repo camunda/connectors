@@ -40,6 +40,16 @@ public record ExecutionResponse(
         new Error(code.name(), message, null, code.retryable(), false));
   }
 
+  /**
+   * Whether it has the shape of the contract: a contract version, and the variables of a completed
+   * call or the coded error of a failed one. The version itself is checked by the connector.
+   */
+  public boolean wellFormed() {
+    return contractVersion != null
+        && (COMPLETED.equals(outcome) && variables != null
+            || FAILED.equals(outcome) && error != null && error.code() != null);
+  }
+
   public boolean isDeploymentMissing() {
     return FAILED.equals(outcome)
         && error != null

@@ -184,10 +184,10 @@ class AmazonS3VectorsEmbeddingStoreTest {
 
   // Boundaries measured against S3 Vectors: the largest texts it accepted, and the next size up,
   // which it rejected with "Metadata object must have at most 40960 bytes".
-  @ParameterizedTest(name = "U+{0} x {1}")
-  @CsvSource({"0061, 40935", "00E9, 20467", "20AC, 13645", "1F600, 10233"})
-  void checkSegmentsMatchesTheS3VectorsLimit(String codePoint, int largestAccepted) {
-    var character = Character.toString(Integer.parseInt(codePoint, 16));
+  @ParameterizedTest(name = "code point {0} x {1}")
+  @CsvSource({"97, 40935", "233, 20467", "8364, 13645", "128512, 10233"})
+  void checkSegmentsMatchesTheS3VectorsLimit(int codePoint, int largestAccepted) {
+    var character = Character.toString(codePoint);
     store.checkSegments(List.of(TextSegment.from(character.repeat(largestAccepted))));
 
     assertThatThrownBy(() ->

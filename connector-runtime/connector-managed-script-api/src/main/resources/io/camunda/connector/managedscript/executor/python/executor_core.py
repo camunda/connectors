@@ -204,6 +204,15 @@ def _remove(path):
             pass
 
 
+def clear(directory):
+    """Removes everything in ``directory``, also what a script took the permissions off, and
+    returns the names of what is left. For an entry point that starts on a directory a previous
+    runtime used."""
+    for name in os.listdir(directory):
+        _remove(os.path.join(directory, name))
+    return os.listdir(directory)
+
+
 def _kill_group(pid):
     try:
         os.killpg(pid, signal.SIGKILL)

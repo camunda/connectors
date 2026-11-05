@@ -117,7 +117,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
 
-    <version.aws-sdk2>2.57.8</version.aws-sdk2>
+    <version.aws-sdk2>2.57.9</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -160,7 +160,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.4.0</version.kafka-clients>
     <!-- CVE-2026-106450 / CVE-2026-106451: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.4
          Ref: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv -->
-    <version.lz4-java>1.12.1</version.lz4-java>
+    <version.lz4-java>1.13.0</version.lz4-java>
 
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.10.4</version.microsoft-kiota-abstraction>
@@ -188,7 +188,7 @@ limitations under the License.</license.inlineheader>
     <version.wss4j>4.0.2</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
-    <version.slack>1.53.0</version.slack>
+    <version.slack>1.54.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
@@ -741,27 +741,27 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.fasterxml.woodstox</groupId>
         <artifactId>woodstox-core</artifactId>
-        <version>7.2.0</version>
+        <version>7.3.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.cloud.opentelemetry</groupId>
         <artifactId>detector-resources-support</artifactId>
-        <version>0.33.0</version>
+        <version>0.36.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.cloud.opentelemetry</groupId>
         <artifactId>exporter-metrics</artifactId>
-        <version>0.33.0</version>
+        <version>0.37.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.cloud.opentelemetry</groupId>
         <artifactId>shared-resourcemapping</artifactId>
-        <version>0.33.0</version>
+        <version>0.37.0</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.woodstox</groupId>
         <artifactId>stax2-api</artifactId>
-        <version>4.3.0</version>
+        <version>4.3.2</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.okio</groupId>
@@ -776,17 +776,17 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>dev.cel</groupId>
         <artifactId>common</artifactId>
-        <version>0.13.1</version>
+        <version>0.15.0</version>
       </dependency>
       <dependency>
         <groupId>dev.cel</groupId>
         <artifactId>protobuf</artifactId>
-        <version>0.13.1</version>
+        <version>0.15.0</version>
       </dependency>
       <dependency>
         <groupId>dev.cel</groupId>
         <artifactId>runtime</artifactId>
-        <version>0.13.1</version>
+        <version>0.15.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.james</groupId>
@@ -806,12 +806,12 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>net.java.dev.jna</groupId>
         <artifactId>jna</artifactId>
-        <version>5.18.1</version>
+        <version>5.19.1</version>
       </dependency>
       <dependency>
         <groupId>net.java.dev.jna</groupId>
         <artifactId>jna-platform</artifactId>
-        <version>5.18.1</version>
+        <version>5.19.1</version>
       </dependency>
       <dependency>
         <groupId>com.google.re2j</groupId>
@@ -821,12 +821,12 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>joda-time</groupId>
         <artifactId>joda-time</artifactId>
-        <version>2.12.7</version>
+        <version>2.15.1</version>
       </dependency>
       <dependency>
         <groupId>org.ow2.asm</groupId>
         <artifactId>asm</artifactId>
-        <version>9.10.1</version>
+        <version>9.11.1</version>
       </dependency>
       <dependency>
         <groupId>org.hdrhistogram</groupId>
@@ -836,7 +836,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>io.swagger.core.v3</groupId>
         <artifactId>swagger-annotations</artifactId>
-        <version>2.2.53</version>
+        <version>2.2.55</version>
       </dependency>
       <dependency>
         <groupId>com.google.errorprone</groupId>
@@ -856,12 +856,12 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>animal-sniffer-annotations</artifactId>
-        <version>1.27</version>
+        <version>1.28</version>
       </dependency>
       <dependency>
         <groupId>org.jetbrains</groupId>
         <artifactId>annotations</artifactId>
-        <version>17.0.0</version>
+        <version>26.1.0</version>
       </dependency>
 
       <dependency>
