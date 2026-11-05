@@ -59,8 +59,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -274,9 +272,7 @@ class AgentSubProcessRequestHandlerTest {
 
   @Spy
   private ToolCallResultsInputBuilder resultsInputBuilder =
-      new ToolCallResultsInputBuilder(
-          new DocumentContentGuard(DocumentContentLimits.defaults()),
-          TestDocuments.documentRestorer());
+      new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery());
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
@@ -2532,12 +2528,14 @@ class AgentSubProcessRequestHandlerTest {
                       assertThat(result.id()).isEqualTo("call-1");
                       assertThat(result.content()).hasSize(3);
                       assertThat(result.content().get(0))
-                          .isEqualTo(TextContent.textContent("Loaded the document."));
+                          .isEqualTo(
+                              TextContent.textContent("Requested the content of the document."));
                       assertThat(result.content().get(1))
                           .isEqualTo(TextContent.textContent(DocumentTags.shortTag(document)));
                       assertThat(result.content().get(2))
                           .isEqualTo(
-                              TextContent.textContent("Its content follows in the next message."));
+                              TextContent.textContent(
+                                  "It follows in the next message, or a note says why it cannot be loaded."));
                     }));
     assertContentMessageOf(secondRequestMessages.getLast(), documentId);
 

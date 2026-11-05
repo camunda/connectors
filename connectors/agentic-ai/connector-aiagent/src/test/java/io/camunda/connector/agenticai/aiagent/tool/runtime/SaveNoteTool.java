@@ -7,7 +7,6 @@
 
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
-import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
@@ -79,7 +78,11 @@ public final class SaveNoteTool implements RuntimeTool {
       throw new RuntimeToolException("This note is not allowed.");
     }
     final var number =
-        notesOf(context.documents().all().stream().map(AgentDocument::document)).size() + 1;
+        notesOf(
+                    context.documents().all().stream()
+                        .map(agentDocument -> context.documents().document(agentDocument.id())))
+                .size()
+            + 1;
     final var document =
         new InlineDocument(note.text(), FILE_NAME_PREFIX + number + ".txt", "text/plain");
     return RuntimeToolResult.success(

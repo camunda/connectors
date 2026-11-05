@@ -7,6 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_REQUIRED;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_OBJECT;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
@@ -16,7 +20,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -26,13 +29,14 @@ import org.jspecify.annotations.Nullable;
  * document, which it otherwise sees as a {@code <doc/>} tag only. It is offered to every agent
  * instance with the documents feature.
  *
- * <p>A successful call answers with the text {@code Loaded the document.}, the document as a
- * reference block, and the text {@code Its content follows in the next message.}, and asks the
- * agent to add the content of the document ({@link RuntimeToolResult.Success#withDocumentContent});
- * the content reaches the model in the message that follows the tool results. A document the model
- * reads the content of already is not asked for again. The agent rejects a document that is not
- * allowed as content, for example because of its content type or its size, or because it is an
- * external document, and answers the call with an error.
+ * <p>A call answers with the text {@code Requested the content of the document.}, the document as a
+ * reference block, and a text that says the content follows in the next message or a note says why
+ * it cannot be loaded, and asks the agent to add the content of the document ({@link
+ * RuntimeToolResult.Success#withDocumentContent}). A document the model reads the content of
+ * already is not asked for again. The agent keeps the result as it is when it does not add the
+ * content, for example because of the content type or the size of the document, or because it is an
+ * external document: the document stays a reference and the message that follows the tool results
+ * holds a note.
  */
 public final class GetDocumentTool implements RuntimeTool {
 
@@ -46,24 +50,24 @@ public final class GetDocumentTool implements RuntimeTool {
       ToolDefinition.runtime(
           NAME,
           "Loads a known document so that its content can be read in the conversation. Use it when"
-              + " you need the content of a document that you only see as a <doc/> tag. It fails"
-              + " for documents that are too large and for documents that are external links: pass"
-              + " the tag of such a document to a tool that processes it instead, for example a"
-              + " sandbox. Only text, PDF and image documents can be loaded. A document that is"
-              + " already in the conversation is not loaded again.",
+              + " you need the content of a document that you only see as a <doc/> tag. It does not"
+              + " load documents that are too large and documents that are external links, a note"
+              + " tells you so: pass the tag of such a document to a tool that processes it"
+              + " instead, for example a sandbox. Only text, PDF and image documents can be"
+              + " loaded. A document that is already in the conversation is not loaded again.",
           schema());
 
   /** The arguments of a call: the document to load. */
   record Arguments(@Nullable AgentDocumentId id) {}
 
   private static Map<String, Object> schema() {
-    final var properties = new LinkedHashMap<String, Object>();
-    properties.put(PARAMETER_ID, DocumentSchemas.document("The document to load."));
-    final var schema = new LinkedHashMap<String, Object>();
-    schema.put("type", "object");
-    schema.put("properties", properties);
-    schema.put("required", List.of(PARAMETER_ID));
-    return schema;
+    return Map.of(
+        PROPERTY_TYPE,
+        TYPE_OBJECT,
+        PROPERTY_PROPERTIES,
+        Map.of(PARAMETER_ID, DocumentSchemas.document("The document to load.")),
+        PROPERTY_REQUIRED,
+        List.of(PARAMETER_ID));
   }
 
   @Override
@@ -79,23 +83,23 @@ public final class GetDocumentTool implements RuntimeTool {
 
   @Override
   public RuntimeToolResult call(RuntimeToolContext context, RuntimeToolCall call) {
+    final var documents = context.documents();
     final var id = call.argumentsAs(Arguments.class).id();
-    final var document = id == null ? null : context.documents().find(id).orElse(null);
-    if (document == null) {
+    if (id == null || documents.find(id).isEmpty()) {
       return RuntimeToolResult.error(
           "Parameter '%s' must be the tag of a known document.".formatted(PARAMETER_ID));
     }
 
-    if (document.contentInConversation()) {
-      return RuntimeToolResult.success(
-          "Document %s is already in the conversation.".formatted(document.id()));
+    if (documents.hasContentInConversation(id)) {
+      return RuntimeToolResult.success("Document %s is already in the conversation.".formatted(id));
     }
 
     return RuntimeToolResult.success(
             List.of(
-                textContent("Loaded the document."),
-                context.documents().reference(document.id()),
-                textContent("Its content follows in the next message.")))
-        .withDocumentContent(document.id());
+                textContent("Requested the content of the document."),
+                documents.reference(id),
+                textContent(
+                    "It follows in the next message, or a note says why it cannot be loaded.")))
+        .withDocumentContent(id);
   }
 }

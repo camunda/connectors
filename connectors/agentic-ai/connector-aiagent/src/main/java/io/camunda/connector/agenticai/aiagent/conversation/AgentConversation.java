@@ -16,7 +16,6 @@ import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationCon
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -312,7 +311,7 @@ public final class AgentConversation {
    * #allMessages()} within the context window of the {@link #configuration()}.
    */
   public Set<AgentDocumentId> documentIdsWithContent() {
-    return MessageUtil.documentIdsWithContent(
+    return PreviousConversation.documentIdsWithContentIn(
         MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize()));
   }
 
