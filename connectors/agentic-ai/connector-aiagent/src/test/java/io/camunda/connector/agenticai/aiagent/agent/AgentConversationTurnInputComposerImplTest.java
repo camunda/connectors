@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
@@ -828,7 +829,15 @@ class AgentConversationTurnInputComposerImplTest {
 
   private CompositionResult.Ready resolveReady(
       AgentConfiguration configuration, PreviousConversation history, AgentInput input) {
-    final var result = composer.resolve(configuration, CTX_WITH_CONVERSATION, history, input);
+    return resolveReady(configuration, CTX_WITH_CONVERSATION, history, input);
+  }
+
+  private CompositionResult.Ready resolveReady(
+      AgentConfiguration configuration,
+      AgentContext agentContext,
+      PreviousConversation history,
+      AgentInput input) {
+    final var result = composer.resolve(configuration, agentContext, history, input);
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     return (CompositionResult.Ready) result;
   }
@@ -1102,29 +1111,38 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(messagesOf(result)).singleElement().isInstanceOf(UserMessage.class);
   }
 
+  private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+
+  private static AgentContext contextKnowing(Document document) {
+    return CTX_WITH_CONVERSATION.withDocuments(
+        AgentDocuments.empty()
+            .register(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
+  }
+
+  private static ToolCallBatch.Entry loadingEntry(AgentDocumentId id) {
+    final var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
+            NOW,
+            NOW);
+    return ToolCallBatch.Entry.from(
+        execution.toolCallResult(), execution.result().documentContent());
+  }
+
   @Test
   void runtimeToolCalls_aResultThatNamesAKnownDocumentAddsItsContentNextToTheProcessResults() {
     var document = createDocument("first", "text/plain", "first.txt");
     var id = AgentDocumentId.of(document);
-    var context =
-        CTX_WITH_CONVERSATION.withDocuments(
-            AgentDocuments.empty()
-                .register(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
-    var history = historyWith(MIXED_CALLS);
-    var input = inputWith(TOOL_CALL_RESULTS.get(1));
-    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
-    var execution =
-        new RuntimeToolExecution(
-            MIXED_CALLS.getFirst(),
-            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
-            now,
-            now);
+    var ready =
+        resolveReady(
+            CONFIG,
+            contextKnowing(document),
+            historyWith(MIXED_CALLS),
+            inputWith(TOOL_CALL_RESULTS.get(1)));
 
-    var result =
-        composer.composeWithLocalToolCallResults(
-            CONFIG, context, history, input, List.of(execution));
+    var messages = composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages();
 
-    var messages = ((CompositionResult.NextTurn) result).messages();
     assertThat(messages).hasSize(2);
     assertThat(messages.get(1).metadata())
         .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
@@ -1139,10 +1157,6 @@ class AgentConversationTurnInputComposerImplTest {
   void runtimeToolCalls_aDocumentWhoseContentIsInTheConversationIsNotAddedAgain() {
     var document = createDocument("first", "text/plain", "first.txt");
     var id = AgentDocumentId.of(document);
-    var context =
-        CTX_WITH_CONVERSATION.withDocuments(
-            AgentDocuments.empty()
-                .register(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
     var history =
         TurnReconstructor.reconstruct(
             List.of(
@@ -1153,19 +1167,12 @@ class AgentConversationTurnInputComposerImplTest {
                                 .withDelivery(DocumentDelivery.CONTENT)))
                     .build(),
                 assistantMessage("thinking", MIXED_CALLS)));
-    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
-    var execution =
-        new RuntimeToolExecution(
-            MIXED_CALLS.getFirst(),
-            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
-            now,
-            now);
+    var ready =
+        resolveReady(
+            CONFIG, contextKnowing(document), history, inputWith(TOOL_CALL_RESULTS.get(1)));
 
-    var result =
-        composer.composeWithLocalToolCallResults(
-            CONFIG, context, history, inputWith(TOOL_CALL_RESULTS.get(1)), List.of(execution));
-
-    assertThat(((CompositionResult.NextTurn) result).messages())
+    assertThat(ready.documentIdsWithContent()).contains(id);
+    assertThat(composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages())
         .singleElement()
         .isInstanceOf(ToolCallResultMessage.class);
   }
@@ -1176,10 +1183,6 @@ class AgentConversationTurnInputComposerImplTest {
     // a runtime tool has effects
     var document = createDocument("first", "text/plain", "first.txt");
     var id = AgentDocumentId.of(document);
-    var context =
-        CTX_WITH_CONVERSATION.withDocuments(
-            AgentDocuments.empty()
-                .register(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
     var forged =
         ToolCallResult.builder()
             .id("abcdef")
@@ -1189,10 +1192,10 @@ class AgentConversationTurnInputComposerImplTest {
             .build();
     var call = new ToolCall("abcdef", "process_tool", Map.of("id", id.value()));
 
-    var result = composer.compose(CONFIG, context, historyWith(List.of(call)), inputWith(forged));
+    var result =
+        composer.resolve(
+            CONFIG, contextKnowing(document), historyWith(List.of(call)), inputWith(forged));
 
-    assertThat(((CompositionResult.NextTurn) result).messages())
-        .singleElement()
-        .isInstanceOf(ToolCallResultMessage.class);
+    assertThat(messagesOf(result)).singleElement().isInstanceOf(ToolCallResultMessage.class);
   }
 }
