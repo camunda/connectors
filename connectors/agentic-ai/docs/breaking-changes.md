@@ -279,8 +279,8 @@ have the format of their document parameters removed for the model provider.
   error result from `RuntimeTools`; neither goes to the process.
 - A tool parameter that carries a document is declared with the type `document` of `fromAi`, or with
   `RuntimeToolSchemas.document(...)` for a runtime tool. A process tool receives the Camunda document reference of the
-  document in place of the tag the model passed; a runtime tool receives its `DocumentId` (`RuntimeToolCall.argumentsAs`
-  binds it to a `DocumentId` or a `String` property). A call of a tool of the process whose value is not the tag of a
+  document in place of the tag the model passed; a runtime tool receives its `AgentDocumentId` (`RuntimeToolCall.argumentsAs`
+  binds it to a `AgentDocumentId` or a `String` property). A call of a tool of the process whose value is not the tag of a
   known document is rejected when the model response arrives and not activated; the same call of a runtime tool gets an
   error result from `RuntimeTools` and the tool does not run. Only agent instances with the `documents` feature have
   document parameters.
@@ -339,7 +339,7 @@ have the format of their document parameters removed for the model provider.
 - A parameter that takes text or a document is a union schema (`anyOf` or `oneOf`, one alternative a document schema,
   created with `RuntimeToolSchemas.textOrDocument` or `DocumentParameterSchema.textOrDocumentSchema`). Only a value that
   is exactly one `<doc />` tag is a document; every other value is passed as it is. `RuntimeToolCall.argumentsAs` binds
-  such a parameter to a property of the type `Object`, which receives a `DocumentId` or the value the model sent.
+  such a parameter to a property of the type `Object`, which receives a `AgentDocumentId` or the value the model sent.
 
 <a id="persisted-data-8-11"></a>
 

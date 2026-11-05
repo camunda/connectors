@@ -22,7 +22,7 @@ import org.jspecify.annotations.Nullable;
  * document, and takes the format away, before the schema goes to the model provider. The stored
  * definition keeps the schema as it is created here. The model passes a document as its {@code <doc
  * id="..." />} tag; the {@link RuntimeToolCall} holds the {@link
- * io.camunda.connector.agenticai.aiagent.model.document.DocumentId} instead.
+ * io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId} instead.
  */
 @Experimental
 public final class RuntimeToolSchemas {
@@ -31,8 +31,8 @@ public final class RuntimeToolSchemas {
 
   /**
    * The schema of a parameter that is always a document. The call holds a {@link
-   * io.camunda.connector.agenticai.aiagent.model.document.DocumentId}; a value that is not the tag
-   * of a known document answers the call with an error result before the tool runs.
+   * io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId}; a value that is not the
+   * tag of a known document answers the call with an error result before the tool runs.
    *
    * @param description what the parameter is for, shown to the model, or {@code null}
    * @return an insertion-ordered map
@@ -43,9 +43,9 @@ public final class RuntimeToolSchemas {
 
   /**
    * The schema of a parameter that is text or a document. The call holds a {@link
-   * io.camunda.connector.agenticai.aiagent.model.document.DocumentId} when the model passed exactly
-   * one document tag and the text otherwise; a tag of an unknown document answers the call with an
-   * error result before the tool runs.
+   * io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId} when the model passed
+   * exactly one document tag and the text otherwise; a tag of an unknown document answers the call
+   * with an error result before the tool runs.
    *
    * @param description what the parameter is for, shown to the model, or {@code null}
    * @return an insertion-ordered map

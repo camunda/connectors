@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 import java.util.Map;
 
@@ -15,7 +15,7 @@ import java.util.Map;
  * methods in a later release. {@link Experimental}, see {@link RuntimeTool}.
  *
  * <p>The arguments are the values the model sent, except that a parameter that carries a document
- * (see {@link RuntimeToolSchemas}) holds the {@link DocumentId} of the document instead of the
+ * (see {@link RuntimeToolSchemas}) holds the {@link AgentDocumentId} of the document instead of the
  * {@code <doc id="..." />} tag the model wrote.
  */
 @Experimental
@@ -28,25 +28,25 @@ public interface RuntimeToolCall {
   /**
    * The arguments, with an unmodifiable top level. The values are JSON values: a {@link String}, a
    * {@link Number}, a {@link Boolean}, a {@link java.util.List}, a {@link Map} or {@code null}, and
-   * a {@link DocumentId} for a parameter that carries a document.
+   * a {@link AgentDocumentId} for a parameter that carries a document.
    *
    * <ul>
-   *   <li>A document parameter holds a {@link DocumentId}.
+   *   <li>A document parameter holds a {@link AgentDocumentId}.
    *   <li>A union parameter (text or a document, see {@link RuntimeToolSchemas#textOrDocument})
-   *       holds a {@link DocumentId} when the model passed exactly one document tag, and the value
-   *       the model passed, usually a {@link String}, otherwise. A text that equals the id of a
-   *       document stays text: only a tag stands for a document.
+   *       holds a {@link AgentDocumentId} when the model passed exactly one document tag, and the
+   *       value the model passed, usually a {@link String}, otherwise. A text that equals the id of
+   *       a document stays text: only a tag stands for a document.
    * </ul>
    */
   Map<String, Object> arguments();
 
   /**
    * Binds the {@link #arguments() arguments} to {@code type}, a record or a bean with a property
-   * per argument. A {@link DocumentId} property receives the document of a document parameter, a
-   * {@link String} property the text of the id. A property typed {@link Object} receives a {@link
-   * DocumentId} for a document and the value the model passed for any other value, so a union
-   * parameter binds to a {@link DocumentId} or a {@link String}. Properties without an argument are
-   * {@code null}, arguments without a property are ignored.
+   * per argument. A {@link AgentDocumentId} property receives the document of a document parameter,
+   * a {@link String} property the text of the id. A property typed {@link Object} receives a {@link
+   * AgentDocumentId} for a document and the value the model passed for any other value, so a union
+   * parameter binds to a {@link AgentDocumentId} or a {@link String}. Properties without an
+   * argument are {@code null}, arguments without a property are ignored.
    *
    * @throws RuntimeToolException if the arguments do not fit {@code type}, which gives the call an
    *     error result

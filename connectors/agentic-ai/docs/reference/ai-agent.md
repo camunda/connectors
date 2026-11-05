@@ -778,9 +778,9 @@ invalid value, joined by a space, and the tool does not run:
 `parent.name` and `name[i]` are the parameter paths; a value that is not a string reads `..., a string.`, an array
 parameter that is not an array `Parameter 'p' must be an array.`). A missing or `null` argument is left alone.
 
-`DocumentParameterResolver` resolves the document parameters of a call from the call, the tool definition and the document
-workspace only. A process tool receives the Camunda document reference JSON of the workspace document (`resolveProcessCall`), a
-runtime tool the `DocumentId` of the document (`resolveRuntimeCall`); `check` validates the call of a tool of either kind. An agent instance without the `documents` feature has
+`DocumentParameterResolver` resolves the document parameters of a call from the call, the tool definition and the agent
+documents only. A process tool receives the Camunda document reference of the agent document (`resolveProcessCall`), a
+runtime tool the `AgentDocumentId` of the document (`resolveRuntimeCall`); `check` validates the call of a tool of either kind. An `Untracked` agent instance has
 no document parameters: the calls are not touched. The agent uses the resolver at three places, and the tool call of the
 assistant message is never rewritten, so the stored conversation and the history keep what the model sent:
 
@@ -792,7 +792,7 @@ assistant message is never rewritten, so the stored conversation and the history
   calls of the last turn into the Camunda document references before the gateway transformation, and the response carries
   them.
 - **The execution of a runtime call.** `RuntimeTools` resolves the document parameters of an admitted runtime tool call
-  into `DocumentId`s before it calls the tool.
+  into `AgentDocumentId`s before it calls the tool.
 
 A parameter that takes text or a document (a union parameter) is declared with the schema argument of `fromAi()`, an
 `anyOf` (or `oneOf`) with a plain alternative and a `document` alternative. Leave the type argument out with named
@@ -811,11 +811,11 @@ hint, `This parameter takes text or a document. To pass a document, give its tag
 <doc id="..." />. Any other text is passed as text.`: only a value that is exactly one `<doc />` tag is a document, and the
 tool receives the Camunda document reference. Every other value is passed as it is: a plain string, also one that equals
 the id of a known document (a bare id is text here, also for a runtime tool, which receives a `String` for it and a
-`DocumentId` for a tag), text with a tag inside it, a number or an object. A tag with an
+`AgentDocumentId` for a tag), text with a tag inside it, a number or an object. A tag with an
 unknown id is answered with `Parameter 'body' holds a <doc /> tag with the id 'x'. That is not a known document. Pass the
 tag of a document exactly as you read it, or pass other text.` and the tool does not run. A union parameter is found and
 resolved by the same `DocumentParameterResolver`, at the same three places as a document parameter: a call of a tool of the
-process with such a tag is tagged `ToolKind.RUNTIME` and answered by the executor, and a runtime tool receives a `DocumentId`
+process with such a tag is tagged `ToolKind.RUNTIME` and answered by the executor, and a runtime tool receives a `AgentDocumentId`
 for a tag and the value the model sent otherwise. For `anyOf: [string, document]` the model provider gets
 `{"type": "string", "description": "..."}` with the hint. A union is stored as it is authored and is not searched for documents
 inside its alternatives that are objects or arrays, because a value cannot be assigned to one alternative reliably. The
@@ -1012,7 +1012,7 @@ whatever its kind, else `RUNTIME` or `PROCESS` after the kind. `ToolCall.isLocal
 tool call result (`ToolCallResultContent.forRejectedToolCall`) when its `ToolCallBatch` is created, and is never
 executed. `LocalToolCallExecutor` executes the rest, the calls of runtime tools, through `RuntimeTools` and fails for
 any other result source; a call whose tool is no longer enabled when it is executed gets the error result `The tool
-'<name>' is not available.` Neither goes to the process. `RuntimeTools` passes `DocumentId`s for the document parameters of an
+'<name>' is not available.` Neither goes to the process. `RuntimeTools` passes `AgentDocumentId`s for the document parameters of an
 admitted runtime tool call to the tool; admission already rejected a value that is not the tag of a known document. The error is plain text in the tool call
 result; the tool call result has no error flag.
 
@@ -2459,8 +2459,8 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   result the model reads.
 
 **Document parameters.** A parameter that carries a document is declared with `RuntimeToolSchemas.document(...)`, one that
-takes text or a document with `textOrDocument(...)`, and the agent resolves it before the call: `RuntimeToolCall` holds the `DocumentId` of the document, a property typed `DocumentId` receives it and
-a property typed `String` the text of the id, a property typed `Object` a `DocumentId` for a document and the value the
+takes text or a document with `textOrDocument(...)`, and the agent resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, a property typed `AgentDocumentId` receives it and
+a property typed `String` the text of the id, a property typed `Object` a `AgentDocumentId` for a document and the value the
 model passed for any other value. A call with a parameter that does not name a known document gets an error
 result and does not reach the tool.
 
