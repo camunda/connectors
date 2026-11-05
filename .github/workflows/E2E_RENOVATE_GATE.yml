@@ -1,0 +1,128 @@
+name: E2E required for Renovate
+
+# Always-reporting gate, intended to be configured as a REQUIRED status check
+# (`e2e-required-for-renovate`) in the branch ruleset / branch protection.
+#
+# Why a separate workflow instead of making the E2E checks themselves required:
+# the "E2E test run" workflow (NIGHTLY_E2E.yml) only runs on pull requests that carry the
+# `e2e-tests` label, so its checks do not exist on most PRs, and a required check that never
+# reports blocks the PR forever. This gate has no `paths:` filter and no workflow-level `if`,
+# so it reports on every PR and every merge-queue entry:
+#   - merge_group and PRs not authored by Renovate: succeeds immediately.
+#   - Renovate PRs: waits (polls) for a real, non-skipped "E2E test run" workflow run on the PR
+#     head SHA and passes only if it succeeded.
+#
+# Renovate adds the `e2e-tests` label to its PRs (see renovate.json), which is what triggers
+# the E2E run. Re-running the E2E run does not re-trigger this gate: re-run this job as well.
+on:
+  pull_request:
+    types: [ opened, reopened, synchronize, labeled ]
+  merge_group:
+
+permissions:
+  contents: read
+  actions: read        # list the runs of the E2E workflow
+  pull-requests: read  # read the live label list / head SHA of the PR
+
+# One poller per PR: a newer event (new commit, another label added by Renovate, ...) cancels the
+# older one, so runners are not held by several pollers for the same PR. Merge-queue entries are
+# never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.merge_group.head_sha || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  e2e-required-for-renovate:
+    # The job name is the status check context to configure as required. Do not rename it.
+    name: e2e-required-for-renovate
+    runs-on: ubuntu-latest
+    # Cost bound: the polling step holds this runner while E2E runs (~16 minutes typically).
+    timeout-minutes: 50
+    steps:
+      - name: Not applicable, nothing to wait for
+        if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'renovate[bot]'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          echo "Event '$EVENT_NAME' (PR author: '${PR_AUTHOR:-n/a}') is not a Renovate pull request: E2E is not required by this gate."
+
+      - name: Wait for the E2E test run to succeed
+        if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'renovate[bot]'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const WORKFLOW_FILE = 'NIGHTLY_E2E.yml'; // workflow name: "E2E test run"
+            const LABEL = 'e2e-tests';
+            const POLL_MS = 30 * 1000;
+            const LABEL_GRACE_MS = 5 * 60 * 1000; // Renovate adds labels right after opening the PR
+            const DEADLINE_MS = 45 * 60 * 1000; // E2E takes ~16 min; leave room for queueing and flakes
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const sha = pr.head.sha;
+            const started = Date.now();
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+            const describe = (r) => `${r.html_url} (${r.event}, ${r.status}${r.conclusion ? '/' + r.conclusion : ''})`;
+            const actionsUrl = `${context.serverUrl}/${owner}/${repo}/actions/workflows/${WORKFLOW_FILE}?query=branch%3A${encodeURIComponent(pr.head.ref)}`;
+
+            core.info(`Waiting for a non-skipped ${WORKFLOW_FILE} run on ${sha} (PR #${pr.number}).`);
+
+            while (true) {
+              const elapsed = Date.now() - started;
+              let hasLabel = true;
+              let real = [];
+              try {
+                // Live state: the event payload is a snapshot from when this run was triggered.
+                const { data: live } = await github.rest.pulls.get({ owner, repo, pull_number: pr.number });
+                if (live.head.sha !== sha) {
+                  core.setFailed(`PR #${pr.number} head moved from ${sha} to ${live.head.sha}; the gate of the newer commit decides.`);
+                  return;
+                }
+                hasLabel = live.labels.some((l) => l.name === LABEL);
+
+                const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+                  owner, repo, workflow_id: WORKFLOW_FILE, head_sha: sha, event: 'pull_request', per_page: 100,
+                });
+                // Several runs per SHA are normal (one per `labeled`/`synchronize` event). Runs whose
+                // setup job was skipped (e.g. triggered by the `dependencies` label) conclude as
+                // `skipped` and say nothing about the PR: ignore them.
+                real = runs.filter((r) => !(r.status === 'completed' && r.conclusion === 'skipped'));
+              } catch (e) {
+                core.warning(`GitHub API call failed, will retry: ${e.message}`);
+              }
+
+              const succeeded = real.find((r) => r.status === 'completed' && r.conclusion === 'success');
+              if (succeeded) {
+                core.info(`E2E succeeded: ${describe(succeeded)}`);
+                return;
+              }
+
+              const pending = real.filter((r) => r.status !== 'completed');
+              if (pending.length === 0 && real.length > 0) {
+                // Every real run is finished and none succeeded.
+                core.setFailed(
+                  `E2E did not succeed on ${sha}. Fix the failure, then re-run the failed E2E run AND re-run this job:\n` +
+                  real.map((r) => `  - ${describe(r)}`).join('\n'));
+                return;
+              }
+
+              if (real.length === 0 && !hasLabel && elapsed >= LABEL_GRACE_MS) {
+                core.setFailed(
+                  `No E2E run for ${sha} and PR #${pr.number} does not have the '${LABEL}' label. ` +
+                  `Add the label (this gate re-runs automatically when a label is added) to start the E2E tests, ` +
+                  `which are required for Renovate PRs.`);
+                return;
+              }
+
+              if (elapsed >= DEADLINE_MS) {
+                core.setFailed(
+                  `Timed out after ${Math.round(elapsed / 60000)} min waiting for E2E on ${sha} ` +
+                  (real.length ? `(still pending: ${pending.map(describe).join(', ')}). ` : `(no non-skipped run appeared; label '${LABEL}' present: ${hasLabel}). `) +
+                  `See ${actionsUrl}. Once E2E has finished, re-run this job.`);
+                return;
+              }
+
+              core.info(`[${Math.round(elapsed / 1000)}s] ${pending.length ? `waiting for ${pending.length} E2E run(s): ${pending.map(describe).join(', ')}` : `no E2E run yet (label '${LABEL}' present: ${hasLabel})`}`);
+              await sleep(POLL_MS);
+            }
