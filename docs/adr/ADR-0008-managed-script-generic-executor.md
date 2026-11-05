@@ -510,8 +510,10 @@ It logs a warning at startup. Windows is not supported.
   minute. Each runtime backs off on its own, so this delays jobs rather than failing them, unless
   the throttling lasts longer than twice the provisioning timeout: waiting jobs then consume their
   retries and can end in incidents. Self-Managed is not affected, with usually one cluster per
-  account or project. In SaaS, a rollout of a new wrapper goes in waves that fit the write limit of
-  the shared account or project.
+  account or project. In SaaS, rollout waves must fit the write limit of the shared account or
+  project and leave enough function-count headroom for old and new executors to coexist until
+  cleanup. At 500 two-language clusters, the stated 1,000-function GCP limit is already full,
+  so write pacing alone cannot unblock a wrapper upgrade.
 - Cleanup depends on Controller, which needs list and delete rights on the functions projects and
   accounts. In Self-Managed, the operator cleans up by hand.
 - A configuration change updates the executors in place. During a rolling update, instances that
