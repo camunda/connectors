@@ -181,7 +181,8 @@ public class AgentInstanceHistoryMapper {
   }
 
   public List<AgentInstanceHistoryContent> assistantContent(AssistantMessage assistantMessage) {
-    return contentBlocks(assistantMessage.content());
+    // the documents of an assistant message, if any, are live documents, as without tracking
+    return contentBlocks(assistantMessage.content(), new DocumentHandling.Untracked());
   }
 
   public @Nullable List<AgentInstanceHistoryToolCall> assistantToolCalls(
@@ -242,7 +243,7 @@ public class AgentInstanceHistoryMapper {
   private List<AgentInstanceHistoryContent> userContentBlocks(
       List<Content> contents, DocumentHandling documentHandling) {
     return switch (documentHandling) {
-      case DocumentHandling.Untracked ignored -> contentBlocks(contents);
+      case DocumentHandling.Untracked ignored -> contentBlocks(contents, documentHandling);
       case DocumentHandling.Tracked tracked -> {
         final var documents = tracked.documents();
         final var blocks = new ArrayList<AgentInstanceHistoryContent>();
@@ -255,14 +256,20 @@ public class AgentInstanceHistoryMapper {
               documentRestorer
                   .restore(documents, block.id())
                   .ifPresent(document ->
-                      blocks.add(toHistoryContent(DocumentContent.documentContent(document))));
+                      blocks.add(
+                          documentHistoryContent(
+                              DocumentContent.documentContent(document), documentHandling)));
             }
-            case TextContent textContent -> blocks.add(toHistoryContent(textContent));
-            case ObjectContent objectContent -> blocks.add(toHistoryContent(objectContent));
-            case DocumentContent documentContent -> blocks.add(toHistoryContent(documentContent));
+            case TextContent textContent ->
+                blocks.add(toHistoryContent(textContent, documentHandling));
+            case ObjectContent objectContent ->
+                blocks.add(toHistoryContent(objectContent, documentHandling));
+            case DocumentContent documentContent ->
+                blocks.add(documentHistoryContent(documentContent, documentHandling));
             case ReasoningContent reasoningContent ->
-                blocks.add(toHistoryContent(reasoningContent));
-            case ProviderContent providerContent -> blocks.add(toHistoryContent(providerContent));
+                blocks.add(toHistoryContent(reasoningContent, documentHandling));
+            case ProviderContent providerContent ->
+                blocks.add(toHistoryContent(providerContent, documentHandling));
           }
         }
         yield List.copyOf(blocks);
@@ -279,7 +286,7 @@ public class AgentInstanceHistoryMapper {
   private List<AgentInstanceHistoryContent> toolResultContent(
       List<Content> contents, DocumentHandling documentHandling) {
     return switch (documentHandling) {
-      case DocumentHandling.Untracked ignored -> contentBlocks(contents);
+      case DocumentHandling.Untracked ignored -> contentBlocks(contents, documentHandling);
       case DocumentHandling.Tracked tracked -> {
         final var documents = tracked.documents();
         final var blocks = new ArrayList<AgentInstanceHistoryContent>();
@@ -289,17 +296,21 @@ public class AgentInstanceHistoryMapper {
                 addDocument(
                     blocks,
                     DocumentTags.shortTag(documentContent.document()),
-                    documentContent.document());
+                    documentContent.document(),
+                    tracked);
             case AgentDocumentContent block ->
                 addDocument(
                     blocks,
                     DocumentTags.shortTag(documents, block.id()),
-                    documentRestorer.restore(documents, block.id()).orElse(null));
-            case ObjectContent objectContent -> addObject(blocks, objectContent);
-            case TextContent textContent -> blocks.add(toHistoryContent(textContent));
+                    documentRestorer.restore(documents, block.id()).orElse(null),
+                    tracked);
+            case ObjectContent objectContent -> addObject(blocks, objectContent, tracked);
+            case TextContent textContent ->
+                blocks.add(toHistoryContent(textContent, documentHandling));
             case ReasoningContent reasoningContent ->
-                blocks.add(toHistoryContent(reasoningContent));
-            case ProviderContent providerContent -> blocks.add(toHistoryContent(providerContent));
+                blocks.add(toHistoryContent(reasoningContent, documentHandling));
+            case ProviderContent providerContent ->
+                blocks.add(toHistoryContent(providerContent, documentHandling));
           }
         }
         yield List.copyOf(blocks);
@@ -308,15 +319,22 @@ public class AgentInstanceHistoryMapper {
   }
 
   private void addDocument(
-      List<AgentInstanceHistoryContent> blocks, String shortTag, @Nullable Document document) {
+      List<AgentInstanceHistoryContent> blocks,
+      String shortTag,
+      @Nullable Document document,
+      DocumentHandling documentHandling) {
     // the tag the model reads for the document of a tool result, the short one
     blocks.add(AgentInstanceHistoryContent.text(inlineCode(shortTag)));
     if (document != null && hasHistoryDocument(document)) {
-      blocks.add(documentHistoryContent(DocumentContent.documentContent(document)));
+      blocks.add(
+          documentHistoryContent(DocumentContent.documentContent(document), documentHandling));
     }
   }
 
-  private void addObject(List<AgentInstanceHistoryContent> blocks, ObjectContent objectContent) {
+  private void addObject(
+      List<AgentInstanceHistoryContent> blocks,
+      ObjectContent objectContent,
+      DocumentHandling documentHandling) {
     final var tagged = objectTagRenderer.render(objectContent.content());
     if (tagged.documents().isEmpty()) {
       blocks.add(objectHistoryContent(objectContent.content()));
@@ -327,7 +345,8 @@ public class AgentInstanceHistoryMapper {
     final var reportedIds = new HashSet<AgentDocumentId>();
     for (final var document : tagged.documents()) {
       if (hasHistoryDocument(document) && reportedIds.add(AgentDocumentId.of(document))) {
-        blocks.add(documentHistoryContent(DocumentContent.documentContent(document)));
+        blocks.add(
+            documentHistoryContent(DocumentContent.documentContent(document), documentHandling));
       }
     }
   }
@@ -338,15 +357,18 @@ public class AgentInstanceHistoryMapper {
         || document.reference() instanceof ExternalDocumentReference;
   }
 
-  private List<AgentInstanceHistoryContent> contentBlocks(List<Content> contents) {
-    return contents.stream().map(this::toHistoryContent).toList();
+  private List<AgentInstanceHistoryContent> contentBlocks(
+      List<Content> contents, DocumentHandling documentHandling) {
+    return contents.stream().map(content -> toHistoryContent(content, documentHandling)).toList();
   }
 
-  private AgentInstanceHistoryContent toHistoryContent(Content content) {
+  private AgentInstanceHistoryContent toHistoryContent(
+      Content content, DocumentHandling documentHandling) {
     return switch (content) {
       case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
-      case DocumentContent documentContent -> documentHistoryContent(documentContent);
+      case DocumentContent documentContent ->
+          documentHistoryContent(documentContent, documentHandling);
       case AgentDocumentContent block ->
           AgentInstanceHistoryContent.text(DocumentTags.idOnlyTag(block.id()));
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
@@ -383,12 +405,13 @@ public class AgentInstanceHistoryMapper {
     return AgentInstanceHistoryContent.object(value);
   }
 
-  private AgentInstanceHistoryContent documentHistoryContent(DocumentContent documentContent) {
+  private AgentInstanceHistoryContent documentHistoryContent(
+      DocumentContent documentContent, DocumentHandling documentHandling) {
     final Document document = documentContent.document();
     return switch (document.reference()) {
       case CamundaDocumentReference ref ->
           AgentInstanceHistoryContent.document(
-              toDocumentReferenceResponse(ref, document.metadata()));
+              toDocumentReferenceResponse(ref, document.metadata(), documentHandling));
       // External document references are not yet representable as a document content block on the
       // engine; fall back to an object reference block (follow-up: team decision).
       case ExternalDocumentReference ref -> externalDocumentReferenceContent(ref);
@@ -411,7 +434,9 @@ public class AgentInstanceHistoryMapper {
   }
 
   private DocumentReferenceResponseImpl toDocumentReferenceResponse(
-      CamundaDocumentReference ref, @Nullable DocumentMetadata metadata) {
+      CamundaDocumentReference ref,
+      @Nullable DocumentMetadata metadata,
+      DocumentHandling documentHandling) {
     final DocumentReference protocolRef =
         new DocumentReference()
             .camundaDocumentType(CamundaDocumentTypeEnum.CAMUNDA)
@@ -421,12 +446,13 @@ public class AgentInstanceHistoryMapper {
       protocolRef.contentHash(ref.getContentHash());
     }
     if (metadata != null) {
-      protocolRef.metadata(toProtocolDocumentMetadata(metadata));
+      protocolRef.metadata(toProtocolDocumentMetadata(metadata, documentHandling));
     }
     return new DocumentReferenceResponseImpl(protocolRef);
   }
 
-  private DocumentMetadataResponse toProtocolDocumentMetadata(DocumentMetadata metadata) {
+  private DocumentMetadataResponse toProtocolDocumentMetadata(
+      DocumentMetadata metadata, DocumentHandling documentHandling) {
     final DocumentMetadataResponse protocolMetadata = new DocumentMetadataResponse();
     if (metadata.getFileName() != null) {
       protocolMetadata.fileName(metadata.getFileName());
@@ -438,10 +464,7 @@ public class AgentInstanceHistoryMapper {
       protocolMetadata.size(metadata.getSize());
     }
     if (metadata.getExpiresAt() != null) {
-      // a UTC instant: a document read back from the agent documents keeps the instant, not its
-      // offset, and is reported with the same text as the live document
-      protocolMetadata.expiresAt(
-          metadata.getExpiresAt().withOffsetSameInstant(ZoneOffset.UTC).toString());
+      protocolMetadata.expiresAt(expiresAt(metadata.getExpiresAt(), documentHandling));
     }
     if (metadata.getProcessDefinitionId() != null) {
       protocolMetadata.processDefinitionId(metadata.getProcessDefinitionId());
@@ -453,5 +476,18 @@ public class AgentInstanceHistoryMapper {
       protocolMetadata.customProperties(metadata.getCustomProperties());
     }
     return protocolMetadata;
+  }
+
+  /**
+   * The expiry as text. A tracked document read back from the agent documents keeps the instant,
+   * not its offset, so a tracked document is reported in UTC, live or read back, with the same
+   * text.
+   */
+  private static String expiresAt(OffsetDateTime expiresAt, DocumentHandling documentHandling) {
+    return switch (documentHandling) {
+      case DocumentHandling.Untracked ignored -> expiresAt.toString();
+      case DocumentHandling.Tracked ignored ->
+          expiresAt.withOffsetSameInstant(ZoneOffset.UTC).toString();
+    };
   }
 }
