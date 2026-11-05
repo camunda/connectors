@@ -151,19 +151,28 @@ public sealed interface RuntimeToolResult {
      * only with the documents feature, so a tool that selects response documents is enabled for
      * agents that have it (see {@link RuntimeTool#isEnabled}).
      *
-     * @param key the key of the document in the response, not blank
+     * @param key the key of the document in the response, see {@link
+     *     ResponseDocumentSelection#KEY_PATTERN}
      * @param id the id of the document
      * @param description what the response says about the document, or {@code null}
-     * @throws IllegalArgumentException if the key is blank
+     * @throws IllegalArgumentException if the key does not match the pattern
      */
     public Success withResponseDocument(
         String key, AgentDocumentId id, @Nullable String description) {
-      if (Objects.requireNonNull(key).isBlank()) {
-        throw new IllegalArgumentException("The key of a response document must not be blank");
-      }
       return withEffect(
           new ToolCallEffect.SelectResponseDocument(
               new ResponseDocumentSelection(key, Objects.requireNonNull(id), description)));
+    }
+
+    /**
+     * Returns a copy that asks the agent to select the given document, which this result returns
+     * itself or the agent knows, for the final response. See {@link #withResponseDocument(String,
+     * AgentDocumentId, String)}.
+     */
+    public Success withResponseDocument(
+        String key, Document document, @Nullable String description) {
+      return withResponseDocument(
+          key, AgentDocumentId.of(Objects.requireNonNull(document)), description);
     }
 
     private Success withEffect(ToolCallEffect effect) {

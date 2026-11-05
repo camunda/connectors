@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.agent.ToolCallAdmission;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallBatch;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agent.TurnInput;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -41,7 +42,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -115,11 +115,30 @@ class ReturnDocumentToolTest {
                 + " optional. Calling it again with the same key replaces the document returned"
                 + " under that key. Documents you returned earlier stay attached to your later final"
                 + " responses too, so you do not need to return them again.");
-    assertThat(definition.inputSchema().get("required")).isEqualTo(List.of("key", "document"));
-    assertThat(definition.inputSchema().get("properties"))
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsOnlyKeys("key", "document", "description");
-    assertThat(definition.inputSchema().toString()).contains("format=camunda-document");
+    assertThat(definition.inputSchema())
+        .isEqualTo(
+            Map.of(
+                "type",
+                "object",
+                "properties",
+                Map.of(
+                    "key",
+                    Map.of(
+                        "type",
+                        "string",
+                        "description",
+                        "A stable identifier the process uses to find the document, matching"
+                            + " [A-Za-z_][A-Za-z0-9_-]*."),
+                    "document",
+                    DocumentSchemas.document("The document to return."),
+                    "description",
+                    Map.of(
+                        "type",
+                        "string",
+                        "description",
+                        "An optional short description of the document.")),
+                "required",
+                List.of("key", "document")));
   }
 
   @Test
