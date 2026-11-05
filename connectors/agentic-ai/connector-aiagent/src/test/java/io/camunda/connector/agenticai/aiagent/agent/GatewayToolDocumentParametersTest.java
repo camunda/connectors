@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryIniti
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -72,7 +73,9 @@ class GatewayToolDocumentParametersTest {
   void setUp() {
     filesHandler = new FilesGatewayToolHandler();
     gatewayToolHandlers = new GatewayToolHandlerRegistryImpl(List.of(filesHandler));
-    responseHandler = new AgentResponseHandlerImpl(new ObjectMapper(), gatewayToolHandlers);
+    responseHandler =
+        new AgentResponseHandlerImpl(
+            new ObjectMapper(), gatewayToolHandlers, new DocumentParameterResolver());
 
     final var discoveryResult =
         ToolCallResult.builder().id("discovery-1").name(FilesGatewayToolHandler.DISCOVERY).build();

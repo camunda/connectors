@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -99,7 +100,9 @@ class AgentResponseHandlerTest {
 
   @BeforeEach
   void setUp() {
-    responseHandler = new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
+    responseHandler =
+        new AgentResponseHandlerImpl(
+            objectMapper, gatewayToolHandlers, new DocumentParameterResolver());
     // by default, registry passes tool calls through unchanged
     lenient()
         .when(gatewayToolHandlers.transformToolCalls(any(), any()))
@@ -359,7 +362,8 @@ class AgentResponseHandlerTest {
               .registerModule(
                   new JacksonModuleDocumentDeserializer(
                       mock(DocumentFactory.class), new DisabledIntrinsicFunctionExecutor()));
-      return new AgentResponseHandlerImpl(documentModuleObjectMapper, gatewayToolHandlers);
+      return new AgentResponseHandlerImpl(
+          documentModuleObjectMapper, gatewayToolHandlers, new DocumentParameterResolver());
     }
 
     @Test

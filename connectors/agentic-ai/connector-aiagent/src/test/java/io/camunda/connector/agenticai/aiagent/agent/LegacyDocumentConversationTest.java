@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.versioning.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -314,7 +315,8 @@ class LegacyDocumentConversationTest {
     final var runtimeTools =
         new RuntimeTools(
             List.of(StubRuntimeTool.of("acme_lookup", (toolContext, call) -> null)),
-            TestObjectMapperSupplier.INSTANCE);
+            TestObjectMapperSupplier.INSTANCE,
+            new DocumentParameterResolver());
 
     final var executionContext = TestAgentExecutionContext.withConfiguration(configuration);
     assertThat(runtimeTools.enabledDefinitions(executionContext, context)).isEmpty();

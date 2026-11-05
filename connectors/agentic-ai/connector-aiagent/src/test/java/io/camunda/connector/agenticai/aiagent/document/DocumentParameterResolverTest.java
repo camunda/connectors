@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Test;
 
 class DocumentParameterResolverTest {
 
+  private final DocumentParameterResolver resolver = new DocumentParameterResolver();
+
   private final Document first = createDocument("first", "first.txt");
   private final Document second = createDocument("second", "second.txt");
   private final AgentDocuments documents =
@@ -263,7 +265,7 @@ class DocumentParameterResolverTest {
   void resolvesTheCallOfAToolOfTheProcessWithTheToolDefinitionOfTheAgentContext() {
     final var call = new ToolCall("call", "upload", Map.of("doc", firstTag, "other", "kept"));
 
-    final var result = DocumentParameterResolver.resolveProcessCall(agentContext(), call);
+    final var result = resolver.resolveProcessCall(agentContext(), call);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -278,7 +280,7 @@ class DocumentParameterResolverTest {
   void rejectsTheCallOfAToolOfTheProcessThatDoesNotNameAKnownDocument() {
     final var call = new ToolCall("call", "upload", Map.of("doc", firstId.value()));
 
-    final var result = DocumentParameterResolver.resolveProcessCall(agentContext(), call);
+    final var result = resolver.resolveProcessCall(agentContext(), call);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -290,7 +292,7 @@ class DocumentParameterResolverTest {
   void joinsTheProblemsOfSeveralInvalidValuesIntoOneMessage() {
     final var call = new ToolCall("call", "upload-many", Map.of("docs", List.of("a", "b")));
 
-    final var result = DocumentParameterResolver.resolveProcessCall(agentContext(), call);
+    final var result = resolver.resolveProcessCall(agentContext(), call);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -304,7 +306,7 @@ class DocumentParameterResolverTest {
   void leavesTheCallOfAToolWithoutDocumentParametersAsItIs() {
     final var call = new ToolCall("call", "weather", Map.of("doc", "nope"));
 
-    final var result = DocumentParameterResolver.resolveProcessCall(agentContext(), call);
+    final var result = resolver.resolveProcessCall(agentContext(), call);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -316,7 +318,7 @@ class DocumentParameterResolverTest {
   void leavesTheCallOfAToolTheAgentDoesNotKnowAsItIs() {
     final var call = new ToolCall("call", "unknown", Map.of("doc", "nope"));
 
-    final var result = DocumentParameterResolver.resolveProcessCall(agentContext(), call);
+    final var result = resolver.resolveProcessCall(agentContext(), call);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -329,12 +331,12 @@ class DocumentParameterResolverTest {
     final var call = new ToolCall("call", "upload", Map.of("doc", "bogus"));
     final var withoutDocuments = agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS));
 
-    assertThat(DocumentParameterResolver.resolveProcessCall(withoutDocuments, call))
+    assertThat(resolver.resolveProcessCall(withoutDocuments, call))
         .isInstanceOfSatisfying(
             Resolution.Resolved.class,
             resolved -> assertThat(resolved.arguments()).isEqualTo(call.arguments()));
     assertThat(
-            DocumentParameterResolver.resolveRuntimeCall(
+            resolver.resolveRuntimeCall(
                 withoutDocuments, call, definition("upload", object("doc", DOC))))
         .isInstanceOfSatisfying(
             Resolution.Resolved.class,
@@ -346,7 +348,7 @@ class DocumentParameterResolverTest {
     final var call = new ToolCall("call", "c8__read", Map.of("file", firstTag, "other", "kept"));
 
     final var result =
-        DocumentParameterResolver.resolveRuntimeCall(
+        resolver.resolveRuntimeCall(
             agentContext(), call, definition("c8__read", object("file", DOC)));
 
     assertThat(result)
@@ -360,14 +362,32 @@ class DocumentParameterResolverTest {
 
   @Test
   void rejectsTheCallOfARuntimeToolThatDoesNotNameAKnownDocument() {
-    final var call =
-        new ToolCall("call", "c8__read", Map.of("file", tag(AgentDocumentId.of("none"))));
+    final var unknown = tag(AgentDocumentId.of("none"));
+    final var call = new ToolCall("call", "c8__read", Map.of("file", unknown));
 
     final var result =
-        DocumentParameterResolver.resolveRuntimeCall(
+        resolver.resolveRuntimeCall(
             agentContext(), call, definition("c8__read", object("file", DOC)));
 
-    assertThat(result).isInstanceOf(Resolution.Invalid.class);
+    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(problem("file", unknown))));
+  }
+
+  @Test
+  void checksTheCallOfAToolOfEitherKindLikeTheCallOfARuntimeTool() {
+    final var definition = definition("upload", object("doc", DOC));
+    final var valid = new ToolCall("call", "upload", Map.of("doc", firstTag));
+    final var invalid = new ToolCall("call", "upload", Map.of("doc", "nope"));
+
+    assertThat(resolver.check(agentContext(), valid, definition))
+        .isEqualTo(new Resolution.Resolved(Map.of("doc", firstId)));
+    assertThat(resolver.check(agentContext(), invalid, definition))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", "nope"))));
+    assertThat(
+            resolver.check(
+                agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
+                invalid,
+                definition))
+        .isEqualTo(new Resolution.Resolved(Map.of("doc", "nope")));
   }
 
   @Test
@@ -375,7 +395,7 @@ class DocumentParameterResolverTest {
     final var call = new ToolCall("call", "c8__read", Map.of("file", "bogus"));
 
     final var result =
-        DocumentParameterResolver.resolveRuntimeCall(
+        resolver.resolveRuntimeCall(
             agentContext(), call, definition("c8__read", object("file", Map.of("type", "string"))));
 
     assertThat(result)
@@ -389,8 +409,8 @@ class DocumentParameterResolverTest {
     final var call = new ToolCall("call", "upload", Map.of("doc", firstTag));
     final var context = agentContext();
 
-    assertThat(DocumentParameterResolver.resolveProcessCall(context, call))
-        .isEqualTo(DocumentParameterResolver.resolveProcessCall(context, call));
+    assertThat(resolver.resolveProcessCall(context, call))
+        .isEqualTo(resolver.resolveProcessCall(context, call));
   }
 
   @Test
@@ -569,9 +589,9 @@ class DocumentParameterResolverTest {
     final var tagged = new ToolCall("call", "send", Map.of("body", firstTag, "other", "kept"));
     final var text = new ToolCall("call", "send", Map.of("body", "hello"));
 
-    assertThat(DocumentParameterResolver.resolveProcessCall(agentContext(), tagged))
+    assertThat(resolver.resolveProcessCall(agentContext(), tagged))
         .isEqualTo(new Resolution.Resolved(Map.of("body", reference(firstId), "other", "kept")));
-    assertThat(DocumentParameterResolver.resolveProcessCall(agentContext(), text))
+    assertThat(resolver.resolveProcessCall(agentContext(), text))
         .isEqualTo(new Resolution.Resolved(Map.of("body", "hello")));
   }
 
@@ -579,7 +599,7 @@ class DocumentParameterResolverTest {
   void rejectsTheCallOfAToolOfTheProcessWithATagOfAnUnknownDocumentInAUnionParameter() {
     final var call = new ToolCall("call", "send", Map.of("body", tag(AgentDocumentId.of("none"))));
 
-    assertThat(DocumentParameterResolver.resolveProcessCall(agentContext(), call))
+    assertThat(resolver.resolveProcessCall(agentContext(), call))
         .isEqualTo(new Resolution.Invalid(List.of(unionProblem("body", "none"))));
   }
 
@@ -589,9 +609,9 @@ class DocumentParameterResolverTest {
     final var tagged = new ToolCall("call", "c8__send", Map.of("body", firstTag));
     final var text = new ToolCall("call", "c8__send", Map.of("body", firstId.value()));
 
-    assertThat(DocumentParameterResolver.resolveRuntimeCall(agentContext(), tagged, definition))
+    assertThat(resolver.resolveRuntimeCall(agentContext(), tagged, definition))
         .isEqualTo(new Resolution.Resolved(Map.of("body", firstId)));
-    assertThat(DocumentParameterResolver.resolveRuntimeCall(agentContext(), text, definition))
+    assertThat(resolver.resolveRuntimeCall(agentContext(), text, definition))
         .isEqualTo(new Resolution.Resolved(Map.of("body", firstId.value())));
   }
 
@@ -601,7 +621,7 @@ class DocumentParameterResolverTest {
         new ToolCall("call", "c8__send", Map.of("body", tag(AgentDocumentId.of("none"))));
 
     assertThat(
-            DocumentParameterResolver.resolveRuntimeCall(
+            resolver.resolveRuntimeCall(
                 agentContext(), call, definition("c8__send", object("body", UNION))))
         .isEqualTo(new Resolution.Invalid(List.of(unionProblem("body", "none"))));
   }
@@ -611,7 +631,7 @@ class DocumentParameterResolverTest {
     final var call = new ToolCall("call", "send", Map.of("body", firstTag));
     final var withoutDocuments = agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS));
 
-    assertThat(DocumentParameterResolver.resolveProcessCall(withoutDocuments, call))
+    assertThat(resolver.resolveProcessCall(withoutDocuments, call))
         .isEqualTo(new Resolution.Resolved(call.arguments()));
   }
 
@@ -659,13 +679,14 @@ class DocumentParameterResolverTest {
 
   private Resolution resolve(Map<String, Object> arguments, Map<String, Object> inputSchema) {
     final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
-    return DocumentParameterResolver.resolve(
-        new ToolCall("call", "tool", arguments), definition, documents);
+    return resolver.resolveProcessCall(
+        agentContext().withToolDefinitions(List.of(definition)),
+        new ToolCall("call", "tool", arguments));
   }
 
   private Resolution resolveIds(Map<String, Object> arguments, Map<String, Object> inputSchema) {
     final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
-    return DocumentParameterResolver.resolveIds(
-        new ToolCall("call", "tool", arguments), definition, documents);
+    return resolver.resolveRuntimeCall(
+        agentContext(), new ToolCall("call", "tool", arguments), definition);
   }
 }

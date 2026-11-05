@@ -25,6 +25,12 @@ import org.jspecify.annotations.Nullable;
  */
 public class ToolCallAdmission {
 
+  private final DocumentParameterResolver documentParameterResolver;
+
+  public ToolCallAdmission(DocumentParameterResolver documentParameterResolver) {
+    this.documentParameterResolver = documentParameterResolver;
+  }
+
   /**
    * Admits the calls of the message.
    *
@@ -48,16 +54,16 @@ public class ToolCallAdmission {
             .toList());
   }
 
-  private static ToolCall admit(
+  private ToolCall admit(
       ToolCall call, @Nullable ToolDefinition definition, AgentContext agentContext) {
     if (definition == null) {
       return call.withRejection("The tool '%s' does not exist.".formatted(call.name()));
     }
     final var admitted = call.withKind(definition.kind());
-    if (DocumentParameterResolver.check(agentContext, call, definition)
-        instanceof DocumentParameterResolver.Resolution.Invalid invalid) {
-      return admitted.withRejection(invalid.message());
-    }
-    return admitted;
+    return switch (documentParameterResolver.check(agentContext, call, definition)) {
+      case DocumentParameterResolver.Resolution.Resolved ignored -> admitted;
+      case DocumentParameterResolver.Resolution.Invalid invalid ->
+          admitted.withRejection(invalid.message());
+    };
   }
 }

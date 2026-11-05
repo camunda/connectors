@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -97,7 +98,8 @@ class RuntimeToolsTest {
   private final RuntimeTools tools = toolsOf(NOTE_TOOL);
 
   private static RuntimeTools toolsOf(RuntimeTool... tools) {
-    return new RuntimeTools(List.of(tools), TestObjectMapperSupplier.INSTANCE);
+    return new RuntimeTools(
+        List.of(tools), TestObjectMapperSupplier.INSTANCE, new DocumentParameterResolver());
   }
 
   private static RuntimeTool tool(String name, Predicate<RuntimeToolContext> enabled) {
