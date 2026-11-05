@@ -225,14 +225,14 @@ High-frequency traps (detail behind each link):
   format or the persisted shape on `AgentContext.supports(...)`. The one deliberate exception is the tagging and the
   rejection of tool calls (next item), which applies to every agent instance: handing the call of an unknown tool to
   the process made the agent wait for a result that never came, without an incident. [ADR 016](docs/adr/016-runtime-tools.md).
-- **Tool calls are tagged once, and the agent produces the tool call results of local tool calls itself**: before an
-  assistant message enters the conversation, the agent sets `ToolCall.kind` to the kind of the tool of the call's name among the
-  tools offered in the job, and `ToolCall.rejection` (the error text) when the name is not offered, and never computes either
+- **Tool calls are admitted once, and the agent produces the tool call results of local tool calls itself**: before an
+  assistant message enters the conversation, `ToolCallAdmission` sets `ToolCall.kind` to the kind of the tool of the call's name among the
+  tools offered in the job, and `ToolCall.rejection` (the error text) when the call must not be carried out, such as a name that is not offered, and never computes either
   again, for every agent instance, with or without the `runtimeTools` feature. Both are persisted (`kind` written only
   for `RUNTIME`, `rejection` only when set), so every conversation store must keep them. A call with a rejection
   (a rejected call) gets its rejection as its tool call result and is never executed, also when a runtime tool of that
-  name is enabled later; the calls of runtime tools go to `RuntimeTools` (`localToolCallResults`). Both are local tool
-  calls, the calls whose tool call result the agent produces itself. When the model issues local tool calls and process tool calls together, only
+  name is enabled later; the calls of runtime tools go to `RuntimeTools`. Both are local tool calls
+  (`ToolCall.isLocal()`), the calls whose tool call result the agent produces itself, in `LocalToolCallExecutor` only. When the model issues local tool calls and process tool calls together, only
   the process tool calls are activated, and the agent adds the tool call results of the local tool calls when the next
   turn is composed, merged with the process results in call order. `ai-agent.md` §9, [ADR 016](docs/adr/016-runtime-tools.md).
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built

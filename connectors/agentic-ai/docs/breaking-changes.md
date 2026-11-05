@@ -199,42 +199,43 @@ client in its properties does not start.
 
 `AgentConversationTurnInputComposer`:
 
-- New abstract method `composeWithLocalToolCallResults(configuration, agentContext, previousConversation, agentInput,
-  List<RuntimeToolExecution> executions)`. The composer executes no tool. `compose(configuration, agentContext,
-  previousConversation, agentInput)` keeps its signature, but resolves only the results of the process tool calls of the
-  previous turn. When the process results are complete (or the missing ones are cancelled by an interrupting event) and
-  the turn also has local tool calls (calls of runtime tools and rejected calls), it returns the new
-  `CompositionResult.LocalToolCallResultsRequired`. The request handler then produces the tool call results of those
-  calls and composes again with `composeWithLocalToolCallResults`, which merges them with the process results in call
-  order and returns the turn input.
-- `CompositionResult` gains the variant `LocalToolCallResultsRequired(List<ToolCall> localToolCalls)`, so a `switch` over
-  it must handle it. `Deferred.arrivedResults` holds only the results that arrived from the process.
+- `compose(configuration, agentContext, previousConversation, agentInput)` is replaced by two steps. `resolve` with the
+  same parameters resolves only the results of the process tool calls of the previous turn and returns a
+  `CompositionResult`. `assemble(CompositionResult.Ready)` builds the input of the next turn and returns a `TurnInput`.
+  Between the two, the request handler produces the tool call results of the local tool calls (calls of runtime tools and
+  rejected calls) and adds them to the `Ready`. The composer executes no tool.
+- `CompositionResult` has the variants `Deferred`, `NoInput` and `Ready`. `NextTurn` is removed; its messages are in
+  `TurnInput`. `Ready` holds the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
+  of a turn without tool call results, and the event messages. `Deferred.arrivedResults` holds only the results that
+  arrived from the process.
+- The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`, a bean of the
+  auto-configuration.
 
 `AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
 process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent produces the tool call
 results of the other calls (`AgentConversationTurn.localToolCalls()`) itself and never hands them to the process.
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
-change. If you implement the interfaces directly, add the new method, handle the new variant and hand only the process
-tool calls to the process.
+change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
+implement the response handler interface directly, hand only the process tool calls to the process.
 
 ### Agent instance client and mappers
 
 - `AgentInstanceClient.applyToolCallResults` takes `List<ToolCallResultContent>` instead of `List<ToolCallResult>`; convert
   with `ToolCallResultContent.from(result)`.
 - `AgentInstanceToolMapper` and `AgentInstanceHistoryMapper` keep their API. A runtime tool, decided by
-  `ToolDefinition.kind()`, and a local tool call and its result, decided by
-  `AgentConversationTurn.isLocalToolCall(ToolCall)` (a runtime tool call or a rejected call), are reported without an
-  element id.
+  `ToolDefinition.kind()`, and a local tool call and its result, decided by `ToolCall.isLocal()` (a runtime tool call or
+  a rejected call), are reported without an element id.
 
 Migration: if you implement or decorate `AgentInstanceClient.applyToolCallResults`, convert as described above. Most
 extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate them instead.
 
 ### Replaceable bean constructors
 
-The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take a
-single `RuntimeTools`. The auto-configuration provides the bean `RuntimeTools`, which is `@ConditionalOnMissingBean`. A
-custom bean built with `new` needs the extra argument; inject it as a bean.
+The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take
+`RuntimeTools`, `ToolCallAdmission` and `LocalToolCallExecutor`, and the constructor of
+`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`. The auto-configuration provides these
+beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra arguments; inject them as beans.
 
 ### Runtime tools and tool names
 
@@ -269,7 +270,9 @@ custom bean built with `new` needs the extra argument; inject it as a bean.
   by default, and `rejection`, an optional error text, none by default; the canonical constructor has the six components
   `id`, `name`, `arguments`, `metadata`, `kind` and `rejection`) and `ToolDefinition` (`kind`, `PROCESS` by default; a
   runtime tool declares `RUNTIME`, for example with `ToolDefinition.runtime(...)`). The agent sets the kind and the
-  rejection of the tool calls of an assistant message once, when it receives the message.
+  rejection of the tool calls of an assistant message once, when it receives the message. `ToolCall.resultSource()`
+  (`PROCESS`, `RUNTIME` or `REJECTED`) and `ToolCall.isLocal()` derive who produces the tool call result; neither is
+  written to JSON.
 - New in the libraries: the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult`,
   `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
 
