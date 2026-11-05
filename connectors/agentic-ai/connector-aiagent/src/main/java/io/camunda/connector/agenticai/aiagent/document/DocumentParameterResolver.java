@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -16,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema.Step;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,7 +43,7 @@ import org.jspecify.annotations.Nullable;
  * value is left as it is: a plain string, also one that equals the id of a known document, text
  * that holds a tag, and a value that is not a string.
  *
- * <p>Every document is replaced by the Camunda document reference of the registered document
+ * <p>Every document is replaced by the Camunda document reference JSON of the registered document
  * ({@link #resolve}), or, for a runtime tool that looks the documents up itself, by its {@link
  * AgentDocumentId} ({@link #resolveIds}). The result depends on the call, the tool definition and
  * the agent documents only, so the agent computes the same outcome wherever it needs it: when it
@@ -49,6 +52,8 @@ import org.jspecify.annotations.Nullable;
  * #resolveProcessCall}, {@link #resolveRuntimeCall}).
  */
 public final class DocumentParameterResolver {
+
+  private static final ObjectMapper REFERENCE_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
 
   private DocumentParameterResolver() {}
 
@@ -121,6 +126,13 @@ public final class DocumentParameterResolver {
     return check(agentContext, toolCall, definition);
   }
 
+  /** The document reference in the JSON format it is persisted in. */
+  private static Object referenceJson(AgentDocument document) {
+    return REFERENCE_MAPPER.convertValue(
+        REFERENCE_MAPPER.valueToTree(document).path("reference"),
+        new TypeReference<Map<String, Object>>() {});
+  }
+
   private static Resolution unchanged(ToolCall toolCall) {
     return new Resolution.Resolved(toolCall.arguments() == null ? Map.of() : toolCall.arguments());
   }
@@ -136,7 +148,8 @@ public final class DocumentParameterResolver {
       ToolCall toolCall, ToolDefinition toolDefinition, AgentDocuments documents) {
     final Map<String, Object> arguments =
         toolCall.arguments() == null ? Map.of() : toolCall.arguments();
-    return walkValidating(arguments, toolDefinition, documents, AgentDocument::reference);
+    return walkValidating(
+        arguments, toolDefinition, documents, DocumentParameterResolver::referenceJson);
   }
 
   /**
