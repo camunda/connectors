@@ -779,7 +779,7 @@ invalid value, joined by a space, and the tool does not run:
 parameter that is not an array `Parameter 'p' must be an array.`). A missing or `null` argument is left alone.
 
 `DocumentParameterResolver` resolves the document parameters of a call from the call, the tool definition and the agent
-documents only. A process tool receives the Camunda document reference of the agent document (`resolveProcessCall`), a
+documents only. A process tool receives the Camunda document reference JSON of the agent document (`resolveProcessCall`), a
 runtime tool the `AgentDocumentId` of the document (`resolveRuntimeCall`); `check` validates the call of a tool of either kind. An `Untracked` agent instance has
 no document parameters: the calls are not touched. The agent uses the resolver at three places, and the tool call of the
 assistant message is never rewritten, so the stored conversation and the history keep what the model sent:
