@@ -7,6 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.model.document;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 
 /**
  * How the documents reach the model: as a reference, or with their content. A document has the
@@ -22,5 +26,36 @@ public enum DocumentDelivery {
    * every document.
    */
   @JsonProperty("content")
-  CONTENT
+  CONTENT;
+
+  /**
+   * The extension property of a tool activity that sets the document delivery of the documents the
+   * tool returns.
+   */
+  public static final String EXTENSION_PROPERTY = "io.camunda.agenticai.documents.delivery";
+
+  /**
+   * The delivery named by the value of the extension property {@link #EXTENSION_PROPERTY}, ignoring
+   * case and surrounding blanks; a blank or absent value is {@link #REFERENCE}.
+   *
+   * @throws IllegalArgumentException if the value names no delivery; the message lists the allowed
+   *     values
+   */
+  public static DocumentDelivery fromExtension(@Nullable String value) {
+    if (value == null || value.isBlank()) {
+      return REFERENCE;
+    }
+    final var name = value.strip();
+    return Arrays.stream(values())
+        .filter(delivery -> delivery.name().equalsIgnoreCase(name))
+        .findFirst()
+        .orElseThrow(() ->
+            new IllegalArgumentException(
+                "The document delivery '%s' is not allowed, use one of: %s"
+                    .formatted(
+                        value,
+                        Arrays.stream(values())
+                            .map(delivery -> delivery.name().toLowerCase(Locale.ROOT))
+                            .collect(Collectors.joining(", ")))));
+  }
 }

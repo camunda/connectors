@@ -181,7 +181,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
    * The delivery of the documents a process tool returns. An agent instance that does not track its
    * documents ignores the delivery of a tool.
    */
-  private static DocumentDelivery documentDeliveryOf(AgentContext agentContext, String toolName) {
+  private static DocumentDelivery documentDeliveryOf(
+      AgentContext agentContext, @Nullable String toolName) {
+    if (toolName == null) {
+      return DocumentDelivery.REFERENCE;
+    }
     return switch (agentContext.documentHandling()) {
       case DocumentHandling.Tracked ignored -> agentContext.documentDeliveryOf(toolName);
       case DocumentHandling.Untracked ignored -> DocumentDelivery.REFERENCE;

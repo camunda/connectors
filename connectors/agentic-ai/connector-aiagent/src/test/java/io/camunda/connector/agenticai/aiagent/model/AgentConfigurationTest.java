@@ -11,9 +11,9 @@ import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiConnection;
