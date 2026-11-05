@@ -108,18 +108,16 @@ public final class ConverseData implements RequestData {
     List<Message> messages = messageMapper.mapToMessages(this.messagesHistory);
 
     ConverseResponse converseResponse =
-        bedrockRuntimeClient.converse(
-            builder ->
-                builder
-                    .modelId(this.modelId)
-                    .messages(messages)
-                    .inferenceConfig(
-                        config ->
-                            config
-                                .temperature(this.temperature)
-                                .maxTokens(this.maxTokens)
-                                .topP(this.topP)
-                                .build()));
+        bedrockRuntimeClient.converse(builder ->
+            builder
+                .modelId(this.modelId)
+                .messages(messages)
+                .inferenceConfig(config ->
+                    config
+                        .temperature(this.temperature)
+                        .maxTokens(this.maxTokens)
+                        .topP(this.topP)
+                        .build()));
 
     var responseMessage = converseResponse.output().message();
     this.messagesHistory.add(messageMapper.mapToBedrockMessage(responseMessage));

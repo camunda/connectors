@@ -97,10 +97,9 @@ public class InboundEmailTest extends BaseEmailTest {
 
     await()
         .atMost(5, TimeUnit.SECONDS)
-        .untilAsserted(
-            () ->
-                assertFlagOnLastEmail(
-                    emailInboundConnectorProperties.data().pollingConfig().handlingStrategy()));
+        .untilAsserted(() ->
+            assertFlagOnLastEmail(
+                emailInboundConnectorProperties.data().pollingConfig().handlingStrategy()));
   }
 
   private void assertFlagOnLastEmail(HandlingStrategy handlingStrategy) throws MessagingException {

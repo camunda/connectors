@@ -40,10 +40,9 @@ public record InboundConnectorElement(
 
   public String type() {
     return Optional.ofNullable(rawProperties.get(Keywords.INBOUND_TYPE_KEYWORD))
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Missing connector type property. The connector element template is not valid"));
+        .orElseThrow(() ->
+            new IllegalArgumentException(
+                "Missing connector type property. The connector element template is not valid"));
   }
 
   public String tenantId() {
@@ -86,10 +85,9 @@ public record InboundConnectorElement(
       return tenantIdAndBpmnProcessId()
           + "-"
           + Optional.ofNullable(rawProperties.get(Keywords.DEDUPLICATION_ID_KEYWORD))
-              .orElseThrow(
-                  () ->
-                      new InvalidInboundConnectorDefinitionException(
-                          "Missing deduplicationId property, expected a value due to deduplicationMode=MANUAL"));
+              .orElseThrow(() ->
+                  new InvalidInboundConnectorDefinitionException(
+                      "Missing deduplicationId property, expected a value due to deduplicationMode=MANUAL"));
     } else {
       throw new InvalidInboundConnectorDefinitionException(
           "Invalid deduplicationMode property, expected AUTO or MANUAL, but was "

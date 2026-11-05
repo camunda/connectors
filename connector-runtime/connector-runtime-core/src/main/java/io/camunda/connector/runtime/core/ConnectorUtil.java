@@ -55,12 +55,10 @@ public final class ConnectorUtil {
   public static OutboundConnectorConfiguration getRequiredOutboundConnectorConfiguration(
       Class<? extends OutboundConnectorFunction> cls) {
     return getOutboundConnectorConfiguration(cls)
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    String.format(
-                        "OutboundConnectorFunction %s is missing @OutboundConnector annotation",
-                        cls)));
+        .orElseThrow(() ->
+            new RuntimeException(
+                String.format(
+                    "OutboundConnectorFunction %s is missing @OutboundConnector annotation", cls)));
   }
 
   public static Optional<InboundConnectorConfiguration> getInboundConnectorConfiguration(
@@ -83,12 +81,10 @@ public final class ConnectorUtil {
   public static InboundConnectorConfiguration getRequiredInboundConnectorConfiguration(
       Class<? extends InboundConnectorExecutable> cls) {
     return getInboundConnectorConfiguration(cls)
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    String.format(
-                        "InboundConnectorExecutable %s is missing @InboundConnector annotation",
-                        cls)));
+        .orElseThrow(() ->
+            new RuntimeException(
+                String.format(
+                    "InboundConnectorExecutable %s is missing @InboundConnector annotation", cls)));
   }
 
   private static String toNormalizedConnectorName(final String connectorName) {

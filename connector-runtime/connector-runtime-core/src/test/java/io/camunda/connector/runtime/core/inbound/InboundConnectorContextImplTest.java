@@ -64,13 +64,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("stringMap", "={{\"key\":\"value\"}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            EvictingQueue.create(10));
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, EvictingQueue.create(10));
     // when and then
     RuntimeException exception =
         assertThrows(
@@ -85,13 +79,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("stringMap", "={\"keyString\":null}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            EvictingQueue.create(10));
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, EvictingQueue.create(10));
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -110,13 +98,7 @@ class InboundConnectorContextImplTest {
                 "={key:[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            EvictingQueue.create(10));
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, EvictingQueue.create(10));
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -128,15 +110,7 @@ class InboundConnectorContextImplTest {
   private InboundConnectorContextImpl filteringContext(
       ValidInboundConnectorDetails details, SecretProvider provider) {
     return new InboundConnectorContextImpl(
-        provider,
-        (e) -> {},
-        null,
-        details,
-        null,
-        (e) -> {},
-        mapper,
-        EvictingQueue.create(10),
-        true);
+        provider, e -> {}, null, details, null, e -> {}, mapper, EvictingQueue.create(10), true);
   }
 
   private static String replace(InboundConnectorContextImpl context, String field, String input) {
@@ -216,7 +190,7 @@ class InboundConnectorContextImplTest {
     var details = getInboundConnectorDefinition(Map.of("authentication.token", "secrets.AUTH"));
     var context =
         new DefaultProcessElementContext(
-            details.connectorElements().getFirst(), (e) -> {}, provider, mapper, true);
+            details.connectorElements().getFirst(), e -> {}, provider, mapper, true);
     var matchingProbe =
         mapper
             .createObjectNode()
@@ -249,10 +223,10 @@ class InboundConnectorContextImplTest {
     var context =
         new InboundConnectorContextImpl(
             provider,
-            (e) -> {},
+            e -> {},
             getInboundConnectorDefinition(Map.of("token", "secrets.DECLARED")),
             null,
-            (e) -> {},
+            e -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -283,7 +257,7 @@ class InboundConnectorContextImplTest {
   private InboundConnectorContextImpl contextOf(
       ValidInboundConnectorDetails details, SecretProvider provider) {
     return new InboundConnectorContextImpl(
-        provider, (e) -> {}, details, null, (e) -> {}, mapper, EvictingQueue.create(10));
+        provider, e -> {}, details, null, e -> {}, mapper, EvictingQueue.create(10));
   }
 
   private InboundConnectorContextImpl cancellingContext(
@@ -291,7 +265,7 @@ class InboundConnectorContextImplTest {
       SecretProvider provider,
       List<Throwable> cancellations) {
     return new InboundConnectorContextImpl(
-        provider, (e) -> {}, details, null, cancellations::add, mapper, EvictingQueue.create(10));
+        provider, e -> {}, details, null, cancellations::add, mapper, EvictingQueue.create(10));
   }
 
   private static Activity errorSaying(String message) {
@@ -410,11 +384,10 @@ class InboundConnectorContextImplTest {
     // then the raw message is withheld rather than published unmasked
     assertThat(context.getLogs())
         .singleElement()
-        .satisfies(
-            log -> {
-              assertThat(log.message()).doesNotContain("bar");
-              assertThat(log.message()).contains("withheld");
-            });
+        .satisfies(log -> {
+          assertThat(log.message()).doesNotContain("bar");
+          assertThat(log.message()).contains("withheld");
+        });
   }
 
   @Test
@@ -544,10 +517,10 @@ class InboundConnectorContextImplTest {
     var context =
         new InboundConnectorContextImpl(
             rotatingProvider,
-            (e) -> {},
+            e -> {},
             details,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -605,7 +578,7 @@ class InboundConnectorContextImplTest {
             new ActivationCheckResult.Success.CanActivate(elementContextOf(details, provider)));
     return new InboundConnectorContextImpl(
         provider,
-        (e) -> {},
+        e -> {},
         details,
         correlationHandler,
         cancellations::add,
@@ -616,7 +589,7 @@ class InboundConnectorContextImplTest {
   private DefaultProcessElementContext elementContextOf(
       ValidInboundConnectorDetails details, SecretProvider provider) {
     return new DefaultProcessElementContext(
-        details.connectorElements().getFirst(), (e) -> {}, provider, mapper);
+        details.connectorElements().getFirst(), e -> {}, provider, mapper);
   }
 
   private static ValidInboundConnectorDetails groupedInboundConnectorDefinition(
@@ -668,13 +641,7 @@ class InboundConnectorContextImplTest {
                 "={\"innerObject\":{\"stringList\":[\"innerList\"], \"bool\":true}}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            EvictingQueue.create(10));
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, EvictingQueue.create(10));
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -689,13 +656,7 @@ class InboundConnectorContextImplTest {
 
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            EvictingQueue.create(10));
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, EvictingQueue.create(10));
 
     // when
     Map<String, Object> properties = inboundConnectorContext.getProperties();

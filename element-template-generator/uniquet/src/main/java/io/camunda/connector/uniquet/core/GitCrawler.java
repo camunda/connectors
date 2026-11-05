@@ -75,34 +75,31 @@ public class GitCrawler {
 
   private void analyzeCommit(RevCommit commit) {
     new ElementTemplateIterator(repository, commit)
-        .forEachRemaining(
-            elementTemplateFile -> {
-              if (result.containsKey(elementTemplateFile.elementTemplate().id())) {
-                result
-                    .get(elementTemplateFile.elementTemplate().id())
-                    .compute(
-                        elementTemplateFile.elementTemplate().version(),
-                        (integer, versionValue) ->
-                            Optional.ofNullable(versionValue)
-                                .map(
-                                    vv ->
-                                        new VersionValue(
-                                            vv.link(), elementTemplateFile.connectorRuntime()))
-                                .orElse(
-                                    new VersionValue(
-                                        RAW_GITHUB_LINK.formatted(
-                                            commit.getName(), elementTemplateFile.path()),
-                                        elementTemplateFile.connectorRuntime())));
-              } else {
-                Map<Integer, VersionValue> version = new HashMap<>();
-                version.put(
+        .forEachRemaining(elementTemplateFile -> {
+          if (result.containsKey(elementTemplateFile.elementTemplate().id())) {
+            result
+                .get(elementTemplateFile.elementTemplate().id())
+                .compute(
                     elementTemplateFile.elementTemplate().version(),
-                    new VersionValue(
-                        RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()),
-                        elementTemplateFile.connectorRuntime()));
-                result.put(elementTemplateFile.elementTemplate().id(), version);
-              }
-            });
+                    (integer, versionValue) ->
+                        Optional.ofNullable(versionValue)
+                            .map(vv ->
+                                new VersionValue(vv.link(), elementTemplateFile.connectorRuntime()))
+                            .orElse(
+                                new VersionValue(
+                                    RAW_GITHUB_LINK.formatted(
+                                        commit.getName(), elementTemplateFile.path()),
+                                    elementTemplateFile.connectorRuntime())));
+          } else {
+            Map<Integer, VersionValue> version = new HashMap<>();
+            version.put(
+                elementTemplateFile.elementTemplate().version(),
+                new VersionValue(
+                    RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()),
+                    elementTemplateFile.connectorRuntime()));
+            result.put(elementTemplateFile.elementTemplate().id(), version);
+          }
+        });
   }
 
   public GitCrawler persist(String location) {
@@ -120,20 +117,17 @@ public class GitCrawler {
   private Map<String, List<OutputElementTemplate>> fromMap(
       Map<String, Map<Integer, VersionValue>> result) {
     return result.entrySet().stream()
-        .map(
-            stringMapEntry ->
-                Map.entry(
-                    stringMapEntry.getKey(),
-                    stringMapEntry.getValue().entrySet().stream()
-                        .map(
-                            integerVersionValueEntry ->
-                                new OutputElementTemplate(
-                                    integerVersionValueEntry.getKey(),
-                                    integerVersionValueEntry.getValue().link(),
-                                    new Engine(
-                                        integerVersionValueEntry.getValue().connectorRuntime())))
-                        .sorted((o1, o2) -> o2.version() - o1.version())
-                        .toList()))
+        .map(stringMapEntry ->
+            Map.entry(
+                stringMapEntry.getKey(),
+                stringMapEntry.getValue().entrySet().stream()
+                    .map(integerVersionValueEntry ->
+                        new OutputElementTemplate(
+                            integerVersionValueEntry.getKey(),
+                            integerVersionValueEntry.getValue().link(),
+                            new Engine(integerVersionValueEntry.getValue().connectorRuntime())))
+                    .sorted((o1, o2) -> o2.version() - o1.version())
+                    .toList()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 

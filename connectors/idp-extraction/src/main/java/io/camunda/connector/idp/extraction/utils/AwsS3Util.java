@@ -38,12 +38,11 @@ public class AwsS3Util {
 
       try (ExecutorService executorService = Executors.newSingleThreadExecutor()) {
         AsyncRequestBody asyncRequestBody =
-            AsyncRequestBody.fromInputStream(
-                body ->
-                    body.executor(executorService)
-                        .contentLength(contentLength)
-                        .inputStream(inputStream)
-                        .build());
+            AsyncRequestBody.fromInputStream(body ->
+                body.executor(executorService)
+                    .contentLength(contentLength)
+                    .inputStream(inputStream)
+                    .build());
         s3AsyncClient.putObject(putObjectRequest, asyncRequestBody).join();
       }
     }
@@ -59,14 +58,13 @@ public class AwsS3Util {
 
     CompletableFuture<DeleteObjectResponse> response =
         s3AsyncClient.deleteObject(deleteObjectRequest);
-    response.whenComplete(
-        (deleteResult, exception) -> {
-          if (deleteResult != null) {
-            LOGGER.debug("Document with key {} was deleted successfully", key);
-          } else {
-            throw new RuntimeException("An S3 exception occurred during delete", exception);
-          }
-        });
+    response.whenComplete((deleteResult, exception) -> {
+      if (deleteResult != null) {
+        LOGGER.debug("Document with key {} was deleted successfully", key);
+      } else {
+        throw new RuntimeException("An S3 exception occurred during delete", exception);
+      }
+    });
 
     response.thenApply(r -> null);
   }

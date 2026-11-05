@@ -69,19 +69,18 @@ public class VertexCaller {
       LOGGER.debug("Gemini generate content response: {}", output);
       return output;
     } finally {
-      CompletableFuture.runAsync(
-          () -> {
-            try {
-              GcsUtil.deleteObjectFromBucket(
-                  baseRequest.getConfiguration().bucketName(),
-                  fileName,
-                  baseRequest.getConfiguration().projectId(),
-                  baseRequest.getAuthentication());
-              LOGGER.debug("File deleted from GCS");
-            } catch (Exception e) {
-              LOGGER.error("Error while deleting file from GCS", e);
-            }
-          });
+      CompletableFuture.runAsync(() -> {
+        try {
+          GcsUtil.deleteObjectFromBucket(
+              baseRequest.getConfiguration().bucketName(),
+              fileName,
+              baseRequest.getConfiguration().projectId(),
+              baseRequest.getAuthentication());
+          LOGGER.debug("File deleted from GCS");
+        } catch (Exception e) {
+          LOGGER.error("Error while deleting file from GCS", e);
+        }
+      });
     }
   }
 

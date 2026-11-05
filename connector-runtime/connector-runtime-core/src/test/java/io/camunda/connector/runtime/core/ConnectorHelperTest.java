@@ -48,15 +48,15 @@ class ConnectorHelperTest {
         ConnectorHelper.OBJECT_MAPPER.readValue(
             ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson(
                 """
-                    {
-                    	res1: data[item.attr = "value1"][1].date,
-                                    res2: "hallo" + res1,
-                                    res3: 1 + 2,
-                    	res4: data[item.date = "2024-02-01"][1].attr,
-                    	res5: data[date(item.date) = date("2024-02-01")][1].attr,
-                    	res6: today()
-                    }
-                    """,
+                {
+                	res1: data[item.attr = "value1"][1].date,
+                                res2: "hallo" + res1,
+                                res3: 1 + 2,
+                	res4: data[item.date = "2024-02-01"][1].attr,
+                	res5: data[date(item.date) = date("2024-02-01")][1].attr,
+                	res6: today()
+                }
+                """,
                 jsonDeserialized2),
             new TypeReference<Map<String, Object>>() {});
     Assertions.assertThat(actual)

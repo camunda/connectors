@@ -68,10 +68,9 @@ class BlankObjectMapperDocumentSerializationTest {
         .as(
             "Issue #6946: FEEL deserialization must not fail when the context contains a "
                 + "CamundaDocument.")
-        .isThrownBy(
-            () ->
-                FeelContextAwareObjectReader.of(mapper)
-                    .withStaticContext(feelContext)
-                    .readValue(json, TargetType.class));
+        .isThrownBy(() ->
+            FeelContextAwareObjectReader.of(mapper)
+                .withStaticContext(feelContext)
+                .readValue(json, TargetType.class));
   }
 }

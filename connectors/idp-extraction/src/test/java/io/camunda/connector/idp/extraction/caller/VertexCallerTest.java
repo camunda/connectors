@@ -73,10 +73,9 @@ class VertexCallerTest {
     String mockedFileUri = "gs://bucket-name/file-name";
     try (MockedStatic<GcsUtil> gcsUtilMockedStatic = mockStatic(GcsUtil.class)) {
       gcsUtilMockedStatic
-          .when(
-              () ->
-                  GcsUtil.uploadNewFileFromDocument(
-                      any(), anyString(), anyString(), anyString(), any()))
+          .when(() ->
+              GcsUtil.uploadNewFileFromDocument(
+                  any(), anyString(), anyString(), anyString(), any()))
           .thenReturn(mockedFileUri);
 
       GenerativeModel mockGenerativeModel = mock(GenerativeModel.class);
@@ -116,10 +115,9 @@ class VertexCallerTest {
     String mockedFileUri = "gs://bucket-name/unknown-file";
     try (MockedStatic<GcsUtil> gcsUtilMockedStatic = mockStatic(GcsUtil.class)) {
       gcsUtilMockedStatic
-          .when(
-              () ->
-                  GcsUtil.uploadNewFileFromDocument(
-                      any(), anyString(), anyString(), anyString(), any()))
+          .when(() ->
+              GcsUtil.uploadNewFileFromDocument(
+                  any(), anyString(), anyString(), anyString(), any()))
           .thenReturn(mockedFileUri);
 
       GenerativeModel mockGenerativeModel = mock(GenerativeModel.class);

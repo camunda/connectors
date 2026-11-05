@@ -58,15 +58,13 @@ public class ProxyHandlerTest {
 
   @Test
   public void shouldThrowException_whenProxyPortInvalidInEnvVars() throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables(
-                  "CONNECTOR_HTTP_PROXY_HOST", "localhost", "CONNECTOR_HTTP_PROXY_PORT", "invalid")
-              .execute(
-                  () -> {
-                    assertThrows(ConnectorInputException.class, () -> new ProxyHandler());
-                  });
-        });
+    restoreSystemProperties(() -> {
+      withEnvironmentVariables(
+              "CONNECTOR_HTTP_PROXY_HOST", "localhost", "CONNECTOR_HTTP_PROXY_PORT", "invalid")
+          .execute(() -> {
+            assertThrows(ConnectorInputException.class, () -> new ProxyHandler());
+          });
+    });
   }
 
   @Test
@@ -92,36 +90,34 @@ public class ProxyHandlerTest {
   @Test
   public void shouldNotOverwriteSystemProperties_whenProxySettingsEnvVarsAndSystemProperties()
       throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables(
-                  "CONNECTOR_HTTPS_PROXY_HOST",
-                  "localhost",
-                  "CONNECTOR_HTTPS_PROXY_PORT",
-                  "3128",
-                  "CONNECTOR_HTTPS_PROXY_USER",
-                  "my-user",
-                  "CONNECTOR_HTTPS_PROXY_PASSWORD",
-                  "demo",
-                  "CONNECTOR_HTTP_PROXY_NON_PROXY_HOSTS",
-                  "www.env-var.de")
-              .execute(
-                  () -> {
-                    System.setProperty("https.proxyHost", "localhost");
-                    System.setProperty("https.proxyPort", "8080");
-                    System.setProperty("https.proxyUser", "user");
-                    System.setProperty("https.proxyPassword", "password");
-                    System.setProperty("http.nonProxyHosts", "www.system-property.de");
+    restoreSystemProperties(() -> {
+      withEnvironmentVariables(
+              "CONNECTOR_HTTPS_PROXY_HOST",
+              "localhost",
+              "CONNECTOR_HTTPS_PROXY_PORT",
+              "3128",
+              "CONNECTOR_HTTPS_PROXY_USER",
+              "my-user",
+              "CONNECTOR_HTTPS_PROXY_PASSWORD",
+              "demo",
+              "CONNECTOR_HTTP_PROXY_NON_PROXY_HOSTS",
+              "www.env-var.de")
+          .execute(() -> {
+            System.setProperty("https.proxyHost", "localhost");
+            System.setProperty("https.proxyPort", "8080");
+            System.setProperty("https.proxyUser", "user");
+            System.setProperty("https.proxyPassword", "password");
+            System.setProperty("http.nonProxyHosts", "www.system-property.de");
 
-                    new ProxyHandler();
+            new ProxyHandler();
 
-                    assertThat(System.getProperty("https.proxyHost")).isEqualTo("localhost");
-                    assertThat(System.getProperty("https.proxyPort")).isEqualTo("8080");
-                    assertThat(System.getProperty("https.proxyUser")).isEqualTo("user");
-                    assertThat(System.getProperty("https.proxyPassword")).isEqualTo("password");
-                    assertThat(System.getProperty("http.nonProxyHosts"))
-                        .isEqualTo("www.system-property.de");
-                  });
-        });
+            assertThat(System.getProperty("https.proxyHost")).isEqualTo("localhost");
+            assertThat(System.getProperty("https.proxyPort")).isEqualTo("8080");
+            assertThat(System.getProperty("https.proxyUser")).isEqualTo("user");
+            assertThat(System.getProperty("https.proxyPassword")).isEqualTo("password");
+            assertThat(System.getProperty("http.nonProxyHosts"))
+                .isEqualTo("www.system-property.de");
+          });
+    });
   }
 }

@@ -39,34 +39,32 @@ public class BedrockCaller {
     LlmModel llmModel = LlmModel.fromId(modelId);
 
     ConverseResponse response =
-        bedrockRuntimeClient.converse(
-            request -> {
-              String userMessage = llmModel.getMessage(extractedText, input.taxonomyItems());
+        bedrockRuntimeClient.converse(request -> {
+          String userMessage = llmModel.getMessage(extractedText, input.taxonomyItems());
 
-              if (llmModel.isSystemPromptAllowed()) {
-                SystemContentBlock prompt =
-                    SystemContentBlock.builder().text(llmModel.getSystemPrompt()).build();
-                request.system(prompt);
-              } else {
-                userMessage = String.format("%s%n%s", llmModel.getSystemPrompt(), userMessage);
-              }
+          if (llmModel.isSystemPromptAllowed()) {
+            SystemContentBlock prompt =
+                SystemContentBlock.builder().text(llmModel.getSystemPrompt()).build();
+            request.system(prompt);
+          } else {
+            userMessage = String.format("%s%n%s", llmModel.getSystemPrompt(), userMessage);
+          }
 
-              Message message =
-                  Message.builder()
-                      .content(ContentBlock.fromText(userMessage))
-                      .role(ConversationRole.USER)
-                      .build();
+          Message message =
+              Message.builder()
+                  .content(ContentBlock.fromText(userMessage))
+                  .role(ConversationRole.USER)
+                  .build();
 
-              request
-                  .modelId(modelId)
-                  .messages(message)
-                  .inferenceConfig(
-                      config ->
-                          config
-                              .maxTokens(converseData.maxTokens())
-                              .temperature(converseData.temperature())
-                              .topP(converseData.topP()));
-            });
+          request
+              .modelId(modelId)
+              .messages(message)
+              .inferenceConfig(config ->
+                  config
+                      .maxTokens(converseData.maxTokens())
+                      .temperature(converseData.temperature())
+                      .topP(converseData.topP()));
+        });
 
     return response.output().message().content().getFirst().text();
   }

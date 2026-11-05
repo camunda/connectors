@@ -89,11 +89,10 @@ class JobBuilder {
     public JobBuilderStep withVariables(String variables) {
       when(job.getVariables()).thenReturn(variables);
       lenient()
-          .doAnswer(
-              invocation -> {
-                Class<?> cls = invocation.getArgument(0);
-                return cls.cast(parseVariables(variables));
-              })
+          .doAnswer(invocation -> {
+            Class<?> cls = invocation.getArgument(0);
+            return cls.cast(parseVariables(variables));
+          })
           .when(job)
           .getVariablesAsType(any());
       return this;

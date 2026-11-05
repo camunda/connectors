@@ -59,11 +59,10 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       final boolean isHybridMode) {
     String baseTemplateId =
         Optional.ofNullable(elementType.templateIdOverride())
-            .orElseGet(
-                () ->
-                    context.elementTypes().size() > 1
-                        ? templateId + ":" + elementType.elementType().getId()
-                        : templateId);
+            .orElseGet(() ->
+                context.elementTypes().size() > 1
+                    ? templateId + ":" + elementType.elementType().getId()
+                    : templateId);
     return isHybridMode
         ? baseTemplateId + GeneratorConfiguration.HYBRID_TEMPLATE_ID_SUFFIX
         : baseTemplateId;
@@ -76,16 +75,15 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       boolean isHybridMode) {
     String baseTemplateName =
         Optional.ofNullable(elementType.templateNameOverride())
-            .orElseGet(
-                () -> {
-                  if (context.elementTypes().size() > 1) {
-                    return templateName
-                        + " ("
-                        + camelCaseToSpaces(elementType.elementType().getId())
-                        + ")";
-                  }
-                  return templateName;
-                });
+            .orElseGet(() -> {
+              if (context.elementTypes().size() > 1) {
+                return templateName
+                    + " ("
+                    + camelCaseToSpaces(elementType.elementType().getId())
+                    + ")";
+              }
+              return templateName;
+            });
     return isHybridMode
         ? GeneratorConfiguration.HYBRID_TEMPLATE_NAME_PREFIX + baseTemplateName
         : baseTemplateName;
@@ -154,32 +152,31 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         template.icon().isBlank() ? null : ElementTemplateIcon.from(template.icon(), classLoader);
 
     return context.elementTypes().stream()
-        .map(
-            elementType -> {
-              var builder =
-                  context instanceof Outbound
-                      ? ElementTemplateBuilder.createOutbound()
-                      : ElementTemplateBuilder.createInbound();
-              boolean isHybridMode = ConnectorMode.HYBRID.equals(configuration.connectorMode());
-              return builder
-                  .id(createId(context, template.id(), elementType, isHybridMode))
-                  .type(context.connectorType(), isHybridMode)
-                  .name(createName(context, template.name(), elementType, isHybridMode))
-                  .version(template.version())
-                  .appliesTo(elementType.appliesTo())
-                  .elementType(elementType.elementType())
-                  .icon(icon)
-                  .metadata(
-                      new io.camunda.connector.generator.dsl.ElementTemplate.Metadata(
-                          template.metadata().keywords()))
-                  .documentationRef(
-                      template.documentationRef().isEmpty() ? null : template.documentationRef())
-                  .description(template.description().isEmpty() ? null : template.description())
-                  .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
-                  .propertyGroups(
-                      addServiceProperties(mergedGroups, context, elementType, configuration))
-                  .build();
-            })
+        .map(elementType -> {
+          var builder =
+              context instanceof Outbound
+                  ? ElementTemplateBuilder.createOutbound()
+                  : ElementTemplateBuilder.createInbound();
+          boolean isHybridMode = ConnectorMode.HYBRID.equals(configuration.connectorMode());
+          return builder
+              .id(createId(context, template.id(), elementType, isHybridMode))
+              .type(context.connectorType(), isHybridMode)
+              .name(createName(context, template.name(), elementType, isHybridMode))
+              .version(template.version())
+              .appliesTo(elementType.appliesTo())
+              .elementType(elementType.elementType())
+              .icon(icon)
+              .metadata(
+                  new io.camunda.connector.generator.dsl.ElementTemplate.Metadata(
+                      template.metadata().keywords()))
+              .documentationRef(
+                  template.documentationRef().isEmpty() ? null : template.documentationRef())
+              .description(template.description().isEmpty() ? null : template.description())
+              .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
+              .propertyGroups(
+                  addServiceProperties(mergedGroups, context, elementType, configuration))
+              .build();
+        })
         .toList();
   }
 

@@ -434,10 +434,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     var cacheWithoutClient =
         new ProcessDefinitionSecretKeyCache(modelCacheWithoutClient, Caffeine.newBuilder().build());
 
-    assertThatThrownBy(
-            () ->
-                cacheWithoutClient.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "task", DEADLINE)))
+    assertThatThrownBy(() ->
+            cacheWithoutClient.getSecretKeys(
+                new SecretKeyContext(PROCESS_DEF_KEY, "task", DEADLINE)))
         .isInstanceOf(SecretFilterUnavailableException.class)
         .hasMessageContaining("No CamundaOperateClient available");
   }
@@ -451,10 +450,8 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
         .thenThrow(new OperateException("404"));
 
-    assertThatThrownBy(
-            () ->
-                secretKeyCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "task", DEADLINE)))
+    assertThatThrownBy(() ->
+            secretKeyCache.getSecretKeys(new SecretKeyContext(PROCESS_DEF_KEY, "task", DEADLINE)))
         .isInstanceOf(SecretKeyLookupException.class)
         .hasCauseInstanceOf(OperateException.class);
   }
@@ -493,10 +490,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
         .thenThrow(new OperateException("still not found"));
 
-    assertThatThrownBy(
-            () ->
-                retryingCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE)))
+    assertThatThrownBy(() ->
+            retryingCache.getSecretKeys(
+                new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE)))
         .isInstanceOf(SecretKeyLookupException.class)
         .hasCauseInstanceOf(OperateException.class)
         .cause()
@@ -507,11 +503,10 @@ class ProcessDefinitionSecretKeyCacheTest {
 
   @Test
   void getSecretKeys_deadlineWithinSafetyMargin_failsWithoutAttemptingFetch() throws Exception {
-    assertThatThrownBy(
-            () ->
-                secretKeyCache.getSecretKeys(
-                    new SecretKeyContext(
-                        PROCESS_DEF_KEY, "service-task-1", Instant.now().plusSeconds(2))))
+    assertThatThrownBy(() ->
+            secretKeyCache.getSecretKeys(
+                new SecretKeyContext(
+                    PROCESS_DEF_KEY, "service-task-1", Instant.now().plusSeconds(2))))
         .isInstanceOf(IllegalStateException.class);
     verify(camundaOperateClient, times(0)).getProcessDefinitionModel(PROCESS_DEF_KEY);
   }
@@ -529,10 +524,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     Instant deadline = Instant.now().plusSeconds(5).plusMillis(300);
 
     long start = System.nanoTime();
-    assertThatThrownBy(
-            () ->
-                retryingCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
+    assertThatThrownBy(() ->
+            retryingCache.getSecretKeys(
+                new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
         .satisfiesAnyOf(
             e -> assertThat(e).isInstanceOf(TimeoutExceededException.class),
             e ->
@@ -555,23 +549,21 @@ class ProcessDefinitionSecretKeyCacheTest {
             Caffeine.newBuilder().build());
     BpmnModelInstance bpmnModel = loadBpmn("outbound-with-secrets.bpmn");
     when(camundaOperateClient.getProcessDefinitionModel(PROCESS_DEF_KEY))
-        .thenAnswer(
-            invocation -> {
-              long until = System.nanoTime() + Duration.ofMillis(250).toNanos();
-              while (System.nanoTime() < until) {
-                try {
-                  Thread.sleep(10);
-                } catch (InterruptedException ignored) {
-                }
-              }
-              return bpmnModel;
-            });
+        .thenAnswer(invocation -> {
+          long until = System.nanoTime() + Duration.ofMillis(250).toNanos();
+          while (System.nanoTime() < until) {
+            try {
+              Thread.sleep(10);
+            } catch (InterruptedException ignored) {
+            }
+          }
+          return bpmnModel;
+        });
     Instant deadline = Instant.now().plusSeconds(5).plusMillis(150);
 
-    assertThatThrownBy(
-            () ->
-                retryingCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
+    assertThatThrownBy(() ->
+            retryingCache.getSecretKeys(
+                new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
         .isInstanceOf(TimeoutExceededException.class);
   }
 

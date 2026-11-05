@@ -93,22 +93,21 @@ public class CustomApacheHttpClientTest {
       request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setStoreResponse(true);
-      assertThatThrownBy(
-              () ->
-                  customApacheHttpClient.execute(
-                      request,
-                      new ExecutionEnvironment.SelfManaged(
-                          new DocumentFactory() {
-                            @Override
-                            public Document resolve(DocumentReference reference) {
-                              return null;
-                            }
+      assertThatThrownBy(() ->
+              customApacheHttpClient.execute(
+                  request,
+                  new ExecutionEnvironment.SelfManaged(
+                      new DocumentFactory() {
+                        @Override
+                        public Document resolve(DocumentReference reference) {
+                          return null;
+                        }
 
-                            @Override
-                            public Document create(DocumentCreationRequest request) {
-                              throw new RuntimeException("Cannot create document");
-                            }
-                          })))
+                        @Override
+                        public Document create(DocumentCreationRequest request) {
+                          throw new RuntimeException("Cannot create document");
+                        }
+                      })))
           .hasMessage("Failed to create document: Cannot create document");
       var documents = store.getDocuments();
       assertThat(documents).isEmpty();
@@ -334,34 +333,32 @@ public class CustomApacheHttpClientTest {
     public void shouldReturn200_whenValidEnvVar(
         String user, String password, String path, WireMockRuntimeInfo wmRuntimeInfo)
         throws Exception {
-      restoreSystemProperties(
-          () -> {
-            withEnvironmentVariables(
-                    "CONNECTOR_HTTP_PROXY_HOST",
-                    "localhost",
-                    "CONNECTOR_HTTP_PROXY_PORT",
-                    proxyContainer.getMappedPort(3128).toString(),
-                    "CONNECTOR_HTTP_PROXY_USER",
-                    user,
-                    "CONNECTOR_HTTP_PROXY_PASSWORD",
-                    password)
-                .execute(
-                    () -> {
-                      proxy.stubFor(get(path).willReturn(ok().withBody("Hello, world!")));
+      restoreSystemProperties(() -> {
+        withEnvironmentVariables(
+                "CONNECTOR_HTTP_PROXY_HOST",
+                "localhost",
+                "CONNECTOR_HTTP_PROXY_PORT",
+                proxyContainer.getMappedPort(3128).toString(),
+                "CONNECTOR_HTTP_PROXY_USER",
+                user,
+                "CONNECTOR_HTTP_PROXY_PASSWORD",
+                password)
+            .execute(() -> {
+              proxy.stubFor(get(path).willReturn(ok().withBody("Hello, world!")));
 
-                      HttpCommonRequest request = new HttpCommonRequest();
-                      request.setMethod(HttpMethod.GET);
-                      request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, path));
-                      HttpCommonResult result =
-                          proxiedApacheHttpClient.execute(
-                              request); // http://host.testcontainers.internal:33029/protected
-                      assertThat(result).isNotNull();
-                      assertThat(result.status()).isEqualTo(200);
-                      assertThat(result.body()).isEqualTo("Hello, world!");
-                      assertThat(result.headers().get("Via")).asString().contains("squid");
-                      proxy.verify(getRequestedFor(urlEqualTo(path)));
-                    });
-          });
+              HttpCommonRequest request = new HttpCommonRequest();
+              request.setMethod(HttpMethod.GET);
+              request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, path));
+              HttpCommonResult result =
+                  proxiedApacheHttpClient.execute(
+                      request); // http://host.testcontainers.internal:33029/protected
+              assertThat(result).isNotNull();
+              assertThat(result.status()).isEqualTo(200);
+              assertThat(result.body()).isEqualTo("Hello, world!");
+              assertThat(result.headers().get("Via")).asString().contains("squid");
+              proxy.verify(getRequestedFor(urlEqualTo(path)));
+            });
+      });
     }
 
     @ParameterizedTest
@@ -386,63 +383,57 @@ public class CustomApacheHttpClientTest {
     @ValueSource(strings = {"", "my-user", "invalid"})
     public void shouldThrowException_whenAuthenticationRequiredAndNotProvidedAsEnvVars(
         String loginData, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-      restoreSystemProperties(
-          () -> {
-            withEnvironmentVariables(
-                    "CONNECTOR_HTTP_PROXY_HOST",
-                    "localhost",
-                    "CONNECTOR_HTTP_PROXY_PORT",
-                    proxyContainer.getMappedPort(3128).toString(),
-                    "CONNECTOR_HTTP_PROXY_USER",
-                    loginData,
-                    "CONNECTOR_HTTP_PROXY_PASSWORD",
-                    loginData)
-                .execute(
-                    () -> {
-                      proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
-                      HttpCommonRequest request = new HttpCommonRequest();
-                      request.setMethod(HttpMethod.GET);
-                      request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
-                      ConnectorException e =
-                          assertThrows(
-                              ConnectorException.class,
-                              () -> proxiedApacheHttpClient.execute(request));
-                      assertThat(e.getMessage()).isEqualTo("Proxy Authentication Required");
-                    });
-          });
+      restoreSystemProperties(() -> {
+        withEnvironmentVariables(
+                "CONNECTOR_HTTP_PROXY_HOST",
+                "localhost",
+                "CONNECTOR_HTTP_PROXY_PORT",
+                proxyContainer.getMappedPort(3128).toString(),
+                "CONNECTOR_HTTP_PROXY_USER",
+                loginData,
+                "CONNECTOR_HTTP_PROXY_PASSWORD",
+                loginData)
+            .execute(() -> {
+              proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
+              HttpCommonRequest request = new HttpCommonRequest();
+              request.setMethod(HttpMethod.GET);
+              request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
+              ConnectorException e =
+                  assertThrows(
+                      ConnectorException.class, () -> proxiedApacheHttpClient.execute(request));
+              assertThat(e.getMessage()).isEqualTo("Proxy Authentication Required");
+            });
+      });
     }
 
     @Test
     public void shouldAlwaysUseEnvVars_WhenEnvVarAndSystemPropertiesAreProvided(
         WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-      restoreSystemProperties(
-          () -> {
-            withEnvironmentVariables(
-                    "CONNECTOR_HTTP_PROXY_HOST",
-                    "localhost",
-                    "CONNECTOR_HTTP_PROXY_PORT",
-                    proxyContainer.getMappedPort(3128).toString(),
-                    "CONNECTOR_HTTP_PROXY_USER",
-                    // Fake user/password to ensure this is used
-                    // The system properties contain the correct user/password
-                    "WRONG_USER",
-                    "CONNECTOR_HTTP_PROXY_PASSWORD",
-                    "WRONG_PASSWORD")
-                .execute(
-                    () -> {
-                      proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
-                      setAllSystemProperties();
+      restoreSystemProperties(() -> {
+        withEnvironmentVariables(
+                "CONNECTOR_HTTP_PROXY_HOST",
+                "localhost",
+                "CONNECTOR_HTTP_PROXY_PORT",
+                proxyContainer.getMappedPort(3128).toString(),
+                "CONNECTOR_HTTP_PROXY_USER",
+                // Fake user/password to ensure this is used
+                // The system properties contain the correct user/password
+                "WRONG_USER",
+                "CONNECTOR_HTTP_PROXY_PASSWORD",
+                "WRONG_PASSWORD")
+            .execute(() -> {
+              proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
+              setAllSystemProperties();
 
-                      HttpCommonRequest request = new HttpCommonRequest();
-                      request.setMethod(HttpMethod.GET);
-                      request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
-                      ConnectorException e =
-                          assertThrows(
-                              ConnectorException.class,
-                              () -> proxiedApacheHttpClient.execute(request));
-                      assertThat(e.getMessage()).isEqualTo("Proxy Authentication Required");
-                    });
-          });
+              HttpCommonRequest request = new HttpCommonRequest();
+              request.setMethod(HttpMethod.GET);
+              request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
+              ConnectorException e =
+                  assertThrows(
+                      ConnectorException.class, () -> proxiedApacheHttpClient.execute(request));
+              assertThat(e.getMessage()).isEqualTo("Proxy Authentication Required");
+            });
+      });
     }
 
     @Test

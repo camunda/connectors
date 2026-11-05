@@ -113,12 +113,11 @@ public class KafkaConnectorConsumer {
         Failsafe.with(retryPolicy)
             .with(executorService)
             .getAsync(retryableFutureSupplier)
-            .exceptionally(
-                (e) -> {
-                  shouldLoop = false;
-                  throw new RuntimeException(
-                      "Consumer loop failed, retries exhausted: " + e.getMessage(), e);
-                });
+            .exceptionally(e -> {
+              shouldLoop = false;
+              throw new RuntimeException(
+                  "Consumer loop failed, retries exhausted: " + e.getMessage(), e);
+            });
   }
 
   private void prepareConsumer() {

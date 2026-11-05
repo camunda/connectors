@@ -89,13 +89,13 @@ class ExtractionConnectorFunctionTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                   {
-                     "response": {
-                                   "sum": "$12.25",
-                                   "supplier": "Camunda Inc."
-                                 }
-                   }
-               """);
+                {
+                  "response": {
+                                "sum": "$12.25",
+                                "supplier": "Camunda Inc."
+                              }
+                }
+            """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
     var expectedResponseJson =
@@ -118,16 +118,16 @@ class ExtractionConnectorFunctionTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                   {
-                     "sum": "$12.25",
-                     "supplier": {
-                                   "id": 12345,
-                                   "name": "Camunda Inc.",
-                                   "city": "Berlin",
-                                   "country": "Germany"
-                                 }
-                   }
-               """);
+                {
+                  "sum": "$12.25",
+                  "supplier": {
+                                "id": 12345,
+                                "name": "Camunda Inc.",
+                                "city": "Berlin",
+                                "country": "Germany"
+                              }
+                }
+            """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
     var expectedResponseJson =
@@ -156,18 +156,18 @@ class ExtractionConnectorFunctionTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                   {
-                     "response": {
-                                   "sum": "$12.25",
-                                   "supplier": {
-                                                 "id": 12345,
-                                                 "name": "Camunda Inc.",
-                                                 "city": "Berlin",
-                                                 "country": "Germany"
-                                               }
-                                 }
-                   }
-               """);
+                {
+                  "response": {
+                                "sum": "$12.25",
+                                "supplier": {
+                                              "id": 12345,
+                                              "name": "Camunda Inc.",
+                                              "city": "Berlin",
+                                              "country": "Germany"
+                                            }
+                              }
+                }
+            """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
     var expectedResponseJson =
@@ -196,10 +196,10 @@ class ExtractionConnectorFunctionTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                   {
-                     "response": "\\n\\n{\\"sum\\":\\"$12.25\\",\\"supplier\\":\\"Camunda Inc.\\"}"
-                   }
-               """);
+                {
+                  "response": "\\n\\n{\\"sum\\":\\"$12.25\\",\\"supplier\\":\\"Camunda Inc.\\"}"
+                }
+            """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
     var expectedResponseJson =
@@ -223,8 +223,8 @@ class ExtractionConnectorFunctionTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                        {
-                        """);
+            {
+            """);
 
     assertThatThrownBy(() -> extractionConnectorFunction.execute(outBounderContext))
         .isInstanceOf(ConnectorException.class)
@@ -241,8 +241,8 @@ class ExtractionConnectorFunctionTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                        []
-                        """);
+            []
+            """);
 
     assertThatThrownBy(() -> extractionConnectorFunction.execute(outBounderContext))
         .isInstanceOf(ConnectorException.class)
@@ -260,10 +260,10 @@ class ExtractionConnectorFunctionTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                        {
-                          "response": "{"
-                        }
-                        """);
+            {
+              "response": "{"
+            }
+            """);
 
     assertThatThrownBy(() -> extractionConnectorFunction.execute(outBounderContext))
         .isInstanceOf(ConnectorException.class)
@@ -281,10 +281,10 @@ class ExtractionConnectorFunctionTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                        {
-                          "response": []
-                        }
-                        """);
+            {
+              "response": []
+            }
+            """);
 
     assertThatThrownBy(() -> extractionConnectorFunction.execute(outBounderContext))
         .isInstanceOf(ConnectorException.class)
@@ -302,10 +302,9 @@ class ExtractionConnectorFunctionTest {
         .isNotNull()
         .isInstanceOf(ExtractionResult.class)
         .asInstanceOf(InstanceOfAssertFactories.type(ExtractionResult.class))
-        .satisfies(
-            extractionResult ->
-                assertThat(extractionResult.extractedFields())
-                    .containsExactlyInAnyOrderEntriesOf(expected));
+        .satisfies(extractionResult ->
+            assertThat(extractionResult.extractedFields())
+                .containsExactlyInAnyOrderEntriesOf(expected));
   }
 
   private OutboundConnectorContextBuilder.TestConnectorContext prepareConnectorContext() {

@@ -44,14 +44,13 @@ public class FileUploader {
 
   public List<File> uploadDocuments(List<Document> documents) {
     return documents.stream()
-        .map(
-            doc -> {
-              try {
-                return this.uploadDocument(methodsClient, doc);
-              } catch (SlackApiException | IOException e) {
-                throw new RuntimeException(e);
-              }
-            })
+        .map(doc -> {
+          try {
+            return this.uploadDocument(methodsClient, doc);
+          } catch (SlackApiException | IOException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .filter(Objects::nonNull)
         .collect(toList());
   }

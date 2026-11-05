@@ -56,7 +56,7 @@ public class DefaultInstanceForwardingServiceIntegrationTest {
   private static final InstanceForwardingHttpClient instanceForwardingHttpClient =
       new InstanceForwardingHttpClient(
           HttpClient.newHttpClient(),
-          (path) -> List.of(runtime1.baseUrl() + path, runtime2.baseUrl() + path));
+          path -> List.of(runtime1.baseUrl() + path, runtime2.baseUrl() + path));
 
   @BeforeAll
   static void setup() {

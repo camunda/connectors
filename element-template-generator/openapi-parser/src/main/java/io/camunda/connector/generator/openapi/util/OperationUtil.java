@@ -45,88 +45,85 @@ public class OperationUtil {
       OpenAPI openAPI, Set<String> includeOperations, Options options) {
     var components = openAPI.getComponents();
     return openAPI.getPaths().entrySet().stream()
-        .flatMap(
-            pathEntry -> {
-              var pathItem = pathEntry.getValue();
-              if (pathItem.get$ref() != null) {
-                pathItem =
-                    components
-                        .getPathItems()
-                        .get(pathItem.get$ref().replace("#/components/pathItems/", ""));
-              }
+        .flatMap(pathEntry -> {
+          var pathItem = pathEntry.getValue();
+          if (pathItem.get$ref() != null) {
+            pathItem =
+                components
+                    .getPathItems()
+                    .get(pathItem.get$ref().replace("#/components/pathItems/", ""));
+          }
 
-              List<OperationParseResult> operations = new ArrayList<>();
-              if (pathItem.getGet() != null) {
-                operations.add(
-                    extractOperation(
-                        pathEntry.getKey(),
-                        HttpMethod.GET,
-                        pathItem.getGet(),
-                        pathItem.getGet().getTags(),
-                        pathItem.getGet().getDescription(),
-                        components,
-                        options));
-              }
-              if (pathItem.getPost() != null) {
-                operations.add(
-                    extractOperation(
-                        pathEntry.getKey(),
-                        HttpMethod.POST,
-                        pathItem.getPost(),
-                        pathItem.getPost().getTags(),
-                        pathItem.getPost().getDescription(),
-                        components,
-                        options));
-              }
-              if (pathItem.getPut() != null) {
-                operations.add(
-                    extractOperation(
-                        pathEntry.getKey(),
-                        HttpMethod.PUT,
-                        pathItem.getPut(),
-                        pathItem.getPut().getTags(),
-                        pathItem.getPut().getDescription(),
-                        components,
-                        options));
-              }
-              if (pathItem.getPatch() != null) {
-                operations.add(
-                    extractOperation(
-                        pathEntry.getKey(),
-                        HttpMethod.PATCH,
-                        pathItem.getPatch(),
-                        pathItem.getPatch().getTags(),
-                        pathItem.getPatch().getDescription(),
-                        components,
-                        options));
-              }
-              if (pathItem.getDelete() != null) {
-                operations.add(
-                    extractOperation(
-                        pathEntry.getKey(),
-                        HttpMethod.DELETE,
-                        pathItem.getDelete(),
-                        pathItem.getDelete().getTags(),
-                        pathItem.getDelete().getDescription(),
-                        components,
-                        options));
-              }
-              var path = extractPath(pathEntry.getKey());
+          List<OperationParseResult> operations = new ArrayList<>();
+          if (pathItem.getGet() != null) {
+            operations.add(
+                extractOperation(
+                    pathEntry.getKey(),
+                    HttpMethod.GET,
+                    pathItem.getGet(),
+                    pathItem.getGet().getTags(),
+                    pathItem.getGet().getDescription(),
+                    components,
+                    options));
+          }
+          if (pathItem.getPost() != null) {
+            operations.add(
+                extractOperation(
+                    pathEntry.getKey(),
+                    HttpMethod.POST,
+                    pathItem.getPost(),
+                    pathItem.getPost().getTags(),
+                    pathItem.getPost().getDescription(),
+                    components,
+                    options));
+          }
+          if (pathItem.getPut() != null) {
+            operations.add(
+                extractOperation(
+                    pathEntry.getKey(),
+                    HttpMethod.PUT,
+                    pathItem.getPut(),
+                    pathItem.getPut().getTags(),
+                    pathItem.getPut().getDescription(),
+                    components,
+                    options));
+          }
+          if (pathItem.getPatch() != null) {
+            operations.add(
+                extractOperation(
+                    pathEntry.getKey(),
+                    HttpMethod.PATCH,
+                    pathItem.getPatch(),
+                    pathItem.getPatch().getTags(),
+                    pathItem.getPatch().getDescription(),
+                    components,
+                    options));
+          }
+          if (pathItem.getDelete() != null) {
+            operations.add(
+                extractOperation(
+                    pathEntry.getKey(),
+                    HttpMethod.DELETE,
+                    pathItem.getDelete(),
+                    pathItem.getDelete().getTags(),
+                    pathItem.getDelete().getDescription(),
+                    components,
+                    options));
+          }
+          var path = extractPath(pathEntry.getKey());
 
-              operations.forEach(
-                  operation -> {
-                    if (operation.supported()) {
-                      operation.builder().pathFeelExpression(path);
-                    }
-                  });
-              return operations.stream();
-            })
-        .filter(
-            operation ->
-                includeOperations == null
-                    || includeOperations.isEmpty()
-                    || operation.builder() != null
-                        && includeOperations.contains(operation.builder().getId()))
+          operations.forEach(operation -> {
+            if (operation.supported()) {
+              operation.builder().pathFeelExpression(path);
+            }
+          });
+          return operations.stream();
+        })
+        .filter(operation ->
+            includeOperations == null
+                || includeOperations.isEmpty()
+                || operation.builder() != null
+                    && includeOperations.contains(operation.builder().getId()))
         .collect(Collectors.toList());
   }
 

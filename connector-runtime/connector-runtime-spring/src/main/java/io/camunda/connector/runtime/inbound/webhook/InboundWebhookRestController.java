@@ -135,12 +135,11 @@ public class InboundWebhookRestController {
 
     String contentType =
         Optional.ofNullable(webhookHttpResponse.headers())
-            .flatMap(
-                h ->
-                    h.entrySet().stream()
-                        .filter(e -> e.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
-                        .map(Map.Entry::getValue)
-                        .findFirst())
+            .flatMap(h ->
+                h.entrySet().stream()
+                    .filter(e -> e.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
+                    .map(Map.Entry::getValue)
+                    .findFirst())
             .orElse(null);
     Object body =
         isXmlContentType(contentType)
@@ -247,13 +246,12 @@ public class InboundWebhookRestController {
     LOG.trace("Received inbound hook on {}", context);
     return webhookConnectorRegistry
         .getActiveWebhook(context)
-        .map(
-            connector -> {
-              WebhookProcessingPayload payload =
-                  new HttpServletRequestWebhookProcessingPayload(
-                      httpServletRequest, params, headers, bodyAsByteArray, List.of());
-              return processWebhook(connector, payload);
-            })
+        .map(connector -> {
+          WebhookProcessingPayload payload =
+              new HttpServletRequestWebhookProcessingPayload(
+                  httpServletRequest, params, headers, bodyAsByteArray, List.of());
+          return processWebhook(connector, payload);
+        })
         .orElseGet(() -> ResponseEntity.notFound().build());
   }
 
@@ -313,13 +311,12 @@ public class InboundWebhookRestController {
     }
 
     return parts.stream()
-        .map(
-            part ->
-                context.create(
-                    DocumentCreationRequest.from(part.inputStream())
-                        .fileName(part.submittedFileName())
-                        .contentType(part.contentType())
-                        .build()))
+        .map(part ->
+            context.create(
+                DocumentCreationRequest.from(part.inputStream())
+                    .fileName(part.submittedFileName())
+                    .contentType(part.contentType())
+                    .build()))
         .toList();
   }
 
