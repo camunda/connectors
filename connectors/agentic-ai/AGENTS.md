@@ -219,11 +219,13 @@ High-frequency traps (detail behind each link):
   new `ToolCallResult` when unwrapping the gateway envelope; unlike `elementId`, `completedAt` has no
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
-  instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
-  instance without the `documents` feature keeps the previous document handling: bare content and the older tag
-  format, no workspace. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
+  instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
+  `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
+  keeps the previous document handling (bare content and the older tag format, no agent documents), a `Tracked` one holds
+  its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
+  `boolean` parameter. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
   and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
-  behavior that changes the wire format or the persisted shape on `AgentContext.supports(...)` and keep the legacy
+  behavior that changes the wire format or the persisted shape on a feature and keep the legacy
   path covered by `LegacyDocumentConversationTest`. The one deliberate exception is the admission and the rejection of
   tool calls (next item), which applies to every agent instance: handing the call of an unknown tool to the process
   made the agent wait for a result that never came, without an incident.
@@ -240,18 +242,21 @@ High-frequency traps (detail behind each link):
   every call without a result, also the calls of runtime tools that were not executed yet. When the model issues local tool calls and process tool calls together, only
   the process tool calls are activated, and the agent adds the tool call results of the local tool calls when the next
   turn is composed, merged with the process results in call order. `ai-agent.md` §9, [ADR 016](docs/adr/016-runtime-tools.md).
-- **Documents are persisted as references and expanded for the model**: for an instance with the `documents` feature the
-  conversation holds typed document references (`DocumentReferenceContent`: the id and the delivery), also for a document
-  that is a whole tool result, and the workspace in `AgentContext.documents` holds what the references stand for: per
-  document its id, its `DocumentOrigin` (sealed: user message, event or tool call, persisted with the discriminator
-  `type`) and its Camunda document reference. The id is `doc_` and 12 hex characters of a SHA-256 over the identity of the
-  document (`DocumentHandle.idFor`), never the id in the store; registering a different document under a known id fails
-  with `DOCUMENT_ID_COLLISION`. A reference holds no file name, size or origin: `DocumentTags` renders the tag from the
-  workspace document, the long one with the origin for user messages and events, the short one for tool results. The
-  window decorator (`DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content
-  from the workspace; in a tool result it renders the short tag as text, so the providers have no document specific code.
-  A user prompt document is a reference with the delivery `content`. The documents a runtime tool returns are registered
-  after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`.
+- **Documents are persisted as references and expanded for the model**: for a `Tracked` instance the conversation holds
+  typed document blocks (`AgentDocumentContent`: the id and the delivery), also for a document that is a whole tool
+  result, and `AgentContext.documents` (`AgentDocuments`) holds what the blocks stand for: per document (`AgentDocument`)
+  its `AgentDocumentId`, its `DocumentOrigin` (sealed: user message, event or tool call, persisted with the discriminator
+  `type`) and its document reference in the format of the connector SDK. A new document is a `DocumentContent` (the user
+  prompt, events, tool results, and every document of an `Untracked` instance; the only document a provider sees), a known
+  one an `AgentDocumentContent` (it never reaches a provider, which fails loudly on it). The id is `doc_` and 12 hex
+  characters of a SHA-256 over the identity of the document (`AgentDocumentId.of`), never the id in the store; registering
+  a different document under a known id, also within one batch, fails with `DOCUMENT_ID_COLLISION`. A block holds no file
+  name, size or origin: `DocumentTags` renders the tag from the agent document, the long one with the origin for user
+  messages and events, the short one for tool results. `DocumentExpander.expand(snapshot, documentHandling)`, a named
+  step of the model call after `AgentConversation.window(int)`, turns a block into its tag text and, with the delivery
+  `content`, the document; in a tool result it renders the short tag as text, so the providers have no document specific
+  code. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
+  documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order.
   [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has

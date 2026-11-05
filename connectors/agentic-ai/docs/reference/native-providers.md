@@ -137,9 +137,10 @@ AWS SDK v2 generated types are not Jackson-serializable — they implement `SdkP
 ### Document identity
 
 `DocumentBlock.name` is required and must be stable across requests, otherwise no prompt-cache prefix
-containing a document can ever hit. `DocumentHandle.idFor(Document)`
-(`aiagent/document/DocumentHandle.java`) derives it deterministically: the Camunda document id
-verbatim, or a SHA-256 prefix of the external URL / inline content.
+containing a document can ever hit. `BedrockConverseContentConverter` derives it deterministically from the legacy id
+of the document: `doc-` and the first 40 hex characters of the SHA-256 of the Camunda document id verbatim, of `ext-` and
+a SHA-256 prefix of the external URL, or of `inline-` and a SHA-256 prefix of the inline content. The name does not depend
+on the document handling of the agent instance, so it stays the same for every instance.
 
 ### Reasoning
 
@@ -172,8 +173,8 @@ A document inside a tool result always renders as the JSON reference the runtime
 fields the composer's `<doc/>` tag carries, so the model can correlate the two 1:1 — never embedded
 as a native `DocumentBlock`, regardless of content type. The composer's `<doc/>` fallback message is
 the document's only bytes-delivery channel; embedding it here too would send the bytes twice and
-trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor` produces the same
-`DocumentBlock.name` in both places. The nested Camunda document is serialized, never round-tripped
+trip Converse's duplicate-document-name validation, since the same `DocumentBlock.name` is derived
+in both places. The nested Camunda document is serialized, never round-tripped
 through Jackson deserialization: an `Object.class` target reconstructs another `Document` and would
 recurse forever.
 

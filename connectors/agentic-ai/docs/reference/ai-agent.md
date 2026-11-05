@@ -202,18 +202,17 @@ The loop operates as a distributed state machine between the connector runtime a
      handler first checks the model-call limit, so a job at the limit executes no runtime tool. Then it executes
      the unanswered calls, the calls of runtime tools (`LocalToolCallExecutor`), adds their results to the batch and
      assembles the input (`AgentConversationTurnInputComposer.assemble` → `TurnInput`), with all results in call order
-   - Register the documents of the turn in the document workspace (agent instances with the `documents` feature),
+   - Register the documents of the turn in the agent documents (`TurnInput.applyTo`, for a `Tracked` agent instance),
      compose the system message and `AgentConversation.rehydrate` into a pending turn
    - Resolve a `ChatModel` for the configured provider via `ChatModelRegistry` and call
-     `execute(ChatRequest)` with a windowed `ConversationSnapshot` (the window passes the messages through
-     `DocumentExpander`); `ingest` the assistant response
+     `execute(ChatRequest)` with the windowed `ConversationSnapshot` after `DocumentExpander.expand`; `ingest` the assistant response
      into the turn. Before the ingest, `ToolCallAdmission` admits the tool calls of the assistant message: each gets the kind
      of its tool, or a rejection when the tool is not offered (see [§9](#9-tool-completion)). If the result is a `ChatResult.Continuation`
      rather than `Completed`, the handler loops — persisting the round as its own turn and re-calling the model with no new
      input — until a `Completed` result ends the turn (see [§12](#12-framework-abstraction)). The same happens when every
      tool call of the message is a local tool call: the handler checks the model-call limit, produces their tool call
      results the same way, from a `Ready` of the batch, and opens the next round with the assembled input
-     (`nextRuntimeToolRound`) and registers the documents of the results in the document workspace
+     (`nextRuntimeToolRound`) and registers the documents of the results in the agent documents (`TurnInput.applyTo`)
    - Store the updated conversation back to the memory store (via `ConversationSession`) and reduce it back to `AgentContext`
    - Transform the process tool calls and create the response
 
@@ -296,37 +295,48 @@ on every completion. Authoritative definition:
 when empty, no schema version bump) the agent instance was created with. A new agent instance gets the
 current features when its context is created at its first job (`AgentInitializerImpl`, both flavors,
 `AgentFeatures.ofNewInstance()`). The features are `runtimeTools` (`AgentFeatures.RUNTIME_TOOLS`, the runtime tool
-facility) and `documents` (`AgentFeatures.DOCUMENTS`, the document workspace); a feature is read with
-`AgentContext.supports(String)`. A context that exists without `features` belongs to an instance created before the
+facility) and `documents` (`AgentFeatures.DOCUMENTS`, the agent documents); a feature is read with
+`AgentContext.supports(String)`, and the document handling of the instance with `AgentContext.documentHandling()`. A context that exists without `features` belongs to an instance created before the
 features and never gets features added later, so its behavior stays as it was created. The reasons are in
 [ADR 016](../adr/016-runtime-tools.md) and [ADR 017](../adr/017-document-flow.md); in short, an instance without
 `runtimeTools` has no runtime tool and no tool element checked against runtime tool names, and an instance without
-`documents` keeps documents as stored content with the older tag format and has no document workspace. The kind and the
+`documents` keeps documents as stored content with the older tag format and has no agent documents. The kind and the
 rejection of a tool call (§9) are set for every instance: the process never activates an element for the call of an
 unknown tool, so an instance that handed it to the process would wait for a result that never comes, and the engine
 raises no incident. This is a deliberate exception to gating a persisted shape on a feature.
 `RuntimeTools` and the conversation read the features from the `AgentContext`; they are not part of the configuration
 fingerprint.
 
-**Documents.** `AgentContext.documents` is the document workspace: a list of entries `{id, origin, reference}` (omitted when
-empty, no schema version bump; a missing field binds to an empty workspace), read and replaced through
-`AgentContext.documentWorkspace()` and `withDocumentWorkspace(...)`. `origin` is the sealed `DocumentOrigin`
+**Documents.** `AgentContext.documents` is the `AgentDocuments` of the agent instance: a list of `AgentDocument` entries
+`{id, origin, reference}` (omitted when empty, no schema version bump; a missing field binds to no documents), read and
+replaced through `AgentContext.documents()` and `withDocuments(...)`. `origin` is the sealed `DocumentOrigin`
 (`UserMessage`, `Event`, `ToolCall`), persisted with the discriminator `type`: `{"type": "USER_MESSAGE"}`,
-`{"type": "EVENT"}` or `{"type": "TOOL_CALL", "toolName": ..., "toolCallId": ...}`. `reference` is the untouched JSON the standard
-`DocumentSerializer` emits (`DocumentIngestion.entryFor` maps it with a copy of the connectors object mapper); the file name,
-content type and size shown in tags are read from it, never stored, as the typed SDK reference
-(`DocumentIngestion.referenceOf`, which reads the map as a `DocumentReferenceModel` and needs no `DocumentFactory`). The workspace is immutable and insertion-ordered, the first
-registration of an id wins and a known id is never replaced; registering a document whose id belongs to a different
-document of the workspace fails with `DOCUMENT_ID_COLLISION` (§15). Because it rides in `agentContext`, it is independent of the
-conversation store and the context window. The persisted conversation is not self-contained: the content of a document
-comes from the workspace when the conversation is windowed, so replaying a conversation needs the workspace of the same
-`agentContext`; both are written by the same job completion. The workspace is never pruned. A Camunda document entry is about
-400 bytes; the bound is the broker message size of the job completion (4 MB), which matters together with the in-process
-store or inline documents (see "Document Extraction from Tool Call Results" in §19). The id of a document is a `DocumentId`
-(`aiagent.model.document`, persisted as a plain string) derived from the document: `doc_` followed by the first 12
-lowercase hex characters of the SHA-256 of its identity key (`DocumentHandle.idFor`, see "The tag" in §19). An 8.10 connector runtime ignores `features` and `documents` and
-drops them on its next write, and cannot read a conversation that holds a document reference block (the content type is
+`{"type": "EVENT"}` or `{"type": "TOOL_CALL", "toolName": ..., "toolCallId": ...}`. `reference` is the document reference of the
+connector SDK (`DocumentReferenceModel`), in the JSON the standard `DocumentSerializer` emits; the model module depends
+on the SDK for it. The file name, content type and size shown in tags are read from it (`AgentDocument.fileName()`,
+`contentType()`, `size()`), never stored. `AgentDocument.toDocument(DocumentFactory)` restores the live document.
+`AgentDocuments` is immutable and insertion-ordered, the first registration of an id wins and a known id is never
+replaced; `register(Document, DocumentOrigin)` and `register(List<NewDocument>)` return the collection that holds the
+documents. Registering a document whose id belongs to a different document, one the agent knows or one of the same batch,
+fails with a `DocumentIdCollisionException`, an inline document above 1 MiB (`AgentDocuments.MAX_INLINE_CONTENT_LENGTH`)
+with an `InlineDocumentTooLargeException` and a reference of an unsupported type with an
+`UnsupportedDocumentReferenceException`; the request handler turns them into `DOCUMENT_ID_COLLISION`,
+`INLINE_DOCUMENT_TOO_LARGE` and `UNSUPPORTED_DOCUMENT_REFERENCE` (§15). Because it rides in `agentContext`, it is
+independent of the conversation store and the context window. The persisted conversation is not self-contained: the
+content of a document comes from the agent documents when the conversation is windowed, so replaying a conversation needs
+the agent documents of the same `agentContext`; both are written by the same job completion. They are never pruned. A
+Camunda document is about 400 bytes; the bound is the broker message size of the job completion (4 MB), which matters
+together with the in-process store or inline documents (see "Document Extraction from Tool Call Results" in §19). The id
+of a document is an `AgentDocumentId` (`aiagent.model.document`, persisted as a plain string) derived from the document:
+`doc_` followed by the first 12 lowercase hex characters of the SHA-256 of its identity key (`AgentDocumentId.of`, see
+"The tag" in §19). An 8.10 connector runtime ignores `features` and `documents` and
+drops them on its next write, and cannot read a conversation that holds a document block (the content type is
 unknown to it); a rollback after the new fields were written is not supported.
+
+**Document handling.** `AgentContext.documentHandling()` is the sealed `DocumentHandling` of the agent instance,
+derived from the `documents` feature and not persisted: `Untracked`, or `Tracked(AgentDocuments)`. The composer, the
+tool call results input builder, the document expander, the history mapper and the agent instance client match both
+variants exhaustively; none of them reads the feature or takes a `boolean`.
 
 ### AgentExecutionContext (the transient request context)
 
@@ -387,15 +397,22 @@ The sealed `Content` model gained two additive members alongside the existing `T
 Neither is produced or consumed by the LangChain4j path yet; they exist so the structured shape is
 ready for chat model implementations that need them.
 
-`DocumentReferenceContent` (content type `documentReference`) is the persisted form of a document of an agent
-instance with the `documents` feature: the `DocumentId` and a `delivery`, `reference` or `content` (and the content
-`metadata`). The file name, content type, size and origin the model reads are those of the workspace document of the
-id: `DocumentTags` renders the tag the model sees from the workspace. A document that is a whole tool result is
-persisted as such a block, which is rendered as the short tag (`DocumentReferences.withDocumentReferences`). The conversation window expands it before a request is built
-(`DocumentExpander`, see §6): in a user message to the tag text and, with the delivery `content`, the document
-content; in a tool result to the tag text of the document. The provider content converters are not meant to be handed
-one: they fail with an `IllegalStateException`. The delivery is stored on each block, so earlier messages keep their bytes when the same
-document gets another delivery later (prompt caching).
+`AgentDocumentContent` (content type `agentDocument`) is the persisted form of a known document for an agent instance
+that tracks its documents: the `AgentDocumentId` and a `delivery`, `reference` or `content` (and the content
+`metadata`). The file name, content type, size and origin the model reads are those of the agent document of the
+id: `DocumentTags` renders the tag the model sees from the agent documents. A document that is a whole tool result is
+persisted as such a block, which is rendered as the short tag (`ToolCallResultContent.withDocumentsAsReferences`).
+`DocumentExpander.expand` expands it before a request is built (see §6): in a user message to the tag text and, with the
+delivery `content`, the document content; in a tool result to the tag text of the document. Only the agent sets the block.
+
+`DocumentContent` and `AgentDocumentContent` follow one rule: a new document is a `DocumentContent` (the live document of
+the connector SDK), at the input boundaries (the user prompt, events, the results of process tools, a runtime tool that
+returns a new document), everywhere for an `Untracked` instance, and as the only document block a provider sees after the
+expansion; a known document is an `AgentDocumentContent`. The content for the model comes only from the agent, through
+the delivery, never from a block a tool authors. An `AgentDocumentContent` never reaches a provider: every provider
+content converter fails with an `UnexpandedAgentDocumentException` (an `IllegalStateException`, in
+`aiagent.chatmodel.provider`) when it is handed one. The delivery is stored on each block, so earlier messages keep their
+bytes when the same document gets another delivery later (prompt caching).
 
 **Backward compatibility (Camunda 8.9):** before `ToolCallResultContent` existed, a persisted tool
 call result was the flat `ToolCallResult` shape — `content` was a raw scalar/object/array and any
@@ -456,14 +473,13 @@ invocation and transformed through copy-on-write methods.
 - `ingest(assistantMessage, tokenUsage)`: completes the pending turn, recording per-turn metrics
   (1 model call, the token usage, and the tool-call count).
 - `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
-- `window(int size, UnaryOperator<List<Message>> decorator)`: applies `MessageWindowFilter.apply(allMessages(), size)`,
-  passes the windowed messages through `decorator` and returns a read-only `ConversationSnapshot`.
-  `DocumentExpander.windowDecorator(conversation)` is the decorator of the request handler.
-- `persistedContext()` / `withPersistedContext(context)`: the base `AgentContext` without the metrics and iteration
-  bookkeeping that `toAgentContext()` adds, and a copy built on a changed one (the documents registered after a round of
-  local tool calls); it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages)` opens the next round of the job
-  with the tool call results of the local tool calls, and the messages that follow them, as its input.
-  `documentWorkspace()` is the workspace of the persisted context.
+- `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a read-only
+  `ConversationSnapshot`. The request handler hands the snapshot to `DocumentExpander.expand(snapshot, documentHandling)`
+  before the model is called.
+- `persistedContext()`: the base `AgentContext` without the metrics and iteration bookkeeping that `toAgentContext()`
+  adds; it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages, agentContext)` opens the next round of the
+  job with the tool call results of the local tool calls, and the messages that follow them, as its input, and continues
+  with the given context, the persisted context with the documents of the input registered (`TurnInput.applyTo`).
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
   `AgentContext.metrics` by the current turn's delta and, once the current turn has been `ingest`ed,
   stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).
@@ -499,18 +515,18 @@ detection described above.
 
 `ConversationSnapshot` (record, `...aiagent.api.conversation`) is the transient, windowed, read-only view sent
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. For an agent instance with the
-`documents` feature the window decorator (`DocumentExpander.windowDecorator`) expands the document references
-(`DocumentReferenceContent`, a typed content block with the delivery `reference` or `content`) with the document workspace
+`documents` feature `DocumentExpander.expand` expands the document blocks
+(`AgentDocumentContent`, a typed content block with the delivery `reference` or `content`) with the agent documents
 (see "Document Extraction from Tool Call Results" in §19).
-The stored messages hold the document reference only. In a user message a reference becomes its tag text as a
-`TextContent` and, for the delivery `content`, the `DocumentContent` read from the workspace after it. In a tool result a
-top-level reference becomes the short tag as a `TextContent`, and a document nested in an object becomes its tag string
-inside the object, so the model providers have no document specific code for tool results. A reference whose document
-the workspace does not know stays its tag text, and the expansion never fails the request. The result depends only on the
-messages and the workspace, so the request bytes are stable across requests (prompt caching). For an agent instance
-without the `documents` feature the decorator is the identity: the messages are left as they are and a `Document` in a
-tool result is serialized as its Camunda reference JSON. No provider receives a document inside a tool result, so the
-content of a document reaches the model only in a user message. The content of a document stays in every request until
+The stored messages hold the document block only. In a user message a block becomes its tag text as a
+`TextContent` and, for the delivery `content`, the `DocumentContent` restored from the agent document after it. In a tool
+result a top-level block becomes the short tag as a `TextContent`, and a document nested in an object becomes its tag
+string inside the object, so the model providers have no document specific code for tool results. A block whose document
+the agent does not know stays its tag text, and the expansion never fails the request. The result depends only on the
+messages and the agent documents, so the request bytes are stable across requests (prompt caching). For an agent instance
+that does not track its documents (`Untracked`) the expander returns the snapshot as it is: the messages are left as they
+are and a `Document` in a tool result is serialized as its Camunda reference JSON. No provider receives a document inside a
+tool result, so the content of a document reaches the model only in a user message. The content of a document stays in every request until
 the message that holds it leaves the window; there is no removal.
 
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
@@ -1109,7 +1125,7 @@ Events create their payload in `toolCallResult`:
 `ChatModel` (`aiagent/api/chatmodel/ChatModel.java`) is the provider SPI: an `AutoCloseable` exposing a
 single `ChatResult execute(ChatRequest request)`. `ChatRequest` bundles the `AgentExecutionContext` and
 the windowed `ConversationSnapshot` (`BaseAgentRequestHandler` builds the snapshot via
-`conversation.window(configuration.contextWindowSize(), documentExpander.windowDecorator(conversation))`). `ChatResult` is a sealed `Completed |
+`documentExpander.expand(conversation.window(configuration.contextWindowSize()), documentHandling)`). `ChatResult` is a sealed `Completed |
 Continuation`, each carrying the produced `AssistantMessage` and `AgentMetrics` for that one round-trip:
 - **`Completed`** — the round-trip finished the agent's turn; no further model call is needed for it.
 - **`Continuation`** — the provider paused mid-turn (e.g. Anthropic's `pause_turn` stop reason) and
@@ -1316,8 +1332,9 @@ on).
 | `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`        | `MODEL_RESPONSE_GUARDRAIL_INTERVENED`          | provider blocked the model response with a guardrail policy             |
 | `ERROR_CODE_MIGRATION_MISSING_TOOLS`                    | `MIGRATION_MISSING_TOOLS`                      | existing tools were removed after a process migration                   |
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
-| `ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE`                  | `INLINE_DOCUMENT_TOO_LARGE`                    | a document with inline content (a reference that holds its content) has more than 1 MiB of content (`DocumentIngestion.MAX_INLINE_CONTENT_LENGTH`, characters of base64 or text) when it enters the document workspace; Camunda and external documents are unaffected |
-| `ERROR_CODE_DOCUMENT_ID_COLLISION`                      | `DOCUMENT_ID_COLLISION`                        | a document gets the id of a different document the document workspace already holds (the ids are derived from the identity key of the document, so this needs a hash collision of the 48 bit id) |
+| `ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE`                  | `INLINE_DOCUMENT_TOO_LARGE`                    | a document with inline content (a reference that holds its content) has more than 1 MiB of content (`AgentDocuments.MAX_INLINE_CONTENT_LENGTH`, characters of base64 or text) when it enters the agent documents; Camunda and external documents are unaffected |
+| `ERROR_CODE_DOCUMENT_ID_COLLISION`                      | `DOCUMENT_ID_COLLISION`                        | a document gets the id of a different document the agent already knows or one registered with it (the ids are derived from the identity key of the document, so this needs a hash collision of the 48 bit id) |
+| `ERROR_CODE_UNSUPPORTED_DOCUMENT_REFERENCE`             | `UNSUPPORTED_DOCUMENT_REFERENCE`               | the reference of a document is not a Camunda reference, an external reference or an inline reference with content, so the agent cannot derive an id |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
 | `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`                 | `RUNTIME_TOOL_NAME_CONFLICT`                   | a tool of the process of an agent instance with the `runtimeTools` feature has the name of an enabled runtime tool |
@@ -1460,7 +1477,7 @@ instance itself, so its key is invariant.
 - `InProcessConversationSession.loadMessages()` / `storeMessages()` → In-process persistence
 - `CamundaDocumentConversationSession.loadMessages()` / `storeMessages()` → Document persistence
 - `MessageWindowFilter.apply()` → Context window sliding (called by `AgentConversation.window()`)
-- `DocumentExpander.windowDecorator()` → expansion of document references (the decorator `AgentConversation.window()` is given)
+- `DocumentExpander.expand()` → expansion of document blocks (applied to the snapshot `AgentConversation.window()` returns)
 
 ### Tool Resolution
 - `AgentToolsResolverImpl.loadAdHocToolsSchema()` → Tool schema loading
@@ -1659,9 +1676,9 @@ classDiagram
 The e2e modules, their test base classes and how to run them are described in the
 [e2e tests `AGENTS.md`](../../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md).
 
-The document workspace is covered by unit tests, each rule where it lives: the workspace and its entries, the document
-reference block and the tags rendered from the workspace, the composer and `ToolCallResultsInputBuilder` (document references, origins, the merge of runtime and
-process results in call order), the expander and the window decorator, the runtime tool executor and the request handler
+The agent documents are covered by unit tests, each rule where it lives: `AgentDocumentId`, `AgentDocument` and `AgentDocuments`, the
+document block and the tags rendered from the agent documents, the composer and `ToolCallResultsInputBuilder` (document blocks, origins, the merge of runtime and
+process results in call order), the expander and the window, the runtime tool executor and the request handler
 with a test-only tool that returns a document, the history mapper, and the persistence round trips. A conversation persisted by Camunda
 8.10 pins the behavior of instances without the `documents` feature.
 
@@ -1811,7 +1828,7 @@ These are used during discovery checking and tool call result transformation.
 Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
 embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent extracts those documents, and
 what it does with them depends on the agent instance. For an instance with the `documents` feature the documents are
-references in the conversation: the agent registers them in the document workspace of the `agentContext`, and the tool
+references in the conversation: the agent registers them in the agent documents of the `agentContext`, and the tool
 result shows each document as its tag, a `<doc .../>` tag, not its content. An instance without the feature keeps the
 behavior of [ADR-004](../adr/004-document-handling-in-tool-call-results.md): the documents go into a synthetic follow-up
 `UserMessage` with native `DocumentContent` blocks so LLMs can interpret them. Design rationale:
@@ -1823,14 +1840,14 @@ of the message ran, in the order of the calls and together with the documents of
 call that failed has none.
 
 **The tag.** `<doc id="..." fileName="..." contentType="..." size="..." source="..." toolName="..." toolCallId="..." />`,
-attributes in that order, XML-escaped, blank or unknown attributes omitted. `DocumentTags` renders it from the workspace
-document of the id: the file name, content type and size are read from its stored reference, never by reading the
-document, and an id the workspace does not know is rendered as `<doc id="..." />`. `fileName` is the Camunda metadata file
+attributes in that order, XML-escaped, blank or unknown attributes omitted. `DocumentTags` renders it from the agent
+document of the id: the file name, content type and size are read from its reference, never by reading the
+document, and an id the agent does not know is rendered as `<doc id="..." />`. `fileName` is the Camunda metadata file
 name, the external reference `name` or the inline `name`; it is omitted when it equals the Camunda document id of the
 reference (what a document stored without a name gets). `contentType` comes from
 the Camunda metadata or the `contentType` of an inline reference and is omitted for external documents (their metadata is
 available only after a download). `size` is the number of bytes, present for a Camunda document whose reference
-metadata carries one. The long tag, for a user message and the documents of an event, adds the origin of the workspace
+metadata carries one. The long tag, for a user message and the documents of an event, adds the origin of the agent
 document: `toolName` and `toolCallId` for a document of a tool result, `source="user_message"` or `source="event"` for
 the others. A store id, a content hash and a URL
 are never part of the tag. A document that is a whole tool
@@ -1838,10 +1855,11 @@ result, and a document nested in the object of a result, shows the short tag wit
 `toolCallId`.
 
 The id is `doc_` followed by the first 12 lowercase hex characters of the SHA-256 of the identity key of the document
-(`DocumentHandle.idFor`). The identity key is, per kind of reference, `camunda`, the store id and the document id; `external`
+(`AgentDocumentId.of`). The identity key is, per kind of reference, `camunda`, the store id and the document id; `external`
 and the URL; `inline` and the content. It is hashed as the concatenation of its parts, each as a 4-byte big-endian length
-and its UTF-8 bytes. The content hash and the metadata are not part of it, so the same document always gets the same id. Any
-other kind of reference, or an inline reference with blank content, fails with `FAILED_MODEL_CALL`. The id never exposes
+and its UTF-8 bytes. The content hash and the metadata are not part of it, so the same document always gets the same id. An
+absent part is hashed as such, never as the text `null`. Any other kind of reference, or an inline reference with blank
+content, fails with `UNSUPPORTED_DOCUMENT_REFERENCE`. The id never exposes
 a store id, the id of the document in its store or a URL.
 
 **The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
@@ -1849,9 +1867,9 @@ document goes out with the prompt, with no size limit and no type check, and a d
 model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
 
 A document with inline content (a reference that holds the content itself, as opposed to a Camunda or an external
-document) is registered only if its content has at most 1 MiB (`DocumentIngestion.MAX_INLINE_CONTENT_LENGTH`,
+document) is registered only if its content has at most 1 MiB (`AgentDocuments.MAX_INLINE_CONTENT_LENGTH`,
 counted in characters of the base64 or text content). A larger one fails the job with the error code
-`INLINE_DOCUMENT_TOO_LARGE`, because the content would be held in the workspace and in the tool result, which together can
+`INLINE_DOCUMENT_TOO_LARGE`, because the content would be held in the agent documents and in the tool result, which together can
 exceed the message size limit of the broker; the message names the document, its size and the limit and asks to return the
 file as a Camunda document instead.
 
@@ -1862,7 +1880,7 @@ file as a Camunda document instead.
   user message with a preamble, then per document the tag in the older attribute format
   (`LegacyDocumentReferenceXmlTag`: `toolName`, `toolCallId`, `documentId`, `storeId`, `contentType`, `fileName`, or `url`
   and `name` for an external document) and the `DocumentContent`, as in ADR-004. Nothing is registered.
-- `documents` stays empty; the window expands nothing, and a `Document` in a tool result renders as its reference JSON.
+- `documents` stays empty; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
 - Without the `runtimeTools` feature there are no runtime tools, no mixed-batch handling and no tool name check (§25.4).
 - The history reports the messages as stored.
 
@@ -2021,8 +2039,8 @@ lease-fenced `update()` mechanism).
 ### Conversation history items
 
 - A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
-  document-reference messages). The document references of a user message are reported as their tag in backticks and the
-  document from the workspace (`DocumentExpander`) as a `DOCUMENT` block (an `OBJECT` block for an external reference), so
+  document messages). The document blocks of a user message are reported as their tag in backticks and the
+  document restored from the agent documents as a `DOCUMENT` block (an `OBJECT` block for an external reference), so
   the history shows at least what the model receives. A message of an agent instance without the `documents` feature is
   reported as stored.
 - A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
@@ -2038,9 +2056,9 @@ lease-fenced `update()` mechanism).
   is, also when it holds a tag; the persisted messages and the text the model reads are not changed. A tool result that is
   a document, or an object with documents in it (replaced by their tags, the documents follow it), is reported block by
   block; an inline document of a tool result has its tag only, and an inline document of a user message cannot be mapped.
-  `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `AgentContext`: its features decide what the
-  history shows and its document workspace is what the tags are expanded with. An agent instance without the `documents`
-  feature reports texts as they are.
+  `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `DocumentHandling` of the agent instance: it
+  decides what the history shows, and the agent documents of a `Tracked` instance are what the tags are expanded with. An
+  `Untracked` agent instance reports texts as they are.
 - An `ASSISTANT` item's content blocks preserve the order the model produced them in because
   `AgentInstanceHistoryMapper.assistantContent` maps the source list directly. An assistant message
   with neither text/object/etc.
@@ -2104,7 +2122,7 @@ The tool list of a `CONFIGURATION` item holds the process tools plus the enabled
 (`AgentConfiguration.toolDefinitions()`); the configuration fingerprint covers them.
 
 Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text),
-`DocumentReferenceContent` → the text of its tag, and
+`AgentDocumentContent` → the text of its tag, and
 `DocumentContent` → a Camunda document reference block. External document references currently fall
 back to an object/text block (see follow-ups). `ReasoningContent` maps to a tagged object containing
 `camunda.agenticai.content.type`, optional `text`, and `payload`; `provider` and `metadata` are not
