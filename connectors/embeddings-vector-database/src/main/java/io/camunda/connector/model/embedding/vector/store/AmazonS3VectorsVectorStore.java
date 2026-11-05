@@ -27,6 +27,7 @@ public record AmazonS3VectorsVectorStore(@Valid @NotNull Configuration amazonS3V
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Access key",
+              secret = true,
               tooltip =
                   "IAM access key of a user allowed to call s3vectors:GetIndex, PutVectors,"
                       + " QueryVectors and GetVectors, plus CreateIndex if the connector should"
@@ -36,6 +37,7 @@ public record AmazonS3VectorsVectorStore(@Valid @NotNull Configuration amazonS3V
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Secret key",
+              secret = true,
               tooltip = "Secret key associated with the access key")
           String secretKey,
       @NotBlank

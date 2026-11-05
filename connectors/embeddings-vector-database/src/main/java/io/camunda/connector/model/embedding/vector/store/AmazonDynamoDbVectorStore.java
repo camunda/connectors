@@ -32,6 +32,7 @@ public record AmazonDynamoDbVectorStore(@Valid @NotNull Configuration amazonDyna
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Access key",
+              secret = true,
               tooltip =
                   "IAM access key of a user allowed to call dynamodb:DescribeTable, BatchWriteItem"
                       + " and SearchVectors, plus CreateTable if the connector should create the"
@@ -41,6 +42,7 @@ public record AmazonDynamoDbVectorStore(@Valid @NotNull Configuration amazonDyna
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Secret key",
+              secret = true,
               tooltip = "Secret key associated with the access key")
           String secretKey,
       @NotBlank

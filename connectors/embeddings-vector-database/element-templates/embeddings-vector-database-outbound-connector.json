@@ -938,7 +938,8 @@
       "type" : "simple"
     },
     "tooltip" : "IAM access key of a user allowed to call dynamodb:DescribeTable, BatchWriteItem and SearchVectors, plus CreateTable if the connector should create the table",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.amazonDynamoDb.secretKey",
     "label" : "Secret key",
@@ -958,7 +959,8 @@
       "type" : "simple"
     },
     "tooltip" : "Secret key associated with the access key",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.amazonDynamoDb.region",
     "label" : "Region",
@@ -1150,7 +1152,8 @@
       "type" : "simple"
     },
     "tooltip" : "IAM access key of a user allowed to call s3vectors:GetIndex, PutVectors, QueryVectors and GetVectors, plus CreateIndex if the connector should create the index",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.amazonS3Vectors.secretKey",
     "label" : "Secret key",
@@ -1170,7 +1173,8 @@
       "type" : "simple"
     },
     "tooltip" : "Secret key associated with the access key",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.amazonS3Vectors.region",
     "label" : "Region",
