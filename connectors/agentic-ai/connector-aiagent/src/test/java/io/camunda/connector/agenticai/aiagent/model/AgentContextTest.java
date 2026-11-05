@@ -464,8 +464,8 @@ class AgentContextTest {
                 InProcessConversationContext.builder("test-conversation").build(),
                 AgentDocuments.empty(),
                 List.of(),
-                List.of(),
-                Map.of()))
+                Map.of(),
+                List.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }
