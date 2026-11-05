@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SY
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -25,12 +26,12 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
+import io.camunda.connector.agenticai.aiagent.model.document.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -185,6 +186,20 @@ class AgentResponseHandlerDocumentsTest {
             .ingest(assistantMessage("done"), AgentMetrics.empty());
 
     assertThat(createResponse(conversation).responseDocuments()).isEmpty();
+  }
+
+  @Test
+  void aResponseDocumentThatIsNotInTheAgentDocumentsIsAnInvariantViolation() {
+    final var conversation =
+        conversation(
+            responseDocuments(
+                new ResponseDocumentSelection("gone", AgentDocumentId.of("gone"), null),
+                new ResponseDocumentSelection("report", reportId, null)),
+            assistantMessage("done"));
+
+    assertThatThrownBy(() -> createResponse(conversation))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("'gone'");
   }
 
   /** The document reference in the JSON format it is persisted in. */
