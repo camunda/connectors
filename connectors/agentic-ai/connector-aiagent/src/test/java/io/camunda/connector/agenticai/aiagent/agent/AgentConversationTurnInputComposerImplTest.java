@@ -980,9 +980,21 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   private static ToolCallBatch.Entry loadingEntry(AgentDocumentId id) {
-    final var result = RuntimeToolResult.success("Loaded the document.").withDocumentContent(id);
-    final var execution = new RuntimeToolExecution(MIXED_CALLS.getFirst(), result, NOW, NOW);
-    return ToolCallBatch.Entry.from(execution.toolCallResult(), result.effects());
+    final var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
+            NOW,
+            NOW);
+    return entryOf(execution);
+  }
+
+  private static ToolCallBatch.Entry entryOf(RuntimeToolExecution execution) {
+    return switch (execution.result()) {
+      case RuntimeToolResult.Success success ->
+          ToolCallBatch.Entry.from(execution.toolCallResult(), success.effects());
+      case RuntimeToolResult.Error ignored -> ToolCallBatch.Entry.from(execution.toolCallResult());
+    };
   }
 
   @Test
@@ -1227,76 +1239,75 @@ class AgentConversationTurnInputComposerImplTest {
   void runtimeToolCalls_aResultThatSelectsAResponseDocumentIsAppliedToTheContextOfTheNextTurn() {
     var document = createDocument("first", "text/plain", "first.txt");
     var id = DocumentHandle.idFor(document);
-    var context =
-        CTX_WITH_CONVERSATION.withDocumentWorkspace(
-            DocumentIngestion.withDocuments(
-                DocumentWorkspace.empty(),
-                List.of(new IngestedDocument(document, DocumentOrigin.userMessage()))));
-    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var context = contextKnowing(document);
     var execution =
         new RuntimeToolExecution(
             MIXED_CALLS.getFirst(),
             RuntimeToolResult.success("Returned the document.")
                 .withResponseDocument("report", id, "The report"),
-            now,
-            now);
+            NOW,
+            NOW);
+    var ready =
+        resolveReady(
+            CONFIG, context, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
 
-    var result =
-        composer.composeWithLocalToolCallResults(
-            CONFIG,
-            context,
-            historyWith(MIXED_CALLS),
-            inputWith(TOOL_CALL_RESULTS.get(1)),
-            List.of(execution));
+    var input =
+        composer.assemble(
+            ready.withResults(List.of(entryOf(execution))), TestDocuments.documentFactory());
 
-    var nextTurn = (CompositionResult.NextTurn) result;
-    assertThat(nextTurn.agentContext().responseDocuments())
+    assertThat(input.responseDocuments())
         .containsExactly(new ResponseDocumentSelection("report", id, "The report"));
-    assertThat(nextTurn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    var applied = input.applyTo(context);
+    assertThat(applied.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("report", id, "The report"));
     // nothing but the response documents differs from the context the composer was given
-    assertThat(nextTurn.agentContext().withResponseDocuments(List.of())).isEqualTo(context);
+    assertThat(applied.withResponseDocuments(List.of())).isEqualTo(context);
   }
 
   @Test
   void runtimeToolCalls_aResultThatReturnsADocumentCanSelectItInTheSameResult() {
     var document = createDocument("created", "text/plain", "created.txt");
     var id = DocumentHandle.idFor(document);
-    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var context = CTX_WITH_CONVERSATION.withFeatures(List.of(AgentFeatures.DOCUMENTS));
     var execution =
         new RuntimeToolExecution(
             MIXED_CALLS.getFirst(),
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(document)))
                 .withResponseDocument("created", id, null),
-            now,
-            now);
+            NOW,
+            NOW);
+    var ready =
+        resolveReady(
+            CONFIG, context, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
 
-    var result =
-        composer.composeWithLocalToolCallResults(
-            CONFIG,
-            CTX_WITH_CONVERSATION.withFeatures(List.of(AgentFeatures.DOCUMENTS)),
-            historyWith(MIXED_CALLS),
-            inputWith(TOOL_CALL_RESULTS.get(1)),
-            List.of(execution));
+    var input =
+        composer.assemble(
+            ready.withResults(List.of(entryOf(execution))), TestDocuments.documentFactory());
 
-    var nextTurn = (CompositionResult.NextTurn) result;
-    assertThat(nextTurn.documents())
+    assertThat(input.documents())
         .containsExactly(
             new IngestedDocument(document, DocumentOrigin.toolCall("getWeather", "abcdef")));
-    assertThat(nextTurn.agentContext().responseDocuments())
+    assertThat(input.responseDocuments())
         .containsExactly(new ResponseDocumentSelection("created", id, null));
+    var applied = input.applyTo(context);
+    assertThat(applied.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("created", id, null));
+    assertThat(applied.documentWorkspace().findById(id)).isPresent();
   }
 
   @Test
   void aTurnWithoutRuntimeToolResultsContinuesWithTheContextItWasGiven() {
-    var result =
-        composer.compose(
-            CONFIG,
-            CTX_WITH_CONVERSATION,
-            historyWith(TOOL_CALLS),
-            inputWith(TOOL_CALL_RESULTS.toArray(ToolCallResult[]::new)));
+    var input =
+        inputOf(
+            composer.resolve(
+                CONFIG,
+                CTX_WITH_CONVERSATION,
+                historyWith(TOOL_CALLS),
+                inputWith(TOOL_CALL_RESULTS.toArray(ToolCallResult[]::new))));
 
-    assertThat(((CompositionResult.NextTurn) result).agentContext())
-        .isEqualTo(CTX_WITH_CONVERSATION);
+    assertThat(input.responseDocuments()).isEmpty();
+    assertThat(input.applyTo(CTX_WITH_CONVERSATION)).isEqualTo(CTX_WITH_CONVERSATION);
   }
 
   @Test
