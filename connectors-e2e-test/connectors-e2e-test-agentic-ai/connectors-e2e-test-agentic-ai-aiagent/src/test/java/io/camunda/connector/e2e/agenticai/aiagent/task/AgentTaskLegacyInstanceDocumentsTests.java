@@ -40,8 +40,8 @@ import org.junit.jupiter.api.Test;
  * An agent instance that was created before the documents feature (its agent context carries no
  * features) keeps the document handling it was created with: documents as bare content, the tool
  * result documents as the reference JSON followed by a tag in the older attribute format and the
- * content, no {@code <doc id/>} tags, no workspace and no built-in tools. The expectations are the
- * wire format of Camunda 8.10.
+ * content, no {@code <doc id/>} tags, no agent documents and no built-in tools. The expectations
+ * are the wire format of Camunda 8.10.
  */
 @SlowTest
 public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
@@ -107,9 +107,9 @@ public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
               .isReady()
               .hasNoToolCalls()
               .hasResponseText(responseText);
-          // the instance never gets features or a workspace
+          // the instance never gets features or agent documents
           assertThat(agentResponse.context().features()).isEmpty();
-          assertThat(agentResponse.context().documents()).isEmpty();
+          assertThat(agentResponse.context().documents().all()).isEmpty();
         });
   }
 
@@ -172,7 +172,7 @@ public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
               .hasNoToolCalls()
               .hasResponseText(aiFinalResponseText);
           assertThat(agentResponse.context().features()).isEmpty();
-          assertThat(agentResponse.context().documents()).isEmpty();
+          assertThat(agentResponse.context().documents().all()).isEmpty();
         });
   }
 

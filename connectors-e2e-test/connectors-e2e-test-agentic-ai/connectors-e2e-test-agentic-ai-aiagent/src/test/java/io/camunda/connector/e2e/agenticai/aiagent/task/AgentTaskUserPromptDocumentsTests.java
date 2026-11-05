@@ -35,10 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/**
- * The documents of the user prompt of a template without a document delivery: the model gets the
- * tag and the content of every document.
- */
+/** The documents of the user prompt: the model gets the tag and the content of every document. */
 @SlowTest
 public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
 

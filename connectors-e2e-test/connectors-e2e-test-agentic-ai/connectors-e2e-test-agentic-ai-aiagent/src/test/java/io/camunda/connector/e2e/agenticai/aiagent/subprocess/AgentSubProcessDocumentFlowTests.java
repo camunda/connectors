@@ -40,7 +40,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
+import io.camunda.connector.agenticai.aiagent.document.ProviderToolDefinitions;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -93,7 +93,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(document.has("format")).isFalse();
     assertThat(document.path("description").asText())
         .startsWith("The document to upload.")
-        .endsWith(DocumentParameterSchema.HINT);
+        .endsWith(ProviderToolDefinitions.HINT);
     assertThat(parameters.path("required")).extracting(n -> n.asText()).contains("document");
 
     // the persisted tool definition keeps the format and the description as authored: the hint is
@@ -109,7 +109,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           assertThat(upload.inputSchema().toString())
               .contains("format=camunda-document-id")
               .contains("description=The document to upload.")
-              .doesNotContain(DocumentParameterSchema.HINT);
+              .doesNotContain(ProviderToolDefinitions.HINT);
         });
 
     // the built-in tool is offered next to the tools of the process
