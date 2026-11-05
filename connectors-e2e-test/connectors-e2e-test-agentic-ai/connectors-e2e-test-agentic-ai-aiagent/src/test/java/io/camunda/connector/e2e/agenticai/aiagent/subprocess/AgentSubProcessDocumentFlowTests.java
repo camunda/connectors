@@ -172,8 +172,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
   /**
    * The document is downloaded in one job, passed to a tool in a later one and returned in the last
-   * one, so the workspace has to survive the job boundaries in every memory store. The history of
-   * the agent instance shows the tag of the document in the arguments of both calls.
+   * one, so the agent documents have to survive the job boundaries in every memory store. The
+   * history of the agent instance shows the tag of the document in the arguments of both calls.
    */
   @ParameterizedTest(name = "{0} memory")
   @MethodSource("memoryStores")

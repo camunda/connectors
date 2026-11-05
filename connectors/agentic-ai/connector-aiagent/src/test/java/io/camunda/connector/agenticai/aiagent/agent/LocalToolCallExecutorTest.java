@@ -222,6 +222,52 @@ class LocalToolCallExecutorTest {
 
   @Test
   void aSelectionOfAnUnknownDocumentIsADefectOfTheTool() {
+    var unknown = AgentDocumentId.of("unknown");
+    when(runtimeTools.execute(
+            executionContext, AGENT_CONTEXT_WITH_DOCUMENT, Set.of(), List.of(RUNTIME_CALL)))
+        .thenReturn(
+            List.of(
+                runtimeExecution(
+                    RuntimeToolResult.success("a").withResponseDocument("k", unknown, null))));
+
+    assertThatThrownBy(() ->
+            executor.execute(
+                executionContext, AGENT_CONTEXT_WITH_DOCUMENT, Set.of(), List.of(RUNTIME_CALL)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'getWeather' refers to the document '%s', which the agent does not know and the result does not return"
+                .formatted(unknown));
+  }
+
+  @Test
+  void aCallNeverSelectsADocumentAnotherCallReturned() {
+    var returned = createDocument("returned", "returned.txt");
+    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var returning =
+        new RuntimeToolExecution(
+            RUNTIME_CALL,
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned))),
+            now,
+            now);
+    var selecting =
+        new RuntimeToolExecution(
+            SECOND_RUNTIME_CALL,
+            RuntimeToolResult.success("a")
+                .withResponseDocument("k", AgentDocumentId.of(returned), null),
+            now,
+            now);
+    var calls = List.of(RUNTIME_CALL, SECOND_RUNTIME_CALL);
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), calls))
+        .thenReturn(List.of(returning, selecting));
+
+    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, Set.of(), calls))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("'getDateTime'")
+        .hasMessageContaining(AgentDocumentId.of(returned).value());
+  }
+
+  @Test
+  void anAgentWithoutDocumentsKnowsNoDocumentToSelect() {
     when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
         .thenReturn(
             List.of(
@@ -231,9 +277,7 @@ class LocalToolCallExecutorTest {
     assertThatThrownBy(() ->
             executor.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "The runtime tool 'getWeather' refers to the document '%s', which the agent does not know and the result does not return"
-                .formatted(KNOWN_ID));
+        .hasMessageContaining("which the agent does not know");
   }
 
   @Test
