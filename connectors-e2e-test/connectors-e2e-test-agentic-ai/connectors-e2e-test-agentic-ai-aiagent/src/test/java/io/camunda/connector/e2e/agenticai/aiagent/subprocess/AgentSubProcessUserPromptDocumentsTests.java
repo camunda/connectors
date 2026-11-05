@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
@@ -138,8 +139,8 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
         parseDocumentHandle(messages.get(1).contentParts().get(1).path("text").asText());
     assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
     assertThat(messages.get(3).content())
-        .startsWith("Loaded the document.\n<doc id=\"" + promptTag.id() + "\"")
-        .endsWith(" />\nIts content follows in the next message.");
+        .startsWith("Requested the content of the document.\n<doc id=\"" + promptTag.id() + "\"")
+        .endsWith(" />\nIt follows in the next message, or a note says why it cannot be loaded.");
 
     assertDocumentContentUserMessage(
         messages.get(4),
@@ -210,8 +211,9 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
   }
 
   /**
-   * The model asks to load a document of a type outside the allowlist: the tool answers with an
-   * error before loading it, no incident is raised and the conversation continues.
+   * The model asks to load a document of a type outside the allowlist: the tool result stays as it
+   * is, a note in the message that follows says why the document is not loaded, no incident is
+   * raised and the conversation continues.
    */
   @Test
   void rejectsLoadingADocumentOfATypeThatIsNotSupported() throws Exception {
@@ -236,15 +238,20 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
-    // the error is the tool result; no message with the content of the document follows
+    // the note follows the tool result; no content of the document is sent
     final var messages = recorded.lastRequest().messages();
     assertThat(messages)
         .extracting(m -> m.role())
-        .containsExactly("system", "user", "assistant", "tool");
+        .containsExactly("system", "user", "assistant", "tool", "user");
+    final var promptTag =
+        parseDocumentTag(messages.get(1).contentParts().get(1).path("text").asText());
     assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
-    assertThat(messages.get(3).content())
+    assertThat(messages.get(3).content()).startsWith("Requested the content of the document.");
+    assertThat(messages.get(4).textContent())
         .isEqualTo(
-            "The document is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it.");
+            DOCUMENT_CONTENT_PREAMBLE
+                + "The document %s is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."
+                    .formatted(promptTag.id()));
 
     assertAgentResponse(
         zeebeTest,

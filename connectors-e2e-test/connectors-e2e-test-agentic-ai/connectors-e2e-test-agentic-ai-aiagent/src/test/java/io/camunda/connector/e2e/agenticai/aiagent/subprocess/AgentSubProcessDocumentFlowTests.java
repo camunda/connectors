@@ -46,6 +46,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.un
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadCount;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
@@ -369,7 +370,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .containsExactly("system", "user", "assistant", "tool", "user");
     final var tag = parseDocumentTag(afterDownload.get(3).content());
     assertThat(afterDownload.get(4).textContent())
-        .startsWith("The document %s ".formatted(tag.id()))
+        .startsWith(DOCUMENT_CONTENT_PREAMBLE + "The document %s ".formatted(tag.id()))
         .endsWith("pass its tag to a tool that processes it.");
     assertThat(OpenAiCompletionsRecordedConversation.recordedRawBodies())
         .noneMatch(body -> body.contains(LARGE_FILE_MARKER));
