@@ -20,8 +20,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -86,11 +86,11 @@ class LocalToolCallExecutorTest {
 
   @Test
   void passesTheIdsOfTheDocumentsWithContentOnAndKeepsTheDocumentContentOfAResult() {
-    var withContent = Set.of(DocumentId.of("known"));
+    var withContent = Set.of(AgentDocumentId.of("known"));
     var execution =
         new RuntimeToolExecution(
             RUNTIME_CALL,
-            RuntimeToolResult.success("loaded").withDocumentContent(DocumentId.of("known")),
+            RuntimeToolResult.success("loaded").withDocumentContent(AgentDocumentId.of("known")),
             OffsetDateTime.parse("2026-10-05T10:00:00Z"),
             OffsetDateTime.parse("2026-10-05T10:00:00Z"));
     when(runtimeTools.execute(executionContext, AGENT_CONTEXT, withContent, List.of(RUNTIME_CALL)))
@@ -103,7 +103,7 @@ class LocalToolCallExecutorTest {
         .singleElement()
         .satisfies(entry -> {
           assertThat(entry.result()).isEqualTo(execution.toolCallResult());
-          assertThat(entry.documentContent()).containsExactly(DocumentId.of("known"));
+          assertThat(entry.documentContent()).containsExactly(AgentDocumentId.of("known"));
         });
   }
 

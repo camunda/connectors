@@ -19,19 +19,21 @@ import io.camunda.connector.agenticai.aiagent.agent.TurnInput;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -40,6 +42,9 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContextImp
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
@@ -49,7 +54,6 @@ import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,10 +75,16 @@ class GetDocumentToolTest {
 
   private final ObjectMapper objectMapper = objectMapperFor(InMemoryDocumentStore.INSTANCE);
   private final GetDocumentTool tool = new GetDocumentTool();
-  private final RuntimeTools runtimeTools = new RuntimeTools(List.of(tool), objectMapper);
+  private final RuntimeTools runtimeTools =
+      new RuntimeTools(
+          List.of(tool),
+          objectMapper,
+          new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
+          new DocumentParameterResolver());
   private final ToolCallResultsInputBuilder inputBuilder =
       new ToolCallResultsInputBuilder(
-          new DocumentContentGuard(DocumentContentLimits.defaults()), objectMapper);
+          new DocumentContentGuard(DocumentContentLimits.defaults()),
+          TestDocuments.documentRestorer());
 
   private static ObjectMapper objectMapperFor(CamundaDocumentStore store) {
     final var copy = ConnectorsObjectMapperSupplier.getCopy();
@@ -87,39 +97,34 @@ class GetDocumentToolTest {
         new JacksonModuleDocumentSerializer());
   }
 
-  private static WorkspaceDocument camundaEntry(
-      String id, String contentType, @Nullable Long size) {
-    final var metadata = new LinkedHashMap<String, Object>();
-    metadata.put("contentType", contentType);
-    metadata.put("fileName", id);
-    if (size != null) {
-      metadata.put("size", size);
-    }
-    final var reference = new LinkedHashMap<String, Object>();
-    reference.put("camunda.document.type", "camunda");
-    reference.put("storeId", "in-memory");
-    reference.put("documentId", id);
-    reference.put("metadata", metadata);
-    return new WorkspaceDocument(
-        DocumentId.of(id), AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID), reference);
+  private static AgentDocument camundaEntry(String id, String contentType, @Nullable Long size) {
+    final var reference =
+        new CamundaDocumentReferenceModel(
+            "in-memory",
+            id,
+            null,
+            new CamundaDocumentMetadataModel(contentType, null, size, id, null, null, null));
+    return new AgentDocument(
+        AgentDocumentId.of(id),
+        AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
+        reference);
   }
 
   /** A document that is a URL: nothing of it is known without downloading it. */
-  private static WorkspaceDocument externalEntry(String id) {
-    final var reference = new LinkedHashMap<String, Object>();
-    reference.put("camunda.document.type", "external");
-    reference.put("url", "https://files.example.com/" + id + "?token=secret");
-    reference.put("name", id + ".pdf");
-    return new WorkspaceDocument(
-        DocumentId.of(id), AgentDocumentOrigin.toolCall("search", "call-1"), reference);
+  private static AgentDocument externalEntry(String id) {
+    final var reference =
+        new ExternalDocumentReferenceModel(
+            "https://files.example.com/" + id + "?token=secret", id + ".pdf");
+    return new AgentDocument(
+        AgentDocumentId.of(id), AgentDocumentOrigin.toolCall("search", "call-1"), reference);
   }
 
-  private static DocumentReferenceContent referenceTo(WorkspaceDocument entry) {
-    return new DocumentReferenceContent(entry.id(), DocumentDelivery.REFERENCE, null);
+  private static AgentDocumentContent referenceTo(AgentDocument entry) {
+    return AgentDocumentContent.of(entry.id());
   }
 
   /** The answer of a load: the document as a reference block between two texts. */
-  private static List<Content> loadedAnswer(WorkspaceDocument entry) {
+  private static List<Content> loadedAnswer(AgentDocument entry) {
     return List.of(
         textContent("Loaded the document."),
         referenceTo(entry),
@@ -188,7 +193,7 @@ class GetDocumentToolTest {
     final var run = run(List.of(entry), Set.of(), call("1", "doc-1"));
 
     assertThat(run.executions().getFirst().result().documentContent())
-        .containsExactly(DocumentId.of("doc-1"));
+        .containsExactly(AgentDocumentId.of("doc-1"));
     assertThat(run.result().content()).isEqualTo(loadedAnswer(entry));
     assertThat(run.result().properties()).isEmpty();
     assertThat(run.addedContent())
@@ -235,7 +240,7 @@ class GetDocumentToolTest {
     final var run = run(List.of(entry), inConversation, call("1", "doc-1"));
 
     assertThat(run.executions().getFirst().result().documentContent())
-        .containsExactly(DocumentId.of("doc-1"));
+        .containsExactly(AgentDocumentId.of("doc-1"));
     assertThat(run.addedContent())
         .containsExactly(referenceTo(entry).withDelivery(DocumentDelivery.CONTENT));
   }
@@ -263,7 +268,7 @@ class GetDocumentToolTest {
 
   @Test
   void answersAnUnreadableDocumentOfUnknownSizeWithAnError() {
-    // the store holds no content for the document of the workspace
+    // the store holds no content for the document
     final var run =
         run(List.of(camundaEntry("doc-1", "text/plain", null)), Set.of(), call("1", "doc-1"));
 
@@ -274,7 +279,10 @@ class GetDocumentToolTest {
   @Test
   void answersAMissingIdWithAnErrorWithoutEffects() {
     final var context =
-        RuntimeToolContextImpl.of(withConfiguration(CONFIGURATION), WITH_DOCUMENTS, objectMapper);
+        RuntimeToolContextImpl.of(
+            withConfiguration(CONFIGURATION),
+            WITH_DOCUMENTS,
+            new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
     final var arguments =
         new RuntimeToolCallImpl("1", GetDocumentTool.NAME, Map.of(), objectMapper);
 
@@ -295,8 +303,8 @@ class GetDocumentToolTest {
         .withKind(ToolKind.RUNTIME);
   }
 
-  private Run run(List<WorkspaceDocument> entries, Set<DocumentId> idsWithContent, ToolCall call) {
-    final var agentContext = WITH_DOCUMENTS.withDocuments(entries);
+  private Run run(List<AgentDocument> entries, Set<AgentDocumentId> idsWithContent, ToolCall call) {
+    final var agentContext = WITH_DOCUMENTS.withDocuments(AgentDocuments.of(entries));
     final var executions =
         runtimeTools.execute(
             withConfiguration(CONFIGURATION), agentContext, idsWithContent, List.of(call));
