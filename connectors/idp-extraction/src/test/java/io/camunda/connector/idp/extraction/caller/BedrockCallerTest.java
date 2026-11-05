@@ -38,11 +38,11 @@ class BedrockCallerTest {
   void executeSuccessfulExtraction() {
     String expectedResponse =
         """
-                {
-                	"name": "John Smith",
-                	"age": 32
-                }
-                """;
+        {
+        	"name": "John Smith",
+        	"age": 32
+        }
+        """;
 
     when(bedrockRuntimeClient.converse(any(Consumer.class))).thenReturn(converseResponse);
     when(converseResponse.output().message().content().getFirst().text())

@@ -57,20 +57,18 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
     LOG.trace("Filtering only updated process definitions...");
     var replacedWithDifferentVersion =
         entries.stream()
-            .filter(
-                entry -> {
-                  var state = processStates.get(entry.getKey().bpmnProcessId());
-                  return state != null && state.version() != entry.getValue().version();
-                })
+            .filter(entry -> {
+              var state = processStates.get(entry.getKey().bpmnProcessId());
+              return state != null && state.version() != entry.getValue().version();
+            })
             .toList();
 
     LOG.trace("Filtering only deleted process definitions)");
     var deletedProcessIds =
         processStates.keySet().stream()
-            .filter(
-                processState ->
-                    processDefinitions.processDefinitionVersions().keySet().stream()
-                        .noneMatch(key -> key.bpmnProcessId().equals(processState)))
+            .filter(processState ->
+                processDefinitions.processDefinitionVersions().keySet().stream()
+                    .noneMatch(key -> key.bpmnProcessId().equals(processState)))
             .toList();
 
     logResult(newlyDeployed, replacedWithDifferentVersion, deletedProcessIds);

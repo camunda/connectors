@@ -49,14 +49,13 @@ public class BaseTest {
       throws IOException {
     var array = readData(fileWithTestCasesUri, ArrayList.class);
     return array.stream()
-        .map(
-            value -> {
-              try {
-                return mapper.writeValueAsString(value);
-              } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-              }
-            })
+        .map(value -> {
+          try {
+            return mapper.writeValueAsString(value);
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .map(Arguments::of);
   }
 }

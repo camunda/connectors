@@ -41,23 +41,21 @@ public class DocumentHandler {
     List<String> fileUrls =
         model.documents().stream()
             .filter(Objects::nonNull)
-            .map(
-                document -> {
-                  UploadSession uploadSession =
-                      getUploadSession(model.groupId(), document.metadata().getFileName());
-                  return uploadDocument(uploadSession, document);
-                })
+            .map(document -> {
+              UploadSession uploadSession =
+                  getUploadSession(model.groupId(), document.metadata().getFileName());
+              return uploadDocument(uploadSession, document);
+            })
             .filter(Objects::nonNull)
             .toList();
 
     List<ChatMessageAttachment> attachments = new ArrayList<>();
-    fileUrls.forEach(
-        fileUrl -> {
-          ChatMessageAttachment attachment = new ChatMessageAttachment();
-          attachment.setContentUrl(fileUrl);
-          attachment.setContentType("reference");
-          attachments.add(attachment);
-        });
+    fileUrls.forEach(fileUrl -> {
+      ChatMessageAttachment attachment = new ChatMessageAttachment();
+      attachment.setContentUrl(fileUrl);
+      attachment.setContentType("reference");
+      attachments.add(attachment);
+    });
     return attachments;
   }
 

@@ -327,11 +327,10 @@ public class KafkaIntegrationTest {
     assertEquals(2, context.getCorrelations().size());
     var message =
         context.getCorrelations().stream()
-            .filter(
-                m -> {
-                  var messge = (KafkaInboundMessage) m;
-                  return !(messge.getValue() instanceof String);
-                })
+            .filter(m -> {
+              var messge = (KafkaInboundMessage) m;
+              return !(messge.getValue() instanceof String);
+            })
             .findFirst()
             .orElse(null);
 
@@ -520,11 +519,10 @@ public class KafkaIntegrationTest {
     // Then
     var message =
         context.getCorrelations().stream()
-            .filter(
-                m -> {
-                  var msg = (KafkaInboundMessage) m;
-                  return !(msg.getValue() instanceof String);
-                })
+            .filter(m -> {
+              var msg = (KafkaInboundMessage) m;
+              return !(msg.getValue() instanceof String);
+            })
             .findFirst()
             .orElse(null);
 

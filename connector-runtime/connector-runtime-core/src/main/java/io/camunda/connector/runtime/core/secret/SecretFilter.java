@@ -49,12 +49,11 @@ public interface SecretFilter {
         allowed.stream()
             .filter(secret -> secret.secretName().equals(context.secretName()))
             .filter(secret -> context.fieldPath().size() >= secret.fieldPath().size())
-            .anyMatch(
-                secret ->
-                    context
-                        .fieldPath()
-                        .subList(0, secret.fieldPath().size())
-                        .equals(secret.fieldPath()));
+            .anyMatch(secret ->
+                context
+                    .fieldPath()
+                    .subList(0, secret.fieldPath().size())
+                    .equals(secret.fieldPath()));
   }
 
   /**

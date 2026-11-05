@@ -210,19 +210,18 @@ public record PropertyGroup(
 
     public PropertyGroupBuilder properties(List<Property> properties) {
       requireIdSet();
-      properties.forEach(
-          property -> {
-            if (!id.equals(property.group)) {
-              throw new IllegalArgumentException(
-                  "Property "
-                      + property.id
-                      + " defines a different group "
-                      + property.group
-                      + " than the group "
-                      + id
-                      + " it is added to");
-            }
-          });
+      properties.forEach(property -> {
+        if (!id.equals(property.group)) {
+          throw new IllegalArgumentException(
+              "Property "
+                  + property.id
+                  + " defines a different group "
+                  + property.group
+                  + " than the group "
+                  + id
+                  + " it is added to");
+        }
+      });
       this.properties.addAll(properties);
       return this;
     }

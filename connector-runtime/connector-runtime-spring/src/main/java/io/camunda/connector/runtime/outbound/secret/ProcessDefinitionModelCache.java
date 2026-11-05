@@ -120,13 +120,12 @@ public class ProcessDefinitionModelCache {
                   xmlFetchInitialRetryDelay.multipliedBy(1L << (XML_FETCH_MAX_RETRIES - 1)))
               .withMaxRetries(XML_FETCH_MAX_RETRIES)
               .withMaxDuration(remaining)
-              .onFailedAttempt(
-                  event ->
-                      LOG.warn(
-                          "Attempt {}/{} to fetch BPMN XML failed: {}",
-                          event.getAttemptCount(),
-                          XML_FETCH_MAX_RETRIES + 1,
-                          event.getLastException().getClass().getName()))
+              .onFailedAttempt(event ->
+                  LOG.warn(
+                      "Attempt {}/{} to fetch BPMN XML failed: {}",
+                      event.getAttemptCount(),
+                      XML_FETCH_MAX_RETRIES + 1,
+                      event.getLastException().getClass().getName()))
               .build();
       return Failsafe.with(xmlFetchTimeout, xmlFetchRetryPolicy)
           .get(() -> camundaOperateClient.getProcessDefinitionModel(processDefinitionKey));

@@ -31,28 +31,26 @@ public class JdbiJsonHelper {
 
   public static ResultIterable<Map<String, Object>> mapToParsedMap(
       String databaseProductName, Query query) {
-    return query.map(
-        (rs, ctx) -> {
-          Map<String, Object> row = new HashMap<>();
-          ColumnMapper<JsonNode> jsonMapper =
-              ctx.findColumnMapperFor(QualifiedType.of(JsonNode.class).with(Json.class))
-                  .orElseThrow();
-          // Java SQL ResultSet and ResultSetMetadata columns start with index 1:
-          // https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/ResultSetMetaData.html#getColumnTypeName(int)
-          for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-            String columnName = rs.getMetaData().getColumnLabel(i);
-            Object value = rs.getObject(i);
-            if (isJsonColumn(databaseProductName, rs.getMetaData().getColumnTypeName(i))) {
-              try {
-                value = jsonMapper.map(rs, i, ctx);
-              } catch (UnableToProduceResultException ignored) {
-                row.put(columnName, value);
-              }
-            }
+    return query.map((rs, ctx) -> {
+      Map<String, Object> row = new HashMap<>();
+      ColumnMapper<JsonNode> jsonMapper =
+          ctx.findColumnMapperFor(QualifiedType.of(JsonNode.class).with(Json.class)).orElseThrow();
+      // Java SQL ResultSet and ResultSetMetadata columns start with index 1:
+      // https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/ResultSetMetaData.html#getColumnTypeName(int)
+      for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+        String columnName = rs.getMetaData().getColumnLabel(i);
+        Object value = rs.getObject(i);
+        if (isJsonColumn(databaseProductName, rs.getMetaData().getColumnTypeName(i))) {
+          try {
+            value = jsonMapper.map(rs, i, ctx);
+          } catch (UnableToProduceResultException ignored) {
             row.put(columnName, value);
           }
-          return row;
-        });
+        }
+        row.put(columnName, value);
+      }
+      return row;
+    });
   }
 
   private static boolean isJsonColumn(String databaseProductName, String columnTypeName) {

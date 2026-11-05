@@ -116,9 +116,8 @@ public class QueueRequestData {
     }
 
     final Map<String, MessageAttributeValue> sqsNativeMessageAttributes = new HashMap<>();
-    messageAttributes.forEach(
-        (key, value) ->
-            sqsNativeMessageAttributes.put(key, messageAttributeTransformer().apply(value)));
+    messageAttributes.forEach((key, value) ->
+        sqsNativeMessageAttributes.put(key, messageAttributeTransformer().apply(value)));
 
     return sqsNativeMessageAttributes;
   }

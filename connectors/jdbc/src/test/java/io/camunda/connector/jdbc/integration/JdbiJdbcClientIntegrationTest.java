@@ -410,16 +410,15 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
         throws SQLException {
       config
           .jsonType()
-          .forEach(
-              jsonType -> {
-                try {
-                  addJsonColumn(config, jsonType);
-                  selectJsonDataAndAssertSuccess(config);
-                  dropJsonColumn(config);
-                } catch (SQLException | JsonProcessingException e) {
-                  throw new RuntimeException(e);
-                }
-              });
+          .forEach(jsonType -> {
+            try {
+              addJsonColumn(config, jsonType);
+              selectJsonDataAndAssertSuccess(config);
+              dropJsonColumn(config);
+            } catch (SQLException | JsonProcessingException e) {
+              throw new RuntimeException(e);
+            }
+          });
     }
   }
 }

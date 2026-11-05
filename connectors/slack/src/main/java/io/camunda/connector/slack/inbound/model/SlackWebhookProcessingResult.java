@@ -38,7 +38,7 @@ public class SlackWebhookProcessingResult implements WebhookResult {
 
   @Override
   public Function<WebhookResultContext, WebhookHttpResponse> response() {
-    return (c) -> response;
+    return c -> response;
   }
 
   public WebhookHttpResponse getResponse() {

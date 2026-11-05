@@ -38,9 +38,8 @@ public class ProxyRoutePlanner extends DefaultProxyRoutePlanner {
   protected HttpHost determineProxy(HttpHost target, HttpContext context) throws HttpException {
     if (getNonProxyHosts()
         .filter(Objects::nonNull)
-        .anyMatch(
-            nonProxyHosts ->
-                target.getHostName().matches(sanitizedNonProxyHostsRegex(nonProxyHosts)))) {
+        .anyMatch(nonProxyHosts ->
+            target.getHostName().matches(sanitizedNonProxyHostsRegex(nonProxyHosts)))) {
       LOG.debug(
           "Not using proxy for target host [{}] as it matched either system properties (http.nonProxyHosts) or environment variables ({})",
           target.getHostName(),

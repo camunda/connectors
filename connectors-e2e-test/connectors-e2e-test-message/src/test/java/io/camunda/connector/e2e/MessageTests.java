@@ -79,10 +79,8 @@ public class MessageTests {
             Bpmn.createExecutableProcess("receiveProcess")
                 .startEvent()
                 .intermediateCatchEvent()
-                .message(
-                    m ->
-                        m.name(MESSAGE_NAME)
-                            .zeebeCorrelationKeyExpression(CORRELATION_KEY_EXPRESSION))
+                .message(m ->
+                    m.name(MESSAGE_NAME).zeebeCorrelationKeyExpression(CORRELATION_KEY_EXPRESSION))
                 .endEvent()
                 .done(),
             "receiveMessage.bpmn")
@@ -166,7 +164,7 @@ io.camunda.zeebe.client.api.command.ProblemException: Failed with code 401: 'Una
     at org.apache.hc.core5.reactor.AbstractSingleCoreIOReactor.execute(AbstractSingleCoreIOReactor.java:92)
     at org.apache.hc.core5.reactor.IOReactorWorker.run(IOReactorWorker.java:44)
     at java.base/java.lang.Thread.run(Thread.java:1583)
-          """)
+""")
   public void testCorrelateMessageWithResult() {
     var sendTaskTemplate =
         createSendTaskTemplate(

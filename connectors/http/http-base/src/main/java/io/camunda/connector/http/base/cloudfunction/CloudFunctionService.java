@@ -167,19 +167,18 @@ public class CloudFunctionService {
 
   private Map<String, Object> parseDocumentsAndConvertToFileParts(Map<String, ?> body) {
     return body.entrySet().stream()
-        .map(
-            entry ->
-                Map.entry(
-                    entry.getKey(),
-                    new DocumentHelper()
-                        .parseDocumentsInBody(
-                            entry.getValue(),
-                            document ->
-                                new CloudFunctionFilePart(
-                                    entry.getKey(),
-                                    document.metadata().getFileName(),
-                                    document.asByteArray(),
-                                    document.metadata().getContentType()))))
+        .map(entry ->
+            Map.entry(
+                entry.getKey(),
+                new DocumentHelper()
+                    .parseDocumentsInBody(
+                        entry.getValue(),
+                        document ->
+                            new CloudFunctionFilePart(
+                                entry.getKey(),
+                                document.metadata().getFileName(),
+                                document.asByteArray(),
+                                document.metadata().getContentType()))))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 }

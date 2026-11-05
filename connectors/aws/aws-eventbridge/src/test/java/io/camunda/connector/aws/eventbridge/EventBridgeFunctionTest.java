@@ -118,7 +118,7 @@ class EventBridgeFunctionTest {
     assertThat(entry.detail()).isEqualTo(DETAIL_AS_STRING);
   }
 
-  @ParameterizedTest()
+  @ParameterizedTest
   @MethodSource("validationTestCases")
   public void execute_shouldThrowExceptionWhenDataNotValid(String input) {
     // Given invalid data (without all required fields)

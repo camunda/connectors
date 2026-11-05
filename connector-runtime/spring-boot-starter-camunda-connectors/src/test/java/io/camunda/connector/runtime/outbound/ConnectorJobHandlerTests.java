@@ -156,10 +156,9 @@ public class ConnectorJobHandlerTests {
   void connectorRaiseAnExceptionContainingSecret() {
     // given
     var jobHandler =
-        newConnectorJobHandler(
-            context -> {
-              throw new ConnectorException("test: bar");
-            });
+        newConnectorJobHandler(context -> {
+          throw new ConnectorException("test: bar");
+        });
 
     // when
     var result =
@@ -175,10 +174,9 @@ public class ConnectorJobHandlerTests {
   void retrieveAllSecretsShouldNotThrowIfSecretNotFound() {
     // given
     var jobHandler =
-        newConnectorJobHandler(
-            context -> {
-              throw new ConnectorException("test: bar");
-            });
+        newConnectorJobHandler(context -> {
+          throw new ConnectorException("test: bar");
+        });
 
     // when
     var result =

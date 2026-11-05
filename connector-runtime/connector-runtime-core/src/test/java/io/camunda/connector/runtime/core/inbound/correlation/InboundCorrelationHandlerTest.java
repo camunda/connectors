@@ -77,7 +77,7 @@ public class InboundCorrelationHandlerTest {
             zeebeClient,
             new FeelEngineWrapper(),
             new DefaultProcessElementContextFactory(
-                new NoOpSecretProvider(), (e) -> {}, new ObjectMapper()),
+                new NoOpSecretProvider(), e -> {}, new ObjectMapper()),
             DEFAULT_TTL);
   }
 

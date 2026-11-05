@@ -72,13 +72,12 @@ public class WebhookExecutables {
         inactiveExecutables.stream()
             .filter(e -> sameDefinitions(e, executable))
             .findFirst()
-            .orElseThrow(
-                () ->
-                    new RuntimeException(
-                        "Cannot deregister executable with definition: "
-                            + executable.context().getDefinition()
-                            + " as it is not registered for context: "
-                            + context));
+            .orElseThrow(() ->
+                new RuntimeException(
+                    "Cannot deregister executable with definition: "
+                        + executable.context().getDefinition()
+                        + " as it is not registered for context: "
+                        + context));
     inactiveExecutables.remove(foundExecutable);
     return true;
   }
@@ -166,11 +165,10 @@ public class WebhookExecutables {
       return;
     }
 
-    inactiveExecutables.forEach(
-        executable ->
-            executable
-                .context()
-                .reportHealth(Health.down(new IllegalStateException(createErrorMessage()))));
+    inactiveExecutables.forEach(executable ->
+        executable
+            .context()
+            .reportHealth(Health.down(new IllegalStateException(createErrorMessage()))));
   }
 
   private String createErrorMessage() {

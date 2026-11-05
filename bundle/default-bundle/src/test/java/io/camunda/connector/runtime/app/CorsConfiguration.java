@@ -38,13 +38,12 @@ public class CorsConfiguration {
     return new WebMvcConfigurer() {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
-        mappings.forEach(
-            mapping ->
-                registry
-                    .addMapping(mapping)
-                    .allowCredentials(true)
-                    .allowedOrigins(allowedOrigins)
-                    .allowedMethods("*"));
+        mappings.forEach(mapping ->
+            registry
+                .addMapping(mapping)
+                .allowCredentials(true)
+                .allowedOrigins(allowedOrigins)
+                .allowedMethods("*"));
       }
     };
   }

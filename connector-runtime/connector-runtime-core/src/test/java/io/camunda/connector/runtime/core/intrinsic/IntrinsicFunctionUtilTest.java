@@ -37,10 +37,9 @@ class IntrinsicFunctionUtilTest {
   void allowsAnUndeclaredTreeWithNoDiscriminatorAtAll() throws Exception {
     var tree = json("{\"body\": {\"a\": 1, \"b\": [1, 2, 3]}}");
 
-    assertThatCode(
-            () ->
-                IntrinsicFunctionUtil.verifyAgainstAllowList(
-                    tree, IntrinsicFunctionAllowList.allowNone()))
+    assertThatCode(() ->
+            IntrinsicFunctionUtil.verifyAgainstAllowList(
+                tree, IntrinsicFunctionAllowList.allowNone()))
         .doesNotThrowAnyException();
   }
 
@@ -48,10 +47,9 @@ class IntrinsicFunctionUtilTest {
   void refusesADiscriminatorNotInTheAllowList() throws Exception {
     var tree = json("{\"body\": {\"camunda.function.type\":\"createLink\"}}");
 
-    assertThatThrownBy(
-            () ->
-                IntrinsicFunctionUtil.verifyAgainstAllowList(
-                    tree, IntrinsicFunctionAllowList.allowNone()))
+    assertThatThrownBy(() ->
+            IntrinsicFunctionUtil.verifyAgainstAllowList(
+                tree, IntrinsicFunctionAllowList.allowNone()))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("createLink")
         .hasMessageContaining("body");
@@ -83,10 +81,9 @@ class IntrinsicFunctionUtilTest {
   void findsADiscriminatorNestedInsideAnArray() throws Exception {
     var tree = json("{\"body\": [{\"camunda.function.type\":\"createLink\"}]}");
 
-    assertThatThrownBy(
-            () ->
-                IntrinsicFunctionUtil.verifyAgainstAllowList(
-                    tree, IntrinsicFunctionAllowList.allowNone()))
+    assertThatThrownBy(() ->
+            IntrinsicFunctionUtil.verifyAgainstAllowList(
+                tree, IntrinsicFunctionAllowList.allowNone()))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("createLink");
   }

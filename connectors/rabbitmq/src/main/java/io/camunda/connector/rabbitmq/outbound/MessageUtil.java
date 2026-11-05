@@ -27,9 +27,8 @@ public final class MessageUtil {
     return Optional.ofNullable(properties)
         .map(pr -> OBJECT_MAPPER.convertValue(pr, JsonNode.class))
         .map(ValidationPropertiesUtil::validateAmqpBasicPropertiesOrThrowException)
-        .map(
-            jsonProperties ->
-                OBJECT_MAPPER.convertValue(jsonProperties, AMQP.BasicProperties.class))
+        .map(jsonProperties ->
+            OBJECT_MAPPER.convertValue(jsonProperties, AMQP.BasicProperties.class))
         .orElse(null);
   }
 
@@ -52,14 +51,13 @@ public final class MessageUtil {
     }
 
     return Optional.of(resBody)
-        .map(
-            b -> {
-              try {
-                return OBJECT_MAPPER.writeValueAsString(b);
-              } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-              }
-            })
+        .map(b -> {
+          try {
+            return OBJECT_MAPPER.writeValueAsString(b);
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .map(String::getBytes)
         .orElseThrow(() -> new RuntimeException("Parse error to byte array"));
   }

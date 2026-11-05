@@ -57,11 +57,11 @@ public class AwsEventBridgeTest extends BaseAwsTest {
   private static final String DETAIL = "{\"eventType\":\"newOrder\"}";
   private static final String EVENT_PATTERN =
       """
-            {
-              "source": ["my-application"],
-              "detail-type": ["orderPlaced"]
-            }
-            """;
+      {
+        "source": ["my-application"],
+        "detail-type": ["orderPlaced"]
+      }
+      """;
 
   private EventBridgeClient eventBridgeClient;
   private SqsClient sqsClient;

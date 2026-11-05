@@ -27,10 +27,9 @@ public class UpdateItemOperation implements AwsDynamoDbOperation {
 
     List<AttributeUpdate> attributeUpdates =
         updateItemModel.keyAttributes().entrySet().stream()
-            .map(
-                entry ->
-                    createAttributeUpdate(
-                        entry.getKey(), entry.getValue(), updateItemModel.attributeAction()))
+            .map(entry ->
+                createAttributeUpdate(
+                    entry.getKey(), entry.getValue(), updateItemModel.attributeAction()))
             .toList();
 
     return dynamoDB

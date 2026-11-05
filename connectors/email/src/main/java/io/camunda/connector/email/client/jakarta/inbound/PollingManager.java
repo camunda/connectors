@@ -100,13 +100,12 @@ public class PollingManager {
 
   private List<Document> createDocumentList(Email email) {
     return email.body().attachments().stream()
-        .map(
-            document ->
-                this.connectorContext.create(
-                    DocumentCreationRequest.from(document.inputStream())
-                        .contentType(document.contentType())
-                        .fileName(document.name())
-                        .build()))
+        .map(document ->
+            this.connectorContext.create(
+                DocumentCreationRequest.from(document.inputStream())
+                    .contentType(document.contentType())
+                    .fileName(document.name())
+                    .build()))
         .toList();
   }
 

@@ -84,26 +84,24 @@ public class ConnectorHelper {
     final var errorExpression = jobHeaders.get(Keywords.ERROR_EXPRESSION_KEYWORD);
     return Optional.ofNullable(errorExpression)
         .filter(s -> !s.isBlank())
-        .map(
-            expression -> {
-              var evaluatedJson =
-                  FEEL_ENGINE_WRAPPER.evaluateToJson(
-                      expression, responseContent, wrapResponse(responseContent), jobContext);
-              if (evaluatedJson != null) {
-                verifyNoForbiddenLiterals(evaluatedJson);
-              }
-              return evaluatedJson;
-            })
+        .map(expression -> {
+          var evaluatedJson =
+              FEEL_ENGINE_WRAPPER.evaluateToJson(
+                  expression, responseContent, wrapResponse(responseContent), jobContext);
+          if (evaluatedJson != null) {
+            verifyNoForbiddenLiterals(evaluatedJson);
+          }
+          return evaluatedJson;
+        })
         .filter(json -> !json.equals("null"))
         .filter(json -> !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression).isEmpty())
         .map(json -> parseJsonVarsAsTypeOrThrow(json, ConnectorError.class, errorExpression))
-        .filter(
-            error -> {
-              if (error instanceof BpmnError bpmnError) {
-                return bpmnError.hasCode();
-              }
-              return true;
-            });
+        .filter(error -> {
+          if (error instanceof BpmnError bpmnError) {
+            return bpmnError.hasCode();
+          }
+          return true;
+        });
   }
 
   public static <T> T instantiateConnector(Class<? extends T> connectorClass) {
@@ -134,17 +132,15 @@ public class ConnectorHelper {
   }
 
   private static void verifyNoForbiddenLiterals(String json) {
-    FORBIDDEN_LITERALS.forEach(
-        literal -> {
-          if (json.contains(literal)) {
-            throw new IllegalArgumentException(
-                new FeelEngineWrapperException(
-                    String.format(
-                        "The connector result contains a forbidden literal '%s'.", literal),
-                    literal,
-                    json));
-          }
-        });
+    FORBIDDEN_LITERALS.forEach(literal -> {
+      if (json.contains(literal)) {
+        throw new IllegalArgumentException(
+            new FeelEngineWrapperException(
+                String.format("The connector result contains a forbidden literal '%s'.", literal),
+                literal,
+                json));
+      }
+    });
   }
 
   /**

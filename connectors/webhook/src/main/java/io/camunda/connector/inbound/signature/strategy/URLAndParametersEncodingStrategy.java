@@ -20,12 +20,11 @@ public final class URLAndParametersEncodingStrategy implements HMACEncodingStrat
 
   private static String extractSignatureData(final Map<String, String> params) {
     return params.entrySet().stream()
-        .map(
-            entry ->
-                String.format(
-                    "%s=%s",
-                    URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8),
-                    URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8)))
+        .map(entry ->
+            String.format(
+                "%s=%s",
+                URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8),
+                URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8)))
         .collect(Collectors.joining("&"));
   }
 }

@@ -23,11 +23,10 @@ public class ValidationUtil {
   public static ValidationProvider discoverDefaultValidationProviderImplementation() {
     return ServiceLoader.load(ValidationProvider.class)
         .findFirst()
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "Please bind an implementation to "
-                        + ValidationProvider.class.getName()
-                        + " via SPI"));
+        .orElseThrow(() ->
+            new IllegalStateException(
+                "Please bind an implementation to "
+                    + ValidationProvider.class.getName()
+                    + " via SPI"));
   }
 }

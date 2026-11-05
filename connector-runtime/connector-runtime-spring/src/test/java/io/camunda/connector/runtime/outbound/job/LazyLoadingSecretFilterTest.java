@@ -105,11 +105,10 @@ class LazyLoadingSecretFilterTest {
   void isAllowed_supplierCalledExactlyOnce() {
     var callCount = new AtomicInteger(0);
     var filter =
-        new LazyLoadingSecretFilter(
-            () -> {
-              callCount.incrementAndGet();
-              return List.of(secret("SECRET"));
-            });
+        new LazyLoadingSecretFilter(() -> {
+          callCount.incrementAndGet();
+          return List.of(secret("SECRET"));
+        });
 
     filter.isAllowed(query("SECRET"));
     filter.isAllowed(query("SECRET"));
@@ -122,11 +121,10 @@ class LazyLoadingSecretFilterTest {
   void isAllowed_nullSupplierResultCached_supplierNotReinvoked() {
     var callCount = new AtomicInteger(0);
     var filter =
-        new LazyLoadingSecretFilter(
-            () -> {
-              callCount.incrementAndGet();
-              return null;
-            });
+        new LazyLoadingSecretFilter(() -> {
+          callCount.incrementAndGet();
+          return null;
+        });
 
     filter.isAllowed(query("ANY"));
     filter.isAllowed(query("ANY"));
@@ -139,11 +137,10 @@ class LazyLoadingSecretFilterTest {
     var callCount = new AtomicInteger(0);
     var failure = new IllegalStateException("secret key lookup failed");
     var filter =
-        new LazyLoadingSecretFilter(
-            () -> {
-              callCount.incrementAndGet();
-              throw failure;
-            });
+        new LazyLoadingSecretFilter(() -> {
+          callCount.incrementAndGet();
+          throw failure;
+        });
 
     var firstThrown =
         assertThrows(IllegalStateException.class, () -> filter.isAllowed(query("ANY")));

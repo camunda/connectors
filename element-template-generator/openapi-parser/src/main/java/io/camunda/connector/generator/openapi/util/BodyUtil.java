@@ -95,16 +95,15 @@ public class BodyUtil {
     }
     FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
     return schema.getProperties().keySet().stream()
-        .anyMatch(
-            property -> {
-              try {
-                Map<String, String> mockPropertyContext = Map.of(property, "mock");
-                String result = feelEngineWrapper.evaluate(property, mockPropertyContext);
-                return result == null;
-              } catch (FeelEngineWrapperException e) {
-                return true;
-              }
-            });
+        .anyMatch(property -> {
+          try {
+            Map<String, String> mockPropertyContext = Map.of(property, "mock");
+            String result = feelEngineWrapper.evaluate(property, mockPropertyContext);
+            return result == null;
+          } catch (FeelEngineWrapperException e) {
+            return true;
+          }
+        });
   }
 
   private static Detailed buildDetailedBody(Schema<?> schema, Components components) {

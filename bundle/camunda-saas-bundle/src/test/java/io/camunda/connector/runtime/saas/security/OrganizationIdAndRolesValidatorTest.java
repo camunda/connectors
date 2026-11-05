@@ -41,13 +41,13 @@ public class OrganizationIdAndRolesValidatorTest {
     // given
     var claimContent =
         """
-            [
-                {
-                "id": "organizationId",
-                "roles": ["allowedRoles"]
-                }
-            ]
-            """;
+        [
+            {
+            "id": "organizationId",
+            "roles": ["allowedRoles"]
+            }
+        ]
+        """;
 
     var validator = new OrganizationIdAndRolesValidator(ORGANIZATION_ID, ALLOWED_ROLES_SINGLE);
     Jwt jwt =
@@ -72,13 +72,13 @@ public class OrganizationIdAndRolesValidatorTest {
     // given
     var claimContent =
         """
-                [
-                    {
-                    "id": "organizationId",
-                    "roles": ["allowedRoles1", "allowedRoles2"]
-                    }
-                ]
-                """;
+        [
+            {
+            "id": "organizationId",
+            "roles": ["allowedRoles1", "allowedRoles2"]
+            }
+        ]
+        """;
 
     var validator = new OrganizationIdAndRolesValidator(ORGANIZATION_ID, ALLOWED_ROLES_MULTIPLE);
     Jwt jwt =
@@ -102,13 +102,13 @@ public class OrganizationIdAndRolesValidatorTest {
     // given
     var claimContent =
         """
-                    [
-                        {
-                        "id": "invalidOrganizationId",
-                        "roles": ["allowedRoles"]
-                        }
-                    ]
-                    """;
+        [
+            {
+            "id": "invalidOrganizationId",
+            "roles": ["allowedRoles"]
+            }
+        ]
+        """;
 
     var validator = new OrganizationIdAndRolesValidator(ORGANIZATION_ID, ALLOWED_ROLES_SINGLE);
     Jwt jwt =
@@ -136,13 +136,13 @@ public class OrganizationIdAndRolesValidatorTest {
     // given
     var claimContent =
         """
-                        [
-                            {
-                            "id": "organizationId",
-                            "roles": ["invalidRole"]
-                            }
-                        ]
-                        """;
+        [
+            {
+            "id": "organizationId",
+            "roles": ["invalidRole"]
+            }
+        ]
+        """;
 
     var validator = new OrganizationIdAndRolesValidator(ORGANIZATION_ID, ALLOWED_ROLES_SINGLE);
     Jwt jwt =
@@ -171,13 +171,13 @@ public class OrganizationIdAndRolesValidatorTest {
     // given
     var claimContent =
         """
-                            [
-                                {
-                                "id": "invalidOrganizationId",
-                                "roles": ["invalidRole"]
-                                }
-                            ]
-                            """;
+        [
+            {
+            "id": "invalidOrganizationId",
+            "roles": ["invalidRole"]
+            }
+        ]
+        """;
 
     var validator = new OrganizationIdAndRolesValidator(ORGANIZATION_ID, ALLOWED_ROLES_SINGLE);
     Jwt jwt =
@@ -205,13 +205,13 @@ public class OrganizationIdAndRolesValidatorTest {
     // given
     var claimContent =
         """
-                            [
-                                {
-                                "id": "organizationId",
-                                "roles": null
-                                }
-                            ]
-                            """;
+        [
+            {
+            "id": "organizationId",
+            "roles": null
+            }
+        ]
+        """;
 
     var validator = new OrganizationIdAndRolesValidator(ORGANIZATION_ID, ALLOWED_ROLES_SINGLE);
     Jwt jwt =
@@ -239,13 +239,13 @@ public class OrganizationIdAndRolesValidatorTest {
     // given
     var claimContent =
         """
-                                [
-                                    {
-                                    "id": "organizationId",
-                                    "roles": []
-                                    }
-                                ]
-                                """;
+        [
+            {
+            "id": "organizationId",
+            "roles": []
+            }
+        ]
+        """;
 
     var validator = new OrganizationIdAndRolesValidator(ORGANIZATION_ID, ALLOWED_ROLES_SINGLE);
     Jwt jwt =

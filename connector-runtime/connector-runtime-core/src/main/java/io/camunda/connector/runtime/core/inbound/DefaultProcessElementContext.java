@@ -87,10 +87,9 @@ public class DefaultProcessElementContext extends AbstractConnectorContext
     }
     return SecretFilter.allowOnly(
         connectorElement.rawProperties().entrySet().stream()
-            .flatMap(
-                entry ->
-                    SecretUtil.retrieveSecretKeysInInput(entry.getValue()).stream()
-                        .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
+            .flatMap(entry ->
+                SecretUtil.retrieveSecretKeysInInput(entry.getValue()).stream()
+                    .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
             .distinct()
             .toList());
   }

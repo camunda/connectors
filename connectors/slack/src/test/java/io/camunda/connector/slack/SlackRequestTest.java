@@ -18,7 +18,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class SlackRequestTest extends BaseTest {
 
-  @ParameterizedTest()
+  @ParameterizedTest
   @MethodSource("replaceSecretsSuccessTestCases")
   public void replaceSecrets_shouldReplaceSecrets(String input) {
     // Given
@@ -31,7 +31,7 @@ class SlackRequestTest extends BaseTest {
     assertThat(requestData.data().text()).contains(ActualValue.ChatPostMessageData.TEXT);
   }
 
-  @ParameterizedTest()
+  @ParameterizedTest
   @MethodSource("validateRequiredFieldsFailTestCases")
   void validate_shouldThrowExceptionWhenLeastRequestFieldOneNotExist(String input) {
     context = getContextBuilderWithSecrets().variables(input).build();
@@ -39,7 +39,7 @@ class SlackRequestTest extends BaseTest {
         Throwable.class, () -> context.bindVariables(SlackRequest.class), "Exception was expected");
   }
 
-  @ParameterizedTest()
+  @ParameterizedTest
   @ValueSource(strings = {"", "  ", "     "})
   void validate_shouldThrowExceptionWhenMethodIsBlank(String input) {
     context = getContextBuilderWithSecrets().variables("{}").build();

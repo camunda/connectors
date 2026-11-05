@@ -201,11 +201,10 @@ class SnsWebhookSignatureVerificationTest {
         }
         """;
 
-    assertThatThrownBy(
-            () ->
-                manager.parseMessage(
-                    new ByteArrayInputStream(
-                        payloadWithSpoofedCertUrl.getBytes(StandardCharsets.UTF_8))))
+    assertThatThrownBy(() ->
+            manager.parseMessage(
+                new ByteArrayInputStream(
+                    payloadWithSpoofedCertUrl.getBytes(StandardCharsets.UTF_8))))
         .isInstanceOf(RuntimeException.class)
         // Matches either SigningCertUrlVerifier rejection message (wrong host or non-HTTPS).
         .hasMessageContaining("SigningCert");
@@ -240,12 +239,11 @@ class SnsWebhookSignatureVerificationTest {
     SnsMessageManager manager = new SnsClientSupplier().messageManager("eu-central-1");
     seedCertificateCache(manager, keyPair.getPublic());
 
-    assertThatThrownBy(
-            () ->
-                manager.parseMessage(
-                    new ByteArrayInputStream(
-                        toJson(tamperedFields, signatureOverOriginal)
-                            .getBytes(StandardCharsets.UTF_8))))
+    assertThatThrownBy(() ->
+            manager.parseMessage(
+                new ByteArrayInputStream(
+                    toJson(tamperedFields, signatureOverOriginal)
+                        .getBytes(StandardCharsets.UTF_8))))
         .hasMessageContaining("Signature in SNS message was invalid");
   }
 
@@ -257,11 +255,9 @@ class SnsWebhookSignatureVerificationTest {
     SnsMessageManager manager = new SnsClientSupplier().messageManager("eu-central-1");
     seedCertificateCache(manager, keyPair.getPublic());
 
-    assertThatThrownBy(
-            () ->
-                manager.parseMessage(
-                    new ByteArrayInputStream(
-                        toJson(fields, null).getBytes(StandardCharsets.UTF_8))))
+    assertThatThrownBy(() ->
+            manager.parseMessage(
+                new ByteArrayInputStream(toJson(fields, null).getBytes(StandardCharsets.UTF_8))))
         .hasMessageContaining("Message cannot have null values");
   }
 
@@ -389,13 +385,12 @@ class SnsWebhookSignatureVerificationTest {
 
   private static String toJson(Map<String, String> fields, String signature) {
     StringBuilder json = new StringBuilder("{\n");
-    fields.forEach(
-        (key, value) ->
-            json.append("  \"")
-                .append(key)
-                .append("\": \"")
-                .append(value.replace("\n", "\\n"))
-                .append("\",\n"));
+    fields.forEach((key, value) ->
+        json.append("  \"")
+            .append(key)
+            .append("\": \"")
+            .append(value.replace("\n", "\\n"))
+            .append("\",\n"));
     json.append("  \"SignatureVersion\": \"1\",\n");
     if (signature != null) {
       json.append("  \"Signature\": \"").append(signature).append("\",\n");

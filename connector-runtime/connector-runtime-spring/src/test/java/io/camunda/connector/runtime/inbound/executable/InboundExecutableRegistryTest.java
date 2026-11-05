@@ -381,15 +381,14 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     doNothing()
-        .doAnswer(
-            invocationOnMock -> {
-              context.cancel(
-                  ConnectorRetryException.builder()
-                      .retries(3)
-                      .backoffDuration(Duration.ofSeconds(3))
-                      .build());
-              return null;
-            })
+        .doAnswer(invocationOnMock -> {
+          context.cancel(
+              ConnectorRetryException.builder()
+                  .retries(3)
+                  .backoffDuration(Duration.ofSeconds(3))
+                  .build());
+          return null;
+        })
         .when(executable)
         .activate(any());
 

@@ -58,43 +58,41 @@ public class InstanceForwardingHttpClientTest {
         .send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
     verify(mockedHttpClient)
         .send(
-            argThat(
-                request ->
-                    request
-                            .uri()
-                            .toString()
-                            .equals(
-                                "http://"
-                                    + IP_1
-                                    + ":8080/test/path?queryParam1=value1&queryParam2=value2")
-                        && request.method().equals("GET")
-                        && request.headers().map().containsKey("Authorization")
-                        && request
-                            .headers()
-                            .map()
-                            .get("Authorization")
-                            .getFirst()
-                            .equals("Bearer exyz")),
+            argThat(request ->
+                request
+                        .uri()
+                        .toString()
+                        .equals(
+                            "http://"
+                                + IP_1
+                                + ":8080/test/path?queryParam1=value1&queryParam2=value2")
+                    && request.method().equals("GET")
+                    && request.headers().map().containsKey("Authorization")
+                    && request
+                        .headers()
+                        .map()
+                        .get("Authorization")
+                        .getFirst()
+                        .equals("Bearer exyz")),
             any());
     verify(mockedHttpClient)
         .send(
-            argThat(
-                request ->
-                    request
-                            .uri()
-                            .toString()
-                            .equals(
-                                "http://"
-                                    + IP_2
-                                    + ":8080/test/path?queryParam1=value1&queryParam2=value2")
-                        && request.method().equals("GET")
-                        && request.headers().map().containsKey("Authorization")
-                        && request
-                            .headers()
-                            .map()
-                            .get("Authorization")
-                            .getFirst()
-                            .equals("Bearer exyz")),
+            argThat(request ->
+                request
+                        .uri()
+                        .toString()
+                        .equals(
+                            "http://"
+                                + IP_2
+                                + ":8080/test/path?queryParam1=value1&queryParam2=value2")
+                    && request.method().equals("GET")
+                    && request.headers().map().containsKey("Authorization")
+                    && request
+                        .headers()
+                        .map()
+                        .get("Authorization")
+                        .getFirst()
+                        .equals("Bearer exyz")),
             any());
   }
 }

@@ -80,19 +80,18 @@ public class ProxyAwareHttpClient implements Closeable {
   private void setProxyIfConfigured(ProxyContext proxyContext, HttpClientBuilder builder) {
     proxyHandler
         .getProxyDetails(proxyContext.scheme())
-        .ifPresent(
-            proxyDetails -> {
-              HttpHost proxyHttpHost =
-                  new HttpHost(proxyDetails.scheme(), proxyDetails.host(), proxyDetails.port());
-              LOG.debug(
-                  "Using proxy for target scheme [{}] and host [{}] => [{}]",
-                  proxyContext.scheme(),
-                  proxyContext.host(),
-                  proxyHttpHost);
-              builder.setDefaultCredentialsProvider(
-                  proxyHandler.getCredentialsProvider(proxyContext.scheme()));
-              builder.setRoutePlanner(new ProxyRoutePlanner(proxyHttpHost));
-            });
+        .ifPresent(proxyDetails -> {
+          HttpHost proxyHttpHost =
+              new HttpHost(proxyDetails.scheme(), proxyDetails.host(), proxyDetails.port());
+          LOG.debug(
+              "Using proxy for target scheme [{}] and host [{}] => [{}]",
+              proxyContext.scheme(),
+              proxyContext.host(),
+              proxyHttpHost);
+          builder.setDefaultCredentialsProvider(
+              proxyHandler.getCredentialsProvider(proxyContext.scheme()));
+          builder.setRoutePlanner(new ProxyRoutePlanner(proxyHttpHost));
+        });
   }
 
   private HttpClientBuilder createHttpClientBuilder() {

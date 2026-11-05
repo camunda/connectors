@@ -164,7 +164,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
       // responseExpression
       // and only use the body in the final response
       responseExpression =
-          (context) -> {
+          context -> {
             Object responseBody = props.responseBodyExpression().apply(context);
             return WebhookHttpResponse.ok(responseBody);
           };

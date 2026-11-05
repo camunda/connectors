@@ -63,22 +63,20 @@ public class InboundInstancesService {
         executableRegistry
             .query(new ActiveExecutableQuery(processId, null, type, executable.tenantId()))
             .stream()
-            .filter(
-                activeExecutableResponse ->
-                    activeExecutableResponse.executableId().getId().equals(executableId))
+            .filter(activeExecutableResponse ->
+                activeExecutableResponse.executableId().getId().equals(executableId))
             .findFirst();
     if (result.isEmpty()) {
       throw new DataNotFoundException(Activity.class, executableId);
     }
     return result.get().logs().stream()
-        .map(
-            activity ->
-                new InstanceAwareModel.InstanceAwareActivity(
-                    activity.severity(),
-                    activity.tag(),
-                    activity.timestamp(),
-                    activity.message(),
-                    hostname))
+        .map(activity ->
+            new InstanceAwareModel.InstanceAwareActivity(
+                activity.severity(),
+                activity.tag(),
+                activity.timestamp(),
+                activity.message(),
+                hostname))
         .toList();
   }
 
@@ -86,9 +84,8 @@ public class InboundInstancesService {
     var instance = findConnectorInstancesOfType(type);
     var executables =
         instance.instances().stream()
-            .filter(
-                activeInboundConnectorResponse ->
-                    activeInboundConnectorResponse.executableId().getId().equals(executableId))
+            .filter(activeInboundConnectorResponse ->
+                activeInboundConnectorResponse.executableId().getId().equals(executableId))
             .toList();
     if (executables.isEmpty()) {
       throw new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId);
@@ -121,10 +118,9 @@ public class InboundInstancesService {
         .collect(Collectors.groupingBy(ActiveInboundConnectorResponse::type, Collectors.toList()))
         .entrySet()
         .stream()
-        .map(
-            e ->
-                new ConnectorInstances(
-                    e.getKey(), executableRegistry.getConnectorName(e.getKey()), e.getValue()))
+        .map(e ->
+            new ConnectorInstances(
+                e.getKey(), executableRegistry.getConnectorName(e.getKey()), e.getValue()))
         .toList();
   }
 

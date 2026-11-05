@@ -22,7 +22,7 @@ class GenerativeModelMapperTest {
 
   private GenerativeModelMapper generativeModelMapper;
 
-  @BeforeEach()
+  @BeforeEach
   void setUp() {
     var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     var functionDeclarationMapper = new FunctionDeclarationMapper(objectMapper);

@@ -103,14 +103,13 @@ public class ActiveInboundConnectorResponseHelper {
 
     assertThat(
             reducedResponse.instances().stream()
-                .filter(
-                    instance ->
-                        instance
-                                .executableId()
-                                .equals(ExecutableId.fromDeduplicationId("onlyInRuntime1"))
-                            || instance
-                                .executableId()
-                                .equals(ExecutableId.fromDeduplicationId("onlyInRuntime2")))
+                .filter(instance ->
+                    instance
+                            .executableId()
+                            .equals(ExecutableId.fromDeduplicationId("onlyInRuntime1"))
+                        || instance
+                            .executableId()
+                            .equals(ExecutableId.fromDeduplicationId("onlyInRuntime2")))
                 .count())
         .isEqualTo(2);
 
