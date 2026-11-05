@@ -26,15 +26,13 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.ReturnedDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
@@ -244,13 +242,12 @@ public final class DocumentFlowFixtures {
    */
   public static void assertCamundaDocumentReference(
       Map<String, Object> reference, String expectedDocumentId) {
-    final var id = DocumentId.of(expectedDocumentId);
     assertThat(
-            DocumentHandle.idFor(
-                DocumentIngestion.referenceOf(
-                    new WorkspaceDocument(id, DocumentOrigin.userMessage(), reference))))
+            AgentDocumentId.of(
+                ConnectorsObjectMapperSupplier.getCopy()
+                    .convertValue(reference, DocumentReferenceModel.class)))
         .as("id derived from the document reference")
-        .isEqualTo(id);
+        .isEqualTo(AgentDocumentId.of(expectedDocumentId));
     assertThat(reference)
         .containsEntry("camunda.document.type", "camunda")
         .hasEntrySatisfying("documentId", v -> assertThat(v).asString().isNotBlank())
