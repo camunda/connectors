@@ -14,9 +14,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import java.time.OffsetDateTime;
@@ -77,8 +75,7 @@ public class RuntimeToolsImpl implements RuntimeTools {
                 RuntimeToolResult.error(
                     "The tool '%s' is not available.".formatted(toolCall.name())));
     final var completedAt = OffsetDateTime.now(ZoneId.systemDefault());
-    return new RuntimeToolExecution(
-        toolCall, resultContent(toolCall, result.content(), completedAt), startedAt, completedAt);
+    return new RuntimeToolExecution(toolCall, result, startedAt, completedAt);
   }
 
   private Optional<RuntimeTool> findEnabled(RuntimeToolContext context, String name) {
@@ -105,16 +102,6 @@ public class RuntimeToolsImpl implements RuntimeTools {
     }
     return Objects.requireNonNull(
         result, "The runtime tool '%s' returned no result".formatted(toolCall.name()));
-  }
-
-  private static ToolCallResultContent resultContent(
-      ToolCall toolCall, List<Content> content, OffsetDateTime completedAt) {
-    return ToolCallResultContent.builder()
-        .id(toolCall.id())
-        .name(toolCall.name())
-        .content(content)
-        .completedAt(completedAt)
-        .build();
   }
 
   private static Map<String, Registration> register(List<RuntimeTool> tools) {

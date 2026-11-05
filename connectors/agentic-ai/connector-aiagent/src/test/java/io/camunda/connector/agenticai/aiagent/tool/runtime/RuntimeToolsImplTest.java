@@ -107,7 +107,7 @@ class RuntimeToolsImplTest {
   }
 
   private static String text(RuntimeToolExecution execution) {
-    final var result = execution.result();
+    final var result = execution.toolCallResult();
     assertThat(result.content()).singleElement().isInstanceOf(TextContent.class);
     return ((TextContent) result.content().getFirst()).text();
   }
@@ -236,10 +236,10 @@ class RuntimeToolsImplTest {
         .singleElement()
         .satisfies(execution -> {
           assertThat(execution.call()).isEqualTo(call);
-          assertThat(execution.result().id()).isEqualTo("n1");
-          assertThat(execution.result().name()).isEqualTo("acme_note");
+          assertThat(execution.toolCallResult().id()).isEqualTo("n1");
+          assertThat(execution.toolCallResult().name()).isEqualTo("acme_note");
           assertThat(text(execution)).isEqualTo("Saved note: buy milk");
-          assertThat(execution.result().elementId()).isNull();
+          assertThat(execution.toolCallResult().elementId()).isNull();
         });
   }
 
@@ -255,7 +255,7 @@ class RuntimeToolsImplTest {
         .satisfies(execution -> {
           assertThat(execution.startedAt()).isBetween(before, after);
           assertThat(execution.completedAt()).isBetween(execution.startedAt(), after);
-          assertThat(execution.result().completedAt()).isEqualTo(execution.completedAt());
+          assertThat(execution.toolCallResult().completedAt()).isEqualTo(execution.completedAt());
         });
   }
 
@@ -282,7 +282,7 @@ class RuntimeToolsImplTest {
     assertThat(executions)
         .singleElement()
         .satisfies(execution ->
-            assertThat(execution.result().content()).containsExactlyElementsOf(content));
+            assertThat(execution.toolCallResult().content()).containsExactlyElementsOf(content));
   }
 
   @Test
@@ -305,7 +305,7 @@ class RuntimeToolsImplTest {
 
     assertThat(order).containsExactly("c1", "c2", "c3");
     assertThat(executions)
-        .extracting(execution -> execution.result().id())
+        .extracting(execution -> execution.toolCallResult().id())
         .containsExactly("c1", "c2", "c3");
     assertThat(executions).extracting(RuntimeToolExecution::completedAt).isSorted();
   }
@@ -317,7 +317,7 @@ class RuntimeToolsImplTest {
     assertThat(executions)
         .singleElement()
         .satisfies(execution -> {
-          assertThat(execution.result().id()).isEqualTo("n1");
+          assertThat(execution.toolCallResult().id()).isEqualTo("n1");
           assertThat(text(execution)).isEqualTo("The tool 'acme_note' is not available.");
           assertThat(execution.startedAt()).isNotNull();
           assertThat(execution.completedAt()).isNotNull();

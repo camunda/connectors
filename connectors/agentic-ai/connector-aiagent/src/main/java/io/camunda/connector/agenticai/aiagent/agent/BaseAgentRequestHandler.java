@@ -467,16 +467,7 @@ public abstract class BaseAgentRequestHandler<
   private static RuntimeToolExecution rejected(ToolCall call) {
     final var now = OffsetDateTime.now(ZoneId.systemDefault());
     final var error = RuntimeToolResult.error(Objects.requireNonNull(call.rejection()));
-    return new RuntimeToolExecution(
-        call,
-        ToolCallResultContent.builder()
-            .id(call.id())
-            .name(call.name())
-            .content(error.content())
-            .completedAt(now)
-            .build(),
-        now,
-        now);
+    return new RuntimeToolExecution(call, error, now, now);
   }
 
   /**

@@ -1143,8 +1143,8 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(executionsCaptor.getValue())
         .extracting(
             execution -> execution.call().id(),
-            execution -> execution.result().name(),
-            execution -> execution.result().content())
+            execution -> execution.toolCallResult().name(),
+            execution -> execution.toolCallResult().content())
         .containsExactly(
             tuple("call-1", "acme_lookup", List.of(TextContent.textContent("found the customer"))));
   }

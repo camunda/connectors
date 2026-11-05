@@ -39,9 +39,8 @@ final class ToolCallResultsInputBuilder {
 
     /** The entry for the result of a runtime tool; its documents are the ones of its content. */
     static Entry of(RuntimeToolExecution execution) {
-      return new Entry(
-          execution.result(),
-          ToolCallResultDocumentExtractor.documentsOf(execution.result().content()));
+      final var result = execution.toolCallResult();
+      return new Entry(result, ToolCallResultDocumentExtractor.documentsOf(result.content()));
     }
   }
 
