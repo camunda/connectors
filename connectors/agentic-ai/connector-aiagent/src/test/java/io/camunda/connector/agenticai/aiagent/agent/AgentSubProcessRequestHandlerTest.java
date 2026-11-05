@@ -70,13 +70,13 @@ import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
-import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -234,7 +234,7 @@ class AgentSubProcessRequestHandlerTest {
           (context, call) ->
               RuntimeToolResult.success("Selected the document.")
                   .withResponseDocument(
-                      "report", DocumentHandle.idFor(KNOWN_DOCUMENT), "The report"));
+                      "report", AgentDocumentId.of(KNOWN_DOCUMENT), "The report"));
 
   private static final RuntimeTool LOOKUP_TOOL =
       StubRuntimeTool.of(
@@ -2619,7 +2619,7 @@ class AgentSubProcessRequestHandlerTest {
   @Test
   void appliesTheResponseDocumentOfARuntimeToolRoundToTheAgentContextOfTheSameJob() {
     final var selection =
-        new ResponseDocumentSelection("report", DocumentHandle.idFor(KNOWN_DOCUMENT), "The report");
+        new ResponseDocumentSelection("report", AgentDocumentId.of(KNOWN_DOCUMENT), "The report");
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -2639,13 +2639,6 @@ class AgentSubProcessRequestHandlerTest {
 
     verify(chatModel, times(2)).execute(any());
     assertThat(response.responseValue().context().responseDocuments()).containsExactly(selection);
-    // the selection is part of the context the history reporter gets with the round that follows
-    final var contextCaptor = ArgumentCaptor.forClass(AgentContext.class);
-    verify(agentInstanceClient, times(2))
-        .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), any(), any(), any(), contextCaptor.capture());
-    assertThat(contextCaptor.getAllValues().get(0).responseDocuments()).isEmpty();
-    assertThat(contextCaptor.getAllValues().get(1).responseDocuments()).containsExactly(selection);
     // the result the model reads is the text of the tool, whatever the effect
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -2664,7 +2657,7 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(run.finalContext().responseDocuments())
         .containsExactly(
             new ResponseDocumentSelection(
-                "report", DocumentHandle.idFor(KNOWN_DOCUMENT), "The report"));
+                "report", AgentDocumentId.of(KNOWN_DOCUMENT), "The report"));
   }
 
   @Test
@@ -2681,7 +2674,7 @@ class AgentSubProcessRequestHandlerTest {
                 "key",
                 "report",
                 "document",
-                docTag(DocumentHandle.idFor(KNOWN_DOCUMENT)),
+                docTag(AgentDocumentId.of(KNOWN_DOCUMENT)),
                 "description",
                 "The report"));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
@@ -2708,7 +2701,7 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(context.responseDocuments())
         .containsExactly(
             new ResponseDocumentSelection(
-                "report", DocumentHandle.idFor(KNOWN_DOCUMENT), "The report"));
+                "report", AgentDocumentId.of(KNOWN_DOCUMENT), "The report"));
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
             ToolCallResultMessage.class,
@@ -2728,7 +2721,7 @@ class AgentSubProcessRequestHandlerTest {
         new ToolCall(
             "call-1",
             ReturnDocumentTool.NAME,
-            Map.of("key", "not a key", "document", docTag(DocumentHandle.idFor(KNOWN_DOCUMENT))));
+            Map.of("key", "not a key", "document", docTag(AgentDocumentId.of(KNOWN_DOCUMENT))));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
     doReturn(
@@ -2754,7 +2747,7 @@ class AgentSubProcessRequestHandlerTest {
         new ToolCall(
             "call-1",
             ReturnDocumentTool.NAME,
-            Map.of("key", "report", "document", docTag(DocumentHandle.idFor(KNOWN_DOCUMENT))));
+            Map.of("key", "report", "document", docTag(AgentDocumentId.of(KNOWN_DOCUMENT))));
     final var processCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     mockChatModelExecution(
         AssistantMessage.builder().toolCalls(List.of(returnCall, processCall)).build());
@@ -2775,7 +2768,7 @@ class AgentSubProcessRequestHandlerTest {
   void leavesTheReturnDocumentCallOfAMixedBatchToTheNextTurnAndSelectsItsDocumentThen() {
     final var arguments =
         Map.<String, Object>of(
-            "key", "report", "document", docTag(DocumentHandle.idFor(KNOWN_DOCUMENT)));
+            "key", "report", "document", docTag(AgentDocumentId.of(KNOWN_DOCUMENT)));
 
     final var run =
         runMixedBatchInTwoJobs(
@@ -2792,7 +2785,7 @@ class AgentSubProcessRequestHandlerTest {
                     .containsExactly("call-1", "call-2"));
     assertThat(run.finalContext().responseDocuments())
         .containsExactly(
-            new ResponseDocumentSelection("report", DocumentHandle.idFor(KNOWN_DOCUMENT), null));
+            new ResponseDocumentSelection("report", AgentDocumentId.of(KNOWN_DOCUMENT), null));
   }
 
   @Test

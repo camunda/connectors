@@ -346,11 +346,11 @@ class AgentContextTest {
     for (final var key : List.of("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta")) {
       context =
           context.withResponseDocument(
-              new ResponseDocumentSelection(key, DocumentId.of("doc-" + key), null));
+              new ResponseDocumentSelection(key, AgentDocumentId.of("doc-" + key), null));
     }
     context =
         context.withResponseDocument(
-            new ResponseDocumentSelection("alpha", DocumentId.of("doc-alpha-2"), "Replaced"));
+            new ResponseDocumentSelection("alpha", AgentDocumentId.of("doc-alpha-2"), "Replaced"));
 
     final var serialized = objectMapper.writeValueAsString(context);
     final var deserialized = objectMapper.readValue(serialized, AgentContext.class);

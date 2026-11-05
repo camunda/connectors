@@ -6,13 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolSchemas;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,7 +63,7 @@ public final class ReturnDocumentTool implements RuntimeTool {
 
   /** The arguments of a call: the key, the document and its description. */
   record Arguments(
-      @Nullable String key, @Nullable DocumentId document, @Nullable String description) {}
+      @Nullable String key, @Nullable AgentDocumentId document, @Nullable String description) {}
 
   private static Map<String, Object> schema() {
     final var properties = new LinkedHashMap<String, Object>();
@@ -72,7 +72,7 @@ public final class ReturnDocumentTool implements RuntimeTool {
         text(
             "A stable identifier the process uses to find the document, matching"
                 + " [A-Za-z_][A-Za-z0-9_-]*."));
-    properties.put(PARAMETER_DOCUMENT, RuntimeToolSchemas.document("The document to return."));
+    properties.put(PARAMETER_DOCUMENT, DocumentSchemas.document("The document to return."));
     properties.put(PARAMETER_DESCRIPTION, text("An optional short description of the document."));
     final var schema = new LinkedHashMap<String, Object>();
     schema.put("type", "object");
@@ -93,9 +93,7 @@ public final class ReturnDocumentTool implements RuntimeTool {
     return DEFINITION;
   }
 
-  /**
-   * The tool works with the document workspace: only an agent with the documents feature has it.
-   */
+  /** The tool works with the agent documents: only an agent with the documents feature has it. */
   @Override
   public boolean isEnabled(RuntimeToolContext context) {
     return context.agentContext().supports(AgentFeatures.DOCUMENTS);

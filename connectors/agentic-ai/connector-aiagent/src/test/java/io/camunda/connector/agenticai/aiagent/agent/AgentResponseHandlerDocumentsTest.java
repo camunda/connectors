@@ -15,21 +15,21 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -45,15 +45,16 @@ class AgentResponseHandlerDocumentsTest {
 
   private final Document report = createDocument("report", "report.txt");
   private final Document summary = createDocument("summary", "summary.txt");
-  private final DocumentId reportId = DocumentHandle.idFor(report);
-  private final DocumentId summaryId = DocumentHandle.idFor(summary);
-  private final DocumentWorkspace workspace =
-      DocumentIngestion.withDocuments(
-          DocumentWorkspace.empty(),
-          List.of(
-              new IngestedDocument(report, DocumentOrigin.toolCall("search", "call-1")),
-              new IngestedDocument(summary, DocumentOrigin.userMessage())));
+  private final AgentDocumentId reportId = AgentDocumentId.of(report);
+  private final AgentDocumentId summaryId = AgentDocumentId.of(summary);
+  private final AgentDocuments agentDocuments =
+      AgentDocuments.empty()
+          .register(
+              List.of(
+                  new NewDocument(report, DocumentOrigin.toolCall("search", "call-1")),
+                  new NewDocument(summary, DocumentOrigin.userMessage())));
 
+  private final ObjectMapper objectMapper = new ObjectMapper();
   private GatewayToolHandlerRegistry gatewayToolHandlers;
   private AgentResponseHandler responseHandler;
 
@@ -62,7 +63,9 @@ class AgentResponseHandlerDocumentsTest {
     gatewayToolHandlers = mock(GatewayToolHandlerRegistry.class);
     when(gatewayToolHandlers.transformToolCalls(any(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
-    responseHandler = new AgentResponseHandlerImpl(new ObjectMapper(), gatewayToolHandlers);
+    responseHandler =
+        new AgentResponseHandlerImpl(
+            objectMapper, gatewayToolHandlers, new DocumentParameterResolver());
   }
 
   @Test
@@ -77,12 +80,9 @@ class AgentResponseHandlerDocumentsTest {
 
     assertThat(response.responseDocuments()).containsOnlyKeys("summary", "report");
     assertThat(response.responseDocuments().get("summary"))
-        .isEqualTo(
-            new ReturnedDocument(
-                workspace.findById(summaryId).orElseThrow().reference(), "Short version"));
+        .isEqualTo(new ReturnedDocument(referenceOf(summaryId), "Short version"));
     assertThat(response.responseDocuments().get("report"))
-        .isEqualTo(
-            new ReturnedDocument(workspace.findById(reportId).orElseThrow().reference(), null));
+        .isEqualTo(new ReturnedDocument(referenceOf(reportId), null));
     assertThat(response.responseDocuments().get("summary").document())
         .containsEntry("camunda.document.type", "camunda")
         .containsKeys("storeId", "documentId", "contentHash");
@@ -116,7 +116,7 @@ class AgentResponseHandlerDocumentsTest {
     assertThat(second.responseDocuments()).containsOnlyKeys("summary", "report", "extra");
     assertThat(second.responseDocuments().get("summary").description()).isEqualTo("Replaced");
     assertThat(second.responseDocuments().get("summary").document())
-        .isEqualTo(workspace.findById(reportId).orElseThrow().reference());
+        .isEqualTo(referenceOf(reportId));
     assertThat(second.context().responseDocuments())
         .extracting(ResponseDocumentSelection::key)
         .containsExactly("summary", "report", "extra");
@@ -176,7 +176,7 @@ class AgentResponseHandlerDocumentsTest {
     final var context =
         AgentContext.builder()
             .state(AgentState.READY)
-            .documents(workspace.entries())
+            .documents(agentDocuments)
             .responseDocuments(List.of(new ResponseDocumentSelection("report", reportId, null)))
             .build();
     final var conversation =
@@ -187,17 +187,11 @@ class AgentResponseHandlerDocumentsTest {
     assertThat(createResponse(conversation).responseDocuments()).isEmpty();
   }
 
-  @Test
-  void skipsResponseDocumentsThatAreNotInTheWorkspace() {
-    final var response =
-        createResponse(
-            conversation(
-                responseDocuments(
-                    new ResponseDocumentSelection("gone", DocumentId.of("gone"), null),
-                    new ResponseDocumentSelection("report", reportId, null)),
-                assistantMessage("done")));
-
-    assertThat(response.responseDocuments()).containsOnlyKeys("report");
+  /** The document reference in the JSON format it is persisted in. */
+  private Map<String, Object> referenceOf(AgentDocumentId id) {
+    return objectMapper.convertValue(
+        objectMapper.valueToTree(agentDocuments.find(id).orElseThrow()).path("reference"),
+        new TypeReference<>() {});
   }
 
   private AgentResponse createResponse(AgentConversation conversation) {
@@ -217,7 +211,7 @@ class AgentResponseHandlerDocumentsTest {
         AgentContext.builder()
             .state(AgentState.READY)
             .features(AgentFeatures.ofNewInstance())
-            .documents(workspace.entries())
+            .documents(agentDocuments)
             .responseDocuments(responseDocuments)
             .build();
     return AgentConversation.rehydrate(

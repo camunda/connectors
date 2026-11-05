@@ -101,7 +101,7 @@ public sealed interface RuntimeToolResult {
 
     /** A successful result without effects. */
     public Success(List<Content> content) {
-      this(content, List.of(), List.of());
+      this(content, List.of());
     }
 
     /**

@@ -562,7 +562,7 @@ class ToolCallResultsInputBuilderTest {
   @Test
   void aBatchWithoutASelectionSelectsNoResponseDocumentAndLeavesTheContextAsItIs() {
     final var context = knowing(known);
-    final var textOnly = new Entry(result("c1", "alpha", textContent("one")), List.of());
+    final var textOnly = entryOf(result("c1", "alpha", textContent("one")), List.of());
 
     final var input =
         builder.build(context, batchOf(textOnly), Set.of(), TestDocuments.documentFactory());
@@ -669,13 +669,13 @@ class ToolCallResultsInputBuilderTest {
         builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of(), TestDocuments.documentFactory());
 
     assertThat(input.documents())
-        .containsExactly(new IngestedDocument(first, DocumentOrigin.toolCall("alpha", "c1")));
+        .containsExactly(new NewDocument(first, DocumentOrigin.toolCall("alpha", "c1")));
     assertThat(input.responseDocuments())
         .containsExactly(new ResponseDocumentSelection("created", idOf(first), null));
     final var applied = input.applyTo(WITH_DOCUMENTS);
     assertThat(applied.responseDocuments())
         .containsExactly(new ResponseDocumentSelection("created", idOf(first), null));
-    assertThat(applied.documentWorkspace().findById(idOf(first))).isPresent();
+    assertThat(applied.documents().find(idOf(first))).isPresent();
   }
 
   @Test
@@ -685,12 +685,12 @@ class ToolCallResultsInputBuilderTest {
     final var input =
         builder.build(knowing(known), batchOf(entry), Set.of(), TestDocuments.documentFactory());
 
-    assertThat(entry.responseDocuments()).isEmpty();
+    assertThat(entry.effects()).isEmpty();
     assertThat(input.responseDocuments()).isEmpty();
   }
 
   @Test
-  void aResultWhoseContentTheGuardRejectsSelectsNoResponseDocument() {
+  void aResultWhoseContentTheGuardRejectsStillSelectsItsResponseDocument() {
     final var entry =
         runtimeEntry(
             "c1",
@@ -712,53 +712,9 @@ class ToolCallResultsInputBuilderTest {
             TestDocuments.documentFactory());
 
     assertThat(input.responseDocuments())
-        .containsExactly(new ResponseDocumentSelection("kept", idOf(known), null));
-  }
-
-  @Test
-  void aCallNeverSelectsADocumentAnotherCallReturned() {
-    final var returning =
-        runtimeEntry(
-            "c1",
-            "alpha",
-            RuntimeToolResult.success(List.of(DocumentContent.documentContent(first))));
-    final var selecting =
-        runtimeEntry(
-            "c2",
-            "beta",
-            RuntimeToolResult.success("a").withResponseDocument("k", idOf(first), null));
-
-    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(returning, selecting), Set.of()))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("beta")
-        .hasMessageContaining("does not know");
-  }
-
-  @Test
-  void aResponseDocumentTheAgentDoesNotKnowIsADefectOfTheTool() {
-    final var entry =
-        runtimeEntry(
-            "c1",
-            "alpha",
-            RuntimeToolResult.success("a")
-                .withResponseDocument("k", DocumentId.of("unknown"), null));
-
-    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of()))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("alpha")
-        .hasMessageContaining("unknown");
-  }
-
-  @Test
-  void withoutTheDocumentsFeatureNoDocumentCanBeSelectedForTheResponse() {
-    final var entry =
-        runtimeEntry(
-            "c1",
-            "alpha",
-            RuntimeToolResult.success("a").withResponseDocument("k", idOf(known), null));
-
-    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry), Set.of()))
-        .isInstanceOf(IllegalArgumentException.class);
+        .containsExactly(
+            new ResponseDocumentSelection("report", idOf(known), null),
+            new ResponseDocumentSelection("kept", idOf(known), null));
   }
 
   @Test

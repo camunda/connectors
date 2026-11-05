@@ -17,26 +17,22 @@ import io.camunda.connector.agenticai.aiagent.agent.ToolCallAdmission;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallBatch;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agent.TurnInput;
-import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -49,8 +45,8 @@ import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 /**
- * The {@code c8__return_document} tool run by the framework, the way the agent runs it: the runtime
- * tools run the call and the input builder applies the effect of the result.
+ * The {@code c8__return_document} tool run by the framework, the way the agent runs it: the
+ * executor runs the call and the input builder applies the effect of the result.
  */
 class ReturnDocumentToolTest {
 
@@ -61,33 +57,33 @@ class ReturnDocumentToolTest {
       AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
 
   private final ReturnDocumentTool tool = new ReturnDocumentTool();
+  private final DocumentParameterResolver resolver = new DocumentParameterResolver();
   private final RuntimeTools runtimeTools =
-      new RuntimeTools(List.of(tool), TestObjectMapperSupplier.INSTANCE);
+      new RuntimeTools(List.of(tool), TestObjectMapperSupplier.INSTANCE, resolver);
+  private final LocalToolCallExecutor executor = new LocalToolCallExecutor(runtimeTools);
   private final ToolCallResultsInputBuilder inputBuilder =
-      new ToolCallResultsInputBuilder(
-          new DocumentContentGuard(DocumentContentLimits.defaults()),
-          TestObjectMapperSupplier.INSTANCE);
+      new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery());
 
   private final Document report = createDocument("report", "report.txt");
   private final Document summary = createDocument("summary", "summary.txt");
-  private final DocumentId reportId = DocumentHandle.idFor(report);
-  private final DocumentId summaryId = DocumentHandle.idFor(summary);
+  private final AgentDocumentId reportId = AgentDocumentId.of(report);
+  private final AgentDocumentId summaryId = AgentDocumentId.of(summary);
   private final String reportTag = "<doc id=\"" + reportId + "\" />";
   private final String summaryTag = "<doc id=\"" + summaryId + "\" />";
 
-  private final DocumentWorkspace registered =
-      DocumentIngestion.withDocuments(
-          DocumentWorkspace.empty(),
-          List.of(
-              new IngestedDocument(report, DocumentOrigin.toolCall("search", "call-1")),
-              new IngestedDocument(summary, DocumentOrigin.userMessage())));
+  private final AgentDocuments registered =
+      AgentDocuments.empty()
+          .register(
+              List.of(
+                  new NewDocument(report, DocumentOrigin.toolCall("search", "call-1")),
+                  new NewDocument(summary, DocumentOrigin.userMessage())));
 
   /**
-   * What the agent does with return_document calls: the executions, the input of the next turn and
-   * the agent context the turn continues with.
+   * What the agent does with return_document calls: the entries of the results, the input of the
+   * next turn and the agent context the turn continues with.
    */
   private record Run(
-      List<RuntimeToolExecution> executions, TurnInput input, AgentContext agentContext) {
+      List<ToolCallBatch.Entry> entries, TurnInput input, AgentContext agentContext) {
 
     List<ToolCallResultContent> results() {
       return ((ToolCallResultMessage) input.messages().getFirst()).results();
@@ -162,8 +158,10 @@ class ReturnDocumentToolTest {
     assertThat(run.results())
         .extracting(ReturnDocumentToolTest::text)
         .containsExactly("Returned the document under the key 'summary'.");
-    assertThat(run.executions().getFirst().result().responseDocuments())
-        .containsExactly(new ResponseDocumentSelection("summary", summaryId, "Short"));
+    assertThat(run.entries().getFirst().effects())
+        .containsExactly(
+            new ToolCallEffect.SelectResponseDocument(
+                new ResponseDocumentSelection("summary", summaryId, "Short")));
     assertThat(run.input().responseDocuments())
         .containsExactly(new ResponseDocumentSelection("summary", summaryId, "Short"));
     assertThat(run.responseDocuments())
@@ -206,7 +204,7 @@ class ReturnDocumentToolTest {
           .satisfies(result ->
               assertThat(text(result))
                   .startsWith("Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*"));
-      assertThat(run.executions().getFirst().result()).isInstanceOf(RuntimeToolResult.Error.class);
+      assertThat(run.entries().getFirst().effects()).isEmpty();
       assertThat(run.responseDocuments()).isEmpty();
     }
   }
@@ -229,19 +227,18 @@ class ReturnDocumentToolTest {
 
   @Test
   void answersAnUnknownDocumentWithTheRejectionOfTheAdmissionAndSelectsNothing() {
-    final var agentContext = WITH_DOCUMENTS.withDocumentWorkspace(registered);
+    final var agentContext = WITH_DOCUMENTS.withDocuments(registered);
     final var message =
         AssistantMessage.builder()
             .toolCalls(List.of(call("1", Map.of("key", "k", "document", "<doc id=\"unknown\" />"))))
             .build();
 
     final var admitted =
-        new ToolCallAdmission()
+        new ToolCallAdmission(resolver)
             .admit(message, List.of(tool.definition()), agentContext)
             .toolCalls();
     final var entries =
-        new LocalToolCallExecutor(runtimeTools)
-            .execute(withConfiguration(CONFIGURATION), agentContext, Set.of(), admitted);
+        executor.execute(withConfiguration(CONFIGURATION), agentContext, Set.of(), admitted);
     final var input =
         inputBuilder.build(agentContext, ToolCallBatch.of(admitted).withEntries(entries), Set.of());
 
@@ -250,7 +247,7 @@ class ReturnDocumentToolTest {
         .singleElement()
         .satisfies(entry -> {
           assertThat(text(entry.result())).isEqualTo(admitted.getFirst().rejection());
-          assertThat(entry.responseDocuments()).isEmpty();
+          assertThat(entry.effects()).isEmpty();
         });
     assertThat(input.responseDocuments()).isEmpty();
     assertThat(input.applyTo(agentContext).responseDocuments()).isEmpty();
@@ -280,7 +277,7 @@ class ReturnDocumentToolTest {
     final var earlier = new ResponseDocumentSelection("first", reportId, null);
     final var run =
         run(
-            WITH_DOCUMENTS.withDocumentWorkspace(registered).withResponseDocument(earlier),
+            WITH_DOCUMENTS.withDocuments(registered).withResponseDocument(earlier),
             call("1", Map.of("key", "second", "document", summaryTag)));
 
     assertThat(run.responseDocuments())
@@ -292,25 +289,15 @@ class ReturnDocumentToolTest {
   }
 
   private Run run(ToolCall... calls) {
-    return run(WITH_DOCUMENTS.withDocumentWorkspace(registered), calls);
+    return run(WITH_DOCUMENTS.withDocuments(registered), calls);
   }
 
   private Run run(AgentContext agentContext, ToolCall... calls) {
-    final var executions =
-        runtimeTools.execute(
-            withConfiguration(CONFIGURATION), agentContext, Set.of(), List.of(calls));
-    final var batch =
-        ToolCallBatch.of(List.of(calls))
-            .withEntries(
-                executions.stream()
-                    .map(execution ->
-                        ToolCallBatch.Entry.from(
-                            execution.toolCallResult(),
-                            execution.result().documentContent(),
-                            execution.result().responseDocuments()))
-                    .toList());
+    final var entries =
+        executor.execute(withConfiguration(CONFIGURATION), agentContext, Set.of(), List.of(calls));
+    final var batch = ToolCallBatch.of(List.of(calls)).withEntries(entries);
     final var input =
         inputBuilder.build(agentContext, batch, Set.of(), TestDocuments.documentFactory());
-    return new Run(executions, input, input.applyTo(agentContext));
+    return new Run(entries, input, input.applyTo(agentContext));
   }
 }
