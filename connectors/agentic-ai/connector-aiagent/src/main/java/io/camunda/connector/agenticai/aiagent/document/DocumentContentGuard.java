@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.io.IOException;
@@ -122,7 +123,7 @@ public final class DocumentContentGuard {
     }
 
     final var limit = limitFor(kind);
-    final var size = DocumentHandle.sizeFor(document);
+    final var size = AgentDocument.Descriptors.of(document.reference()).size();
     if (size != null) {
       return size > limit
           ? Optional.of(tooLarge("is " + kilobytes(size), limit))

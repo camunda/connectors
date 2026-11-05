@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import java.util.List;
@@ -37,7 +37,7 @@ public class LocalToolCallExecutor {
   public List<ToolCallBatch.Entry> execute(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      Set<DocumentId> documentIdsWithContent,
+      Set<AgentDocumentId> documentIdsWithContent,
       List<ToolCall> calls) {
     for (final var call : calls) {
       if (!isExecutedByTheAgent(call)) {
