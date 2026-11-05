@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.document;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -17,7 +18,8 @@ import org.jspecify.annotations.Nullable;
  * the order they were made; a selection under a key that is already used replaces that selection in
  * place.
  *
- * @param key the key the process finds the document by
+ * @param key the key the process finds the document by; it starts with a letter or an underscore
+ *     and continues with letters, digits, underscores or hyphens ({@link #KEY_PATTERN})
  * @param document the id of the document in the agent documents
  * @param description a description of the document, if any
  */
@@ -26,8 +28,20 @@ import org.jspecify.annotations.Nullable;
 public record ResponseDocumentSelection(
     String key, AgentDocumentId document, @Nullable String description) {
 
+  /** The form of a key, as a regular expression. */
+  public static final String KEY_PATTERN = "[A-Za-z_][A-Za-z0-9_-]*";
+
+  private static final Pattern KEY = Pattern.compile(KEY_PATTERN);
+
+  /**
+   * @throws IllegalArgumentException if the key does not match {@link #KEY_PATTERN}
+   */
   public ResponseDocumentSelection {
     Objects.requireNonNull(key, "key must not be null");
+    if (!KEY.matcher(key).matches()) {
+      throw new IllegalArgumentException(
+          "The key '%s' of a response document must match %s".formatted(key, KEY_PATTERN));
+    }
     Objects.requireNonNull(document, "document must not be null");
   }
 }
