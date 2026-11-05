@@ -126,7 +126,7 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
     final var messages = OpenAiCompletionsRecordedConversation.recorded().lastRequest().messages();
     assertThat(messages.toString())
-        .contains("was not loaded automatically")
+        .contains("pass its tag to a tool that processes it.")
         .doesNotContain("c8__get_document");
     assertHistoryCoversEveryModelRequest(agentInstanceKey);
   }

@@ -369,8 +369,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .containsExactly("system", "user", "assistant", "tool", "user");
     final var tag = parseDocumentTag(afterDownload.get(3).content());
     assertThat(afterDownload.get(4).textContent())
-        .startsWith("Document %s was not loaded automatically: it ".formatted(tag.id()))
-        .endsWith("Pass its tag to a tool that processes it.");
+        .startsWith("The document %s ".formatted(tag.id()))
+        .endsWith("pass its tag to a tool that processes it.");
     assertThat(OpenAiCompletionsRecordedConversation.recordedRawBodies())
         .noneMatch(body -> body.contains(LARGE_FILE_MARKER));
 
