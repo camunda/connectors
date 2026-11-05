@@ -849,7 +849,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.jetbrains</groupId>
         <artifactId>annotations</artifactId>
-        <version>17.0.0</version>
+        <version>26.1.0</version>
       </dependency>
 
       <dependency>
