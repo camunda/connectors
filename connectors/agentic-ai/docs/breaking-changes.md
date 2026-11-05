@@ -207,7 +207,7 @@ client in its properties does not start.
   Between the two, the request handler produces the tool call results of the local tool calls (calls of runtime tools and
   rejected calls) and adds them to the `Ready`. The composer executes no tool.
 - `CompositionResult` has the variants `Deferred`, `NoInput` and `Ready`. `NextTurn` is removed; its messages are in
-  `TurnInput`, with the documents that enter the conversation with it, which the request handler registers. `Ready` holds the agent context, the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
+  `TurnInput`, with the documents that enter the conversation with it, which the request handler registers. `Ready` holds the agent context, the ids of the documents whose content the model reads, the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
   of a turn without tool call results, and the event messages. `Deferred.arrivedResults` holds only the results that
   arrived from the process.
 - The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an
@@ -221,11 +221,9 @@ response carries the Camunda document references in place of the document handle
 them. The constructor of `AgentResponseHandlerImpl` takes the `DocumentParameterResolver`, a bean of the
 auto-configuration.
 
-`ToolCallResultsInputBuilder` is a new interface (implementation `ToolCallResultsInputBuilderImpl`) that builds the tool
-call result message and the messages that follow it from the results of all tool calls of a turn, for the composer and for
-the rounds of local tool call results of the request handler. It registers the documents of the results and applies the effects of the
-results of runtime tools (the content of a known document, see "Runtime tools and tool names"). The composer and the
-request handler take it as a constructor argument.
+`ToolCallResultsInputBuilder` builds the tool call result message and the messages that follow it from the results of a
+`ToolCallBatch`, for the composer. It reports the documents of the results for registration and applies the effects of
+the results of runtime tools (the content of a known document, see "Runtime tools and tool names").
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
