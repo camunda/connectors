@@ -583,6 +583,8 @@ jobs:
   # pushed onto the released branch itself, right after the release commit: the release-x.y.z branch is
   # merged back into stable/x.y as a whole, so a separate PR to stable/x.y would conflict with it on
   # every version line. main is moved to the next minor by CREATE_RELEASE_BRANCH.yml instead.
+  # Only release-* branches: their protection rule allows the GitHub App to push directly (like the
+  # release commit in setup), while stable/* and main require a reviewed PR.
   bump-snapshot-version:
     needs: [setup, e2e-tests, maven-release]
     name: Set the next snapshot version on ${{ needs.setup.outputs.releaseBranch }}
@@ -591,7 +593,7 @@ jobs:
       needs.setup.result == 'success' &&
       (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
       (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
-      needs.setup.outputs.releaseBranch != 'main' &&
+      startsWith(needs.setup.outputs.releaseBranch, 'release-') &&
       !contains(inputs.version, '-')
     runs-on: ubuntu-latest
     permissions:
