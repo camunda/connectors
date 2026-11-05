@@ -273,7 +273,8 @@ class AgentConversationTurnInputComposerImplTest {
     var userMessage = (UserMessage) messagesOf(result).getFirst();
     assertThat(userMessage.content())
         .containsExactly(
-            textContent("Tell me a story"), documentReference(document, DocumentDelivery.CONTENT));
+            textContent("Tell me a story"),
+            documentReference(document, DocumentDelivery.REFERENCE));
     final var ingested = inputOf(result).documents();
     assertThat(ingested)
         .containsExactly(
