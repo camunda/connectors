@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallExecutor;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallAdmission;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
@@ -90,6 +91,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   public GatewayToolHandlerRegistry aiAgentGatewayToolHandlerRegistry(
       List<GatewayToolHandler> gatewayToolHandlers) {
     return new GatewayToolHandlerRegistryImpl(gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ToolCallAdmission aiAgentToolCallAdmission() {
+    return new ToolCallAdmission();
   }
 
   @Bean
@@ -273,6 +280,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       RuntimeTools runtimeTools,
+      ToolCallAdmission toolCallAdmission,
       LocalToolCallExecutor localToolCallExecutor) {
     return new AgentTaskRequestHandler(
         agentInitializer,
@@ -283,6 +291,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         responseHandler,
         agentInstanceClient,
         runtimeTools,
+        toolCallAdmission,
         localToolCallExecutor);
   }
 
@@ -319,6 +328,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       RuntimeTools runtimeTools,
+      ToolCallAdmission toolCallAdmission,
       LocalToolCallExecutor localToolCallExecutor) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
@@ -329,6 +339,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         responseHandler,
         agentInstanceClient,
         runtimeTools,
+        toolCallAdmission,
         localToolCallExecutor);
   }
 

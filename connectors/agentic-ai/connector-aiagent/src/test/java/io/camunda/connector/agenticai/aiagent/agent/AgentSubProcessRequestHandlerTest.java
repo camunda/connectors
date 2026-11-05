@@ -168,6 +168,7 @@ class AgentSubProcessRequestHandlerTest {
             responseHandler,
             agentInstanceClient,
             runtimeTools,
+            new ToolCallAdmission(),
             new LocalToolCallExecutor(runtimeTools));
     TOGGLE_ENABLED.set(true);
     ConversationStore conversationStore = spy(new InProcessConversationStore());

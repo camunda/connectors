@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -73,6 +72,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
   private final RuntimeTools runtimeTools;
+  private final ToolCallAdmission toolCallAdmission;
   private final LocalToolCallExecutor localToolCallExecutor;
 
   public BaseAgentRequestHandler(
@@ -84,6 +84,7 @@ public abstract class BaseAgentRequestHandler<
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       RuntimeTools runtimeTools,
+      ToolCallAdmission toolCallAdmission,
       LocalToolCallExecutor localToolCallExecutor) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
@@ -93,6 +94,7 @@ public abstract class BaseAgentRequestHandler<
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
     this.runtimeTools = runtimeTools;
+    this.toolCallAdmission = toolCallAdmission;
     this.localToolCallExecutor = localToolCallExecutor;
   }
 
@@ -186,32 +188,6 @@ public abstract class BaseAgentRequestHandler<
                   .formatted(name));
         });
     return Stream.concat(processToolDefinitions.stream(), runtimeToolDefinitions.stream()).toList();
-  }
-
-  /**
-   * Tags the calls with the kind of the offered tool of their name. A call of a name that is not
-   * offered is rejected: its tool call result is an error, and it never reaches the process or a
-   * runtime tool, whatever the tools offered in a later job.
-   */
-  private AssistantMessage tagToolCalls(
-      List<ToolDefinition> offeredTools, AssistantMessage message) {
-    if (!message.hasToolCalls()) {
-      return message;
-    }
-    final var kindsByName =
-        offeredTools.stream()
-            .collect(
-                Collectors.toMap(
-                    ToolDefinition::name, ToolDefinition::kind, (first, second) -> first));
-    return message.withToolCalls(
-        message.toolCalls().stream()
-            .map(call -> {
-              final var kind = kindsByName.get(call.name());
-              return kind == null
-                  ? call.withRejection("The tool '%s' does not exist.".formatted(call.name()))
-                  : call.withKind(kind);
-            })
-            .toList());
   }
 
   /**
@@ -374,9 +350,9 @@ public abstract class BaseAgentRequestHandler<
     final var windowedSnapshot = conversation.window(agentConfiguration.contextWindowSize());
     final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
-    // the one place the tool calls are tagged with the kind of their tool or rejected
     final var assistantMessage =
-        tagToolCalls(agentConfiguration.toolDefinitions(), chatResult.assistantMessage());
+        toolCallAdmission.admit(
+            chatResult.assistantMessage(), agentConfiguration.toolDefinitions());
     return new ModelResponse(
         conversation.ingest(assistantMessage, chatResult.metrics()), chatResult);
   }

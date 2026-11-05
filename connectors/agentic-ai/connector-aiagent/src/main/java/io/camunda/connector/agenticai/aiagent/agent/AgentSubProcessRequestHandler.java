@@ -38,6 +38,7 @@ public class AgentSubProcessRequestHandler
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       RuntimeTools runtimeTools,
+      ToolCallAdmission toolCallAdmission,
       LocalToolCallExecutor localToolCallExecutor) {
     super(
         agentInitializer,
@@ -48,6 +49,7 @@ public class AgentSubProcessRequestHandler
         responseHandler,
         agentInstanceClient,
         runtimeTools,
+        toolCallAdmission,
         localToolCallExecutor);
   }
 
