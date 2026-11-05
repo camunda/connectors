@@ -10,10 +10,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import java.util.Map;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
@@ -25,8 +26,12 @@ public record AgentSubProcessResponse(
     @Nullable String responseText,
     @Nullable Object responseJson,
     // the response documents by key
-    Map<String, ReturnedDocument> responseDocuments)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, ReturnedDocument> responseDocuments)
     implements AgentSubProcessResponseBuilder.With {
+
+  public AgentSubProcessResponse {
+    responseDocuments = Objects.requireNonNullElse(responseDocuments, Map.of());
+  }
 
   public static AgentSubProcessResponseBuilder builder() {
     return AgentSubProcessResponseBuilder.builder();
