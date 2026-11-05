@@ -134,7 +134,7 @@ public final class DocumentParameterResolver {
   }
 
   private static Resolution unchanged(ToolCall toolCall) {
-    return new Resolution.Resolved(toolCall.arguments() == null ? Map.of() : toolCall.arguments());
+    return new Resolution.Resolved(toolCall.arguments());
   }
 
   /**
@@ -146,10 +146,8 @@ public final class DocumentParameterResolver {
    */
   public static Resolution resolve(
       ToolCall toolCall, ToolDefinition toolDefinition, AgentDocuments documents) {
-    final Map<String, Object> arguments =
-        toolCall.arguments() == null ? Map.of() : toolCall.arguments();
     return walkValidating(
-        arguments, toolDefinition, documents, DocumentParameterResolver::referenceJson);
+        toolCall.arguments(), toolDefinition, documents, DocumentParameterResolver::referenceJson);
   }
 
   /**
@@ -159,9 +157,7 @@ public final class DocumentParameterResolver {
    */
   public static Resolution resolveIds(
       ToolCall toolCall, ToolDefinition toolDefinition, AgentDocuments documents) {
-    final Map<String, Object> arguments =
-        toolCall.arguments() == null ? Map.of() : toolCall.arguments();
-    return walkValidating(arguments, toolDefinition, documents, AgentDocument::id);
+    return walkValidating(toolCall.arguments(), toolDefinition, documents, AgentDocument::id);
   }
 
   private static Resolution walkValidating(

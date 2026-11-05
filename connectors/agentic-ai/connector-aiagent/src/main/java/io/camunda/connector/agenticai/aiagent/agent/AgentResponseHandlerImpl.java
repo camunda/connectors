@@ -93,15 +93,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
         .map(toolCall ->
             switch (DocumentParameterResolver.resolveProcessCall(agentContext, toolCall)) {
               case DocumentParameterResolver.Resolution.Resolved resolved ->
-                  // not ToolCall#withArguments: a model can send an explicit null value, which
-                  // the immutable copy of the builder would reject
-                  new ToolCall(
-                      toolCall.id(),
-                      toolCall.name(),
-                      resolved.arguments(),
-                      toolCall.metadata(),
-                      toolCall.kind(),
-                      toolCall.rejection());
+                  toolCall.withResolvedArguments(resolved.arguments());
               case DocumentParameterResolver.Resolution.Invalid invalid ->
                   throw new IllegalStateException(
                       "The call '%s' of the tool '%s' goes to the process, but its document parameters are invalid: %s"
