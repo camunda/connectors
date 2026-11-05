@@ -99,6 +99,38 @@ class ToolCallResultContentTest {
   }
 
   @Nested
+  class ForRejectedToolCall {
+
+    @Test
+    void theRejectionIsTheContent() {
+      OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00");
+      ToolCall toolCall =
+          new ToolCall("call-1", "acme_unknown", Map.of())
+              .withRejection("The tool 'acme_unknown' does not exist.");
+
+      assertThat(ToolCallResultContent.forRejectedToolCall(toolCall, completedAt))
+          .isEqualTo(
+              ToolCallResultContent.builder()
+                  .id("call-1")
+                  .name("acme_unknown")
+                  .content(
+                      List.of(TextContent.textContent("The tool 'acme_unknown' does not exist.")))
+                  .completedAt(completedAt)
+                  .build());
+    }
+
+    @Test
+    void aCallWithoutRejectionIsNotAccepted() {
+      ToolCall toolCall = new ToolCall("call-1", "search", Map.of());
+
+      assertThatThrownBy(
+              () -> ToolCallResultContent.forRejectedToolCall(toolCall, OffsetDateTime.now()))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("The tool call 'call-1' is not rejected");
+    }
+  }
+
+  @Nested
   class JacksonRoundTrip {
 
     @Test
