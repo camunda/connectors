@@ -16,7 +16,6 @@ import io.camunda.connector.agenticai.aiagent.agent.ToolCallBatch.Entry;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
-import io.camunda.connector.agenticai.aiagent.document.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;

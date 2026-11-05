@@ -9,19 +9,19 @@ package io.camunda.connector.agenticai.aiagent.conversation;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class PreviousConversationTest {
 
-  private static final DocumentId LOADED = DocumentId.of("loaded");
+  private static final AgentDocumentId LOADED = AgentDocumentId.of("loaded");
 
-  private static DocumentReferenceContent reference(DocumentId id, DocumentDelivery delivery) {
-    return new DocumentReferenceContent(id, delivery, null);
+  private static AgentDocumentContent block(AgentDocumentId id, DocumentDelivery delivery) {
+    return new AgentDocumentContent(id, delivery, null);
   }
 
   private static PreviousConversation conversationWithTheLoadedDocumentFirst() {
@@ -30,8 +30,8 @@ class PreviousConversationTest {
             UserMessage.builder()
                 .content(
                     List.of(
-                        reference(LOADED, DocumentDelivery.CONTENT),
-                        reference(DocumentId.of("referenced"), DocumentDelivery.REFERENCE)))
+                        block(LOADED, DocumentDelivery.CONTENT),
+                        block(AgentDocumentId.of("referenced"), DocumentDelivery.REFERENCE)))
                 .build(),
             assistantMessage("one"),
             UserMessage.builder().content(List.of()).build(),

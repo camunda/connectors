@@ -111,6 +111,7 @@ class AgentTaskRequestHandlerTest {
       new RuntimeTools(
           List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
           TestObjectMapperSupplier.INSTANCE,
+          TestDocuments.documentFactory(),
           new DocumentParameterResolver());
 
   @Spy

@@ -269,6 +269,7 @@ class AgentSubProcessRequestHandlerTest {
               LOAD_DOCUMENT_TOOL,
               new GetDocumentTool()),
           TestObjectMapperSupplier.INSTANCE,
+          TestDocuments.documentFactory(),
           new DocumentParameterResolver());
 
   @Spy
@@ -1924,7 +1925,7 @@ class AgentSubProcessRequestHandlerTest {
   private String failureCodeOfRegistering(AgentContext context, Document document) {
     reset(agentInitializer, agentInputComposer);
     when(agentInputComposer.resolve(any(), any(), any(), any()))
-        .thenReturn(CompositionResult.Ready.of(context, ToolCallBatch.of(List.of())));
+        .thenReturn(CompositionResult.Ready.of(context, Set.of(), ToolCallBatch.of(List.of())));
     when(agentInputComposer.assemble(any()))
         .thenReturn(
             new TurnInput(
