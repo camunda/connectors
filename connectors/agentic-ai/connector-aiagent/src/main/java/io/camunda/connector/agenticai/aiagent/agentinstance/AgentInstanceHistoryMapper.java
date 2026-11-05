@@ -438,9 +438,8 @@ public class AgentInstanceHistoryMapper {
       protocolMetadata.size(metadata.getSize());
     }
     if (metadata.getExpiresAt() != null) {
-      // a UTC instant, so a live document and the same document read back from the agent documents
-      // (which
-      // keeps the instant, not its offset) are reported with the same text
+      // a UTC instant: a document read back from the agent documents keeps the instant, not its
+      // offset, and is reported with the same text as the live document
       protocolMetadata.expiresAt(
           metadata.getExpiresAt().withOffsetSameInstant(ZoneOffset.UTC).toString());
     }
