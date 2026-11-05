@@ -10,7 +10,6 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.io.IOException;
-import java.util.Optional;
 import org.apache.hc.core5.http.ContentType;
 import org.jspecify.annotations.Nullable;
 
@@ -43,38 +42,86 @@ public final class DocumentContentGuard {
     this.limits = limits;
   }
 
-  /**
-   * Why a document gets no content.
-   *
-   * @param reason the kind of the problem
-   * @param problem the problem as a predicate of the document, such as {@code is of type X which
-   *     cannot be loaded into the conversation}; it is shown to the model, so it holds the content
-   *     type and the size at most
-   * @param cause the failure behind {@link Reason#UNREADABLE}, otherwise {@code null}; it is for
-   *     the log and never shown to the model
-   */
-  public record Rejection(Reason reason, String problem, @Nullable Throwable cause) {
+  /** The outcome of the check of a document. */
+  public sealed interface Verdict {
 
-    /** The kinds of problems of a document. */
-    public enum Reason {
-      /** The document is an external one. */
-      EXTERNAL,
-      /** The document has no content type or a content type that no provider can render. */
-      UNSUPPORTED_TYPE,
-      /** The document is above the limit of its kind. */
-      TOO_LARGE,
-      /** The document could not be read to find out its size. */
-      UNREADABLE
+    /** The content of the document may be added to the conversation. */
+    record Allowed() implements Verdict {}
+
+    /** The content of the document must not be added to the conversation. */
+    record Rejected(Rejection rejection) implements Verdict {}
+  }
+
+  /**
+   * Why a document gets no content. The text for the model holds the content type and the size at
+   * most, never the cause of a failure.
+   */
+  public sealed interface Rejection {
+
+    /**
+     * What the model reads about the document: a predicate that follows {@code The document <id>},
+     * such as {@code is of type X which cannot be loaded into the conversation}.
+     */
+    String modelText();
+
+    /** The failure behind the rejection, for the log; never shown to the model. */
+    default @Nullable Throwable cause() {
+      return null;
+    }
+
+    /** The document is an external one. */
+    record External() implements Rejection {
+
+      @Override
+      public String modelText() {
+        return "is an external document, which cannot be loaded into the conversation"
+            + PASS_THE_TAG;
+      }
     }
 
     /**
-     * Whether a later attempt for the same document can succeed. A document that is of an
-     * unsupported type or too large stays so.
+     * The document has no content type or a content type that no provider can render.
+     *
+     * @param problem the problem as a predicate of the document
      */
-    public boolean retryable() {
-      return reason == Reason.UNREADABLE;
+    record UnsupportedType(String problem) implements Rejection {
+
+      @Override
+      public String modelText() {
+        return problem + PASS_THE_TAG;
+      }
+    }
+
+    /**
+     * The document is above the limit of its kind.
+     *
+     * @param sizeText the size of the document, or what is known of it
+     * @param limit the limit in bytes
+     */
+    record TooLarge(String sizeText, long limit) implements Rejection {
+
+      @Override
+      public String modelText() {
+        return "%s, too large to load into the conversation (limit %s)%s"
+            .formatted(sizeText, kilobytes(limit), PASS_THE_TAG);
+      }
+    }
+
+    /**
+     * The document could not be read to find out its size; a later attempt can succeed.
+     *
+     * @param cause the failure
+     */
+    record Unreadable(Throwable cause) implements Rejection {
+
+      @Override
+      public String modelText() {
+        return "could not be read, so its content is not loaded";
+      }
     }
   }
+
+  private static final String PASS_THE_TAG = "; pass its tag to a tool that processes it";
 
   /** The kinds of content the providers tell apart. */
   private enum Kind {
@@ -83,70 +130,67 @@ public final class DocumentContentGuard {
     IMAGE
   }
 
-  /**
-   * Returns why the content of the document must not be added to the conversation, or empty if it
-   * may.
-   */
-  public Optional<Rejection> check(Document document) {
-    if (document.reference() instanceof ExternalDocumentReference) {
-      return Optional.of(
-          new Rejection(
-              Rejection.Reason.EXTERNAL,
-              "is an external document, which cannot be loaded into the conversation",
-              null));
-    }
+  /** Checks whether the content of the document may be added to the conversation. */
+  public Verdict check(Document document) {
+    return switch (document.reference()) {
+      case ExternalDocumentReference ignored -> new Verdict.Rejected(new Rejection.External());
+      case null, default -> checkContent(document);
+    };
+  }
 
+  private Verdict checkContent(Document document) {
     final var contentType = contentTypeOf(document);
     if (contentType == null) {
-      return Optional.of(
-          new Rejection(
-              Rejection.Reason.UNSUPPORTED_TYPE,
-              "has no content type, so it cannot be loaded into the conversation",
-              null));
+      return unsupported("has no content type, so it cannot be loaded into the conversation");
     }
     final var parsed = DocumentMimeTypes.parse(contentType);
     if (parsed == null) {
-      return Optional.of(
-          new Rejection(
-              Rejection.Reason.UNSUPPORTED_TYPE,
-              "has a content type that cannot be read, so it cannot be loaded into the conversation",
-              null));
+      return unsupported(
+          "has a content type that cannot be read, so it cannot be loaded into the conversation");
     }
     final var kind = kindOf(parsed);
     if (kind == null) {
-      return Optional.of(
-          new Rejection(
-              Rejection.Reason.UNSUPPORTED_TYPE,
-              "is of type %s which cannot be loaded into the conversation"
-                  .formatted(parsed.getMimeType()),
-              null));
+      return unsupported(
+          "is of type %s which cannot be loaded into the conversation"
+              .formatted(parsed.getMimeType()));
     }
 
     final var limit = limitFor(kind);
     final var size = sizeOf(document);
     if (size != null) {
-      return size > limit
-          ? Optional.of(tooLarge("is " + kilobytes(size), limit))
-          : Optional.empty();
+      return size > limit ? tooLarge("is " + kilobytes(size), limit) : allowed();
     }
 
     try {
       return exceeds(document, limit)
-          ? Optional.of(tooLarge("is larger than " + kilobytes(limit), limit))
-          : Optional.empty();
+          ? tooLarge("is larger than " + kilobytes(limit), limit)
+          : allowed();
     } catch (IOException | RuntimeException e) {
-      return Optional.of(
-          new Rejection(Rejection.Reason.UNREADABLE, "could not be read to check its size", e));
+      return new Verdict.Rejected(new Rejection.Unreadable(e));
     }
+  }
+
+  private static Verdict allowed() {
+    return new Verdict.Allowed();
+  }
+
+  private static Verdict unsupported(String problem) {
+    return new Verdict.Rejected(new Rejection.UnsupportedType(problem));
+  }
+
+  private static Verdict tooLarge(String sizeText, long limit) {
+    return new Verdict.Rejected(new Rejection.TooLarge(sizeText, limit));
   }
 
   /** The size from the metadata of a Camunda document, which is known without reading it. */
   private static @Nullable Long sizeOf(Document document) {
-    if (!(document.reference() instanceof CamundaDocumentReference)) {
-      return null;
-    }
-    final var metadata = document.metadata();
-    return metadata != null ? metadata.getSize() : null;
+    return switch (document.reference()) {
+      case CamundaDocumentReference ignored -> {
+        final var metadata = document.metadata();
+        yield metadata != null ? metadata.getSize() : null;
+      }
+      case null, default -> null;
+    };
   }
 
   /**
@@ -178,14 +222,6 @@ public final class DocumentContentGuard {
       case PDF -> limits.pdfBytes();
       case IMAGE -> limits.imageBytes();
     };
-  }
-
-  private static Rejection tooLarge(String sizeText, long limit) {
-    return new Rejection(
-        Rejection.Reason.TOO_LARGE,
-        "%s, too large to load into the conversation (limit %s)"
-            .formatted(sizeText, kilobytes(limit)),
-        null);
   }
 
   /** Reads at most one byte more than the limit to find out whether the document exceeds it. */

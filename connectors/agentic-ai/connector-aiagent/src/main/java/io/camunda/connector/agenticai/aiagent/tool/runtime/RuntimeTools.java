@@ -89,7 +89,8 @@ public class RuntimeTools {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return List.of();
     }
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, documentFactory);
+    final var context =
+        RuntimeToolContextImpl.of(executionContext, agentContext, Set.of(), documentFactory);
     return registrationsByName.values().stream()
         .filter(registration -> registration.tool().isEnabled(context))
         .map(Registration::definition)

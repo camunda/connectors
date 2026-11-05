@@ -8,9 +8,9 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
@@ -102,22 +102,16 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
    * A tool call result of the batch, with the documents the agent takes from it and what the result
    * asks of the agent.
    *
-   * @param documentContent the documents whose content the result asks to add, in the order they
-   *     were named
+   * @param effects what the result asks of the agent besides its content, in the order they were
+   *     added
    */
   public record Entry(
-      ToolCallResultContent result,
-      List<Document> documents,
-      List<AgentDocumentId> documentContent) {
+      ToolCallResultContent result, List<Document> documents, List<ToolCallEffect> effects) {
 
     public Entry {
       Objects.requireNonNull(result.id(), "The tool call result of an entry must have an id");
       documents = List.copyOf(documents);
-      documentContent = List.copyOf(documentContent);
-    }
-
-    public Entry(ToolCallResultContent result, List<Document> documents) {
-      this(result, documents, List.of());
+      effects = List.copyOf(effects);
     }
 
     /**
@@ -130,7 +124,7 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
           extractor.extractDocuments(List.of(result)).stream()
               .flatMap(group -> group.documents().stream())
               .toList();
-      return new Entry(ToolCallResultContent.from(result), documents);
+      return new Entry(ToolCallResultContent.from(result), documents, List.of());
     }
 
     /**
@@ -144,7 +138,8 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
       return new Entry(
           result,
           ToolCallResultDocumentExtractor.renderedDocumentsOf(
-              result.content(), objectHandleRenderer));
+              result.content(), objectHandleRenderer),
+          List.of());
     }
 
     /**
@@ -157,12 +152,12 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     }
 
     /**
-     * The entry of a result with structured content that asks for the content of documents; the
-     * documents are the ones of its content.
+     * The entry of a result with structured content that asks something of the agent; the documents
+     * are the ones of its content.
      */
-    public static Entry from(ToolCallResultContent result, List<AgentDocumentId> documentContent) {
+    public static Entry from(ToolCallResultContent result, List<ToolCallEffect> effects) {
       return new Entry(
-          result, ToolCallResultDocumentExtractor.documentsOf(result.content()), documentContent);
+          result, ToolCallResultDocumentExtractor.documentsOf(result.content()), effects);
     }
 
     /**

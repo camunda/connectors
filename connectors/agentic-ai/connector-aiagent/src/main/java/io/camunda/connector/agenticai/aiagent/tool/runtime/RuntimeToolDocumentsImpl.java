@@ -6,11 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
-import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import java.util.List;
 import java.util.Optional;
@@ -39,25 +40,39 @@ public final class RuntimeToolDocumentsImpl implements RuntimeToolDocuments {
 
   @Override
   public Optional<AgentDocument> find(AgentDocumentId id) {
-    return documents.find(id).map(this::documentOf);
+    return documents.find(id);
   }
 
   @Override
   public List<AgentDocument> all() {
-    return documents.all().stream().map(this::documentOf).toList();
-  }
-
-  private AgentDocument documentOf(
-      io.camunda.connector.agenticai.aiagent.model.document.AgentDocument agentDocument) {
-    return new AgentDocumentImpl(
-        agentDocument, idsWithContent.contains(agentDocument.id()), documentFactory);
+    return documents.all();
   }
 
   @Override
   public AgentDocumentContent reference(AgentDocumentId id) {
-    if (documents.find(id).isEmpty()) {
-      throw new IllegalArgumentException("The agent does not know the document " + id);
+    return AgentDocumentContent.of(known(id).id());
+  }
+
+  @Override
+  public Document document(AgentDocumentId id) {
+    final var known = known(id);
+    try {
+      return known.toDocument(documentFactory);
+    } catch (RuntimeException e) {
+      throw new IllegalStateException(
+          "The document %s cannot be restored from its reference".formatted(id), e);
     }
-    return AgentDocumentContent.of(id);
+  }
+
+  @Override
+  public boolean hasContentInConversation(AgentDocumentId id) {
+    return idsWithContent.contains(id);
+  }
+
+  private AgentDocument known(AgentDocumentId id) {
+    return documents
+        .find(id)
+        .orElseThrow(
+            () -> new IllegalArgumentException("The agent does not know the document " + id));
   }
 }

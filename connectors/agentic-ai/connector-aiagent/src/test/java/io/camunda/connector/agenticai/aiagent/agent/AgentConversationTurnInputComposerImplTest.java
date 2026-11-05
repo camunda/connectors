@@ -25,8 +25,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -100,9 +98,8 @@ class AgentConversationTurnInputComposerImplTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(
-                new DocumentContentGuard(DocumentContentLimits.defaults()),
-                TestDocuments.documentRestorer()), TestDocuments.objectHandleRenderer());
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
+            TestDocuments.objectHandleRenderer());
   }
 
   private CompositionResult resolve(
@@ -1120,14 +1117,9 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   private static ToolCallBatch.Entry loadingEntry(AgentDocumentId id) {
-    final var execution =
-        new RuntimeToolExecution(
-            MIXED_CALLS.getFirst(),
-            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
-            NOW,
-            NOW);
-    return ToolCallBatch.Entry.from(
-        execution.toolCallResult(), execution.result().documentContent());
+    final var result = RuntimeToolResult.success("Loaded the document.").withDocumentContent(id);
+    final var execution = new RuntimeToolExecution(MIXED_CALLS.getFirst(), result, NOW, NOW);
+    return ToolCallBatch.Entry.from(execution.toolCallResult(), result.effects());
   }
 
   @Test

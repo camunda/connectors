@@ -12,7 +12,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard.Rejection.Reason;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard.Rejection;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard.Verdict;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -40,6 +41,20 @@ class DocumentContentGuardTest {
   private Document document(byte[] content, String contentType) {
     return documentFactory.create(
         DocumentCreationRequest.from(content).contentType(contentType).fileName("a").build());
+  }
+
+  private static final String PASS_THE_TAG = "; pass its tag to a tool that processes it";
+
+  private static final Verdict ALLOWED = new Verdict.Allowed();
+
+  private Rejection rejectionOf(Document document) {
+    return rejectionOf(guard, document);
+  }
+
+  private static Rejection rejectionOf(DocumentContentGuard guard, Document document) {
+    final var verdict = guard.check(document);
+    assertThat(verdict).isInstanceOf(Verdict.Rejected.class);
+    return ((Verdict.Rejected) verdict).rejection();
   }
 
   /** A document whose reference metadata has no size: its size is only known by reading it. */
@@ -75,31 +90,31 @@ class DocumentContentGuardTest {
               return null;
             });
 
-    final var rejection = guard.check(external).orElseThrow();
+    final var rejection = rejectionOf(external);
 
-    assertThat(rejection.reason()).isEqualTo(Reason.EXTERNAL);
-    assertThat(rejection.problem())
-        .isEqualTo("is an external document, which cannot be loaded into the conversation");
-    assertThat(rejection.retryable()).isFalse();
+    assertThat(rejection).isEqualTo(new Rejection.External());
+    assertThat(rejection.modelText())
+        .isEqualTo(
+            "is an external document, which cannot be loaded into the conversation; pass its tag to a tool that processes it");
     assertThat(downloads).hasValue(0);
   }
 
   @Test
   void letsALoadableDocumentWithinTheLimitPass() {
-    assertThat(guard.check(document(new byte[10], "text/plain"))).isEmpty();
-    assertThat(guard.check(document(new byte[1024 * 1024], "application/pdf"))).isEmpty();
+    assertThat(guard.check(document(new byte[10], "text/plain"))).isEqualTo(ALLOWED);
+    assertThat(guard.check(document(new byte[1024 * 1024], "application/pdf"))).isEqualTo(ALLOWED);
   }
 
   @Test
   void rejectsADocumentOfATypeOutsideTheAllowlistWithoutReadingIt() {
     final var document = document(new byte[10], "application/zip");
 
-    final var rejection = guard.check(document).orElseThrow();
+    final var rejection = rejectionOf(document);
 
-    assertThat(rejection.reason()).isEqualTo(Reason.UNSUPPORTED_TYPE);
-    assertThat(rejection.problem())
-        .isEqualTo("is of type application/zip which cannot be loaded into the conversation");
-    assertThat(rejection.retryable()).isFalse();
+    assertThat(rejection).isInstanceOf(Rejection.UnsupportedType.class);
+    assertThat(rejection.modelText())
+        .isEqualTo(
+            "is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it");
   }
 
   @Test
@@ -108,29 +123,33 @@ class DocumentContentGuardTest {
     final var pdf = camundaDocument("application/pdf", 257L * 1024);
     final var image = camundaDocument("image/png", 3585L * 1024);
 
-    final var rejection = guard.check(text).orElseThrow();
+    final var rejection = rejectionOf(text);
 
-    assertThat(rejection.reason()).isEqualTo(Reason.TOO_LARGE);
-    assertThat(rejection.problem())
-        .isEqualTo("is 257 KB, too large to load into the conversation (limit 256 KB)");
-    assertThat(rejection.retryable()).isFalse();
+    assertThat(rejection).isInstanceOf(Rejection.TooLarge.class);
+    assertThat(rejection.modelText())
+        .isEqualTo(
+            "is 257 KB, too large to load into the conversation (limit 256 KB); pass its tag to a tool that processes it");
     verify(text, never()).asInputStream();
     // the limit of a PDF is higher
-    assertThat(guard.check(pdf)).isEmpty();
-    assertThat(guard.check(image).orElseThrow().problem())
-        .isEqualTo("is 3585 KB, too large to load into the conversation (limit 3584 KB)");
-    assertThat(guard.check(camundaDocument("application/pdf", 3585L * 1024))).isPresent();
+    assertThat(guard.check(pdf)).isEqualTo(ALLOWED);
+    assertThat(rejectionOf(image).modelText())
+        .isEqualTo(
+            "is 3585 KB, too large to load into the conversation (limit 3584 KB); pass its tag to a tool that processes it");
+    assertThat(guard.check(camundaDocument("application/pdf", 3585L * 1024)))
+        .isInstanceOf(Verdict.Rejected.class);
   }
 
   @Test
   void appliesTheConfiguredLimits() {
     final var strict = new DocumentContentGuard(new DocumentContentLimits(10, 20, 30));
 
-    assertThat(strict.check(camundaDocument("text/plain", 11)).orElseThrow().problem())
-        .isEqualTo("is 1 KB, too large to load into the conversation (limit 1 KB)");
-    assertThat(strict.check(camundaDocument("text/plain", 10))).isEmpty();
-    assertThat(strict.check(camundaDocument("application/pdf", 21))).isPresent();
-    assertThat(strict.check(camundaDocument("image/png", 31))).isPresent();
+    assertThat(rejectionOf(strict, camundaDocument("text/plain", 11)).modelText())
+        .isEqualTo(
+            "is 1 KB, too large to load into the conversation (limit 1 KB); pass its tag to a tool that processes it");
+    assertThat(strict.check(camundaDocument("text/plain", 10))).isEqualTo(ALLOWED);
+    assertThat(strict.check(camundaDocument("application/pdf", 21)))
+        .isInstanceOf(Verdict.Rejected.class);
+    assertThat(strict.check(camundaDocument("image/png", 31))).isInstanceOf(Verdict.Rejected.class);
   }
 
   @ParameterizedTest
@@ -158,7 +177,7 @@ class DocumentContentGuardTest {
         "IMAGE/PNG"
       })
   void letsTheContentTypesPass_theProvidersRender(String contentType) {
-    assertThat(guard.check(camundaDocument(contentType, 10))).isEmpty();
+    assertThat(guard.check(camundaDocument(contentType, 10))).isEqualTo(ALLOWED);
   }
 
   @ParameterizedTest
@@ -175,34 +194,35 @@ class DocumentContentGuardTest {
         "video/mp4"
       })
   void rejectsTheContentTypesNoProviderRenders(String contentType) {
-    final var rejection = guard.check(camundaDocument(contentType, 10)).orElseThrow();
+    final var rejection = rejectionOf(camundaDocument(contentType, 10));
 
-    assertThat(rejection.reason()).isEqualTo(Reason.UNSUPPORTED_TYPE);
-    assertThat(rejection.problem())
+    assertThat(rejection).isInstanceOf(Rejection.UnsupportedType.class);
+    assertThat(rejection.modelText())
         .isEqualTo(
-            "is of type %s which cannot be loaded into the conversation".formatted(contentType));
+            "is of type %s which cannot be loaded into the conversation".formatted(contentType)
+                + PASS_THE_TAG);
   }
 
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {"  "})
   void rejectsADocumentWithoutAContentType(String contentType) {
-    final var rejection = guard.check(camundaDocument(contentType, 10)).orElseThrow();
+    final var rejection = rejectionOf(camundaDocument(contentType, 10));
 
-    assertThat(rejection.reason()).isEqualTo(Reason.UNSUPPORTED_TYPE);
-    assertThat(rejection.problem())
-        .isEqualTo("has no content type, so it cannot be loaded into the conversation");
-    assertThat(rejection.retryable()).isFalse();
+    assertThat(rejection).isInstanceOf(Rejection.UnsupportedType.class);
+    assertThat(rejection.modelText())
+        .isEqualTo(
+            "has no content type, so it cannot be loaded into the conversation; pass its tag to a tool that processes it");
   }
 
   @Test
   void rejectsADocumentWithAContentTypeThatCannotBeRead() {
-    final var rejection = guard.check(camundaDocument(";;;", 10)).orElseThrow();
+    final var rejection = rejectionOf(camundaDocument(";;;", 10));
 
-    assertThat(rejection.reason()).isEqualTo(Reason.UNSUPPORTED_TYPE);
-    assertThat(rejection.problem())
+    assertThat(rejection).isInstanceOf(Rejection.UnsupportedType.class);
+    assertThat(rejection.modelText())
         .isEqualTo(
-            "has a content type that cannot be read, so it cannot be loaded into the conversation");
+            "has a content type that cannot be read, so it cannot be loaded into the conversation; pass its tag to a tool that processes it");
   }
 
   @Test
@@ -211,11 +231,12 @@ class DocumentContentGuardTest {
     when(content.readNBytes(256 * 1024 + 1)).thenReturn(new byte[256 * 1024 + 1]);
     final var document = documentOfUnknownSize("text/plain", content);
 
-    final var rejection = guard.check(document).orElseThrow();
+    final var rejection = rejectionOf(document);
 
-    assertThat(rejection.reason()).isEqualTo(Reason.TOO_LARGE);
-    assertThat(rejection.problem())
-        .isEqualTo("is larger than 256 KB, too large to load into the conversation (limit 256 KB)");
+    assertThat(rejection).isInstanceOf(Rejection.TooLarge.class);
+    assertThat(rejection.modelText())
+        .isEqualTo(
+            "is larger than 256 KB, too large to load into the conversation (limit 256 KB); pass its tag to a tool that processes it");
     verify(content).readNBytes(256 * 1024 + 1);
     verify(content, never()).readAllBytes();
   }
@@ -225,7 +246,7 @@ class DocumentContentGuardTest {
     final var document =
         documentOfUnknownSize("text/plain", new ByteArrayInputStream(new byte[100]));
 
-    assertThat(guard.check(document)).isEmpty();
+    assertThat(guard.check(document)).isEqualTo(ALLOWED);
   }
 
   @Test
@@ -234,12 +255,11 @@ class DocumentContentGuardTest {
     final var document = documentOfUnknownSize("text/plain", null);
     when(document.asInputStream()).thenThrow(failure);
 
-    final var rejection = guard.check(document).orElseThrow();
+    final var rejection = rejectionOf(document);
 
-    assertThat(rejection.reason()).isEqualTo(Reason.UNREADABLE);
+    assertThat(rejection).isInstanceOf(Rejection.Unreadable.class);
     // the failure is for the log: the text for the model holds no detail of it
-    assertThat(rejection.problem()).isEqualTo("could not be read to check its size");
+    assertThat(rejection.modelText()).isEqualTo("could not be read, so its content is not loaded");
     assertThat(rejection.cause()).isSameAs(failure);
-    assertThat(rejection.retryable()).isTrue();
   }
 }

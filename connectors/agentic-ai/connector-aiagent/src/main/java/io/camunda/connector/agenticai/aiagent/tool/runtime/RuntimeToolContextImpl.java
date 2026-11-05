@@ -24,7 +24,8 @@ public record RuntimeToolContextImpl(
    * The context of the given agent state. Its documents are the agent documents of {@code
    * agentContext}.
    *
-   * @param documentIdsWithContent the ids of the documents whose content the model reads
+   * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
+   *     start of the batch of calls, none outside a batch
    * @param documentFactory restores a document from its reference
    */
   public static RuntimeToolContextImpl of(
@@ -37,16 +38,5 @@ public record RuntimeToolContextImpl(
         agentContext,
         new RuntimeToolDocumentsImpl(
             agentContext.documents(), documentIdsWithContent, documentFactory));
-  }
-
-  /**
-   * The context of the given agent state outside a batch of calls, in which no document has its
-   * content in the conversation.
-   */
-  public static RuntimeToolContextImpl of(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      DocumentFactory documentFactory) {
-    return of(executionContext, agentContext, Set.of(), documentFactory);
   }
 }

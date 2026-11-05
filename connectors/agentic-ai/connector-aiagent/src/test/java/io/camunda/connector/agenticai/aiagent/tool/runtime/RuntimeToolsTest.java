@@ -15,7 +15,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
-import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
@@ -522,7 +521,10 @@ class RuntimeToolsTest {
             (context, call) -> {
               seen.add(context.documents().all().stream().map(AgentDocument::id).toList());
               final var found = context.documents().find(AgentDocumentId.of(report)).orElseThrow();
-              seen.add(new String(found.document().asByteArray(), StandardCharsets.UTF_8));
+              seen.add(
+                  new String(
+                      context.documents().document(found.id()).asByteArray(),
+                      StandardCharsets.UTF_8));
               seen.add(found.origin());
               return RuntimeToolResult.success("read");
             });
@@ -602,7 +604,8 @@ class RuntimeToolsTest {
               context
                   .documents()
                   .all()
-                  .forEach(document -> seen.add(document.contentInConversation()));
+                  .forEach(document ->
+                      seen.add(context.documents().hasContentInConversation(document.id())));
               return RuntimeToolResult.success("read");
             });
 
@@ -637,8 +640,8 @@ class RuntimeToolsTest {
                     runtimeCall("l1", "acme_load", Map.of()),
                     runtimeCall("f1", "acme_fail", Map.of())));
 
-    assertThat(executions.get(0).result().documentContent()).containsExactly(id);
-    assertThat(executions.get(1).result().documentContent()).isEmpty();
+    assertThat(executions.get(0).result())
+        .isEqualTo(RuntimeToolResult.success("ok").withDocumentContent(id));
     assertThat(executions.get(1).result()).isInstanceOf(RuntimeToolResult.Error.class);
   }
 

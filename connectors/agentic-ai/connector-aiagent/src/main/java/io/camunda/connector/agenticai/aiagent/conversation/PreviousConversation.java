@@ -9,12 +9,13 @@ package io.camunda.connector.agenticai.aiagent.conversation;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Reconstructed view of the conversation prior to the current invocation: the optional leading
@@ -43,7 +44,15 @@ public record PreviousConversation(
         messages.add(turn.assistantMessage());
       }
     }
-    return MessageUtil.documentIdsWithContent(
-        MessageWindowFilter.apply(messages, contextWindowSize));
+    return documentIdsWithContentIn(MessageWindowFilter.apply(messages, contextWindowSize));
+  }
+
+  /** The ids of the documents whose content the model reads in the given messages. */
+  static Set<AgentDocumentId> documentIdsWithContentIn(List<Message> messages) {
+    return messages.stream()
+        .filter(UserMessage.class::isInstance)
+        .map(UserMessage.class::cast)
+        .flatMap(message -> message.documentIdsWithContent().stream())
+        .collect(Collectors.toUnmodifiableSet());
   }
 }
