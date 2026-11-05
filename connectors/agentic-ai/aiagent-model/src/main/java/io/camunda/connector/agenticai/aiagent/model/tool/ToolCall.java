@@ -41,10 +41,12 @@ public record ToolCall(
 
   public static final ToolKind DEFAULT_KIND = ToolKind.PROCESS;
 
+  /** A call as the model sent it, before the agent admits it. */
   public ToolCall(String id, String name, Map<String, Object> arguments) {
     this(id, name, arguments, null, DEFAULT_KIND, null);
   }
 
+  /** A call as the model sent it, before the agent admits it. */
   public ToolCall(
       String id,
       String name,
