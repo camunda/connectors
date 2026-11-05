@@ -117,6 +117,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -1275,7 +1276,7 @@ class AgentSubProcessRequestHandlerTest {
         ToolCallBatch.of(List.of(lookupCall, processCall))
             .withEntries(List.of(ToolCallBatch.Entry.from(processResult)));
     when(agentInputComposer.resolve(any(), any(), any(), any()))
-        .thenReturn(CompositionResult.Ready.of(context, batch));
+        .thenReturn(CompositionResult.Ready.of(context, Set.of(), batch));
     when(agentInputComposer.assemble(any())).thenReturn(new TurnInput(List.of(USER_MESSAGE)));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
@@ -1291,7 +1292,7 @@ class AgentSubProcessRequestHandlerTest {
         .containsExactly(
             tuple("call-1", List.of(TextContent.textContent("found the customer"))),
             tuple("call-2", List.of(TextContent.textContent("Sunny"))));
-    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
   }
 
   @Test
@@ -1858,7 +1859,8 @@ class AgentSubProcessRequestHandlerTest {
     mockSystemPrompt();
     when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(
-            CompositionResult.Ready.of(CONTEXT_WITH_DOCUMENTS, ToolCallBatch.of(List.of())));
+            CompositionResult.Ready.of(
+                CONTEXT_WITH_DOCUMENTS, Set.of(), ToolCallBatch.of(List.of())));
     when(agentInputComposer.assemble(any()))
         .thenReturn(
             new TurnInput(
@@ -2408,7 +2410,7 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     verify(chatModel, times(2)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
 
     // the call is persisted with its kind and the rejection, as the model sent its arguments
     final var rejectedCall = badCall.withKind(ToolKind.RUNTIME).withRejection(BOGUS_DOCUMENT);
@@ -2700,7 +2702,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // a call with text in the union parameter goes to the process, the rejected one does not
     verify(chatModel, times(1)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
     final var agentResponse = response.responseValue();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(textCall));
@@ -2940,7 +2942,9 @@ class AgentSubProcessRequestHandlerTest {
     // stubbed with doAnswer so that a test can stub the composer more than once
     doAnswer(invocation ->
             CompositionResult.Ready.of(
-                invocation.getArgument(1, AgentContext.class), ToolCallBatch.of(List.of())))
+                invocation.getArgument(1, AgentContext.class),
+                Set.of(),
+                ToolCallBatch.of(List.of())))
         .when(agentInputComposer)
         .resolve(any(), any(), any(), any());
     lenient()
@@ -2948,8 +2952,8 @@ class AgentSubProcessRequestHandlerTest {
           final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
           return ready.toolCallBatch().toolCalls().isEmpty()
               ? firstTurnInput
-              : new ToolCallResultsInputBuilder()
-                  .build(ready.agentContext(), ready.toolCallBatch());
+              : resultsInputBuilder.build(
+                  ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
         })
         .when(agentInputComposer)
         .assemble(any());

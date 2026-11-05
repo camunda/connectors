@@ -13,8 +13,9 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallBatch;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
-import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilderImpl;
+import io.camunda.connector.agenticai.aiagent.agent.TurnInput;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
@@ -38,7 +39,6 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCallImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContextImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolsImpl;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
@@ -70,9 +70,9 @@ class GetDocumentToolTest {
 
   private final ObjectMapper objectMapper = objectMapperFor(InMemoryDocumentStore.INSTANCE);
   private final GetDocumentTool tool = new GetDocumentTool();
-  private final RuntimeTools runtimeTools = new RuntimeToolsImpl(List.of(tool), objectMapper);
+  private final RuntimeTools runtimeTools = new RuntimeTools(List.of(tool), objectMapper);
   private final ToolCallResultsInputBuilder inputBuilder =
-      new ToolCallResultsInputBuilderImpl(
+      new ToolCallResultsInputBuilder(
           new DocumentContentGuard(DocumentContentLimits.defaults()), objectMapper);
 
   private static ObjectMapper objectMapperFor(CamundaDocumentStore store) {
@@ -130,8 +130,7 @@ class GetDocumentToolTest {
   }
 
   /** What the agent does with a get_document call: the execution and the input of the next turn. */
-  private record Run(
-      List<RuntimeToolExecution> executions, ToolCallResultsInputBuilder.Input input) {
+  private record Run(List<RuntimeToolExecution> executions, TurnInput input) {
 
     ToolCallResultContent result() {
       return ((ToolCallResultMessage) input.messages().getFirst()).results().getFirst();
@@ -299,11 +298,15 @@ class GetDocumentToolTest {
     final var executions =
         runtimeTools.execute(
             withConfiguration(CONFIGURATION), agentContext, idsWithContent, List.of(call));
-    final var input =
-        inputBuilder.build(
-            agentContext,
-            executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList(),
-            idsWithContent);
+    final var batch =
+        ToolCallBatch.of(List.of(call))
+            .withEntries(
+                executions.stream()
+                    .map(execution ->
+                        ToolCallBatch.Entry.from(
+                            execution.toolCallResult(), execution.result().documentContent()))
+                    .toList());
+    final var input = inputBuilder.build(agentContext, batch, idsWithContent);
     return new Run(executions, input);
   }
 }

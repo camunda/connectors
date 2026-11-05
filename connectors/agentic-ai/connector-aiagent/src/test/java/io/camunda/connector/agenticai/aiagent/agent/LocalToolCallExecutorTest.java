@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
@@ -26,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -54,13 +56,6 @@ class LocalToolCallExecutorTest {
     executor = new LocalToolCallExecutor(runtimeTools);
   }
 
-  private static ToolCallBatch.Entry entryOf(List<ToolCallBatch.Entry> entries, ToolCall call) {
-    return entries.stream()
-        .filter(entry -> call.id().equals(entry.result().id()))
-        .findFirst()
-        .orElseThrow();
-  }
-
   private static RuntimeToolExecution execution(ToolCall call, String text) {
     final var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
     return new RuntimeToolExecution(call, RuntimeToolResult.success(text), now, now);
@@ -71,12 +66,12 @@ class LocalToolCallExecutorTest {
     var runtimeCalls = List.of(RUNTIME_CALL, SECOND_RUNTIME_CALL);
     var executions =
         List.of(execution(RUNTIME_CALL, "Sunny"), execution(SECOND_RUNTIME_CALL, "15:00"));
-    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, runtimeCalls))
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), runtimeCalls))
         .thenReturn(executions);
 
-    var entries = executor.execute(executionContext, AGENT_CONTEXT, runtimeCalls);
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, Set.of(), runtimeCalls);
 
-    verify(runtimeTools, times(1)).execute(executionContext, AGENT_CONTEXT, runtimeCalls);
+    verify(runtimeTools, times(1)).execute(executionContext, AGENT_CONTEXT, Set.of(), runtimeCalls);
     verifyNoMoreInteractions(runtimeTools);
     assertThat(entries)
         .containsExactly(
@@ -85,10 +80,33 @@ class LocalToolCallExecutorTest {
   }
 
   @Test
+  void passesTheIdsOfTheDocumentsWithContentOnAndKeepsTheDocumentContentOfAResult() {
+    var withContent = Set.of(DocumentId.of("known"));
+    var execution =
+        new RuntimeToolExecution(
+            RUNTIME_CALL,
+            RuntimeToolResult.success("loaded").withDocumentContent(DocumentId.of("known")),
+            OffsetDateTime.parse("2026-10-05T10:00:00Z"),
+            OffsetDateTime.parse("2026-10-05T10:00:00Z"));
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, withContent, List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(execution));
+
+    var entries =
+        executor.execute(executionContext, AGENT_CONTEXT, withContent, List.of(RUNTIME_CALL));
+
+    assertThat(entries)
+        .singleElement()
+        .satisfies(entry -> {
+          assertThat(entry.result()).isEqualTo(execution.toolCallResult());
+          assertThat(entry.documentContent()).containsExactly(DocumentId.of("known"));
+        });
+  }
+
+  @Test
   void aRejectedCallFailsBeforeAnyRuntimeToolRuns() {
     var calls = List.of(RUNTIME_CALL, REJECTED_CALL);
 
-    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, calls))
+    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, Set.of(), calls))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("rejected-1")
         .hasMessageContaining("REJECTED");
@@ -100,7 +118,7 @@ class LocalToolCallExecutorTest {
   void aRejectedCallOfARuntimeToolFailsBeforeAnyRuntimeToolRuns() {
     var calls = List.of(RUNTIME_CALL.withRejection("The call is not allowed."));
 
-    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, calls))
+    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, Set.of(), calls))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("runtime-1");
 
@@ -109,7 +127,7 @@ class LocalToolCallExecutorTest {
 
   @Test
   void noCallsGiveNoEntriesAndNoRuntimeToolCall() {
-    var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of());
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of());
 
     assertThat(entries).isEmpty();
     verifyNoInteractions(runtimeTools);
@@ -119,7 +137,7 @@ class LocalToolCallExecutorTest {
   void aProcessCallFailsBeforeAnyRuntimeToolRuns() {
     var calls = List.of(RUNTIME_CALL, PROCESS_CALL);
 
-    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, calls))
+    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, Set.of(), calls))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("process-1")
         .hasMessageContaining("someTask");
