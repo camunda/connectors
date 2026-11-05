@@ -13,16 +13,16 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Reads the {@code <doc id="..." />} tag of a document out of text that the model wrote, for
- * example a tool argument. The tag the model sees is rendered by {@link DocumentTags}.
+ * example a tool argument.
  */
-public final class DocumentTag {
+public final class DocumentTags {
 
   /** A text that is exactly one tag: {@code <doc}, optional attributes, {@code />}. */
   private static final Pattern SINGLE_TAG = Pattern.compile("<doc(\\s[^<>]*)?/>");
 
   private static final Pattern ID_ATTRIBUTE = Pattern.compile("(?:^|\\s)id=\"([^\"]*)\"");
 
-  private DocumentTag() {}
+  private DocumentTags() {}
 
   /**
    * Returns the id of the document if the text is exactly one tag, surrounded by whitespace at

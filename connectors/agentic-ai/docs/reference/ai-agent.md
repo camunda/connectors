@@ -771,7 +771,7 @@ object or array, and a format behind `$ref`, is not a document parameter.
 
 The model passes the tag of a known document as the value. A value resolves only when it is exactly one
 `<doc id="..." />` tag, surrounded by whitespace at most; the XML-unescaped `id` attribute is the id and the other
-attributes are ignored (`DocumentTag.idOfSingleTag`). A bare id, an unknown id, a tag inside other text and more than one
+attributes are ignored (`DocumentTags.idOfSingleTag`). A bare id, an unknown id, a tag inside other text and more than one
 tag are invalid. A call with an invalid value is answered by the agent itself, with a tool result of one sentence per
 invalid value, joined by a space, and the tool does not run:
 `Parameter 'docs[1]' must be the <doc /> tag of a known document, exactly as you read it, got 'x'.` (`name`,
