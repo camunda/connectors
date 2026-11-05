@@ -176,7 +176,7 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void resolveIdsReplacesTagsByTheirIdInArraysAndNestedObjects() {
+  void aRuntimeCallReplacesTagsByTheirIdInArraysAndNestedObjects() {
     final var tag = "<doc id=\"" + secondId + "\" fileName=\"x\" />";
     final var arguments =
         Map.<String, Object>of(
@@ -190,7 +190,7 @@ class DocumentParameterResolverTest {
             "kept");
 
     final var result =
-        resolveIds(
+        resolveRuntime(
             arguments,
             object("doc", DOC, "docs", array(DOC), "req", object("file", DOC), "other", Map.of()));
 
@@ -209,14 +209,21 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void resolveIdsReportsTheSameProblemsAsResolve() {
+  void aRuntimeCallReportsTheSameProblemsAsAProcessCall() {
     final var twoTags = firstTag + secondTag;
     final var arguments =
         Map.<String, Object>of("a", "nope", "b", twoTags, "c", 42, "d", firstId.value());
     final var schema = object("a", DOC, "b", DOC, "c", DOC, "d", DOC);
 
-    assertThat(resolveIds(arguments, schema)).isInstanceOf(Resolution.Invalid.class);
-    assertThat(resolveIds(arguments, schema)).isEqualTo(resolve(arguments, schema));
+    final var expected =
+        new Resolution.Invalid(
+            List.of(
+                problem("a", "nope"),
+                problem("b", twoTags),
+                notAString("c"),
+                problem("d", firstId.value())));
+    assertThat(resolveRuntime(arguments, schema)).isEqualTo(expected);
+    assertThat(resolve(arguments, schema)).isEqualTo(expected);
   }
 
   @Test
@@ -543,7 +550,7 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void resolveIdsHandsAUnionParameterThePlainIdOfATagAndKeepsTextAsText() {
+  void aRuntimeCallHandsAUnionParameterTheIdOfATagAndKeepsTextAsText() {
     final var tag = "<doc id=\"" + secondId + "\" fileName=\"x\" />";
     final var arguments =
         Map.<String, Object>of(
@@ -559,7 +566,7 @@ class DocumentParameterResolverTest {
             tag);
 
     final var result =
-        resolveIds(
+        resolveRuntime(
             arguments,
             object(
                 "tagged", UNION, "bare", UNION, "text", UNION, "list", array(UNION), "doc", DOC));
@@ -578,7 +585,7 @@ class DocumentParameterResolverTest {
                     List.of(secondId, "hello", 3),
                     "doc",
                     secondId)));
-    assertThat(resolveIds(Map.of("tagged", "<doc id=\"nope\" />"), object("tagged", UNION)))
+    assertThat(resolveRuntime(Map.of("tagged", "<doc id=\"nope\" />"), object("tagged", UNION)))
         .isEqualTo(new Resolution.Invalid(List.of(unionProblem("tagged", "nope"))));
   }
 
@@ -682,7 +689,8 @@ class DocumentParameterResolverTest {
         new ToolCall("call", "tool", arguments));
   }
 
-  private Resolution resolveIds(Map<String, Object> arguments, Map<String, Object> inputSchema) {
+  private Resolution resolveRuntime(
+      Map<String, Object> arguments, Map<String, Object> inputSchema) {
     final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
     return resolver.resolveRuntimeCall(
         agentContext(), new ToolCall("call", "tool", arguments), definition);

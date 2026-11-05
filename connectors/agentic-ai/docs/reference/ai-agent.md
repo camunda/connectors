@@ -480,7 +480,7 @@ invocation and transformed through copy-on-write methods.
 - `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
 - `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a read-only
   `ConversationSnapshot` whose tool definitions are those of `AgentConfiguration.toolDefinitions()` with the document
-  parameters rewritten for the model provider (`DocumentParameterSchema.toProviderToolDefinitions`). The request handler
+  parameters rewritten for the model provider (`ProviderToolDefinitions`, for an instance that tracks its documents). The request handler
   hands the snapshot to `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before the model is
   called. The document factory is the one of the job (`AgentExecutionContext.documentFactory()`): it restores the
   documents from the document store of the physical tenant of the job.
@@ -759,14 +759,15 @@ elements to another.
 
 A tool parameter that carries a document is declared with the type `document`:
 `fromAi(toolCall.report, "The report to upload.", "document")`. The generator stores it as a plain string schema with the
-format `camunda-document-id` (the shorthand type is also normalized inside the `items` and `properties` of an authored
-schema); the format is the only marker, so the persisted definition needs no custom type, and the stored definition and
+format `camunda-document-id` (`AuthoredSchemaNormalizer` of the tools schema module normalizes the shorthand type also
+inside the `items` and `properties` of an authored schema and in the direct alternatives of such a node, and nowhere else); the format is the only marker, so the persisted definition needs no custom type, and the stored definition and
 the configuration fingerprint keep the description as authored. The model providers get a derived schema without the format
 and with the hint `Pass the tag of a known document exactly as you read it, for example <doc id="..." />.` at the end of
 the description of every document parameter, at the top level, in `items` and in nested objects
-(`DocumentParameterSchema.toProviderToolDefinitions`, applied by `AgentConversation.window`); nothing persisted is
+(`ProviderToolDefinitions`, applied by `AgentConversation.window` to an instance that tracks its documents; the
+definitions of an instance that does not are sent as they are); nothing persisted is
 rewritten. Document parameters are found at the top level, as array `items` and through object `properties` at any
-depth (`DocumentParameterSchema.documentParameters`); a document inside an `anyOf` or `oneOf` alternative that is an
+depth (`ToolDefinition#documentParameters()`, the sealed `DocumentParameter` of `Document` and `TextOrDocument`); a document inside an `anyOf` or `oneOf` alternative that is an
 object or array, and a format behind `$ref`, is not a document parameter.
 
 The model passes the tag of a known document as the value. A value resolves only when it is exactly one
@@ -814,9 +815,10 @@ the id of a known document (a bare id is text here, also for a runtime tool, whi
 `AgentDocumentId` for a tag), text with a tag inside it, a number or an object. A tag with an
 unknown id is answered with `Parameter 'body' holds a <doc /> tag with the id 'x'. That is not a known document. Pass the
 tag of a document exactly as you read it, or pass other text.` and the tool does not run. A union parameter is found and
-resolved by the same `DocumentParameterResolver`, at the same three places as a document parameter: a call of a tool of the
-process with such a tag is tagged `ToolKind.RUNTIME` and answered by the executor, and a runtime tool receives a `AgentDocumentId`
-for a tag and the value the model sent otherwise. For `anyOf: [string, document]` the model provider gets
+resolved by the same `DocumentParameterResolver`, at the same three places as a document parameter: a call of a tool of
+either kind with such a tag is rejected at admission, keeps its kind, carries the sentence as its `ToolCall.rejection`
+and is answered by `LocalToolCallExecutor`; a process tool receives the Camunda document reference for a tag, and a
+runtime tool receives a `AgentDocumentId` for a tag and the value the model sent otherwise. For `anyOf: [string, document]` the model provider gets
 `{"type": "string", "description": "..."}` with the hint. A union is stored as it is authored and is not searched for documents
 inside its alternatives that are objects or arrays, because a value cannot be assigned to one alternative reliably. The
 output of the Ad-Hoc Tools Schema Resolver carries the format `camunda-document-id`, so another LLM connector that sends it
@@ -1906,8 +1908,8 @@ These are used during discovery checking and tool call result transformation.
 
 A gateway handler that defines its tools itself can declare document parameters in them. The tool definitions
 a handler returns from `handleToolDiscoveryResults` are stored as they are, so a handler writes the stored form of a document
-parameter (`DocumentParameterSchema.documentSchema(...)`: a string schema with the format `camunda-document-id`) or of a
-union parameter (`DocumentParameterSchema.textOrDocumentSchema(...)`); the
+parameter (`DocumentSchemas.document(...)`: a string schema with the format `camunda-document-id`) or of a
+union parameter (`DocumentSchemas.textOrDocument(...)`); the
 shorthand type `document` is normalized only for `fromAi()` parameters. The agent resolves the document parameters of a call
 on the model's tool call, by the definition the model saw, before `transformToolCalls()`, so the handler receives the
 Camunda document references in the arguments it wraps into its envelope. A call with an invalid document value is answered
@@ -2418,7 +2420,7 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 ### 25.4 Add a runtime tool
 
 > **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult`,
-> `RuntimeToolException` and `RuntimeToolSchemas`, package `aiagent.api.tool` of `aiagent-api`) is experimental since 8.11
+> `RuntimeToolException` and `DocumentSchemas`, package `aiagent.api.tool` of `aiagent-api`) is experimental since 8.11
 > and may change in an incompatible way in a minor release.
 
 A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
@@ -2458,11 +2460,12 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   enabled when it is executed ("is not available"), a `RuntimeToolException` and `RuntimeToolResult.error` give an error
   result the model reads.
 
-**Document parameters.** A parameter that carries a document is declared with `RuntimeToolSchemas.document(...)`, one that
+**Document parameters.** A parameter that carries a document is declared with `DocumentSchemas.document(...)`, one that
 takes text or a document with `textOrDocument(...)`, and the agent resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, a property typed `AgentDocumentId` receives it and
 a property typed `String` the text of the id, a property typed `Object` a `AgentDocumentId` for a document and the value the
-model passed for any other value. A call with a parameter that does not name a known document gets an error
-result and does not reach the tool.
+model passed for any other value. A call with a parameter that does not name a known document is rejected at admission: the agent answers it with the
+error and the tool is not called. A runtime tool whose definition gains a document parameter between the jobs of a mixed
+batch fails the job (`IllegalStateException`) for a call admitted before, instead of giving the model an error.
 
 **Documents.** A `DocumentContent` block in the result is a new document: after the calls of the message ran, the agent
 registers it with the tool call as its origin, and the model reads its handle only (§19). An error result registers nothing.

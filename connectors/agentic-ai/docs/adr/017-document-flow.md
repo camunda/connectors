@@ -262,9 +262,10 @@ matrix exist.
 ### Only the handle identifies a document; document parameters
 
 A tool declares a parameter that takes a document with the type `document` of `fromAi`. The stored schema is a plain
-string schema with a format marker, so the persisted definition needs no custom type. The model providers get a derived
-schema without the marker and with a hint appended to the description, derived where the provider tool definitions are
-built. The stored definition and the configuration fingerprint therefore hold no hint wording.
+string schema with a format marker, so the persisted definition needs no custom type. The model providers of an instance
+that tracks its documents get a derived schema without the marker and with a hint appended to the description, derived
+where the provider tool definitions are built; an instance that does not track its documents sends its definitions as
+they are. The stored definition and the configuration fingerprint therefore hold no hint wording.
 
 A value resolves only when it is exactly one handle. A bare id is invalid for a plain document parameter, and the agent
 answers the call with an error the model can act on, without the tool running and without activating a process

@@ -46,9 +46,29 @@ class ToolDefinitionTest {
     final var json = objectMapper.writeValueAsString(toolDefinition);
     final var restored = objectMapper.readValue(json, ToolDefinition.class);
 
-    assertThat(json)
-        .contains("\"format\":\"camunda-document-id\"")
-        .doesNotContain("documentParameters");
+    assertThat(objectMapper.readTree(json))
+        .isEqualTo(
+            objectMapper.readTree(
+                """
+                {
+                  "name": "tool",
+                  "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                      "doc": {
+                        "type": "string",
+                        "format": "camunda-document-id",
+                        "description": "A document"
+                      },
+                      "docs": {
+                        "type": "array",
+                        "items": {"type": "string", "format": "camunda-document-id"}
+                      }
+                    }
+                  }
+                }
+                """));
     assertThat(restored).isEqualTo(toolDefinition);
+    assertThat(restored.documentParameters()).isEqualTo(toolDefinition.documentParameters());
   }
 }
