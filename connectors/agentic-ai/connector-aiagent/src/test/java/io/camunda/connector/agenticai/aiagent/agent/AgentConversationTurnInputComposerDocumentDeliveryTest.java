@@ -431,7 +431,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         nextTurn(
             composeToolResults(
                 contextWithTools(CONTENT_TOOL),
-                result("abcdef", "getWeather", Map.of("a", loadable, "b", archive)),
+                result("abcdef", "getWeather", List.of(loadable, archive)),
                 dateTimeResult()));
 
     assertThat(((UserMessage) turn.messages().get(1)).content())
