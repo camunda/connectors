@@ -109,15 +109,17 @@ class GcpCloudRunManagedCodeProviderTest {
   private final IdTokenProvider idTokenProvider = mock(IdTokenProvider.class);
   private final List<Duration> sleeps = new ArrayList<>();
   private GcpCloudRunManagedCodeProvider provider;
+  private IdToken idToken;
   private String url;
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMock) throws IOException {
     url = wireMock.getHttpBaseUrl() + "/executor";
+    idToken = idToken();
     when(functions.getOperationsClient()).thenReturn(operations);
     when(functions.createFunctionCallable()).thenReturn(create);
     when(functions.updateFunctionCallable()).thenReturn(update);
-    when(idTokenProvider.idTokenWithAudience(anyString(), any())).thenReturn(idToken());
+    when(idTokenProvider.idTokenWithAudience(anyString(), any())).thenReturn(idToken);
     provider = provider(Duration.ofMinutes(1));
   }
 
@@ -499,7 +501,7 @@ class GcpCloudRunManagedCodeProviderTest {
     assertThat(response.outcome()).isEqualTo(ExecutionResponse.COMPLETED);
     assertThat(response.variables()).containsEntry("sum", 5);
     final var sent = WireMock.findAll(postRequestedFor(urlEqualTo("/executor"))).getFirst();
-    assertThat(sent.getHeader("Authorization")).isEqualTo("Bearer " + idToken().getTokenValue());
+    assertThat(sent.getHeader("Authorization")).isEqualTo("Bearer " + idToken.getTokenValue());
     assertThat(sent.getHeader("Content-Type")).isEqualTo("application/json");
     assertThat(sent.getBodyAsString())
         .contains("\"contractVersion\":\"1\"")
