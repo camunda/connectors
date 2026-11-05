@@ -74,10 +74,9 @@ public class ToolCallResultDocumentExtractor {
   }
 
   /**
-   * Extracts the {@link Document} instances of the content of the result of a runtime tool: the
-   * documents of its {@link DocumentContent} blocks and the ones nested in its {@link
-   * ObjectContent} blocks, without duplicates and in order of appearance. No gateway tool handler
-   * manages such a result.
+   * Extracts the {@link Document} instances of structured content: the documents of its {@link
+   * DocumentContent} blocks and the ones nested in its {@link ObjectContent} blocks, without
+   * duplicates and in order of appearance. No gateway tool handler takes part.
    */
   public static List<Document> documentsOf(List<Content> content) {
     final var documents = new ArrayList<Document>();

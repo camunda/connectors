@@ -21,19 +21,14 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -60,64 +55,22 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
+  private final ToolCallResultsInputBuilder toolCallResultsInputBuilder;
 
-  public AgentConversationTurnInputComposerImpl(GatewayToolHandlerRegistry gatewayToolHandlers) {
+  public AgentConversationTurnInputComposerImpl(
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      ToolCallResultsInputBuilder toolCallResultsInputBuilder) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
+    this.toolCallResultsInputBuilder = toolCallResultsInputBuilder;
   }
 
   @Override
-  public CompositionResult compose(
+  public CompositionResult resolve(
       AgentConfiguration configuration,
       AgentContext agentContext,
       PreviousConversation previousConversation,
       AgentInput agentInput) {
-    return compose(configuration, agentContext, previousConversation, agentInput, List.of());
-  }
-
-  @Override
-  public CompositionResult composeWithLocalToolCallResults(
-      AgentConfiguration configuration,
-      AgentContext agentContext,
-      PreviousConversation previousConversation,
-      AgentInput agentInput,
-      List<RuntimeToolExecution> executions) {
-    requireResultsOfLocalToolCalls(previousConversation, executions);
-    return compose(
-        configuration, agentContext, previousConversation, agentInput, List.copyOf(executions));
-  }
-
-  /**
-   * @throws IllegalStateException if the executions are not exactly the executions of the runtime
-   *     tool calls of the last turn of the previous conversation
-   */
-  private void requireResultsOfLocalToolCalls(
-      PreviousConversation previousConversation, List<RuntimeToolExecution> executions) {
-    final var expectedIds =
-        previousConversation.turns().isEmpty()
-            ? List.<String>of()
-            : previousConversation.turns().getLast().localToolCalls().stream()
-                .map(ToolCall::id)
-                .toList();
-    final var givenIds = executions.stream().map(execution -> execution.call().id()).toList();
-    if (givenIds.size() != expectedIds.size()
-        || !new HashSet<>(givenIds).equals(new HashSet<>(expectedIds))) {
-      throw new IllegalStateException(
-          "The executions must be exactly the executions of the local tool calls of the previous turn. Expected the tool call ids %s but got %s."
-              .formatted(expectedIds, givenIds));
-    }
-  }
-
-  /**
-   * @param executions the executions of the local tool calls of the previous turn, empty while none
-   *     is given
-   */
-  private CompositionResult compose(
-      AgentConfiguration configuration,
-      AgentContext agentContext,
-      PreviousConversation previousConversation,
-      AgentInput agentInput,
-      List<RuntimeToolExecution> executions) {
     // tool call results arriving without a previous conversation is most likely a modeling error
     if (agentContext.conversation() == null && !agentInput.toolCallResults().isEmpty()) {
       throw new ConnectorException(
@@ -131,8 +84,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         agentInput.eventMessages().stream()
             .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
             .toList();
-
-    List<Message> messages = new ArrayList<>();
 
     boolean expectingToolCallResults =
         !previousConversation.turns().isEmpty()
@@ -156,27 +107,34 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       if (!processResults.complete()) {
         return new CompositionResult.Deferred(processResults.arrivedResults());
       }
-      if (previousTurn.hasLocalToolCalls() && executions.isEmpty()) {
-        return new CompositionResult.LocalToolCallResultsRequired(previousTurn.localToolCalls());
-      }
 
-      messages.addAll(
-          ToolCallResultsInputBuilder.build(
-              orderedEntries(previousTurn.toolCalls(), processResults.resultsById(), executions)));
-      messages.addAll(eventMessages);
-    } else {
-      messages.add(createUserPromptMessage(agentInput.userPrompt()));
-      messages.addAll(eventMessages);
+      final var batch =
+          ToolCallBatch.of(previousTurn.toolCalls())
+              .withEntries(
+                  processResults.results().stream()
+                      .map(result -> ToolCallBatch.Entry.from(result, documentExtractor))
+                      .toList());
+      return new CompositionResult.Ready(batch, null, eventMessages);
     }
 
-    messages = messages.stream().filter(Objects::nonNull).toList();
-
-    if (messages.isEmpty()) {
+    final var userPrompt = createUserPromptMessage(agentInput.userPrompt());
+    if (userPrompt == null && eventMessages.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
     }
+    return new CompositionResult.Ready(ToolCallBatch.of(List.of()), userPrompt, eventMessages);
+  }
 
-    return new CompositionResult.NextTurn(messages);
+  @Override
+  public TurnInput assemble(CompositionResult.Ready ready) {
+    final var messages = new ArrayList<Message>();
+    if (!ready.toolCallBatch().toolCalls().isEmpty()) {
+      messages.addAll(toolCallResultsInputBuilder.build(ready.toolCallBatch()));
+    } else if (ready.userPrompt() != null) {
+      messages.add(ready.userPrompt());
+    }
+    messages.addAll(ready.eventMessages());
+    return new TurnInput(messages);
   }
 
   private @Nullable UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {
@@ -201,17 +159,14 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * @param resultsById the results of the process tool calls by tool call id: the correlated and
-   *     gateway-transformed results and, when interrupting, the cancelled ones; empty when {@code
-   *     complete} is {@code false}
+   * @param results the results of the process tool calls when {@code complete}: the arrived ones
+   *     and, when interrupting, the cancelled ones
    * @param arrivedResults the process results that arrived (correlated and gateway-transformed), in
    *     tool-call order
    * @param complete whether every process tool call has a result or was cancelled via interrupt
    */
   private record ProcessToolCallResults(
-      Map<String, ToolCallResult> resultsById,
-      List<ToolCallResult> arrivedResults,
-      boolean complete) {}
+      List<ToolCallResult> results, List<ToolCallResult> arrivedResults, boolean complete) {}
 
   private ProcessToolCallResults resolveProcessToolCallResults(
       AgentContext agentContext,
@@ -242,61 +197,17 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             "Not adding tool call result message as tool call IDs {} were missing in tool call results.",
             missingToolCalls.stream().map(ToolCall::id).toList());
       }
-      return new ProcessToolCallResults(Map.of(), arrivedToolCallResults, false);
+      return new ProcessToolCallResults(List.of(), arrivedToolCallResults, false);
     }
 
-    final var resultsById = new HashMap<String, ToolCallResult>();
-    arrivedToolCallResults.forEach(result -> resultsById.put(result.id(), result));
+    final var results = new ArrayList<>(arrivedToolCallResults);
     missingToolCalls.forEach(toolCall -> {
       LOGGER.debug("Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
-      resultsById.put(
-          toolCall.id(),
+      results.add(
           ToolCallResult.forCancelledToolCall(
               toolCall.id(), toolCall.name(), OffsetDateTime.now(ZoneId.systemDefault())));
     });
-    return new ProcessToolCallResults(resultsById, arrivedToolCallResults, true);
-  }
-
-  /**
-   * The results of all tool calls of the turn in call order: the process results, with the
-   * documents extracted from the result as the process returned it, and the results of the runtime
-   * tools, with the documents of their content.
-   */
-  private List<ToolCallResultsInputBuilder.Entry> orderedEntries(
-      List<ToolCall> toolCalls,
-      Map<String, ToolCallResult> processResultsById,
-      List<RuntimeToolExecution> executions) {
-    final var executionsById =
-        executions.stream()
-            .collect(Collectors.toMap(execution -> execution.call().id(), Function.identity()));
-    return toolCalls.stream()
-        .map(toolCall ->
-            toolCall.isLocal()
-                ? localEntry(toolCall, executionsById.get(toolCall.id()))
-                : processEntry(toolCall, processResultsById.get(toolCall.id())))
-        .toList();
-  }
-
-  private ToolCallResultsInputBuilder.Entry processEntry(
-      ToolCall toolCall, @Nullable ToolCallResult result) {
-    if (result == null) {
-      throw new IllegalStateException(
-          "No result of the process tool call '%s' was resolved".formatted(toolCall.id()));
-    }
-    final var documents =
-        documentExtractor.extractDocuments(List.of(result)).stream()
-            .flatMap(group -> group.documents().stream())
-            .toList();
-    return new ToolCallResultsInputBuilder.Entry(ToolCallResultContent.from(result), documents);
-  }
-
-  private ToolCallResultsInputBuilder.Entry localEntry(
-      ToolCall toolCall, @Nullable RuntimeToolExecution execution) {
-    if (execution == null) {
-      throw new IllegalStateException(
-          "No execution of the runtime tool call '%s' was given".formatted(toolCall.id()));
-    }
-    return ToolCallResultsInputBuilder.Entry.of(execution);
+    return new ProcessToolCallResults(results, arrivedToolCallResults, true);
   }
 
   private Message createEventMessage(

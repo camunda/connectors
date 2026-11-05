@@ -82,7 +82,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -102,7 +101,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -156,10 +154,21 @@ class AgentSubProcessRequestHandlerTest {
   @Captor private ArgumentCaptor<ChatRequest> chatModelRequestCaptor;
   @Captor private ArgumentCaptor<AgentConversationTurn> turnCaptor;
 
-  @InjectMocks private AgentSubProcessRequestHandler requestHandler;
+  private AgentSubProcessRequestHandler requestHandler;
 
   @BeforeEach
   void setUp() {
+    requestHandler =
+        new AgentSubProcessRequestHandler(
+            agentInitializer,
+            conversationStoreRegistry,
+            agentInputComposer,
+            chatModelRegistry,
+            systemPromptComposer,
+            responseHandler,
+            agentInstanceClient,
+            runtimeTools,
+            new LocalToolCallExecutor(runtimeTools));
     TOGGLE_ENABLED.set(true);
     ConversationStore conversationStore = spy(new InProcessConversationStore());
     doReturn(conversationStore)
@@ -402,7 +411,7 @@ class AgentSubProcessRequestHandlerTest {
   void silentlyCompletesJobWhenInputComposerReturnsNoOp() {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(new CompositionResult.Deferred(List.of()));
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -441,7 +450,7 @@ class AgentSubProcessRequestHandlerTest {
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(agentContextWithHistory, List.of(arrivedResult)));
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(new CompositionResult.Deferred(List.of(arrivedResult)));
 
     // when
@@ -465,7 +474,7 @@ class AgentSubProcessRequestHandlerTest {
   void silentlyCompletesJobWhenInputComposerReturnsNoInput() {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(new CompositionResult.NoInput());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -1122,11 +1131,19 @@ class AgentSubProcessRequestHandlerTest {
                             .build()))
                 .build());
     mockSystemPrompt();
-    // the results of the process arrived: the turn needs the results of the runtime tools
-    when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.LocalToolCallResultsRequired(List.of(lookupCall)));
-    when(agentInputComposer.composeWithLocalToolCallResults(any(), any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.NextTurn(List.of(USER_MESSAGE)));
+    // the results of the process arrived: the call of the runtime tool is the only one unanswered
+    final var processResult =
+        ToolCallResultContent.builder()
+            .id("call-2")
+            .name("getWeather")
+            .content(List.of(TextContent.textContent("Sunny")))
+            .build();
+    final var batch =
+        ToolCallBatch.of(List.of(lookupCall, processCall))
+            .withEntries(List.of(ToolCallBatch.Entry.from(processResult)));
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.Ready(batch, null, List.of()));
+    when(agentInputComposer.assemble(any())).thenReturn(new TurnInput(List.of(USER_MESSAGE)));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -1134,18 +1151,14 @@ class AgentSubProcessRequestHandlerTest {
 
     requestHandler.handleRequest(agentExecutionContext);
 
-    @SuppressWarnings("unchecked")
-    final ArgumentCaptor<List<RuntimeToolExecution>> executionsCaptor =
-        ArgumentCaptor.forClass(List.class);
-    verify(agentInputComposer)
-        .composeWithLocalToolCallResults(any(), any(), any(), any(), executionsCaptor.capture());
-    assertThat(executionsCaptor.getValue())
-        .extracting(
-            execution -> execution.call().id(),
-            execution -> execution.toolCallResult().name(),
-            execution -> execution.toolCallResult().content())
+    final var readyCaptor = ArgumentCaptor.forClass(CompositionResult.Ready.class);
+    verify(agentInputComposer, times(1)).assemble(readyCaptor.capture());
+    assertThat(readyCaptor.getValue().toolCallBatch().entriesInCallOrder())
+        .extracting(entry -> entry.result().id(), entry -> entry.result().content())
         .containsExactly(
-            tuple("call-1", "acme_lookup", List.of(TextContent.textContent("found the customer"))));
+            tuple("call-1", List.of(TextContent.textContent("found the customer"))),
+            tuple("call-2", List.of(TextContent.textContent("Sunny"))));
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
   }
 
   @Test
@@ -1728,21 +1741,17 @@ class AgentSubProcessRequestHandlerTest {
     lenient()
         .when(gatewayToolHandlers.transformToolCallResults(any(), any()))
         .thenAnswer(i -> i.getArgument(1));
-    final var realComposer = new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
+    final var realComposer =
+        new AgentConversationTurnInputComposerImpl(
+            gatewayToolHandlers, new ToolCallResultsInputBuilder());
     lenient()
-        .when(agentInputComposer.compose(any(), any(), any(), any()))
+        .when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenAnswer(i ->
-            realComposer.compose(
+            realComposer.resolve(
                 i.getArgument(0), i.getArgument(1), i.getArgument(2), i.getArgument(3)));
     lenient()
-        .when(agentInputComposer.composeWithLocalToolCallResults(any(), any(), any(), any(), any()))
-        .thenAnswer(i ->
-            realComposer.composeWithLocalToolCallResults(
-                i.getArgument(0),
-                i.getArgument(1),
-                i.getArgument(2),
-                i.getArgument(3),
-                i.getArgument(4)));
+        .when(agentInputComposer.assemble(any()))
+        .thenAnswer(i -> realComposer.assemble(i.getArgument(0)));
   }
 
   /**
@@ -1804,9 +1813,22 @@ class AgentSubProcessRequestHandlerTest {
     when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
   }
 
+  /**
+   * The composer resolves the turn to the given input messages. The input of a round within the
+   * job, which answers the tool calls of the previous turn, is built from its batch like the real
+   * composer does.
+   */
   private void mockProceed(Message... inputMessages) {
-    when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.NextTurn(List.of(inputMessages)));
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
+        .thenReturn(CompositionResult.Ready.of(ToolCallBatch.of(List.of())));
+    lenient()
+        .when(agentInputComposer.assemble(any()))
+        .thenAnswer(invocation -> {
+          final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
+          return ready.toolCallBatch().toolCalls().isEmpty()
+              ? new TurnInput(List.of(inputMessages))
+              : new TurnInput(new ToolCallResultsInputBuilder().build(ready.toolCallBatch()));
+        });
   }
 
   private void mockResponseHandler() {

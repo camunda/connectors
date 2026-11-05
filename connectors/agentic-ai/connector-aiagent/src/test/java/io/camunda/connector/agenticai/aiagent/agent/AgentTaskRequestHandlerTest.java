@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -69,7 +70,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -110,10 +110,21 @@ class AgentTaskRequestHandlerTest {
 
   @Captor private ArgumentCaptor<ChatRequest> chatModelRequestCaptor;
 
-  @InjectMocks private AgentTaskRequestHandler requestHandler;
+  private AgentTaskRequestHandler requestHandler;
 
   @BeforeEach
   void setUp() {
+    requestHandler =
+        new AgentTaskRequestHandler(
+            agentInitializer,
+            conversationStoreRegistry,
+            agentInputComposer,
+            chatModelRegistry,
+            systemPromptComposer,
+            responseHandler,
+            agentInstanceClient,
+            runtimeTools,
+            new LocalToolCallExecutor(runtimeTools));
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
@@ -267,7 +278,7 @@ class AgentTaskRequestHandlerTest {
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(new CompositionResult.NoInput());
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
@@ -421,9 +432,22 @@ class AgentTaskRequestHandlerTest {
     when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
   }
 
+  /**
+   * The composer resolves the turn to the given input messages. The input of a round within the
+   * job, which answers the tool calls of the previous turn, is built from its batch like the real
+   * composer does.
+   */
   private void mockProceed(Message... inputMessages) {
-    when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.NextTurn(List.of(inputMessages)));
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
+        .thenReturn(CompositionResult.Ready.of(ToolCallBatch.of(List.of())));
+    lenient()
+        .when(agentInputComposer.assemble(any()))
+        .thenAnswer(invocation -> {
+          final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
+          return ready.toolCallBatch().toolCalls().isEmpty()
+              ? new TurnInput(List.of(inputMessages))
+              : new TurnInput(new ToolCallResultsInputBuilder().build(ready.toolCallBatch()));
+        });
   }
 
   private void mockResponseHandler() {

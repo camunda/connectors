@@ -7,14 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
-/**
- * Decision produced by AgentConversationTurnInputComposer: whether and how to proceed with the next
- * LLM call.
- */
+/** Whether the next turn can be composed, as resolved by AgentConversationTurnInputComposer. */
 public sealed interface CompositionResult {
 
   /**
@@ -37,19 +36,33 @@ public sealed interface CompositionResult {
   record NoInput() implements CompositionResult {}
 
   /**
-   * The results of the process are complete or interrupted, and the turn also has local tool calls.
-   * The caller gets their results and composes again with them.
+   * The next turn can be assembled once the calls of the batch that are still unanswered have their
+   * results: the local tool calls. The results of the process calls are in the batch.
+   *
+   * @param toolCallBatch the calls of the previous turn, none when the next turn has no tool call
+   *     results
+   * @param userPrompt the user message of a turn without tool call results, if there is any
+   * @param eventMessages the messages of the events, added after the other input
    */
-  record LocalToolCallResultsRequired(List<ToolCall> localToolCalls) implements CompositionResult {
-    public LocalToolCallResultsRequired {
-      localToolCalls = List.copyOf(localToolCalls);
-    }
-  }
+  record Ready(
+      ToolCallBatch toolCallBatch, @Nullable UserMessage userPrompt, List<Message> eventMessages)
+      implements CompositionResult {
 
-  /** Messages assembled and ready to be applied to the conversation. */
-  record NextTurn(List<Message> messages) implements CompositionResult {
-    public NextTurn {
-      messages = List.copyOf(messages);
+    public Ready {
+      eventMessages = List.copyOf(eventMessages);
+    }
+
+    /** The next turn that answers the calls of the batch only. */
+    public static Ready of(ToolCallBatch toolCallBatch) {
+      return new Ready(toolCallBatch, null, List.of());
+    }
+
+    public List<ToolCall> unansweredToolCalls() {
+      return toolCallBatch.unanswered();
+    }
+
+    public Ready withResults(List<ToolCallBatch.Entry> entries) {
+      return new Ready(toolCallBatch.withEntries(entries), userPrompt, eventMessages);
     }
   }
 }

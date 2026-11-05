@@ -365,30 +365,6 @@ class AgentConversationTest {
   }
 
   @Test
-  void nextRuntimeToolRound_throwsWhenTheInputDoesNotStartWithTheToolCallResults() {
-    var conv =
-        rehydrate(List.of(), List.of(userMessage("hi")))
-            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty());
-
-    assertThatThrownBy(() -> conv.nextRuntimeToolRound(List.of(userMessage("loaded"))))
-        .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> conv.nextRuntimeToolRound(List.of()))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void nextRuntimeToolRound_throwsWhenTheResultsDoNotMatchTheToolCalls() {
-    var conv =
-        rehydrate(List.of(), List.of(userMessage("hi")))
-            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty());
-
-    assertThatThrownBy(() ->
-            conv.nextRuntimeToolRound(
-                List.of(toolCallResultMessage(List.of(TOOL_CALL_RESULTS.getFirst())))))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
   void nextRuntimeToolRound_keepsTheAssistantAndItsResultsPairableInTheWindow() {
     var results = toolCallResultMessage(TOOL_CALL_RESULTS);
     var calling = assistantMessage("calling", TOOL_CALLS);

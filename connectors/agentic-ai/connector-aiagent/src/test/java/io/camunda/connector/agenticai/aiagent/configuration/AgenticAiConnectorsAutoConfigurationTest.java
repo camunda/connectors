@@ -21,6 +21,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
+import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallExecutor;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
@@ -126,6 +128,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           ProcessDefinitionAdHocToolElementsResolver.class,
           GatewayToolHandlerRegistry.class,
           RuntimeTools.class,
+          LocalToolCallExecutor.class,
           AgentToolsResolver.class,
           AgentInitializer.class,
           InProcessConversationStore.class,
@@ -134,6 +137,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AwsAgentCoreConversationStore.class,
           ConversationStoreRegistry.class,
           AgentConversationTurnInputComposer.class,
+          ToolCallResultsInputBuilder.class,
           AgentResponseHandler.class,
           AgentTaskRequestHandler.class,
           AgentTaskV1Function.class,

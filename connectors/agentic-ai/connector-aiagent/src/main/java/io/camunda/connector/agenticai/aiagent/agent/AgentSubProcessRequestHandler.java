@@ -37,7 +37,8 @@ public class AgentSubProcessRequestHandler
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      RuntimeTools runtimeTools) {
+      RuntimeTools runtimeTools,
+      LocalToolCallExecutor localToolCallExecutor) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -46,7 +47,8 @@ public class AgentSubProcessRequestHandler
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        runtimeTools);
+        runtimeTools,
+        localToolCallExecutor);
   }
 
   @Override

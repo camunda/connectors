@@ -14,45 +14,30 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
-import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 /**
- * Builds the input of the turn that follows a turn with tool calls, from the results of all calls.
+ * Builds the input of the turn that follows a batch of tool calls: the tool call result message in
+ * call order, followed by a message with the documents of the results if there are any.
  */
-final class ToolCallResultsInputBuilder {
+public class ToolCallResultsInputBuilder {
 
   static final String TOOL_CALL_DOCUMENTS_PREAMBLE =
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
-  private ToolCallResultsInputBuilder() {}
-
-  record Entry(ToolCallResultContent result, List<Document> documents) {
-
-    Entry {
-      documents = List.copyOf(documents);
-    }
-
-    /** The entry for the result of a runtime tool; its documents are the ones of its content. */
-    static Entry of(RuntimeToolExecution execution) {
-      final var result = execution.toolCallResult();
-      return new Entry(result, ToolCallResultDocumentExtractor.documentsOf(result.content()));
-    }
-  }
-
   /**
-   * The tool call result message for the results of all tool calls of a turn, in call order,
-   * followed by the message with their documents if there are any.
+   * Builds the input of the turn that follows the batch.
+   *
+   * @throws IllegalStateException if a call of the batch has no result
    */
-  static List<Message> build(List<Entry> entries) {
+  public List<Message> build(ToolCallBatch batch) {
+    final var entries = batch.entriesInCallOrder();
     final var messages = new ArrayList<Message>();
     messages.add(
         ToolCallResultMessage.builder()
-            .results(entries.stream().map(Entry::result).toList())
+            .results(entries.stream().map(ToolCallBatch.Entry::result).toList())
             .metadata(MessageMetadata.defaults())
             .build());
 

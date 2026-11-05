@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSessi
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
-import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
@@ -44,7 +43,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
@@ -54,7 +52,6 @@ import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
@@ -76,6 +73,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
   private final RuntimeTools runtimeTools;
+  private final LocalToolCallExecutor localToolCallExecutor;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -85,7 +83,8 @@ public abstract class BaseAgentRequestHandler<
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      RuntimeTools runtimeTools) {
+      RuntimeTools runtimeTools,
+      LocalToolCallExecutor localToolCallExecutor) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -94,6 +93,7 @@ public abstract class BaseAgentRequestHandler<
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
     this.runtimeTools = runtimeTools;
+    this.localToolCallExecutor = localToolCallExecutor;
   }
 
   @Override
@@ -140,18 +140,8 @@ public abstract class BaseAgentRequestHandler<
           TurnReconstructor.reconstruct(loadedMessages, agentContext.metadata());
 
       LOGGER.trace("Composing turn input from history and invocation state");
-      var compositionResult =
-          agentInputComposer.compose(configuration, agentContext, previousConversation, agentInput);
-      if (compositionResult
-          instanceof CompositionResult.LocalToolCallResultsRequired(var localToolCalls)) {
-        // the results of the process arrived: the agent produces the results of its own tool calls
-        // now
-        final var executions = localToolCallResults(executionContext, agentContext, localToolCalls);
-        compositionResult =
-            agentInputComposer.composeWithLocalToolCallResults(
-                configuration, agentContext, previousConversation, agentInput, executions);
-      }
-      return switch (compositionResult) {
+      return switch (agentInputComposer.resolve(
+          configuration, agentContext, previousConversation, agentInput)) {
         case CompositionResult.Deferred(var arrivedResults) -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
           reportArrivedToolCallResults(
@@ -162,16 +152,13 @@ public abstract class BaseAgentRequestHandler<
           LOGGER.debug("No input could be composed for this turn");
           yield handleNoInput(executionContext);
         }
-        case CompositionResult.LocalToolCallResultsRequired ignored ->
-            throw new IllegalStateException(
-                "The turn input was composed without the results of the local tool calls after they were computed");
-        case CompositionResult.NextTurn(var newMessages) ->
+        case CompositionResult.Ready ready ->
             proceed(
                 executionContext,
                 agentContext,
                 configuration,
                 previousConversation,
-                newMessages,
+                answerLocalToolCalls(executionContext, agentContext, ready).messages(),
                 session,
                 store);
       };
@@ -428,13 +415,12 @@ public abstract class BaseAgentRequestHandler<
         currentTurn.iterationKey());
 
     throwIfLimitsReached(conversation, agentConfiguration);
-    final var executions =
-        localToolCallResults(
-            executionContext, conversation.persistedContext(), currentTurn.localToolCalls());
-    final var nextConversation =
-        conversation.nextRuntimeToolRound(
-            ToolCallResultsInputBuilder.build(
-                executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList()));
+    final var input =
+        answerLocalToolCalls(
+            executionContext,
+            conversation.persistedContext(),
+            CompositionResult.Ready.of(ToolCallBatch.of(currentTurn.toolCalls())));
+    final var nextConversation = conversation.nextRuntimeToolRound(input.messages());
     // the previous turn is the one whose tool calls these results belong to
     agentInstanceClient.applyTurnStart(
         executionContext,
@@ -446,28 +432,15 @@ public abstract class BaseAgentRequestHandler<
     return nextConversation;
   }
 
-  /**
-   * Returns one execution per local tool call, in call order. A rejected call gets its rejection as
-   * an error result and is never executed; every other local tool call is the call of a runtime
-   * tool.
-   */
-  private List<RuntimeToolExecution> localToolCallResults(
-      AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
-    final var runtimeCalls = calls.stream().filter(call -> call.rejection() == null).toList();
-    final var executionsOfRuntimeCalls =
-        (runtimeCalls.isEmpty()
-                ? List.<RuntimeToolExecution>of()
-                : runtimeTools.execute(executionContext, agentContext, runtimeCalls))
-            .iterator();
-    return calls.stream()
-        .map(call -> call.rejection() == null ? executionsOfRuntimeCalls.next() : rejected(call))
-        .toList();
-  }
-
-  private static RuntimeToolExecution rejected(ToolCall call) {
-    final var now = OffsetDateTime.now(ZoneId.systemDefault());
-    final var error = RuntimeToolResult.error(Objects.requireNonNull(call.rejection()));
-    return new RuntimeToolExecution(call, error, now, now);
+  /** The input of the next turn, with the results of the local tool calls of the batch. */
+  private TurnInput answerLocalToolCalls(
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      CompositionResult.Ready ready) {
+    return agentInputComposer.assemble(
+        ready.withResults(
+            localToolCallExecutor.execute(
+                executionContext, agentContext, ready.unansweredToolCalls())));
   }
 
   /**

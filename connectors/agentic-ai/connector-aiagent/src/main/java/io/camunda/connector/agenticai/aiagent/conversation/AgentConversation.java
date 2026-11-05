@@ -16,13 +16,11 @@ import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationCon
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -167,36 +165,17 @@ public final class AgentConversation {
 
   /**
    * Closes the current (already-ingested) turn into {@link #previousTurns} and opens a new pending
-   * turn for the next round within this invocation. Its input is the tool call results of the
-   * runtime tools the agent executed, followed by messages such as the one that carries the
-   * documents a tool returned. The results must cover exactly the tool calls of the closed turn's
-   * assistant message, so the turn stays pairable with it when the conversation is persisted,
-   * reloaded and windowed.
+   * turn for the next round within this invocation, with the tool call results of the local tool
+   * calls of the closed turn as its input.
    *
-   * @param inputMessages the input of the new turn, the {@link ToolCallResultMessage} first
+   * @param inputMessages the input of the new turn, the results of every tool call of the closed
+   *     turn first
    * @throws IllegalStateException if the current turn has not been ingested yet
-   * @throws IllegalArgumentException if the first message is not a tool call result message or its
-   *     results do not match the assistant message's tool calls
    */
   public AgentConversation nextRuntimeToolRound(List<Message> inputMessages) {
     if (currentTurn.assistantMessage() == null) {
       throw new IllegalStateException(
           "nextRuntimeToolRound() called before the current turn was ingested");
-    }
-    var expectedIds = currentTurn.toolCallsById().keySet();
-    if (inputMessages.isEmpty()
-        || !(inputMessages.getFirst() instanceof ToolCallResultMessage toolCallResults)) {
-      throw new IllegalArgumentException(
-          "The input of the next round must start with the tool call results of %s"
-              .formatted(expectedIds));
-    }
-    var resultIds = toolCallResults.results().stream().map(r -> r.id()).collect(Collectors.toSet());
-    if (expectedIds.isEmpty()
-        || toolCallResults.results().size() != expectedIds.size()
-        || !expectedIds.equals(resultIds)) {
-      throw new IllegalArgumentException(
-          "Tool call results %s do not match the tool calls %s of the current turn"
-              .formatted(resultIds, expectedIds));
     }
     return nextRound(inputMessages);
   }
