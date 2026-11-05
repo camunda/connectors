@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 /**
  * The names of the tools the connector ships. They share one prefix by convention. The prefix is
  * not enforced: a tool of the process or a custom runtime tool may use any name, as long as it does
- * not equal the name of a runtime tool the agent offers (see {@code RuntimeToolsImpl}).
+ * not equal the name of a runtime tool the agent offers (see {@code RuntimeTools}).
  */
 final class BuiltInToolNames {
 
