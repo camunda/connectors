@@ -608,6 +608,43 @@ jobs:
           distribution: 'temurin'
           java-version: '25.0.5+8.0.LTS'
 
+      # Same credentials and mirrors as the setup job, in place before the first Maven call: on branches
+      # whose parent/pom.xml pins an NES-only Spring Boot patch (stable/8.7, stable/8.8), even reading
+      # the project version imports that BOM and 401s anonymously.
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
+
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+              "id": "nexus-mirror",
+              "username": "${{ steps.vault-secrets.outputs.CI_NEXUS_USR }}",
+              "password": "${{ steps.vault-secrets.outputs.CI_NEXUS_PSW }}"
+             },
+             {
+               "id": "camunda-nexus",
+               "username": "${{ steps.vault-secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.vault-secrets.outputs.ARTIFACTORY_PSW }}"
+             }]
+          mirrors: '[{"url": "https://artifacts.camunda.com/artifactory/internal", "id": "camunda-nexus", "mirrorOf": "herodevs-nes", "name": "camunda Nexus"}, {"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth,!herodevs-nes", "name": "camunda Nexus"}]'
+
       - name: Set next snapshot version
         id: bump
         run: |
@@ -630,20 +667,6 @@ jobs:
         env:
           RELEASE_VERSION: ${{ inputs.version }}
           RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
-
-      - name: Import Secrets
-        if: steps.bump.outputs.next_version != ''
-        id: vault-secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false
-          secrets: |
-            secret/data/products/connectors/ci/common GITHUB_APP_ID;
-            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
 
       # Same GitHub App token as the release commit in the setup job, which is allowed to push to the
       # released branch.
