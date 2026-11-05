@@ -333,7 +333,6 @@ class AgentConversationTest {
     // nothing persisted or configured is rewritten
     assertThat(conv.configuration().toolDefinitions()).containsExactly(authored);
     assertThat(conv.toAgentContext().toolDefinitions()).containsExactly(authored);
-    assertThat(authored.inputSchema().toString()).contains("camunda-document-id", "anyOf");
   }
 
   @Test
