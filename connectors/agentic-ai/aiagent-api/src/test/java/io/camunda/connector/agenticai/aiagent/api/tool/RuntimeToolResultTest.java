@@ -97,7 +97,7 @@ class RuntimeToolResultTest {
   }
 
   @Test
-  void aSuccessfulResultKeepsTheEffectsInTheOrderTheyWereAdded() {
+  void effectsOfDifferentKindsKeepTheOrderTheyWereAdded() {
     final var result =
         RuntimeToolResult.success("ok")
             .withResponseDocument("second", DOC_2, null)
