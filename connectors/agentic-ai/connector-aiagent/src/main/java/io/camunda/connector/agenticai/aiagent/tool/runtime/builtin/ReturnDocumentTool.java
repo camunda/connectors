@@ -13,11 +13,11 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -46,8 +46,6 @@ public final class ReturnDocumentTool implements RuntimeTool {
   /** The parameter carrying an optional description of the document. */
   public static final String PARAMETER_DESCRIPTION = "description";
 
-  private static final Pattern KEY_PATTERN = Pattern.compile("[A-Za-z_][A-Za-z0-9_-]*");
-
   private static final ToolDefinition DEFINITION =
       ToolDefinition.runtime(
           NAME,
@@ -70,8 +68,9 @@ public final class ReturnDocumentTool implements RuntimeTool {
     properties.put(
         PARAMETER_KEY,
         text(
-            "A stable identifier the process uses to find the document, matching"
-                + " [A-Za-z_][A-Za-z0-9_-]*."));
+            "A stable identifier the process uses to find the document, matching "
+                + ResponseDocumentSelection.KEY_PATTERN
+                + "."));
     properties.put(PARAMETER_DOCUMENT, DocumentSchemas.document("The document to return."));
     properties.put(PARAMETER_DESCRIPTION, text("An optional short description of the document."));
     final var schema = new LinkedHashMap<String, Object>();
@@ -103,11 +102,8 @@ public final class ReturnDocumentTool implements RuntimeTool {
   public RuntimeToolResult call(RuntimeToolContext context, RuntimeToolCall call) {
     final var arguments = call.argumentsAs(Arguments.class);
     final var key = arguments.key();
-    if (key == null || !KEY_PATTERN.matcher(key).matches()) {
-      return RuntimeToolResult.error(
-          "Parameter '%s' must match [A-Za-z_][A-Za-z0-9_-]*: it starts with a letter or an"
-                  .formatted(PARAMETER_KEY)
-              + " underscore and continues with letters, digits, underscores or hyphens.");
+    if (key == null) {
+      return invalidKey();
     }
     final var document = arguments.document();
     if (document == null || context.documents().find(document).isEmpty()) {
@@ -119,7 +115,18 @@ public final class ReturnDocumentTool implements RuntimeTool {
         arguments.description() == null || arguments.description().isBlank()
             ? null
             : arguments.description();
-    return RuntimeToolResult.success("Returned the document under the key '%s'.".formatted(key))
-        .withResponseDocument(key, document, description);
+    try {
+      return RuntimeToolResult.success("Returned the document under the key '%s'.".formatted(key))
+          .withResponseDocument(key, document, description);
+    } catch (IllegalArgumentException e) {
+      return invalidKey();
+    }
+  }
+
+  private static RuntimeToolResult invalidKey() {
+    return RuntimeToolResult.error(
+        "Parameter '%s' must match %s: it starts with a letter or an"
+                .formatted(PARAMETER_KEY, ResponseDocumentSelection.KEY_PATTERN)
+            + " underscore and continues with letters, digits, underscores or hyphens.");
   }
 }

@@ -115,11 +115,31 @@ class RuntimeToolResultTest {
   }
 
   @Test
-  void aResponseDocumentKeyMustNotBeBlank() {
+  void aResponseDocumentKeyMustMatchThePattern() {
     final var result = RuntimeToolResult.success("ok");
 
-    assertThatThrownBy(() -> result.withResponseDocument(" ", DOC_1, null))
-        .isInstanceOf(IllegalArgumentException.class);
+    for (final var key : List.of("", " ", "1abc", "a b")) {
+      assertThatThrownBy(() -> result.withResponseDocument(key, DOC_1, null))
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+    assertThat(result.effects()).isEmpty();
+  }
+
+  @Test
+  void aDocumentNamesItsIdAsTheResponseDocumentEffect() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .build());
+
+    final var result = RuntimeToolResult.success("ok").withResponseDocument("k", document, "d");
+
+    assertThat(result.effects())
+        .containsExactly(
+            new ToolCallEffect.SelectResponseDocument(
+                new ResponseDocumentSelection("k", AgentDocumentId.of(document), "d")));
   }
 
   @Test
