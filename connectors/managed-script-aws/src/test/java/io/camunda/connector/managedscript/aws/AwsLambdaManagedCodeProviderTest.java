@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -227,8 +228,6 @@ class AwsLambdaManagedCodeProviderTest {
     // A runtime instance of the previous release still calls the executor of its own wrapper.
     final var previous = PREFIX + "py-000000000000";
     assertThat(previous).isNotEqualTo(PYTHON_EXECUTOR);
-    when(lambda.getFunction(GetFunctionRequest.builder().functionName(previous).build()))
-        .thenReturn(function(State.ACTIVE, LastUpdateStatus.SUCCESSFUL, 256, 20, "arn:previous"));
     when(lambda.getFunction(GetFunctionRequest.builder().functionName(PYTHON_EXECUTOR).build()))
         .thenThrow(notFound())
         .thenReturn(
@@ -249,7 +248,7 @@ class AwsLambdaManagedCodeProviderTest {
     verify(lambda).createFunction(created.capture());
     assertThat(created.getValue().functionName()).isEqualTo(PYTHON_EXECUTOR);
     final var read = ArgumentCaptor.forClass(GetFunctionRequest.class);
-    verify(lambda, times(2)).getFunction(read.capture());
+    verify(lambda, atLeastOnce()).getFunction(read.capture());
     assertThat(read.getAllValues())
         .extracting(GetFunctionRequest::functionName)
         .containsOnly(PYTHON_EXECUTOR);

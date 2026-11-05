@@ -217,7 +217,6 @@ class GcpCloudRunManagedCodeProviderTest {
     final var previous = LOCATION + "/functions/" + PREFIX + "py-000000000000";
     final var own = LOCATION + "/functions/" + PYTHON_EXECUTOR;
     assertThat(previous).isNotEqualTo(own);
-    when(functions.getFunction(previous)).thenReturn(active());
     when(functions.getFunction(own)).thenThrow(error(Code.NOT_FOUND)).thenReturn(active());
     uploadTo(wireMock);
     when(create.call(any(CreateFunctionRequest.class))).thenReturn(operation("create", false));
