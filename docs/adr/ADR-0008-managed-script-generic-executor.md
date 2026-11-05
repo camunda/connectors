@@ -124,6 +124,17 @@ with no user code in it.
   retries, and a job after the backoff tries the creation again.
 - **Readiness per language.** Each language becomes ready on its own, so a failing Python executor
   does not block JavaScript jobs.
+- **Upgrade.** A runtime only calls the executors of its own wrapper and never falls back to the
+  executor of a previous one. After an upgrade to a release with a new wrapper, its instances
+  create the new executors as on a first start, and a job that arrives earlier waits for them as
+  above. During the rolling update, the instances of the previous release keep calling their own
+  executors: the two coexist under different names, and neither release calls the other's. The
+  delay of the first jobs after an upgrade is accepted: the creation time of the executors, 3 to 6
+  seconds on AWS and 37 to 51 seconds on GCP, longer when the creation is throttled. A fallback
+  would need the runtime to know the name of the previous executor, which it can only compute from
+  a record of past wrapper digests kept across release lines, or receive from Controller; neither
+  is worth it while most installations are Self-Managed and upgrade a few times a year. It can be
+  added later without changing executor names or the contract.
 - **Missing executor.** When the provider reports `DEPLOYMENT_MISSING`, the job runs
   `ensureExecutors` once more, within its own provisioning budget, and calls the executor again.
 - **Dependencies.** Dependencies are not supported yet (GAP-004). A job that links a `dependencies`
@@ -164,13 +175,11 @@ generates the cluster's prefix, so it can list the functions under it.
 
 - **Cluster deletion.** Controller deletes every function and log group under the cluster's prefix.
 - **Wrapper upgrade.** Once every runtime instance of the cluster runs the new release, Controller
-  asks every live instance which executors it may still call, through an endpoint
-  ([#9919](https://github.com/camunda/connectors/issues/9919)): those of its own wrapper and, while
-  one of them is not ready yet on that instance, the previous executor it falls back to
-  ([#9912](https://github.com/camunda/connectors/issues/9912)). Instances of one release can be in
-  different states, so Controller deletes only the functions under the prefix that no instance
-  reports. If an instance does not answer, Controller deletes nothing and tries again later, as it
-  does while an instance still reports a previous executor.
+  asks every live instance which executors it calls, through an endpoint
+  ([#9919](https://github.com/camunda/connectors/issues/9919)): the executors of its own wrapper,
+  the only ones it calls ([#9912](https://github.com/camunda/connectors/issues/9912)). Controller
+  deletes the functions under the prefix that no instance reports. If an instance does not answer,
+  Controller deletes nothing and tries again later.
 - Controller retries a deletion that fails.
 
 Listing by prefix also catches the executors of wrappers several releases old, and the functions
@@ -215,10 +224,10 @@ sequenceDiagram
   Note over Controller,Provider: After a rollout
   par Every live instance
     Controller->>A: Which executors are in use?
-    A-->>Controller: Its own, and the previous one while it falls back to it
+    A-->>Controller: The executors of its own wrapper
   and
     Controller->>B: Which executors are in use?
-    B-->>Controller: Its own, and the previous one while it falls back to it
+    B-->>Controller: The executors of its own wrapper
   end
   Controller->>Provider: Delete the functions under the prefix that no instance reported
   Note over Controller: An instance that does not answer: no deletion, try again later
@@ -321,10 +330,9 @@ field changes. Adding an optional field that older parties ignore does not chang
 - An executor's name carries the digest of its wrapper, for every provider, including one written
   outside this repository. A runtime therefore only calls executors whose wrapper it knows, and a
   mismatch means a bug or a tampered executor, not a normal state.
-- The **runtime** sends each executor the version of that executor's wrapper. While it still
-  invokes the previous executor during an upgrade
-  ([#9912](https://github.com/camunda/connectors/issues/9912)), it sends that executor the previous
-  version.
+- The **runtime** sends the version of its own wrapper, since it calls no other executor, not even
+  during an upgrade ([#9912](https://github.com/camunda/connectors/issues/9912)). A runtime and
+  the executors it calls therefore always agree on the version.
 
 ### Error codes and retries
 
@@ -492,6 +500,10 @@ It logs a warning at startup. Windows is not supported.
 - A script and its input travel in every request: at most 6 MB on AWS and 32 MB on GCP.
 - A wrapper upgrade creates new executors in every cluster. The old ones stay until Controller
   deletes them at the end of the rollout.
+- After a wrapper upgrade, the first jobs of each new runtime instance wait for the new executors,
+  with no fallback to the previous ones: a few seconds on AWS, up to a minute on GCP, longer when
+  the creation is throttled. A job that waits longer than the provisioning timeout fails with
+  `PROVISIONING_PENDING`, its retries unchanged, and runs after the operator's backoff.
 - Cleanup depends on Controller, which needs list and delete rights on the functions projects and
   accounts. In Self-Managed, the operator cleans up by hand.
 - A configuration change updates the executors in place. During a rolling update, instances that

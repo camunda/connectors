@@ -526,6 +526,24 @@ class ManagedScriptJobHandlerTest {
   }
 
   @Test
+  void failsWithoutRetriesWhenTheExecutorRejectsTheContractVersionOfTheRequest() {
+    // A runtime only calls the executor of its own wrapper: a rejected version is a bug or a
+    // tampered executor, not a step of an upgrade, so nothing is made ready again or retried.
+    store("sum.py", "x");
+    provider.respond(
+        ExecutionResponse.failed(
+            ErrorCode.UNSUPPORTED_CONTRACT_VERSION,
+            "contract version \"2\" is not supported, expected 1"));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.UNSUPPORTED_CONTRACT_VERSION, 0);
+    assertThat(failed.message()).contains("contract version \"2\" is not supported");
+    assertThat(provider.calls).hasSize(1);
+    assertThat(provider.ensureCalls()).isEqualTo(1);
+  }
+
+  @Test
   void requiresTheVariablesOfACompletedScript() {
     store("sum.py", "x");
     provider.respond(

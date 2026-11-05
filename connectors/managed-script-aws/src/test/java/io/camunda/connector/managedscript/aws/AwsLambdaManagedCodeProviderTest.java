@@ -223,6 +223,44 @@ class AwsLambdaManagedCodeProviderTest {
   }
 
   @Test
+  void createsItsOwnExecutorBesideThatOfAPreviousWrapperAndNeverTouchesIt() {
+    // A runtime instance of the previous release still calls the executor of its own wrapper.
+    final var previous = PREFIX + "py-000000000000";
+    assertThat(previous).isNotEqualTo(PYTHON_EXECUTOR);
+    when(lambda.getFunction(GetFunctionRequest.builder().functionName(previous).build()))
+        .thenReturn(function(State.ACTIVE, LastUpdateStatus.SUCCESSFUL, 256, 20, "arn:previous"));
+    when(lambda.getFunction(GetFunctionRequest.builder().functionName(PYTHON_EXECUTOR).build()))
+        .thenThrow(notFound())
+        .thenReturn(
+            function(State.ACTIVE, LastUpdateStatus.SUCCESSFUL, 512, FUNCTION_TIMEOUT, ROLE));
+    when(invoker.invoke(any(InvokeRequest.class)))
+        .thenReturn(
+            InvokeResponse.builder()
+                .statusCode(200)
+                .payload(
+                    SdkBytes.fromUtf8String(
+                        "{\"contractVersion\":\"1\",\"outcome\":\"COMPLETED\",\"variables\":{}}"))
+                .build());
+
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+    provider.execute(ScriptLanguage.PYTHON, request("s"));
+
+    final var created = ArgumentCaptor.forClass(CreateFunctionRequest.class);
+    verify(lambda).createFunction(created.capture());
+    assertThat(created.getValue().functionName()).isEqualTo(PYTHON_EXECUTOR);
+    final var read = ArgumentCaptor.forClass(GetFunctionRequest.class);
+    verify(lambda, times(2)).getFunction(read.capture());
+    assertThat(read.getAllValues())
+        .extracting(GetFunctionRequest::functionName)
+        .containsOnly(PYTHON_EXECUTOR);
+    verify(lambda, never())
+        .updateFunctionConfiguration(any(UpdateFunctionConfigurationRequest.class));
+    final var invoked = ArgumentCaptor.forClass(InvokeRequest.class);
+    verify(invoker).invoke(invoked.capture());
+    assertThat(invoked.getValue().functionName()).isEqualTo(PYTHON_EXECUTOR);
+  }
+
+  @Test
   void waitsOutAnUpdateOfAnotherInstanceAndComparesAgain() {
     when(lambda.getFunction(any(GetFunctionRequest.class)))
         .thenReturn(

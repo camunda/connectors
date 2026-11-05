@@ -211,6 +211,31 @@ class GcpCloudRunManagedCodeProviderTest {
   }
 
   @Test
+  void createsItsOwnExecutorBesideThatOfAPreviousWrapperAndNeverTouchesIt(
+      WireMockRuntimeInfo wireMock) {
+    // A runtime instance of the previous release still calls the executor of its own wrapper.
+    final var previous = LOCATION + "/functions/" + PREFIX + "py-000000000000";
+    final var own = LOCATION + "/functions/" + PYTHON_EXECUTOR;
+    assertThat(previous).isNotEqualTo(own);
+    when(functions.getFunction(previous)).thenReturn(active());
+    when(functions.getFunction(own)).thenThrow(error(Code.NOT_FOUND)).thenReturn(active());
+    uploadTo(wireMock);
+    when(create.call(any(CreateFunctionRequest.class))).thenReturn(operation("create", false));
+    when(operations.getOperation("create")).thenReturn(operation("create", true));
+    stubFor(post("/executor").willReturn(ok(CONTRACT_RESPONSE)));
+
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+    provider.execute(ScriptLanguage.PYTHON, request("s"));
+
+    final var created = ArgumentCaptor.forClass(CreateFunctionRequest.class);
+    verify(create).call(created.capture());
+    assertThat(created.getValue().getFunctionId()).isEqualTo(PYTHON_EXECUTOR);
+    verify(functions, never()).getFunction(previous);
+    verify(update, never()).call(any(UpdateFunctionRequest.class));
+    WireMock.verify(1, postRequestedFor(urlEqualTo("/executor")));
+  }
+
+  @Test
   void adoptsAFunctionThatAnotherInstanceIsCreating(WireMockRuntimeInfo wireMock) {
     when(functions.getFunction(anyString()))
         .thenThrow(error(Code.NOT_FOUND))
