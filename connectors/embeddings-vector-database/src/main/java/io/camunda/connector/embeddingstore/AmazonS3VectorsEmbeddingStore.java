@@ -64,10 +64,10 @@ class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore implements S
       int size = metadataSize(segments.get(i).text());
       if (size > MAX_METADATA_BYTES) {
         throw new ConnectorException(
-            ("Chunk %d of the document needs %d bytes of metadata, but Amazon S3 Vectors allows at"
-                    + " most %d bytes per vector. Use the Recursive document splitter with a lower"
-                    + " Max chars.")
-                .formatted(i + 1, size, MAX_METADATA_BYTES));
+            ("Chunk %d of %d in this request needs %d bytes of metadata, but Amazon S3 Vectors"
+                    + " allows at most %d bytes per vector. Use the Recursive document splitter"
+                    + " with a lower Max chars.")
+                .formatted(i + 1, segments.size(), size, MAX_METADATA_BYTES));
       }
     }
   }

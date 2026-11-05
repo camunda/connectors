@@ -209,9 +209,9 @@ class AmazonS3VectorsEmbeddingStoreTest {
     assertThatThrownBy(() -> store.checkSegments(List.of(TextSegment.from("small"), tooLarge)))
         .isInstanceOf(ConnectorException.class)
         .hasMessage(
-            "Chunk 2 of the document needs 40961 bytes of metadata, but Amazon S3 Vectors allows"
-                + " at most 40960 bytes per vector. Use the Recursive document splitter with a"
-                + " lower Max chars.");
+            "Chunk 2 of 2 in this request needs 40961 bytes of metadata, but Amazon S3 Vectors"
+                + " allows at most 40960 bytes per vector. Use the Recursive document splitter"
+                + " with a lower Max chars.");
   }
 
   private static EmbeddingSearchRequest searchRequest(int maxResults) {
