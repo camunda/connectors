@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
@@ -259,8 +260,15 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ToolCallResultsInputBuilder aiAgentToolCallResultsInputBuilder(
+      DocumentContentDelivery documentContentDelivery) {
+    return new ToolCallResultsInputBuilder(documentContentDelivery);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public DocumentContentDelivery aiAgentDocumentContentDelivery(
       DocumentContentGuard documentContentGuard, DocumentRestorer documentRestorer) {
-    return new ToolCallResultsInputBuilder(documentContentGuard, documentRestorer);
+    return new DocumentContentDelivery(documentContentGuard, documentRestorer);
   }
 
   @Bean

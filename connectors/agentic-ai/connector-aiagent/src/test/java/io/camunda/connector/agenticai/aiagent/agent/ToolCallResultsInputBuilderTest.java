@@ -14,8 +14,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallBatch.Entry;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -55,9 +53,7 @@ class ToolCallResultsInputBuilderTest {
       AgentContext.empty().withFeatures(List.of(AgentFeatures.DOCUMENTS));
 
   private final ToolCallResultsInputBuilder builder =
-      new ToolCallResultsInputBuilder(
-          new DocumentContentGuard(DocumentContentLimits.defaults()),
-          TestDocuments.documentRestorer());
+      new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery());
 
   private final Document first = createDocument("first", "first.txt");
   private final Document nested = createDocument("nested", "nested.txt");
@@ -101,7 +97,15 @@ class ToolCallResultsInputBuilderTest {
   private static Entry runtimeEntry(String id, String name, RuntimeToolResult toolResult) {
     final var call = new ToolCall(id, name, Map.of()).withKind(ToolKind.RUNTIME);
     final var execution = new RuntimeToolExecution(call, toolResult, COMPLETED_AT, COMPLETED_AT);
-    return Entry.from(execution.toolCallResult(), toolResult.documentContent());
+    return switch (toolResult) {
+      case RuntimeToolResult.Success success ->
+          Entry.from(execution.toolCallResult(), success.effects());
+      case RuntimeToolResult.Error ignored -> Entry.from(execution.toolCallResult());
+    };
+  }
+
+  private static Entry entryOf(ToolCallResultContent result, List<Document> documents) {
+    return new Entry(result, documents, List.of());
   }
 
   private static ToolCallBatch batchOf(Entry... entries) {
@@ -114,11 +118,11 @@ class ToolCallResultsInputBuilderTest {
 
   private ToolCallBatch entries() {
     return batchOf(
-        new Entry(
+        entryOf(
             result("c1", "alpha", textContent("one"), DocumentContent.documentContent(first)),
             List.of(first)),
-        new Entry(result("c2", "beta", textContent("two")), List.of()),
-        new Entry(
+        entryOf(result("c2", "beta", textContent("two")), List.of()),
+        entryOf(
             result("c3", "gamma", objectContent(Map.of("file", nested, "again", third))),
             List.of(nested, third)));
   }
@@ -152,7 +156,7 @@ class ToolCallResultsInputBuilderTest {
     final var input =
         builder.build(
             WITH_DOCUMENTS,
-            batchOf(new Entry(result("c2", "beta", textContent("two")), List.of())),
+            batchOf(entryOf(result("c2", "beta", textContent("two")), List.of())),
             Set.of());
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
@@ -213,12 +217,12 @@ class ToolCallResultsInputBuilderTest {
   }
 
   @Test
-  void anErrorResultHasNoEffects() {
+  void anErrorResultAsksForNoContent() {
     final var entry = runtimeEntry("c1", "alpha", RuntimeToolResult.error("no"));
 
     final var input = builder.build(knowing(known), batchOf(entry), Set.of());
 
-    assertThat(entry.documentContent()).isEmpty();
+    assertThat(entry.effects()).isEmpty();
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
   }
 
@@ -281,7 +285,7 @@ class ToolCallResultsInputBuilderTest {
   }
 
   @Test
-  void aResultWhoseDocumentTheGuardRejectsBecomesAnErrorResultAndReportsNoDocument() {
+  void aDocumentTheGuardRejectsStaysAReferenceAndANoteFollowsTheResults() {
     final var rejected =
         runtimeEntry(
             "c1",
@@ -293,21 +297,24 @@ class ToolCallResultsInputBuilderTest {
 
     final var input = builder.build(knowing(archive), batchOf(rejected, other), Set.of());
 
-    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
-    final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();
+    assertThat(input.messages()).hasSize(2);
+    final var results = ((ToolCallResultMessage) input.messages().get(0)).results();
     assertThat(results.get(0).id()).isEqualTo("c1");
     assertThat(results.get(0).completedAt()).isEqualTo(COMPLETED_AT);
-    assertThat(results.get(0).content())
-        .singleElement()
-        .isEqualTo(
-            textContent(
-                "The document is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."));
+    assertThat(results.get(0).content()).containsExactly(AgentDocumentContent.of(idOf(first)));
     assertThat(results.get(1).content()).containsExactly(textContent("fine"));
-    assertThat(input.documents()).isEmpty();
+    assertThat(((UserMessage) input.messages().get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+            textContent(
+                "The document %s is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."
+                    .formatted(idOf(archive))));
+    assertThat(input.documents())
+        .containsExactly(AgentDocument.of(first, AgentDocumentOrigin.toolCall("alpha", "c1")));
   }
 
   @Test
-  void aRejectedResultAddsNoContentOfTheDocumentsItNamedBeforeTheRejectedOne() {
+  void aNoteAndTheContentOfTheOtherDocumentsOfAResultFollowInTheOrderTheyWereAskedFor() {
     final var entry =
         runtimeEntry(
             "c1",
@@ -318,7 +325,30 @@ class ToolCallResultsInputBuilderTest {
 
     final var input = builder.build(knowing(known, archive), batchOf(entry), Set.of());
 
-    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    assertThat(input.messages()).hasSize(2);
+    assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
+        .containsExactly(textContent("loaded"));
+    assertThat(((UserMessage) input.messages().get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+            AgentDocumentContent.of(idOf(known)).withDelivery(DocumentDelivery.CONTENT),
+            textContent(
+                "The document %s is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."
+                    .formatted(idOf(archive))));
+  }
+
+  @Test
+  void aDocumentTheGuardRejectsGetsOneNoteAlthoughSeveralCallsAskForIt() {
+    final var batch =
+        batchOf(
+            runtimeEntry(
+                "c1", "alpha", RuntimeToolResult.success("a").withDocumentContent(idOf(archive))),
+            runtimeEntry(
+                "c2", "beta", RuntimeToolResult.success("b").withDocumentContent(idOf(archive))));
+
+    final var input = builder.build(knowing(archive), batch, Set.of());
+
+    assertThat(((UserMessage) input.messages().get(1)).content()).hasSize(2);
   }
 
   @Test
@@ -333,7 +363,6 @@ class ToolCallResultsInputBuilderTest {
 
     assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(returning, naming), Set.of()))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("beta")
         .hasMessageContaining("does not know");
   }
 
@@ -347,7 +376,6 @@ class ToolCallResultsInputBuilderTest {
 
     assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of()))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("alpha")
         .hasMessageContaining("unknown");
   }
 
