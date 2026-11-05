@@ -1243,7 +1243,7 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void runtimeToolCalls_aResultThatSelectsAResponseDocumentIsAppliedToTheContextOfTheNextTurn() {
     var document = createDocument("first", "text/plain", "first.txt");
-    var id = AgentDocumentHandle.idFor(document);
+    var id = AgentDocumentId.of(document);
     var context = contextKnowing(document);
     var execution =
         new RuntimeToolExecution(
@@ -1271,7 +1271,7 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void runtimeToolCalls_aResultThatReturnsADocumentCanSelectItInTheSameResult() {
     var document = createDocument("created", "text/plain", "created.txt");
-    var id = AgentDocumentHandle.idFor(document);
+    var id = AgentDocumentId.of(document);
     var context = CTX_WITH_CONVERSATION.withFeatures(List.of(AgentFeatures.DOCUMENTS));
     var execution =
         new RuntimeToolExecution(
@@ -1288,13 +1288,13 @@ class AgentConversationTurnInputComposerImplTest {
 
     assertThat(input.documents())
         .containsExactly(
-            new IngestedDocument(document, AgentDocumentOrigin.toolCall("getWeather", "abcdef")));
+            AgentDocument.of(document, AgentDocumentOrigin.toolCall("getWeather", "abcdef")));
     assertThat(input.responseDocuments())
         .containsExactly(new ResponseDocumentSelection("created", id, null));
     var applied = input.applyTo(context);
     assertThat(applied.responseDocuments())
         .containsExactly(new ResponseDocumentSelection("created", id, null));
-    assertThat(applied.documentWorkspace().findById(id)).isPresent();
+    assertThat(applied.documents().find(id)).isPresent();
   }
 
   @Test

@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.util.ResponseTextUtil.strip
 import static io.camunda.connector.agenticai.common.json.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
@@ -18,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
@@ -135,17 +137,27 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
         "Cannot create an agent response: the last turn has no assistant message");
   }
 
-  private static Map<String, ReturnedDocument> responseDocuments(AgentContext agentContext) {
-    final var workspace = agentContext.documentWorkspace();
+  private Map<String, ReturnedDocument> responseDocuments(AgentContext agentContext) {
     final var returned = new LinkedHashMap<String, ReturnedDocument>();
     for (final var selected : agentContext.responseDocuments()) {
-      workspace
-          .findById(selected.document())
-          .ifPresent(entry ->
-              returned.put(
-                  selected.key(), new ReturnedDocument(entry.reference(), selected.description())));
+      final var document =
+          agentContext
+              .documents()
+              .find(selected.document())
+              .orElseThrow(() ->
+                  new IllegalStateException(
+                      "The response document '%s' is the document '%s', which the agent does not know"
+                          .formatted(selected.key(), selected.document())));
+      returned.put(
+          selected.key(), new ReturnedDocument(referenceJson(document), selected.description()));
     }
     return returned;
+  }
+
+  /** The document reference in the JSON format it is persisted in. */
+  private Map<String, Object> referenceJson(AgentDocument document) {
+    return objectMapper.convertValue(
+        objectMapper.valueToTree(document).path("reference"), new TypeReference<>() {});
   }
 
   private Optional<String> deriveResponseText(AssistantMessage assistantMessage) {
