@@ -2057,7 +2057,7 @@ Every answer is plain text with no incident; the model retries or goes another w
 result message with a user message with the preamble `System message, not written by the user: the content of the
 documents loaded for the tool results above follows.` and a block with the delivery `content` per document. Its
 metadata `toolCallDocuments` makes it leave the context window together with its tool results (`MessageWindowFilter`). The
-tag text and the content are added from the agent documents when the conversation is windowed. Passing the tag of a document to
+tag text and the content are added from the agent documents when the request is built (`DocumentExpander`). Passing the tag of a document to
 a tool parameter declared with `fromAi(..., "document")` never adds content: the tool receives the full Camunda document
 reference. The same holds for a parameter that takes text or a document, when the model passes a tag.
 `c8__get_document` is offered to every agent instance with the `documents` feature (every instance created from

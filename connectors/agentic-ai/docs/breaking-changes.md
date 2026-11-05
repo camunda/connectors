@@ -251,7 +251,8 @@ The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler
 `RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`. The constructor of
 `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`, and the `ToolCallResultsInputBuilder`
 takes the `DocumentContentGuard`, the check of the documents whose content the agent adds, and the `DocumentRestorer`
-that restores a document from its reference. The size limits of the guard are set by the properties
+that restores a document from its reference. `RuntimeTools` also takes the SDK `DocumentFactory`, with which a runtime
+tool restores the documents it reads. The size limits of the guard are set by the properties
 `camunda.connector.agenticai.aiagent.document.content-limits.*` (see §16 of the [reference](reference/ai-agent.md)). The
 auto-configuration provides these beans and the built-in runtime tool, each `@ConditionalOnMissingBean`. A custom bean
 built with `new` needs the extra arguments; inject them as beans.
