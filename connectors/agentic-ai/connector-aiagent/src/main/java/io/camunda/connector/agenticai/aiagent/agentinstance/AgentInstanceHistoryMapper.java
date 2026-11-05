@@ -16,7 +16,6 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
-import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTags;

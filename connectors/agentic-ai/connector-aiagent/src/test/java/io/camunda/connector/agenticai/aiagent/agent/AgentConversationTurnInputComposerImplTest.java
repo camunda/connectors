@@ -107,12 +107,16 @@ class AgentConversationTurnInputComposerImplTest {
     return composer.resolve(configuration, agentContext, history, input);
   }
 
-  /** The input messages of a result that is ready and has no local tool calls to answer. */
-  private List<Message> messagesOf(CompositionResult result) {
+  /** The input of a result that is ready and has no local tool calls to answer. */
+  private TurnInput inputOf(CompositionResult result) {
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     final var ready = (CompositionResult.Ready) result;
     assertThat(ready.unansweredToolCalls()).isEmpty();
-    return composer.assemble(ready).messages();
+    return composer.assemble(ready);
+  }
+
+  private List<Message> messagesOf(CompositionResult result) {
+    return inputOf(result).messages();
   }
 
   private Document createDocument(String content, String contentType, String fileName) {
@@ -131,10 +135,12 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     var ready = (CompositionResult.Ready) result;
     assertThat(ready.toolCallBatch()).isEqualTo(ToolCallBatch.of(List.of()));
-    assertThat(ready.eventMessages()).isEmpty();
-    assertThat(ready.userPrompt()).isNotNull();
-    assertThat(ready.userPrompt().content()).containsExactly(textContent("Hello?"));
-    assertThat(messagesOf(result)).containsExactly(ready.userPrompt());
+    assertThat(ready.events()).isEqualTo(TurnInput.empty());
+    assertThat(ready.userPrompt().messages()).singleElement().isInstanceOf(UserMessage.class);
+    assertThat(((UserMessage) ready.userPrompt().messages().getFirst()).content())
+        .containsExactly(textContent("Hello?"));
+    assertThat(ready.userPrompt().documents()).isEmpty();
+    assertThat(messagesOf(result)).containsExactlyElementsOf(ready.userPrompt().messages());
   }
 
   @Test
@@ -167,9 +173,9 @@ class AgentConversationTurnInputComposerImplTest {
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
-    var result = compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
-    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
-    var nextTurn = (CompositionResult.NextTurn) result;
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    assertThat(result).isInstanceOf(CompositionResult.Ready.class);
+    var nextTurn = inputOf(result);
     assertThat(nextTurn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(nextTurn.documents()).isEmpty();
   }
@@ -251,12 +257,12 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = resolve(CONFIG, CTX, history, input);
 
-    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
-    var userMessage = (UserMessage) ((CompositionResult.NextTurn) result).messages().getFirst();
+    assertThat(result).isInstanceOf(CompositionResult.Ready.class);
+    var userMessage = (UserMessage) messagesOf(result).getFirst();
     assertThat(userMessage.content())
         .containsExactly(
             textContent("Tell me a story"), documentReference(document, DocumentDelivery.CONTENT));
-    final var ingested = ((CompositionResult.NextTurn) result).documents();
+    final var ingested = inputOf(result).documents();
     assertThat(ingested)
         .containsExactly(new IngestedDocument(document, DocumentOrigin.userMessage()));
     assertThat(
@@ -450,7 +456,7 @@ class AgentConversationTurnInputComposerImplTest {
     var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
     // the document is shown as its tag inside the tool result; the message holds it untouched
-    var nextTurn = (CompositionResult.NextTurn) result;
+    var nextTurn = inputOf(result);
     assertThat(nextTurn.messages()).hasSize(1);
     var toolCallResultMessage = (ToolCallResultMessage) nextTurn.messages().getFirst();
     assertThat(toolCallResultMessage.results())
@@ -492,7 +498,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    var nextTurn = (CompositionResult.NextTurn) result;
+    var nextTurn = inputOf(result);
     assertThat(nextTurn.messages()).hasSize(1);
     var toolCallResultMessage = (ToolCallResultMessage) nextTurn.messages().getFirst();
     assertThat(toolCallResultMessage.results())
@@ -531,9 +537,9 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = compose(CONFIG, legacyContext, history, input);
+    var result = resolve(CONFIG, legacyContext, history, input);
 
-    var nextTurn = (CompositionResult.NextTurn) result;
+    var nextTurn = inputOf(result);
     var toolCallResultMessage = (ToolCallResultMessage) nextTurn.messages().getFirst();
     assertThat(toolCallResultMessage.results())
         .filteredOn(r -> "abcdef".equals(r.id()))
@@ -576,7 +582,7 @@ class AgentConversationTurnInputComposerImplTest {
     var result = resolve(config, CTX_WITH_CONVERSATION, history, input);
 
     // order: tool call results -> event (with its document tags)
-    var messages = ((CompositionResult.NextTurn) result).messages();
+    var messages = messagesOf(result);
     assertThat(messages).hasSize(2);
     assertThat(messages.get(0)).isInstanceOf(ToolCallResultMessage.class);
     assertThat(messages.get(1))
@@ -623,9 +629,9 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = compose(config, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(config, CTX_WITH_CONVERSATION, history, input);
 
-    final var nextTurn = (CompositionResult.NextTurn) result;
+    final var nextTurn = inputOf(result);
     assertThat(nextTurn.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
     assertThat(nextTurn.documents())
         .containsExactlyInAnyOrder(
@@ -738,10 +744,10 @@ class AgentConversationTurnInputComposerImplTest {
     var turnInput =
         assembleWithLocalResults(CONFIG, historyWith(MIXED_CALLS), input, runtimeResult);
 
-    assertThat(resultsOf(result).getFirst().content())
+    assertThat(resultsOf(turnInput).getFirst().content())
         .containsExactly(DocumentReferences.from(document));
     // the document of the result of a runtime tool is registered with the call that returned it
-    assertThat(((CompositionResult.NextTurn) result).documents())
+    assertThat(turnInput.documents())
         .containsExactly(
             new IngestedDocument(document, DocumentOrigin.toolCall("getWeather", "abcdef")));
   }
@@ -765,10 +771,11 @@ class AgentConversationTurnInputComposerImplTest {
                 .content(Map.of("file", processDocument))
                 .build());
 
-    var result = composeWithRuntimeResults(CONFIG, historyWith(MIXED_CALLS), input, runtimeResult);
+    var turnInput =
+        assembleWithLocalResults(CONFIG, historyWith(MIXED_CALLS), input, runtimeResult);
 
     // the first call is the runtime tool call, the second one belongs to the process
-    assertThat(((CompositionResult.NextTurn) result).documents())
+    assertThat(turnInput.documents())
         .containsExactly(
             new IngestedDocument(runtimeDocument, DocumentOrigin.toolCall("getWeather", "abcdef")),
             new IngestedDocument(
@@ -782,9 +789,9 @@ class AgentConversationTurnInputComposerImplTest {
     var errorResult = RUNTIME_RESULT.withContent(List.of(textContent("The tool failed.")));
     var input = inputWith(TOOL_CALL_RESULTS.get(1));
 
-    var result = composeWithRuntimeResults(CONFIG, historyWith(MIXED_CALLS), input, errorResult);
+    var turnInput = assembleWithLocalResults(CONFIG, historyWith(MIXED_CALLS), input, errorResult);
 
-    assertThat(((CompositionResult.NextTurn) result).documents()).isEmpty();
+    assertThat(turnInput.documents()).isEmpty();
   }
 
   @Test
@@ -795,8 +802,8 @@ class AgentConversationTurnInputComposerImplTest {
 
     assertThat(ready.toolCallBatch()).isEqualTo(ToolCallBatch.of(RUNTIME_CALLS));
     assertThat(ready.unansweredToolCalls()).isEqualTo(RUNTIME_CALLS);
-    assertThat(ready.userPrompt()).isNull();
-    assertThat(ready.eventMessages()).isEmpty();
+    assertThat(ready.userPrompt()).isEqualTo(TurnInput.empty());
+    assertThat(ready.events()).isEqualTo(TurnInput.empty());
 
     var turnInput =
         composer.assemble(

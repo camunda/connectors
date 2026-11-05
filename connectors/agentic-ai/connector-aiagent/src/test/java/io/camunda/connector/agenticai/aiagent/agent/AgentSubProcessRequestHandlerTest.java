@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
@@ -201,7 +202,8 @@ class AgentSubProcessRequestHandlerTest {
             agentInstanceClient,
             runtimeTools,
             new ToolCallAdmission(),
-            new LocalToolCallExecutor(runtimeTools));
+            new LocalToolCallExecutor(runtimeTools),
+            documentExpander);
     TOGGLE_ENABLED.set(true);
     ConversationStore conversationStore = spy(new InProcessConversationStore());
     doReturn(conversationStore)
@@ -1177,7 +1179,7 @@ class AgentSubProcessRequestHandlerTest {
         ToolCallBatch.of(List.of(lookupCall, processCall))
             .withEntries(List.of(ToolCallBatch.Entry.from(processResult)));
     when(agentInputComposer.resolve(any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.Ready(batch, null, List.of()));
+        .thenReturn(CompositionResult.Ready.of(context, batch));
     when(agentInputComposer.assemble(any())).thenReturn(new TurnInput(List.of(USER_MESSAGE)));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
@@ -1752,9 +1754,12 @@ class AgentSubProcessRequestHandlerTest {
   void persistsAndReportsTheDocumentsFromTheComposedTurn() {
     final var document = createDocument("tool data", "tool.txt");
     mockSystemPrompt();
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(
-            new CompositionResult.NextTurn(
+            CompositionResult.Ready.of(CONTEXT_WITH_DOCUMENTS, ToolCallBatch.of(List.of())));
+    when(agentInputComposer.assemble(any()))
+        .thenReturn(
+            new TurnInput(
                 List.of(USER_MESSAGE),
                 List.of(
                     new IngestedDocument(document, DocumentOrigin.toolCall("search", "call-1")))));
@@ -2127,16 +2132,22 @@ class AgentSubProcessRequestHandlerTest {
    * composer does.
    */
   private void mockProceed(Message... inputMessages) {
-    when(agentInputComposer.resolve(any(), any(), any(), any()))
-        .thenReturn(CompositionResult.Ready.of(ToolCallBatch.of(List.of())));
+    // stubbed with doAnswer so that a test can stub the composer more than once
+    doAnswer(invocation ->
+            CompositionResult.Ready.of(
+                invocation.getArgument(1, AgentContext.class), ToolCallBatch.of(List.of())))
+        .when(agentInputComposer)
+        .resolve(any(), any(), any(), any());
     lenient()
-        .when(agentInputComposer.assemble(any()))
-        .thenAnswer(invocation -> {
+        .doAnswer(invocation -> {
           final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
           return ready.toolCallBatch().toolCalls().isEmpty()
               ? new TurnInput(List.of(inputMessages))
-              : new TurnInput(new ToolCallResultsInputBuilder().build(ready.toolCallBatch()));
-        });
+              : new ToolCallResultsInputBuilder()
+                  .build(ready.agentContext(), ready.toolCallBatch());
+        })
+        .when(agentInputComposer)
+        .assemble(any());
   }
 
   private void mockResponseHandler() {
