@@ -11,7 +11,7 @@ import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
-import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -44,34 +44,28 @@ public record AgenticAiConnectorsConfigurationProperties(
 
       /**
        * The size limits of the content the agent adds to the conversation. A document above the
-       * limit of its kind is not loaded: the model gets its tag only. The defaults are the limits
-       * of the most restrictive supported model provider and apply to every provider.
+       * limit of its kind is not loaded: the model gets its tag only. A limit that is not set is
+       * the default of {@link DocumentContentLimits#defaults()}, which are the limits of the most
+       * restrictive supported model provider and apply to every provider.
        *
        * @param text the limit of a text-based document
        * @param pdf the limit of a PDF document
        * @param image the limit of an image
        */
       public record ContentLimitsProperties(
-          @DefaultValue("256KB") DataSize text,
-          @DefaultValue("3584KB") DataSize pdf,
-          @DefaultValue("3584KB") DataSize image) {
+          @Nullable DataSize text, @Nullable DataSize pdf, @Nullable DataSize image) {
 
-        public ContentLimitsProperties {
-          requirePositive("text", text);
-          requirePositive("pdf", pdf);
-          requirePositive("image", image);
-        }
-
+        /**
+         * The limits to apply: the ones set, the defaults for the others.
+         *
+         * @throws IllegalArgumentException if a limit is not positive
+         */
         public DocumentContentLimits toLimits() {
-          return new DocumentContentLimits(text.toBytes(), pdf.toBytes(), image.toBytes());
-        }
-
-        private static void requirePositive(String kind, DataSize size) {
-          if (Objects.requireNonNull(size).toBytes() <= 0) {
-            throw new IllegalArgumentException(
-                "The property camunda.connector.agenticai.aiagent.document.content-limits.%s must be positive."
-                    .formatted(kind));
-          }
+          final var defaults = DocumentContentLimits.defaults();
+          return new DocumentContentLimits(
+              text != null ? text.toBytes() : defaults.textBytes(),
+              pdf != null ? pdf.toBytes() : defaults.pdfBytes(),
+              image != null ? image.toBytes() : defaults.imageBytes());
         }
       }
     }
