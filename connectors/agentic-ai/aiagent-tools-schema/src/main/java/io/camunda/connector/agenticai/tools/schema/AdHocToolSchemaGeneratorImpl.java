@@ -15,7 +15,7 @@ import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstan
 
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,6 +28,7 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
   public static final String DEFAULT_EXPECTED_PARAMETER_NAMESPACE = "toolCall.";
   public static final List<String> DEFAULT_RESTRICTED_PARAM_NAMES = List.of("_meta");
 
+  private final AuthoredSchemaNormalizer normalizer = new AuthoredSchemaNormalizer();
   private final String expectedParameterNamespace;
   private final List<String> restrictedParamNames;
 
@@ -74,13 +75,12 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
           }
 
           // the shorthand type "document" becomes a string with the document format
-          final var propertySchema =
-              new LinkedHashMap<>(DocumentParameterSchema.normalizeAuthoredSchema(authoredSchema));
+          final var propertySchema = new LinkedHashMap<>(normalizer.normalize(authoredSchema));
 
           // default to string if no type is set (not on parameter, not in schema directly); a
           // parameter that takes text or a document keeps the type of its alternatives
           if (!propertySchema.containsKey(PROPERTY_TYPE)
-              && !DocumentParameterSchema.isUnionParameter(propertySchema)) {
+              && !DocumentParameter.isTextOrDocumentSchema(propertySchema)) {
             propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
           }
 

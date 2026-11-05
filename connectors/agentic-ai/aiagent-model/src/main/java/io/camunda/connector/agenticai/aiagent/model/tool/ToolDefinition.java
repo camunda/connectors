@@ -6,11 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.tool;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
@@ -21,12 +23,11 @@ import org.jspecify.annotations.Nullable;
  * to JSON only for a {@link ToolKind#RUNTIME} definition; a missing value reads as {@link
  * ToolKind#PROCESS}.
  *
- * <p>A parameter that carries a document has the string schema with the format {@code
- * camunda-document-id} (see {@link DocumentParameterSchema}). The stored schema keeps that format
- * and does not hold the description hint the model gets for such a parameter; the model providers
- * get the schema with the hint and without the format, which {@link
- * DocumentParameterSchema#toProviderToolDefinitions} derives where the conversation snapshot is
- * built.
+ * <p>A parameter that carries a document has the string schema with the format {@link
+ * DocumentParameter#FORMAT_DOCUMENT_ID} (see {@link #documentParameters()}). The stored schema
+ * keeps that format and does not hold the description hint the model gets for such a parameter; the
+ * model providers get the schema with the hint and without the format, which is derived where the
+ * conversation snapshot is built.
  */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)
@@ -49,6 +50,12 @@ public record ToolDefinition(
   public static ToolDefinition runtime(
       String name, @Nullable String description, Map<String, Object> inputSchema) {
     return new ToolDefinition(name, description, inputSchema, ToolKind.RUNTIME);
+  }
+
+  /** The parameters of the input schema that carry a document, in schema order. */
+  @JsonIgnore
+  public List<DocumentParameter> documentParameters() {
+    return DocumentParameter.in(inputSchema);
   }
 
   public static ToolDefinitionBuilder builder() {

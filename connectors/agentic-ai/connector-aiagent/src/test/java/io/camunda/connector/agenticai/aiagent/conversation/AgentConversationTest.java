@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.ProviderToolDefinitions;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -29,7 +30,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
@@ -243,10 +243,46 @@ class AgentConversationTest {
                         "type",
                         "string",
                         "description",
-                        "The file. " + DocumentParameterSchema.HINT))));
+                        "The file. " + ProviderToolDefinitions.HINT))));
     // nothing persisted or configured is rewritten
     assertThat(conv.configuration().toolDefinitions()).containsExactly(authored);
     assertThat(conv.toAgentContext().toolDefinitions()).containsExactly(authored);
+  }
+
+  @Test
+  void window_offersTheDocumentParametersAsAuthoredWhenTheAgentInstanceDoesNotTrackItsDocuments() {
+    var authored =
+        ToolDefinition.builder()
+            .name("upload")
+            .description("Uploads a file")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of(
+                        "doc",
+                        Map.of(
+                            "type",
+                            "string",
+                            "format",
+                            "camunda-document-id",
+                            "description",
+                            "The file"))))
+            .build();
+    var untracked =
+        BASE_CONTEXT
+            .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
+            .withToolDefinitions(List.of(authored));
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG.withToolDefinitions(List.of(authored)),
+            untracked,
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    assertThat(conv.window(20).toolDefinitions()).containsExactly(authored);
   }
 
   @Test
@@ -293,7 +329,7 @@ class AgentConversationTest {
                         "type",
                         "string",
                         "description",
-                        "The body. " + DocumentParameterSchema.UNION_HINT))));
+                        "The body. " + ProviderToolDefinitions.UNION_HINT))));
     // nothing persisted or configured is rewritten
     assertThat(conv.configuration().toolDefinitions()).containsExactly(authored);
     assertThat(conv.toAgentContext().toolDefinitions()).containsExactly(authored);
