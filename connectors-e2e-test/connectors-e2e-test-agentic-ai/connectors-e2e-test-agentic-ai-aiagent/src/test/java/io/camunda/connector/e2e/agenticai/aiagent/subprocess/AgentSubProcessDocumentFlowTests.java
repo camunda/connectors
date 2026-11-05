@@ -247,8 +247,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
               .isReady()
               .hasResponseText(FINAL_TEXT);
           assertResponseDocument(agentResponse.responseDocuments(), documentId);
-          // the workspace and the response documents are part of the agent context
-          assertThat(agentResponse.context().documents())
+          // the agent documents and the response documents are part of the agent context
+          assertThat(agentResponse.context().documents().all())
               .extracting(entry -> entry.id().value())
               .containsExactly(documentId);
           assertThat(agentResponse.context().responseDocuments())

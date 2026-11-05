@@ -25,18 +25,13 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.document.AgentDocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.ReturnedDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
-import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
-import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
-import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
@@ -282,17 +277,12 @@ public final class DocumentFlowFixtures {
    */
   public static void assertCamundaDocumentReference(
       Map<String, Object> reference, String expectedDocumentId) {
-    final var id = DocumentId.of(expectedDocumentId);
     assertThat(
-            AgentDocumentHandle.idFor(
-                DocumentIngestion.referenceOf(
-                    new WorkspaceDocument(
-                        id,
-                        AgentDocumentOrigin.userMessage(
-                            MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
-                        reference))))
+            AgentDocumentId.of(
+                ConnectorsObjectMapperSupplier.getCopy()
+                    .convertValue(reference, DocumentReferenceModel.class)))
         .as("id derived from the document reference")
-        .isEqualTo(id);
+        .isEqualTo(AgentDocumentId.of(expectedDocumentId));
     assertThat(reference)
         .containsEntry("camunda.document.type", "camunda")
         .hasEntrySatisfying("documentId", v -> assertThat(v).asString().isNotBlank())
