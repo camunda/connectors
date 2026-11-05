@@ -199,6 +199,125 @@ The **identity of the runtime** needs this minimal policy, limited to the prefix
 }
 ```
 
+### Google Cloud Run functions provider
+
+The `gcp` provider, in `connectors/managed-script-gcp`, runs scripts through one Cloud Run function
+(Cloud Functions v2 API) per language and cluster: `python313` for `.py` scripts and `nodejs22` for
+`.js` scripts, each with a pinned version of the Functions Framework. The module is not in the
+default bundle: add its jar, with its dependencies (the Cloud Functions client and the Google auth
+library), to the runtime's classpath.
+
+```properties
+camunda.connector.managed-code.enabled=true
+camunda.connector.managed-code.provider=gcp
+camunda.connector.managed-code.deployment-name-prefix=ce-0123456789abcdef01234567-
+camunda.connector.managed-code.gcp.project-id=my-project
+camunda.connector.managed-code.gcp.region=europe-west1
+camunda.connector.managed-code.gcp.function-service-account=camunda-ms-executor@my-project.iam.gserviceaccount.com
+camunda.connector.managed-code.gcp.build-service-account=camunda-ms-builder@my-project.iam.gserviceaccount.com
+camunda.connector.managed-code.gcp.deployer-service-account=camunda-ms-deployer@my-project.iam.gserviceaccount.com
+camunda.connector.managed-code.gcp.memory-mb=512
+camunda.connector.managed-code.gcp.max-instance-count=1000
+```
+
+- An executor is named `<deployment-name-prefix><py|js>-<12 hex of the wrapper digest>`. When it is
+  absent, the provider uploads its source through an upload URL of the location, creates the
+  function and waits until it is built and active, which takes a few minutes. Concurrent runtime
+  instances converge: one creation wins, the others wait for the function. An existing executor is
+  adopted without uploading its source again.
+- A function serves one request at a time (request concurrency 1): after each call, the wrapper
+  kills every process it did not start with, which would kill a concurrent script.
+  `gcp.max-instance-count` is therefore the most scripts of a language that run at once (default
+  1000, the most Cloud Run allows without a quota increase). A call beyond it usually fails with
+  `PLATFORM_THROTTLED`, but under a burst, such as on a new revision, Cloud Run may answer it with
+  HTTP 500 instead, which fails with `PLATFORM_EXECUTION_FAILED` and no retry: a 500 cannot be told
+  apart from an instance that died during its script, which must not run again. Set it above the
+  number of scripts of a language that run at once. It also bounds what the executors of a cluster
+  can cost at once.
+- The function timeout is `execution-timeout` plus 5 seconds, so that the wrapper reports `TIMEOUT`
+  before Cloud Run stops it, and is passed to the wrapper in `EXECUTOR_FUNCTION_TIMEOUT_MS`. HTTP
+  functions run for at most 3600 seconds, so startup fails when `execution-timeout` is above 3595
+  seconds.
+- Memory, function timeout, `max-instance-count`, function service account, request concurrency and
+  all traffic on the latest revision are compared whenever the provider makes an executor ready,
+  and updated in place, as a new revision of the same function, when they differ. A configuration change therefore creates no
+  function and leaves none behind.
+- `gcp.project-id` and `gcp.region` locate the executors. `gcp.memory-mb` is between 128 and
+  32768 (default 512).
+- `gcp.function-service-account` is required: without it, Cloud Run would run the executors as the
+  default compute service account, which often has Editor on the project.
+- `gcp.build-service-account` is required for the same reason. The provider uploads the source of
+  an executor, and Cloud Build builds its image as this account, by default the compute service
+  account, which the identity of the runtime would then need to act as.
+- Credentials come from the application default credentials only: the file named by
+  `GOOGLE_APPLICATION_CREDENTIALS` (a service account key, or a workload identity federation
+  configuration), the gcloud credentials, then the metadata server. The provider works without the
+  metadata server. The configuration holds no key.
+- The identity of the runtime creates the executors and calls them. With
+  `gcp.deployer-service-account`, the application default credentials impersonate that service
+  account, which does both instead. The identity must mint ID tokens: a service account key or the
+  metadata server can, a workload identity federation configuration or a gcloud user login cannot,
+  so startup fails without `gcp.deployer-service-account` for them.
+- A script is posted to the `run.app` URL of its executor with an ID token of the identity, carrying
+  its email, and never sent again, so that it runs at most once per job attempt. A request above
+  32 MB, the script and its input as JSON, fails with `RESOURCE_LIMIT` before any call. A call
+  rejected with HTTP 429 fails with `PLATFORM_THROTTLED`, with 502 or 503 with
+  `PLATFORM_UNAVAILABLE`, and with 500 or 504, such as the function timeout or memory, with
+  `PLATFORM_EXECUTION_FAILED`. A connection lost after the request was sent also fails with
+  `PLATFORM_EXECUTION_FAILED`, since the script may have run.
+- A denied call (HTTP 401 or 403, or a denied ID token), while making the executors ready or
+  invoking them, is retried as long as the grants of a new cluster may still be propagating, and
+  then fails with `PLATFORM_REJECTED`.
+- The runtime never deletes an executor. After an upgrade of the wrapper, delete the functions under
+  the prefix that no runtime instance uses any more. A function whose build failed stays failed:
+  delete it, and the next job creates it again.
+
+The project needs the Cloud Functions, Cloud Run, Cloud Build, Artifact Registry and IAM Service
+Account Credentials APIs enabled.
+
+The **function service account** runs customer code: grant it **no role**, since a script can read
+the memory of the wrapper during its call. Cloud Run collects the logs of the executors without one.
+
+The **build service account** builds the images of the executors. It needs
+`roles/logging.logWriter`, `roles/artifactregistry.writer` and `roles/storage.objectViewer` on the
+project, to write the build logs, push the image to the `gcf-artifacts` repository and read the
+uploaded source.
+
+The **identity of the runtime**, or the deployer service account when one is set, needs these
+grants, limited to the prefix of its cluster, with `<location>` standing for
+`projects/<project>/locations/<region>`. They are the ones the shared-project isolation tests of the
+executor design proved together:
+
+| Grant | Scope | Why |
+|---|---|---|
+| `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/functions/<prefix>")` | create, read and update its own executors |
+| `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/operations/")` | poll the operations of a creation or update |
+| A custom role with only `cloudfunctions.functions.generateUploadUrl` | project, condition `resource.name == "<location>"` | upload the source: the upload URL is requested on the location, where the developer role would list the functions of every cluster |
+| `roles/iam.serviceAccountUser` | the function service account only | run the executors as it |
+| `roles/iam.serviceAccountUser` | the build service account only | build the executors as it |
+| `roles/run.invoker` | project, condition `request.host.startsWith("<prefix>")` | call its own executors through their `run.app` host; a condition on the service name has no effect |
+
+It needs no Cloud Build, Artifact Registry, Cloud Storage or Cloud Run admin access: builds push
+their images under the identity of the service. With `gcp.deployer-service-account`, the identity of
+the runtime needs nothing but `roles/iam.serviceAccountTokenCreator` on the deployer service
+account, to get its access and ID tokens. The invoker and impersonation grants took 66 to 91
+seconds to apply, measured once: within the default `grant-propagation-window`.
+
+With **workload identity federation**, outside GCP or without the metadata server, point
+`GOOGLE_APPLICATION_CREDENTIALS` at a credential configuration that reads the token of the platform
+from a file, generated without service account impersonation:
+
+```shell
+gcloud iam workload-identity-pools create-cred-config \
+  projects/<project number>/locations/global/workloadIdentityPools/<pool>/providers/<provider> \
+  --credential-source-file=/var/run/secrets/tokens/gcp-token \
+  --output-file=/etc/camunda/gcp-credentials.json
+```
+
+Set `gcp.deployer-service-account`, and grant the federated principal, such as
+`principal://iam.googleapis.com/projects/<project number>/locations/global/workloadIdentityPools/<pool>/subject/<subject>`,
+`roles/iam.serviceAccountTokenCreator` on the deployer service account.
+
 The job timeout of a managed-script task must cover `provisioning-timeout` and `execution-timeout`,
 plus a few seconds for the call, so that a script still running does not get its job activated
 again. The job worker's default job timeout (5 minutes, `camunda.client.worker.defaults.timeout`)
