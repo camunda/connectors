@@ -109,15 +109,6 @@ class AgentConversationTurnTest {
   }
 
   @Test
-  void theAgentAnswersTheCallsOfRuntimeToolsAndRejectedCallsOnly() {
-    var process = new ToolCall("id", "name", Map.of());
-
-    assertThat(AgentConversationTurn.isLocalToolCall(process)).isFalse();
-    assertThat(AgentConversationTurn.isLocalToolCall(process.withKind(ToolKind.RUNTIME))).isTrue();
-    assertThat(AgentConversationTurn.isLocalToolCall(process.withRejection("no"))).isTrue();
-  }
-
-  @Test
   void aTurnOfRuntimeToolCallsOnlyHasNoProcessToolCalls() {
     var turn = turnWithCalls(new ToolCall("r1", "acme_a", Map.of()).withKind(ToolKind.RUNTIME));
 

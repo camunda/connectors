@@ -172,4 +172,50 @@ class ToolCallTest {
         true);
     assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
   }
+
+  @Test
+  void theResultSourceFollowsTheKindUnlessTheCallIsRejected() {
+    final var process = new ToolCall("id", "name", Map.of());
+    final var runtime = process.withKind(ToolKind.RUNTIME);
+
+    assertThat(process.resultSource()).isEqualTo(ToolCall.ResultSource.PROCESS);
+    assertThat(runtime.resultSource()).isEqualTo(ToolCall.ResultSource.RUNTIME);
+    assertThat(process.withRejection("no").resultSource())
+        .isEqualTo(ToolCall.ResultSource.REJECTED);
+    assertThat(runtime.withRejection("no").resultSource())
+        .isEqualTo(ToolCall.ResultSource.REJECTED);
+  }
+
+  @Test
+  void onlyACallOfTheProcessIsNotLocal() {
+    final var process = new ToolCall("id", "name", Map.of());
+
+    assertThat(process.isLocal()).isFalse();
+    assertThat(process.withKind(ToolKind.RUNTIME).isLocal()).isTrue();
+    assertThat(process.withRejection("no").isLocal()).isTrue();
+  }
+
+  @Test
+  void aRejectedRuntimeCallIsSerializedWithKindAndRejectionAndRoundTrips() throws Exception {
+    final var toolCall =
+        new ToolCall("toolu_1", "acme_note", Map.of())
+            .withKind(ToolKind.RUNTIME)
+            .withRejection("The argument 'a' is missing.");
+
+    final String json = objectMapper.writeValueAsString(toolCall);
+
+    JSONAssert.assertEquals(
+        """
+        {
+          "id": "toolu_1",
+          "name": "acme_note",
+          "arguments": {},
+          "kind": "runtime",
+          "rejection": "The argument 'a' is missing."
+        }
+        """,
+        json,
+        true);
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
+  }
 }

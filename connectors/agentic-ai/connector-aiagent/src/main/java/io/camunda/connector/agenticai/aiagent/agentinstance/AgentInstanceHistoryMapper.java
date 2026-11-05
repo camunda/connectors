@@ -16,7 +16,6 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
-import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -194,7 +193,7 @@ public class AgentInstanceHistoryMapper {
       throw new IllegalArgumentException(
           "Cannot resolve element id for a tool call history entry: both elementId and toolName are null");
     }
-    if (toolCall != null && AgentConversationTurn.isLocalToolCall(toolCall)) {
+    if (toolCall != null && toolCall.isLocal()) {
       return null;
     }
     return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);

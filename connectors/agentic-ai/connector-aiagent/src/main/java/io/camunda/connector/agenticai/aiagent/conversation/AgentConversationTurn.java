@@ -12,7 +12,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,30 +64,22 @@ public record AgentConversationTurn(
     return assistantMessage.toolCalls();
   }
 
-  /**
-   * Whether the call is a local tool call, a call of a runtime tool or a rejected call: the agent
-   * produces its tool call result itself and the process never gets it.
-   */
-  public static boolean isLocalToolCall(ToolCall toolCall) {
-    return toolCall.kind() == ToolKind.RUNTIME || toolCall.rejection() != null;
-  }
-
   /** The calls of the tools of the process, activated as BPMN elements. */
   public List<ToolCall> processToolCalls() {
-    return toolCalls().stream().filter(toolCall -> !isLocalToolCall(toolCall)).toList();
+    return toolCalls().stream().filter(toolCall -> !toolCall.isLocal()).toList();
   }
 
   /** The local tool calls: calls of runtime tools and rejected calls. */
   public List<ToolCall> localToolCalls() {
-    return toolCalls().stream().filter(AgentConversationTurn::isLocalToolCall).toList();
+    return toolCalls().stream().filter(ToolCall::isLocal).toList();
   }
 
   public boolean hasProcessToolCalls() {
-    return toolCalls().stream().anyMatch(toolCall -> !isLocalToolCall(toolCall));
+    return toolCalls().stream().anyMatch(toolCall -> !toolCall.isLocal());
   }
 
   public boolean hasLocalToolCalls() {
-    return toolCalls().stream().anyMatch(AgentConversationTurn::isLocalToolCall);
+    return toolCalls().stream().anyMatch(ToolCall::isLocal);
   }
 
   /**

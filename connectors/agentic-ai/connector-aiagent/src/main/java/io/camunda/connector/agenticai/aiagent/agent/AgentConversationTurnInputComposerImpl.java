@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -272,7 +271,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             .collect(Collectors.toMap(execution -> execution.call().id(), Function.identity()));
     return toolCalls.stream()
         .map(toolCall ->
-            AgentConversationTurn.isLocalToolCall(toolCall)
+            toolCall.isLocal()
                 ? localEntry(toolCall, executionsById.get(toolCall.id()))
                 : processEntry(toolCall, processResultsById.get(toolCall.id())))
         .toList();

@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** The class of tool a tool call targets. It is serialized in lower case. */
+/** The kind of a tool. It is serialized in lower case. */
 public enum ToolKind {
   /**
    * A tool that is a BPMN element, activated in the process; its result arrives with a later job.
