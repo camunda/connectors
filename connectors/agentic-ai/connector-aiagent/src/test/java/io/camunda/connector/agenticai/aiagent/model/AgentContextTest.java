@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -517,6 +518,31 @@ class AgentContextTest {
     final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
 
     assertThat(deserialized).usingRecursiveComparison().isEqualTo(agentContext);
+  }
+
+  @Test
+  void documentDeliveryOf_isTheDeliveryOfTheStoredDefinitionOfTheTool() {
+    final var context =
+        AgentContext.builder()
+            .toolDefinitions(
+                List.of(
+                    tool("byContent", DocumentDelivery.CONTENT),
+                    tool("explicit", DocumentDelivery.REFERENCE),
+                    tool("unset", null)))
+            .build();
+
+    assertThat(context.documentDeliveryOf("byContent")).isEqualTo(DocumentDelivery.CONTENT);
+    assertThat(context.documentDeliveryOf("explicit")).isEqualTo(DocumentDelivery.REFERENCE);
+    assertThat(context.documentDeliveryOf("unset")).isEqualTo(DocumentDelivery.REFERENCE);
+    assertThat(context.documentDeliveryOf("unknown")).isEqualTo(DocumentDelivery.REFERENCE);
+  }
+
+  private static ToolDefinition tool(String name, DocumentDelivery documentDelivery) {
+    return ToolDefinition.builder()
+        .name(name)
+        .inputSchema(Map.of("type", "object"))
+        .documentDelivery(documentDelivery)
+        .build();
   }
 
   static Stream<Arguments> invalidConstructorParameters() {

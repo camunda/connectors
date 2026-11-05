@@ -17,8 +17,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -274,6 +277,41 @@ class ToolCallBatchTest {
 
     assertThat(entry.result()).isEqualTo(ToolCallResultContent.from(result));
     assertThat(entry.documents()).isEmpty();
+  }
+
+  @Test
+  void entryFromAProcessResult_withTheDeliveryContentAsksForTheContentOfEveryDocument() {
+    var first = document("first-attachment");
+    var second = document("second-attachment");
+    var result =
+        ToolCallResult.builder()
+            .id("first")
+            .name("getWeather")
+            .content(Map.of("files", List.of(first, second)))
+            .build();
+
+    var entry = ToolCallBatch.Entry.from(result, extractor, DocumentDelivery.CONTENT);
+
+    assertThat(entry.documents()).containsExactly(first, second);
+    assertThat(entry.effects())
+        .containsExactly(
+            new ToolCallEffect.AddDocumentContent(AgentDocumentId.of(first)),
+            new ToolCallEffect.AddDocumentContent(AgentDocumentId.of(second)));
+  }
+
+  @Test
+  void entryFromAProcessResult_withTheDeliveryReferenceAsksForNoContent() {
+    var result =
+        ToolCallResult.builder()
+            .id("first")
+            .name("getWeather")
+            .content(Map.of("attachment", document("attachment")))
+            .build();
+
+    var entry = ToolCallBatch.Entry.from(result, extractor, DocumentDelivery.REFERENCE);
+
+    assertThat(entry.documents()).hasSize(1);
+    assertThat(entry.effects()).isEmpty();
   }
 
   @Test
