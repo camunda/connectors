@@ -54,6 +54,7 @@ import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsA
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomGoogleVertexAiProviderConfig.CustomGoogleVertexAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiCompatibleProviderConfig.CustomOpenAiCompatibleChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiProviderConfig.CustomOpenAiChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
@@ -128,6 +129,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AdHocToolsSchemaResolver.class,
           ProcessDefinitionAdHocToolElementsResolver.class,
           GatewayToolHandlerRegistry.class,
+          DocumentParameterResolver.class,
           RuntimeTools.class,
           LocalToolCallExecutor.class,
           ToolCallAdmission.class,

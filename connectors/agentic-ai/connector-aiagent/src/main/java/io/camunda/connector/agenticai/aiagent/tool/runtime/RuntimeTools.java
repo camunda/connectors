@@ -60,16 +60,21 @@ public class RuntimeTools {
 
   private final ObjectMapper argumentsMapper;
   private final ObjectMapper resultMapper;
+  private final DocumentParameterResolver documentParameterResolver;
 
   /**
    * @throws IllegalStateException if two tools have the same name, a name is blank or a definition
    *     is not of kind {@link ToolKind#RUNTIME}
    */
-  public RuntimeTools(List<RuntimeTool> tools, ObjectMapper objectMapper) {
+  public RuntimeTools(
+      List<RuntimeTool> tools,
+      ObjectMapper objectMapper,
+      DocumentParameterResolver documentParameterResolver) {
     this.registrationsByName = register(tools);
     this.argumentsMapper = RuntimeToolCallImpl.argumentsMapper(objectMapper);
     this.resultMapper =
         objectMapper.copy().registerModule(new SimpleModule().addSerializer(new DocumentAsItIs()));
+    this.documentParameterResolver = documentParameterResolver;
   }
 
   /** The definitions of the enabled tools in registration order. */
@@ -121,7 +126,7 @@ public class RuntimeTools {
 
   private RuntimeToolResult callTool(
       RuntimeToolContext context, RuntimeTool tool, ToolCall toolCall) {
-    return switch (DocumentParameterResolver.resolveRuntimeCall(
+    return switch (documentParameterResolver.resolveRuntimeCall(
         context.agentContext(), toolCall, tool.definition())) {
       case DocumentParameterResolver.Resolution.Invalid invalid ->
           throw new IllegalStateException(

@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocume
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -63,7 +64,8 @@ class ToolCallAdmissionTest {
               AgentDocuments.empty()
                   .register(List.of(new NewDocument(REPORT, DocumentOrigin.userMessage()))));
 
-  private final ToolCallAdmission admission = new ToolCallAdmission();
+  private final ToolCallAdmission admission =
+      new ToolCallAdmission(new DocumentParameterResolver());
 
   @Test
   void eachCallGetsTheKindOfTheOfferedToolOfItsName() {

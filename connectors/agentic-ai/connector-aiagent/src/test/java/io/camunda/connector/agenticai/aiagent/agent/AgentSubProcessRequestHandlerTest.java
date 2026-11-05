@@ -60,6 +60,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -242,7 +243,8 @@ class AgentSubProcessRequestHandlerTest {
   private RuntimeTools runtimeTools =
       new RuntimeTools(
           List.of(LOOKUP_TOOL, HIDDEN_TOOL, TOGGLE_TOOL, CREATE_REPORT_TOOL, UPLOAD_RUNTIME_TOOL),
-          TestObjectMapperSupplier.INSTANCE);
+          TestObjectMapperSupplier.INSTANCE,
+          new DocumentParameterResolver());
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
@@ -264,7 +266,7 @@ class AgentSubProcessRequestHandlerTest {
             responseHandler,
             agentInstanceClient,
             runtimeTools,
-            new ToolCallAdmission(),
+            new ToolCallAdmission(new DocumentParameterResolver()),
             new LocalToolCallExecutor(runtimeTools),
             documentExpander);
     TOGGLE_ENABLED.set(true);

@@ -28,40 +28,37 @@ import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Resolves the document parameters of a tool call. The document parameters are the schema nodes
- * with the document format of the tool's input schema and its union parameters (see {@link
- * DocumentParameter}), found at the top level, as array items and nested in objects; the arguments
- * of a tool call mirror the schema, so each such node addresses the argument values that carry a
- * document.
+ * Resolves the document parameters of a tool call, the {@link DocumentParameter}s of the input
+ * schema of the tool; the arguments of a tool call mirror the schema, so each parameter addresses
+ * the argument values that carry a document.
  *
- * <p>For a document parameter the model passes the {@code <doc />} tag of a known document: a value
- * that is exactly one tag, surrounded by whitespace at most, stands for the document of its {@code
- * id} attribute. Any other value is invalid, also a string that equals the id of a known document.
+ * <p>For a {@link DocumentParameter.Document} the model passes the {@code <doc />} tag of a known
+ * document: a value that is exactly one tag, surrounded by whitespace at most, stands for the
+ * document of its {@code id} attribute. Any other value is invalid, also a string that equals the
+ * id of a known document.
  *
- * <p>For a union parameter only a value that is exactly one tag stands for a document. Any other
- * value is left as it is: a plain string, also one that equals the id of a known document, text
- * that holds a tag, and a value that is not a string.
+ * <p>For a {@link DocumentParameter.TextOrDocument} only a value that is exactly one tag stands for
+ * a document. Any other value is left as it is: a plain string, also one that equals the id of a
+ * known document, text that holds a tag, and a value that is not a string.
  *
  * <p>Every document is replaced by the Camunda document reference JSON of the registered document
- * ({@link #resolve}), or, for a runtime tool that looks the documents up itself, by its {@link
- * AgentDocumentId} ({@link #resolveIds}). The result depends on the call, the tool definition and
- * the agent documents only, so the agent computes the same outcome wherever it needs it: when it
- * decides who answers a call, when it hands a call to the process and when it runs a runtime tool.
- * An {@link DocumentHandling.Untracked untracked} agent instance has no document parameters ({@link
- * #resolveProcessCall}, {@link #resolveRuntimeCall}).
+ * ({@link #resolveProcessCall}), or, for a runtime tool that looks the documents up itself, by its
+ * {@link AgentDocumentId} ({@link #resolveRuntimeCall}). {@link #check} validates a call of a tool
+ * of either kind. The result depends on the call, the tool definition and the agent documents only,
+ * so the agent computes the same outcome wherever it needs it: when it admits a call, when it hands
+ * a call to the process and when it runs a runtime tool. An {@link DocumentHandling.Untracked
+ * untracked} agent instance has no document parameters.
  */
-public final class DocumentParameterResolver {
+public class DocumentParameterResolver {
 
-  private static final ObjectMapper REFERENCE_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
-
-  private DocumentParameterResolver() {}
+  private final ObjectMapper referenceMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   /** Outcome of resolving the document parameters of one tool call. */
   public sealed interface Resolution {
 
     /**
-     * All document ids are known; {@code arguments} carry the document references or, from {@link
-     * #resolveIds}, the {@link AgentDocumentId}s.
+     * All document ids are known; {@code arguments} carry the document references or, for a runtime
+     * call, the {@link AgentDocumentId}s.
      */
     record Resolved(Map<String, Object> arguments) implements Resolution {}
 
@@ -84,7 +81,7 @@ public final class DocumentParameterResolver {
    * document references. The call is resolved as it is, when the agent instance does not track its
    * documents or the tool has no document parameters.
    */
-  public static Resolution resolveProcessCall(AgentContext agentContext, ToolCall toolCall) {
+  public Resolution resolveProcessCall(AgentContext agentContext, ToolCall toolCall) {
     return switch (agentContext.documentHandling()) {
       case DocumentHandling.Untracked ignored -> unchanged(toolCall);
       case DocumentHandling.Tracked tracked ->
@@ -92,25 +89,9 @@ public final class DocumentParameterResolver {
               .filter(definition -> definition.name().equals(toolCall.name()))
               .filter(definition -> !definition.documentParameters().isEmpty())
               .findFirst()
-              .map(definition -> resolve(toolCall, definition, tracked.documents()))
+              .map(definition ->
+                  resolve(toolCall, definition, tracked.documents(), this::referenceJson))
               .orElseGet(() -> unchanged(toolCall));
-    };
-  }
-
-  /**
-   * Checks the document parameters of a call of a tool of either kind against the documents the
-   * agent knows. The call is valid as it is when the agent instance does not track its documents or
-   * the tool has no document parameter.
-   */
-  public static Resolution check(
-      AgentContext agentContext, ToolCall toolCall, ToolDefinition definition) {
-    if (definition.documentParameters().isEmpty()) {
-      return unchanged(toolCall);
-    }
-    return switch (agentContext.documentHandling()) {
-      case DocumentHandling.Untracked ignored -> unchanged(toolCall);
-      case DocumentHandling.Tracked tracked ->
-          resolveIds(toolCall, definition, tracked.documents());
     };
   }
 
@@ -119,15 +100,32 @@ public final class DocumentParameterResolver {
    * AgentDocumentId}s. The call is resolved as it is, when the agent instance does not track its
    * documents or the tool has no document parameters.
    */
-  public static Resolution resolveRuntimeCall(
+  public Resolution resolveRuntimeCall(
       AgentContext agentContext, ToolCall toolCall, ToolDefinition definition) {
-    return check(agentContext, toolCall, definition);
+    if (definition.documentParameters().isEmpty()) {
+      return unchanged(toolCall);
+    }
+    return switch (agentContext.documentHandling()) {
+      case DocumentHandling.Untracked ignored -> unchanged(toolCall);
+      case DocumentHandling.Tracked tracked ->
+          resolve(toolCall, definition, tracked.documents(), AgentDocument::id);
+    };
+  }
+
+  /**
+   * Checks the document parameters of a call of a tool of either kind against the documents the
+   * agent knows, for the admission of the call. The outcome is the one of {@link
+   * #resolveRuntimeCall}: the call is valid as it is when the agent instance does not track its
+   * documents or the tool has no document parameter.
+   */
+  public Resolution check(AgentContext agentContext, ToolCall toolCall, ToolDefinition definition) {
+    return resolveRuntimeCall(agentContext, toolCall, definition);
   }
 
   /** The document reference in the JSON format it is persisted in. */
-  private static Object referenceJson(AgentDocument document) {
-    return REFERENCE_MAPPER.convertValue(
-        REFERENCE_MAPPER.valueToTree(document).path("reference"),
+  private Object referenceJson(AgentDocument document) {
+    return referenceMapper.convertValue(
+        referenceMapper.valueToTree(document).path("reference"),
         new TypeReference<Map<String, Object>>() {});
   }
 
@@ -139,46 +137,30 @@ public final class DocumentParameterResolver {
    * Resolves the document parameters of {@code toolCall}. A parameter that is missing or {@code
    * null} is left as is. For a document parameter, a value that is not exactly one tag with the id
    * of a registered document (not a string, a bare id, text around a tag, more than one tag, an
-   * unknown id) is reported as a problem naming the parameter. For a union parameter, only a tag
-   * with an unknown id is reported.
+   * unknown id) is reported as a problem naming the parameter. For a text-or-document parameter,
+   * only a tag with an unknown id is reported. Each valid document is replaced by what {@code
+   * replacement} returns for it.
    */
-  public static Resolution resolve(
-      ToolCall toolCall, ToolDefinition toolDefinition, AgentDocuments documents) {
-    return walkValidating(
-        toolCall.arguments(), toolDefinition, documents, DocumentParameterResolver::referenceJson);
-  }
-
-  /**
-   * Validates the document parameters of {@code toolCall} like {@link #resolve}, but replaces each
-   * valid value by the {@link AgentDocumentId} of its document: a tag becomes the id of the tag. A
-   * union parameter that holds text stays that text.
-   */
-  public static Resolution resolveIds(
-      ToolCall toolCall, ToolDefinition toolDefinition, AgentDocuments documents) {
-    return walkValidating(toolCall.arguments(), toolDefinition, documents, AgentDocument::id);
-  }
-
-  private static Resolution walkValidating(
-      Map<String, Object> arguments,
+  private static Resolution resolve(
+      ToolCall toolCall,
       ToolDefinition toolDefinition,
       AgentDocuments documents,
       Function<AgentDocument, Object> replacement) {
     final var problems = new ArrayList<String>();
-    final var resolved = walkAll(arguments, toolDefinition, documents, replacement, problems);
-    if (!problems.isEmpty()) {
-      return new Resolution.Invalid(problems);
-    }
-    return new Resolution.Resolved(resolved);
+    final var resolved = walkAll(toolCall, toolDefinition, documents, replacement, problems);
+    return problems.isEmpty()
+        ? new Resolution.Resolved(resolved)
+        : new Resolution.Invalid(problems);
   }
 
   @SuppressWarnings("unchecked")
   private static Map<String, Object> walkAll(
-      Map<String, Object> arguments,
+      ToolCall toolCall,
       ToolDefinition toolDefinition,
       AgentDocuments documents,
       Function<AgentDocument, Object> replacement,
       List<String> problems) {
-    @Nullable Object resolved = arguments;
+    @Nullable Object resolved = toolCall.arguments();
     for (final var parameter : toolDefinition.documentParameters()) {
       resolved = walk(resolved, parameter, 0, "", documents, replacement, problems);
     }
@@ -288,7 +270,7 @@ public final class DocumentParameterResolver {
       return value == null ? "" : value;
     }
     final var tagId = DocumentTags.idOfSingleTag(text);
-    final var entry = tagId == null ? Optional.<AgentDocument>empty() : documents.find(tagId);
+    final var entry = Optional.ofNullable(tagId).flatMap(documents::find);
     if (entry.isEmpty()) {
       problems.add(invalidDocumentProblem(path, text));
       return text;

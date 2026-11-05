@@ -42,11 +42,15 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   private final ObjectMapper objectMapper;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final DocumentParameterResolver documentParameterResolver;
 
   public AgentResponseHandlerImpl(
-      ObjectMapper objectMapper, GatewayToolHandlerRegistry gatewayToolHandlers) {
+      ObjectMapper objectMapper,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      DocumentParameterResolver documentParameterResolver) {
     this.objectMapper = objectMapper;
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.documentParameterResolver = documentParameterResolver;
   }
 
   @Override
@@ -87,11 +91,11 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
    * process have valid document parameters: a call with an invalid one is rejected (see {@link
    * ToolCall#rejection()}).
    */
-  private static List<ToolCall> withDocumentReferences(
+  private List<ToolCall> withDocumentReferences(
       AgentContext agentContext, List<ToolCall> processToolCalls) {
     return processToolCalls.stream()
         .map(toolCall ->
-            switch (DocumentParameterResolver.resolveProcessCall(agentContext, toolCall)) {
+            switch (documentParameterResolver.resolveProcessCall(agentContext, toolCall)) {
               case DocumentParameterResolver.Resolution.Resolved resolved ->
                   toolCall.withResolvedArguments(resolved.arguments());
               case DocumentParameterResolver.Resolution.Invalid invalid ->
