@@ -43,9 +43,9 @@ camunda.connector.managed-code.provisioning-retry-backoff=10s
 ```
 
 - `provider` names the managed-code provider. A provider implements the SPI of
-  `connector-managed-script-api` (Apache 2.0) and ships in a module of its own, added to the
-  runtime's classpath; startup fails when managed code is enabled and no provider, or more than
-  one, has that name.
+  `connector-managed-script-api` (Apache 2.0) and ships in a module of its own. The default bundle
+  includes `local`, `aws` and `gcp`; another provider is added to the runtime's classpath. Startup
+  fails when managed code is enabled and no provider, or more than one, has that name.
 - `deployment-name-prefix` starts every executor name, one prefix per cluster, so that the identity
   of the runtime can be limited to its own executors. It has at most 48 lowercase letters, digits
   and hyphens, followed by `py-` or `js-` and 12 characters of the wrapper digest. In a cloud account
@@ -106,8 +106,7 @@ camunda.connector.managed-code.local.directory=/home/me/.camunda/managed-script
 
 The `aws` provider, in `connectors/managed-script-aws`, runs scripts through one zip Lambda function
 per language and cluster: `python3.13` for `.py` scripts and `nodejs22.x` for `.js` scripts. The
-module is not in the default bundle: add its jar, with its dependencies (the AWS SDK clients of
-Lambda, CloudWatch Logs and STS, and the Apache 5 HTTP client), to the runtime's classpath.
+module is in the default bundle, and inactive unless managed code is enabled with `provider=aws`.
 
 ```properties
 camunda.connector.managed-code.enabled=true
@@ -223,9 +222,8 @@ The **identity of the runtime** needs this minimal policy, limited to the prefix
 
 The `gcp` provider, in `connectors/managed-script-gcp`, runs scripts through one Cloud Run function
 (Cloud Functions v2 API) per language and cluster: `python313` for `.py` scripts and `nodejs22` for
-`.js` scripts, each with a pinned version of the Functions Framework. The module is not in the
-default bundle: add its jar, with its dependencies (the Cloud Functions client and the Google auth
-library), to the runtime's classpath.
+`.js` scripts, each with a pinned version of the Functions Framework. The module is in the default
+bundle, and inactive unless managed code is enabled with `provider=gcp`.
 
 ```properties
 camunda.connector.managed-code.enabled=true
