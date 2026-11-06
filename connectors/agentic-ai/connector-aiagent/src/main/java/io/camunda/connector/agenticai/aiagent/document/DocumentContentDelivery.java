@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -58,16 +59,12 @@ public final class DocumentContentDelivery {
   }
 
   private final DocumentContentGuard contentGuard;
-  private final DocumentRestorer documentRestorer;
 
   /**
    * @param contentGuard the check of the content of a document
-   * @param documentRestorer restores the live document of an agent document
    */
-  public DocumentContentDelivery(
-      DocumentContentGuard contentGuard, DocumentRestorer documentRestorer) {
+  public DocumentContentDelivery(DocumentContentGuard contentGuard) {
     this.contentGuard = contentGuard;
-    this.documentRestorer = documentRestorer;
   }
 
   /**
@@ -78,11 +75,17 @@ public final class DocumentContentDelivery {
    * @param known the documents the agent knows
    * @param requested the ids of the documents whose content is asked for
    * @param handled the ids of the documents whose content is not added again
+   * @param documentFactory the document factory of the job, which restores the documents from the
+   *     document store of the physical tenant of the job
    * @throws IllegalArgumentException if a requested id is not the one of a known document
    * @throws IllegalStateException if the document of a requested id cannot be restored
    */
   public List<Outcome> deliver(
-      AgentDocuments known, Collection<AgentDocumentId> requested, Set<AgentDocumentId> handled) {
+      AgentDocuments known,
+      Collection<AgentDocumentId> requested,
+      Set<AgentDocumentId> handled,
+      DocumentFactory documentFactory) {
+    final var restorer = new DocumentRestorer(documentFactory);
     final var outcomes = new ArrayList<Outcome>();
     for (final var id : new LinkedHashSet<>(requested)) {
       if (known.find(id).isEmpty()) {
@@ -91,14 +94,16 @@ public final class DocumentContentDelivery {
                 .formatted(id));
       }
       outcomes.add(
-          handled.contains(id) ? new Outcome.AlreadyInConversation(id) : outcomeOf(known, id));
+          handled.contains(id)
+              ? new Outcome.AlreadyInConversation(id)
+              : outcomeOf(known, id, restorer));
     }
     return List.copyOf(outcomes);
   }
 
-  private Outcome outcomeOf(AgentDocuments known, AgentDocumentId id) {
+  private Outcome outcomeOf(AgentDocuments known, AgentDocumentId id, DocumentRestorer restorer) {
     final var document =
-        documentRestorer
+        restorer
             .restore(known, id)
             .orElseThrow(() ->
                 new IllegalStateException(

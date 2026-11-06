@@ -447,7 +447,8 @@ public abstract class BaseAgentRequestHandler<
                 executionContext,
                 ready.agentContext(),
                 ready.documentIdsWithContent(),
-                ready.unansweredToolCalls())));
+                ready.unansweredToolCalls())),
+        executionContext.documentFactory());
   }
 
   /**

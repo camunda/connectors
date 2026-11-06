@@ -19,9 +19,11 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumen
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -63,13 +65,33 @@ class DocumentContentDeliveryTest {
 
   @Test
   void deliversTheContentOfAnAllowedDocument() {
-    assertThat(delivery.deliver(known, List.of(idOf(text)), Set.of()))
+    assertThat(
+            delivery.deliver(known, List.of(idOf(text)), Set.of(), TestDocuments.documentFactory()))
         .containsExactly(delivered(text));
   }
 
   @Test
+  void restoresTheDocumentWithTheDocumentFactoryOfTheJob() {
+    final var restored = new ArrayList<AgentDocumentId>();
+    final var jobDocumentFactory =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE) {
+          @Override
+          public Document resolve(DocumentReference reference) {
+            restored.add(AgentDocumentId.of(reference));
+            return super.resolve(reference);
+          }
+        };
+
+    assertThat(delivery.deliver(known, List.of(idOf(text)), Set.of(), jobDocumentFactory))
+        .containsExactly(delivered(text));
+    assertThat(restored).containsExactly(idOf(text));
+  }
+
+  @Test
   void withholdsTheContentOfARejectedDocumentWithAStandaloneNote() {
-    assertThat(delivery.deliver(known, List.of(idOf(archive)), Set.of()))
+    assertThat(
+            delivery.deliver(
+                known, List.of(idOf(archive)), Set.of(), TestDocuments.documentFactory()))
         .containsExactly(withheldArchive());
   }
 
@@ -77,7 +99,10 @@ class DocumentContentDeliveryTest {
   void decidesInTheOrderOfTheFirstRequestAndOnceForEveryDocument() {
     assertThat(
             delivery.deliver(
-                known, List.of(idOf(other), idOf(archive), idOf(other), idOf(text)), Set.of()))
+                known,
+                List.of(idOf(other), idOf(archive), idOf(other), idOf(text)),
+                Set.of(),
+                TestDocuments.documentFactory()))
         .hasSize(3)
         .containsExactly(delivered(other), withheldArchive(), delivered(text));
   }
@@ -88,7 +113,8 @@ class DocumentContentDeliveryTest {
             delivery.deliver(
                 known,
                 List.of(idOf(text), idOf(archive), idOf(other)),
-                Set.of(idOf(text), idOf(archive))))
+                Set.of(idOf(text), idOf(archive)),
+                TestDocuments.documentFactory()))
         .containsExactly(
             new Outcome.AlreadyInConversation(idOf(text)),
             new Outcome.AlreadyInConversation(idOf(archive)),
@@ -99,7 +125,8 @@ class DocumentContentDeliveryTest {
   void aRequestForADocumentTheAgentDoesNotKnowIsADefect() {
     final var unknown = AgentDocumentId.of("unknown");
 
-    assertThatThrownBy(() -> delivery.deliver(known, List.of(unknown), Set.of()))
+    assertThatThrownBy(() ->
+            delivery.deliver(known, List.of(unknown), Set.of(), TestDocuments.documentFactory()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The content of the document 'unknown' is asked for, but the agent does not know it");

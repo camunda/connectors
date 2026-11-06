@@ -153,7 +153,8 @@ class ToolCallResultsInputBuilderTest {
 
   @Test
   void withTheDocumentsFeatureTheResultsAreOneMessageAndTheDocumentsAreReportedInCallOrder() {
-    final var input = builder.build(WITH_DOCUMENTS, entries(), Set.of());
+    final var input =
+        builder.build(WITH_DOCUMENTS, entries(), Set.of(), TestDocuments.documentFactory());
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(input.documents())
@@ -165,7 +166,8 @@ class ToolCallResultsInputBuilderTest {
 
   @Test
   void withTheDocumentsFeatureADocumentThatIsAWholeResultIsItsTagAndANestedOneStaysADocument() {
-    final var input = builder.build(WITH_DOCUMENTS, entries(), Set.of());
+    final var input =
+        builder.build(WITH_DOCUMENTS, entries(), Set.of(), TestDocuments.documentFactory());
 
     final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();
     assertThat(results.get(0).content())
@@ -181,7 +183,8 @@ class ToolCallResultsInputBuilderTest {
         builder.build(
             WITH_DOCUMENTS,
             batchOf(entryOf(result("c2", "beta", textContent("two")), List.of())),
-            Set.of());
+            Set.of(),
+            TestDocuments.documentFactory());
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(input.documents()).isEmpty();
@@ -189,7 +192,8 @@ class ToolCallResultsInputBuilderTest {
 
   @Test
   void withoutTheDocumentsFeatureTheDocumentsFollowTheResultsInAMessageAndNoneIsReported() {
-    final var input = builder.build(WITHOUT_DOCUMENTS, entries(), Set.of());
+    final var input =
+        builder.build(WITHOUT_DOCUMENTS, entries(), Set.of(), TestDocuments.documentFactory());
 
     assertThat(input.documents()).isEmpty();
     assertThat(input.messages()).hasSize(2);
@@ -221,7 +225,8 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1", "alpha", RuntimeToolResult.success("loaded").withDocumentContent(idOf(known)));
 
-    final var input = builder.build(knowing(known), batchOf(entry), Set.of());
+    final var input =
+        builder.build(knowing(known), batchOf(entry), Set.of(), TestDocuments.documentFactory());
 
     assertThat(input.messages()).hasSize(2);
     assertThat(input.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
@@ -253,7 +258,8 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1", "alpha", RuntimeToolResult.success(List.of()).withDocumentContent(idOf(known)));
 
-    final var input = builder.build(knowing(known), batchOf(entry), Set.of());
+    final var input =
+        builder.build(knowing(known), batchOf(entry), Set.of(), TestDocuments.documentFactory());
 
     assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
         .containsExactly(followsSentence(known));
@@ -273,7 +279,8 @@ class ToolCallResultsInputBuilderTest {
             "alpha",
             RuntimeToolResult.success(List.of()).withDocumentContent(idOf(nameless)));
 
-    final var input = builder.build(knowing(nameless), batchOf(entry), Set.of());
+    final var input =
+        builder.build(knowing(nameless), batchOf(entry), Set.of(), TestDocuments.documentFactory());
 
     assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
         .containsExactly(
@@ -285,7 +292,8 @@ class ToolCallResultsInputBuilderTest {
   void anErrorResultAsksForNoContent() {
     final var entry = runtimeEntry("c1", "alpha", RuntimeToolResult.error("no"));
 
-    final var input = builder.build(knowing(known), batchOf(entry), Set.of());
+    final var input =
+        builder.build(knowing(known), batchOf(entry), Set.of(), TestDocuments.documentFactory());
 
     assertThat(entry.effects()).isEmpty();
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
@@ -297,7 +305,9 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1", "alpha", RuntimeToolResult.success("loaded").withDocumentContent(idOf(known)));
 
-    final var input = builder.build(knowing(known), batchOf(entry), Set.of(idOf(known)));
+    final var input =
+        builder.build(
+            knowing(known), batchOf(entry), Set.of(idOf(known)), TestDocuments.documentFactory());
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(((ToolCallResultMessage) input.messages().getFirst()).results().getFirst().content())
@@ -323,7 +333,8 @@ class ToolCallResultsInputBuilderTest {
             runtimeEntry(
                 "c2", "alpha", RuntimeToolResult.success("b").withDocumentContent(idOf(known))));
 
-    final var input = builder.build(knowing(known, other), batch, Set.of());
+    final var input =
+        builder.build(knowing(known, other), batch, Set.of(), TestDocuments.documentFactory());
 
     assertThat(((UserMessage) input.messages().get(1)).content())
         .containsExactly(
@@ -348,7 +359,8 @@ class ToolCallResultsInputBuilderTest {
                 .withDocumentContent(idOf(known))
                 .withDocumentContent(idOf(known)));
 
-    final var input = builder.build(knowing(known), batchOf(entry), Set.of());
+    final var input =
+        builder.build(knowing(known), batchOf(entry), Set.of(), TestDocuments.documentFactory());
 
     assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
         .containsExactly(textContent("a"), followsSentence(known));
@@ -363,7 +375,8 @@ class ToolCallResultsInputBuilderTest {
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
                 .withDocumentContent(idOf(first)));
 
-    final var input = builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of());
+    final var input =
+        builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of(), TestDocuments.documentFactory());
 
     assertThat(input.documents())
         .containsExactly(AgentDocument.of(first, AgentDocumentOrigin.toolCall("alpha", "c1")));
@@ -387,7 +400,9 @@ class ToolCallResultsInputBuilderTest {
     final var other =
         runtimeEntry("c2", "beta", RuntimeToolResult.success(List.of(textContent("fine"))));
 
-    final var input = builder.build(knowing(archive), batchOf(rejected, other), Set.of());
+    final var input =
+        builder.build(
+            knowing(archive), batchOf(rejected, other), Set.of(), TestDocuments.documentFactory());
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     final var results = ((ToolCallResultMessage) input.messages().get(0)).results();
@@ -416,7 +431,9 @@ class ToolCallResultsInputBuilderTest {
                 .withDocumentContent(idOf(known))
                 .withDocumentContent(idOf(archive)));
 
-    final var input = builder.build(knowing(known, archive), batchOf(entry), Set.of());
+    final var input =
+        builder.build(
+            knowing(known, archive), batchOf(entry), Set.of(), TestDocuments.documentFactory());
 
     assertThat(input.messages()).hasSize(2);
     assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
@@ -439,7 +456,8 @@ class ToolCallResultsInputBuilderTest {
             runtimeEntry(
                 "c2", "beta", RuntimeToolResult.success("b").withDocumentContent(idOf(archive))));
 
-    final var input = builder.build(knowing(archive), batch, Set.of());
+    final var input =
+        builder.build(knowing(archive), batch, Set.of(), TestDocuments.documentFactory());
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();
@@ -456,7 +474,9 @@ class ToolCallResultsInputBuilderTest {
             result("c1", "process_tool", textContent("done")),
             List.of(new ToolCallEffect.AddDocumentContent(idOf(known))));
 
-    final var input = builder.build(knowing(known), batchOf(processEntry), Set.of());
+    final var input =
+        builder.build(
+            knowing(known), batchOf(processEntry), Set.of(), TestDocuments.documentFactory());
 
     assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
         .containsExactly(textContent("done"), followsSentence(known));
@@ -472,7 +492,8 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1", "alpha", RuntimeToolResult.success("a").withDocumentContent(idOf(archive)));
 
-    final var input = builder.build(knowing(archive), batchOf(entry), Set.of());
+    final var input =
+        builder.build(knowing(archive), batchOf(entry), Set.of(), TestDocuments.documentFactory());
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
   }
@@ -487,7 +508,12 @@ class ToolCallResultsInputBuilderTest {
     final var naming =
         runtimeEntry("c2", "beta", RuntimeToolResult.success("a").withDocumentContent(idOf(first)));
 
-    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(returning, naming), Set.of()))
+    assertThatThrownBy(() ->
+            builder.build(
+                WITH_DOCUMENTS,
+                batchOf(returning, naming),
+                Set.of(),
+                TestDocuments.documentFactory()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("does not know");
   }
@@ -500,7 +526,9 @@ class ToolCallResultsInputBuilderTest {
             "alpha",
             RuntimeToolResult.success("a").withDocumentContent(AgentDocumentId.of("unknown")));
 
-    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of()))
+    assertThatThrownBy(() ->
+            builder.build(
+                WITH_DOCUMENTS, batchOf(entry), Set.of(), TestDocuments.documentFactory()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("unknown");
   }
@@ -514,7 +542,9 @@ class ToolCallResultsInputBuilderTest {
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
                 .withDocumentContent(first));
 
-    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry), Set.of()))
+    assertThatThrownBy(() ->
+            builder.build(
+                WITHOUT_DOCUMENTS, batchOf(entry), Set.of(), TestDocuments.documentFactory()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(idOf(first).value());
   }
@@ -525,7 +555,9 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1", "alpha", RuntimeToolResult.success("a").withDocumentContent(idOf(known)));
 
-    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry), Set.of()))
+    assertThatThrownBy(() ->
+            builder.build(
+                WITHOUT_DOCUMENTS, batchOf(entry), Set.of(), TestDocuments.documentFactory()))
         .isInstanceOf(IllegalArgumentException.class);
   }
 }

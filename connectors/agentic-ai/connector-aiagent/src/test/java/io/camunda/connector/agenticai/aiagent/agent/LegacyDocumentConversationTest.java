@@ -113,7 +113,8 @@ class LegacyDocumentConversationTest {
       PreviousConversation previous,
       AgentInput input) {
     return composer.assemble(
-        (CompositionResult.Ready) composer.resolve(configuration, context, previous, input));
+        (CompositionResult.Ready) composer.resolve(configuration, context, previous, input),
+        TestDocuments.documentFactory());
   }
 
   @org.junit.jupiter.api.BeforeEach
@@ -316,7 +317,6 @@ class LegacyDocumentConversationTest {
         new RuntimeTools(
             List.of(StubRuntimeTool.of("acme_lookup", (toolContext, call) -> null)),
             TestObjectMapperSupplier.INSTANCE,
-            TestDocuments.documentFactory(),
             new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
     final var executionContext = TestAgentExecutionContext.withConfiguration(configuration);

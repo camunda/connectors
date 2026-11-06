@@ -28,7 +28,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.OffsetDateTime;
@@ -61,7 +60,6 @@ public class RuntimeTools {
    */
   private static final ObjectMapper PLAIN_READER = JsonMapper.builder().build();
 
-  private final DocumentFactory documentFactory;
   private final ObjectMapper argumentsMapper;
   private final ObjectMapper resultMapper;
   private final DocumentParameterResolver documentParameterResolver;
@@ -73,10 +71,8 @@ public class RuntimeTools {
   public RuntimeTools(
       List<RuntimeTool> tools,
       ObjectMapper objectMapper,
-      DocumentFactory documentFactory,
       DocumentParameterResolver documentParameterResolver) {
     this.registrationsByName = register(tools);
-    this.documentFactory = documentFactory;
     this.argumentsMapper = RuntimeToolCallImpl.argumentsMapper(objectMapper);
     this.resultMapper =
         objectMapper.copy().registerModule(new SimpleModule().addSerializer(new DocumentAsItIs()));
@@ -90,7 +86,8 @@ public class RuntimeTools {
       return List.of();
     }
     final var context =
-        RuntimeToolContextImpl.of(executionContext, agentContext, Set.of(), documentFactory);
+        RuntimeToolContextImpl.of(
+            executionContext, agentContext, Set.of(), executionContext.documentFactory());
     return registrationsByName.values().stream()
         .filter(registration -> registration.tool().isEnabled(context))
         .map(Registration::definition)
@@ -121,7 +118,10 @@ public class RuntimeTools {
       List<ToolCall> calls) {
     final var context =
         RuntimeToolContextImpl.of(
-            executionContext, agentContext, documentIdsWithContent, documentFactory);
+            executionContext,
+            agentContext,
+            documentIdsWithContent,
+            executionContext.documentFactory());
     return calls.stream().map(call -> execute(context, call)).toList();
   }
 
