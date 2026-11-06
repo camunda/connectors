@@ -160,7 +160,7 @@ public final class AgentConversation {
       throw new IllegalStateException(
           "nextContinuationRound() called before the current turn was ingested");
     }
-    return nextRound(List.of());
+    return nextRound(List.of(), currentContext);
   }
 
   /**
@@ -170,17 +170,20 @@ public final class AgentConversation {
    *
    * @param inputMessages the input of the new turn, the results of every tool call of the closed
    *     turn first
+   * @param agentContext the agent context the new turn continues with, the {@linkplain
+   *     #persistedContext() persisted context} with the documents of the input registered
    * @throws IllegalStateException if the current turn has not been ingested yet
    */
-  public AgentConversation nextRuntimeToolRound(List<Message> inputMessages) {
+  public AgentConversation nextRuntimeToolRound(
+      List<Message> inputMessages, AgentContext agentContext) {
     if (currentTurn.assistantMessage() == null) {
       throw new IllegalStateException(
           "nextRuntimeToolRound() called before the current turn was ingested");
     }
-    return nextRound(inputMessages);
+    return nextRound(inputMessages, agentContext);
   }
 
-  private AgentConversation nextRound(List<Message> inputMessages) {
+  private AgentConversation nextRound(List<Message> inputMessages, AgentContext agentContext) {
     var updatedPreviousTurns = new ArrayList<>(previousTurns);
     updatedPreviousTurns.add(currentTurn);
     var nextTurn =
@@ -192,7 +195,7 @@ public final class AgentConversation {
             currentTurn.configurationFingerprint());
     return new AgentConversation(
         configuration,
-        currentContext,
+        agentContext,
         systemMessage,
         updatedPreviousTurns,
         nextTurn,
@@ -217,8 +220,9 @@ public final class AgentConversation {
   }
 
   /**
-   * The agent context this conversation is built on. Unlike {@link #toAgentContext()} it does not
-   * hold the metrics and the iteration bookkeeping of this invocation.
+   * The agent context this conversation is built on, with the changes made since: the registered
+   * documents and the properties. Unlike {@link #toAgentContext()} it does not hold the metrics and
+   * the iteration bookkeeping of this invocation.
    */
   public AgentContext persistedContext() {
     return currentContext;

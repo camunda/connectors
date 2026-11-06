@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -60,6 +61,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
@@ -106,6 +108,8 @@ class AgentTaskRequestHandlerTest {
           List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
           TestObjectMapperSupplier.INSTANCE);
 
+  @Spy private DocumentExpander documentExpander = TestDocuments.documentExpander();
+
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 
   @Captor private ArgumentCaptor<ChatRequest> chatModelRequestCaptor;
@@ -125,7 +129,8 @@ class AgentTaskRequestHandlerTest {
             agentInstanceClient,
             runtimeTools,
             new ToolCallAdmission(),
-            new LocalToolCallExecutor(runtimeTools));
+            new LocalToolCallExecutor(runtimeTools),
+            documentExpander);
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
@@ -439,14 +444,17 @@ class AgentTaskRequestHandlerTest {
    */
   private void mockProceed(Message... inputMessages) {
     when(agentInputComposer.resolve(any(), any(), any(), any()))
-        .thenReturn(CompositionResult.Ready.of(ToolCallBatch.of(List.of())));
+        .thenAnswer(invocation ->
+            CompositionResult.Ready.of(
+                invocation.getArgument(1, AgentContext.class), ToolCallBatch.of(List.of())));
     lenient()
         .when(agentInputComposer.assemble(any()))
         .thenAnswer(invocation -> {
           final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
           return ready.toolCallBatch().toolCalls().isEmpty()
               ? new TurnInput(List.of(inputMessages))
-              : new TurnInput(new ToolCallResultsInputBuilder().build(ready.toolCallBatch()));
+              : new ToolCallResultsInputBuilder()
+                  .build(ready.agentContext(), ready.toolCallBatch());
         });
   }
 
@@ -482,7 +490,7 @@ class AgentTaskRequestHandlerTest {
   private void verifyTurnLifecycleRecorded(
       AgentInstanceUpdateStatus expectedFinalStatus, AgentMetrics expectedMetrics) {
     verify(agentInstanceClient)
-        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any(), any());
     final var turnCaptor = ArgumentCaptor.forClass(AgentConversationTurn.class);
     verify(agentInstanceClient)
         .applyTurnCompletion(

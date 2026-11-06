@@ -9,12 +9,19 @@ package io.camunda.connector.agenticai.aiagent.model;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 
 public interface AgentExecutionContext {
   /** Job context containing job-specific metadata (such as the element key). */
   JobContext jobContext();
+
+  /**
+   * The document factory of the job. It resolves and creates documents in the document store of the
+   * physical tenant of the job.
+   */
+  DocumentFactory documentFactory();
 
   /** Initial agent context object read from input variables, before further processing. */
   AgentContext initialAgentContext();

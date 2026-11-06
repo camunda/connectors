@@ -45,10 +45,12 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -73,6 +75,8 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -103,6 +107,9 @@ class CamundaAgentInstanceClientTest {
 
   private static final RetriesProperties RETRIES_CONFIGURATION =
       new RetriesProperties(4, Duration.ofSeconds(1));
+
+  private static final DocumentHandling NEW_INSTANCE =
+      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()).documentHandling();
 
   private static final long ELEMENT_INSTANCE_KEY = 77L;
 
@@ -142,7 +149,8 @@ class CamundaAgentInstanceClientTest {
   @BeforeEach
   void setUp() {
     recordedSleeps = new ArrayList<>();
-    var historyMapper = new AgentInstanceHistoryMapper(gatewayToolHandlers);
+    var historyMapper =
+        new AgentInstanceHistoryMapper(gatewayToolHandlers, TestDocuments.objectHandleRenderer());
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
@@ -173,7 +181,8 @@ class CamundaAgentInstanceClientTest {
                 selector,
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
-                new AgentInstanceHistoryMapper(gatewayToolHandlers),
+                new AgentInstanceHistoryMapper(
+                    gatewayToolHandlers, TestDocuments.objectHandleRenderer()),
                 new AgentInstanceToolMapper(gatewayToolHandlers))
             .create(executionContext);
 
@@ -653,7 +662,8 @@ class CamundaAgentInstanceClientTest {
           null,
           userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verifyNoInteractions(camundaClient);
     }
@@ -674,7 +684,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
           Optional.of(precedingTurn(configuration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep2).status(AgentInstanceUpdateStatus.THINKING);
       verify(updateCommandStep2).jobKey(JOB_KEY);
@@ -704,7 +715,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(configuration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep3).jobLeaseToken("lease-token-abc");
     }
@@ -727,7 +739,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(configuration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue())
@@ -754,7 +767,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep4).history(historyCaptor.capture());
       final var history = historyCaptor.getValue();
@@ -800,7 +814,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue().get(0).getTools())
@@ -820,7 +835,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue()).hasSize(2);
@@ -843,7 +859,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue()).hasSize(2);
@@ -863,7 +880,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue()).hasSize(2);
@@ -884,7 +902,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue()).hasSize(2);
@@ -916,7 +935,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue()).hasSize(2);
@@ -970,7 +990,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
           Optional.of(previousTurn),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue())
@@ -1046,7 +1067,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           turn,
           Optional.of(previousTurn),
-          TURN_INGESTION_TIMESTAMP);
+          TURN_INGESTION_TIMESTAMP,
+          NEW_INSTANCE);
 
       verify(updateCommandStep4).history(historyCaptor.capture());
       // the configuration is unchanged; each result is one item correlated to its own call
@@ -1109,7 +1131,8 @@ class CamundaAgentInstanceClientTest {
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                   turn,
                   Optional.empty(),
-                  TURN_INGESTION_TIMESTAMP))
+                  TURN_INGESTION_TIMESTAMP,
+                  NEW_INSTANCE))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("No originating tool call found")
           .hasMessageContaining("orphan");
@@ -1244,7 +1267,8 @@ class CamundaAgentInstanceClientTest {
           List.of(
               ToolCallResultContent.from(
                   ToolCallResult.builder().id("a").name("getWeather").build())),
-          previousTurn);
+          previousTurn,
+          NEW_INSTANCE);
 
       verifyNoInteractions(camundaClient);
     }
@@ -1280,7 +1304,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           List.of(ToolCallResultContent.from(arrivedResult)),
-          previousTurn);
+          previousTurn,
+          NEW_INSTANCE);
 
       verify(updateCommandStep2, never()).status(any());
       verify(updateCommandStep2).jobKey(JOB_KEY);
@@ -1354,7 +1379,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           List.of(runtimeResult),
-          assistantTurn);
+          assistantTurn,
+          NEW_INSTANCE);
       // the other write carries it together with the result of the process, with the turn start
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
@@ -1362,7 +1388,8 @@ class CamundaAgentInstanceClientTest {
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           nextTurn,
           Optional.of(assistantTurn),
-          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"),
+          NEW_INSTANCE);
 
       verify(updateCommandStep4, times(2)).history(historyCaptor.capture());
       final var alone = historyCaptor.getAllValues().get(0).getFirst();
@@ -1392,7 +1419,8 @@ class CamundaAgentInstanceClientTest {
                   List.of(
                       ToolCallResultContent.from(
                           ToolCallResult.builder().id("orphan").name("getWeather").build())),
-                  previousTurn))
+                  previousTurn,
+                  NEW_INSTANCE))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("No originating tool call found")
           .hasMessageContaining("orphan");
@@ -1444,7 +1472,8 @@ class CamundaAgentInstanceClientTest {
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                   userMessageTurn(),
                   Optional.empty(),
-                  TURN_INGESTION_TIMESTAMP))
+                  TURN_INGESTION_TIMESTAMP,
+                  NEW_INSTANCE))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class,
               e -> {
@@ -1502,7 +1531,8 @@ class CamundaAgentInstanceClientTest {
                               .name("getWeather")
                               .completedAt(TURN_INGESTION_TIMESTAMP)
                               .build())),
-                  previousTurn))
+                  previousTurn,
+                  NEW_INSTANCE))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class, e -> assertThat(e.getRetries()).isEqualTo(0));
     }
@@ -1536,7 +1566,8 @@ class CamundaAgentInstanceClientTest {
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                   userMessageTurn(),
                   Optional.empty(),
-                  TURN_INGESTION_TIMESTAMP))
+                  TURN_INGESTION_TIMESTAMP,
+                  NEW_INSTANCE))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))
@@ -1557,7 +1588,8 @@ class CamundaAgentInstanceClientTest {
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                   userMessageTurn(),
                   Optional.empty(),
-                  TURN_INGESTION_TIMESTAMP))
+                  TURN_INGESTION_TIMESTAMP,
+                  NEW_INSTANCE))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))
@@ -1633,6 +1665,11 @@ class CamundaAgentInstanceClientTest {
     @Override
     public JobContext jobContext() {
       return jobContext;
+    }
+
+    @Override
+    public DocumentFactory documentFactory() {
+      return TestDocuments.documentFactory();
     }
 
     @Override

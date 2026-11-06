@@ -19,7 +19,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.Mockito;
 import software.amazon.awssdk.services.bedrockruntime.model.CachePointBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.CachePointType;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
@@ -132,7 +135,7 @@ class BedrockConverseContentConverterTest {
     }
 
     @Test
-    void documentBlockNameIsDeterministicHashOfTheHandleId() {
+    void documentBlockNameIsDeterministic() {
       final var doc = inlineDocument("plain text content", "notes.txt", "text/plain");
 
       final var name1 =
@@ -149,6 +152,44 @@ class BedrockConverseContentConverterTest {
               .name();
 
       assertThat(name1).matches("[A-Za-z0-9 ()\\[\\]-]{1,200}").isEqualTo(name2);
+    }
+
+    @Test
+    void documentBlockNamesAreTheLiteralHashesOfTheLegacyIdOfTheDocument() {
+      // the expected names are SHA-256 digests, computed independently of the converter:
+      // "doc-" + first 40 hex of SHA-256(legacy id), the legacy id being the Camunda document id,
+      // "ext-" + first 12 hex of SHA-256(url), or "inline-" + first 12 hex of SHA-256(content)
+      final var camunda =
+          new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+              .create(
+                  DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
+                      .documentId("0f3a-doc")
+                      .contentType("text/plain")
+                      .fileName("hello.txt")
+                      .build());
+      final var external = Mockito.mock(Document.class);
+      final var externalMetadata = Mockito.mock(DocumentMetadata.class);
+      Mockito.when(external.reference())
+          .thenReturn(new ExternalDocumentReferenceModel("https://example.com/a.pdf", "a.txt"));
+      Mockito.when(external.metadata()).thenReturn(externalMetadata);
+      Mockito.when(externalMetadata.getContentType()).thenReturn("text/plain");
+      Mockito.when(external.asByteArray()).thenReturn("hello".getBytes(StandardCharsets.UTF_8));
+      final var inline = inlineDocument("hello", "hello.txt", "text/plain");
+
+      assertThat(documentBlockName(camunda))
+          .isEqualTo("doc-de7e182657bded7c8aeb15ca06d981a344eddb01");
+      assertThat(documentBlockName(external))
+          .isEqualTo("doc-819909f1bcb38184fd4b16c54cfc88bbad6edd19");
+      assertThat(documentBlockName(inline))
+          .isEqualTo("doc-e6f9c1b79ece00c10d36ac30c23e07a7f7afd15e");
+    }
+
+    private String documentBlockName(Document document) {
+      return converter
+          .toContentBlocks(List.of(new DocumentContent(document, null)))
+          .get(0)
+          .document()
+          .name();
     }
 
     @Test
@@ -174,8 +215,8 @@ class BedrockConverseContentConverterTest {
 
     @Test
     void documentBlockNameStaysWithinCharsetEvenForADisallowedCamundaDocumentId() {
-      // A CamundaDocumentReference's real documentId is carried verbatim by DocumentHandle - other
-      // code cross-references documents by it - and DocumentCreationRequest.documentId(...)
+      // A CamundaDocumentReference's real documentId is used verbatim to derive the
+      // name, and DocumentCreationRequest.documentId(...)
       // accepts arbitrary strings, so it isn't guaranteed to fit Bedrock's charset on its own.
       final var documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
       final var doc =

@@ -8,7 +8,9 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -36,6 +38,7 @@ public class ContentConverterImpl implements ContentConverter {
           new dev.langchain4j.data.message.TextContent(textContent.text());
       case DocumentContent documentContent ->
           documentToContentConverter.convert(documentContent.document());
+      case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
       case ObjectContent objectContent ->
           new dev.langchain4j.data.message.TextContent(
               Objects.requireNonNull(convertToString(objectContent.content())));

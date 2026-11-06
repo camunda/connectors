@@ -16,11 +16,18 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -32,11 +39,15 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,9 +64,12 @@ import org.jspecify.annotations.Nullable;
 public class AgentInstanceHistoryMapper {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final ObjectHandleRenderer objectHandleRenderer;
 
-  public AgentInstanceHistoryMapper(GatewayToolHandlerRegistry gatewayToolHandlers) {
+  public AgentInstanceHistoryMapper(
+      GatewayToolHandlerRegistry gatewayToolHandlers, ObjectHandleRenderer objectHandleRenderer) {
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.objectHandleRenderer = objectHandleRenderer;
   }
 
   /**
@@ -78,21 +92,32 @@ public class AgentInstanceHistoryMapper {
    *     use their own resolved {@link ToolCallResult#completedAt()} instead (see ADR 008).
    * @param toolCallsById the tool calls of the previous turn by id; a result of a local tool call
    *     is reported without a BPMN element
+   * @param documentHandling how the agent handles its documents, which decides how the documents of
+   *     the messages are shown; the documents it tracks are what the document handles are expanded
+   *     with
+   * @param documentFactory the document factory of the job, which restores the documents in the
+   *     document store of the physical tenant of the job
    */
   public List<InputHistoryItem> inputHistoryItems(
-      Message message, Map<String, ToolCall> toolCallsById, OffsetDateTime turnIngestionTimestamp) {
+      Message message,
+      Map<String, ToolCall> toolCallsById,
+      OffsetDateTime turnIngestionTimestamp,
+      DocumentHandling documentHandling,
+      DocumentFactory documentFactory) {
+    final var restorer = new DocumentRestorer(documentFactory);
     return switch (message) {
       case UserMessage userMessage ->
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  contentBlocks(userMessage.content()),
+                  messageContent(userMessage.content(), documentHandling, restorer),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
       case ToolCallResultMessage toolCallResultMessage ->
           toolCallResultMessage.results().stream()
-              .map(result -> toolResultHistoryItem(result, toolCallsById))
+              .map(result ->
+                  toolResultHistoryItem(result, toolCallsById, documentHandling, restorer))
               .toList();
       default ->
           throw new IllegalArgumentException(
@@ -102,12 +127,15 @@ public class AgentInstanceHistoryMapper {
   }
 
   private InputHistoryItem toolResultHistoryItem(
-      ToolCallResultContent result, Map<String, ToolCall> toolCallsById) {
+      ToolCallResultContent result,
+      Map<String, ToolCall> toolCallsById,
+      DocumentHandling documentHandling,
+      DocumentRestorer restorer) {
     // tool-call result id/name are nullable on the model (and partial/malformed results may omit
     // them); default to empty strings, which the client model accepts
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
-        contentBlocks(result.content()),
+        messageContent(result.content(), documentHandling, restorer),
         List.of(
             new AgentInstanceHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
@@ -157,7 +185,8 @@ public class AgentInstanceHistoryMapper {
   }
 
   public List<AgentInstanceHistoryContent> assistantContent(AssistantMessage assistantMessage) {
-    return contentBlocks(assistantMessage.content());
+    // the documents of an assistant message, if any, are live documents, as without tracking
+    return contentBlocks(assistantMessage.content(), new DocumentHandling.Untracked());
   }
 
   public @Nullable List<AgentInstanceHistoryToolCall> assistantToolCalls(
@@ -211,15 +240,103 @@ public class AgentInstanceHistoryMapper {
         .durationMs(durationMs);
   }
 
-  private List<AgentInstanceHistoryContent> contentBlocks(List<Content> contents) {
-    return contents.stream().map(this::toHistoryContent).toList();
+  /**
+   * The content of a message as the model reads it. For an agent instance that tracks its
+   * documents, a document is its handle as an object block of its own, the same handle the model
+   * gets, in a user message, an event and a tool result. Where the document enters the conversation
+   * a Camunda or an external document is followed by the document itself (the chip); a document
+   * nested in an object is replaced by its handle object, as the model gets it, and the documents
+   * follow the object. An inline document has its handle only. Text is reported as it is, also when
+   * it holds a handle.
+   */
+  private List<AgentInstanceHistoryContent> messageContent(
+      List<Content> contents, DocumentHandling documentHandling, DocumentRestorer restorer) {
+    return switch (documentHandling) {
+      case DocumentHandling.Untracked ignored -> contentBlocks(contents, documentHandling);
+      case DocumentHandling.Tracked tracked -> {
+        final var documents = tracked.documents();
+        final var blocks = new ArrayList<AgentInstanceHistoryContent>();
+        for (final var content : contents) {
+          switch (content) {
+            case DocumentContent documentContent ->
+                addDocument(
+                    blocks,
+                    DocumentHandle.of(documentContent.document()),
+                    documentContent.document(),
+                    tracked);
+            case AgentDocumentContent block ->
+                addDocument(
+                    blocks,
+                    DocumentHandle.of(documents, block.id()),
+                    restorer.restore(documents, block.id()).orElse(null),
+                    tracked);
+            case ObjectContent objectContent -> addObject(blocks, objectContent, tracked);
+            case TextContent textContent ->
+                blocks.add(toHistoryContent(textContent, documentHandling));
+            case ReasoningContent reasoningContent ->
+                blocks.add(toHistoryContent(reasoningContent, documentHandling));
+            case ProviderContent providerContent ->
+                blocks.add(toHistoryContent(providerContent, documentHandling));
+          }
+        }
+        yield List.copyOf(blocks);
+      }
+    };
   }
 
-  private AgentInstanceHistoryContent toHistoryContent(Content content) {
+  private void addDocument(
+      List<AgentInstanceHistoryContent> blocks,
+      DocumentHandle handle,
+      @Nullable Document document,
+      DocumentHandling documentHandling) {
+    blocks.add(objectHistoryContent(handle.tree()));
+    if (document != null && hasHistoryDocument(document)) {
+      blocks.add(
+          documentHistoryContent(DocumentContent.documentContent(document), documentHandling));
+    }
+  }
+
+  private void addObject(
+      List<AgentInstanceHistoryContent> blocks,
+      ObjectContent objectContent,
+      DocumentHandling documentHandling) {
+    final var rendered = objectHandleRenderer.render(objectContent.content());
+    if (rendered.documents().isEmpty()) {
+      blocks.add(objectHistoryContent(objectContent.content()));
+      return;
+    }
+
+    blocks.add(objectHistoryContent(rendered.tree()));
+    final var reportedIds = new HashSet<AgentDocumentId>();
+    for (final var document : rendered.documents()) {
+      if (hasHistoryDocument(document) && reportedIds.add(AgentDocumentId.of(document))) {
+        blocks.add(
+            documentHistoryContent(DocumentContent.documentContent(document), documentHandling));
+      }
+    }
+  }
+
+  /**
+   * The history shows the Camunda and the external documents; an inline one has its handle only.
+   */
+  private static boolean hasHistoryDocument(Document document) {
+    return document.reference() instanceof CamundaDocumentReference
+        || document.reference() instanceof ExternalDocumentReference;
+  }
+
+  private List<AgentInstanceHistoryContent> contentBlocks(
+      List<Content> contents, DocumentHandling documentHandling) {
+    return contents.stream().map(content -> toHistoryContent(content, documentHandling)).toList();
+  }
+
+  private AgentInstanceHistoryContent toHistoryContent(
+      Content content, DocumentHandling documentHandling) {
     return switch (content) {
       case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
-      case DocumentContent documentContent -> documentHistoryContent(documentContent);
+      case DocumentContent documentContent ->
+          documentHistoryContent(documentContent, documentHandling);
+      case AgentDocumentContent block -> objectHistoryContent(DocumentHandle.of(block.id()).tree());
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };
@@ -246,15 +363,17 @@ public class AgentInstanceHistoryMapper {
     return AgentInstanceHistoryContent.object(value);
   }
 
-  private AgentInstanceHistoryContent documentHistoryContent(DocumentContent documentContent) {
+  private AgentInstanceHistoryContent documentHistoryContent(
+      DocumentContent documentContent, DocumentHandling documentHandling) {
     final Document document = documentContent.document();
     return switch (document.reference()) {
       case CamundaDocumentReference ref ->
           AgentInstanceHistoryContent.document(
-              toDocumentReferenceResponse(ref, document.metadata()));
+              toDocumentReferenceResponse(ref, document.metadata(), documentHandling));
       // External document references are not yet representable as a document content block on the
       // engine; fall back to an object reference block (follow-up: team decision).
-      case ExternalDocumentReference ref -> externalDocumentReferenceContent(ref);
+      case ExternalDocumentReference ref ->
+          externalDocumentReferenceContent(ref, document, documentHandling);
       case null, default ->
           throw new IllegalArgumentException(
               "Unsupported document reference type for history item: "
@@ -265,16 +384,22 @@ public class AgentInstanceHistoryMapper {
   }
 
   private AgentInstanceHistoryContent externalDocumentReferenceContent(
-      ExternalDocumentReference ref) {
-    if (ref.url() == null || ref.name() == null) {
+      ExternalDocumentReference ref, Document document, DocumentHandling documentHandling) {
+    final var name =
+        ref.name() == null && documentHandling instanceof DocumentHandling.Tracked
+            ? AgentDocumentId.of(document).value()
+            : ref.name();
+    if (ref.url() == null || name == null) {
       throw new IllegalArgumentException(
           "External document reference requires both url and name for a history item");
     }
-    return objectHistoryContent(new ExternalDocumentReferenceModel(ref.url(), ref.name()));
+    return objectHistoryContent(new ExternalDocumentReferenceModel(ref.url(), name));
   }
 
   private DocumentReferenceResponseImpl toDocumentReferenceResponse(
-      CamundaDocumentReference ref, @Nullable DocumentMetadata metadata) {
+      CamundaDocumentReference ref,
+      @Nullable DocumentMetadata metadata,
+      DocumentHandling documentHandling) {
     final DocumentReference protocolRef =
         new DocumentReference()
             .camundaDocumentType(CamundaDocumentTypeEnum.CAMUNDA)
@@ -283,16 +408,38 @@ public class AgentInstanceHistoryMapper {
     if (ref.getContentHash() != null) {
       protocolRef.contentHash(ref.getContentHash());
     }
-    if (metadata != null) {
-      protocolRef.metadata(toProtocolDocumentMetadata(metadata));
+    final var idAsFileName = fileNameOfTheHandle(ref, documentHandling);
+    if (metadata != null || idAsFileName != null) {
+      protocolRef.metadata(toProtocolDocumentMetadata(metadata, idAsFileName, documentHandling));
     }
     return new DocumentReferenceResponseImpl(protocolRef);
   }
 
-  private DocumentMetadataResponse toProtocolDocumentMetadata(DocumentMetadata metadata) {
+  /**
+   * The file name of a document whose handle shows the agent document id in place of a file name,
+   * so that the chip shows what the handle shows; {@code null} when the document has a file name or
+   * the agent does not track its documents.
+   */
+  private static @Nullable String fileNameOfTheHandle(
+      CamundaDocumentReference ref, DocumentHandling documentHandling) {
+    return documentHandling instanceof DocumentHandling.Tracked
+            && AgentDocument.Descriptors.of(ref).fileName() == null
+        ? AgentDocumentId.of(ref).value()
+        : null;
+  }
+
+  private DocumentMetadataResponse toProtocolDocumentMetadata(
+      @Nullable DocumentMetadata metadata,
+      @Nullable String idAsFileName,
+      DocumentHandling documentHandling) {
     final DocumentMetadataResponse protocolMetadata = new DocumentMetadataResponse();
-    if (metadata.getFileName() != null) {
+    if (idAsFileName != null) {
+      protocolMetadata.fileName(idAsFileName);
+    } else if (metadata != null && metadata.getFileName() != null) {
       protocolMetadata.fileName(metadata.getFileName());
+    }
+    if (metadata == null) {
+      return protocolMetadata;
     }
     if (metadata.getContentType() != null) {
       protocolMetadata.contentType(metadata.getContentType());
@@ -301,7 +448,7 @@ public class AgentInstanceHistoryMapper {
       protocolMetadata.size(metadata.getSize());
     }
     if (metadata.getExpiresAt() != null) {
-      protocolMetadata.expiresAt(metadata.getExpiresAt().toString());
+      protocolMetadata.expiresAt(expiresAt(metadata.getExpiresAt(), documentHandling));
     }
     if (metadata.getProcessDefinitionId() != null) {
       protocolMetadata.processDefinitionId(metadata.getProcessDefinitionId());
@@ -313,5 +460,18 @@ public class AgentInstanceHistoryMapper {
       protocolMetadata.customProperties(metadata.getCustomProperties());
     }
     return protocolMetadata;
+  }
+
+  /**
+   * The expiry as text. A tracked document read back from the agent documents keeps the instant,
+   * not its offset, so a tracked document is reported in UTC, live or read back, with the same
+   * text.
+   */
+  private static String expiresAt(OffsetDateTime expiresAt, DocumentHandling documentHandling) {
+    return switch (documentHandling) {
+      case DocumentHandling.Untracked ignored -> expiresAt.toString();
+      case DocumentHandling.Tracked ignored ->
+          expiresAt.withOffsetSameInstant(ZoneOffset.UTC).toString();
+    };
   }
 }

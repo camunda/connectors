@@ -6,10 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
@@ -34,6 +37,9 @@ public record AgentContext(
     @RecordBuilder.Initializer(source = AgentMetrics.class, value = "empty") AgentMetrics metrics,
     List<ToolDefinition> toolDefinitions,
     @Nullable ConversationContext conversation,
+    @RecordBuilder.Initializer(source = AgentDocuments.class, value = "empty")
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        AgentDocuments documents,
     // the features the agent instance was created with, fixed at creation and never added later: an
     // instance without a feature keeps the behavior it started with
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> features,
@@ -61,6 +67,7 @@ public record AgentContext(
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
     requireNoRuntimeTools(toolDefinitions);
     Objects.requireNonNull(features, "Features must not be null");
+    Objects.requireNonNull(documents, "Documents must not be null");
   }
 
   private static void requireNoRuntimeTools(List<ToolDefinition> toolDefinitions) {
@@ -80,6 +87,17 @@ public record AgentContext(
 
   public @Nullable AgentInstanceKey agentInstanceKey() {
     return metadata != null ? metadata.agentInstanceKey() : null;
+  }
+
+  /**
+   * How the agent instance handles the documents of its conversation: it tracks them when it was
+   * created with the {@link AgentFeatures#DOCUMENTS} feature.
+   */
+  @JsonIgnore
+  public DocumentHandling documentHandling() {
+    return supports(AgentFeatures.DOCUMENTS)
+        ? new DocumentHandling.Tracked(documents)
+        : new DocumentHandling.Untracked();
   }
 
   public AgentContext withProperty(String key, Object value) {

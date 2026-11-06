@@ -27,6 +27,7 @@ import com.openai.models.chat.completions.ChatCompletionTool;
 import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
 import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiStrictJsonSchemas;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -35,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -276,21 +278,19 @@ public class OpenAiCompletionsRequestConverter {
    * never leaks onto the wire. A document's bytes are already delivered to the model elsewhere, so
    * this reference is never accompanied by a native embed, matching the tool-result document
    * handling on the Responses and Anthropic siblings. Anything else falls back to serializing the
-   * whole content value. Tool results are always text-only on this family.
+   * whole content value. An {@link AgentDocumentContent} block fails: the agent expands it before a
+   * request is built. Tool results are always text-only on this family.
    */
   private String toTextOutput(List<Content> content) {
     return content.stream()
-        .map(c -> {
-          if (c instanceof TextContent text) {
-            return text.text();
-          } else if (c instanceof ObjectContent obj) {
-            return contentConverter.writeAsJson(obj.content());
-          } else if (c instanceof DocumentContent doc) {
-            return contentConverter.writeAsJson(doc.document());
-          } else {
-            return contentConverter.writeAsJson(c);
-          }
-        })
+        .map(c ->
+            switch (c) {
+              case TextContent text -> text.text();
+              case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
+              case ObjectContent obj -> contentConverter.writeAsJson(obj.content());
+              case DocumentContent doc -> contentConverter.writeAsJson(doc.document());
+              default -> contentConverter.writeAsJson(c);
+            })
         .collect(Collectors.joining("\n"));
   }
 

@@ -55,6 +55,14 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-annotations</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>io.soabase.record-builder</groupId>
@@ -89,6 +97,17 @@
     </dependency>
 
     <!-- Test dependencies -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- the external document of the runtime core is built with the HTTP client; test only -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>http-client</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.skyscreamer</groupId>
       <artifactId>jsonassert</artifactId>

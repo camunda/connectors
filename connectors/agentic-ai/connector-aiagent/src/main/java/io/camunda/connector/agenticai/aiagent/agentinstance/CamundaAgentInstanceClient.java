@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -32,6 +33,7 @@ import io.camunda.connector.agenticai.common.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -215,7 +217,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
-      OffsetDateTime turnIngestionTimestamp) {
+      OffsetDateTime turnIngestionTimestamp,
+      DocumentHandling documentHandling) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance turn start: no agent instance key");
       return;
@@ -227,7 +230,13 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
           configurationHistoryItem(configuration, turn.iterationKey(), turnIngestionTimestamp));
     }
     historyItems.addAll(
-        inputHistoryItems(turn, previousTurn, turnIngestionTimestamp, turn.iterationKey()));
+        inputHistoryItems(
+            turn,
+            previousTurn,
+            turnIngestionTimestamp,
+            turn.iterationKey(),
+            documentHandling,
+            executionContext.documentFactory()));
 
     applyBatchedUpdate(
         executionContext,
@@ -264,13 +273,16 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
-      int iterationKey) {
+      int iterationKey,
+      DocumentHandling documentHandling,
+      DocumentFactory documentFactory) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
-          historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
+          historyMapper.inputHistoryItems(
+              message, toolCallsById, turnIngestionTimestamp, documentHandling, documentFactory)) {
         items.add(toHistoryItem(item, iterationKey));
       }
     }
@@ -330,7 +342,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResultContent> toolCallResults,
-      AgentConversationTurn previousTurn) {
+      AgentConversationTurn previousTurn,
+      DocumentHandling documentHandling) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance tool call results: no agent instance key");
       return;
@@ -345,7 +358,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     // completedAt
     for (final var item :
         historyMapper.inputHistoryItems(
-            syntheticMessage, toolCallsById, OffsetDateTime.now(ZoneId.systemDefault()))) {
+            syntheticMessage,
+            toolCallsById,
+            OffsetDateTime.now(ZoneId.systemDefault()),
+            documentHandling,
+            executionContext.documentFactory())) {
       items.add(toHistoryItem(item, iteration));
     }
 

@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
@@ -50,7 +51,8 @@ class AgentTaskExecutionContextTest {
   void setUp() {
     when(agentRequest.data()).thenReturn(agentRequestData);
     executionContext =
-        new AgentTaskExecutionContext(jobContext, agentRequest, toolElementsResolver);
+        new AgentTaskExecutionContext(
+            jobContext, TestDocuments.documentFactory(), agentRequest, toolElementsResolver);
   }
 
   @ParameterizedTest
