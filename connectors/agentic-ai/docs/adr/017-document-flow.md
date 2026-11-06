@@ -261,17 +261,25 @@ matrix exist.
 
 ### Only the handle identifies a document; document parameters
 
-A tool declares a parameter that takes a document with the type `document` of `fromAi`. The stored schema is a plain
-string schema with a format marker, so the persisted definition needs no custom type. The model providers of an instance
-that tracks its documents get a derived schema without the marker and with a hint appended to the description, derived
-where the provider tool definitions are built; an instance that does not track its documents sends its definitions as
-they are. The stored definition and the configuration fingerprint therefore hold no hint wording.
+A tool declares a parameter that takes a document with the type `document` of `fromAi`. The stored schema is the schema of
+the handle, an object with the required properties `type` (the one value `camunda.agent_document`) and `id`, and it goes to
+the model provider as it is. The model reads a handle in a message and writes the same object into the argument, so the
+schema asks for what the model has seen. The persisted definition needs no custom type and no marker, and nothing is derived
+or added where the provider tool definitions are built: the stored definition, the configuration fingerprint and the request
+hold the same wording. The schema sets no `additionalProperties: false`; a provider whose strict mode needs it adds it, and the
+agent ignores extra fields, so a model that copies `fileName` or `size` along with the handle is not rejected.
 
-A value resolves only when it is exactly one handle. A bare id is invalid for a plain document parameter, and the agent
-answers the call with an error the model can act on, without the tool running and without activating a process
-element. Alternatives: *accept an id or a handle* is friendlier to a model that copies only the id; *accept an id found
-anywhere in the text* would replace a tool argument that happens to contain an id. The model reads handles, so asking for
-what it reads is the least surprising contract.
+A value resolves only when it is a handle of a known document. The `type` is required: an object with only an `id` could be
+any object a tool result holds, and the `type` is what makes the model's intent unambiguous in a parameter that takes text or
+a document. A parameter that always takes a document is lenient in two ways, because the intent is clear there: it also
+accepts a string that holds the handle as JSON, since models and tool-calling APIs stringify nested objects often enough that
+rejecting the call would cost a round trip for no gain, and a string that is the bare id of a known document, since a model
+that copies only the id means the document. The schema still advertises the handle object only. Anything else is invalid, an
+unknown id included, and the agent answers the call with an error that names the expected shape, without the tool running and
+without activating a process element. Alternatives: *accept only a handle* is stricter and costs a round trip whenever the
+model passes the id; *accept an id found anywhere in the text* would replace a tool argument that happens to contain an id;
+*accept an object without a `type`* cannot tell a handle from another object in a union. The model reads handles, so asking
+for what it reads stays the contract, and the leniency only forgives the form.
 
 Whether a call is carried out is decided once, when the agent admits the message of the model (ADR 016). A call of a
 tool of either kind with an invalid document parameter is rejected at admission: it keeps its kind, its rejection is the
@@ -282,17 +290,20 @@ call when it runs* checks the same rule in a second place and lets the outcome d
 accepted: a change of the definition of a runtime tool between the two jobs of a mixed batch that adds a document
 parameter makes an admitted call fail the job instead of giving the model an error.
 
-Parameters that take text or a document are unions, declared in full: `anyOf`, `oneOf` and the type array shorthand.
-Only a value that is exactly one handle is a document. A plain string stays text even when it equals a known id, so a word
-that equals an id never turns into a document by accident. Documents are not searched for in the alternatives of a union
-that are objects or arrays, because a value cannot be assigned to one alternative reliably.
+Parameters that take text or a document are unions of the handle schema and any other schema, declared in full: `anyOf`,
+`oneOf` and the type array shorthand. In a union a string is always text, also one that equals a known id or holds a handle as
+JSON, so a word that equals an id never turns into a document by accident; the leniency of a document-only parameter does not
+reach it. An object with the `type` of a handle is a document,
+and its id must be known. Any other object is not a document and is passed as it is to the tool, which may take it for another
+alternative of the union, such as a structured value. Documents are not searched for inside the alternatives of a union,
+because a value cannot be assigned to one alternative reliably.
 
 A process tool receives the Camunda document reference of the agent document, a runtime tool the `AgentDocumentId`. Passing a
 handle to a tool never adds content. The agent resolves the parameters on the call the model made, before a gateway handler
 transforms it, as a function of the call, the tool definition and the agent documents only, so a job that runs again from the
 same context computes the same result. The stored assistant message and the history keep the handle the model wrote; the
-reference exists only in the call that goes to the process. A gateway handler that defines its tools itself can declare
-document parameters and receives the references. The MCP and A2A handlers declare none: the schema of an MCP tool comes from the
+reference exists only in the call that goes to the process. A gateway handler that defines its tools itself can declare document
+parameters and receives the references. The MCP and A2A handlers declare none: the schema of an MCP tool comes from the
 remote server and has no document type, so passing documents needs a mapping into the format the remote side expects.
 
 Alternatives for the schema: *a custom `type: document`* would force every consumer of persisted definitions to know a

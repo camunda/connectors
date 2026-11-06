@@ -479,8 +479,7 @@ invocation and transformed through copy-on-write methods.
   (1 model call, the token usage, and the tool-call count).
 - `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
 - `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a read-only
-  `ConversationSnapshot` whose tool definitions are those of `AgentConfiguration.toolDefinitions()` with the document
-  parameters rewritten for the model provider (`ProviderToolDefinitions`, for an instance that tracks its documents). The request handler
+  `ConversationSnapshot` whose tool definitions are those of `AgentConfiguration.toolDefinitions()`, unchanged. The request handler
   hands the snapshot to `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before the model is
   called. The document factory is the one of the job (`AgentExecutionContext.documentFactory()`): it restores the
   documents from the document store of the physical tenant of the job.
@@ -758,26 +757,28 @@ elements to another.
 #### Document parameters
 
 A tool parameter that carries a document is declared with the type `document`:
-`fromAi(toolCall.report, "The report to upload.", "document")`. The generator stores it as a plain string schema with the
-format `camunda-document-id` (`AuthoredSchemaNormalizer` of the tools schema module normalizes the shorthand type also
-inside the `items` and `properties` of an authored schema and in the direct alternatives of such a node, and nowhere else); the format is the only marker, so the persisted definition needs no custom type, and the stored definition and
-the configuration fingerprint keep the description as authored. The model providers get a derived schema without the format
-and with the hint `Pass the tag of a known document exactly as you read it, for example <doc id="..." />.` at the end of
-the description of every document parameter, at the top level, in `items` and in nested objects
-(`ProviderToolDefinitions`, applied by `AgentConversation.window` to an instance that tracks its documents; the
-definitions of an instance that does not are sent as they are); nothing persisted is
-rewritten. Document parameters are found at the top level, as array `items` and through object `properties` at any
-depth (`ToolDefinition#documentParameters()`, the sealed `DocumentParameter` of `Document` and `TextOrDocument`); a document inside an `anyOf` or `oneOf` alternative that is an
-object or array, and a format behind `$ref`, is not a document parameter.
+`fromAi(toolCall.report, "The report to upload.", "document")`. The generator stores the schema of a document handle
+(`DocumentSchemas.document`): an object with the properties `type`, whose one allowed value is `camunda.agent_document`, and
+`id`, both required, and the description as authored; it sets no `additionalProperties`.
+`AuthoredSchemaNormalizer` of the tools schema module normalizes the shorthand type also inside the `items` and
+`properties` of an authored schema and in the direct alternatives of such a node, and nowhere else. The schema goes to the
+model provider as it is, so the stored definition, the configuration fingerprint and the request hold the same wording, and
+nothing is appended to a description. Document parameters are found at the top level, as array `items` and through object
+`properties` at any depth (`ToolDefinition#documentParameters()`, the sealed `DocumentParameter` of `Document` and
+`TextOrDocument`). A node is a document parameter when it is an object whose `properties.type.enum` is exactly
+`["camunda.agent_document"]`; the search stops there, so its `type` and `id` properties are no parameters. A handle schema
+behind `$ref`, or inside an `anyOf` or `oneOf` alternative that is an object or array, is not a document parameter.
 
-The model passes the tag of a known document as the value. A value resolves only when it is exactly one
-`<doc id="..." />` tag, surrounded by whitespace at most; the XML-unescaped `id` attribute is the id and the other
-attributes are ignored (`DocumentTags.idOfSingleTag`). A bare id, an unknown id, a tag inside other text and more than one
-tag are invalid. A call with an invalid value is answered by the agent itself, with a tool result of one sentence per
-invalid value, joined by a space, and the tool does not run:
-`Parameter 'docs[1]' must be the <doc /> tag of a known document, exactly as you read it, got 'x'.` (`name`,
-`parent.name` and `name[i]` are the parameter paths; a value that is not a string reads `..., a string.`, an array
-parameter that is not an array `Parameter 'p' must be an array.`). A missing or `null` argument is left alone.
+The model passes the handle it read as the value: `{"type": "camunda.agent_document", "id": "doc_0123456789ab"}`. Further
+fields of the object, such as `fileName` and `size`, are ignored, and the `type` is required. A parameter that always takes
+a document is lenient in two ways: it also accepts a string that holds the handle object as JSON (a model or a tool-calling
+API that stringified the argument) and a string that is the bare id of a known document, surrounding whitespace ignored;
+the schema advertises the handle object only. Anything else is invalid: an object without the `type`, an unknown id, other
+text, a number. A call with an invalid value is answered by the agent itself, with a tool result of one sentence per invalid
+value, joined by a space, and the tool does not run:
+`Parameter 'docs[1]' must be a document handle such as {"type":"camunda.agent_document","id":"doc_…"} of a known document.`
+(`name`, `parent.name` and `name[i]` are the parameter paths; an array parameter that is not an array reads
+`Parameter 'p' must be an array.`). A missing or `null` argument is left alone.
 
 `DocumentParameterResolver` resolves the document parameters of a call from the call, the tool definition and the agent
 documents only. A process tool receives the Camunda document reference JSON of the agent document (`resolveProcessCall`), a
@@ -807,23 +808,21 @@ fromAi(
 )
 ```
 
-The type array form `schema: {"type": ["string", "document"]}` is rewritten to the same `anyOf`. A union parameter gets its own
-hint, `This parameter takes text or a document. To pass a document, give its tag exactly as you read it, for example
-<doc id="..." />. Any other text is passed as text.`: only a value that is exactly one `<doc />` tag is a document, and the
-tool receives the Camunda document reference. Every other value is passed as it is: a plain string, also one that equals
-the id of a known document (a bare id is text here, also for a runtime tool, which receives a `String` for it and a
-`AgentDocumentId` for a tag), text with a tag inside it, a number or an object. A tag with an
-unknown id is answered with `Parameter 'body' holds a <doc /> tag with the id 'x'. That is not a known document. Pass the
-tag of a document exactly as you read it, or pass other text.` and the tool does not run. A union parameter is found and
+The type array form `schema: {"type": ["string", "document"]}` is rewritten to the same `anyOf`; the alternative `document`
+becomes the handle schema and the other alternatives stay as authored, whatever they are (a string, an object, an array). A
+union is a node with an `anyOf` or `oneOf` that has a handle alternative and at least one other. A string value of a union is
+always text, also one that equals the id of a known document or holds a handle as JSON (the leniency of a document-only
+parameter does not reach a union); a runtime tool receives a `String` for it. An object with the `type` of a handle is a
+document: the tool receives the Camunda document reference, a runtime tool an `AgentDocumentId`, and a handle with an unknown
+id is answered with the sentence above and the tool does not run. An object without that `type` is passed as it is, for
+another alternative of the union, such as a structured value; so is a number, a boolean or an array. A union parameter is
 resolved by the same `DocumentParameterResolver`, at the same three places as a document parameter: a call of a tool of
-either kind with such a tag is rejected at admission, keeps its kind, carries the sentence as its `ToolCall.rejection`
-and is answered by `LocalToolCallExecutor`; a process tool receives the Camunda document reference for a tag, and a
-runtime tool receives a `AgentDocumentId` for a tag and the value the model sent otherwise. For `anyOf: [string, document]` the model provider gets
-`{"type": "string", "description": "..."}` with the hint. A union is stored as it is authored and is not searched for documents
-inside its alternatives that are objects or arrays, because a value cannot be assigned to one alternative reliably. The
-output of the Ad-Hoc Tools Schema Resolver carries the format `camunda-document-id`, so another LLM connector that sends it
-to its provider needs the same rewrite. The shorthand type `document` is normalized only for `fromAi()` parameters. See
-[ADR 017](../adr/017-document-flow.md).
+either kind with an unknown handle is rejected at admission, keeps its kind, carries the sentence as its
+`ToolCall.rejection` and is answered by `LocalToolCallExecutor`. A union is stored as it is authored and is not searched for
+documents inside its alternatives that are objects or arrays, because a value cannot be assigned to one alternative
+reliably. The output of the Ad-Hoc Tools Schema Resolver carries the handle schema, which every provider accepts as it is,
+so another LLM connector that sends it to its provider needs no rewrite. The shorthand type `document` is normalized only for
+`fromAi()` parameters. See [ADR 017](../adr/017-document-flow.md).
 
 ---
 
@@ -997,7 +996,7 @@ call to the kind of the tool of its name in the tool list of the job (the tools 
 tools; for an instance without the feature, the tools of the process). A call whose name is not in the list gets a
 `rejection`, the error text that is its tool call result (`The tool '<name>' does not exist.`); its kind stays
 `PROCESS`. For an agent instance with the `documents` feature, a call of a tool of either kind with a document parameter
-(§7) whose value is not the `<doc />` tag of a known document is rejected the same way, with an error message that names
+(§7) whose value is not the handle of a known document is rejected the same way, with an error message that names
 the parameter, and keeps its kind. A rejection can apply to a call of any kind. The agent admits the calls once, between the model result and
 `AgentConversation.ingest`, for every agent instance, with or without the `runtimeTools` feature, persists
 them with the message and never computes them again, so they may appear in the state of any agent instance. The JSON of a
@@ -1015,7 +1014,7 @@ tool call result (`ToolCallResultContent.forRejectedToolCall`) when its `ToolCal
 executed. `LocalToolCallExecutor` executes the rest, the calls of runtime tools, through `RuntimeTools` and fails for
 any other result source; a call whose tool is no longer enabled when it is executed gets the error result `The tool
 '<name>' is not available.` Neither goes to the process. `RuntimeTools` passes `AgentDocumentId`s for the document parameters of an
-admitted runtime tool call to the tool; admission already rejected a value that is not the tag of a known document. The error is plain text in the tool call
+admitted runtime tool call to the tool; admission already rejected a value that is not the handle of a known document. The error is plain text in the tool call
 result; the tool call result has no error flag.
 
 Only the process tool calls are activated and handed to the process (`AgentResponse.toolCalls`, built from
@@ -1908,7 +1907,7 @@ These are used during discovery checking and tool call result transformation.
 
 A gateway handler that defines its tools itself can declare document parameters in them. The tool definitions
 a handler returns from `handleToolDiscoveryResults` are stored as they are, so a handler writes the stored form of a document
-parameter (`DocumentSchemas.document(...)`: a string schema with the format `camunda-document-id`) or of a
+parameter (`DocumentSchemas.document(...)`: the object schema of a document handle) or of a
 union parameter (`DocumentSchemas.textOrDocument(...)`); the
 shorthand type `document` is normalized only for `fromAi()` parameters. The agent resolves the document parameters of a call
 on the model's tool call, by the definition the model saw, before `transformToolCalls()`, so the handler receives the
@@ -1979,7 +1978,7 @@ file as a Camunda document instead.
 - Without the `runtimeTools` feature there are no runtime tools, no mixed-batch handling and no tool name check (§25.4).
 - The document parameters of tool calls are not resolved or checked: a `fromAi(..., "document")` parameter reaches the
   process as the plain string the model sent.
-- The schema of a tool and the provider rewrite of the document format apply to every instance.
+- The schema of a document parameter is the handle schema for every instance; it is sent to the provider as it is.
 - The history reports the messages as stored.
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.

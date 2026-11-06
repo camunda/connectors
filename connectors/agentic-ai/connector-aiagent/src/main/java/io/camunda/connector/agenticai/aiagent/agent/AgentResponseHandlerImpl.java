@@ -60,7 +60,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     final var assistantMessage = assistantMessageOf(lastTurn);
     // the stored assistant message keeps every tool call as the model sent it; only the calls
     // handed to the process become tool calls of the response, and these carry the Camunda
-    // document references in place of the document tags
+    // document references in place of the document handles
     final var toolCalls =
         gatewayToolHandlers
             .transformToolCalls(

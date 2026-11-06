@@ -235,7 +235,7 @@ High-frequency traps (detail behind each link):
   assistant message enters the conversation, `ToolCallAdmission` sets `ToolCall.kind` to the kind of the tool of the call's name among the
   tools offered in the job, and `ToolCall.rejection` (the error text) when the call must not be carried out, such as a name that is not offered, and never computes either
   again, for every agent instance, with or without the `runtimeTools` feature. For an instance with the `documents`
-  feature, a call of a tool of either kind whose document parameter is not the `<doc />` tag of a known document also
+  feature, a call of a tool of either kind whose document parameter is not the handle of a known document also
   gets a `rejection` and keeps its kind. Both are persisted (`kind` written only
   for `RUNTIME`, `rejection` only when set), so every conversation store must keep them. A call with a rejection
   (a rejected call) gets its rejection as its tool call result and is never executed or activated, also when a runtime tool of that
@@ -265,9 +265,10 @@ High-frequency traps (detail behind each link):
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
   documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order. A tool
-  parameter of the type `document` of `fromAi` holds a handle the model passed, and a parameter that takes text or a
-  document (an `anyOf` or `oneOf` with a document alternative) holds a handle only when the model passed exactly one
-  handle, and text otherwise; `DocumentParameterResolver` turns the handle into the Camunda document reference for a
+  parameter of the type `document` of `fromAi` is the object schema of a handle (no format marker, no hint, sent to the
+  provider as it is) and holds the handle object the model passed, or a string with its JSON or the bare id of a known
+  document; a parameter that takes text or a document (an `anyOf` or `oneOf` with a handle alternative) holds a document
+  only for an object with the handle `type`, a string is always text; `DocumentParameterResolver` turns the handle into the Camunda document reference for a
   process tool (`AgentResponseHandlerImpl`) and into an `AgentDocumentId` for a runtime tool (`RuntimeTools`), and the
   stored messages and the history keep the handle. A tool call of either kind whose value is not the handle of a known
   document is rejected at admission (`ToolCallAdmission`).
