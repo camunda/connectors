@@ -49,7 +49,8 @@ Change only what the task needs. Clean up only your own changes.
 - Do not refactor code that works. Ask before each refactor, also a small one.
 - Tell about dead code that is not related to your change. Do not remove it unless you get a request.
 - Remove the variables and functions that your change made unused.
-- The test: each changed line comes directly from the request.
+- When the change leaves related code redundant or inconsistent, name it in the plan with the risk of
+  keeping it and the risk of changing it, and ask.
 
 ## Domain rules
 
