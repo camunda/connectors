@@ -22,8 +22,10 @@ public abstract class JsonSchemaConstants {
   public static final String PROPERTY_REQUIRED = "required";
   public static final String PROPERTY_ADDITIONAL_PROPERTIES = "additionalProperties";
   public static final String PROPERTY_PROPERTIES = "properties";
+  public static final String PROPERTY_FORMAT = "format";
   public static final String PROPERTY_ENUM = "enum";
   public static final String PROPERTY_ANYOF = "anyOf";
+  public static final String PROPERTY_ONEOF = "oneOf";
   public static final String PROPERTY_ITEMS = "items";
   public static final String PROPERTY_DEFINITIONS = "$defs";
   public static final String PROPERTY_REF = "$ref";

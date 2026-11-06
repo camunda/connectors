@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -118,6 +119,52 @@ class AgentToolsResolverTest {
       assertThat(result.toolDefinitions()).hasSize(1);
       assertThat(result.toolDefinitions().get(0).description())
           .isEqualTo("Updated Tool 1 description");
+    }
+
+    @Test
+    void doesNotTreatUnchangedToolWithDocumentParametersAsChanged() {
+      final var toolWithDocuments =
+          ToolDefinition.builder()
+              .name("tool1")
+              .description("Tool 1 description")
+              .inputSchema(
+                  Map.of(
+                      "type",
+                      "object",
+                      "properties",
+                      Map.of("doc", DocumentSchemas.document(null))))
+              .build();
+      final var agentContext = AgentContext.empty().withToolDefinitions(List.of(toolWithDocuments));
+
+      final var regenerated = toolWithDocuments.withDescription(toolWithDocuments.description());
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(regenerated), List.of()));
+      when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
+          .thenReturn(Map.of());
+      when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
+
+      final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
+
+      assertThat(result.toolDefinitions()).containsExactly(toolWithDocuments);
+    }
+
+    @Test
+    void updatesToolDefinitionWhenDocumentParametersChange() {
+      final var agentContext = AgentContext.empty().withToolDefinitions(List.of(TOOL_1));
+      final var withDocuments =
+          TOOL_1.withInputSchema(
+              Map.of(
+                  "type", "object", "properties", Map.of("doc", DocumentSchemas.document(null))));
+
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(withDocuments), List.of()));
+      when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
+          .thenReturn(Map.of());
+      when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
+
+      final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
+
+      assertThat(result.toolDefinitions()).containsExactly(withDocuments);
     }
 
     @Test

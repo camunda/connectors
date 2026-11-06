@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.*;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -30,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
@@ -193,6 +195,62 @@ class AgentConversationTest {
     var snapshot = conv.window(20);
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
+  }
+
+  @Test
+  void window_offersTheToolDefinitionsWithDocumentParametersAsConfigured() {
+    var authored =
+        ToolDefinition.builder()
+            .name("send")
+            .description("Sends a message")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of(
+                        "file",
+                        DocumentSchemas.document("The file"),
+                        "body",
+                        TestDocuments.textOrDocument("The body"))))
+            .build();
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG.withToolDefinitions(List.of(authored)),
+            BASE_CONTEXT.withToolDefinitions(List.of(authored)),
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    assertThat(conv.window(20).toolDefinitions()).containsExactly(authored);
+  }
+
+  @Test
+  void window_offersTheToolDefinitionsAsConfiguredWhenTheAgentInstanceDoesNotTrackItsDocuments() {
+    var authored =
+        ToolDefinition.builder()
+            .name("upload")
+            .description("Uploads a file")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of("doc", DocumentSchemas.document("The file"))))
+            .build();
+    var untracked =
+        BASE_CONTEXT
+            .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
+            .withToolDefinitions(List.of(authored));
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG.withToolDefinitions(List.of(authored)),
+            untracked,
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    assertThat(conv.window(20).toolDefinitions()).containsExactly(authored);
   }
 
   @Test

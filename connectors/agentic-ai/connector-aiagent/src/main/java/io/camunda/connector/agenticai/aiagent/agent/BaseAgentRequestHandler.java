@@ -389,7 +389,9 @@ public abstract class BaseAgentRequestHandler<
 
     final var assistantMessage =
         toolCallAdmission.admit(
-            chatResult.assistantMessage(), agentConfiguration.toolDefinitions());
+            chatResult.assistantMessage(),
+            agentConfiguration.toolDefinitions(),
+            conversation.persistedContext());
     return new ModelResponse(
         conversation.ingest(assistantMessage, chatResult.metrics()), chatResult);
   }

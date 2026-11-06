@@ -7,12 +7,23 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -24,7 +35,42 @@ class ToolCallAdmissionTest {
   private static final ToolDefinition RUNTIME_TOOL =
       ToolDefinition.runtime("acme_note", "Note", Map.of("type", "object"));
 
-  private final ToolCallAdmission admission = new ToolCallAdmission();
+  private static final ToolDefinition PROCESS_UPLOAD_TOOL =
+      new ToolDefinition("upload", "Upload", documentSchema());
+  private static final ToolDefinition RUNTIME_UPLOAD_TOOL =
+      ToolDefinition.runtime("acme_upload", "Upload", documentSchema());
+
+  private static final ToolDefinition PROCESS_SEND_TOOL =
+      new ToolDefinition("send", "Send", unionSchema());
+  private static final ToolDefinition RUNTIME_SEND_TOOL =
+      ToolDefinition.runtime("acme_send", "Send", unionSchema());
+
+  private static final ToolDefinition PROCESS_ATTACH_TOOL =
+      new ToolDefinition("attach", "Attach", attachSchema());
+
+  private static final String UNKNOWN_BODY = rejection("body", "doc_000000000000");
+
+  private static final String BOGUS_DOC = mustBeHandle("doc");
+
+  private static final AgentContext NEW_INSTANCE =
+      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+
+  private static final Document REPORT = createDocument("report data", "report.txt");
+  private static final Map<String, Object> REPORT_HANDLE =
+      Map.of("type", "camunda.agenticai.document", "id", AgentDocumentId.of(REPORT).value());
+
+  private static final Map<String, Object> UNKNOWN_HANDLE =
+      Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000");
+
+  private static final AgentContext KNOWING_REPORT =
+      AgentContext.empty()
+          .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+          .withDocuments(
+              AgentDocuments.empty()
+                  .register(List.of(new NewDocument(REPORT, DocumentOrigin.userMessage()))));
+
+  private final ToolCallAdmission admission =
+      new ToolCallAdmission(new DocumentParameterResolver());
 
   @Test
   void eachCallGetsTheKindOfTheOfferedToolOfItsName() {
@@ -33,7 +79,8 @@ class ToolCallAdmissionTest {
             new ToolCall("p1", "getWeather", Map.of("city", "Berlin")),
             new ToolCall("r1", "acme_note", Map.of("text", "x")));
 
-    final var admitted = admission.admit(message, List.of(PROCESS_TOOL, RUNTIME_TOOL));
+    final var admitted =
+        admission.admit(message, List.of(PROCESS_TOOL, RUNTIME_TOOL), NEW_INSTANCE);
 
     assertThat(admitted)
         .isEqualTo(
@@ -51,7 +98,7 @@ class ToolCallAdmissionTest {
             new ToolCall("x1", "acme_unknown", Map.of()),
             new ToolCall("p1", "getWeather", Map.of()));
 
-    final var admitted = admission.admit(message, List.of(PROCESS_TOOL));
+    final var admitted = admission.admit(message, List.of(PROCESS_TOOL), NEW_INSTANCE);
 
     assertThat(admitted.toolCalls())
         .containsExactly(
@@ -64,7 +111,245 @@ class ToolCallAdmissionTest {
   void aMessageWithoutCallsIsReturnedAsItIs() {
     final var message = AssistantMessage.builder().content(List.of(textContent("Hi"))).build();
 
-    assertThat(admission.admit(message, List.of(PROCESS_TOOL))).isSameAs(message);
+    assertThat(admission.admit(message, List.of(PROCESS_TOOL), NEW_INSTANCE)).isSameAs(message);
+  }
+
+  @Test
+  void aProcessCallWithAnInvalidDocumentParameterIsRejectedAndKeepsItsKind() {
+    final var call = new ToolCall("p1", "upload", Map.of("doc", "bogus"));
+
+    final var admitted =
+        admission.admit(messageWith(call), List.of(PROCESS_UPLOAD_TOOL), KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls()).containsExactly(call.withRejection(BOGUS_DOC));
+    assertThat(admitted.toolCalls().getFirst().kind()).isEqualTo(ToolKind.PROCESS);
+    assertThat(admitted.toolCalls().getFirst().resultSource())
+        .isEqualTo(ToolCall.ResultSource.REJECTED);
+  }
+
+  @Test
+  void aCallOfEitherKindWithADocumentParameterIsRejectedWhenTheAgentKnowsNoDocuments() {
+    final var knowingNothing =
+        AgentContext.empty()
+            .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+    final var processCall = new ToolCall("p1", "upload", Map.of("doc", REPORT_HANDLE));
+    final var runtimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", "bogus"));
+    final var noDocuments =
+        "Parameter 'doc' takes a document, but the conversation has no documents. Do not pass a"
+            + " document.";
+
+    final var admitted =
+        admission.admit(
+            messageWith(processCall, runtimeCall),
+            List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
+            knowingNothing);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(
+            processCall.withRejection(noDocuments),
+            runtimeCall.withKind(ToolKind.RUNTIME).withRejection(noDocuments));
+  }
+
+  @Test
+  void aRuntimeCallWithAnInvalidDocumentParameterIsRejectedAndKeepsItsKind() {
+    final var call = new ToolCall("r1", "acme_upload", Map.of("doc", "bogus"));
+
+    final var admitted =
+        admission.admit(messageWith(call), List.of(RUNTIME_UPLOAD_TOOL), KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(call.withKind(ToolKind.RUNTIME).withRejection(BOGUS_DOC));
+    assertThat(admitted.toolCalls().getFirst().kind()).isEqualTo(ToolKind.RUNTIME);
+    assertThat(admitted.toolCalls().getFirst().resultSource())
+        .isEqualTo(ToolCall.ResultSource.REJECTED);
+  }
+
+  @Test
+  void aCallOfEitherKindWithAHandleOfAKnownDocumentIsAdmittedWithItsArgumentsUnchanged() {
+    final var processCall = new ToolCall("p1", "upload", Map.of("doc", REPORT_HANDLE));
+    final var runtimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", REPORT_HANDLE));
+
+    final var admitted =
+        admission.admit(
+            messageWith(processCall, runtimeCall),
+            List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
+            KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(processCall, runtimeCall.withKind(ToolKind.RUNTIME));
+    assertThat(admitted.toolCalls()).extracting(ToolCall::rejection).containsOnlyNulls();
+  }
+
+  @Test
+  void aCallOfEitherKindWithTheBareIdOfADocumentIsRejected() {
+    final var knownId = AgentDocumentId.of(REPORT).value();
+    final var processKnown = new ToolCall("p1", "upload", Map.of("doc", knownId));
+    final var runtimeKnown = new ToolCall("r1", "acme_upload", Map.of("doc", " " + knownId + "\n"));
+    final var processUnknown = new ToolCall("p2", "upload", Map.of("doc", "doc_000000000000"));
+
+    final var admitted =
+        admission.admit(
+            messageWith(processKnown, runtimeKnown, processUnknown),
+            List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
+            KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(
+            processKnown.withRejection(BOGUS_DOC),
+            runtimeKnown.withKind(ToolKind.RUNTIME).withRejection(BOGUS_DOC),
+            processUnknown.withRejection(BOGUS_DOC));
+  }
+
+  @Test
+  void rejectsOnlyTheCallsWithAnInvalidDocumentParameterOfABatch() {
+    final var invalidProcessCall = new ToolCall("p1", "upload", Map.of("doc", "bogus"));
+    final var validRuntimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", REPORT_HANDLE));
+    final var invalidRuntimeCall = new ToolCall("r2", "acme_upload", Map.of("doc", "bogus"));
+    final var otherCall = new ToolCall("p2", "getWeather", Map.of("city", "Berlin"));
+
+    final var admitted =
+        admission.admit(
+            messageWith(invalidProcessCall, validRuntimeCall, invalidRuntimeCall, otherCall),
+            List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL, PROCESS_TOOL),
+            KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(
+            invalidProcessCall.withRejection(BOGUS_DOC),
+            validRuntimeCall.withKind(ToolKind.RUNTIME),
+            invalidRuntimeCall.withKind(ToolKind.RUNTIME).withRejection(BOGUS_DOC),
+            otherCall);
+  }
+
+  @Test
+  void doesNotCheckDocumentParametersWithoutTheDocumentsFeature() {
+    final var processCall = new ToolCall("p1", "upload", Map.of("doc", "bogus"));
+    final var runtimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", "bogus"));
+
+    final var admitted =
+        admission.admit(
+            messageWith(processCall, runtimeCall),
+            List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
+            NEW_INSTANCE);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(processCall, runtimeCall.withKind(ToolKind.RUNTIME));
+  }
+
+  @Test
+  void doesNotCheckTheArgumentsOfAToolWithoutDocumentParameters() {
+    final var processCall = new ToolCall("p1", "getWeather", Map.of("doc", "bogus"));
+    final var runtimeCall = new ToolCall("r1", "acme_note", Map.of("doc", "bogus"));
+
+    final var admitted =
+        admission.admit(
+            messageWith(processCall, runtimeCall),
+            List.of(PROCESS_TOOL, RUNTIME_TOOL),
+            KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(processCall, runtimeCall.withKind(ToolKind.RUNTIME));
+  }
+
+  @Test
+  void aCallOfEitherKindWithAHandleOfAnUnknownDocumentInAUnionParameterIsRejectedAndKeepsItsKind() {
+    final var processCall = new ToolCall("p1", "send", Map.of("body", UNKNOWN_HANDLE));
+    final var runtimeCall = new ToolCall("r1", "acme_send", Map.of("body", UNKNOWN_HANDLE));
+
+    final var admitted =
+        admission.admit(
+            messageWith(processCall, runtimeCall),
+            List.of(PROCESS_SEND_TOOL, RUNTIME_SEND_TOOL),
+            KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(
+            processCall.withRejection(UNKNOWN_BODY),
+            runtimeCall.withKind(ToolKind.RUNTIME).withRejection(UNKNOWN_BODY));
+    assertThat(admitted.toolCalls())
+        .extracting(ToolCall::kind)
+        .containsExactly(ToolKind.PROCESS, ToolKind.RUNTIME);
+  }
+
+  @Test
+  void aCallOfEitherKindWithTextOrAHandleOfAKnownDocumentInAUnionParameterIsAdmitted() {
+    final var processText = new ToolCall("p1", "send", Map.of("body", "hello"));
+    final var processHandle = new ToolCall("p2", "send", Map.of("body", REPORT_HANDLE));
+    final var runtimeText = new ToolCall("r1", "acme_send", Map.of("body", "hello"));
+    final var runtimeHandle = new ToolCall("r2", "acme_send", Map.of("body", REPORT_HANDLE));
+
+    final var admitted =
+        admission.admit(
+            messageWith(processText, processHandle, runtimeText, runtimeHandle),
+            List.of(PROCESS_SEND_TOOL, RUNTIME_SEND_TOOL),
+            KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(
+            processText,
+            processHandle,
+            runtimeText.withKind(ToolKind.RUNTIME),
+            runtimeHandle.withKind(ToolKind.RUNTIME));
+  }
+
+  @Test
+  void aCallWithAnUnknownHandleNestedInAUnionParameterIsRejectedWithTheFullPath() {
+    final var call =
+        new ToolCall(
+            "p1", "attach", Map.of("message", Map.of("file", UNKNOWN_HANDLE, "caption", "c")));
+    final var oneOrList =
+        new ToolCall("p2", "attach", Map.of("message", List.of(REPORT_HANDLE, UNKNOWN_HANDLE)));
+
+    final var admitted =
+        admission.admit(messageWith(call, oneOrList), List.of(PROCESS_ATTACH_TOOL), KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(
+            call.withRejection(rejection("message.file", "doc_000000000000")),
+            oneOrList.withRejection(rejection("message[1]", "doc_000000000000")));
+  }
+
+  private static String mustBeHandle(String path) {
+    return ("Parameter '%s' must be the handle of a document from the conversation: a JSON object"
+            + " such as {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.")
+        .formatted(path);
+  }
+
+  private static String rejection(String path, String id) {
+    return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
+            + " Pass the handle of a document from the conversation: a JSON object such as"
+            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.")
+        .formatted(path, id);
+  }
+
+  private static Map<String, Object> unionSchema() {
+    return Map.of(
+        "type", "object", "properties", Map.of("body", TestDocuments.textOrDocument("The body")));
+  }
+
+  /** A message that is text, a file with a caption, or one or a list of documents. */
+  private static Map<String, Object> attachSchema() {
+    final var file =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of("file", DocumentSchemas.document(null), "caption", Map.of("type", "string")));
+    final var list = Map.of("type", "array", "items", DocumentSchemas.document(null));
+    return Map.of(
+        "type",
+        "object",
+        "properties",
+        Map.of(
+            "message",
+            Map.of(
+                "anyOf",
+                List.of(Map.of("type", "string"), file, DocumentSchemas.document(null), list))));
+  }
+
+  private static Map<String, Object> documentSchema() {
+    return Map.of(
+        "type", "object", "properties", Map.of("doc", DocumentSchemas.document("The file")));
   }
 
   private static AssistantMessage messageWith(ToolCall... calls) {

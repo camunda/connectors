@@ -306,6 +306,34 @@ class McpClientGatewayToolHandlerTest {
     }
 
     @Test
+    void discoveredToolsDeclareNoDocumentParameters() {
+      var inputSchema =
+          Map.<String, Object>of(
+              "type",
+              "object",
+              "properties",
+              Map.of("document", Map.of("type", "string", "description", "The document name")));
+      var mcpListToolsResult =
+          new McpClientListToolsResult(
+              List.of(
+                  McpToolDefinitionBuilder.builder()
+                      .name("read")
+                      .description("Reads a document")
+                      .inputSchema(inputSchema)
+                      .build()));
+      var toolDiscoveryResults =
+          List.of(
+              createToolCallResultWithContent("MCP_toolsList_mcp1", "mcp1", mcpListToolsResult));
+
+      var result = handler.handleToolDiscoveryResults(AgentContext.empty(), toolDiscoveryResults);
+
+      assertThat(result).hasSize(1);
+      var toolDefinition = result.getFirst();
+      assertThat(toolDefinition.inputSchema()).isEqualTo(inputSchema);
+      assertThat(toolDefinition.documentParameters()).isEmpty();
+    }
+
+    @Test
     void handlesMultipleDiscoveryResults() {
       var agentContext = AgentContext.empty();
       var mcpListToolsResult1 =

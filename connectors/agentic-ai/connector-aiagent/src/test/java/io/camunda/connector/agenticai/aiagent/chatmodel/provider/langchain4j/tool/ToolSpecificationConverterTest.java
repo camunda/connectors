@@ -11,16 +11,21 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
+import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -93,6 +98,46 @@ class ToolSpecificationConverterTest {
           assertThat(schema.required()).containsExactly("path", "edits");
           assertThat(schema.additionalProperties()).isFalse();
         });
+  }
+
+  @Test
+  void keepsTheHandleSchemaOfDocumentParametersThroughTheConversionAndBack() {
+    final var properties = new LinkedHashMap<String, Object>();
+    properties.put("file", DocumentSchemas.document("The file"));
+    properties.put("body", TestDocuments.textOrDocument("The body"));
+    final var toolDefinition =
+        ToolDefinition.builder()
+            .name("send")
+            .description("Sends")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    properties,
+                    "required",
+                    List.of("file", "body")))
+            .build();
+
+    final var toolSpecification = toolSpecificationConverter.asToolSpecification(toolDefinition);
+
+    final var file = (JsonObjectSchema) toolSpecification.parameters().properties().get("file");
+    assertThat(file.description()).isEqualTo("The file");
+    assertThat(file.required()).containsExactly("type", "id");
+    assertThat(file.properties().get("type"))
+        .asInstanceOf(InstanceOfAssertFactories.type(JsonEnumSchema.class))
+        .satisfies(
+            type -> assertThat(type.enumValues()).containsExactly("camunda.agenticai.document"));
+    final var body = (JsonAnyOfSchema) toolSpecification.parameters().properties().get("body");
+    assertThat(body.description()).isEqualTo("The body");
+    assertThat(body.anyOf()).hasSize(2);
+    assertThat(body.anyOf().get(0)).isInstanceOf(JsonStringSchema.class);
+    final var handle = (JsonObjectSchema) body.anyOf().get(1);
+    assertThat(handle.required()).containsExactly("type", "id");
+    assertThat(handle.properties()).containsOnlyKeys("type", "id");
+
+    final var restored = toolSpecificationConverter.asToolDefinition(toolSpecification);
+    assertThat(restored.documentParameters()).isEqualTo(toolDefinition.documentParameters());
   }
 
   @Test

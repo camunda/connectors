@@ -207,14 +207,15 @@ The loop operates as a distributed state machine between the connector runtime a
    - Resolve a `ChatModel` for the configured provider via `ChatModelRegistry` and call
      `execute(ChatRequest)` with the windowed `ConversationSnapshot` after `DocumentExpander.expand`; `ingest` the assistant response
      into the turn. Before the ingest, `ToolCallAdmission` admits the tool calls of the assistant message: each gets the kind
-     of its tool, or a rejection when the tool is not offered (see [§9](#9-tool-completion)). If the result is a `ChatResult.Continuation`
+     of its tool, or a rejection when the tool is not offered or a document parameter is not a known document
+     (see [§9](#9-tool-completion) and [§7](#7-tool-resolution)). If the result is a `ChatResult.Continuation`
      rather than `Completed`, the handler loops — persisting the round as its own turn and re-calling the model with no new
      input — until a `Completed` result ends the turn (see [§12](#12-framework-abstraction)). The same happens when every
      tool call of the message is a local tool call: the handler checks the model-call limit, produces their tool call
      results the same way, from a `Ready` of the batch, and opens the next round with the assembled input
      (`nextRuntimeToolRound`) and registers the documents of the results in the agent documents (`TurnInput.applyTo`)
    - Store the updated conversation back to the memory store (via `ConversationSession`) and reduce it back to `AgentContext`
-   - Transform the process tool calls and create the response
+   - Resolve the document parameters of the process tool calls, transform them and create the response
 
 5. **Job completion** (`AgentSubProcessConnectorResponse`):
    - Sets `agentContext` variable with updated state
@@ -478,10 +479,10 @@ invocation and transformed through copy-on-write methods.
   (1 model call, the token usage, and the tool-call count).
 - `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
 - `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a read-only
-  `ConversationSnapshot`. The request handler hands the snapshot to
-  `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before the model is called. The document factory
-  is the one of the job (`AgentExecutionContext.documentFactory()`): it restores the documents from the document store of
-  the physical tenant of the job.
+  `ConversationSnapshot` whose tool definitions are those of `AgentConfiguration.toolDefinitions()`, unchanged. The request handler
+  hands the snapshot to `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before the model is
+  called. The document factory is the one of the job (`AgentExecutionContext.documentFactory()`): it restores the
+  documents from the document store of the physical tenant of the job.
 - `persistedContext()`: the base `AgentContext` without the metrics and iteration bookkeeping that `toAgentContext()`
   adds; it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages, agentContext)` opens the next round of the
   job with the tool call results of the local tool calls, and the messages that follow them, as its input, and continues
@@ -753,6 +754,113 @@ elements to another.
 - Required unless `options.required == false`
 - Output: `{type: "object", properties: {...}, required: [...]}`
 
+#### Document parameters
+
+A tool parameter that carries a document is declared with the type `document`:
+`fromAi(toolCall.report, "The report to upload.", "document")`. The generator stores the schema of a document handle
+(`DocumentSchemas.document`): an object with the properties `type`, whose one allowed value is `camunda.agenticai.document`, and
+`id`, both required, and the description as authored; it sets no `additionalProperties`.
+`AuthoredSchemaNormalizer` of the tools schema module normalizes the shorthand type also inside the `items` and
+`properties` of an authored schema and in the `anyOf` and `oneOf` alternatives of such a node at any depth, and nowhere else
+(`allOf`, `not`, `if`/`then`/`else`, `additionalProperties`, `patternProperties`, `prefixItems`, `$defs` and `$ref` keep the shorthand as
+authored). The schema goes to the
+model provider as it is, so the stored definition, the configuration fingerprint and the request hold the same wording, and
+nothing is appended to a description. Document parameters are found at the top level, as array `items` and through object
+`properties` at any depth (`ToolDefinition#documentParameters()`, the sealed `DocumentParameter` of `Document` and
+`Union`). A node is a `Document` when it is an object whose `properties.type.enum` is exactly
+`["camunda.agenticai.document"]`; the search stops there, so its `type` and `id` properties are no parameters. A node is a
+`Union` when it has `anyOf` or `oneOf` with more than one alternative and a handle schema sits inside its alternatives (see
+below); the search stops there too. A handle schema behind `$ref` is not a document parameter.
+
+The model passes the handle it read as the value: `{"type": "camunda.agenticai.document", "id": "doc_0123456789ab"}`. One
+rule defines a handle everywhere: an object with the `type` `camunda.agenticai.document`, or a string that is exactly such an
+object as JSON (a model or a tool-calling API that stringified the argument), surrounding whitespace ignored. Further fields of
+the object, such as `fileName` and `size`, are ignored, and the `type` is required. A string that is the bare id of a document
+is no handle. The value of a `Document` parameter must be a handle of a known document. Anything else is invalid: a bare id, an
+object without the `type`, an unknown id, other text, a number. A call with an invalid value is answered by the agent itself, with a tool result of one sentence per invalid
+value, joined by a space, and the tool does not run. The sentence depends on the value. When the agent knows no documents, it
+tells the model to pass none (it wins over the other two):
+`Parameter 'docs[1]' takes a document, but the conversation has no documents. Do not pass a document.`
+When the value is a handle with an id that is not known, it names the id:
+`Parameter 'docs[1]' has the id 'doc_000000000000', but the conversation has no document with this id. Pass the handle of a document from the conversation: a JSON object such as {"type":"camunda.agenticai.document","id":"doc_…"}.`
+For any other value it names the expected shape:
+`Parameter 'docs[1]' must be the handle of a document from the conversation: a JSON object such as {"type":"camunda.agenticai.document","id":"doc_…"}.`
+In a union parameter that holds a handle while the agent knows no documents, the first sentence reads
+`Parameter 'message.file' holds a document handle, but the conversation has no documents. Do not pass a document handle.`
+(`name`, `parent.name` and `name[i]` are the paths of the value; an array parameter that is not an array reads
+`Parameter 'p' must be an array.`). A missing or `null` argument is left alone.
+
+`DocumentParameterResolver` resolves the document parameters of a call from the call, the tool definition and the agent
+documents only. A process tool receives the Camunda document reference JSON of the agent document (`resolveProcessCall`), a
+runtime tool the `AgentDocumentId` of the document (`resolveRuntimeCall`); `check` validates the call of a tool of either kind. An `Untracked` agent instance has
+no document parameters: the calls are not touched. The agent uses the resolver at three places, and the tool call of the
+assistant message is never rewritten, so the stored conversation and the history keep what the model sent:
+
+- **The admission of a call.** `ToolCallAdmission` admits the tool calls of an assistant message before it is ingested
+  (see [§9](#9-tool-completion)). A call of a tool of either kind whose document parameters are invalid keeps its kind and
+  gets the sentences above as its `ToolCall.rejection`. Like every rejected call it has the rejection as its tool call result from the
+  moment its `ToolCallBatch` is created, and is never executed or activated.
+- **The call that goes to the process.** `AgentResponseHandlerImpl` resolves the document parameters of the process tool
+  calls of the last turn into the Camunda document references before the gateway transformation, and the response carries
+  them.
+- **The execution of a runtime call.** `RuntimeTools` resolves the document parameters of an admitted runtime tool call
+  into `AgentDocumentId`s before it calls the tool.
+
+A parameter that takes a document or something else (a union parameter) is declared with the schema argument of `fromAi()`,
+an `anyOf` (or `oneOf`) with more than one alternative, a `document` among them, directly or inside an object alternative
+(its properties) or an array alternative (its items). Leave the type argument out with named arguments, so the type of the
+other alternatives stays valid. Text or a document:
+
+```feel
+fromAi(
+  value: toolCall.body,
+  description: "The body of the message.",
+  schema: {"anyOf": [{"type": "string"}, {"type": "document"}]}
+)
+```
+
+One document or a list of documents:
+
+```feel
+fromAi(
+  value: toolCall.files,
+  description: "The files to attach.",
+  schema: {"anyOf": [{"type": "document"}, {"type": "array", "items": {"type": "document"}}]}
+)
+```
+
+Text or a file with a caption:
+
+```feel
+fromAi(
+  value: toolCall.message,
+  description: "The message.",
+  schema: {"anyOf": [
+    {"type": "string"},
+    {"type": "object", "properties": {"file": {"type": "document"}, "caption": {"type": "string"}}}
+  ]}
+)
+```
+
+The type array form `schema: {"type": ["string", "document"]}` is rewritten to the same `anyOf`; the alternative `document`
+becomes the handle schema wherever the shorthand sits in an alternative, and the other alternatives stay as authored. The agent
+does not assign the value to an alternative: a handle identifies itself by its `type`, so the agent scans the value of a union
+and every handle at or below it is a document. The tool receives the Camunda document reference for it, a runtime tool an
+`AgentDocumentId`, and a handle with an unknown id is answered with the sentence above, with the path of the handle (for
+example `files[1]` or `message.file`), and the tool does not run. Everything else is passed as it is: text (also a string that
+equals the id of a known document, or a string that is not a handle as JSON), a number, a boolean, `null`, and the rest of an
+object (for another alternative, such as a structured value) or an array around its handles; a runtime tool receives a `String`
+for text. This
+holds also for a union without a text alternative. A union parameter is resolved by the same `DocumentParameterResolver`, at the
+same three places as a document parameter: a call of a tool of either kind with an unknown handle is rejected at admission,
+keeps its kind, carries the sentence as its `ToolCall.rejection` and has the rejection as its tool call result. A union is stored as
+it is authored, with the shorthand turned into the handle schema. A union with a handle schema in an alternative gets no default
+`type: string` next to its `anyOf`. The search for document parameters stops at a union, and it does not look into `allOf`,
+`not`, `if`/`then`/`else`, `additionalProperties`, `patternProperties`, `prefixItems`, `$defs` or `$ref`. The output of the Ad-Hoc
+Tools Schema Resolver carries the handle schema, which every provider accepts as it is, so another LLM connector that sends it to
+its provider needs no rewrite. The shorthand type `document` is normalized only for `fromAi()` parameters. See
+[ADR 017](../adr/017-document-flow.md).
+
 ---
 
 <a id="8-job-completion"></a>
@@ -924,7 +1032,9 @@ is a BPMN element, `RUNTIME` for a tool the agent executes itself (§25.4). `Too
 call to the kind of the tool of its name in the tool list of the job (the tools of the process and the enabled runtime
 tools; for an instance without the feature, the tools of the process). A call whose name is not in the list gets a
 `rejection`, the error text that is its tool call result (`The tool '<name>' does not exist.`); its kind stays
-`PROCESS`. A rejection can apply to a call of any kind. The agent admits the calls once, between the model result and
+`PROCESS`. For an agent instance with the `documents` feature, a call of a tool of either kind with a document parameter
+(§7) whose value is not the handle of a known document is rejected the same way, with an error message that names
+the parameter, and keeps its kind. A rejection can apply to a call of any kind. The agent admits the calls once, between the model result and
 `AgentConversation.ingest`, for every agent instance, with or without the `runtimeTools` feature, persists
 them with the message and never computes them again, so they may appear in the state of any agent instance. The JSON of a
 tool call holds `kind` (`"runtime"`) only for `RUNTIME` and `rejection` only when set; a missing `kind` reads as `PROCESS`
@@ -940,7 +1050,8 @@ whatever its kind, else `RUNTIME` or `PROCESS` after the kind. `ToolCall.isLocal
 tool call result (`ToolCallResultContent.forRejectedToolCall`) when its `ToolCallBatch` is created, and is never
 executed. `LocalToolCallExecutor` executes the rest, the calls of runtime tools, through `RuntimeTools` and fails for
 any other result source; a call whose tool is no longer enabled when it is executed gets the error result `The tool
-'<name>' is not available.` Neither goes to the process. The error is plain text in the tool call
+'<name>' is not available.` Neither goes to the process. `RuntimeTools` passes `AgentDocumentId`s for the document parameters of an
+admitted runtime tool call to the tool; admission already rejected a value that is not the handle of a known document. The error is plain text in the tool call
 result; the tool call result has no error flag.
 
 Only the process tool calls are activated and handed to the process (`AgentResponse.toolCalls`, built from
@@ -1829,6 +1940,19 @@ Gateway handlers store per-handler state in `AgentContext.properties`:
 
 These are used during discovery checking and tool call result transformation.
 
+### Documents and Gateway Tools
+
+A gateway handler that defines its tools itself can declare document parameters in them. The tool definitions
+a handler returns from `handleToolDiscoveryResults` are stored as they are, so a handler writes the stored form of a document
+parameter (`DocumentSchemas.document(...)`: the object schema of a document handle) or of a
+union parameter (an `anyOf` or `oneOf` with `DocumentSchemas.document(...)` as one alternative); the
+shorthand type `document` is normalized only for `fromAi()` parameters. The agent resolves the document parameters of a call
+on the model's tool call, by the definition the model saw, before `transformToolCalls()`, so the handler receives the
+Camunda document references in the arguments it wraps into its envelope. A call with an invalid document value is answered
+with an error result to the model, and the handler is not given the call; a call of a tool without document parameters is
+not touched. The MCP and A2A handlers declare no document parameters, because the schema of an MCP tool comes from the
+remote server and the A2A schema is fixed, and neither has a document type; nothing of theirs is resolved.
+
 ### Document Extraction from Tool Call Results
 
 Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
@@ -1889,6 +2013,9 @@ file as a Camunda document instead.
   and `name` for an external document) and the `DocumentContent`, as in ADR-004. Nothing is registered.
 - `documents` stays empty; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
 - Without the `runtimeTools` feature there are no runtime tools, no mixed-batch handling and no tool name check (§25.4).
+- The document parameters of tool calls are not resolved or checked: a `fromAi(..., "document")` parameter reaches the
+  process as the plain string the model sent.
+- The schema of a document parameter is the handle schema for every instance; it is sent to the provider as it is.
 - The history reports the messages as stored.
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
@@ -2078,7 +2205,7 @@ lease-fenced `update()` mechanism).
   placeholder block.
 
 **Local tool calls.** Calls of runtime tools (see [ADR 016](../adr/016-runtime-tools.md)) and rejected calls appear
-in history like any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count every
+in history like any other tool call, also a call of a process tool rejected for its document parameters (§7). The `ASSISTANT` item lists every call the model issued and its metrics count every
 one of them in `toolCalls`, whatever its kind. Their `TOOL_RESULT` items are written with the `applyTurnStart` that
 carries them: the one of the round of the local tool call results of the same job when every call of the message is a local tool
 call, or, in a mixed batch, the one of the job that composes the next turn from the process results and the local tool
@@ -2328,10 +2455,9 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 ### 25.4 Add a runtime tool
 
-> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`,
-> `RuntimeToolResult` and `RuntimeToolException`, package `aiagent.api.tool` of `aiagent-api`) is
-> experimental since 8.11 and may change in an
-> incompatible way in a minor release.
+> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult`,
+> `RuntimeToolException` and `DocumentSchemas`, package `aiagent.api.tool` of `aiagent-api`) is experimental since 8.11
+> and may change in an incompatible way in a minor release.
 
 A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
 definition next to the tools of the process and the agent executes the call, in process. The connector registers no
@@ -2369,6 +2495,14 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   agent; it never reaches the tool, also when a tool of that name is enabled later. A call of a tool that is no longer
   enabled when it is executed ("is not available"), a `RuntimeToolException` and `RuntimeToolResult.error` give an error
   result the model reads.
+
+**Document parameters.** A parameter that carries a document is declared with `DocumentSchemas.document(...)`, one that
+takes a document or something else with an `anyOf` or `oneOf` that has `DocumentSchemas.document(...)` as one alternative (directly or inside an
+object or array alternative), and the agent resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, a property typed `AgentDocumentId` receives it and
+a property typed `String` the text of the id, a property typed `Object` a `AgentDocumentId` for a document and the value the
+model passed for any other value; a union parameter holds an `AgentDocumentId` in the place of every handle in the value. A call with a parameter that does not name a known document is rejected at admission: the agent answers it with the
+error and the tool is not called. A runtime tool whose definition gains a document parameter between the jobs of a mixed
+batch fails the job (`IllegalStateException`) for a call admitted before, instead of giving the model an error.
 
 **Documents.** A `DocumentContent` block in the result is a new document: after the calls of the message ran, the agent
 registers it with the tool call as its origin, and the model reads its handle only (§19). An error result registers nothing.

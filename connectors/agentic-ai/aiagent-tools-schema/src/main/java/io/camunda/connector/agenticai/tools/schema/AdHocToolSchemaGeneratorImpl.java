@@ -15,6 +15,7 @@ import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstan
 
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
   public static final String DEFAULT_EXPECTED_PARAMETER_NAMESPACE = "toolCall.";
   public static final List<String> DEFAULT_RESTRICTED_PARAM_NAMES = List.of("_meta");
 
+  private final AuthoredSchemaNormalizer normalizer = new AuthoredSchemaNormalizer();
   private final String expectedParameterNamespace;
   private final List<String> restrictedParamNames;
 
@@ -62,18 +64,23 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
                     .formatted(element.elementId(), parameter.name()));
           }
 
-          final var propertySchema =
+          final var authoredSchema =
               Optional.ofNullable(parameter.schema())
                   .map(LinkedHashMap::new)
                   .orElseGet(LinkedHashMap::new);
 
           // apply type from parameter if it is set
           if (StringUtils.isNotBlank(parameter.type())) {
-            propertySchema.put(PROPERTY_TYPE, parameter.type());
+            authoredSchema.put(PROPERTY_TYPE, parameter.type());
           }
 
-          // default to string if no type is set (not on parameter, not in schema directly)
-          if (!propertySchema.containsKey(PROPERTY_TYPE)) {
+          // the shorthand type "document" becomes the object schema of a document handle
+          final var propertySchema = new LinkedHashMap<>(normalizer.normalize(authoredSchema));
+
+          // default to string if no type is set (not on parameter, not in schema directly); a
+          // union keeps the type of its alternatives
+          if (!propertySchema.containsKey(PROPERTY_TYPE)
+              && !DocumentParameter.isUnionSchema(propertySchema)) {
             propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
           }
 

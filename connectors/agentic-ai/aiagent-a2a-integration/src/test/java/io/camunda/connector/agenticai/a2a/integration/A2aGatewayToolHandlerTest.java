@@ -268,6 +268,20 @@ class A2aGatewayToolHandlerTest {
     }
 
     @Test
+    void discoveredToolsDeclareNoDocumentParameters() {
+      var toolDiscoveryResults =
+          List.of(
+              createToolCallResultWithContent(
+                  "A2A_fetchAgentCard_a2a1", "a2a1", Map.of("title", "Agent 1")));
+
+      var result = handler.handleToolDiscoveryResults(AgentContext.empty(), toolDiscoveryResults);
+
+      assertThat(result).hasSize(1);
+      var toolDefinition = result.getFirst();
+      assertThat(toolDefinition.documentParameters()).isEmpty();
+    }
+
+    @Test
     void handlesMultipleDiscoveryResults() {
       Map<String, Object> content1 = Map.of("title", "Desc 1");
       Map<String, Object> content2 = Map.of("title", "Desc 2");

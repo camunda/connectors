@@ -9,19 +9,26 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime;
 import static io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext.withConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -30,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -39,6 +47,7 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -89,7 +98,8 @@ class RuntimeToolsTest {
   private final RuntimeTools tools = toolsOf(NOTE_TOOL);
 
   private static RuntimeTools toolsOf(RuntimeTool... tools) {
-    return new RuntimeTools(List.of(tools), TestObjectMapperSupplier.INSTANCE);
+    return new RuntimeTools(
+        List.of(tools), TestObjectMapperSupplier.INSTANCE, new DocumentParameterResolver());
   }
 
   private static RuntimeTool tool(String name, Predicate<RuntimeToolContext> enabled) {
@@ -503,5 +513,208 @@ class RuntimeToolsTest {
         .isInstanceOf(DocumentContent.class);
     // the agent context is the one the tools were given
     assertThat(NEW_INSTANCE.documents().all()).isEmpty();
+  }
+
+  // document parameters
+
+  private static final String BOGUS_FILE =
+      "Parameter 'file' must be the handle of a document from the conversation: a JSON object such as"
+          + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.";
+
+  private static final String UNKNOWN_BODY = rejection("body", "doc_000000000000");
+
+  private static String rejection(String path, String id) {
+    return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
+            + " Pass the handle of a document from the conversation: a JSON object such as"
+            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.")
+        .formatted(path, id);
+  }
+
+  private static ToolDefinition definitionOf(String name, Map<String, Object> properties) {
+    return ToolDefinition.runtime(name, null, Map.of("type", "object", "properties", properties));
+  }
+
+  private static AgentContext knowing(Document... documents) {
+    return NEW_INSTANCE.withDocuments(
+        AgentDocuments.empty()
+            .register(
+                Arrays.stream(documents)
+                    .map(document -> new NewDocument(document, DocumentOrigin.userMessage()))
+                    .toList()));
+  }
+
+  private static AgentContext knowingWithDocumentsFeature(Document... documents) {
+    return knowing(documents)
+        .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+  }
+
+  private static Map<String, Object> handleOf(Document document) {
+    return Map.of("type", "camunda.agenticai.document", "id", AgentDocumentId.of(document).value());
+  }
+
+  @Test
+  void handsTheIdsOfTheDocumentParametersToARuntimeToolAfterCheckingThem() {
+    final var report = createDocument("report", "report.txt");
+    final var received = new ArrayList<Object>();
+    record Args(AgentDocumentId file, List<String> files) {}
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf(
+                "c8__read_file",
+                Map.of(
+                    "file",
+                    DocumentSchemas.document("The file"),
+                    "files",
+                    Map.of("type", "array", "items", Map.of("type", "string")))),
+            (context, call) -> {
+              final var args = call.argumentsAs(Args.class);
+              received.add(args.file());
+              received.add(args.files());
+              return RuntimeToolResult.success("read");
+            });
+
+    final var executions =
+        toolsOf(tool)
+            .execute(
+                WITH_MEMORY,
+                knowingWithDocumentsFeature(report),
+                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", handleOf(report)))));
+
+    assertThat(text(executions.getFirst())).isEqualTo("read");
+    assertThat(received).containsExactly(AgentDocumentId.of(report), null);
+  }
+
+  @Test
+  void handsTheIdOfAHandleWithMoreFieldsAndKeepsTheOtherArguments() {
+    final var report = createDocument("report", "report.txt");
+    final var received = new ArrayList<Object>();
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file"))),
+            (context, call) -> {
+              received.add(call.arguments());
+              return RuntimeToolResult.success("read");
+            });
+    final var arguments =
+        Map.<String, Object>of(
+            "file",
+            Map.of(
+                "type",
+                "camunda.agenticai.document",
+                "id",
+                AgentDocumentId.of(report).value(),
+                "fileName",
+                "report.txt"),
+            "other",
+            "kept");
+
+    toolsOf(tool)
+        .execute(
+            WITH_MEMORY,
+            knowingWithDocumentsFeature(report),
+            List.of(runtimeCall("r1", "c8__read_file", arguments)));
+
+    assertThat(received)
+        .containsExactly(Map.of("file", AgentDocumentId.of(report), "other", "kept"));
+  }
+
+  @Test
+  void aCallWithAnInvalidDocumentParameterFailsAndDoesNotRunTheTool() {
+    final var runs = new AtomicInteger();
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file"))),
+            (context, call) -> {
+              runs.incrementAndGet();
+              return RuntimeToolResult.success("read");
+            });
+    final var call = runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"));
+
+    assertThatThrownBy(() ->
+            toolsOf(tool)
+                .execute(
+                    WITH_MEMORY,
+                    knowingWithDocumentsFeature(createDocument("known", "known.txt")),
+                    List.of(call)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The call 'r1' of the tool 'c8__read_file' is admitted, but its document parameters are invalid: "
+                + BOGUS_FILE);
+    assertThat(runs).hasValue(0);
+  }
+
+  @Test
+  void handsTheIdOfAHandleInAUnionParameterToARuntimeToolAndKeepsTextAsText() {
+    final var report = createDocument("report", "report.txt");
+    final var received = new ArrayList<Object>();
+    record Args(Object body) {}
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__send", Map.of("body", TestDocuments.textOrDocument("The body"))),
+            (context, call) -> {
+              received.add(call.argumentsAs(Args.class).body());
+              return RuntimeToolResult.success("sent");
+            });
+
+    toolsOf(tool)
+        .execute(
+            WITH_MEMORY,
+            knowingWithDocumentsFeature(report),
+            List.of(
+                runtimeCall("r1", "c8__send", Map.of("body", handleOf(report))),
+                runtimeCall("r2", "c8__send", Map.of("body", "hello"))));
+
+    assertThat(received).containsExactly(AgentDocumentId.of(report), "hello");
+  }
+
+  @Test
+  void aCallWithAHandleOfAnUnknownDocumentInAUnionParameterFailsAndDoesNotRunTheTool() {
+    final var runs = new AtomicInteger();
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__send", Map.of("body", TestDocuments.textOrDocument("The body"))),
+            (context, call) -> {
+              runs.incrementAndGet();
+              return RuntimeToolResult.success("sent");
+            });
+    final var call =
+        runtimeCall(
+            "r1",
+            "c8__send",
+            Map.of("body", Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000")));
+
+    assertThatThrownBy(() ->
+            toolsOf(tool)
+                .execute(
+                    WITH_MEMORY,
+                    knowingWithDocumentsFeature(createDocument("known", "known.txt")),
+                    List.of(call)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The call 'r1' of the tool 'c8__send' is admitted, but its document parameters are invalid: "
+                + UNKNOWN_BODY);
+    assertThat(runs).hasValue(0);
+  }
+
+  @Test
+  void anAgentInstanceWithoutTheDocumentsFeatureHandsTheArgumentsAsTheModelSentThem() {
+    final var received = new ArrayList<Object>();
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file"))),
+            (context, call) -> {
+              received.add(call.arguments());
+              return RuntimeToolResult.success("read");
+            });
+
+    final var executions =
+        toolsOf(tool)
+            .execute(
+                WITH_MEMORY,
+                NEW_INSTANCE,
+                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"))));
+
+    assertThat(text(executions.getFirst())).isEqualTo("read");
+    assertThat(received).containsExactly(Map.of("file", "bogus"));
   }
 }

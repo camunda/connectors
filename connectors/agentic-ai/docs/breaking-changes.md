@@ -214,11 +214,15 @@ client in its properties does not start.
 
 `AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
 process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent produces the tool call
-results of the other calls (`AgentConversationTurn.localToolCalls()`) itself and never hands them to the process.
+results of the other calls (`AgentConversationTurn.localToolCalls()`) itself and never hands them to the process. The
+response carries the Camunda document references in place of the document handles in the arguments of these calls
+(`DocumentParameterResolver.resolveProcessCall`), and the stored assistant message keeps the arguments as the model sent
+them. The constructors of `AgentResponseHandlerImpl`, `ToolCallAdmission` and `RuntimeTools` take the
+`DocumentParameterResolver`, a bean of the auto-configuration.
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
-implement the response handler interface directly, hand only the process tool calls to the process.
+implement the response handler interface directly, hand only the process tool calls to the process and resolve their document parameters.
 
 ### Agent instance client and mappers
 
@@ -272,7 +276,14 @@ factory of the job.
   [reference](reference/ai-agent.md)). A tool can return documents in its result, which the agent registers after all
   calls of the message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
   call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
-  error result from the executor; neither goes to the process.
+  error result from `RuntimeTools`; neither goes to the process.
+- A tool parameter that carries a document is declared with the type `document` of `fromAi`, or with
+  `DocumentSchemas.document(...)` for a runtime tool. A process tool receives the Camunda document reference of the
+  document in place of the handle the model passed; a runtime tool receives its `AgentDocumentId` (`RuntimeToolCall.argumentsAs`
+  binds it to a `AgentDocumentId` or a `String` property). A call of a tool of either kind whose value is not the handle of a
+  known document is rejected when the model response arrives: it keeps its kind, the agent answers it with the error
+  and never activates it or runs the tool. Only agent instances with the `documents` feature have
+  document parameters.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
@@ -320,7 +331,23 @@ factory of the job.
   persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
-  `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
+  `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) and `DocumentSchemas`, which replaces `RuntimeToolSchemas` and
+  declares the document parameters of runtime tools and of gateway tools, are in `aiagent.api.tool` of `aiagent-api`.
+- A document parameter in a tool definition is the object schema of a document handle: `type: object` with the required
+  properties `type` (`enum: ["camunda.agenticai.document"]`) and `id` (`string`), and the description as authored
+  (`DocumentSchemas.document(...)`; `ToolDefinition#documentParameters()` lists them as the sealed `DocumentParameter`).
+  There is no format marker and no hint appended to the description; the schema goes to the model provider as it is, and
+  `DocumentParameter.FORMAT_DOCUMENT_ID` does not exist. A custom definition that carries a string schema with the format
+  `camunda-document-id` is no document parameter. A gateway handler that defines its tools itself can declare document
+  parameters in them and receives the Camunda document references in the arguments of a call.
+- The value of a document parameter is the handle object the model read, `{"type":"camunda.agenticai.document","id":"doc_…"}`;
+  other fields are ignored and the `type` is required. A string that holds the handle as JSON is a handle too; the bare id of
+  a document is not.
+- A parameter that takes a document or something else is a union schema: an `anyOf` or `oneOf` with more than one
+  alternative and a document schema (`DocumentSchemas.document(...)`) in an alternative, directly or inside the properties of an
+  object alternative or the items of an array alternative. Every handle at or below the value is a document; everything else,
+  text included, is passed as it is. `RuntimeToolCall.argumentsAs` binds such a parameter to a property of the type `Object`,
+  which receives a `AgentDocumentId` in the place of each handle or the value the model sent.
 
 <a id="persisted-data-8-11"></a>
 
@@ -335,7 +362,9 @@ factory of the job.
   fields and drops them on its next write.
 - A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
   and without the `runtimeTools` feature. `kind` is the kind of the tool the call names; a call of a tool name that is not
-  offered gets a `rejection`, the error text that is its tool call result, and keeps the kind `PROCESS`. The JSON holds `kind`
+  offered, or of a tool of either kind whose document parameter is not the handle of a known document (only with the `documents`
+  feature), gets a `rejection`, the error text that is its tool call result; a call of a name that is not offered keeps the kind `PROCESS`, any
+  other rejected call keeps the kind of its tool. The JSON holds `kind`
   only for a call of a runtime tool and `rejection` only when set, and a missing value reads as `PROCESS` and as none, so
   state written by 8.10 loads unchanged. The agent never computes them again, so a custom `ConversationStore` must keep
   them: a store that drops them turns a runtime tool call or a rejected call into a process tool call that never gets a
@@ -350,7 +379,7 @@ factory of the job.
   is unchanged, so an agent instance that calls only tools of the process runs on any worker. A connector runtime that
   predates this change ignores the unknown properties `kind` and `rejection` of a stored call, so it treats a call with the
   kind `RUNTIME` or with a `rejection` as a call of the process. It raises no incident and the instance waits for a result
-  that never comes. A rejected call is the call of a tool that does not exist, which hung the agent before too. A call of a
+  that never comes. A rejected call is the call of a tool that does not exist, which hung the agent before too, or a call whose document parameter is not a known document. A call of a
   runtime tool exists only once a runtime tool is registered. While such a call is in flight, run only workers of one
   version, or drain the agent instances before a rolling upgrade.
 - The assistant message in the `responseMessage` of an `AgentResponse` (`includeAssistantMessage`) also carries `kind`
