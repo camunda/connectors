@@ -81,10 +81,9 @@ class ProcessDefinitionClientTest {
     when(selector.forPhysicalTenant("tenantc"))
         .thenThrow(new IllegalStateException("No CamundaClient configured for physical tenant"));
 
-    assertThatThrownBy(
-            () ->
-                new ProcessDefinitionClient(selector, RETRIES_CONFIGURATION)
-                    .getProcessDefinitionXml("tenantc", PROCESS_DEFINITION_KEY))
+    assertThatThrownBy(() ->
+            new ProcessDefinitionClient(selector, RETRIES_CONFIGURATION)
+                .getProcessDefinitionXml("tenantc", PROCESS_DEFINITION_KEY))
         .isInstanceOf(IllegalStateException.class);
 
     verify(selector, times(1)).forPhysicalTenant("tenantc");

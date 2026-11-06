@@ -94,21 +94,20 @@ class AutoConfigurationArchTest {
         final boolean satisfied =
             javaClass
                 .tryGetAnnotationOfType(CONDITIONAL_ON_BOOLEAN_PROPERTY)
-                .map(
-                    annotation -> {
-                      final String prefix =
-                          AnnotationProperties.strings(annotation, "prefix").stream()
-                              .findFirst()
-                              .map(value -> value.isEmpty() ? "" : value + ".")
-                              .orElse("");
-                      final Set<String> keys = new HashSet<>();
-                      AnnotationProperties.strings(annotation, "value")
-                          .forEach(key -> keys.add(prefix + key));
-                      AnnotationProperties.strings(annotation, "name")
-                          .forEach(key -> keys.add(prefix + key));
-                      return keys.contains(ENABLED_PROPERTY)
-                          && AnnotationProperties.bool(annotation, "matchIfMissing");
-                    })
+                .map(annotation -> {
+                  final String prefix =
+                      AnnotationProperties.strings(annotation, "prefix").stream()
+                          .findFirst()
+                          .map(value -> value.isEmpty() ? "" : value + ".")
+                          .orElse("");
+                  final Set<String> keys = new HashSet<>();
+                  AnnotationProperties.strings(annotation, "value")
+                      .forEach(key -> keys.add(prefix + key));
+                  AnnotationProperties.strings(annotation, "name")
+                      .forEach(key -> keys.add(prefix + key));
+                  return keys.contains(ENABLED_PROPERTY)
+                      && AnnotationProperties.bool(annotation, "matchIfMissing");
+                })
                 .orElse(false);
         if (!satisfied) {
           events.add(

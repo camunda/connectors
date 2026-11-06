@@ -1,0 +1,349 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.managedscript;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+
+import io.camunda.connector.managedscript.api.ExecutionRequest;
+import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ExecutorReference;
+import io.camunda.connector.managedscript.api.ManagedCodeProvider;
+import io.camunda.connector.managedscript.api.ScriptLanguage;
+import io.camunda.connector.managedscript.local.LocalManagedCodeProperties;
+import io.camunda.connector.managedscript.local.LocalManagedCodeProvider;
+import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import org.awaitility.Awaitility;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+class ManagedCodeAutoConfigurationTest {
+
+  private final ApplicationContextRunner contextRunner =
+      new ApplicationContextRunner()
+          .withConfiguration(AutoConfigurations.of(ManagedCodeAutoConfiguration.class))
+          .withBean(
+              PhysicalTenantClientSelector.class, () -> mock(PhysicalTenantClientSelector.class));
+
+  private final ApplicationContextRunner enabled =
+      contextRunner
+          .withPropertyValues(
+              "camunda.connector.managed-code.enabled=true",
+              "camunda.connector.managed-code.provider=fake")
+          .withBean("fakeProvider", ManagedCodeProvider.class, FakeProvider::new);
+
+  @Test
+  void isDisabledByDefault() {
+    contextRunner
+        .withPropertyValues("camunda.connector.managed-code.provider=fake")
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(context).doesNotHaveBean(ManagedScriptJobHandler.class);
+          assertThat(context).doesNotHaveBean(ManagedScriptFunction.class);
+        });
+  }
+
+  @Test
+  void reportsTheExecutorsInUseOnceTheEndpointIsExposed() {
+    enabled
+        .withPropertyValues(
+            "camunda.connector.managed-code.deployment-name-prefix=ce-0123-",
+            "management.endpoints.web.exposure.include=managedcode")
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          final var response = context.getBean(ManagedCodeEndpoint.class).executors();
+          assertThat(response.getStatus()).isEqualTo(200);
+          final var report = response.getBody();
+          assertThat(report.provider()).isEqualTo("fake");
+          assertThat(report.deploymentNamePrefix()).isEqualTo("ce-0123-");
+          assertThat(report.executors())
+              .containsExactly(
+                  new ManagedCodeEndpoint.Executor("python", "fake-py-0123456789ab", null),
+                  new ManagedCodeEndpoint.Executor(
+                      "javascript", "fake-js-0123456789ab", "/logs/fake-js"));
+        });
+  }
+
+  @Test
+  void doesNotServeTheEndpointUnlessItIsExposed() {
+    enabled.run(context -> {
+      assertThat(context).hasNotFailed();
+      assertThat(context).doesNotHaveBean(ManagedCodeEndpoint.class);
+    });
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.provider=fake",
+            "management.endpoints.web.exposure.include=managedcode")
+        .withBean("fakeProvider", ManagedCodeProvider.class, FakeProvider::new)
+        .run(context -> assertThat(context).doesNotHaveBean(ManagedCodeEndpoint.class));
+  }
+
+  @Test
+  void answersNotImplementedRatherThanNoExecutorsWhenTheProviderDoesNotReportThem() {
+    final var provider =
+        new ManagedCodeProvider() {
+          @Override
+          public String name() {
+            return "custom";
+          }
+
+          @Override
+          public void ensureExecutors(ScriptLanguage language) {}
+
+          @Override
+          public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+            throw new UnsupportedOperationException();
+          }
+        };
+
+    final var response = new ManagedCodeEndpoint(provider, "camunda-ms-").executors();
+
+    assertThat(response.getStatus()).isEqualTo(501);
+    assertThat(response.getBody()).isNull();
+  }
+
+  @Test
+  void failsTheReportWhenTheProviderCannotComputeItsExecutors() {
+    final var provider =
+        new FakeProvider() {
+          @Override
+          public List<ExecutorReference> executors() {
+            throw new IllegalStateException("Missing executor wrapper file child.py");
+          }
+        };
+    final var endpoint = new ManagedCodeEndpoint(provider, "camunda-ms-");
+
+    assertThatThrownBy(endpoint::executors)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("child.py");
+  }
+
+  @Test
+  void servesTheReservedJobTypeWithAPrototypeConnectorFetchingOnlyTheScriptInput() {
+    enabled.run(context -> {
+      assertThat(context).hasNotFailed();
+      assertThat(context.getBean(ManagedScriptFunction.class))
+          .isNotSameAs(context.getBean(ManagedScriptFunction.class));
+      final var configuration =
+          ConnectorConfigurationUtil.getOutboundConnectorConfiguration(ManagedScriptFunction.class);
+      assertThat(configuration.type()).isEqualTo("io.camunda:managed-script:1");
+      assertThat(configuration.inputVariables()).containsExactly("scriptInput");
+    });
+  }
+
+  @Test
+  void registersTheLocalProviderOnlyWhenItIsConfigured(@TempDir Path directory) {
+    enabled
+        .withPropertyValues(
+            "camunda.connector.managed-code.provider=local",
+            "camunda.connector.managed-code.local.directory=" + directory)
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(context).hasSingleBean(LocalManagedCodeProvider.class);
+          assertThat(context).hasSingleBean(ManagedScriptJobHandler.class);
+        });
+    enabled.run(context -> assertThat(context).doesNotHaveBean(LocalManagedCodeProvider.class));
+  }
+
+  @Test
+  void matchesTheNameOfTheProviderIgnoringCaseAsTheConditionOfItsConfigurationDoes(
+      @TempDir Path directory) {
+    enabled
+        .withPropertyValues(
+            "camunda.connector.managed-code.provider=Local",
+            "camunda.connector.managed-code.local.directory=" + directory)
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(context).hasSingleBean(ManagedScriptJobHandler.class);
+        });
+  }
+
+  @Test
+  void keepsTheProviderNameAsWrittenSoThatAnErrorQuotesIt() {
+    assertThat(new ManagedCodeProperties(true, "local ", null, null, null, null, null).provider())
+        .isEqualTo("local ");
+  }
+
+  @Test
+  void keepsTheWrapperFilesOfTheLocalProviderInTheDirectoryOfTheUser() {
+    assertThat(new LocalManagedCodeProperties(null).directory())
+        .isEqualTo(Path.of(System.getProperty("user.home"), ".camunda", "managed-script"));
+  }
+
+  @Test
+  void hasDefaultsForEveryProperty() {
+    enabled.run(context -> {
+      final var properties = context.getBean(ManagedCodeProperties.class);
+      assertThat(properties.deploymentNamePrefix()).isEqualTo("camunda-ms-");
+      assertThat(properties.executionTimeout()).isEqualTo(Duration.ofSeconds(30));
+      assertThat(properties.provisioningTimeout()).isEqualTo(Duration.ofMinutes(2));
+      assertThat(properties.grantPropagationWindow()).isEqualTo(Duration.ofMinutes(2));
+      assertThat(properties.provisioningRetryBackoff()).isEqualTo(Duration.ofSeconds(10));
+    });
+  }
+
+  @Test
+  void startsTheExecutorsOnceTheRuntimeIsReady() {
+    final var provider = new FakeProvider();
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=fake")
+        .withBean("fakeProvider", ManagedCodeProvider.class, () -> provider)
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(provider.ensured).isEmpty();
+
+          context.publishEvent(
+              new ApplicationReadyEvent(
+                  new SpringApplication(),
+                  new String[0],
+                  context.getSourceApplicationContext(),
+                  Duration.ZERO));
+
+          Awaitility.await()
+              .atMost(Duration.ofSeconds(5))
+              .untilAsserted(() ->
+                  assertThat(provider.ensured).containsExactlyInAnyOrder(ScriptLanguage.values()));
+        });
+  }
+
+  @Test
+  void stopsTheThreadsOfTheExecutorsWithTheContext() {
+    final var interrupted = new CountDownLatch(ScriptLanguage.values().length);
+    final var provider =
+        new FakeProvider() {
+          @Override
+          public void ensureExecutors(ScriptLanguage language) {
+            super.ensureExecutors(language);
+            try {
+              new CountDownLatch(1).await();
+            } catch (InterruptedException e) {
+              interrupted.countDown();
+            }
+          }
+        };
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=fake")
+        .withBean("fakeProvider", ManagedCodeProvider.class, () -> provider)
+        .run(context -> {
+          context.getBean(ExecutorReadiness.class).startAll();
+          Awaitility.await()
+              .atMost(Duration.ofSeconds(5))
+              .until(() -> provider.ensured.size() == ScriptLanguage.values().length);
+        });
+
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(() ->
+            assertThat(interrupted.getCount())
+                .as("the waiting attempts were interrupted")
+                .isZero());
+  }
+
+  @Test
+  void bindsTheProvisioningProperties() {
+    enabled
+        .withPropertyValues(
+            "camunda.connector.managed-code.provisioning-timeout=45s",
+            "camunda.connector.managed-code.grant-propagation-window=0s")
+        .run(context -> {
+          final var properties = context.getBean(ManagedCodeProperties.class);
+          assertThat(properties.provisioningTimeout()).isEqualTo(Duration.ofSeconds(45));
+          assertThat(properties.grantPropagationWindow()).isEqualTo(Duration.ZERO);
+        });
+  }
+
+  @Test
+  void acceptsTheFixedLengthPrefixOfSaas() {
+    final var prefix = "ce-0123456789abcdef01234567-";
+    enabled
+        .withPropertyValues("camunda.connector.managed-code.deployment-name-prefix=" + prefix)
+        .run(context ->
+            assertThat(context.getBean(ManagedCodeProperties.class).deploymentNamePrefix())
+                .isEqualTo(prefix));
+  }
+
+  @Test
+  void rejectsAPrefixThatLeavesNoRoomForTheExecutorName() {
+    enabled
+        .withPropertyValues(
+            "camunda.connector.managed-code.deployment-name-prefix=" + "a".repeat(49))
+        .run(context ->
+            assertThat(context).getFailure().rootCause().hasMessageContaining("at most 48"));
+  }
+
+  @Test
+  void rejectsAnInvalidDeploymentNamePrefix() {
+    enabled
+        .withPropertyValues("camunda.connector.managed-code.deployment-name-prefix=Cluster_1")
+        .run(context ->
+            assertThat(context)
+                .getFailure()
+                .rootCause()
+                .hasMessageContaining("deployment-name-prefix 'Cluster_1'"));
+  }
+
+  @Test
+  void failsStartupWithoutAProviderName() {
+    contextRunner
+        .withPropertyValues("camunda.connector.managed-code.enabled=true")
+        .run(context ->
+            assertThat(context)
+                .getFailure()
+                .rootCause()
+                .hasMessageContaining("camunda.connector.managed-code.provider must be set"));
+  }
+
+  @Test
+  void failsStartupWhenNoProviderHasTheConfiguredName() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=aws")
+        .run(context ->
+            assertThat(context)
+                .getFailure()
+                .rootCause()
+                .hasMessageContaining("No managed-code provider 'aws' is available"));
+  }
+
+  @Test
+  void usesTheProviderWithTheConfiguredName() {
+    final var chosen = new FakeProvider("chosen");
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=chosen")
+        .withBean("otherProvider", ManagedCodeProvider.class, () -> new FakeProvider("other"))
+        .withBean("chosenProvider", ManagedCodeProvider.class, () -> chosen)
+        .run(context -> assertThat(context).hasNotFailed());
+  }
+
+  @Test
+  void failsStartupForTwoProvidersWithTheSameName() {
+    enabled
+        .withBean("secondProvider", ManagedCodeProvider.class, FakeProvider::new)
+        .run(context ->
+            assertThat(context)
+                .getFailure()
+                .rootCause()
+                .hasMessageContaining("2 managed-code provider beans are named 'fake'"));
+  }
+}

@@ -229,10 +229,9 @@ class ChunkedContentChatCompletionAccumulatorTest {
     assertThat(thinkingChunk.get("thinking"))
         .asInstanceOf(InstanceOfAssertFactories.LIST)
         .singleElement()
-        .satisfies(
-            item ->
-                assertThat(((Map<?, ?>) item).get("text"))
-                    .isEqualTo("Let me think about this. 5+7=12."));
+        .satisfies(item ->
+            assertThat(((Map<?, ?>) item).get("text"))
+                .isEqualTo("Let me think about this. 5+7=12."));
 
     final var textChunk = chunks.get(1).convert(new TypeReference<Map<String, Object>>() {});
     assertThat(textChunk.get("type")).isEqualTo("text");

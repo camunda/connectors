@@ -54,10 +54,9 @@ class AbbyyVantageExtractionClientTest {
 
     @Test
     void constructor_shouldConfigureCorrectly() {
-      assertThatCode(
-              () ->
-                  new AbbyyVantageExtractionClient(
-                      "https://vantage-us.abbyy.com", "client-id", "client-secret", "OCR"))
+      assertThatCode(() ->
+              new AbbyyVantageExtractionClient(
+                  "https://vantage-us.abbyy.com", "client-id", "client-secret", "OCR"))
           .doesNotThrowAnyException();
     }
 

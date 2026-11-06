@@ -19,7 +19,7 @@
 
   <properties>
     <version.anthropic-java>2.75.0</version.anthropic-java>
-    <version.openai-java>4.91.0</version.openai-java>
+    <version.openai-java>4.101.0</version.openai-java>
     <!-- Per-template-id default system prompt deviations, one "templateId=file" tuple per line.
          A template whose id has no entry here keeps the generator's own default
          (PromptConfiguration.DEFAULT_SYSTEM_PROMPT). Today this holds only the v1 deviation: the
@@ -112,7 +112,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>io.soabase.record-builder</groupId>
       <artifactId>record-builder-core</artifactId>
-      <version>${version.record-builder}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -211,7 +210,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp-jvm</artifactId>
-      <version>${version.okhttp}</version>
     </dependency>
 
     <dependency>
@@ -249,7 +247,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>utils</artifactId>
-      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -262,7 +259,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>apache-client</artifactId>
-      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -271,7 +267,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-client-spi</artifactId>
-      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -418,7 +413,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>${project.version}</version>
         <dependencies>
           <dependency>
             <groupId>io.camunda.connector</groupId>
@@ -694,6 +688,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
                 </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -736,6 +734,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
                 </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -765,6 +767,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                 <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
+                </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
                 </property>
               </properties>
             </configuration>
@@ -799,6 +805,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                 <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
+                </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
                 </property>
               </properties>
             </configuration>

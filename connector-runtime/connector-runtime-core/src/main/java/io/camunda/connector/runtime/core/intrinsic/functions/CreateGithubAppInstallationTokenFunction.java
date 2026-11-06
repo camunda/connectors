@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunction;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionProvider;
+import io.camunda.connector.util.pem.PemUtil;
 import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.io.StringReader;
@@ -195,51 +196,6 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
 
   // Package-private for testing
   String normalizePrivateKey(String privateKey) {
-    // Handle escaped newlines from environment variables
-    String normalized = privateKey.replace("\\n", "\n");
-
-    // Trim any leading/trailing whitespace
-    normalized = normalized.trim();
-
-    // If the key already has proper newlines, just ensure consistent formatting
-    if (normalized.contains("\n")) {
-      // Clean up any irregular spacing around headers
-      normalized =
-          normalized
-              .replaceAll(
-                  "\\s*-----BEGIN RSA PRIVATE KEY-----\\s*", "-----BEGIN RSA PRIVATE KEY-----\n")
-              .replaceAll(
-                  "\\s*-----END RSA PRIVATE KEY-----\\s*", "\n-----END RSA PRIVATE KEY-----");
-      return normalized;
-    }
-
-    // If it's a single-line key, we need to add proper newlines
-    String beginMarker = "-----BEGIN RSA PRIVATE KEY-----";
-    String endMarker = "-----END RSA PRIVATE KEY-----";
-
-    int beginIndex = normalized.indexOf(beginMarker);
-    int endIndex = normalized.indexOf(endMarker);
-
-    if (beginIndex == -1 || endIndex == -1 || endIndex <= beginIndex) {
-      // Invalid format, return as-is and let the parser handle the error
-      return normalized;
-    }
-
-    String content =
-        normalized
-            .substring(beginIndex + beginMarker.length(), endIndex)
-            .replaceAll("\\s+", ""); // Remove all whitespace from the base64 content
-
-    // Format with 64-character lines as per PEM standard
-    StringBuilder formatted = new StringBuilder();
-    formatted.append(beginMarker).append("\n");
-
-    for (int i = 0; i < content.length(); i += 64) {
-      formatted.append(content, i, Math.min(content.length(), i + 64)).append("\n");
-    }
-
-    formatted.append(endMarker);
-
-    return formatted.toString();
+    return PemUtil.normalize(privateKey);
   }
 }

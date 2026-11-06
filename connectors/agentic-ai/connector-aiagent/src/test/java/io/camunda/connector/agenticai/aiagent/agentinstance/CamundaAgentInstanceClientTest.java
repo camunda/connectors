@@ -43,6 +43,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
@@ -222,24 +223,23 @@ class CamundaAgentInstanceClientTest {
 
       assertThat(historyCaptor.getValue())
           .singleElement()
-          .satisfies(
-              item -> {
-                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
-                assertThat(item.getHistoryItemId())
-                    .isEqualTo(executionContext.configuration().fingerprint());
-                assertThat(item.getLoopIteration()).isEqualTo(1);
-                assertThat(item.getModel()).isEqualTo("gpt-4o");
-                assertThat(item.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
-                assertThat(item.getSystemPrompt())
-                    .singleElement()
-                    .isInstanceOfSatisfying(
-                        AgentInstanceHistoryContent.TextContent.class,
-                        text -> assertThat(text.getText()).isEqualTo("system prompt"));
-                assertThat(item.getTools()).isEmpty();
-                assertThat(item.getLimits().getMaxModelCalls()).isEqualTo(10);
-                assertThat(item.getLimits().getMaxTokens()).isEqualTo(-1);
-                assertThat(item.getLimits().getMaxToolCalls()).isEqualTo(-1);
-              });
+          .satisfies(item -> {
+            assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+            assertThat(item.getHistoryItemId())
+                .isEqualTo(executionContext.configuration().fingerprint());
+            assertThat(item.getLoopIteration()).isEqualTo(1);
+            assertThat(item.getModel()).isEqualTo("gpt-4o");
+            assertThat(item.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
+            assertThat(item.getSystemPrompt())
+                .singleElement()
+                .isInstanceOfSatisfying(
+                    AgentInstanceHistoryContent.TextContent.class,
+                    text -> assertThat(text.getText()).isEqualTo("system prompt"));
+            assertThat(item.getTools()).isEmpty();
+            assertThat(item.getLimits().getMaxModelCalls()).isEqualTo(10);
+            assertThat(item.getLimits().getMaxTokens()).isEqualTo(-1);
+            assertThat(item.getLimits().getMaxToolCalls()).isEqualTo(-1);
+          });
     }
 
     @SuppressWarnings("unchecked")
@@ -270,11 +270,10 @@ class CamundaAgentInstanceClientTest {
       verify(createCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue())
           .singleElement()
-          .satisfies(
-              item -> {
-                assertThat(item.getModel()).isEqualTo("gpt-5.5");
-                assertThat(item.getProvider()).isEqualTo("openai/completions/custom");
-              });
+          .satisfies(item -> {
+            assertThat(item.getModel()).isEqualTo("gpt-5.5");
+            assertThat(item.getProvider()).isEqualTo("openai/completions/custom");
+          });
     }
 
     @SuppressWarnings("unchecked")
@@ -516,11 +515,10 @@ class CamundaAgentInstanceClientTest {
       when(updateCommandStep1.elementInstanceKey(ELEMENT_INSTANCE_KEY))
           .thenReturn(updateCommandStep2);
 
-      assertThatThrownBy(
-              () ->
-                  client.applyToolDiscoveryStart(
-                      TestAgentExecutionContext.withoutLeaseToken(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY)))
+      assertThatThrownBy(() ->
+              client.applyToolDiscoveryStart(
+                  TestAgentExecutionContext.withoutLeaseToken(),
+                  AgentInstanceKey.of(AGENT_INSTANCE_KEY)))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))
@@ -544,10 +542,9 @@ class CamundaAgentInstanceClientTest {
           .thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
       // when / then
-      assertThatThrownBy(
-              () ->
-                  client.applyToolDiscoveryStart(
-                      TestAgentExecutionContext.withLimits(), agentInstanceKey))
+      assertThatThrownBy(() ->
+              client.applyToolDiscoveryStart(
+                  TestAgentExecutionContext.withLimits(), agentInstanceKey))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> {
@@ -685,13 +682,12 @@ class CamundaAgentInstanceClientTest {
       // configuration unchanged from previousTurn's -- only the input item
       assertThat(historyCaptor.getValue())
           .singleElement()
-          .satisfies(
-              item -> {
-                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.USER);
-                assertThat(item.getHistoryItemId()).isEqualTo(message.id().toString());
-                assertThat(item.getLoopIteration()).isEqualTo(3);
-                assertThat(item.getProducedAt()).isEqualTo(TURN_INGESTION_TIMESTAMP);
-              });
+          .satisfies(item -> {
+            assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.USER);
+            assertThat(item.getHistoryItemId()).isEqualTo(message.id().toString());
+            assertThat(item.getLoopIteration()).isEqualTo(3);
+            assertThat(item.getProducedAt()).isEqualTo(TURN_INGESTION_TIMESTAMP);
+          });
     }
 
     @Test
@@ -953,18 +949,16 @@ class CamundaAgentInstanceClientTest {
       verify(updateCommandStep4).history(historyCaptor.capture());
       assertThat(historyCaptor.getValue())
           .singleElement()
-          .satisfies(
-              item -> {
-                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
-                assertThat(item.getHistoryItemId()).isEqualTo("a");
-                assertThat(item.getProducedAt()).isEqualTo(fastCompletedAt);
-                assertThat(item.getToolCalls())
-                    .singleElement()
-                    .satisfies(
-                        tc ->
-                            assertThat(tc.getArguments())
-                                .containsExactlyEntriesOf(Map.of("city", "Berlin")));
-              });
+          .satisfies(item -> {
+            assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+            assertThat(item.getHistoryItemId()).isEqualTo("a");
+            assertThat(item.getProducedAt()).isEqualTo(fastCompletedAt);
+            assertThat(item.getToolCalls())
+                .singleElement()
+                .satisfies(tc ->
+                    assertThat(tc.getArguments())
+                        .containsExactlyEntriesOf(Map.of("city", "Berlin")));
+          });
     }
 
     @Test
@@ -988,15 +982,14 @@ class CamundaAgentInstanceClientTest {
               AgentMetrics.empty(),
               configuration.fingerprint());
 
-      assertThatThrownBy(
-              () ->
-                  client.applyTurnStart(
-                      TestAgentExecutionContext.withLimits(),
-                      configuration,
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      turn,
-                      Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP))
+      assertThatThrownBy(() ->
+              client.applyTurnStart(
+                  TestAgentExecutionContext.withLimits(),
+                  configuration,
+                  AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  turn,
+                  Optional.empty(),
+                  TURN_INGESTION_TIMESTAMP))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("No originating tool call found")
           .hasMessageContaining("orphan");
@@ -1064,16 +1057,15 @@ class CamundaAgentInstanceClientTest {
 
       assertThat(historyCaptor.getValue())
           .singleElement()
-          .satisfies(
-              item -> {
-                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.ASSISTANT);
-                assertThat(item.getHistoryItemId()).isEqualTo(assistantMessage.id().toString());
-                assertThat(item.getLoopIteration()).isEqualTo(2);
-                assertThat(item.getProducedAt()).isEqualTo(PRODUCED_AT);
-                assertThat(item.getMetrics().getInputTokens()).isEqualTo(11L);
-                assertThat(item.getMetrics().getOutputTokens()).isEqualTo(22L);
-                assertThat(item.getMetrics().getDurationMs()).isEqualTo(345L);
-              });
+          .satisfies(item -> {
+            assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.ASSISTANT);
+            assertThat(item.getHistoryItemId()).isEqualTo(assistantMessage.id().toString());
+            assertThat(item.getLoopIteration()).isEqualTo(2);
+            assertThat(item.getProducedAt()).isEqualTo(PRODUCED_AT);
+            assertThat(item.getMetrics().getInputTokens()).isEqualTo(11L);
+            assertThat(item.getMetrics().getOutputTokens()).isEqualTo(22L);
+            assertThat(item.getMetrics().getDurationMs()).isEqualTo(345L);
+          });
     }
 
     @Test
@@ -1086,14 +1078,13 @@ class CamundaAgentInstanceClientTest {
               new AgentMetrics(1, TokenUsage.empty(), 0),
               null);
 
-      assertThatThrownBy(
-              () ->
-                  client.applyTurnCompletion(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      turn,
-                      PRODUCED_AT,
-                      AgentInstanceUpdateStatus.IDLE))
+      assertThatThrownBy(() ->
+              client.applyTurnCompletion(
+                  TestAgentExecutionContext.withLimits(),
+                  AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  turn,
+                  PRODUCED_AT,
+                  AgentInstanceUpdateStatus.IDLE))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("neither content nor tool calls");
     }
@@ -1163,13 +1154,12 @@ class CamundaAgentInstanceClientTest {
 
       assertThat(historyCaptor.getValue())
           .singleElement()
-          .satisfies(
-              item -> {
-                assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
-                assertThat(item.getHistoryItemId()).isEqualTo("a");
-                assertThat(item.getLoopIteration()).isEqualTo(4);
-                assertThat(item.getProducedAt()).isEqualTo(completedAt);
-              });
+          .satisfies(item -> {
+            assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+            assertThat(item.getHistoryItemId()).isEqualTo("a");
+            assertThat(item.getLoopIteration()).isEqualTo(4);
+            assertThat(item.getProducedAt()).isEqualTo(completedAt);
+          });
     }
 
     @Test
@@ -1182,13 +1172,12 @@ class CamundaAgentInstanceClientTest {
               AgentMetrics.empty(),
               null);
 
-      assertThatThrownBy(
-              () ->
-                  client.applyToolCallResults(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      List.of(ToolCallResult.builder().id("orphan").name("getWeather").build()),
-                      previousTurn))
+      assertThatThrownBy(() ->
+              client.applyToolCallResults(
+                  TestAgentExecutionContext.withLimits(),
+                  AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  List.of(ToolCallResult.builder().id("orphan").name("getWeather").build()),
+                  previousTurn))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("No originating tool call found")
           .hasMessageContaining("orphan");
@@ -1233,15 +1222,14 @@ class CamundaAgentInstanceClientTest {
       givenUpdateCommand();
       when(updateCommandStep4.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
-      assertThatThrownBy(
-              () ->
-                  client.applyTurnStart(
-                      TestAgentExecutionContext.withLimits(),
-                      configuration(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      userMessageTurn(),
-                      Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP))
+      assertThatThrownBy(() ->
+              client.applyTurnStart(
+                  TestAgentExecutionContext.withLimits(),
+                  configuration(),
+                  AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  userMessageTurn(),
+                  Optional.empty(),
+                  TURN_INGESTION_TIMESTAMP))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class,
               e -> {
@@ -1263,14 +1251,13 @@ class CamundaAgentInstanceClientTest {
               new AgentMetrics(1, TokenUsage.empty(), 0),
               null);
 
-      assertThatThrownBy(
-              () ->
-                  client.applyTurnCompletion(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      turn,
-                      TURN_INGESTION_TIMESTAMP,
-                      AgentInstanceUpdateStatus.IDLE))
+      assertThatThrownBy(() ->
+              client.applyTurnCompletion(
+                  TestAgentExecutionContext.withLimits(),
+                  AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  turn,
+                  TURN_INGESTION_TIMESTAMP,
+                  AgentInstanceUpdateStatus.IDLE))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class, e -> assertThat(e.getRetries()).isEqualTo(0));
     }
@@ -1289,18 +1276,17 @@ class CamundaAgentInstanceClientTest {
               AgentMetrics.empty(),
               null);
 
-      assertThatThrownBy(
-              () ->
-                  client.applyToolCallResults(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      List.of(
-                          ToolCallResult.builder()
-                              .id("a")
-                              .name("getWeather")
-                              .completedAt(TURN_INGESTION_TIMESTAMP)
-                              .build()),
-                      previousTurn))
+      assertThatThrownBy(() ->
+              client.applyToolCallResults(
+                  TestAgentExecutionContext.withLimits(),
+                  AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  List.of(
+                      ToolCallResult.builder()
+                          .id("a")
+                          .name("getWeather")
+                          .completedAt(TURN_INGESTION_TIMESTAMP)
+                          .build()),
+                  previousTurn))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class, e -> assertThat(e.getRetries()).isEqualTo(0));
     }
@@ -1310,11 +1296,9 @@ class CamundaAgentInstanceClientTest {
       givenUpdateCommand();
       when(updateCommandStep4.execute()).thenThrow(new ClientHttpException(404, "Not Found"));
 
-      assertThatThrownBy(
-              () ->
-                  client.applyToolDiscoveryStart(
-                      TestAgentExecutionContext.withLimits(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY)))
+      assertThatThrownBy(() ->
+              client.applyToolDiscoveryStart(
+                  TestAgentExecutionContext.withLimits(), AgentInstanceKey.of(AGENT_INSTANCE_KEY)))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class,
               e -> {
@@ -1329,15 +1313,14 @@ class CamundaAgentInstanceClientTest {
       givenUpdateCommand();
       when(updateCommandStep4.execute()).thenThrow(new ClientHttpException(400, "Bad Request"));
 
-      assertThatThrownBy(
-              () ->
-                  client.applyTurnStart(
-                      TestAgentExecutionContext.withLimits(),
-                      configuration(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      userMessageTurn(),
-                      Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP))
+      assertThatThrownBy(() ->
+              client.applyTurnStart(
+                  TestAgentExecutionContext.withLimits(),
+                  configuration(),
+                  AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  userMessageTurn(),
+                  Optional.empty(),
+                  TURN_INGESTION_TIMESTAMP))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))
@@ -1351,15 +1334,14 @@ class CamundaAgentInstanceClientTest {
       when(updateCommandStep4.execute())
           .thenThrow(new ClientHttpException(500, "Internal Server Error"));
 
-      assertThatThrownBy(
-              () ->
-                  client.applyTurnStart(
-                      TestAgentExecutionContext.withLimits(),
-                      configuration(),
-                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      userMessageTurn(),
-                      Optional.empty(),
-                      TURN_INGESTION_TIMESTAMP))
+      assertThatThrownBy(() ->
+              client.applyTurnStart(
+                  TestAgentExecutionContext.withLimits(),
+                  configuration(),
+                  AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  userMessageTurn(),
+                  Optional.empty(),
+                  TURN_INGESTION_TIMESTAMP))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED))

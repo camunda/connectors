@@ -61,18 +61,16 @@ class RealProviderPromptCachingE2ETestIT extends RealProviderApiSmokeSupport {
         response -> {
           var agentAssert = AgentSubProcessResponseAssert.assertThat(response).isReady();
           if (provider.reportsCacheCreationTokens()) {
-            agentAssert.metricsSatisfy(
-                metrics ->
-                    assertThat(metrics.tokenUsage().cacheCreationTokenCount())
-                        .as("cache creation token count")
-                        .isPositive());
+            agentAssert.metricsSatisfy(metrics ->
+                assertThat(metrics.tokenUsage().cacheCreationTokenCount())
+                    .as("cache creation token count")
+                    .isPositive());
           }
           agentAssert
-              .metricsSatisfy(
-                  metrics ->
-                      assertThat(metrics.tokenUsage().cacheReadTokenCount())
-                          .as("cache read token count")
-                          .isPositive())
+              .metricsSatisfy(metrics ->
+                  assertThat(metrics.tokenUsage().cacheReadTokenCount())
+                      .as("cache read token count")
+                      .isPositive())
               .hasResponseTextSatisfying(
                   text -> assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME));
         });

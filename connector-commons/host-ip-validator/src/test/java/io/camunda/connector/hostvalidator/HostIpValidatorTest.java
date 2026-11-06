@@ -225,9 +225,8 @@ class HostIpValidatorTest {
   void hostnameValidationRejectsLoopback() {
     assertThatExceptionOfType(HostDeniedException.class)
         .isThrownBy(() -> HostIpValidator.validate("localhost", List.of(), List.of(), false, false))
-        .satisfies(
-            ex ->
-                assertThat(ex.classification()).isEqualTo(Classification.DENY_NOT_GLOBAL_UNICAST));
+        .satisfies(ex ->
+            assertThat(ex.classification()).isEqualTo(Classification.DENY_NOT_GLOBAL_UNICAST));
   }
 
   @Test
@@ -239,10 +238,9 @@ class HostIpValidatorTest {
 
   @Test
   void hostnameValidationRejectsUnknownHost() {
-    assertThatThrownBy(
-            () ->
-                HostIpValidator.validate(
-                    "no-such-host.invalid.camunda.test", List.of(), List.of(), false, false))
+    assertThatThrownBy(() ->
+            HostIpValidator.validate(
+                "no-such-host.invalid.camunda.test", List.of(), List.of(), false, false))
         .isInstanceOf(UnknownHostException.class);
   }
 

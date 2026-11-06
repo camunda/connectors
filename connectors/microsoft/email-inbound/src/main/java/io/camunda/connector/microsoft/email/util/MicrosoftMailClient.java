@@ -118,10 +118,9 @@ public class MicrosoftMailClient implements MailClient {
     var resp =
         getGraphClient()
             .mailFolders()
-            .get(
-                c ->
-                    c.queryParameters.filter =
-                        String.format("displayName eq '%s'", folderName.replace("'", "''")));
+            .get(c ->
+                c.queryParameters.filter =
+                    String.format("displayName eq '%s'", folderName.replace("'", "''")));
     if (resp == null || resp.getValue() == null || resp.getValue().isEmpty()) {
       throw new ConnectorException(
           "No folder with name " + folderName + " could be found in mailbox " + userId);
@@ -173,18 +172,17 @@ public class MicrosoftMailClient implements MailClient {
         .client(getClient())
         .collectionPage(Objects.requireNonNull(messageResponse))
         .collectionPageFactory(MessageCollectionResponse::createFromDiscriminatorValue)
-        .requestConfigurator(
-            requestInfo -> {
-              // Re-add the header and query parameters to subsequent requests
-              requestInfo.headers.add(PREFER_HEADER, PREFER_TEXT_BODY);
-              if (StringUtils.isNotBlank(filterString)) {
-                requestInfo.addQueryParameter(ODATA_FILTER_PARAM, filterString);
-              }
-              requestInfo.addQueryParameter(
-                  ODATA_SELECT_PARAM, String.join(",", EmailMessage.getSelect()));
-              requestInfo.addQueryParameter(ODATA_TOP_PARAM, PAGE_SIZE);
-              return requestInfo;
-            })
+        .requestConfigurator(requestInfo -> {
+          // Re-add the header and query parameters to subsequent requests
+          requestInfo.headers.add(PREFER_HEADER, PREFER_TEXT_BODY);
+          if (StringUtils.isNotBlank(filterString)) {
+            requestInfo.addQueryParameter(ODATA_FILTER_PARAM, filterString);
+          }
+          requestInfo.addQueryParameter(
+              ODATA_SELECT_PARAM, String.join(",", EmailMessage.getSelect()));
+          requestInfo.addQueryParameter(ODATA_TOP_PARAM, PAGE_SIZE);
+          return requestInfo;
+        })
         .processPageItemCallback(msg -> processMessageItem(msg, handler))
         .build();
   }
@@ -242,15 +240,14 @@ public class MicrosoftMailClient implements MailClient {
         .mailFolders()
         .byMailFolderId(getFolderId(folder))
         .messages()
-        .get(
-            requestConfiguration -> {
-              requestConfiguration.headers.add(PREFER_HEADER, PREFER_TEXT_BODY);
-              if (StringUtils.isNotBlank(filterString)) {
-                requestConfiguration.queryParameters.filter = filterString;
-              }
-              requestConfiguration.queryParameters.select = EmailMessage.getSelect();
-              requestConfiguration.queryParameters.top = PAGE_SIZE;
-            });
+        .get(requestConfiguration -> {
+          requestConfiguration.headers.add(PREFER_HEADER, PREFER_TEXT_BODY);
+          if (StringUtils.isNotBlank(filterString)) {
+            requestConfiguration.queryParameters.filter = filterString;
+          }
+          requestConfiguration.queryParameters.select = EmailMessage.getSelect();
+          requestConfiguration.queryParameters.top = PAGE_SIZE;
+        });
   }
 
   private boolean processMessageItem(Message msg, Consumer<EmailMessage> handler) {
@@ -284,16 +281,12 @@ public class MicrosoftMailClient implements MailClient {
   private void logAttachmentMetadataFailure(String messageId, String reason, Throwable cause) {
     LOGGER.warn(
         "Could not resolve attachment metadata for message {}: {}", messageId, reason, cause);
-    context.log(
-        activity ->
-            activity
-                .withSeverity(Severity.WARNING)
-                .withTag("attachment-metadata-lookup")
-                .withMessage(
-                    "Could not resolve attachment metadata for email "
-                        + messageId
-                        + ": "
-                        + reason));
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.WARNING)
+            .withTag("attachment-metadata-lookup")
+            .withMessage(
+                "Could not resolve attachment metadata for email " + messageId + ": " + reason));
   }
 
   static boolean isTransient(ApiException e) {
@@ -325,12 +318,11 @@ public class MicrosoftMailClient implements MailClient {
               .messages()
               .byMessageId(messageId)
               .attachments()
-              .get(
-                  requestConfiguration -> {
-                    if (select != null) {
-                      requestConfiguration.queryParameters.select = select;
-                    }
-                  });
+              .get(requestConfiguration -> {
+                if (select != null) {
+                  requestConfiguration.queryParameters.select = select;
+                }
+              });
       if (response == null || response.getValue() == null) {
         return Optional.empty();
       }
@@ -346,13 +338,12 @@ public class MicrosoftMailClient implements MailClient {
                   // raw URL template rather than these query parameters, so nothing needs to be
                   // (and nothing here would successfully be) re-added for later pages.
                   requestInfo -> requestInfo)
-              .processPageItemCallback(
-                  attachment -> {
-                    if (attachment instanceof FileAttachment file) {
-                      items.add(mapper.apply(file));
-                    }
-                    return true;
-                  })
+              .processPageItemCallback(attachment -> {
+                if (attachment instanceof FileAttachment file) {
+                  items.add(mapper.apply(file));
+                }
+                return true;
+              })
               .build();
       iterator.iterate();
       return Optional.of(items);

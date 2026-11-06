@@ -92,12 +92,11 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
         Map.of("operation", FetchAgentCardOperationConfiguration.FETCH_AGENT_CARD_ID);
     List<ToolCall> discoveryToolCalls =
         a2aGatewayToolDefinitions.stream()
-            .map(
-                gatewayToolDefinition ->
-                    new ToolCall(
-                        A2A_TOOLS_DISCOVERY_PREFIX + gatewayToolDefinition.name(),
-                        gatewayToolDefinition.name(),
-                        fetchAgentCardOperation))
+            .map(gatewayToolDefinition ->
+                new ToolCall(
+                    A2A_TOOLS_DISCOVERY_PREFIX + gatewayToolDefinition.name(),
+                    gatewayToolDefinition.name(),
+                    fetchAgentCardOperation))
             .toList();
 
     return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
@@ -185,24 +184,23 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   @Override
   public List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls) {
     return toolCalls.stream()
-        .map(
-            toolCall -> {
-              String toolCallName = toolCall.name();
-              if (isGatewayManaged(toolCallName)) {
-                final var toolCallIdentifier = A2aToolCallIdentifier.fromToolCallName(toolCallName);
-                return new ToolCall(
-                    toolCall.id(),
-                    toolCallIdentifier.elementId(),
-                    Map.of(
-                        "operation",
-                        A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration
-                            .SEND_MESSAGE_ID,
-                        "params",
-                        toolCall.arguments()));
-              }
+        .map(toolCall -> {
+          String toolCallName = toolCall.name();
+          if (isGatewayManaged(toolCallName)) {
+            final var toolCallIdentifier = A2aToolCallIdentifier.fromToolCallName(toolCallName);
+            return new ToolCall(
+                toolCall.id(),
+                toolCallIdentifier.elementId(),
+                Map.of(
+                    "operation",
+                    A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration
+                        .SEND_MESSAGE_ID,
+                    "params",
+                    toolCall.arguments()));
+          }
 
-              return toolCall;
-            })
+          return toolCall;
+        })
         .toList();
   }
 
@@ -212,14 +210,13 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
 
     final var a2aClientIds = getA2aClientIds(agentContext);
     return toolCallResults.stream()
-        .map(
-            toolCallResult -> {
-              if (!a2aClientIds.contains(toolCallResult.name())) {
-                return toolCallResult;
-              }
+        .map(toolCallResult -> {
+          if (!a2aClientIds.contains(toolCallResult.name())) {
+            return toolCallResult;
+          }
 
-              return toolCallResultFromA2aSendMessage(toolCallResult);
-            })
+          return toolCallResultFromA2aSendMessage(toolCallResult);
+        })
         .toList();
   }
 
@@ -276,14 +273,11 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
       case A2aMessage message -> collectDocumentsFromContents(message.contents(), documents);
       case A2aTask task -> {
         Optional.ofNullable(task.artifacts())
-            .ifPresent(
-                artifacts ->
-                    artifacts.forEach(
-                        artifact -> collectDocumentsFromArtifact(artifact, documents)));
+            .ifPresent(artifacts ->
+                artifacts.forEach(artifact -> collectDocumentsFromArtifact(artifact, documents)));
         Optional.ofNullable(task.history())
-            .ifPresent(
-                history ->
-                    history.forEach(message -> collectDocumentsFromResult(message, documents)));
+            .ifPresent(history ->
+                history.forEach(message -> collectDocumentsFromResult(message, documents)));
       }
     }
   }

@@ -143,12 +143,11 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
       processInstanceContext.correlate(response);
     } catch (Exception e) {
       LOGGER.error("Failed to poll A2A task {}", task.id(), e);
-      this.context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("a2a-polling")
-                  .withMessage("Failed to poll A2A task %s".formatted(task.id()), e));
+      this.context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag("a2a-polling")
+              .withMessage("Failed to poll A2A task %s".formatted(task.id()), e));
     }
   }
 
@@ -157,12 +156,11 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
       return processInstanceContext.bind(A2aPollingRuntimeProperties.class);
     } catch (Exception e) {
       LOGGER.error("Failed to bind A2A polling runtime properties", e);
-      this.context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("a2a-polling-runtime-properties")
-                  .withMessage("Failed to bind A2A polling runtime properties", e));
+      this.context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag("a2a-polling-runtime-properties")
+              .withMessage("Failed to bind A2A polling runtime properties", e));
     }
 
     return null;
@@ -175,12 +173,11 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
       return objectMapper.readValue(clientResponseJson, A2aClientResponse.class);
     } catch (Exception e) {
       LOGGER.debug("Failed to load A2A client response", e);
-      this.context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("a2a-polling-response")
-                  .withMessage("Error loading A2A client response", e));
+      this.context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag("a2a-polling-response")
+              .withMessage("Error loading A2A client response", e));
     }
 
     return null;
@@ -199,12 +196,11 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
         this.client = clientFactory.buildClient(agentCard, (event, ignore) -> {}, a2aClientConfig);
       } catch (Exception e) {
         LOGGER.error("Failed to create A2A client", e);
-        this.context.log(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag("a2a-polling-client")
-                    .withMessage("Failed to create A2A client", e));
+        this.context.log(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag("a2a-polling-client")
+                .withMessage("Failed to create A2A client", e));
       }
     }
 

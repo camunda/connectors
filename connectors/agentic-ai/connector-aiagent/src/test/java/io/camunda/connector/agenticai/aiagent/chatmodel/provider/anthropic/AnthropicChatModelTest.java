@@ -185,15 +185,12 @@ class AnthropicChatModelTest {
 
     assertThatThrownBy(() -> api.execute(request))
         .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            e -> {
-              final var connectorException = (ConnectorException) e;
-              assertThat(connectorException.getErrorCode())
-                  .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-              assertThat(connectorException.getMessage())
-                  .contains("429")
-                  .contains("rate_limit_error");
-            });
+        .satisfies(e -> {
+          final var connectorException = (ConnectorException) e;
+          assertThat(connectorException.getErrorCode())
+              .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+          assertThat(connectorException.getMessage()).contains("429").contains("rate_limit_error");
+        });
   }
 
   @Test
@@ -244,10 +241,9 @@ class AnthropicChatModelTest {
     verify(client).close();
     assertThat(events)
         .singleElement()
-        .satisfies(
-            event -> {
-              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
-              assertThat(event.getFormattedMessage()).isEqualTo("Failed to close AnthropicClient");
-            });
+        .satisfies(event -> {
+          assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+          assertThat(event.getFormattedMessage()).isEqualTo("Failed to close AnthropicClient");
+        });
   }
 }

@@ -29,6 +29,9 @@
     <module>http</module>
     <module>jdbc</module>
     <module>kafka</module>
+    <module>managed-script</module>
+    <module>managed-script-aws</module>
+    <module>managed-script-gcp</module>
     <module>microsoft/azure-blobstorage</module>
     <module>microsoft/common</module>
     <module>microsoft/email-inbound</module>
@@ -41,6 +44,7 @@
     <module>soap</module>
     <module>webhook</module>
     <module>idp-extraction</module>
+    <module>idp-extraction/element-templates-artifact</module>
     <module>embeddings-vector-database</module>
   </modules>
 
@@ -115,18 +119,6 @@ except in compliance with the proprietary license.</license.inlineheader>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>com.google.cloud</groupId>
-        <artifactId>libraries-bom</artifactId>
-        <version>${version.google-libraries-bom}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
 
   <build>

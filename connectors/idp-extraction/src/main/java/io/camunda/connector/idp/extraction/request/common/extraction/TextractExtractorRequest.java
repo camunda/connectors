@@ -75,4 +75,4 @@ public record TextractExtractorRequest(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
         String bucketName)
-    implements ExtractionProvider {}
+    implements ExtractionProvider, StructuredExtractionProvider {}

@@ -102,18 +102,15 @@ class BedrockConverseChatModelTest {
     // execute(), matching what the SDK delivers on a genuine call, so the assembler it feeds is
     // actually complete by the time execute() reads converseResponse() off of it.
     when(client.converseStream(eq(converseStreamRequest), any(ConverseStreamResponseHandler.class)))
-        .thenAnswer(
-            invocation -> {
-              final ConverseStreamResponseHandler handler = invocation.getArgument(1);
-              handler.onEventStream(
-                  SdkPublisher.fromIterable(
-                      List.of(
-                          ConverseStreamOutput.messageStartBuilder().role("assistant").build(),
-                          ConverseStreamOutput.messageStopBuilder()
-                              .stopReason("end_turn")
-                              .build())));
-              return CompletableFuture.completedFuture(null);
-            });
+        .thenAnswer(invocation -> {
+          final ConverseStreamResponseHandler handler = invocation.getArgument(1);
+          handler.onEventStream(
+              SdkPublisher.fromIterable(
+                  List.of(
+                      ConverseStreamOutput.messageStartBuilder().role("assistant").build(),
+                      ConverseStreamOutput.messageStopBuilder().stopReason("end_turn").build())));
+          return CompletableFuture.completedFuture(null);
+        });
     when(responseConverter.toResult(any(ConverseResponse.class), any())).thenReturn(expected);
 
     final var result = api.execute(request);
@@ -143,18 +140,17 @@ class BedrockConverseChatModelTest {
     when(requestConverter.toConverseStreamRequest(any(), any(), any()))
         .thenReturn(converseStreamRequest);
     when(client.converseStream(eq(converseStreamRequest), any(ConverseStreamResponseHandler.class)))
-        .thenAnswer(
-            invocation -> {
-              final ConverseStreamResponseHandler handler = invocation.getArgument(1);
-              handler.onEventStream(
-                  SdkPublisher.fromIterable(
-                      List.of(
-                          ConverseStreamOutput.messageStartBuilder().role("assistant").build(),
-                          ConverseStreamOutput.messageStopBuilder()
-                              .stopReason("content_filtered")
-                              .build())));
-              return CompletableFuture.completedFuture(null);
-            });
+        .thenAnswer(invocation -> {
+          final ConverseStreamResponseHandler handler = invocation.getArgument(1);
+          handler.onEventStream(
+              SdkPublisher.fromIterable(
+                  List.of(
+                      ConverseStreamOutput.messageStartBuilder().role("assistant").build(),
+                      ConverseStreamOutput.messageStopBuilder()
+                          .stopReason("content_filtered")
+                          .build())));
+          return CompletableFuture.completedFuture(null);
+        });
     when(responseConverter.toResult(any(ConverseResponse.class), any())).thenThrow(rejection);
 
     // must escape execute() as-is - a plain catch (Exception) would flatten it into a generic
@@ -187,16 +183,15 @@ class BedrockConverseChatModelTest {
 
     assertThatThrownBy(() -> api.execute(request))
         .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            e -> {
-              final var connectorException = (ConnectorException) e;
-              assertThat(connectorException.getErrorCode())
-                  .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-              assertThat(connectorException.getMessage())
-                  .contains("429")
-                  .contains("ThrottlingException")
-                  .contains("slow down");
-            });
+        .satisfies(e -> {
+          final var connectorException = (ConnectorException) e;
+          assertThat(connectorException.getErrorCode())
+              .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+          assertThat(connectorException.getMessage())
+              .contains("429")
+              .contains("ThrottlingException")
+              .contains("slow down");
+        });
   }
 
   @Test
@@ -212,16 +207,15 @@ class BedrockConverseChatModelTest {
 
     assertThatThrownBy(() -> api.execute(request))
         .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            e -> {
-              final var connectorException = (ConnectorException) e;
-              assertThat(connectorException.getErrorCode())
-                  .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-              assertThat(connectorException.getMessage())
-                  .contains("429")
-                  .contains("ThrottlingException")
-                  .contains("slow down");
-            });
+        .satisfies(e -> {
+          final var connectorException = (ConnectorException) e;
+          assertThat(connectorException.getErrorCode())
+              .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+          assertThat(connectorException.getMessage())
+              .contains("429")
+              .contains("ThrottlingException")
+              .contains("slow down");
+        });
   }
 
   @Test
@@ -246,12 +240,11 @@ class BedrockConverseChatModelTest {
     verify(client, times(2)).close();
     assertThat(events).hasSize(2);
     assertThat(events)
-        .allSatisfy(
-            event -> {
-              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
-              assertThat(event.getFormattedMessage())
-                  .isEqualTo("Failed to close BedrockRuntimeAsyncClient");
-            });
+        .allSatisfy(event -> {
+          assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+          assertThat(event.getFormattedMessage())
+              .isEqualTo("Failed to close BedrockRuntimeAsyncClient");
+        });
   }
 
   private static AwsServiceException awsServiceException() {

@@ -37,11 +37,11 @@ class StepsPresetsPresentRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "steps":  [ { "name": "x", "presetId": "p" } ],
-          "presets": [ { "id": "p", "properties": {} } ]
-        }
-        """);
+            {
+              "steps":  [ { "name": "x", "presetId": "p" } ],
+              "presets": [ { "id": "p", "properties": {} } ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -59,8 +59,8 @@ class StepsPresetsPresentRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [ { "name": "x" } ], "presets": [] }
-        """);
+            { "steps": [ { "name": "x" } ], "presets": [] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/presets");
@@ -72,8 +72,8 @@ class StepsPresetsPresentRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": "nope", "presets": [{}] }
-        """);
+            { "steps": "nope", "presets": [{}] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps");

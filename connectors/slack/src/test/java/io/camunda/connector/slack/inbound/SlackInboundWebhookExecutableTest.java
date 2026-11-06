@@ -55,7 +55,7 @@ class SlackInboundWebhookExecutableTest {
 
   private static final Function<Map<String, Object>, WebhookHttpResponse>
       CHALLENGE_RESPONSE_VERIFICATION_FUNCTION =
-          (ctx) ->
+          ctx ->
               new WebhookHttpResponse(
                   Map.of("challenge", ((Map) ctx.get("body")).get("challenge")),
                   Map.of(),
@@ -255,6 +255,47 @@ class SlackInboundWebhookExecutableTest {
   }
 
   // generate fresh signature because it expires fast
+  @Test
+  void triggerWebhook_SlashCommandWithEncodedAmpersand_KeepsFullText() throws Exception {
+    final var body = "command=%2Ftest123&text=Tom+%26+Jerry+a%3Db&user_id=U1";
+    final var result = triggerFormRequest(body);
+
+    assertThat((Map) result.connectorData()).containsEntry("text", "Tom & Jerry a=b");
+    assertThat((Map) result.connectorData()).containsEntry("user_id", "U1");
+  }
+
+  @Test
+  void triggerWebhook_InteractivityPayloadWithAmpersand_ParsesPayloadJson() throws Exception {
+    final var json =
+        "{\"type\":\"block_actions\",\"message\":{\"text\":\"John Wiley &amp; Sons\"},"
+            + "\"state\":{\"values\":{}},\"actions\":[{\"action_id\":\"approve\",\"value\":\"yes\"}]}";
+    final var body = "payload=" + java.net.URLEncoder.encode(json, UTF_8);
+    final var result = triggerFormRequest(body);
+
+    assertThat((Map) result.request().body())
+        .containsKeys("state", "actions")
+        .containsEntry("type", "block_actions");
+  }
+
+  private SlackWebhookProcessingResult triggerFormRequest(String body) throws Exception {
+    final var requestTimeStamp = String.valueOf(now().toInstant().toEpochMilli());
+    Map<String, String> headers =
+        Map.of(
+            HEADER_SLACK_SIGNATURE,
+            slackCurrentSignature(requestTimeStamp, body),
+            HEADER_SLACK_REQUEST_TIMESTAMP,
+            requestTimeStamp,
+            HttpHeaders.CONTENT_TYPE,
+            MediaType.FORM_DATA.toString());
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn("POST");
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody()).thenReturn(body.getBytes(UTF_8));
+
+    testObject.activate(ctx);
+    return (SlackWebhookProcessingResult) testObject.triggerWebhook(payload);
+  }
+
   private static String slackCurrentSignature(String requestTimestamp, String requestBody) {
     SlackSignature.Generator gen = new SlackSignature.Generator(SLACK_SIGNING_KEY);
     return gen.generate(requestTimestamp, requestBody);

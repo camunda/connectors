@@ -104,14 +104,13 @@ class SendGridConfigurationValidatorTest {
       // Accepts the connection but never writes a response.
       var acceptor =
           Thread.ofVirtual()
-              .start(
-                  () -> {
-                    try (Socket ignored = server.accept()) {
-                      Thread.sleep(Duration.ofSeconds(30));
-                    } catch (Exception e) {
-                      // server closed or interrupted
-                    }
-                  });
+              .start(() -> {
+                try (Socket ignored = server.accept()) {
+                  Thread.sleep(Duration.ofSeconds(30));
+                } catch (Exception e) {
+                  // server closed or interrupted
+                }
+              });
       var unresponsiveSupplier =
           new SendGridClientSupplier() {
             @Override

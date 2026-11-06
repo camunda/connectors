@@ -33,44 +33,44 @@ public class ExtractionTestUtils {
   public static final String ACTUAL_SECRET_KEY = "AAAABBBBCCCDDD";
   public static final String AWS_BASE_REQUEST =
       """
-        {
-          "configuration": {
-            "region": "us-east-1"
-          },
-          "authentication": {
-            "type": "credentials",
-            "accessKey": "{{secrets.ACCESS_KEY}}",
-            "secretKey": "{{secrets.SECRET_KEY}}"
-          },
-          "s3BucketName": "test-aws-s3-bucket-name",
-          "extractionEngineType": "AWS_TEXTRACT"
-        }
-        """;
+      {
+        "configuration": {
+          "region": "us-east-1"
+        },
+        "authentication": {
+          "type": "credentials",
+          "accessKey": "{{secrets.ACCESS_KEY}}",
+          "secretKey": "{{secrets.SECRET_KEY}}"
+        },
+        "s3BucketName": "test-aws-s3-bucket-name",
+        "extractionEngineType": "AWS_TEXTRACT"
+      }
+      """;
   public static final String AWS_INPUT =
       """
-        {
-          "extractionEngineType": "AWS_TEXTRACT",
-          "document": {
-            "camunda.document.type": "camunda",
-            "storeId": "test",
-            "documentId": "test",
-            "metadata": {}
+      {
+        "extractionEngineType": "AWS_TEXTRACT",
+        "document": {
+          "camunda.document.type": "camunda",
+          "storeId": "test",
+          "documentId": "test",
+          "metadata": {}
+        },
+        "converseData": {
+          "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0"
+        },
+        "taxonomyItems": [
+          {
+            "name": "sum",
+            "prompt": "the total amount that was paid for this invoice"
           },
-          "converseData": {
-            "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0"
-          },
-          "taxonomyItems": [
-            {
-              "name": "sum",
-              "prompt": "the total amount that was paid for this invoice"
-            },
-            {
-              "name": "supplier",
-              "prompt": "who provided the goods or services"
-            }
-          ]
-        }
-        """;
+          {
+            "name": "supplier",
+            "prompt": "who provided the goods or services"
+          }
+        ]
+      }
+      """;
   public static final String TEXTRACT_EXTRACTION_INPUT_JSON =
       """
       {

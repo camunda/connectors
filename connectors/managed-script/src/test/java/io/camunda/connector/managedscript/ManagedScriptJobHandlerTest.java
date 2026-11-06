@@ -1,0 +1,723 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.managedscript;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ClientHttpException;
+import io.camunda.connector.api.outbound.JobContext;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.managedscript.ManagedScriptJobHandler.Outcome;
+import io.camunda.connector.managedscript.ScriptResources.ResourceAccessDeniedException;
+import io.camunda.connector.managedscript.ScriptResources.ResourceNotVisibleException;
+import io.camunda.connector.managedscript.ScriptResources.ScriptResource;
+import io.camunda.connector.managedscript.api.ErrorCode;
+import io.camunda.connector.managedscript.api.ExecutionRequest;
+import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ProvisioningException;
+import io.camunda.connector.managedscript.api.ScriptLanguage;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
+
+class ManagedScriptJobHandlerTest {
+
+  private static final long SCRIPT_KEY = 2251799813685300L;
+  private static final Duration BACKOFF = Duration.ofSeconds(10);
+  private static final Duration PROVISIONING_TIMEOUT = Duration.ofMillis(300);
+  private static final Duration READINESS_BACKOFF = Duration.ofMillis(10);
+  private static final String SCRIPT_HEADER =
+      "[{\"resourceKey\":\"%d\",\"resourceType\":\"ManagedScript\",\"linkName\":\"script\"}]"
+          .formatted(SCRIPT_KEY);
+
+  private final CamundaClient client = mock(CamundaClient.class);
+  private final FakeProvider provider = new FakeProvider();
+  private final Map<Long, ScriptResource> stored = new HashMap<>();
+  private final AtomicInteger fetches = new AtomicInteger();
+  private final List<ExecutorReadiness> readinesses = new ArrayList<>();
+  private final ManagedScriptJobHandler handler = handler(Duration.ofMillis(200));
+
+  private ListAppender<ILoggingEvent> logs;
+
+  @AfterEach
+  void closeReadiness() {
+    readinesses.forEach(ExecutorReadiness::close);
+  }
+
+  @AfterEach
+  void detachLogs() {
+    if (logs != null) {
+      ((Logger) LoggerFactory.getLogger(ManagedScriptJobHandler.class)).detachAppender(logs);
+    }
+  }
+
+  @Test
+  void sendsTheScriptWithItsInputAndContextAndCompletesWithItsVariables() {
+    store("sum.py", "def execute(variables, context):\n    return {}\n");
+    provider.respond(ExecutionResponse.completed(Map.of("sum", 5)));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of("a", 2));
+
+    assertThat(outcome).isEqualTo(new Outcome.Completed(Map.of("sum", 5)));
+    final var call = provider.calls.getFirst();
+    assertThat(call.language()).isEqualTo(ScriptLanguage.PYTHON);
+    assertThat(call.request().script()).startsWith("def execute");
+    assertThat(call.request().variables()).isEqualTo(Map.of("a", 2));
+    assertThat(call.request().executionId()).isEqualTo("42");
+    assertThat(call.request().timeoutMs()).isEqualTo(30_000);
+    assertThat(call.request().context())
+        .containsEntry("tenantId", "<default>")
+        .containsEntry("processDefinitionId", "order-process")
+        .containsEntry("processDefinitionVersion", 3)
+        .containsEntry("processInstanceKey", "100")
+        .containsEntry("elementId", "compute-sum")
+        .containsEntry("elementInstanceKey", "101")
+        .containsEntry("jobKey", "42");
+  }
+
+  @Test
+  void sendsAnEmptyInputWhenTheScriptInputIsAbsent() {
+    store("sum.py", "x");
+
+    handler.handle(client, "default", job(SCRIPT_HEADER), null);
+
+    assertThat(provider.calls.getFirst().request().variables()).isEmpty();
+  }
+
+  @Test
+  void takesTheLanguageFromTheFileExtensionOnly() {
+    store("sum.js", "export function execute() { return {}; }");
+    final var headers = new HashMap<>(Map.of("linkedResources", SCRIPT_HEADER));
+    headers.put("language", "python");
+    headers.put("runtime", "python3.13");
+
+    final var outcome = handler.handle(client, "default", job(headers), Map.of());
+
+    assertThat(outcome).isInstanceOf(Outcome.Completed.class);
+    assertThat(provider.calls.getFirst().language()).isEqualTo(ScriptLanguage.JAVASCRIPT);
+  }
+
+  @Test
+  void rejectsAnUnsupportedExtensionWithoutRetries() {
+    store("sum.rb", "x");
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(outcome, ErrorCode.INVALID_JOB, 0);
+    assertThat(provider.calls).isEmpty();
+  }
+
+  @Test
+  void rejectsMissingOrInvalidLinkedResourcesWithoutRetries() {
+    // Stored, so that a header read too leniently would reach the provider.
+    store("sum.py", "x");
+    for (var header :
+        new String[] {
+          "",
+          "not json",
+          "[]",
+          "[{\"resourceKey\":\"abc\",\"linkName\":\"script\"}]",
+          "[{\"resourceKey\":\"0\",\"linkName\":\"script\"}]",
+          "[{\"resourceKey\":\"-1\",\"linkName\":\"script\"}]",
+          "[{\"resourceKey\":[\"%d\"],\"linkName\":[\"script\"]}]".formatted(SCRIPT_KEY),
+          "[{\"resourceKey\":\"1\",\"linkName\":\"script\"},{\"resourceKey\":\"2\",\"linkName\":\"script\"}]",
+          "{\"resourceKey\":\"%d\",\"linkName\":\"script\"}".formatted(SCRIPT_KEY),
+          SCRIPT_HEADER + " []"
+        }) {
+      final var outcome =
+          handler.handle(client, "default", job(Map.of("linkedResources", header)), Map.of());
+
+      assertFailed(outcome, ErrorCode.INVALID_JOB, 0);
+    }
+    assertFailed(
+        handler.handle(client, "default", job(Map.of()), Map.of()), ErrorCode.INVALID_JOB, 0);
+    assertThat(provider.calls).isEmpty();
+  }
+
+  @Test
+  void rejectsLinkedDependenciesWithoutRetries() {
+    store("sum.py", "x");
+    final var header =
+        "[{\"resourceKey\":\"%d\",\"linkName\":\"script\"},{\"resourceKey\":\"7\",\"linkName\":\"dependencies\"}]"
+            .formatted(SCRIPT_KEY);
+
+    final var outcome =
+        handler.handle(client, "default", job(Map.of("linkedResources", header)), Map.of());
+
+    assertFailed(outcome, ErrorCode.UNSUPPORTED_DEPENDENCIES, 0);
+  }
+
+  @Test
+  void consumesARetryWhenTheScriptIsStillNotVisibleAfterPolling() {
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.PLATFORM_UNAVAILABLE, null);
+    assertThat(failed.backoff()).isEqualTo(Duration.ZERO);
+    assertThat(fetches.get()).isGreaterThan(1);
+  }
+
+  @Test
+  void raisesAnIncidentNamingThePermissionWhenCamundaDeniesReadingTheScript() {
+    final var handler =
+        handler(
+            provider,
+            new ExecutorReadiness(provider, READINESS_BACKOFF, Duration.ZERO),
+            new ScriptResources(
+                16,
+                (camundaClient, resourceKey, timeout) -> {
+                  throw new ResourceAccessDeniedException(
+                      resourceKey, new ClientHttpException(403, "Forbidden"));
+                },
+                Duration.ofMillis(200),
+                Duration.ofMillis(10)));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.PLATFORM_REJECTED, 0);
+    assertThat(failed.message()).contains("READ permission on the RESOURCE resource type");
+  }
+
+  @Test
+  void waitsForTheScriptToBecomeVisible() {
+    final var handler = handler(Duration.ofSeconds(5));
+    final var script = new ScriptResource("sum.py", "x");
+    new Thread(
+            () -> {
+              sleep(100);
+              synchronized (stored) {
+                stored.put(SCRIPT_KEY, script);
+              }
+            })
+        .start();
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertThat(outcome).isInstanceOf(Outcome.Completed.class);
+  }
+
+  @Test
+  void fetchesAScriptOncePerPhysicalTenantAndKey() {
+    store("sum.py", "x");
+
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    handler.handle(client, "other", job(SCRIPT_HEADER), Map.of());
+
+    assertThat(fetches.get()).isEqualTo(2);
+  }
+
+  @Test
+  void makesTheExecutorsReadyOnceForEveryJob() {
+    store("sum.py", "x");
+
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertThat(provider.ensureCalls()).isEqualTo(1);
+    assertThat(provider.calls).hasSize(2);
+  }
+
+  @Test
+  void waitsForTheExecutorThenFailsWithItsRetriesUnchanged() {
+    store("sum.py", "x");
+    final var release = new CountDownLatch(1);
+    final var handler = handler(blockingUntil(release, ScriptLanguage.PYTHON));
+
+    final var start = System.nanoTime();
+    final var pending = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(pending, ErrorCode.PROVISIONING_PENDING, 3);
+    assertThat(failed.backoff()).isEqualTo(BACKOFF);
+    assertThat(Duration.ofNanos(System.nanoTime() - start))
+        .isGreaterThanOrEqualTo(PROVISIONING_TIMEOUT);
+    release.countDown();
+    assertThat(handler.handle(client, "default", job(SCRIPT_HEADER), Map.of()))
+        .isInstanceOf(Outcome.Completed.class);
+  }
+
+  @Test
+  void runsAJobWhoseExecutorIsReadyWhileAnotherLanguageIsNot() {
+    store("sum.js", "export function execute() { return {}; }");
+    final var blocked = blockingUntil(new CountDownLatch(1), ScriptLanguage.PYTHON);
+    final var handler = handler(blocked);
+    // Python is being made ready, and blocks in the provider: one thread for both languages would
+    // keep the JavaScript job waiting behind it.
+    readinesses.getLast().start(ScriptLanguage.PYTHON);
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(5))
+        .until(() -> blocked.ensured.contains(ScriptLanguage.PYTHON));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertThat(outcome).isInstanceOf(Outcome.Completed.class);
+  }
+
+  @Test
+  void triesARetryableFailureAgainInTheBackground() {
+    store("sum.py", "x");
+    provider
+        .failEnsure(new ProvisioningException(ErrorCode.PLATFORM_THROTTLED, "slow down"))
+        .failEnsure(new ProvisioningException(ErrorCode.PLATFORM_UNAVAILABLE, "service error"));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertThat(outcome).isInstanceOf(Outcome.Completed.class);
+    assertThat(provider.ensureCalls()).isEqualTo(3);
+  }
+
+  @Test
+  void givesALastingRetryableFailureToTheWaitingJobs() {
+    store("sum.py", "x");
+    final var failing =
+        new FakeProvider() {
+          @Override
+          public void ensureExecutors(ScriptLanguage language) {
+            super.ensureExecutors(language);
+            throw new ProvisioningException(ErrorCode.PLATFORM_UNAVAILABLE, "service error");
+          }
+        };
+    final var handler = handler(failing);
+
+    final var first = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    sleep(PROVISIONING_TIMEOUT.multipliedBy(2).toMillis());
+    final var lasting = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(first, ErrorCode.PROVISIONING_PENDING, 3);
+    final var failed = assertFailed(lasting, ErrorCode.PLATFORM_UNAVAILABLE, null);
+    assertThat(failed.message()).contains("service error");
+  }
+
+  @Test
+  void takesTheRetriesFromTheCodeNotFromTheRetryableFlag() {
+    store("sum.py", "x");
+    provider.respond(
+        new ExecutionResponse(
+            "1",
+            "FAILED",
+            null,
+            new ExecutionResponse.Error("SCRIPT_ERROR", "boom", null, true, false)),
+        new ExecutionResponse(
+            "1",
+            "FAILED",
+            null,
+            new ExecutionResponse.Error("PLATFORM_THROTTLED", "slow down", null, false, false)));
+
+    final var script = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var throttled = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(script, ErrorCode.SCRIPT_ERROR, 0);
+    assertFailed(throttled, ErrorCode.PLATFORM_THROTTLED, null);
+  }
+
+  @Test
+  void treatsACodeOutsideTheClosedSetAsAnInvalidResult() {
+    store("sum.py", "x");
+    provider.respond(scriptFailure("BUILD_FAILED", "old code", null));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.INVALID_RESULT, 0);
+    assertThat(failed.message()).contains("BUILD_FAILED");
+  }
+
+  @Test
+  void treatsAMissingOrUnknownOutcomeAsAnInvalidResult() {
+    store("sum.py", "x");
+    provider.respond(
+        new ExecutionResponse("1", null, null, null),
+        new ExecutionResponse("1", "RUNNING", null, null),
+        new ExecutionResponse("1", "FAILED", null, null));
+
+    for (int i = 0; i < 3; i++) {
+      assertFailed(
+          handler.handle(client, "default", job(SCRIPT_HEADER), Map.of()),
+          ErrorCode.INVALID_RESULT,
+          0);
+    }
+  }
+
+  @Test
+  void keepsTheRetriesOfAnInterruptedJob() {
+    // The script is not visible yet, so the interrupted thread fails while polling for it.
+    final var handler = handler(Duration.ofSeconds(5));
+    Thread.currentThread().interrupt();
+    try {
+      final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+      final var failed = assertFailed(outcome, ErrorCode.PLATFORM_INTERRUPTED, 3);
+      assertThat(failed.backoff()).isEqualTo(BACKOFF);
+    } finally {
+      assertThat(Thread.interrupted()).isTrue();
+    }
+  }
+
+  @Test
+  void failsWaitingJobsWithoutRetriesOnAPermanentFailureAndTriesAgainAfterTheBackoff() {
+    store("sum.py", "x");
+    provider.failEnsure(new ProvisioningException(ErrorCode.PLATFORM_REJECTED, "role missing"));
+
+    final var rejected = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    sleep(READINESS_BACKOFF.multipliedBy(3).toMillis());
+    final var completed = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(rejected, ErrorCode.PLATFORM_REJECTED, 0);
+    assertThat(failed.message()).contains("The executor of python is not ready: role missing");
+    assertThat(completed).isInstanceOf(Outcome.Completed.class);
+    assertThat(provider.ensureCalls()).isEqualTo(2);
+  }
+
+  @Test
+  void keepsAPermanentFailureForTheJobsWithinTheBackoff() {
+    store("sum.py", "x");
+    provider.failEnsure(new ProvisioningException(ErrorCode.PLATFORM_REJECTED, "role missing"));
+    final var handler =
+        handler(
+            provider,
+            new ExecutorReadiness(provider, Duration.ofMinutes(1), Duration.ZERO),
+            resources(Duration.ofMillis(200)));
+
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var second = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(second, ErrorCode.PLATFORM_REJECTED, 0);
+    assertThat(provider.ensureCalls()).isEqualTo(1);
+  }
+
+  @Test
+  void waitsWhileTheGrantsOfANewClusterPropagateThenRejects() {
+    store("sum.py", "x");
+    final var denying =
+        new FakeProvider() {
+          @Override
+          public void ensureExecutors(ScriptLanguage language) {
+            super.ensureExecutors(language);
+            throw ProvisioningException.permissionDenied("AccessDenied", null);
+          }
+        };
+    final var window = PROVISIONING_TIMEOUT.multipliedBy(6);
+    final var handler =
+        handler(
+            denying,
+            new ExecutorReadiness(denying, READINESS_BACKOFF, window),
+            resources(Duration.ofMillis(200)));
+
+    final var first = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    // Longer than twice the provisioning timeout, but within the window.
+    sleep(PROVISIONING_TIMEOUT.multipliedBy(2).toMillis());
+    final var second = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    sleep(window.toMillis());
+    final var afterTheWindow = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(first, ErrorCode.PROVISIONING_PENDING, 3);
+    assertFailed(second, ErrorCode.PROVISIONING_PENDING, 3);
+    assertFailed(afterTheWindow, ErrorCode.PLATFORM_REJECTED, 0);
+  }
+
+  @Test
+  void failsAScriptErrorWithoutRetriesWithItsStackTraceInTheIncident() {
+    store("sum.py", "x");
+    provider.respond(
+        scriptFailure("SCRIPT_ERROR", "ZeroDivisionError: division by zero", "Traceback ..."));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.SCRIPT_ERROR, 0);
+    assertThat(failed.message())
+        .isEqualTo("SCRIPT_ERROR: ZeroDivisionError: division by zero\nTraceback ...");
+    assertThat(failed.backoff()).isEqualTo(Duration.ZERO);
+  }
+
+  @Test
+  void consumesARetryOnAnUnexpectedException() {
+    store("sum.py", "x");
+    final var handler =
+        handler(
+            new FakeProvider() {
+              @Override
+              public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+                throw new IllegalStateException("unexpected");
+              }
+            });
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(outcome, ErrorCode.PLATFORM_ERROR, null);
+  }
+
+  @Test
+  void waitsOutADeniedInvocationWithinTheGrantPropagationWindowOnly() {
+    store("sum.py", "x");
+    final var denying =
+        new FakeProvider() {
+          @Override
+          public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+            throw ProvisioningException.permissionDenied("AccessDenied on Invoke", null);
+          }
+        };
+    final var withinWindow =
+        handler(
+            denying,
+            new ExecutorReadiness(denying, READINESS_BACKOFF, Duration.ofMinutes(2)),
+            resources(Duration.ofMillis(200)));
+    final var afterWindow = handler(denying);
+
+    final var pending = withinWindow.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var rejected = afterWindow.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(pending, ErrorCode.PROVISIONING_PENDING, 3);
+    assertThat(failed.message()).contains("AccessDenied on Invoke");
+    assertFailed(rejected, ErrorCode.PLATFORM_REJECTED, 0);
+  }
+
+  @Test
+  void makesAMissingExecutorReadyAgainWithinTheJob() {
+    store("sum.py", "x");
+    provider.respond(
+        ExecutionResponse.failed(ErrorCode.DEPLOYMENT_MISSING, "gone"),
+        ExecutionResponse.completed(Map.of("sum", 5)));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertThat(outcome).isEqualTo(new Outcome.Completed(Map.of("sum", 5)));
+    assertThat(provider.ensureCalls()).isEqualTo(2);
+    assertThat(provider.calls).hasSize(2);
+  }
+
+  @Test
+  void consumesARetryWhenTheExecutorIsStillMissing() {
+    store("sum.py", "x");
+    provider.respond(
+        ExecutionResponse.failed(ErrorCode.DEPLOYMENT_MISSING, "gone"),
+        ExecutionResponse.failed(ErrorCode.DEPLOYMENT_MISSING, "gone again"));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.DEPLOYMENT_MISSING, null);
+    assertThat(failed.backoff()).isEqualTo(Duration.ZERO);
+    assertThat(provider.ensureCalls()).isEqualTo(2);
+  }
+
+  @Test
+  void treatsAnUnsupportedContractVersionAsAnInvalidResult() {
+    store("sum.py", "x");
+    provider.respond(new ExecutionResponse("2", "COMPLETED", Map.of("sum", 5), null));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(outcome, ErrorCode.INVALID_RESULT, 0);
+  }
+
+  @Test
+  void failsWithoutRetriesWhenTheExecutorRejectsTheContractVersionOfTheRequest() {
+    // A runtime only calls the executor of its own wrapper: a rejected version is a bug or a
+    // tampered executor, not a step of an upgrade, so nothing is made ready again or retried.
+    store("sum.py", "x");
+    provider.respond(
+        ExecutionResponse.failed(
+            ErrorCode.UNSUPPORTED_CONTRACT_VERSION,
+            "contract version \"2\" is not supported, expected 1"));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.UNSUPPORTED_CONTRACT_VERSION, 0);
+    assertThat(failed.message()).contains("contract version \"2\" is not supported");
+    assertThat(provider.calls).hasSize(1);
+    assertThat(provider.ensureCalls()).isEqualTo(1);
+  }
+
+  @Test
+  void requiresTheVariablesOfACompletedScript() {
+    store("sum.py", "x");
+    provider.respond(
+        new ExecutionResponse("1", "COMPLETED", null, null),
+        new ExecutionResponse("1", "COMPLETED", Map.of(), null));
+
+    final var missing = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var empty = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(missing, ErrorCode.INVALID_RESULT, 0);
+    assertThat(empty).isEqualTo(new Outcome.Completed(Map.of()));
+  }
+
+  @Test
+  void neverLogsTheScriptItsInputOrItsOutput() {
+    captureLogs();
+    store("sum.py", "SCRIPT_SENTINEL");
+    provider.respond(
+        ExecutionResponse.completed(Map.of("out", "OUTPUT_SENTINEL")),
+        scriptFailure("SCRIPT_ERROR", "MESSAGE_SENTINEL", "TRACE_SENTINEL"));
+    final var throwing =
+        handler(
+            new FakeProvider() {
+              @Override
+              public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+                throw new IllegalStateException("INPUT_SENTINEL in an exception message");
+              }
+            });
+
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of("in", "INPUT_SENTINEL"));
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of("in", "INPUT_SENTINEL"));
+    throwing.handle(client, "default", job(SCRIPT_HEADER), Map.of("in", "INPUT_SENTINEL"));
+
+    assertThat(logs.list).isNotEmpty();
+    for (var event : logs.list) {
+      final var text =
+          event.getFormattedMessage()
+              + (event.getThrowableProxy() == null ? "" : event.getThrowableProxy().getMessage());
+      assertThat(text)
+          .doesNotContain(
+              "SCRIPT_SENTINEL",
+              "INPUT_SENTINEL",
+              "OUTPUT_SENTINEL",
+              "MESSAGE_SENTINEL",
+              "TRACE_SENTINEL");
+    }
+  }
+
+  @Test
+  void auditsEachInvocation() {
+    captureLogs();
+    store("sum.py", "x");
+
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertThat(logs.list)
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .anyMatch(message ->
+            message.matches(
+                "Managed-script job 42: script resource %d, language python, outcome COMPLETED, \\d+ ms"
+                    .formatted(SCRIPT_KEY)));
+  }
+
+  private ManagedScriptJobHandler handler(Duration visibilityTimeout) {
+    return handler(
+        provider,
+        new ExecutorReadiness(provider, READINESS_BACKOFF, Duration.ZERO),
+        resources(visibilityTimeout));
+  }
+
+  private ManagedScriptJobHandler handler(FakeProvider provider) {
+    return handler(
+        provider,
+        new ExecutorReadiness(provider, READINESS_BACKOFF, Duration.ZERO),
+        resources(Duration.ofMillis(200)));
+  }
+
+  private ManagedScriptJobHandler handler(
+      FakeProvider provider, ExecutorReadiness readiness, ScriptResources resources) {
+    readinesses.add(readiness);
+    return new ManagedScriptJobHandler(
+        provider,
+        readiness,
+        resources,
+        ConnectorsObjectMapperSupplier.getCopy(),
+        PROVISIONING_TIMEOUT,
+        Duration.ofSeconds(30),
+        BACKOFF);
+  }
+
+  /** A provider whose executor of the language is ready only once the latch is released. */
+  private static FakeProvider blockingUntil(CountDownLatch release, ScriptLanguage blocked) {
+    return new FakeProvider() {
+      @Override
+      public void ensureExecutors(ScriptLanguage language) {
+        super.ensureExecutors(language);
+        if (language == blocked) {
+          try {
+            release.await();
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ProvisioningException(ErrorCode.PLATFORM_INTERRUPTED, "stopped");
+          }
+        }
+      }
+    };
+  }
+
+  private ScriptResources resources(Duration visibilityTimeout) {
+    return new ScriptResources(
+        16,
+        (camundaClient, resourceKey, timeout) -> {
+          fetches.incrementAndGet();
+          synchronized (stored) {
+            final var resource = stored.get(resourceKey);
+            if (resource == null) {
+              throw new ResourceNotVisibleException(resourceKey, null);
+            }
+            return resource;
+          }
+        },
+        visibilityTimeout,
+        Duration.ofMillis(10));
+  }
+
+  private void store(String name, String source) {
+    synchronized (stored) {
+      stored.put(SCRIPT_KEY, new ScriptResource(name, source));
+    }
+  }
+
+  private static JobContext job(String linkedResources) {
+    return job(Map.of("linkedResources", linkedResources));
+  }
+
+  private static JobContext job(Map<String, String> headers) {
+    final var job = mock(JobContext.class);
+    lenient().when(job.getCustomHeaders()).thenReturn(headers);
+    lenient().when(job.getJobKey()).thenReturn(42L);
+    lenient().when(job.getRetries()).thenReturn(3);
+    lenient().when(job.getTenantId()).thenReturn("<default>");
+    lenient().when(job.getBpmnProcessId()).thenReturn("order-process");
+    lenient().when(job.getProcessDefinitionVersion()).thenReturn(3);
+    lenient().when(job.getProcessInstanceKey()).thenReturn(100L);
+    lenient().when(job.getElementId()).thenReturn("compute-sum");
+    lenient().when(job.getElementInstanceKey()).thenReturn(101L);
+    return job;
+  }
+
+  private static ExecutionResponse scriptFailure(String code, String message, String stackTrace) {
+    return new ExecutionResponse(
+        "1", "FAILED", null, new ExecutionResponse.Error(code, message, stackTrace, false, false));
+  }
+
+  private static Outcome.Failed assertFailed(Outcome outcome, ErrorCode code, Integer retries) {
+    assertThat(outcome).isInstanceOf(Outcome.Failed.class);
+    final var failed = (Outcome.Failed) outcome;
+    assertThat(failed.code()).isEqualTo(code.name());
+    assertThat(failed.message()).startsWith(code.name() + ": ");
+    assertThat(failed.retries()).isEqualTo(retries);
+    return failed;
+  }
+
+  private void captureLogs() {
+    logs = new ListAppender<>();
+    logs.start();
+    ((Logger) LoggerFactory.getLogger(ManagedScriptJobHandler.class)).addAppender(logs);
+  }
+
+  private static void sleep(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+}

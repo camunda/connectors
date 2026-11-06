@@ -47,10 +47,9 @@ class GcsCredentialValidatorTest {
   @ValueSource(ints = {400, 401, 403})
   void unauthorizedWhenGoogleRejectsAndDoesNotLeakDetail(int statusCode) {
     var validator =
-        new GcsCredentialValidator(
-            jsonKey -> {
-              throw new IOException("wrapped", httpError(statusCode));
-            });
+        new GcsCredentialValidator(jsonKey -> {
+          throw new IOException("wrapped", httpError(statusCode));
+        });
 
     var result = validator.validate(config("{\"type\":\"service_account\"}"));
 
@@ -63,10 +62,9 @@ class GcsCredentialValidatorTest {
   @ValueSource(ints = {429, 500, 503})
   void errorWhenFailureIsNotACredentialRejection(int statusCode) {
     var validator =
-        new GcsCredentialValidator(
-            jsonKey -> {
-              throw httpError(statusCode);
-            });
+        new GcsCredentialValidator(jsonKey -> {
+          throw httpError(statusCode);
+        });
 
     var result = validator.validate(config("{\"type\":\"service_account\"}"));
 

@@ -57,14 +57,13 @@ public class ProxyHandler {
       proxyConfiguration
           .getProxyDetails(protocol)
           .filter(ProxyDetails::hasCredentials)
-          .ifPresent(
-              p -> {
-                BasicCredentialsProvider provider = new BasicCredentialsProvider();
-                provider.setCredentials(
-                    new AuthScope(p.host(), p.port()),
-                    new UsernamePasswordCredentials(p.user(), p.password().toCharArray()));
-                providers.put(protocol, provider);
-              });
+          .ifPresent(p -> {
+            BasicCredentialsProvider provider = new BasicCredentialsProvider();
+            provider.setCredentials(
+                new AuthScope(p.host(), p.port()),
+                new UsernamePasswordCredentials(p.user(), p.password().toCharArray()));
+            providers.put(protocol, provider);
+          });
     }
     return providers;
   }

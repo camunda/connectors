@@ -62,13 +62,13 @@ class ExternalDocumentTest {
   private static MockedStatic<UUID> mockedUuid;
   private static UUID defaultUuid = UUID.fromString("8d8b30e3-de52-4f1c-a71c-9905a8043dac");
 
-  @BeforeAll()
+  @BeforeAll
   static void setupUUID() {
     mockedUuid = Mockito.mockStatic(UUID.class);
     mockedUuid.when(UUID::randomUUID).thenReturn(defaultUuid);
   }
 
-  @AfterAll()
+  @AfterAll
   static void tearDown() {
     mockedUuid.close();
   }

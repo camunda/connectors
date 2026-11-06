@@ -65,7 +65,7 @@ public class AgentSubProcessMemoryStorageTests extends BaseAgentSubProcessTest {
         elementTemplate -> elementTemplate.property("data.memory.storage.type", "in-process"),
         FEEDBACK_LOOP_RESPONSE_TEXT,
         true,
-        (agentResponse) -> {
+        agentResponse -> {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
               .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)
@@ -92,7 +92,7 @@ public class AgentSubProcessMemoryStorageTests extends BaseAgentSubProcessTest {
                     "data.memory.storage.customProperties", "={ customProperty: \"customValue\" }"),
         FEEDBACK_LOOP_RESPONSE_TEXT,
         true,
-        (agentResponse) -> {
+        agentResponse -> {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
               .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)
@@ -181,11 +181,10 @@ public class AgentSubProcessMemoryStorageTests extends BaseAgentSubProcessTest {
         .alias("onJobCompletionFailed should clean up the orphaned document")
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofMillis(500))
-        .untilAsserted(
-            () -> {
-              assertThat(createdReference.get()).isNotNull();
-              verify(documentStore).deleteDocument(createdReference.get());
-            });
+        .untilAsserted(() -> {
+          assertThat(createdReference.get()).isNotNull();
+          verify(documentStore).deleteDocument(createdReference.get());
+        });
   }
 
   @Test
@@ -202,7 +201,7 @@ public class AgentSubProcessMemoryStorageTests extends BaseAgentSubProcessTest {
                 .property("data.memory.storage.actorId", "test-actor-id"),
         FEEDBACK_LOOP_RESPONSE_TEXT,
         true,
-        (agentResponse) -> {
+        agentResponse -> {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
               .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)

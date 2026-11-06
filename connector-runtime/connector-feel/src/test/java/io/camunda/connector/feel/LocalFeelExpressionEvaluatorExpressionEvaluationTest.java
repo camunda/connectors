@@ -559,10 +559,9 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
   void backoffFunctionShouldThrowWhenMinDelayExceedsMaxDelay() {
     // given - minDelay=PT10S > maxDelay=PT5S is invalid
     // when & then
-    assertThatThrownBy(
-            () ->
-                objectUnderTest.evaluate(
-                    "=backoff(1, duration(\"PT10S\"), 1.6, duration(\"PT5S\"), 0.1)", Map.of()))
+    assertThatThrownBy(() ->
+            objectUnderTest.evaluate(
+                "=backoff(1, duration(\"PT10S\"), 1.6, duration(\"PT5S\"), 0.1)", Map.of()))
         .isInstanceOf(FeelEngineWrapperException.class)
         .hasMessageContaining("minDelay");
   }
@@ -571,10 +570,9 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
   void backoffFunctionShouldThrowWhenJitterFactorIsNegative() {
     // given - negative jitterFactor is invalid
     // when & then
-    assertThatThrownBy(
-            () ->
-                objectUnderTest.evaluate(
-                    "=backoff(1, duration(\"PT0.05S\"), 1.6, duration(\"PT5S\"), -0.1)", Map.of()))
+    assertThatThrownBy(() ->
+            objectUnderTest.evaluate(
+                "=backoff(1, duration(\"PT0.05S\"), 1.6, duration(\"PT5S\"), -0.1)", Map.of()))
         .isInstanceOf(FeelEngineWrapperException.class)
         .hasMessageContaining("jitterFactor");
   }
@@ -688,5 +686,63 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
   void currentCreateDocumentNonceThrowsOutsideAnActiveScope() {
     assertThatThrownBy(FeelConnectorFunctionProvider::currentCreateDocumentNonce)
         .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void getHeaderFunctionShouldIgnoreCase() {
+    // given
+    final var headers =
+        Map.of("Content-Type", "application/json", "Date", "22 July 2026", "x-test", "one");
+    final var expression =
+        "={lower: getHeader(response.headers, \"content-type\"),"
+            + " upper: getHeader(response.headers, \"CONTENT-TYPE\"),"
+            + " date: getHeader(response.headers, \"date\"),"
+            + " custom: getHeader(response.headers, \"X-Test\")}";
+    // when
+    Map<String, Object> result =
+        objectUnderTest.evaluate(expression, Map.of("response", Map.of("headers", headers)));
+    // then
+    assertThat(result)
+        .containsEntry("lower", "application/json")
+        .containsEntry("upper", "application/json")
+        .containsEntry("date", "22 July 2026")
+        .containsEntry("custom", "one");
+  }
+
+  @Test
+  void getHeaderFunctionShouldPreferExactMatch() {
+    // given
+    final var expression = "=getHeader({\"x-test\": \"lower\", \"X-Test\": \"exact\"}, \"X-Test\")";
+    // when
+    String result = objectUnderTest.evaluate(expression, Map.of());
+    // then
+    assertThat(result).isEqualTo("exact");
+  }
+
+  @Test
+  void getHeaderFunctionShouldReturnMultiValuedHeaderAsList() {
+    // given
+    final var headers = Map.of("Set-Cookie", java.util.List.of("a=1", "b=2"));
+    // when
+    Object result =
+        objectUnderTest.evaluate("=getHeader(headers, \"set-cookie\")", Map.of("headers", headers));
+    // then
+    assertThat(result).isEqualTo(java.util.List.of("a=1", "b=2"));
+  }
+
+  @Test
+  void getHeaderFunctionShouldReturnNullWhenHeaderOrHeadersMissing() {
+    // when & then
+    assertThat((Object) objectUnderTest.evaluate("=getHeader({\"a\": \"b\"}, \"c\")", Map.of()))
+        .isNull();
+    assertThat((Object) objectUnderTest.evaluate("=getHeader(null, \"c\")", Map.of())).isNull();
+  }
+
+  @Test
+  void getHeaderFunctionShouldFailWhenHeadersIsNotAContext() {
+    // when & then
+    assertThatThrownBy(() -> objectUnderTest.evaluate("=getHeader(\"oops\", \"a\")", Map.of()))
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("headers");
   }
 }

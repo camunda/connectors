@@ -21,6 +21,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
+| [Persisted data](#persisted-data-8-11)                                       | Code reading the `CONFIGURATION` items of the agent instance history |
 
 ### Module split
 
@@ -108,8 +109,12 @@ dependencies. A custom runtime that runs all agentic AI connectors, like the pre
 | `common.AgenticAiHttpProxySupport` AWS SDK methods (`createAwsHttpClientBuilder`, `createAwsAsyncHttpClientBuilder`) | `aiagent.proxy.aws.AwsSdkHttpProxySupport` (`httpClientBuilder`, `asyncHttpClientBuilder`), a separate bean |
 | `common.AgenticAiHttpProxySupport.azureProxyOptions`                         | `aiagent.proxy.azure.AzureHttpProxySupport.proxyOptions`, a separate bean |
 | `common.AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl`                 | Google GenAI base URL helper of the Gemini provider (`aiagent.chatmodel.provider.gemini`) |
+| `aiagent.agentinstance.AgentInstanceKey`                                     | `aiagent.model.AgentInstanceKey`               |
 
 `AgenticAiConnectorsConfigurationProperties` keeps only the `aiagent` properties.
+
+`AgentMetadata.agentInstanceKey` is an `AgentInstanceKey` (still persisted as a plain number) instead of a
+`Long`. `AgentInstanceKey.from(AgentMetadata)` is removed: read `metadata.agentInstanceKey()`.
 
 A2A messages and artifacts (`A2aMessage.contents()`, `A2aArtifact.contents()`) hold `A2aPart`
 records (`A2aTextPart`, `A2aDataPart`, `A2aDocumentPart` in `a2a.client.common.model.part`) instead of the AI Agent message content
@@ -184,6 +189,15 @@ The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpU
 
 A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
 client in its properties does not start.
+
+
+<a id="persisted-data-8-11"></a>
+
+### Persisted data
+
+- The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
+  SHA-256 over a JSON serialization of the configuration. Every running agent instance, also one created before 8.11, writes
+  one additional `CONFIGURATION` history item on its first job after the upgrade.
 
 ## Camunda 8.9 to 8.10
 

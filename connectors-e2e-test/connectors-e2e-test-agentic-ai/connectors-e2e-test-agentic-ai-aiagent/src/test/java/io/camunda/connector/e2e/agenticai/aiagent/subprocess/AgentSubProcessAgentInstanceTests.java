@@ -25,9 +25,9 @@ import static org.mockito.Mockito.verify;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.api.search.enums.AgentInstanceStatus;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.e2e.ZeebeTest;
@@ -78,9 +78,8 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
         .applyToolCallResults(
             any(AgentExecutionContext.class),
             any(AgentInstanceKey.class),
-            argThat(
-                (List<ToolCallResult> results) ->
-                    results.size() == 1 && fastToolCallId.equals(results.getFirst().id())),
+            argThat((List<ToolCallResult> results) ->
+                results.size() == 1 && fastToolCallId.equals(results.getFirst().id())),
             any(AgentConversationTurn.class));
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent()).hasActiveElements(SLOW_TOOL_ID);
   }
@@ -119,7 +118,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
               .isReady()
               .hasAgentInstanceKey()
               .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1));
-          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 
     AgentInstanceClientVerifier.verify(agentInstanceClient)
@@ -190,7 +189,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
               .isReady()
               .hasAgentInstanceKey()
               .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2));
-          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 
     // turn 1 input is the user prompt; turns 2 and 3 inputs are tool results; assistant items:
@@ -266,7 +265,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 2));
-          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 
     final var verifier =
@@ -362,7 +361,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
               .isReady()
               .hasAgentInstanceKey()
               .hasMetrics(expectedMetrics);
-          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
@@ -409,7 +408,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
               .isReady()
               .hasAgentInstanceKey()
               .hasMetrics(expectedMetrics);
-          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())

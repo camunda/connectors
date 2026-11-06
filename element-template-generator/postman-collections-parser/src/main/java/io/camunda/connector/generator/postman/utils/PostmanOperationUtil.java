@@ -54,21 +54,19 @@ public class PostmanOperationUtil {
     final var allEndpoints = new HashMap<String, Endpoint>();
 
     // parse everything
-    allOperationsRegistry.forEach(
-        (name, item) -> {
-          if (item instanceof Endpoint e) allEndpoints.put(name, e);
-        });
+    allOperationsRegistry.forEach((name, item) -> {
+      if (item instanceof Endpoint e) allEndpoints.put(name, e);
+    });
 
     // if there is no need to filter, return every operation
     if (includeOperations.isEmpty()) {
       return allEndpoints.entrySet().stream()
-          .map(
-              endpointEntry -> {
-                OperationParseResult res =
-                    extractOperation(endpointEntry.getKey(), endpointEntry.getValue());
-                res.builder().pathFeelExpression(extractPath(res.path()));
-                return res;
-              })
+          .map(endpointEntry -> {
+            OperationParseResult res =
+                extractOperation(endpointEntry.getKey(), endpointEntry.getValue());
+            res.builder().pathFeelExpression(extractPath(res.path()));
+            return res;
+          })
           .collect(Collectors.toList());
     }
 

@@ -59,23 +59,21 @@ class McpClientAutoConfigurationTest {
 
   @Test
   void enablesRemoteMcpClientIntegrationByDefault() {
-    contextRunner.run(
-        context -> {
-          assertHasAllBeansOf(context, SHARED_MCP_CLIENT_BEANS);
-          assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
-        });
+    contextRunner.run(context -> {
+      assertHasAllBeansOf(context, SHARED_MCP_CLIENT_BEANS);
+      assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
+    });
   }
 
   @Test
   void disablesRemoteMcpClientIntegrationIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.mcp.remote-client.enabled=false")
-        .run(
-            context -> {
-              assertDoesNotHaveAnyBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, SHARED_MCP_CLIENT_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
-            });
+        .run(context -> {
+          assertDoesNotHaveAnyBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
+          assertDoesNotHaveAnyBeansOf(context, SHARED_MCP_CLIENT_BEANS);
+          assertDoesNotHaveAnyBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
+        });
   }
 
   @Test
@@ -87,11 +85,10 @@ class McpClientAutoConfigurationTest {
   void enablesRuntimeMcpClientIntegrationIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.mcp.client.enabled=true")
-        .run(
-            context -> {
-              assertHasAllBeansOfAtLeastOnce(context, SHARED_MCP_CLIENT_BEANS);
-              assertHasAllBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
-            });
+        .run(context -> {
+          assertHasAllBeansOfAtLeastOnce(context, SHARED_MCP_CLIENT_BEANS);
+          assertHasAllBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
+        });
   }
 
   @Test
@@ -100,12 +97,11 @@ class McpClientAutoConfigurationTest {
         .withPropertyValues(
             "camunda.connector.agenticai.mcp.client.enabled=false",
             "camunda.connector.agenticai.mcp.remote-client.enabled=false")
-        .run(
-            context -> {
-              assertDoesNotHaveAnyBeansOf(context, SHARED_MCP_CLIENT_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
-            });
+        .run(context -> {
+          assertDoesNotHaveAnyBeansOf(context, SHARED_MCP_CLIENT_BEANS);
+          assertDoesNotHaveAnyBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
+          assertDoesNotHaveAnyBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
+        });
   }
 
   @Test
@@ -115,22 +111,20 @@ class McpClientAutoConfigurationTest {
             "camunda.connector.agenticai.mcp.client.enabled=true",
             "camunda.connector.agenticai.mcp.remote-client.enabled=false",
             "camunda.connector.agenticai.mcp.client.framework=mcpsdk")
-        .run(
-            context -> {
-              assertHasAllBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
-              assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
-            });
+        .run(context -> {
+          assertHasAllBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
+          assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
+        });
   }
 
   @Test
   void enablesMcpSdkRemoteIntegrationIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.mcp.remote-client.framework=mcpsdk")
-        .run(
-            context -> {
-              assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
-              assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
-            });
+        .run(context -> {
+          assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
+          assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
+        });
   }
 
   private static void assertHasAllBeansOf(
@@ -142,9 +136,8 @@ class McpClientAutoConfigurationTest {
       AssertableApplicationContext context, List<Class<?>> beans) {
     assertAll(
         beans.stream()
-            .map(
-                beanClass ->
-                    () -> assertThat(context).getBeans(beanClass).hasSizeGreaterThanOrEqualTo(1)));
+            .map(beanClass ->
+                () -> assertThat(context).getBeans(beanClass).hasSizeGreaterThanOrEqualTo(1)));
   }
 
   private static void assertDoesNotHaveAnyBeansOf(

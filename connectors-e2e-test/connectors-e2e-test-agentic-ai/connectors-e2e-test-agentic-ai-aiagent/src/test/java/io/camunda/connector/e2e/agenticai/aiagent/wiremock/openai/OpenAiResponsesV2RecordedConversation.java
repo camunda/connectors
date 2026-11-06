@@ -266,12 +266,11 @@ public final class OpenAiResponsesV2RecordedConversation {
         return outputNode.asText();
       }
       final StringBuilder text = new StringBuilder();
-      outputNode.forEach(
-          item -> {
-            if ("input_text".equals(item.path("type").asText())) {
-              text.append(item.path("text").asText());
-            }
-          });
+      outputNode.forEach(item -> {
+        if ("input_text".equals(item.path("type").asText())) {
+          text.append(item.path("text").asText());
+        }
+      });
       return text.toString();
     }
 

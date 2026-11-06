@@ -54,4 +54,20 @@ class TestJobContextTest {
 
     assertThat(jobContext.getPhysicalTenantId()).isEqualTo("engine-1");
   }
+
+  @Test
+  void getRetries_returnsNullByDefault() {
+    var jobContext = new TestJobContext(Map::of, () -> "{}");
+
+    assertThat(jobContext.getRetries()).isNull();
+  }
+
+  @Test
+  void getRetries_returnsValueSetBySetter() {
+    var jobContext = new TestJobContext(Map::of, () -> "{}");
+
+    jobContext.setRetries(2);
+
+    assertThat(jobContext.getRetries()).isEqualTo(2);
+  }
 }

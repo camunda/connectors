@@ -89,13 +89,13 @@ public class DocumentMapperTest {
 
     final var json =
         """
-            {
-              "value": {
-                "camunda.function.type": "base64",
-                "params": ["hello"]
-              }
-            }
-            """;
+        {
+          "value": {
+            "camunda.function.type": "base64",
+            "params": ["hello"]
+          }
+        }
+        """;
 
     var actual = objectMapper.readValue(json, TestRecordWithString.class);
     assertThat(actual.value()).isEqualTo(Base64.getEncoder().encodeToString("hello".getBytes()));

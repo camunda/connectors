@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.EmbeddingsVectorDB.v1",
   "description" : "Embed and download documents with vector databases",
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
-  "version" : 3,
+  "version" : 4,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -898,8 +898,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "Amazon DynamoDB",
+      "value" : "amazonDynamoDbStore"
+    }, {
       "name" : "Amazon Managed OpenSearch",
       "value" : "amazonManagedOpenSearchStore"
+    }, {
+      "name" : "Amazon S3 Vectors",
+      "value" : "amazonS3VectorsStore"
     }, {
       "name" : "Azure AI Search",
       "value" : "azureAiSearchStore"
@@ -913,6 +919,120 @@
       "name" : "OpenSearch",
       "value" : "openSearchStore"
     } ]
+  }, {
+    "id" : "vectorStore.amazonDynamoDb.accessKey",
+    "label" : "Access key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonDynamoDb.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonDynamoDbStore",
+      "type" : "simple"
+    },
+    "tooltip" : "IAM access key of a user allowed to call dynamodb:DescribeTable, BatchWriteItem and SearchVectors, plus CreateTable if the connector should create the table",
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "vectorStore.amazonDynamoDb.secretKey",
+    "label" : "Secret key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonDynamoDb.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonDynamoDbStore",
+      "type" : "simple"
+    },
+    "tooltip" : "Secret key associated with the access key",
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "vectorStore.amazonDynamoDb.region",
+    "label" : "Region",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonDynamoDb.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonDynamoDbStore",
+      "type" : "simple"
+    },
+    "tooltip" : "AWS region of the table",
+    "placeholder" : "us-east-1",
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.amazonDynamoDb.tableName",
+    "label" : "Table name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^[a-zA-Z0-9_.-]{3,255}$",
+        "message" : "must be 3 to 255 letters, digits, underscores, hyphens or dots"
+      }
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonDynamoDb.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonDynamoDbStore",
+      "type" : "simple"
+    },
+    "tooltip" : "Table that stores the embeddings. If it does not exist, it is created on the first embed in on-demand capacity mode, together with the vector index. An existing table must have a string partition key and no sort key.",
+    "placeholder" : "embeddings",
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.amazonDynamoDb.indexName",
+    "label" : "Vector index name",
+    "description" : "Note: DynamoDB indexes new embeddings asynchronously, so they may not be returned by a retrieve that runs immediately after the embed.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^[a-zA-Z0-9_.-]{3,255}$",
+        "message" : "must be 3 to 255 letters, digits, underscores, hyphens or dots"
+      }
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonDynamoDb.indexName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonDynamoDbStore",
+      "type" : "simple"
+    },
+    "tooltip" : "Vector index used for similarity search. It must project the '_page_content' attribute, which holds the chunk text. When the table is created by the connector, the index uses cosine distance and the embedding model's dimensions.",
+    "placeholder" : "embeddings-index",
+    "type" : "String"
   }, {
     "id" : "vectorStore.amazonManagedOpensearch.accessKey",
     "label" : "Access key",
@@ -1012,6 +1132,115 @@
       "equals" : "amazonManagedOpenSearchStore",
       "type" : "simple"
     },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.amazonS3Vectors.accessKey",
+    "label" : "Access key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonS3Vectors.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonS3VectorsStore",
+      "type" : "simple"
+    },
+    "tooltip" : "IAM access key of a user allowed to call s3vectors:GetIndex, PutVectors, QueryVectors and GetVectors, plus CreateIndex if the connector should create the index",
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "vectorStore.amazonS3Vectors.secretKey",
+    "label" : "Secret key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonS3Vectors.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonS3VectorsStore",
+      "type" : "simple"
+    },
+    "tooltip" : "Secret key associated with the access key",
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "vectorStore.amazonS3Vectors.region",
+    "label" : "Region",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonS3Vectors.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonS3VectorsStore",
+      "type" : "simple"
+    },
+    "tooltip" : "AWS region of the vector bucket",
+    "placeholder" : "us-east-1",
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.amazonS3Vectors.vectorBucketName",
+    "label" : "Vector bucket name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonS3Vectors.vectorBucketName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonS3VectorsStore",
+      "type" : "simple"
+    },
+    "tooltip" : "Name of an existing S3 vector bucket",
+    "placeholder" : "my-vector-bucket",
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.amazonS3Vectors.indexName",
+    "label" : "Index name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$",
+        "message" : "must be 3 to 63 lowercase letters, digits, hyphens or dots, and start and end with a letter or digit"
+      }
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonS3Vectors.indexName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonS3VectorsStore",
+      "type" : "simple"
+    },
+    "tooltip" : "Vector index that stores the embeddings. If it does not exist, it is created on the first embed with cosine distance and the embedding model's dimensions. An existing index must declare '_page_content' as a non-filterable metadata key.",
+    "placeholder" : "embeddings",
     "type" : "String"
   }, {
     "id" : "vectorStore.aiSearch.endpoint",
@@ -1818,7 +2047,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "3",
+    "value" : "4",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

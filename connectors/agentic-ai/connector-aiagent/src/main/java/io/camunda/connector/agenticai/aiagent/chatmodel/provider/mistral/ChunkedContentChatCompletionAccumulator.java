@@ -142,9 +142,8 @@ final class ChunkedContentChatCompletionAccumulator {
 
     delta
         .toolCalls()
-        .ifPresent(
-            toolCalls ->
-                toolCalls.forEach(deltaToolCall -> accumulateToolCall(index, deltaToolCall)));
+        .ifPresent(toolCalls ->
+            toolCalls.forEach(deltaToolCall -> accumulateToolCall(index, deltaToolCall)));
 
     messageBuilder.putAllAdditionalProperties(delta._additionalProperties());
   }
@@ -281,20 +280,19 @@ final class ChunkedContentChatCompletionAccumulator {
       }
       rawContent
           .asString()
-          .ifPresent(
-              text -> {
-                if (chunked) {
-                  if (openChunkType == null) {
-                    // Defensive fallback: not observed in real traffic once chunk mode has
-                    // started, since only a type change closes a chunk and always opens the
-                    // next one immediately.
-                    openChunkType = "text";
-                  }
-                  openChunkText.append(text);
-                } else {
-                  plainText.append(text);
-                }
-              });
+          .ifPresent(text -> {
+            if (chunked) {
+              if (openChunkType == null) {
+                // Defensive fallback: not observed in real traffic once chunk mode has
+                // started, since only a type change closes a chunk and always opens the
+                // next one immediately.
+                openChunkType = "text";
+              }
+              openChunkText.append(text);
+            } else {
+              plainText.append(text);
+            }
+          });
     }
 
     private void accumulateChunk(JsonValue chunkValue) {
@@ -318,12 +316,11 @@ final class ChunkedContentChatCompletionAccumulator {
         closeOpenChunk();
         openChunkType = typeName;
       }
-      raw.forEach(
-          (key, value) -> {
-            if (!"type".equals(key) && !"thinking".equals(key) && !"text".equals(key)) {
-              openChunkExtra.put(key, value);
-            }
-          });
+      raw.forEach((key, value) -> {
+        if (!"type".equals(key) && !"thinking".equals(key) && !"text".equals(key)) {
+          openChunkExtra.put(key, value);
+        }
+      });
       if ("thinking".equals(typeName)) {
         final Object thinking = raw.get("thinking");
         if (thinking instanceof List<?> items && !items.isEmpty()) {

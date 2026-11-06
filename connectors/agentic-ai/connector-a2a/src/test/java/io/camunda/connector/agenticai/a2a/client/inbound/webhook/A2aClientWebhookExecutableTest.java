@@ -57,21 +57,21 @@ class A2aClientWebhookExecutableTest {
   private static final String HMAC_HEADER = "HMAC-Signature-Header";
   private static final String TASK_JSON =
       """
-          {
-            "kind": "task",
-            "id": "task-123",
-            "contextId": "ctx-123",
-            "status": {
-              "state": "completed"
-            },
-            "metadata": {
-              "key1": "value1",
-              "key2": "value2"
-            },
-            "artifacts": [],
-            "history": []
-          }
-          """;
+      {
+        "kind": "task",
+        "id": "task-123",
+        "contextId": "ctx-123",
+        "status": {
+          "state": "completed"
+        },
+        "metadata": {
+          "key1": "value1",
+          "key2": "value2"
+        },
+        "artifacts": [],
+        "history": []
+      }
+      """;
 
   private A2aClientWebhookExecutable webhookExecutable;
 
@@ -82,17 +82,16 @@ class A2aClientWebhookExecutableTest {
 
     lenient()
         .when(a2aSdkObjectConverter.convert(any(Task.class)))
-        .thenAnswer(
-            invocation -> {
-              Task task = invocation.getArgument(0);
-              return new A2aTask(
-                  task.getId(),
-                  task.getContextId(),
-                  new A2aTaskStatus(TaskState.WORKING, null, null),
-                  Map.of("key1", "value1", "key2", "value2"),
-                  List.of(),
-                  List.of());
-            });
+        .thenAnswer(invocation -> {
+          Task task = invocation.getArgument(0);
+          return new A2aTask(
+              task.getId(),
+              task.getContextId(),
+              new A2aTaskStatus(TaskState.WORKING, null, null),
+              Map.of("key1", "value1", "key2", "value2"),
+              List.of(),
+              List.of());
+        });
   }
 
   @Test

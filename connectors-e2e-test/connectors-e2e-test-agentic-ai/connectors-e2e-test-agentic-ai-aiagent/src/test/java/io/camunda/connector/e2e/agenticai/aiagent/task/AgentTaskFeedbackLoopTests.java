@@ -42,7 +42,7 @@ public class AgentTaskFeedbackLoopTests extends BaseAgentTaskTest {
         e -> e,
         HAIKU_TEXT,
         true,
-        (agentResponse) ->
+        agentResponse ->
             AgentResponseAssert.assertThat(agentResponse)
                 .hasResponseMessageText(HAIKU_TEXT)
                 .hasResponseText(HAIKU_TEXT)
@@ -61,7 +61,7 @@ public class AgentTaskFeedbackLoopTests extends BaseAgentTaskTest {
         },
         HAIKU_TEXT,
         false,
-        (agentResponse) ->
+        agentResponse ->
             // defaults to text
             AgentResponseAssert.assertThat(agentResponse)
                 .hasNoResponseMessage()

@@ -119,7 +119,8 @@ public class AgentResponseAssert extends AbstractAssert<AgentResponseAssert, Age
     isNotNull();
     Assertions.assertThat(actual.context()).isNotNull();
     Assertions.assertThat(actual.context().metadata()).isNotNull();
-    Assertions.assertThat(actual.context().metadata().agentInstanceKey()).isNotNull().isPositive();
+    Assertions.assertThat(actual.context().metadata().agentInstanceKey()).isNotNull();
+    Assertions.assertThat(actual.context().metadata().agentInstanceKey().value()).isPositive();
     return this;
   }
 

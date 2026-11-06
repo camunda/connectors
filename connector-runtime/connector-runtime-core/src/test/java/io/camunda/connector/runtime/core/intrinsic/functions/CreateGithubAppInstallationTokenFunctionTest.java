@@ -344,13 +344,12 @@ class CreateGithubAppInstallationTokenFunctionTest {
       CreateGithubAppInstallationTokenFunction testFunction =
           new CreateGithubAppInstallationTokenFunction("http://default.example.invalid", Map.of());
 
-      assertThatThrownBy(
-              () ->
-                  testFunction.execute(
-                      TEST_PRIVATE_KEY_FORMATTED,
-                      APP_ID,
-                      INSTALLATION_ID,
-                      wmRuntimeInfo.getHttpBaseUrl()))
+      assertThatThrownBy(() ->
+              testFunction.execute(
+                  TEST_PRIVATE_KEY_FORMATTED,
+                  APP_ID,
+                  INSTALLATION_ID,
+                  wmRuntimeInfo.getHttpBaseUrl()))
           .isInstanceOf(RuntimeException.class)
           .cause()
           .isInstanceOf(IllegalArgumentException.class)

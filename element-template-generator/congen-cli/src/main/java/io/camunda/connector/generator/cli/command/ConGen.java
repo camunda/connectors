@@ -77,15 +77,13 @@ public class ConGen {
   GeneratorConfiguration generatorConfiguration() {
     var bpmnTypes =
         Optional.ofNullable(elementTypes)
-            .map(
-                types ->
-                    types.stream()
-                        .map(this::parseBpmnType)
-                        .map(
-                            bpmnType ->
-                                new ConnectorElementType(
-                                    getAppliesToFromBpmnType(bpmnType), bpmnType, null, null))
-                        .collect(Collectors.toSet()))
+            .map(types ->
+                types.stream()
+                    .map(this::parseBpmnType)
+                    .map(bpmnType ->
+                        new ConnectorElementType(
+                            getAppliesToFromBpmnType(bpmnType), bpmnType, null, null))
+                    .collect(Collectors.toSet()))
             .orElse(null);
     return new GeneratorConfiguration(
         hybrid ? ConnectorMode.HYBRID : ConnectorMode.NORMAL,
@@ -102,10 +100,9 @@ public class ConGen {
     return Arrays.stream(BpmnType.values())
         .filter(bpmnType -> bpmnType.getId().equalsIgnoreCase(type))
         .findFirst()
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Unsupported BPMN type: " + type + ". Supported types: " + supportedTypes));
+        .orElseThrow(() ->
+            new IllegalArgumentException(
+                "Unsupported BPMN type: " + type + ". Supported types: " + supportedTypes));
   }
 
   private Set<BpmnType> getAppliesToFromBpmnType(BpmnType bpmnType) {

@@ -22,6 +22,7 @@ import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -153,20 +154,18 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       long elementInstanceKey, ProblemException e) {
     final String detail = e.details().getDetail();
     return parseExistingAgentInstanceKey(detail)
-        .map(
-            existingAgentInstanceKey -> {
-              LOGGER.debug(
-                  "Agent instance creation conflicted for element instance {}, reusing existing agent instance {}",
-                  elementInstanceKey,
-                  existingAgentInstanceKey);
-              return AgentInstanceKey.of(existingAgentInstanceKey);
-            })
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "Agent instance creation for element instance %d conflicted (%d ALREADY_EXISTS), but the existing agent instance key could not be parsed from the response detail: %s"
-                        .formatted(elementInstanceKey, HTTP_STATUS_CONFLICT, detail),
-                    e));
+        .map(existingAgentInstanceKey -> {
+          LOGGER.debug(
+              "Agent instance creation conflicted for element instance {}, reusing existing agent instance {}",
+              elementInstanceKey,
+              existingAgentInstanceKey);
+          return AgentInstanceKey.of(existingAgentInstanceKey);
+        })
+        .orElseThrow(() ->
+            new IllegalStateException(
+                "Agent instance creation for element instance %d conflicted (%d ALREADY_EXISTS), but the existing agent instance key could not be parsed from the response detail: %s"
+                    .formatted(elementInstanceKey, HTTP_STATUS_CONFLICT, detail),
+                e));
   }
 
   private Optional<Long> parseExistingAgentInstanceKey(@Nullable String detail) {

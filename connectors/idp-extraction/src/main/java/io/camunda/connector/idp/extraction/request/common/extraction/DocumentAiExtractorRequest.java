@@ -106,4 +106,4 @@ public record DocumentAiExtractorRequest(
             label = "Processor ID",
             tooltip = "Processor used to parse the document")
         String processorId)
-    implements ExtractionProvider {}
+    implements ExtractionProvider, StructuredExtractionProvider {}

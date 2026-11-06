@@ -41,14 +41,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           tag_name: ${{ inputs.version }}
           name: ${{ inputs.version }}
@@ -66,6 +70,13 @@ jobs:
             
             This message will be replaced with the full changelog once the release process completes.
 
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
+
   setup:
     needs: create-release
     name: Prepare the repository
@@ -73,12 +84,17 @@ jobs:
     permissions:
       contents: write
       checks: write
+      id-token: write
     outputs:
       tagType: ${{ steps.prev_version.outputs.release_type }}
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.prev_version.outputs.previous_version }}
-      mavenCacheKey: ${{ steps.maven-cache-key.outputs.value }}
+      mavenCacheKey: ${{ steps.maven-cache-key.outputs.key }}
+      mavenCacheRestorePrefix: ${{ steps.maven-cache-key.outputs.restore-prefix }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.ref }}
@@ -88,7 +104,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y bc
       - name: Identify previous release version
         id: prev_version
-        uses: camunda/infra-global-github-actions/previous-version@7b31f83bbaa79b0fe698d0b71cae0bc9189b7ac9 # main
+        uses: camunda/infra-global-github-actions/previous-version@9965a08067900e11c602a050b8821ec92f49544b # main
         with:
           version: "${{ inputs.version }}"
           verbose: 'false'
@@ -110,18 +126,16 @@ jobs:
 
       - name: Determine Maven cache key
         id: maven-cache-key
-        env:
-          CACHE_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
-        run: echo "value=$CACHE_KEY" >> "$GITHUB_OUTPUT"
+        uses: ./.github/actions/maven-cache-key
 
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ steps.maven-cache-key.outputs.value }}
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
@@ -255,6 +269,13 @@ jobs:
           path: .
           include-hidden-files: 'true'
 
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
+
 
   e2e-tests:
     needs: setup
@@ -263,6 +284,7 @@ jobs:
     permissions:
       contents: read
       checks: write
+      id-token: write
     uses: ./.github/workflows/E2E_BRANCH_RUN.yml
     with:
       branch: ${{ inputs.version }}
@@ -347,7 +369,11 @@ jobs:
       (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     permissions:
       contents: read
+      id-token: write
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - name: Log Maven release status
         run: |
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
@@ -425,7 +451,7 @@ jobs:
           path: ~/.m2/repository
           key: ${{ needs.setup.outputs.mavenCacheKey }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ needs.setup.outputs.mavenCacheRestorePrefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
@@ -459,6 +485,13 @@ jobs:
           MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
 
   # See docs/api-compatibility.md: stable/x.y compares against its last patch, main against the last
   # released minor. The PRs target stable/x.y rather than the release-x.y.z branch, which is merged
@@ -546,6 +579,120 @@ jobs:
             Compares the API-gated modules against the just released ${{ inputs.version }} and removes the
             accepted breaks that this version contains. See `docs/api-compatibility.md`.
 
+  # Moves the released branch to the next patch SNAPSHOT (e.g. 8.8.1 -> 8.8.2-SNAPSHOT). The commit is
+  # pushed onto the released branch itself, right after the release commit: the release-x.y.z branch is
+  # merged back into stable/x.y as a whole, so a separate PR to stable/x.y would conflict with it on
+  # every version line. main is moved to the next minor by CREATE_RELEASE_BRANCH.yml instead.
+  # Only release-* branches: their protection rule allows the GitHub App to push directly (like the
+  # release commit in setup), while stable/* and main require a reviewed PR.
+  bump-snapshot-version:
+    needs: [setup, e2e-tests, maven-release]
+    name: Set the next snapshot version on ${{ needs.setup.outputs.releaseBranch }}
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
+      (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
+      startsWith(needs.setup.outputs.releaseBranch, 'release-') &&
+      !contains(inputs.version, '-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.setup.outputs.releaseBranch }}
+          persist-credentials: false
+
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: 'temurin'
+          java-version: '25.0.5+8.0.LTS'
+
+      # Same credentials and mirrors as the setup job, in place before the first Maven call: on branches
+      # whose parent/pom.xml pins an NES-only Spring Boot patch (stable/8.7, stable/8.8), even reading
+      # the project version imports that BOM and 401s anonymously.
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
+
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+              "id": "nexus-mirror",
+              "username": "${{ steps.vault-secrets.outputs.CI_NEXUS_USR }}",
+              "password": "${{ steps.vault-secrets.outputs.CI_NEXUS_PSW }}"
+             },
+             {
+               "id": "camunda-nexus",
+               "username": "${{ steps.vault-secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.vault-secrets.outputs.ARTIFACTORY_PSW }}"
+             }]
+          mirrors: '[{"url": "https://artifacts.camunda.com/artifactory/internal", "id": "camunda-nexus", "mirrorOf": "herodevs-nes", "name": "camunda Nexus"}, {"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth,!herodevs-nes", "name": "camunda Nexus"}]'
+
+      - name: Set next snapshot version
+        id: bump
+        run: |
+          if [[ ! "$RELEASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::Unexpected release version '$RELEASE_VERSION'"
+            exit 1
+          fi
+          NEXT_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))-SNAPSHOT"
+
+          # Only bump the version that was just released; anything else means the branch has moved on
+          # (e.g. a re-run after the bump already landed), so leave it alone.
+          CURRENT_VERSION=$(./mvnw -B -q help:evaluate -Dexpression=project.version -DforceStdout -f parent)
+          if [ "$CURRENT_VERSION" != "$RELEASE_VERSION" ]; then
+            echo "::notice::${RELEASE_BRANCH} is at ${CURRENT_VERSION}, not ${RELEASE_VERSION} - skipping snapshot bump"
+            exit 0
+          fi
+
+          ./mvnw -B versions:set -DnewVersion="${NEXT_VERSION}" -DgenerateBackupPoms=false -f parent
+          echo "next_version=${NEXT_VERSION}" >> "$GITHUB_OUTPUT"
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
+
+      # Same GitHub App token as the release commit in the setup job, which is allowed to push to the
+      # released branch.
+      - name: Generate a GitHub App token
+        if: steps.bump.outputs.next_version != ''
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Commit and push
+        if: steps.bump.outputs.next_version != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git commit -am "ci: set next snapshot version ${NEXT_VERSION}"
+          git push origin "HEAD:${RELEASE_BRANCH}"
+        env:
+          NEXT_VERSION: ${{ steps.bump.outputs.next_version }}
+          RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+
   docker-release:
     needs: [setup, e2e-tests]
     runs-on: ubuntu-latest
@@ -575,7 +722,11 @@ jobs:
             short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
     permissions:
       contents: read
+      id-token: write
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - name: Log Docker release status
         run: |
           echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
@@ -609,13 +760,13 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Login to Docker Hub
-        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
       - name: Login to Minimus
-        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           registry: reg.mini.dev
           username: minimus
@@ -662,6 +813,14 @@ jobs:
           readme_file: ${{ matrix.readme }}
           short_description: ${{ matrix.short_description }}
 
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
+          job_name_override: docker-release/${{ matrix.name }}
+
   bundle-and-build-changelog:
     needs: [setup, e2e-tests]
     name: Bundle and generate changelogs
@@ -672,7 +831,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - name: Download repository
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -686,7 +849,7 @@ jobs:
 
       - name: Build Changelog
         id: changelog
-        uses: Requarks/changelog-action@b78a3354a01f4a1affb484b9264b506a815c46b1 # v1
+        uses: Requarks/changelog-action@7ce6be4c4d2233ae2a943694ca34f23aeafa1054 # v1
         with:
           token: ${{ github.token }}
           fromTag: ${{ inputs.version }}
@@ -696,7 +859,7 @@ jobs:
           excludeScopes: deps
 
       - name: Update GitHub Release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           prerelease: ${{ needs.setup.outputs.tagType != 'NORMAL' }}
           make_latest: ${{ (inputs.latest && needs.setup.outputs.tagType == 'NORMAL') && 'true' || 'false' }}
@@ -707,6 +870,13 @@ jobs:
             apps/bundle/default-bundle/target/connectors-bundle-sbom.xml
             connectors-bundle-templates-${{ inputs.version }}.tar.gz
             connectors-bundle-templates-${{ inputs.version }}.zip
+
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
 
   helm-deploy:
     needs: [ setup, e2e-tests, docker-release ]
@@ -741,6 +911,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
 
     if: |
       always() &&
@@ -751,9 +922,13 @@ jobs:
       needs.bundle-and-build-changelog.result == 'success'
 
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.version }}
+
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
@@ -787,6 +962,13 @@ jobs:
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
           attribution-format: "TXT"
           sbom-format: "CYCLONEDX_JSON"
+
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
 
   notify-prs-released:
     name: Notify PRs that they have been released

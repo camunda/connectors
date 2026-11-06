@@ -38,6 +38,21 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-managed-script</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-managed-script-aws</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-managed-script-gcp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
         <artifactId>connector-aws-sqs</artifactId>
         <version>${project.version}</version>
       </dependency>

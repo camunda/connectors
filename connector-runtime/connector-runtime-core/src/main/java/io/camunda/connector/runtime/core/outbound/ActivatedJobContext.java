@@ -98,4 +98,9 @@ public class ActivatedJobContext implements JobContext {
   public String getLeaseToken() {
     return activatedJob.getJobLeaseToken();
   }
+
+  @Override
+  public Integer getRetries() {
+    return activatedJob.getRetries();
+  }
 }

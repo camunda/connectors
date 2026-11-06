@@ -97,18 +97,6 @@ class ProviderUtilTest {
       // then
       assertThat(extractor).isInstanceOf(AwsTextrtactExtractionClient.class);
     }
-
-    @Test
-    void getMlExtractor_shouldThrowException_whenUnsupportedExtractor() {
-      // given
-      DocumentIntelligenceExtractorRequest unsupportedRequest =
-          mock(DocumentIntelligenceExtractorRequest.class);
-
-      // when & then
-      assertThatThrownBy(() -> ProviderUtil.getMlExtractor(unsupportedRequest))
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining("Extractor not supported");
-    }
   }
 
   @Nested

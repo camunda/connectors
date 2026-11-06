@@ -9,24 +9,29 @@ package io.camunda.connector.http.base;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.document.DocumentReturnChoice;
+import io.camunda.connector.api.document.DocumentReturnFormat;
 import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.DocumentReturnProcessor;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Covers the {@code executeConnectorRequest(request, documentFactory, choice)} overload: a non-null
@@ -95,6 +100,25 @@ public class HttpServiceDocumentReturnTest {
     assertThat(result.status()).isEqualTo(200);
   }
 
+  @ParameterizedTest
+  @ValueSource(ints = {200, 201, 204})
+  void newPath_json_emptyBody_completesWithNullBody(int status, WireMockRuntimeInfo wm) {
+    WireMock.stubFor(WireMock.get("/endpoint").willReturn(WireMock.status(status)));
+
+    var documentReturn =
+        (DocumentReturn<?>)
+            httpService.executeConnectorRequest(
+                getRequest(wm), documentFactory, DocumentReturnChoice.JSON);
+    Object processed =
+        new DocumentReturnProcessor(documentFactory, new ObjectMapper())
+            .process(documentReturn, new DocumentReturnFormat(DocumentReturnChoice.JSON, null));
+
+    HttpCommonResult result = (HttpCommonResult) processed;
+    assertThat(result.status()).isEqualTo(status);
+    assertThat(result.body()).isNull();
+    assertThat(result.document()).isNull();
+  }
+
   @Test
   void newPath_text_wrapPutsStringInBodyField(WireMockRuntimeInfo wm) {
     WireMock.stubFor(WireMock.get("/endpoint").willReturn(WireMock.ok("plain")));
@@ -142,19 +166,17 @@ public class HttpServiceDocumentReturnTest {
                     .withHeader("Content-Type", "application/json")
                     .withBody("{\"message\":\"custom message\",\"temp\":36}")));
 
-    assertThatThrownBy(
-            () ->
-                httpService.executeConnectorRequest(
-                    getRequest(wm), documentFactory, DocumentReturnChoice.JSON))
+    assertThatThrownBy(() ->
+            httpService.executeConnectorRequest(
+                getRequest(wm), documentFactory, DocumentReturnChoice.JSON))
         .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            ex -> {
-              var ce = (ConnectorException) ex;
-              assertThat(ce.getErrorCode()).isEqualTo("400");
-              var response = (Map<String, Object>) ce.getErrorVariables().get("response");
-              var body = (Map<String, Object>) response.get("body");
-              assertThat(body).containsEntry("temp", 36).containsEntry("message", "custom message");
-            });
+        .satisfies(ex -> {
+          var ce = (ConnectorException) ex;
+          assertThat(ce.getErrorCode()).isEqualTo("400");
+          var response = (Map<String, Object>) ce.getErrorVariables().get("response");
+          var body = (Map<String, Object>) response.get("body");
+          assertThat(body).containsEntry("temp", 36).containsEntry("message", "custom message");
+        });
   }
 
   @Test

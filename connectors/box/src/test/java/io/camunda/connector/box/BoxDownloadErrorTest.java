@@ -51,22 +51,20 @@ public class BoxDownloadErrorTest {
         new BoxClient.Builder(new BoxDeveloperTokenAuth("token"))
             .networkSession(
                 new NetworkSession()
-                    .withNetworkClient(
-                        options -> {
-                          if (calls.getAndIncrement() == 0) {
-                            throw error(null);
-                          }
-                          throw error("{\"code\":\"not_found\",\"message\":\"Not Found\"}");
-                        }))
+                    .withNetworkClient(options -> {
+                      if (calls.getAndIncrement() == 0) {
+                        throw error(null);
+                      }
+                      throw error("{\"code\":\"not_found\",\"message\":\"Not Found\"}");
+                    }))
             .build();
 
     assertThatThrownBy(() -> BoxUtil.download("123", client))
-        .satisfies(
-            e -> {
-              var translated = BoxErrors.translate((RuntimeException) e);
-              assertThat(translated).isInstanceOf(ConnectorException.class);
-              assertThat(translated.getMessage()).contains("HTTP 404").contains("Not Found");
-            });
+        .satisfies(e -> {
+          var translated = BoxErrors.translate((RuntimeException) e);
+          assertThat(translated).isInstanceOf(ConnectorException.class);
+          assertThat(translated.getMessage()).contains("HTTP 404").contains("Not Found");
+        });
     assertThat(calls).hasValue(2);
   }
 
@@ -77,23 +75,20 @@ public class BoxDownloadErrorTest {
         new BoxClient.Builder(new BoxDeveloperTokenAuth("token"))
             .networkSession(
                 new NetworkSession()
-                    .withNetworkClient(
-                        options -> {
-                          if (calls.getAndIncrement() == 0) {
-                            throw error(403, null);
-                          }
-                          throw error(429, "{\"code\":\"rate_limit_exceeded\"}");
-                        }))
+                    .withNetworkClient(options -> {
+                      if (calls.getAndIncrement() == 0) {
+                        throw error(403, null);
+                      }
+                      throw error(429, "{\"code\":\"rate_limit_exceeded\"}");
+                    }))
             .build();
 
     assertThatThrownBy(() -> BoxUtil.download("123", client))
-        .satisfies(
-            e -> {
-              var translated = (RuntimeException) e.getCause();
-              assertThat(translated).isInstanceOf(BoxAPIError.class);
-              assertThat(((BoxAPIError) translated).getResponseInfo().getStatusCode())
-                  .isEqualTo(403);
-            });
+        .satisfies(e -> {
+          var translated = (RuntimeException) e.getCause();
+          assertThat(translated).isInstanceOf(BoxAPIError.class);
+          assertThat(((BoxAPIError) translated).getResponseInfo().getStatusCode()).isEqualTo(403);
+        });
     assertThat(calls).hasValue(2);
   }
 }

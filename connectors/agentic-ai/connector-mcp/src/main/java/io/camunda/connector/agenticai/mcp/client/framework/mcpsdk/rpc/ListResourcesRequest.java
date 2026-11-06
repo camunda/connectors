@@ -53,10 +53,9 @@ final class ListResourcesRequest {
     var result =
         new McpClientListResourcesResult(
             filteredResources.stream()
-                .map(
-                    fr ->
-                        new ResourceDescription(
-                            fr.uri(), fr.name(), fr.title(), fr.description(), fr.mimeType()))
+                .map(fr ->
+                    new ResourceDescription(
+                        fr.uri(), fr.name(), fr.title(), fr.description(), fr.mimeType()))
                 .toList());
 
     LOGGER.debug(

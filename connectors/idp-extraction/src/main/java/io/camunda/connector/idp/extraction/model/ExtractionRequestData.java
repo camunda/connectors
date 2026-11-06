@@ -27,11 +27,11 @@ public record ExtractionRequestData(
             id = "document",
             label = "Document",
             group = "input",
-            type = TemplateProperty.PropertyType.Hidden,
+            type = TemplateProperty.PropertyType.Text,
             description = "Specify the document",
-            defaultValue = "= input.document",
+            defaultValue = "=document",
             binding = @PropertyBinding(name = "document"),
-            feel = FeelMode.disabled,
+            feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true))
         @NotNull
         Document document,
@@ -89,13 +89,14 @@ public record ExtractionRequestData(
         String delimiter,
     @TemplateProperty(
             id = "converseData",
-            label = "AWS Bedrock Converse Parameters",
+            label = "AI converse parameters",
             group = "input",
-            type = TemplateProperty.PropertyType.Hidden,
-            description = "Specify the parameters for AWS Bedrock",
-            defaultValue = "= input.converseData",
+            type = TemplateProperty.PropertyType.Text,
+            description = "Specify the parameters for the AI conversation",
+            defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
             binding = @PropertyBinding(name = "converseData"),
-            feel = FeelMode.disabled)
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true))
         ConverseData converseData) {
 
   // Compact constructor that sets default value for extractionType if null

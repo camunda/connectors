@@ -27,6 +27,8 @@ Task guidance and architecture live in linked documents:
 - [`docs/reference/native-providers.md`](docs/reference/native-providers.md): per-provider specifics
   for the native/v2 (non-LangChain4j) chat model providers
 - [`docs/adr/`](docs/adr/): architecture decision records
+- [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md): help text conventions for
+  element templates
 - [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
 - E2E tests [`AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md): e2e
   modules, running e2e tests, real-LLM CPT coverage
@@ -221,6 +223,13 @@ High-frequency traps (detail behind each link):
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
   construct an "expected" message and compare it for equality against one built by the code under
   test will fail on `id` alone. `ai-agent.md` §6, [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
+- **Map iteration order differs between JVMs after a record builder copied the map**: the `@AgenticAiRecord`
+  builders copy maps and sets with `Map.copyOf` and `Set.copyOf`, whose iteration order changes with every JVM start.
+  Never let a hash, an id or any value compared across runs depend on that order. Sort the map keys where the value
+  is computed (`SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS` in `AgentConfiguration.fingerprint()`, which sorts
+  every map at any depth), and carry an order that has meaning, such as the order of the tool parameters, as a list.
+  No mapper flag sorts a set, so a hashed value must not contain one. Do not add a record annotation or a special
+  collection type to work around the copy. `ai-agent.md` §23.
 
 ## Architectural invariants
 
@@ -309,6 +318,15 @@ template. The AI Agent Sub-process template is in turn derived from the AI Agent
 template via `connector-aiagent/bin/transform-ai-agent-sub-process-template.groovy` (gmavenplus-plugin, `process-classes`
 phase); the same script also derives the v2 AI Agent Sub-process template from the v2 AI Agent Task template.
 
+The transform scripts in `connector-aiagent/bin/` and `connector-a2a/bin/` find properties by hard-coded
+ids. They share generic helpers through [`bin/TemplateTransforms.groovy`](bin/TemplateTransforms.groovy), which
+fails the build when an expected property id or anchor is missing; AI Agent specific helpers live in
+[`connector-aiagent/bin/AgentTemplateTransforms.groovy`](connector-aiagent/bin/AgentTemplateTransforms.groovy). When you rename a property a script
+looks up, update the script in the same change. `AgentElementTemplateTransformsTest` (`connector-aiagent`)
+and `A2aElementTemplateTransformsTest` (`connector-a2a`) assert what the scripts inject into the
+generated JSON. They check what the scripts change, not property order, so reordering properties
+doesn't require test changes; review any generated template diff instead.
+
 To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
 [element template generator documentation](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-sdk/#element-template-generation).
@@ -339,6 +357,11 @@ Do not list `hybrid/` templates in the README. They are intentionally omitted.
 When the `engines.camunda` minimum of the AI Agent templates is bumped (rule 3 above), also add regression
 fixtures for the new template generation in the same change, as described in
 [Element template regression fixtures](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#element-template-regression-fixtures).
+
+### Template text
+
+When you write or change help text in `@TemplateProperty` annotations (`label`, `tooltip`,
+`placeholder`, `description`), follow [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md).
 
 ### Agent definition marker
 

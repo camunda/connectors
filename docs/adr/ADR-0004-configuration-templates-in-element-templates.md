@@ -130,6 +130,38 @@ are documented in
 [credentials-in-element-templates.md](../credentials-in-element-templates.md), which any connector
 adopting a credential chooser should follow.
 
+### One credential type per connector
+
+A connector exposes **at most one credential type** in its element template. Do not declare several
+credential types for the same connector and choose between them with a dropdown (for example one type
+per authentication method or per provider, with a chooser shown for whichever the dropdown selects).
+
+**Why.** The person modeling a process should not have to work out which credential type their
+connector needs. They should pick from what their admin already provides. With several types per
+connector, finding the right credential becomes a guessing game instead of a choice. The AI Agent
+connector tried this with one credential type per model provider and it did not work out well; its
+credential support was postponed until there is a better approach (see
+[camunda/connectors#8862](https://github.com/camunda/connectors/pull/8862) and the
+[Slack discussion](https://camunda.slack.com/archives/C0AA0T4QCAE/p1789129809426459)). The related Core
+Modeling position is "single connector", and a chooser that accepts several credential types does not
+fix this on its own, because the credential type often does not carry enough information to decide
+which provider-specific properties to show
+([connections-design#38](https://github.com/camunda/connections-design/pull/38)).
+
+**What this means in practice.**
+- A connector whose authentication choices differ in ways a single credential cannot express does not
+  get a credential chooser until a better approach exists. This applies, for example, when the
+  per-variant settings are FEEL expressions (credentials cannot hold FEEL), so the element template
+  would still need to know which variant is in use, and a bound credential does not reveal that.
+- Do not work around this by adding one credential type per variant. Either find a design that needs
+  one type, or leave the connector on inline fields for now.
+
+This is a guideline for connector authors, not a limitation of the generator: it can emit several
+choosers and credential templates, and nothing enforces the rule. The Webhook connector's initial
+reusable-credential proposal (one type each for Basic, API key and JWT,
+[camunda/connectors#10049](https://github.com/camunda/connectors/pull/10049)) was reconsidered for
+this reason.
+
 ## Open questions
 
 **(b) Where the configuration/inline merge lives — resolved: per-connector merge.** The connector must read the bound `configuration` object and apply precedence (configuration → inline fallback). connections-design `CREDENTIAL_TRANSITION.md` requirement 2 asserts this should be a **generic capability provided once by the connector runtime / SDK** (in the bind layer — `bindVariables` / `bindProperties` — merging the `configuration` variable under the inline fields before deserialization, so business code sees one resolved request unchanged).
@@ -140,6 +172,8 @@ That is one option, not the only one. The decoupling win of GAP-001 comes solely
 - **Generic runtime/SDK bind-layer merge** — the design doc's stated preference; zero connector change, uniform, but front-loads generalizing the merge (esp. explicitly-set detection) across all connectors, and makes the precedence invisible at the point business code reads the request. Rejected as too much complexity for what a human needs to understand in the request model; see the maintainability trade-off called out for this POC.
 
 This choice does not block the ETG work: the element template emits the identical chooser + `configuration` binding regardless of where the merge lives.
+
+**(c) Connectors whose variants need different credential types — open.** The [one credential type per connector](#one-credential-type-per-connector) guideline leaves these connectors on inline fields; it does not yet say how they get a chooser. One untested idea is to split such a connector into separate element templates, one per variant (for example one per model provider), each with its own single credential type. No connector has done this yet, so it is not guidance until one does and the trade-offs (more templates to maintain, switching variant means switching template) are known.
 
 ## Consequences
 

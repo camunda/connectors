@@ -41,6 +41,8 @@ public class TestJobContext implements JobContext {
 
   private String leaseToken;
 
+  private Integer retries;
+
   public TestJobContext(Supplier<Map<String, String>> headers, Supplier<String> variables) {
     this.headers = headers;
     this.variables = variables;
@@ -153,5 +155,14 @@ public class TestJobContext implements JobContext {
 
   public void setLeaseToken(String leaseToken) {
     this.leaseToken = leaseToken;
+  }
+
+  @Override
+  public Integer getRetries() {
+    return retries;
+  }
+
+  public void setRetries(Integer retries) {
+    this.retries = retries;
   }
 }

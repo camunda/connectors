@@ -18,17 +18,19 @@ import io.camunda.connector.idp.extraction.service.ClassificationService;
     inputVariables = {"extractor", "ai", "input"},
     type = "io.camunda:idp-classification-connector-template:1")
 @ElementTemplate(
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     id = "io.camunda.connector.IdpClassificationOutBoundTemplate.v1",
     name = "IDP Classification Outbound Connector",
-    version = 2,
+    version = 3,
     description = "Execute IDP classification requests",
+    category =
+        @ElementTemplate.Category(id = "idpExtractionProject", name = "IDP Extraction Project"),
     icon = "classification-icon.svg",
     documentationRef = "https://docs.camunda.io/docs/8.10/guides/",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),
       @ElementTemplate.PropertyGroup(id = "extractor", label = "Extractor selection"),
-      @ElementTemplate.PropertyGroup(id = "ai", label = "Ai provider selection")
+      @ElementTemplate.PropertyGroup(id = "ai", label = "AI provider selection")
     },
     inputDataClass = ClassificationRequest.class)
 public class ClassificationConnectorFunction implements OutboundConnectorFunction {

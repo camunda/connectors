@@ -92,15 +92,14 @@ class MSTeamsRequestCredentialTest {
 
   @Test
   void validationCascadesIntoTheBoundCredential() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {"authenticationConfiguration":{"authentication":{"type":"clientCredentials",\
-                    "clientId":"cred-client","tenantId":"","clientSecret":"cred-secret"}},\
-                    """
-                        + DATA
-                        + "}"))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {"authenticationConfiguration":{"authentication":{"type":"clientCredentials",\
+                "clientId":"cred-client","tenantId":"","clientSecret":"cred-secret"}},\
+                """
+                    + DATA
+                    + "}"))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("tenantId");
   }

@@ -62,10 +62,9 @@ class ConversationStoreRegistryTest {
 
   @Test
   void throwsExceptionWhenRegisteringDuplicateStoreViaConstructor() {
-    assertThatThrownBy(
-            () ->
-                new ConversationStoreRegistryImpl(
-                    List.of(inProcessConversationStore, new InProcessConversationStore())))
+    assertThatThrownBy(() ->
+            new ConversationStoreRegistryImpl(
+                List.of(inProcessConversationStore, new InProcessConversationStore())))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Conversation store with type 'in-process' is already registered.");
   }

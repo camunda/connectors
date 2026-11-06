@@ -40,6 +40,7 @@ import io.camunda.connector.idp.extraction.request.common.extraction.AbbyyVantag
 import io.camunda.connector.idp.extraction.request.common.extraction.DocumentAiExtractorRequest;
 import io.camunda.connector.idp.extraction.request.common.extraction.DocumentIntelligenceExtractorRequest;
 import io.camunda.connector.idp.extraction.request.common.extraction.ExtractionProvider;
+import io.camunda.connector.idp.extraction.request.common.extraction.StructuredExtractionProvider;
 import io.camunda.connector.idp.extraction.request.common.extraction.TextractExtractorRequest;
 import jakarta.validation.Valid;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -73,7 +74,7 @@ public class ProviderUtil {
     };
   }
 
-  public static MlExtractor getMlExtractor(ExtractionProvider extractor) {
+  public static MlExtractor getMlExtractor(StructuredExtractionProvider extractor) {
     return switch (extractor) {
       case DocumentAiExtractorRequest docAiRequest -> {
         GoogleCredentials credentials =
@@ -99,16 +100,13 @@ public class ProviderUtil {
         yield new AwsTextrtactExtractionClient(
             credentialsProvider, textractRequest.region(), textractRequest.bucketName());
       }
-      default ->
-          throw new IllegalStateException(
-              "Extractor not supported: " + extractor.getClass().getSimpleName());
     };
   }
 
   /**
    * @deprecated Legacy retrieval of ML extractor from {@link ProviderConfig}, used only by {@link
    *     io.camunda.connector.idp.extraction.ExtractionConnectorFunction}. Use {@link
-   *     #getMlExtractor(io.camunda.connector.idp.extraction.request.common.extraction.ExtractionProvider)}
+   *     #getMlExtractor(io.camunda.connector.idp.extraction.request.common.extraction.StructuredExtractionProvider)}
    *     instead. Retained for backwards compatibility; no removal currently planned.
    */
   @Deprecated(since = "8.9")

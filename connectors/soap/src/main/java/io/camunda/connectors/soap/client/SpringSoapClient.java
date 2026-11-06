@@ -10,6 +10,7 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 
+import io.camunda.connector.util.pem.PemUtil;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication.None;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication.Signature;
@@ -286,7 +287,8 @@ public class SpringSoapClient implements SoapClient {
     try {
       CertificateFactory factory = CertificateFactory.getInstance("X.509");
       return (X509Certificate)
-          factory.generateCertificate(new ByteArrayInputStream(certificate.getBytes()));
+          factory.generateCertificate(
+              new ByteArrayInputStream(PemUtil.normalize(certificate).getBytes()));
     } catch (Exception e) {
       throw new RuntimeException("Error while loading certificate", e);
     }
@@ -294,7 +296,7 @@ public class SpringSoapClient implements SoapClient {
 
   private PrivateKey loadPrivateKey(String privateKey) {
     try {
-      StringReader reader = new StringReader(privateKey);
+      StringReader reader = new StringReader(PemUtil.normalize(privateKey));
       PEMParser pemParser = new PEMParser(reader);
       Object o = pemParser.readObject();
       PrivateKeyInfo pki;
@@ -377,16 +379,14 @@ public class SpringSoapClient implements SoapClient {
           .getDocumentElement()
           .setAttribute("xmlns:wsu", WSS4JConstants.WSU_NS);
       ofNullable(namespaces)
-          .ifPresent(
-              ns ->
-                  ns.forEach(
-                      (name, uri) -> {
-                        domResult
-                            .getNode()
-                            .getOwnerDocument()
-                            .getDocumentElement()
-                            .setAttribute("xmlns:" + name, uri);
-                      }));
+          .ifPresent(ns ->
+              ns.forEach((name, uri) -> {
+                domResult
+                    .getNode()
+                    .getOwnerDocument()
+                    .getDocumentElement()
+                    .setAttribute("xmlns:" + name, uri);
+              }));
     }
   }
 }

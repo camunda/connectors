@@ -125,12 +125,10 @@ class OutboundConnectorsServiceWiringTest {
 
     assertThat(service.findAll("runtime-1"))
         .singleElement()
-        .satisfies(
-            r -> {
-              assertThat(r.physicalTenantId()).isEqualTo("tenanta");
-              assertThat(r.brokerConnectivityState())
-                  .isEqualTo(BrokerConnectivityState.ALL_CONNECTED);
-            });
+        .satisfies(r -> {
+          assertThat(r.physicalTenantId()).isEqualTo("tenanta");
+          assertThat(r.brokerConnectivityState()).isEqualTo(BrokerConnectivityState.ALL_CONNECTED);
+        });
   }
 
   @Test

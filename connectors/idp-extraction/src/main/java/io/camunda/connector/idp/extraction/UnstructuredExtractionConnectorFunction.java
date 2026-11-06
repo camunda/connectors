@@ -23,17 +23,19 @@ import io.camunda.connector.idp.extraction.service.UnstructuredService;
     inputVariables = {"extractor", "ai", "input"},
     type = "io.camunda:idp-unstructured-connector-template:1")
 @ElementTemplate(
-    engineVersion = "^8.9",
+    engineVersion = "^8.10",
     id = "io.camunda.connector.IdpUnstructuredExtractionOutBoundTemplate.v1",
     name = "IDP Unstructured Extraction Outbound Connector",
-    version = 2,
+    version = 3,
     description = "Execute IDP Unstructured Extraction requests",
+    category =
+        @ElementTemplate.Category(id = "idpExtractionProject", name = "IDP Extraction Project"),
     icon = "unstructured-icon.svg",
     documentationRef = "https://docs.camunda.io/docs/8.10/guides/",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),
       @ElementTemplate.PropertyGroup(id = "extractor", label = "Extractor selection"),
-      @ElementTemplate.PropertyGroup(id = "ai", label = "Ai provider selection")
+      @ElementTemplate.PropertyGroup(id = "ai", label = "AI provider selection")
     },
     inputDataClass = UnstructuredExtractionRequest.class)
 public class UnstructuredExtractionConnectorFunction implements OutboundConnectorFunction {

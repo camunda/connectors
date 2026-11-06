@@ -407,10 +407,8 @@ class GeminiChatModelFactoryTest {
     try (MockedStatic<Client> clientMock = mockStatic(Client.class, Answers.CALLS_REAL_METHODS)) {
       clientMock.when(Client::builder).thenReturn(clientBuilder);
 
-      assertThatThrownBy(
-              () ->
-                  factory.create(
-                      vertexConfig(null, new ApplicationDefaultCredentialsAuthentication())))
+      assertThatThrownBy(() ->
+              factory.create(vertexConfig(null, new ApplicationDefaultCredentialsAuthentication())))
           .isInstanceOf(ConnectorInputException.class)
           .hasMessageContaining("Failed to create Google GenAI client");
     }
@@ -424,10 +422,8 @@ class GeminiChatModelFactoryTest {
           .when(() -> ServiceAccountCredentials.fromStream(any()))
           .thenThrow(new IOException("bad key"));
 
-      assertThatThrownBy(
-              () ->
-                  factory.create(
-                      vertexConfig(null, new ServiceAccountCredentialsAuthentication("{}"))))
+      assertThatThrownBy(() ->
+              factory.create(vertexConfig(null, new ServiceAccountCredentialsAuthentication("{}"))))
           .isInstanceOf(ConnectorInputException.class)
           .hasMessageContaining("Authentication failed for provided service account credentials");
     }

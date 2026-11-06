@@ -13,12 +13,6 @@
   <artifactId>secret-providers-base</artifactId>
   <name>Secret Providers Shared</name>
 
-  <properties>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -46,7 +40,6 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>33.7.2-jre</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>

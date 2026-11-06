@@ -31,7 +31,7 @@ Exit code is `0` if no findings, `1` otherwise.
 | `-d`, `--directory` | `./connectors` | Root directory to scan for `element-templates/*.json` files. |
 | `--schema-url` | pinned unpkg.com URL | HTTP/HTTPS URL of the JSON schema. Falls back to `CAMUNDA_TEMPLATE_SCHEMA_URL` env var, then the pinned default. Only `http`/`https` URLs are supported. |
 | `--skip-directory` | `target, node_modules, .git, .idea, .m2` | Directory names pruned during traversal (by exact name, not path). Repeatable or comma-separated. When specified, replaces the default set entirely. |
-| `--skip-connector` | `agentic-ai` | Connector directory names skipped entirely. Repeatable or comma-separated. When specified, replaces the default set entirely. |
+| `--skip-connector` | none | Connector directory names skipped entirely. Repeatable or comma-separated. |
 | `--no-color` | off | Disable ANSI color in the output. Color is also auto-disabled when no console is attached (e.g. when output is piped or captured by CI). |
 
 ```bash
@@ -58,9 +58,7 @@ in lockstep with the connectors-team upgrade.
 Files inside any `versioned/` directory are skipped by the single-file rules — they represent
 frozen historical releases and are not modifiable retroactively. Multi-file rules still see them.
 
-Connector directories listed in `--skip-connector` are skipped entirely. The default (`agentic-ai`)
-covers templates generated/maintained outside the standard connector workflow that intentionally
-diverge from the conventions enforced here.
+Connector directories listed in `--skip-connector` are skipped entirely.
 
 ## Rules
 
@@ -86,6 +84,21 @@ diverge from the conventions enforced here.
 | `unique-property-id`          | No two `properties[]` entries may share an `id` within the same template. Exception: duplicate-id properties whose visibility `condition`s are pairwise mutually exclusive (same gating `property`, disjoint `equals`/`oneOf` value sets) are tolerated — that's the established "switching" pattern (e.g. one Dropdown variant per parent operationGroup). Properties without a condition are always live, so any duplicate involving an unconditional property is still flagged. |
 | `task-definition-binding-form`| The legacy binding type `zeebe:taskDefinition:type` is not allowed; use the canonical form `{ "type": "zeebe:taskDefinition", "property": "type" }`. The schema accepts both spellings, but generator output and all current templates use the canonical form. |
 | `empty-group`                 | Every declared `groups[].id` must be referenced by at least one property.                                                                                                                                     |
+| `docs-link-version`           | Every link to `docs.camunda.io` anywhere in the template pins a released `<major>.<minor>` (no unversioned or `/next/` links). The release bumper only rewrites links that already carry a version. |
+
+### Help-text rules
+
+These rules check the `description` and `tooltip` of `properties[]` and `groups[]`. They run only on
+the connectors listed in `HelpTextRule.CONNECTORS` (currently `agentic-ai`). To opt a connector in,
+add it to that list and fix or [suppress](#suppressions) its existing findings.
+
+| Rule id              | What it checks                                                                                         |
+|----------------------|--------------------------------------------------------------------------------------------------------|
+| `trailing-period`    | The text ends with `.`, `?`, or `!`. Trailing closing tags such as `</p>` are ignored.                 |
+| `latin-abbreviation` | No `e.g.`, `i.e.`, or `etc.`; write "for example", "that is", or "and so on".                          |
+| `double-word`        | No word is immediately repeated ("to to"), ignoring case.                                              |
+| `br-tag`             | Line breaks use `<br>`, not `<br/>`.                                                                   |
+| `max-description-length` | A property's or group's `description` (always shown beneath the field) is at most 100 visible characters. HTML tags are removed without a space and each entity counts as one character, so `<a>` links and `<br>` do not count. `tooltip` is exempt — it appears only on hover. |
 
 ### Operations-metadata rules
 
@@ -120,9 +133,41 @@ place.
 The schema rule runs first as a gate. If it produces findings for a file, semantic
 rules are skipped for that file to avoid noisy cascades.
 
+## Suppressions
+
+Accept a specific finding by adding it to `element-template-suppressions.json` in the connector
+module root, next to its `element-templates/` directory:
+
+```json
+{
+  "suppressions": [
+    {
+      "rule": "condition-property-order",
+      "template": "**my-connector*.json",
+      "property": "authentication.type",
+      "reason": "Why this finding is accepted, with a link to the follow-up issue if any."
+    }
+  ]
+}
+```
+
+| Field      | Required | Description                                                                                                                                          |
+|------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `rule`     | yes      | Rule id from the tables above. `schema`, `json-parse`, and `duplicate-keys` cannot be suppressed.                                                    |
+| `template` | yes      | Glob relative to `element-templates/`. `*` stays within a directory; `**` also matches `hybrid/` and `versioned/`.                                   |
+| `property` | no       | Property `id`, in `properties[]` or in an embedded `configurationTemplates[*].properties[]`. Limits the suppression to findings under that property, independent of its position. Omit to cover the whole template, for example for properties without an `id`. |
+| `reason`   | yes      | Why the finding is accepted.                                                                                                                         |
+
+The file is validated on every run and reported under the rule id `suppression`. The run fails
+when the file has unknown fields, a missing or blank required field, an invalid glob, or a
+duplicate entry, or when an entry uses an unknown or non-suppressible rule, matches no template,
+names a property that none of the matched templates has, or no longer suppresses any finding.
+Stale entries therefore have to be removed together with the fix.
+
 ## Adding a rule
 
 1. Implement `io.camunda.connector.validator.core.Rule` (single-file) or
    `io.camunda.connector.validator.core.MultiFileRule` (cross-file).
-2. Add it to the corresponding list in `ValidatorCommand`.
+2. Add it to the corresponding list in `ValidatorCommand`. Rules in these lists are suppressible
+   automatically.
 3. Write a fixture-driven unit test in `src/test/java/.../rule/`.

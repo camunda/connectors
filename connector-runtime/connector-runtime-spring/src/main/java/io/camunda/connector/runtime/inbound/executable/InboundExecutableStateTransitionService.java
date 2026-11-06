@@ -250,15 +250,13 @@ public class InboundExecutableStateTransitionService {
     }
 
     return groupedElements.entrySet().stream()
-        .map(
-            entry -> {
-              var deduplicationProperties =
-                  Optional.ofNullable(
-                          deduplicationScopesByType.get(entry.getValue().getFirst().type()))
-                      .orElse(List.of());
-              return InboundConnectorDetails.of(
-                  entry.getKey(), entry.getValue(), deduplicationProperties);
-            })
+        .map(entry -> {
+          var deduplicationProperties =
+              Optional.ofNullable(deduplicationScopesByType.get(entry.getValue().getFirst().type()))
+                  .orElse(List.of());
+          return InboundConnectorDetails.of(
+              entry.getKey(), entry.getValue(), deduplicationProperties);
+        })
         .toList();
   }
 

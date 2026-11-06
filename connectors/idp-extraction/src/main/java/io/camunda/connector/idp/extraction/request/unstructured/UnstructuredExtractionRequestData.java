@@ -26,7 +26,7 @@ public class UnstructuredExtractionRequestData extends DocumentRequestData {
 
   @TemplateProperty(
       id = "converseData",
-      label = "Ai converse parameters",
+      label = "AI converse parameters",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
       defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5\n}",

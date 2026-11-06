@@ -113,11 +113,10 @@ class DefaultMcpClientHandlerTest {
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .returns(LIST_TOOLS, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::params)),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .returns(LIST_TOOLS, McpClientOperation::method)
+                      .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -140,20 +139,19 @@ class DefaultMcpClientHandlerTest {
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .isInstanceOfSatisfying(
-                              McpClientOperation.McpClientOperationImpl.class,
-                              op ->
-                                  assertThat(op.params())
-                                      .containsEntry("name", "test-tool")
-                                      .hasEntrySatisfying(
-                                          "arguments",
-                                          args ->
-                                              assertThat(args)
-                                                  .asInstanceOf(InstanceOfAssertFactories.MAP)
-                                                  .containsExactlyEntriesOf(arguments)))),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .isInstanceOfSatisfying(
+                          McpClientOperation.McpClientOperationImpl.class,
+                          op ->
+                              assertThat(op.params())
+                                  .containsEntry("name", "test-tool")
+                                  .hasEntrySatisfying(
+                                      "arguments",
+                                      args ->
+                                          assertThat(args)
+                                              .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                              .containsExactlyEntriesOf(arguments)))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -175,11 +173,10 @@ class DefaultMcpClientHandlerTest {
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .returns(LIST_TOOLS, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::params)),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .returns(LIST_TOOLS, McpClientOperation::method)
+                      .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -202,20 +199,19 @@ class DefaultMcpClientHandlerTest {
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .isInstanceOfSatisfying(
-                              McpClientOperation.McpClientOperationImpl.class,
-                              op ->
-                                  assertThat(op.params())
-                                      .containsEntry("name", "test-tool")
-                                      .hasEntrySatisfying(
-                                          "arguments",
-                                          args ->
-                                              assertThat(args)
-                                                  .asInstanceOf(InstanceOfAssertFactories.MAP)
-                                                  .containsExactlyEntriesOf(arguments)))),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .isInstanceOfSatisfying(
+                          McpClientOperation.McpClientOperationImpl.class,
+                          op ->
+                              assertThat(op.params())
+                                  .containsEntry("name", "test-tool")
+                                  .hasEntrySatisfying(
+                                      "arguments",
+                                      args ->
+                                          assertThat(args)
+                                              .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                              .containsExactlyEntriesOf(arguments)))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -236,15 +232,14 @@ class DefaultMcpClientHandlerTest {
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .isInstanceOfSatisfying(
-                              McpClientOperation.McpClientOperationImpl.class,
-                              op ->
-                                  assertThat(op.params())
-                                      .containsEntry("name", "test-tool")
-                                      .doesNotContainKey("arguments"))),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .isInstanceOfSatisfying(
+                          McpClientOperation.McpClientOperationImpl.class,
+                          op ->
+                              assertThat(op.params())
+                                  .containsEntry("name", "test-tool")
+                                  .doesNotContainKey("arguments"))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -263,11 +258,10 @@ class DefaultMcpClientHandlerTest {
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .returns(LIST_RESOURCES, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::params)),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .returns(LIST_RESOURCES, McpClientOperation::method)
+                      .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -287,11 +281,10 @@ class DefaultMcpClientHandlerTest {
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::params)),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
+                      .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -313,17 +306,15 @@ class DefaultMcpClientHandlerTest {
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .isInstanceOfSatisfying(
-                              McpClientOperation.McpClientOperationImpl.class,
-                              op ->
-                                  assertThat(operation)
-                                      .returns(READ_RESOURCE, McpClientOperation::method)
-                                      .returns(
-                                          Map.of("uri", "resource-1"),
-                                          McpClientOperation::params))),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .isInstanceOfSatisfying(
+                          McpClientOperation.McpClientOperationImpl.class,
+                          op ->
+                              assertThat(operation)
+                                  .returns(READ_RESOURCE, McpClientOperation::method)
+                                  .returns(
+                                      Map.of("uri", "resource-1"), McpClientOperation::params))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -342,11 +333,10 @@ class DefaultMcpClientHandlerTest {
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .returns(LIST_PROMPTS, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::params)),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .returns(LIST_PROMPTS, McpClientOperation::method)
+                      .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -375,22 +365,21 @@ class DefaultMcpClientHandlerTest {
     when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
     when(clientExecutor.execute(
             eq(mcpClient),
-            assertArg(
-                operation ->
-                    assertThat(operation)
-                        .isInstanceOfSatisfying(
-                            McpClientOperation.McpClientOperationImpl.class,
-                            op -> {
-                              assertThat(op.method()).isEqualTo(GET_PROMPT);
-                              assertThat(op.params())
-                                  .containsEntry("name", "code_review")
-                                  .hasEntrySatisfying(
-                                      "arguments",
-                                      args ->
-                                          assertThat(args)
-                                              .asInstanceOf(InstanceOfAssertFactories.MAP)
-                                              .containsExactlyEntriesOf(arguments));
-                            })),
+            assertArg(operation ->
+                assertThat(operation)
+                    .isInstanceOfSatisfying(
+                        McpClientOperation.McpClientOperationImpl.class,
+                        op -> {
+                          assertThat(op.method()).isEqualTo(GET_PROMPT);
+                          assertThat(op.params())
+                              .containsEntry("name", "code_review")
+                              .hasEntrySatisfying(
+                                  "arguments",
+                                  args ->
+                                      assertThat(args)
+                                          .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                          .containsExactlyEntriesOf(arguments));
+                        })),
             eq(EMPTY_FILTER)))
         .thenReturn(expectedResult);
 

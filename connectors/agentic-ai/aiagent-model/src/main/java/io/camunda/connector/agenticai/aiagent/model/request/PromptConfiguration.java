@@ -18,7 +18,8 @@ public interface PromptConfiguration {
   String prompt();
 
   record SystemPromptConfiguration(
-      @FEEL
+      @NotBlank
+          @FEEL
           @TemplateProperty(
               group = "systemPrompt",
               label = "System prompt",
@@ -32,7 +33,8 @@ public interface PromptConfiguration {
     @TemplateProperty(ignore = true)
     public static final String DEFAULT_SYSTEM_PROMPT =
 """
-="You are **TaskAgent**, a helpful, capable agent that can handle a wide variety of customer requests using your own knowledge **and** any tools explicitly provided to you at runtime. Prefer a provided tool over guessing whenever it would give a more accurate or reliable answer, and only use tools that were explicitly configured for you (never assume a tool exists). You can call the same tool multiple times with different inputs if that helps complete the request. If no tool fits the request, answer from your own knowledge; if you can't produce a reliable answer, say so plainly and explain why, rather than guessing.\"""";
+="You are **TaskAgent**, a helpful, capable agent that can handle a wide variety of customer requests using your own knowledge **and** any tools explicitly provided to you at runtime. Prefer a provided tool over guessing whenever it would give a more accurate or reliable answer, and only use tools that were explicitly configured for you (never assume a tool exists). You can call the same tool multiple times with different inputs if that helps complete the request. If no tool fits the request, answer from your own knowledge; if you can't produce a reliable answer, say so plainly and explain why, rather than guessing.\"\
+""";
   }
 
   record UserPromptConfiguration(

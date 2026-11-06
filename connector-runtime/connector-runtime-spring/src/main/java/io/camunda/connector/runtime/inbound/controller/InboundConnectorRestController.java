@@ -110,28 +110,26 @@ public class InboundConnectorRestController {
       List<String> physicalTenantIds,
       String hostname) {
     var result =
-        executableRegistry.query(
-            f ->
-                f.bpmnProcessId(bpmnProcessId)
-                    .elementId(elementId)
-                    .tenantId(tenantId)
-                    .physicalTenantIds(physicalTenantIds));
+        executableRegistry.query(f ->
+            f.bpmnProcessId(bpmnProcessId)
+                .elementId(elementId)
+                .tenantId(tenantId)
+                .physicalTenantIds(physicalTenantIds));
     return result.stream()
         .map(ActiveExecutableResponse::logs)
         .filter(Predicate.not(Collection::isEmpty))
-        .map(
-            activities ->
-                activities.stream()
-                    .map(
-                        activity -> {
-                          return new InstanceAwareModel.InstanceAwareActivity(
-                              activity.severity(),
-                              activity.tag(),
-                              activity.timestamp(),
-                              activity.message(),
-                              hostname);
-                        })
-                    .toList())
+        .map(activities ->
+            activities.stream()
+                .map(activity -> {
+                  return new InstanceAwareModel.InstanceAwareActivity(
+                      activity.severity(),
+                      activity.tag(),
+                      activity.timestamp(),
+                      activity.message(),
+                      hostname,
+                      activity.data());
+                })
+                .toList())
         .collect(Collectors.toList());
   }
 
@@ -142,13 +140,12 @@ public class InboundConnectorRestController {
       String tenantId,
       List<String> physicalTenantIds) {
     return executableRegistry
-        .query(
-            f ->
-                f.bpmnProcessId(bpmnProcessId)
-                    .elementId(elementId)
-                    .type(type)
-                    .tenantId(tenantId)
-                    .physicalTenantIds(physicalTenantIds))
+        .query(f ->
+            f.bpmnProcessId(bpmnProcessId)
+                .elementId(elementId)
+                .type(type)
+                .tenantId(tenantId)
+                .physicalTenantIds(physicalTenantIds))
         .stream()
         .map(connectorDataMapper::createActiveInboundConnectorResponse)
         .collect(Collectors.toList());

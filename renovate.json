@@ -60,6 +60,23 @@
       "automerge": true
     },
     {
+      "description": "Automerge major updates too (as separate PRs, not grouped) once CI is green, on main only, for all managers including github-actions. Major updates on stable/* branches are disabled by the rule below. Rules below that disable updates (per-package major holds and the io.camunda* hold on stable/*) still apply.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": true
+    },
+    {
+      "description": "Do not raise major updates on stable/* branches. Majors are only for main; they risk breaking the stable lines and flooded the repo when this rule was dropped in #10136.",
+      "matchBaseBranches": [
+        "stable/*"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
       "matchManagers": [
         "maven",
         "dockerfile"
@@ -81,26 +98,6 @@
         "pinDigest"
       ],
       "automerge": true
-    },
-    {
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "patch"
-      ],
-      "automerge": false
-    },
-    {
-      "matchBaseBranches": [
-        "stable/*"
-      ],
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "enabled": false
     },
     {
       "matchBaseBranches": [
@@ -165,6 +162,16 @@
       "enabled": false
     },
     {
+      "description": "Disable major version updates for anthropic-java — 3.x sends Anthropic API version 2026-10-21 by default, in which the temperature, top_p and top_k request parameters are removed (a request that sends any of them returns a 400 error). The AI Agent connector still exposes these parameters for models that accept them, so they cannot be dropped while the old API version and those models need to be supported. Tracked in camunda/connectors#10236. Re-enable once the parameters can be removed from the connector configuration.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "matchPackageNames": [
+        "com.anthropic:anthropic-java*"
+      ],
+      "enabled": false
+    },
+    {
         "description": "kafka-clients: stay on the Apache versioning track. The Confluent Platform builds (-ce/-ccs/-cp suffixes, e.g. 8.2.1-ce) are republished under the same org.apache.kafka coordinates via artifacts.camunda.com and must not be treated as upgrades to the Apache releases (x.y.z).",
         "matchPackageNames": [
           "org.apache.kafka:kafka-clients"
@@ -172,34 +179,7 @@
         "allowedVersions": "!/-(ce|ccs|cp\\d*)$/"
       },
     {
-      "description": "Disable minor/major updates for google-auth-library-oauth2-http — 1.50.0+ removes the setSecurityProvider method used by connector-google-gemini's vertexai client, breaking its tests. Requires code migration. google-auth-library-credentials is included because parent/pom.xml pins both to the same version.google-auth-library-oauth2-http property, so leaving it unblocked would let Renovate bump the shared property through that dependency instead.",
-      "matchUpdateTypes": [
-        "major",
-        "minor"
-      ],
-      "matchPackageNames": [
-        "com.google.auth:google-auth-library-oauth2-http",
-        "com.google.auth:google-auth-library-credentials"
-      ],
-      "enabled": false
-    },
-    {
-      "description": "Disable minor/major updates for the Google Cloud libraries-bom used by connector-google-gemini specifically — 26.86.0+ pulls in google-auth-library-oauth2-http 1.50.0+ which breaks the connector's vertexai tests. Scoped to the files that feed that module; the independently-versioned libraries-bom in secret-providers/pom.xml is unaffected and can keep updating.",
-      "matchUpdateTypes": [
-        "major",
-        "minor"
-      ],
-      "matchPackageNames": [
-        "com.google.cloud:libraries-bom"
-      ],
-      "matchFileNames": [
-        "parent/pom.xml",
-        "connectors/google/pom.xml"
-      ],
-      "enabled": false
-    },
-    {
-      "description": "Disable major version updates for Apache Tika in connector-embeddings-vector-database — 4.0.0 (GA, released 2026-08-21) is a hard blocker there, not a mirror/staleness issue. (1) tika-parsers-standard-package was restructured from a shaded jar into a POM-only aggregator, so a plain jar dependency on it no longer resolves. (2) Tika 4's Parser interface dropped parse(InputStream,...) in favor of parse(TikaInputStream,...); langchain4j-document-parser-apache-tika 1.19.0, which this connector uses, still calls the old signature and would fail with NoSuchMethodError at runtime even if (1) were fixed — confirmed via bytecode inspection of both jars. Needs LangChain4j to ship Tika 4 support, plus a dependency-shape migration on our side. Scoped to this file only (matching the Google libraries-bom rule above) — connector-aws-bedrock's independent tika-core dependency only uses the MimeTypes API, confirmed compatible with 4.0.0, so it can keep receiving major-version proposals. Tracked in camunda/connectors#8502. Re-enable once that lands.",
+      "description": "Disable major version updates for Apache Tika in connector-embeddings-vector-database — 4.0.0 (GA, released 2026-08-21) is a hard blocker there, not a mirror/staleness issue. (1) tika-parsers-standard-package was restructured from a shaded jar into a POM-only aggregator, so a plain jar dependency on it no longer resolves. (2) Tika 4's Parser interface dropped parse(InputStream,...) in favor of parse(TikaInputStream,...); langchain4j-document-parser-apache-tika 1.19.0, which this connector uses, still calls the old signature and would fail with NoSuchMethodError at runtime even if (1) were fixed — confirmed via bytecode inspection of both jars. Needs LangChain4j to ship Tika 4 support, plus a dependency-shape migration on our side. Scoped to this file only — connector-aws-bedrock's independent tika-core dependency only uses the MimeTypes API, confirmed compatible with 4.0.0, so it can keep receiving major-version proposals. Tracked in camunda/connectors#8502. Re-enable once that lands.",
       "matchUpdateTypes": ["major"],
       "matchPackageNames": ["org.apache.tika:tika-core", "org.apache.tika:tika-parsers-standard-package"],
       "matchFileNames": ["connectors/embeddings-vector-database/pom.xml"],
@@ -214,6 +194,50 @@
       "matchPackageNames": [
         "org.apache.maven.plugins:maven-surefire-plugin",
         "org.apache.maven.plugins:maven-failsafe-plugin"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "LangChain4j community modules are built against one LangChain4j core release (1.x.y-betaN needs core 1.x.y), so version.langchain4j-community must move together with version.langchain4j. Group them in one PR without automerge, so a core bump that arrives before the matching community release is reviewed instead of merged.",
+      "matchPackageNames": [
+        "dev.langchain4j:langchain4j-bom",
+        "/^dev\\.langchain4j:langchain4j-community-/"
+      ],
+      "groupName": "langchain4j",
+      "automerge": false
+    },
+    {
+      "description": "LangChain4j community modules are only published as beta versions; without this, Renovate never moves them to the next core release's beta.",
+      "matchPackageNames": [
+        "/^dev\\.langchain4j:langchain4j-community-/"
+      ],
+      "ignoreUnstable": false
+    },
+    {
+      "description": "Disable minor/patch updates for the A2A Java SDK — 0.3.4 (published to Maven Central without the .Final suffix) changed A2AHttpClient's getAsyncSSE/postAsyncSSE to take Consumer<ServerSentEvent> instead of Consumer<String> and removed Task.TYPE_REFERENCE, so the agentic-ai CustomJdkA2AHttpClient and A2aClientWebhookExecutable no longer compile. Upgrading needs a code migration of our forked JDK HTTP client's SSE handling. Re-enable once that lands.",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchPackageNames": [
+        "io.github.a2asdk:**"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Disable minor/major updates for the Google Cloud libraries-bom in parent/pom.xml on stable/8.7 — 26.91.0's gax-httpjson calls NetHttpTransport.Builder.setSecurityProvider, which only exists in google-http-client 2.2.0+, but stable/8.6 and stable/8.7 deliberately stay on google-http-client 1.45.2 (see the google-http-client rule above). connector-google-gemini's vertexai tests fail with NoSuchMethodError. secret-providers/pom.xml has its own independently-versioned libraries-bom and is unaffected.",
+      "matchBaseBranches": [
+        "stable/8.7"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "matchPackageNames": [
+        "com.google.cloud:libraries-bom"
+      ],
+      "matchFileNames": [
+        "parent/pom.xml"
       ],
       "enabled": false
     }

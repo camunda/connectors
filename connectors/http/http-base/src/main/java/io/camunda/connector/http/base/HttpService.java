@@ -94,13 +94,12 @@ public class HttpService {
     httpClientRequest.setIgnoreNullValues(request.isIgnoreNullValues());
     httpClientRequest.setFollowRedirects(request.isFollowRedirects());
     Optional.ofNullable(request.getClientTls())
-        .map(
-            tls ->
-                new io.camunda.connector.http.client.model.ClientTls(
-                    tls.clientCertificate(),
-                    tls.clientPrivateKey(),
-                    tls.privateKeyPassword(),
-                    tls.trustedCertificate()))
+        .map(tls ->
+            new io.camunda.connector.http.client.model.ClientTls(
+                tls.clientCertificate(),
+                tls.clientPrivateKey(),
+                tls.privateKeyPassword(),
+                tls.trustedCertificate()))
         .ifPresent(httpClientRequest::setClientTls);
     return httpClientRequest;
   }
