@@ -279,9 +279,11 @@ Before claiming a change is complete:
 
 - [ ] Module builds (`mvn clean install -f connectors/agentic-ai/pom.xml`).
    - [ ] If deviating from the `mvn install` command, ensure `mvn spotless:apply` and `mvn license:format` run clean (pre-commit hooks enforce these).
-- [ ] Unit tests added/updated and passing.
+- [ ] Relevant unit, component or integration tests added/updated and passing.
 - [ ] E2E test decision made per the [testing rules](docs/acceptance-testing.md#choosing-e2e-vs-unit-tests-mandatory-decision): test added, reason stated, or question asked.
 - [ ] User-facing features meet the [acceptance rules](docs/acceptance-testing.md).
+- [ ] New stored-shape, customer-facing naming, default or limit decisions and their rationale are
+  stated in the PR description per the [design guidelines](docs/design-guidelines.md).
 - [ ] Real-provider changes meet the [coverage requirements](docs/acceptance-testing.md#real-provider-coverage).
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
@@ -377,8 +379,9 @@ Full code-path reference and class diagram: `ai-agent.md` §18.
 
 ## Architecture decision records
 
-When planning a significant technical decision or writing an ADR, follow the
-[ADR guidelines](docs/design-guidelines.md#architecture-decision-records).
+When planning a significant technical decision, use the
+[ADR criteria](docs/design-guidelines.md#architecture-decision-records).
+When writing or revising an ADR, read the [authoring rules](docs/adr/README.md).
 
 ## Keeping documentation up to date
 
@@ -387,7 +390,7 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 
 - **`AGENTS.md`** (this file): high-level orientation (mental model, navigation, glossary, gotchas,
   build/test commands, entry points). Design rules live in `docs/design-guidelines.md`; testing rules
-  live in `docs/acceptance-testing.md`.
+  live in `docs/acceptance-testing.md`; ADR authoring rules live in `docs/adr/README.md`.
 - **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
   config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`, native/v2
   provider specifics → `native-providers.md`.
