@@ -159,9 +159,11 @@ class AgentInstanceHistoryMapperTest {
                     .build());
     final var agentDocuments =
         AgentDocuments.empty()
-            .register(List.of(new NewDocument(document, DocumentOrigin.toolCall("fetch", "call-1"))));
+            .register(
+                List.of(new NewDocument(document, DocumentOrigin.toolCall("fetch", "call-1"))));
     final var tag =
-        AgentDocumentContent.of(AgentDocumentId.of(document)).withDelivery(DocumentDelivery.CONTENT);
+        AgentDocumentContent.of(AgentDocumentId.of(document))
+            .withDelivery(DocumentDelivery.CONTENT);
     final var loadedMessage =
         UserMessage.builder()
             .content(

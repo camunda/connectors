@@ -19,8 +19,8 @@ public final class AgentFeatures {
 
   /**
    * Keeps the documents of the conversation in the agent documents of the agent context, shows the
-   * model a handle for each of them and offers the tools of the agent that work with the documents. An
-   * instance created without it keeps the document handling it was created with.
+   * model a handle for each of them and offers the tools of the agent that work with the documents.
+   * An instance created without it keeps the document handling it was created with.
    */
   public static final String DOCUMENTS = "documents";
 
