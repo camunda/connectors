@@ -42,6 +42,8 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
 
   private static final Logger LOG = LoggerFactory.getLogger(ImportSchedulers.class);
 
+  static final String IMPORTER_THREAD_NAME_PREFIX = "process-definition-importer-";
+
   private final ProcessStateManager stateStore;
 
   /**
@@ -70,6 +72,17 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
 
   private final Function<CamundaClient, SearchQueryClient> searchQueryClientFactory;
   private final Importers importers;
+
+  /**
+   * Runs each physical tenant's poll on a platform thread, never a virtual one. A poll loads
+   * classes and reads resources (xerces, while {@link ProcessStateManager#update} parses BPMN) from
+   * the Spring Boot nested fat jar, mostly on the first ticks after startup when the job workers'
+   * virtual threads are cold too. On JDK 24+ a virtual thread that blocks while holding the nested
+   * jar's monitor unmounts, and virtual threads waiting on that monitor during a class load pin
+   * their carriers; once every carrier is pinned the runtime deadlocks (#8440). There is at most
+   * one task per physical tenant per tick and the scheduling thread joins them all, so virtual
+   * threads bring nothing here. A cached pool keeps one idle thread per tenant between ticks.
+   */
   private final ExecutorService executor;
 
   private volatile boolean ready = true;
@@ -90,7 +103,9 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
         new ConcurrentHashMap<>(searchQueryClientsByPhysicalTenantId);
     this.searchQueryClientFactory = searchQueryClientFactory;
     this.importers = importers;
-    this.executor = Executors.newVirtualThreadPerTaskExecutor();
+    this.executor =
+        Executors.newCachedThreadPool(
+            Thread.ofPlatform().name(IMPORTER_THREAD_NAME_PREFIX, 0).daemon(true).factory());
   }
 
   /**
