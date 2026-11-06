@@ -2040,10 +2040,9 @@ lease-fenced `update()` mechanism).
 ### Conversation history items
 
 - A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
-  document messages). The document blocks of a user message are reported as their handle text and the
-  document restored from the agent documents as a `DOCUMENT` block (an `OBJECT` block for an external reference), so
-  the history shows at least what the model receives. A message of an agent instance without the `documents` feature is
-  reported as stored.
+  document messages). A message of an agent
+  instance without the `documents` feature is reported as stored; the documents of one that tracks them are reported as
+  described below.
 - A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
   block(s) and a single-entry `toolCalls` array `{toolCallId: result.id(), toolName: result.name(),
   elementId, arguments}` correlating it back to the originating tool call. The `arguments` are the
@@ -2053,12 +2052,16 @@ lease-fenced `update()` mechanism).
   paginated history API and need not be joined back to the `ASSISTANT` item. Event results
   (`id == null`) have no originating call and carry `{}`; a result with a non-null id and no matching
   tool call is an invariant violation and fails the turn.
-- The handle of a document block of a user message is shown as text, without inline code, and a text is reported as it
-  is, also when it holds a handle; the persisted messages and the text the model reads are not changed. A tool result that
-  is exactly one document is reported as the document only (a `DOCUMENT` block, an `OBJECT` block for an external
-  reference). A tool result with more content reports the handle text before each document, and an object with documents in
-  it as the object with the handle objects nested, followed by the documents. An inline document of a tool result has its
-  handle text only, and an inline document of a user message cannot be mapped.
+- **Documents in the history** (an instance that tracks its documents). The history shows what the model reads. Every
+  document is its handle text, as a `TEXT` block of its own that is never joined with other text and has no inline code,
+  exactly as `DocumentExpander` renders it for the model, so a block that is exactly one handle (`type` =
+  `camunda.agent_document`) can be rendered as a card. Where a document enters the conversation (the user prompt, an
+  event, a tool result, also a tool result that is only a document) a Camunda document is followed by a `DOCUMENT` block
+  and an external document by an `OBJECT` block with its reference (the chip). An object with documents in it is reported as the
+  object with the handle objects nested, followed by the chips. An inline document has its handle text only. When a
+  document reported as a `DOCUMENT` block has no file name, the reported metadata carries the agent document id (`doc_…`)
+  as the file name, so the chip shows the id the handle shows; the document and its stored reference are not changed. A
+  text is reported as it is, also when it holds a handle.
   `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `DocumentHandling` of the agent instance: it
   decides what the history shows, and the agent documents of a `Tracked` instance are what the handles are expanded with. An
   `Untracked` agent instance reports texts as they are.

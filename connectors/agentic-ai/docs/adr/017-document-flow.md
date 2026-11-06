@@ -360,9 +360,11 @@ Consequences accepted:
 ### History
 
 The agent instance history records what the model sent and received, in a form suited to the history; process data
-stays in the variables of the tool elements. It shows the handle of a document as text, with the document next to it, and a tool result that is exactly one document
-as the document only. A document nested in the object of a tool result is shown as the handle object inside the object,
-followed by the documents. The arguments of a call are shown as the model sent them. It never shows the Camunda
+stays in the variables of the tool elements. It shows exactly what the model reads: a document is its handle as a text block of its own, in every message, so that
+a consumer can recognise a block that is exactly one handle. Where a document enters the conversation (the user prompt,
+an event, a tool result) a Camunda or external document is followed by the document itself, which a consumer shows as a
+chip; the chip of a document without a file name carries the agent document id, the same id the handle shows. A document
+nested in the object of a tool result is shown as the handle object inside the object, followed by the documents. The arguments of a call are shown as the model sent them. It never shows the Camunda
 document reference a tool received. Each message of a model request is covered by a history item, and a test reads the
 history back after a document flow and requires it.
 
@@ -404,7 +406,7 @@ history back after a document flow and requires it.
 * **Bounded download and content delivery for external documents.** The runtime downloads the whole body, so no guard
   can bound the work; external documents are reference-only on request of a tool.
 * **History reporting of documents.** External document URLs are reported to the history and can expose a URL with a
-  token, and an inline document in a user message makes the history mapper fail. Both should be reported as handles.
+  token. They should be reported as handles.
 * **Response documents in the agent documents.** The selections of `c8__return_document` could become a marker on the
   agent documents, which removes a selection that points to no document. A document may be selected under several
   keys, and the order of selection differs from the order of registration.
