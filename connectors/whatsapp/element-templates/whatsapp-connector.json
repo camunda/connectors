@@ -2,9 +2,9 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "WhatsApp Business Outbound Connector",
   "id": "io.camunda.connectors.WhatsApp.v1",
-  "version": 5,
+  "version": 6,
   "engines": {
-    "camunda": "^8.3"
+    "camunda": "^8.11"
   },
   "description": "Send messages via WhatsApp",
   "keywords": [
@@ -70,6 +70,19 @@
       }
     },
     {
+      "id": "serviceAuthenticationConfiguration",
+      "label": "Authentication credential",
+      "tooltip": "Choose a reusable WhatsApp credential, or configure the one-time access token below.",
+      "optional": true,
+      "group": "authentication",
+      "binding": {
+        "name": "serviceAuthenticationConfiguration",
+        "type": "zeebe:input"
+      },
+      "type": "Configuration",
+      "configurationTemplate": "io.camunda.connectors:whatsapp-authentication:1"
+    },
+    {
       "label": "Access token",
       "tooltip": "Temporary or permanent WhatsApp application access token. <a href='https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>WhatsApp connector documentation</a>",
       "group": "authentication",
@@ -81,6 +94,11 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -234,6 +252,11 @@
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.type"
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -312,7 +335,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "5",
+      "value": "6",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -407,6 +430,40 @@
       "properties": {
         "messageType": "messageTemplate"
       }
+    }
+  ],
+  "configurationTemplates": [
+    {
+      "id": "io.camunda.connectors:whatsapp-authentication:1",
+      "kind": "CREDENTIAL",
+      "version": 1,
+      "name": "WhatsApp Authentication",
+      "properties": [
+        {
+          "id": "authentication.type",
+          "value": "bearer",
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.type",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.token",
+          "label": "Access token",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.token",
+            "type": "property"
+          },
+          "type": "String",
+          "secret": true
+        }
+      ]
     }
   ]
 }
