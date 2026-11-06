@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 
+import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_REQUIRED;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
@@ -30,10 +31,10 @@ import org.jspecify.annotations.Nullable;
  * document, which it otherwise sees as a handle only. It is offered to every agent instance with
  * the documents feature.
  *
- * <p>A call answers with the handle of the document and the sentence {@code The content follows in
- * the next message.}, and asks the agent to add the content of the document ({@link
- * RuntimeToolResult.Success#withDocumentContent}). A document the model reads the content of
- * already is not asked for again. The agent keeps the result as it is when it does not add the
+ * <p>A call answers with two text blocks, the handle of the document and the sentence {@code The
+ * content follows in the next message.}, and asks the agent to add the content of the document
+ * ({@link RuntimeToolResult.Success#withDocumentContent}). A document the model reads the content
+ * of already is not asked for again. The agent keeps the result as it is when it does not add the
  * content, for example because of the content type or the size of the document: the message that
  * follows the tool results then holds the handle of the document with a note that says why the
  * content is not loaded.
@@ -91,12 +92,14 @@ public final class LoadDocumentTool implements RuntimeTool {
           "Parameter '%s' must be the handle of a known document.".formatted(PARAMETER_ID));
     }
 
-    final var handle = DocumentHandle.of(document).text();
+    final var handle = textContent(DocumentHandle.of(document).text());
     if (documents.hasContentInConversation(document.id())) {
-      return RuntimeToolResult.success(handle + " The document is already in the conversation.");
+      return RuntimeToolResult.success(
+          List.of(handle, textContent("The document is already in the conversation.")));
     }
 
-    return RuntimeToolResult.success(handle + " The content follows in the next message.")
+    return RuntimeToolResult.success(
+            List.of(handle, textContent("The content follows in the next message.")))
         .withDocumentContent(document.id());
   }
 }

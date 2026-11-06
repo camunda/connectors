@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -114,10 +113,12 @@ class LoadDocumentToolTest {
   }
 
   /**
-   * The answer of a request: the handle of the document and the sentence that the content follows.
+   * The answer of a request: the handle of the document and the sentence that the content follows,
+   * as two blocks.
    */
   private static List<Content> requestedAnswer(AgentDocument entry) {
-    return List.of(textContent(handleText(entry) + " The content follows in the next message."));
+    return List.of(
+        textContent(handleText(entry)), textContent("The content follows in the next message."));
   }
 
   /**
@@ -125,11 +126,6 @@ class LoadDocumentToolTest {
    */
   private static Content notLoaded(AgentDocument entry, String note) {
     return textContent(DocumentHandle.of(entry).withNote(note).text());
-  }
-
-  private static String text(ToolCallResultContent result) {
-    assertThat(result.content()).singleElement().isInstanceOf(TextContent.class);
-    return ((TextContent) result.content().getFirst()).text();
   }
 
   /** What the agent does with a load_document call: the entry and the input of the next turn. */
@@ -228,8 +224,10 @@ class LoadDocumentToolTest {
 
     final var run = run(List.of(entry), inConversation, call("1", "doc-1"));
 
-    assertThat(text(run.result()))
-        .isEqualTo(handleText(entry) + " The document is already in the conversation.");
+    assertThat(run.result().content())
+        .containsExactly(
+            textContent(handleText(entry)),
+            textContent("The document is already in the conversation."));
     assertThat(run.entry().effects()).isEmpty();
     assertThat(run.addedContent()).isEmpty();
   }

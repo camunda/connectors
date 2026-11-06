@@ -2040,9 +2040,9 @@ a store id, the id of the document in its store or a URL.
 **Loading content: `c8__load_document`.** The model calls it with the handle of a document (`id`, a document parameter; the
 tool receives an `AgentDocumentId`). It loads the whole document, no ranges. The tool answers without asking for content when the
 document is already in the windowed conversation (a block with the delivery `content` in a windowed user message,
-`RuntimeToolDocuments.hasContentInConversation`): success, `<handle> The document is already in the conversation.`; loadable
-again after that message left the window. Otherwise the result is one text, the handle of the document and the sentence
-`The content follows in the next message.`, and it asks the agent to add the content
+`RuntimeToolDocuments.hasContentInConversation`): success with two text blocks, the handle and the sentence `The document is already in the conversation.`; loadable
+again after that message left the window. Otherwise the result has two text blocks, the handle of the document and the sentence
+`The content follows in the next message.`, so that the history shows the handle as a block of its own, and it asks the agent to add the content
 (`RuntimeToolResult.Success.withDocumentContent`, the effect `ToolCallEffect.AddDocumentContent`). The agent, not the tool,
 applies the effect after all calls of the message ran,
 in the order of the calls, in `ToolCallResultsInputBuilder`: `DocumentContentDelivery` decides for every document a result
