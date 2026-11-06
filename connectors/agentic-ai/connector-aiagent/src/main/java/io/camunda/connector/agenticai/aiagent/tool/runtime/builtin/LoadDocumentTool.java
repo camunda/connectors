@@ -16,7 +16,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -93,7 +92,7 @@ public final class LoadDocumentTool implements RuntimeTool {
           "Parameter '%s' must be the handle of a known document.".formatted(PARAMETER_ID));
     }
 
-    final var handle = DocumentHandles.text(AgentDocumentHandle.of(document));
+    final var handle = AgentDocumentHandle.of(document).text();
     if (documents.hasContentInConversation(document.id())) {
       return RuntimeToolResult.success(handle + " The document is already in the conversation.");
     }
