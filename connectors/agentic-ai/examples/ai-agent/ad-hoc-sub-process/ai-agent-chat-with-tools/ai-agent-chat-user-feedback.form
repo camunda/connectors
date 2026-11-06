@@ -11,16 +11,6 @@
             "columns": null
           },
           "id": "Field_0e59eom"
-        },
-        {
-          "label": "Response Documents",
-          "type": "documentPreview",
-          "layout": {
-            "row": "Row_05vkio3",
-            "columns": null
-          },
-          "id": "Field_13n34q9",
-          "dataSource": "=responseDocuments"
         }
       ],
       "showOutline": true,
@@ -30,6 +20,19 @@
         "columns": null
       },
       "id": "Field_0cj02xb"
+    },
+    {
+      "label": "Response Documents",
+      "type": "documentPreview",
+      "layout": {
+        "row": "Row_0vv7o2w",
+        "columns": null
+      },
+      "id": "Field_13n34q9",
+      "dataSource": "=responseDocuments",
+      "conditional": {
+        "hide": "=responseDocuments = null or is empty(responseDocuments)"
+      }
     },
     {
       "type": "separator",
