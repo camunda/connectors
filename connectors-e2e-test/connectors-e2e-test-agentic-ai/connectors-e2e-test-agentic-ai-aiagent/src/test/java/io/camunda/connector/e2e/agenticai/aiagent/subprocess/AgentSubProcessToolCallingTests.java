@@ -20,6 +20,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
@@ -171,8 +172,7 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
 
     final var externalHandle = parseDocumentHandle(lastMessages.get(3).content());
     assertThat(externalHandle.fileName()).isEqualTo("Notes");
-    assertThat(lastMessages.get(5).content())
-        .isEqualTo(externalHandle.text() + "\nThe content follows in the next message.");
+    assertThat(lastMessages.get(5).content()).isEqualTo(contentFollowsSentence(externalHandle));
 
     // the content of the external document is loaded like the one of any other document
     assertDocumentContentUserMessage(
