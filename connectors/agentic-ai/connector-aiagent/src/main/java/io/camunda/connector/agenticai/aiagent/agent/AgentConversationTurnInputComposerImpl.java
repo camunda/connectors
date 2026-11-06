@@ -156,12 +156,20 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           agentContext, documentIdsWithContent, batch, TurnInput.empty(), events);
     }
 
-    final var userPrompt =
-        userPromptInput(agentInput.userPrompt(), documentHandling, documentIdsWithContent);
-    if (userPrompt.isEmpty() && events.isEmpty()) {
+    final boolean addsUserPromptMessage = addsUserPromptMessage(agentInput.userPrompt());
+    if (!addsUserPromptMessage && events.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
     }
+    // the model call reads the user prompt message and the event messages as well
+    final var documentIdsWithContent =
+        previousConversation.documentIdsWithContent(
+            configuration.contextWindowSize(),
+            (addsUserPromptMessage ? 1 : 0) + events.messages().size());
+    final var userPrompt =
+        addsUserPromptMessage
+            ? userPromptInput(agentInput.userPrompt(), documentHandling, documentIdsWithContent)
+            : TurnInput.empty();
     return new CompositionResult.Ready(
         agentContext, Set.of(), ToolCallBatch.of(List.of()), userPrompt, events);
   }
@@ -191,7 +199,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     };
   }
 
-  /** The user message of the user prompt and its documents, empty without user content. */
+  /** Whether the user prompt has a text or a document, so that it makes a message. */
+  private static boolean addsUserPromptMessage(UserPrompt userPrompt) {
+    return StringUtils.isNotBlank(userPrompt.prompt()) || !userPrompt.documents().isEmpty();
+  }
+
+  /** The user message of the user prompt and its documents. */
   private TurnInput userPromptInput(
       UserPrompt userPrompt,
       DocumentHandling documentHandling,
@@ -229,10 +242,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               .forEach(content::add);
     }
 
-    if (content.isEmpty()) {
-      LOGGER.debug("Not adding user message as no user content was found to add.");
-      return TurnInput.empty();
-    }
     return new TurnInput(
         List.of(
             UserMessage.builder()

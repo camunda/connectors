@@ -42,6 +42,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
@@ -271,6 +272,89 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
         .containsExactly(textContent("Hello?"), block(doc, false));
+  }
+
+  private static AgentConfiguration configWithContextWindow(int contextWindowSize) {
+    return new AgentConfiguration(
+        null,
+        null,
+        null,
+        new MemoryTemplateConfiguration(null, contextWindowSize),
+        null,
+        null,
+        null);
+  }
+
+  private CompositionResult composePromptWithin(
+      AgentConfiguration configuration,
+      List<Message> previousMessages,
+      List<ToolCallResult> eventResults,
+      Document doc) {
+    final var input =
+        AgentInput.from(
+            new UserPromptConfiguration("Hello?", List.of(doc), DocumentDelivery.CONTENT),
+            eventResults);
+    return composer.resolve(
+        configuration,
+        CTX_WITH_CONVERSATION,
+        TurnReconstructor.reconstruct(previousMessages),
+        input);
+  }
+
+  @Test
+  void
+      userPrompt_withTheDeliveryContent_doesNotAddTheContentOfADocumentInTheOldestMessageOfTheWindow() {
+    // 2 previous messages + the user prompt message fill the window of 3
+    final var doc = document("prompt data", "text/plain", "prompt.txt");
+    final var earlier = UserMessage.builder().content(List.of(block(doc, true))).build();
+
+    final var turn =
+        nextTurn(
+            composePromptWithin(
+                configWithContextWindow(3),
+                List.of(earlier, assistantMessage("done")),
+                List.of(),
+                doc));
+
+    assertThat(((UserMessage) turn.messages().getFirst()).content())
+        .containsExactly(textContent("Hello?"), block(doc, false));
+  }
+
+  @Test
+  void
+      userPrompt_withTheDeliveryContent_addsTheContentOfADocumentThatTheUserPromptMessageSqueezesOutOfTheWindow() {
+    final var doc = document("prompt data", "text/plain", "prompt.txt");
+    final var earlier = UserMessage.builder().content(List.of(block(doc, true))).build();
+
+    final var turn =
+        nextTurn(
+            composePromptWithin(
+                configWithContextWindow(2),
+                List.of(earlier, assistantMessage("done")),
+                List.of(),
+                doc));
+
+    assertThat(((UserMessage) turn.messages().getFirst()).content())
+        .containsExactly(textContent("Hello?"), block(doc, true));
+  }
+
+  @Test
+  void
+      userPrompt_withTheDeliveryContent_addsTheContentOfADocumentThatAnEventMessageSqueezesOutOfTheWindow() {
+    // 2 previous messages + the user prompt message + the event message exceed the window of 3
+    final var doc = document("prompt data", "text/plain", "prompt.txt");
+    final var earlier = UserMessage.builder().content(List.of(block(doc, true))).build();
+
+    final var turn =
+        nextTurn(
+            composePromptWithin(
+                configWithContextWindow(3),
+                List.of(earlier, assistantMessage("done")),
+                List.of(ToolCallResult.builder().content("event").build()),
+                doc));
+
+    assertThat(((UserMessage) turn.messages().getFirst()).content())
+        .containsExactly(textContent("Hello?"), block(doc, true));
   }
 
   @Test
