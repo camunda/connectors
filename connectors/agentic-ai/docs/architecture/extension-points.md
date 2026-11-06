@@ -235,7 +235,7 @@ one section per provider, rather than here.
 
 ### Add a `SystemPromptContributor`
 
-Implement `SystemPromptContributor` (see [`system-prompt.md`](../../connector-aiagent/docs/system-prompt.md)).
+Implement `SystemPromptContributor` (see [`system-prompt-contributor.md`](../../aiagent-api/docs/system-prompt-contributor.md#systempromptcontributor-interface)).
 `SystemPromptComposerImpl` auto-collects every contributor bean and orders them by `getOrder()`.
 Reference implementation: `A2aSystemPromptContributor`.
 

@@ -22,5 +22,6 @@ module does not depend on Spring.
 
 - [Chat model provider SPI](docs/chat-model-spi.md)
 - [Conversation store SPI](docs/conversation-store-spi.md)
+- [System prompt contributor SPI](docs/system-prompt-contributor.md)
 - [Extension points](../docs/architecture/extension-points.md)
 - [Agentic loop](../docs/architecture/agentic-loop.md)

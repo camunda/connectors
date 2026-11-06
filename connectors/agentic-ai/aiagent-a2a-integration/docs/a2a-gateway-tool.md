@@ -124,7 +124,7 @@ instructions when A2A tools are detected.
 - Multi-turn flow examples
 - Common error patterns to avoid
 
-For the `SystemPromptContributor` SPI, see [`system-prompt.md`](../../connector-aiagent/docs/system-prompt.md).
+For the `SystemPromptContributor` SPI, see [`system-prompt-contributor.md`](../../aiagent-api/docs/system-prompt-contributor.md#systempromptcontributor-interface).
 
 ## A2aClientAgenticToolAutoConfiguration
 
