@@ -2100,7 +2100,9 @@ handle text and the content are added from the agent documents when the request 
 a tool parameter declared with `fromAi(..., "document")` never adds content: the tool receives the full Camunda document
 reference. The same holds for a union parameter, a parameter that takes a document or something else, for every handle in its value.
 
-**Returning documents: `c8__return_document`.** The model calls it once per document with `key` (required, matching
+**Returning documents: `c8__return_document`.** Its description says that it adds a document to the final response, what a
+handle looks like, that it returns no text or values and that it is not to be called without a handle, because the tool is
+offered also when the conversation holds no document. The model calls it once per document with `key` (required, matching
 `[A-Za-z_][A-Za-z0-9_-]*`), `document` (required, the handle of a known document, a document parameter) and `description`
 (optional, a blank one is left out). A valid call is answered `Returned the document under the key 'k'.` and asks the
 agent to select the document for the final response (`RuntimeToolResult.Success.withResponseDocument`; the key rule is

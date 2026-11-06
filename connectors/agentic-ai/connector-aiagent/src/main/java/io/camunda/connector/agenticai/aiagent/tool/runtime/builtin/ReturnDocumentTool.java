@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
@@ -49,14 +50,18 @@ public final class ReturnDocumentTool implements RuntimeTool {
   private static final ToolDefinition DEFINITION =
       ToolDefinition.runtime(
           NAME,
-          "Attaches one document to your final response. Use this only for a document the user"
-              + " should receive in your answer; do not use it for documents you only pass to"
-              + " other tools. Call it once per document. The key is a stable identifier the"
-              + " process uses to find the document; it starts with a letter or an underscore and"
-              + " continues with letters, digits, underscores or hyphens. The description is"
-              + " optional. Calling it again with the same key replaces the document returned"
-              + " under that key. Documents you returned earlier stay attached to your later final"
-              + " responses too, so you do not need to return them again.",
+          "Adds one document to your final response, so that the process receives it. Use it only"
+              + " for a document that you see as a handle in the conversation: a JSON object with"
+              + " \"type\": \"camunda.agenticai.document\" and an \"id\" that starts with"
+              + " \"doc_\". This tool does not return text or values; put them in your final"
+              + " response. Do not call it when the conversation has no such handle, and do not use"
+              + " it for a document that you only pass to other tools. Call it once per document."
+              + " The key is a stable identifier the process uses to find the document; it starts"
+              + " with a letter or an underscore and continues with letters, digits, underscores or"
+              + " hyphens. The description is optional. Calling it again with the same key replaces"
+              + " the document returned under that key. Documents you returned earlier stay"
+              + " attached to your later final responses too, so you do not need to return them"
+              + " again.",
           schema());
 
   /** The arguments of a call: the key, the document and its description. */
@@ -71,7 +76,8 @@ public final class ReturnDocumentTool implements RuntimeTool {
             "A stable identifier the process uses to find the document, matching "
                 + ResponseDocumentSelection.KEY_PATTERN
                 + "."));
-    properties.put(PARAMETER_DOCUMENT, DocumentSchemas.document("The document to return."));
+    properties.put(
+        PARAMETER_DOCUMENT, DocumentSchemas.document("The handle of the document to return."));
     properties.put(PARAMETER_DESCRIPTION, text("An optional short description of the document."));
     final var schema = new LinkedHashMap<String, Object>();
     schema.put("type", "object");
@@ -108,7 +114,9 @@ public final class ReturnDocumentTool implements RuntimeTool {
     final var document = arguments.document();
     if (document == null || context.documents().find(document).isEmpty()) {
       return RuntimeToolResult.error(
-          "Parameter '%s' must be the handle of a known document.".formatted(PARAMETER_DOCUMENT));
+          ("Parameter '%s' must be the handle of a document from the conversation: a JSON object"
+                  + " such as {\"type\":\"%s\",\"id\":\"doc_…\"}.")
+              .formatted(PARAMETER_DOCUMENT, DocumentHandle.TYPE));
     }
 
     final var description =
