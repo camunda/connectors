@@ -219,24 +219,17 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void theContentMessageIsReportedAsThePreambleTheDeliveredHandleWithItsChipAndTheWithheldHandle() {
-    final var delivered = reportDocument("delivered.txt");
-    final var withheld = reportDocument("withheld.zip");
-    final var agentDocuments = knownDocuments(delivered, withheld);
-    final var deliveredBlock =
-        AgentDocumentContent.of(AgentDocumentId.of(delivered))
-            .withDelivery(DocumentDelivery.CONTENT);
-    final var withheldHandle =
-        DocumentHandle.of(agentDocuments, AgentDocumentId.of(withheld))
-            .withNote(
-                "Documents of type application/zip cannot be loaded. If one of your tools can process the document, pass the handle to it.");
+  void theContentMessageIsReportedAsThePreambleAndTheHandleWithItsChipOfEveryDeliveredDocument() {
+    final var first = reportDocument("first.txt");
+    final var second = reportDocument("second.txt");
+    final var agentDocuments = knownDocuments(first, second);
+    final var firstBlock =
+        AgentDocumentContent.of(AgentDocumentId.of(first)).withDelivery(DocumentDelivery.CONTENT);
+    final var secondBlock =
+        AgentDocumentContent.of(AgentDocumentId.of(second)).withDelivery(DocumentDelivery.CONTENT);
     final var message =
         UserMessage.builder()
-            .content(
-                List.of(
-                    TextContent.textContent(CONTENT_PREAMBLE),
-                    deliveredBlock,
-                    TextContent.textContent(withheldHandle.text())))
+            .content(List.of(TextContent.textContent(CONTENT_PREAMBLE), firstBlock, secondBlock))
             .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
             .build();
 
@@ -250,14 +243,16 @@ class AgentInstanceHistoryMapperTest {
     assertThat(items)
         .singleElement()
         .satisfies(item -> {
-          assertThat(item.content()).hasSize(4);
+          assertThat(item.content()).hasSize(5);
           assertThat(texts(item.content())).containsExactly(CONTENT_PREAMBLE);
           assertThat(objectJson(item.content().get(1)))
-              .isEqualTo(TestDocuments.handleText(agentDocuments, deliveredBlock.id()));
+              .isEqualTo(TestDocuments.handleText(agentDocuments, firstBlock.id()));
           assertThat(item.content().get(2))
               .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
-          assertThat(objectJson(item.content().get(3))).isEqualTo(withheldHandle.text());
-          assertThat(objectJson(item.content().get(3))).contains("\"note\":\"Documents of type");
+          assertThat(objectJson(item.content().get(3)))
+              .isEqualTo(TestDocuments.handleText(agentDocuments, secondBlock.id()));
+          assertThat(item.content().get(4))
+              .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
         });
   }
 
@@ -308,19 +303,18 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void theAnswerOfAToolThatIsExactlyAHandleIsReportedAsTheHandleObjectAndItsSentenceAsText() {
+  void theResultOfLoadDocumentIsExactlyOneTextBlockWithTheSentenceOfTheAgent() {
     final var known = reportDocument("known.txt");
     final var agentDocuments = knownDocuments(known);
-    final var handle = TestDocuments.handleText(agentDocuments, AgentDocumentId.of(known));
     final var toolCall = ToolCall.builder().id("call-1").name("c8__load_document").build();
+    final var sentence =
+        "The content of known.txt (%s) follows in the next message."
+            .formatted(AgentDocumentId.of(known).value());
     final var result =
         ToolCallResultContent.builder()
             .id("call-1")
             .name("c8__load_document")
-            .content(
-                List.of(
-                    TextContent.textContent(handle),
-                    TextContent.textContent("The content follows in the next message.")))
+            .content(List.of(TextContent.textContent(sentence)))
             .completedAt(TURN_INGESTION_TIMESTAMP)
             .build();
 
@@ -334,10 +328,8 @@ class AgentInstanceHistoryMapperTest {
     assertThat(items)
         .singleElement()
         .satisfies(item -> {
-          assertThat(item.content()).hasSize(2);
-          assertThat(objectJson(item.content().get(0))).isEqualTo(handle);
-          assertThat(texts(item.content()))
-              .containsExactly("The content follows in the next message.");
+          assertThat(item.content()).hasSize(1);
+          assertThat(texts(item.content())).containsExactly(sentence);
         });
   }
 

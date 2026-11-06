@@ -2528,8 +2528,9 @@ class AgentSubProcessRequestHandlerTest {
                       assertThat(result.id()).isEqualTo("call-1");
                       assertThat(result.content())
                           .containsExactly(
-                              TextContent.textContent(TestDocuments.handleText(document)),
-                              TextContent.textContent("The content follows in the next message."));
+                              TextContent.textContent(
+                                  "The content of report.txt (%s) follows in the next message."
+                                      .formatted(documentId.value())));
                     }));
     assertContentMessageOf(secondRequestMessages.getLast(), document);
 

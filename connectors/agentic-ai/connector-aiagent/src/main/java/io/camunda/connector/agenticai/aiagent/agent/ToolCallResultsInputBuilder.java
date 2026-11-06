@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
@@ -36,8 +37,12 @@ import java.util.Set;
  * registered, and the effects of the results are applied.
  *
  * <p>An agent instance that tracks its documents shows a document as its handle inside the tool
- * result and reports it to be registered in its documents. An agent instance that does not keeps
- * the document in a message of its own, next to its tag.
+ * result and reports it to be registered in its documents. For every document whose content a
+ * result asks for, the builder appends a sentence to that result that tells the model what happens:
+ * the content follows in the next message, the content is not loaded and why, or the content is in
+ * the conversation already. The documents whose content is added follow in a message of their own.
+ * An agent instance that does not track its documents keeps the document in a message of its own,
+ * next to its tag.
  */
 public class ToolCallResultsInputBuilder {
 
@@ -46,6 +51,21 @@ public class ToolCallResultsInputBuilder {
 
   static final String DOCUMENT_CONTENT_PREAMBLE =
       "Document content from tool calls (added by the system):";
+
+  /** The sentence for a document whose content follows in the next message. */
+  static String contentFollows(String documentRef) {
+    return "The content of %s follows in the next message.".formatted(documentRef);
+  }
+
+  /** The sentence for a document whose content is not loaded; {@code note} says why. */
+  static String contentNotLoaded(String documentRef, String note) {
+    return "The content of %s is not loaded. %s".formatted(documentRef, note);
+  }
+
+  /** The sentence for a document whose content the model reads already. */
+  static String contentAlreadyInConversation(String documentRef) {
+    return "The content of %s is already in the conversation.".formatted(documentRef);
+  }
 
   private final DocumentContentDelivery contentDelivery;
 
@@ -69,25 +89,35 @@ public class ToolCallResultsInputBuilder {
       AgentContext agentContext, ToolCallBatch batch, Set<AgentDocumentId> documentIdsWithContent) {
     final var entries = batch.entriesInCallOrder();
     final var documentHandling = agentContext.documentHandling();
-    final var followUp = applyEffects(documentHandling, entries, documentIdsWithContent);
+    final var applied = applyEffects(documentHandling, entries, documentIdsWithContent);
     return switch (documentHandling) {
-      case DocumentHandling.Tracked ignored -> buildWithDocumentBlocks(entries, followUp);
+      case DocumentHandling.Tracked ignored -> buildWithDocumentBlocks(entries, applied);
       case DocumentHandling.Untracked ignored -> buildWithDocumentMessage(entries);
     };
   }
 
   /**
-   * Applies the effects in the order of the entries and returns the blocks of the message that
-   * follows the tool results: the documents with the delivery content and the handles with a note
-   * for the documents that are not loaded. An entry sees the documents of the agent and its own
-   * documents only, never the ones of another entry.
+   * What the effects of the entries add to the conversation.
+   *
+   * @param statements for every entry, in the order of the entries, the sentences that tell what
+   *     happens to the content of the documents it asked for
+   * @param delivered the documents whose content is added, in the order of the entries
    */
-  private List<Content> applyEffects(
+  private record AppliedEffects(
+      List<List<Content>> statements, List<AgentDocumentContent> delivered) {}
+
+  /**
+   * Applies the effects in the order of the entries. An entry sees the documents of the agent and
+   * its own documents only, never the ones of another entry.
+   */
+  private AppliedEffects applyEffects(
       DocumentHandling documentHandling,
       List<ToolCallBatch.Entry> entries,
       Set<AgentDocumentId> documentIdsWithContent) {
     final var handledIds = new HashSet<>(documentIdsWithContent);
-    final var followUp = new ArrayList<Content>();
+    final var statements = new ArrayList<List<Content>>();
+    final var delivered = new ArrayList<AgentDocumentContent>();
+    final var notLoaded = new HashMap<AgentDocumentId, String>();
 
     for (final var entry : entries) {
       final var requestedContent = new ArrayList<AgentDocumentId>();
@@ -97,6 +127,7 @@ public class ToolCallResultsInputBuilder {
         }
       }
       if (requestedContent.isEmpty()) {
+        statements.add(List.of());
         continue;
       }
 
@@ -106,19 +137,42 @@ public class ToolCallResultsInputBuilder {
                 tracked.documents().register(newDocumentsOf(entry));
             case DocumentHandling.Untracked ignored -> AgentDocuments.empty();
           };
+      final var entryStatements = new ArrayList<Content>();
       for (final var outcome : contentDelivery.deliver(known, requestedContent, handledIds)) {
         switch (outcome) {
-          case DocumentContentDelivery.Outcome.Delivered delivered ->
-              followUp.add(delivered.withContent());
-          case DocumentContentDelivery.Outcome.Withheld withheld ->
-              followUp.add(
-                  textContent(
-                      DocumentHandle.of(known, withheld.id()).withNote(withheld.note()).text()));
+          case DocumentContentDelivery.Outcome.Delivered delivery -> {
+            delivered.add(delivery.withContent());
+            entryStatements.add(
+                textContent(contentFollows(documentRef(known, delivery.withContent().id()))));
+          }
+          case DocumentContentDelivery.Outcome.Withheld withheld -> {
+            notLoaded.put(withheld.id(), withheld.note());
+            entryStatements.add(
+                textContent(contentNotLoaded(documentRef(known, withheld.id()), withheld.note())));
+          }
+          case DocumentContentDelivery.Outcome.AlreadyInConversation already -> {
+            // a document that an earlier result of the batch asked for, and that is not loaded,
+            // is not in the conversation
+            final var note = notLoaded.get(already.id());
+            final var ref = documentRef(known, already.id());
+            entryStatements.add(
+                textContent(
+                    note == null
+                        ? contentAlreadyInConversation(ref)
+                        : contentNotLoaded(ref, note)));
+          }
         }
       }
+      statements.add(List.copyOf(entryStatements));
       handledIds.addAll(requestedContent);
     }
-    return List.copyOf(followUp);
+    return new AppliedEffects(List.copyOf(statements), List.copyOf(delivered));
+  }
+
+  /** The file name and the id of a document, or the id alone when it has no file name. */
+  private static String documentRef(AgentDocuments known, AgentDocumentId id) {
+    final var fileName = DocumentHandle.of(known, id).fileName();
+    return fileName == null ? id.value() : "%s (%s)".formatted(fileName, id.value());
   }
 
   private static List<NewDocument> newDocumentsOf(ToolCallBatch.Entry entry) {
@@ -129,16 +183,18 @@ public class ToolCallResultsInputBuilder {
   /**
    * A document that is a whole result is persisted as a document block, like the documents that are
    * not a whole result. The documents of every result are registered with the tool call as their
-   * origin. The content of the documents the results asked for, or a note on why it is not loaded,
-   * follows in a message of its own.
+   * origin. A result that asks for the content of documents ends with a sentence per document. The
+   * content of the documents that are loaded follows in a message of its own.
    */
   private static TurnInput buildWithDocumentBlocks(
-      List<ToolCallBatch.Entry> entries, List<Content> followUp) {
-    final var results =
-        entries.stream()
-            .map(ToolCallBatch.Entry::result)
-            .map(ToolCallResultContent::withDocumentsAsReferences)
-            .toList();
+      List<ToolCallBatch.Entry> entries, AppliedEffects applied) {
+    final var results = new ArrayList<ToolCallResultContent>();
+    for (int i = 0; i < entries.size(); i++) {
+      final var result = entries.get(i).result().withDocumentsAsReferences();
+      final var statements = applied.statements().get(i);
+      results.add(
+          statements.isEmpty() ? result : result.withContent(concat(result.content(), statements)));
+    }
     final var documents = new ArrayList<NewDocument>();
     entries.forEach(entry -> documents.addAll(newDocumentsOf(entry)));
 
@@ -148,16 +204,22 @@ public class ToolCallResultsInputBuilder {
             .results(results)
             .metadata(MessageMetadata.defaults())
             .build());
-    if (!followUp.isEmpty()) {
+    if (!applied.delivered().isEmpty()) {
       final var content = new ArrayList<Content>();
       content.add(textContent(DOCUMENT_CONTENT_PREAMBLE));
-      content.addAll(followUp);
+      content.addAll(applied.delivered());
 
       final var metadata = new HashMap<>(MessageMetadata.defaults());
       metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
       messages.add(UserMessage.builder().content(content).metadata(metadata).build());
     }
     return new TurnInput(messages, documents);
+  }
+
+  private static List<Content> concat(List<Content> first, List<Content> second) {
+    final var all = new ArrayList<>(first);
+    all.addAll(second);
+    return List.copyOf(all);
   }
 
   private static TurnInput buildWithDocumentMessage(List<ToolCallBatch.Entry> entries) {
