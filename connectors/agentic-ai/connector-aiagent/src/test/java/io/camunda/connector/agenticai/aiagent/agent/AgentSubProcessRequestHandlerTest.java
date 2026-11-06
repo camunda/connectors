@@ -2543,16 +2543,11 @@ class AgentSubProcessRequestHandlerTest {
                     .singleElement()
                     .satisfies(result -> {
                       assertThat(result.id()).isEqualTo("call-1");
-                      assertThat(result.content()).hasSize(3);
-                      assertThat(result.content().get(0))
-                          .isEqualTo(
-                              TextContent.textContent("Requested the content of the document."));
-                      assertThat(result.content().get(1))
-                          .isEqualTo(TextContent.textContent(TestDocuments.handleText(document)));
-                      assertThat(result.content().get(2))
-                          .isEqualTo(
+                      assertThat(result.content())
+                          .containsExactly(
                               TextContent.textContent(
-                                  "It follows in the next message, or a note says why it cannot be loaded."));
+                                  TestDocuments.handleText(document)
+                                      + " The content follows in the next message."));
                     }));
     assertContentMessageOf(secondRequestMessages.getLast(), document);
 

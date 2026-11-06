@@ -43,7 +43,7 @@ class DocumentContentGuardTest {
         DocumentCreationRequest.from(content).contentType(contentType).fileName("a").build());
   }
 
-  private static final String PASS_THE_TAG = "; pass its tag to a tool that processes it";
+  private static final String PASS_THE_HANDLE = " Pass the handle to a tool that processes it.";
 
   private static final Verdict ALLOWED = new Verdict.Allowed();
 
@@ -95,7 +95,7 @@ class DocumentContentGuardTest {
     assertThat(rejection).isEqualTo(new Rejection.External());
     assertThat(rejection.modelText())
         .isEqualTo(
-            "is an external document, which cannot be loaded into the conversation; pass its tag to a tool that processes it");
+            "An external document cannot be loaded. Pass the handle to a tool that processes it.");
     assertThat(downloads).hasValue(0);
   }
 
@@ -114,7 +114,7 @@ class DocumentContentGuardTest {
     assertThat(rejection).isInstanceOf(Rejection.UnsupportedType.class);
     assertThat(rejection.modelText())
         .isEqualTo(
-            "is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it");
+            "Documents of type application/zip cannot be loaded. Pass the handle to a tool that processes it.");
   }
 
   @Test
@@ -128,13 +128,13 @@ class DocumentContentGuardTest {
     assertThat(rejection).isInstanceOf(Rejection.TooLarge.class);
     assertThat(rejection.modelText())
         .isEqualTo(
-            "is 257 KB, too large to load into the conversation (limit 256 KB); pass its tag to a tool that processes it");
+            "The document is too large to load (257 KB, limit 256 KB). Pass the handle to a tool that processes it.");
     verify(text, never()).asInputStream();
     // the limit of a PDF is higher
     assertThat(guard.check(pdf)).isEqualTo(ALLOWED);
     assertThat(rejectionOf(image).modelText())
         .isEqualTo(
-            "is 3585 KB, too large to load into the conversation (limit 3584 KB); pass its tag to a tool that processes it");
+            "The document is too large to load (3585 KB, limit 3584 KB). Pass the handle to a tool that processes it.");
     assertThat(guard.check(camundaDocument("application/pdf", 3585L * 1024)))
         .isInstanceOf(Verdict.Rejected.class);
   }
@@ -145,7 +145,7 @@ class DocumentContentGuardTest {
 
     assertThat(rejectionOf(strict, camundaDocument("text/plain", 11)).modelText())
         .isEqualTo(
-            "is 1 KB, too large to load into the conversation (limit 1 KB); pass its tag to a tool that processes it");
+            "The document is too large to load (1 KB, limit 1 KB). Pass the handle to a tool that processes it.");
     assertThat(strict.check(camundaDocument("text/plain", 10))).isEqualTo(ALLOWED);
     assertThat(strict.check(camundaDocument("application/pdf", 21)))
         .isInstanceOf(Verdict.Rejected.class);
@@ -199,8 +199,7 @@ class DocumentContentGuardTest {
     assertThat(rejection).isInstanceOf(Rejection.UnsupportedType.class);
     assertThat(rejection.modelText())
         .isEqualTo(
-            "is of type %s which cannot be loaded into the conversation".formatted(contentType)
-                + PASS_THE_TAG);
+            "Documents of type %s cannot be loaded.".formatted(contentType) + PASS_THE_HANDLE);
   }
 
   @ParameterizedTest
@@ -212,7 +211,7 @@ class DocumentContentGuardTest {
     assertThat(rejection).isInstanceOf(Rejection.UnsupportedType.class);
     assertThat(rejection.modelText())
         .isEqualTo(
-            "has no content type, so it cannot be loaded into the conversation; pass its tag to a tool that processes it");
+            "A document without a content type cannot be loaded. Pass the handle to a tool that processes it.");
   }
 
   @Test
@@ -222,7 +221,7 @@ class DocumentContentGuardTest {
     assertThat(rejection).isInstanceOf(Rejection.UnsupportedType.class);
     assertThat(rejection.modelText())
         .isEqualTo(
-            "has a content type that cannot be read, so it cannot be loaded into the conversation; pass its tag to a tool that processes it");
+            "A document with a content type that cannot be read cannot be loaded. Pass the handle to a tool that processes it.");
   }
 
   @Test
@@ -236,7 +235,7 @@ class DocumentContentGuardTest {
     assertThat(rejection).isInstanceOf(Rejection.TooLarge.class);
     assertThat(rejection.modelText())
         .isEqualTo(
-            "is larger than 256 KB, too large to load into the conversation (limit 256 KB); pass its tag to a tool that processes it");
+            "The document is too large to load (limit 256 KB). Pass the handle to a tool that processes it.");
     verify(content).readNBytes(256 * 1024 + 1);
     verify(content, never()).readAllBytes();
   }
@@ -259,7 +258,7 @@ class DocumentContentGuardTest {
 
     assertThat(rejection).isInstanceOf(Rejection.Unreadable.class);
     // the failure is for the log: the text for the model holds no detail of it
-    assertThat(rejection.modelText()).isEqualTo("could not be read, so its content is not loaded");
+    assertThat(rejection.modelText()).isEqualTo("The document could not be read.");
     assertThat(rejection.cause()).isSameAs(failure);
   }
 }

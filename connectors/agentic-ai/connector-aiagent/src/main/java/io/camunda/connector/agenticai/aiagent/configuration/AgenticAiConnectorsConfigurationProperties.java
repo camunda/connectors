@@ -44,7 +44,7 @@ public record AgenticAiConnectorsConfigurationProperties(
 
       /**
        * The size limits of the content the agent adds to the conversation. A document above the
-       * limit of its kind is not loaded: the model gets its tag only. A limit that is not set is
+       * limit of its kind is not loaded: the model gets its handle only. A limit that is not set is
        * the default of {@link DocumentContentLimits#defaults()}, which are the limits of the most
        * restrictive supported model provider and apply to every provider.
        *

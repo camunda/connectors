@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
@@ -45,7 +46,7 @@ public class ToolCallResultsInputBuilder {
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
   static final String DOCUMENT_CONTENT_PREAMBLE =
-      "System message, not written by the user: the content of the documents requested for the tool results above follows, or a note says why a document cannot be loaded.";
+      "Document content requested by the tool calls above (added by the system):";
 
   private final DocumentContentDelivery contentDelivery;
 
@@ -80,9 +81,9 @@ public class ToolCallResultsInputBuilder {
 
   /**
    * Applies the effects in the order of the entries and returns the blocks of the message that
-   * follows the tool results: the documents with the delivery content and the notes for the
-   * documents that are not loaded. An entry sees the documents of the agent and its own documents
-   * only, never the ones of another entry.
+   * follows the tool results: the documents with the delivery content and the handles with a note
+   * for the documents that are not loaded. An entry sees the documents of the agent and its own
+   * documents only, never the ones of another entry.
    */
   private List<Content> applyEffects(
       DocumentHandling documentHandling,
@@ -113,7 +114,10 @@ public class ToolCallResultsInputBuilder {
           case DocumentContentDelivery.Outcome.Delivered delivered ->
               followUp.add(delivered.withContent());
           case DocumentContentDelivery.Outcome.Withheld withheld ->
-              followUp.add(textContent(withheld.note()));
+              followUp.add(
+                  textContent(
+                      DocumentHandles.text(
+                          DocumentHandles.of(known, withheld.id()).withNote(withheld.note()))));
         }
       }
       handledIds.addAll(requestedContent);

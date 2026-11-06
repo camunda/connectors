@@ -195,7 +195,7 @@ class AgentInstanceHistoryMapperTest {
             .content(
                 List.of(
                     TextContent.textContent(
-                        "System message, not written by the user: the content of the documents requested for the tool results above follows, or a note says why a document cannot be loaded."),
+                        "Document content requested by the tool calls above (added by the system):"),
                     tag))
             .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
             .build();
@@ -213,7 +213,7 @@ class AgentInstanceHistoryMapperTest {
           assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.USER);
           assertThat(texts(item.content()))
               .containsExactly(
-                  "System message, not written by the user: the content of the documents requested for the tool results above follows, or a note says why a document cannot be loaded.");
+                  "Document content requested by the tool calls above (added by the system):");
           assertThat(item.content()).hasSize(3);
           assertThat(objectJson(item.content().get(1)))
               .isEqualTo(TestDocuments.handleText(agentDocuments, tag.id()));

@@ -33,9 +33,9 @@ public interface RuntimeToolDocuments {
 
   /**
    * The reference block of a known document, to put into the {@link RuntimeToolResult#success(List)
-   * content} of a result. The model reads it as the {@code <doc id="..." />} tag of the document,
-   * which it can pass to a tool as a document parameter. The framework fills in the attributes of
-   * the tag.
+   * content} of a result. The model reads it as the handle of the document, which it can pass to a
+   * tool as a document parameter. The framework fills in the file name, content type and size of
+   * the handle.
    *
    * @throws IllegalArgumentException if the agent does not know a document with this id
    */

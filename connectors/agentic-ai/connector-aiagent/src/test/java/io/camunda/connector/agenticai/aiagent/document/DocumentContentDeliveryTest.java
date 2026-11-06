@@ -55,6 +55,12 @@ class DocumentContentDeliveryTest {
         AgentDocumentContent.of(idOf(document)).withDelivery(DocumentDelivery.CONTENT));
   }
 
+  private Outcome withheldArchive() {
+    return new Outcome.Withheld(
+        idOf(archive),
+        "Documents of type application/zip cannot be loaded. Pass the handle to a tool that processes it.");
+  }
+
   @Test
   void deliversTheContentOfAnAllowedDocument() {
     assertThat(delivery.deliver(known, List.of(idOf(text)), Set.of()))
@@ -62,12 +68,9 @@ class DocumentContentDeliveryTest {
   }
 
   @Test
-  void withholdsTheContentOfARejectedDocumentWithANoteThatNamesIt() {
+  void withholdsTheContentOfARejectedDocumentWithAStandaloneNote() {
     assertThat(delivery.deliver(known, List.of(idOf(archive)), Set.of()))
-        .containsExactly(
-            new Outcome.Withheld(
-                "The document %s is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."
-                    .formatted(idOf(archive))));
+        .containsExactly(withheldArchive());
   }
 
   @Test
@@ -76,12 +79,7 @@ class DocumentContentDeliveryTest {
             delivery.deliver(
                 known, List.of(idOf(other), idOf(archive), idOf(other), idOf(text)), Set.of()))
         .hasSize(3)
-        .containsExactly(
-            delivered(other),
-            new Outcome.Withheld(
-                "The document %s is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."
-                    .formatted(idOf(archive))),
-            delivered(text));
+        .containsExactly(delivered(other), withheldArchive(), delivered(text));
   }
 
   @Test
