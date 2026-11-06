@@ -5,7 +5,7 @@
 
 ## Status
 
-**Proposed**. The team discusses this ADR and the target architecture before this PR merges.
+**Accepted**.
 
 ## Context and Problem Statement
 
