@@ -16,6 +16,7 @@ import com.google.genai.types.FunctionCall;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -45,6 +46,7 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocu
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -638,6 +640,24 @@ class GeminiContentRequestConverterTest {
     assertThat(declarations.get(0).name()).contains("SuperfluxProduct");
     assertThat(declarations.get(0).description()).contains("desc");
     assertThat(declarations.get(0).parametersJsonSchema()).contains(schema);
+  }
+
+  @Test
+  void passesTheSchemaOfDocumentParametersToGeminiUnchanged() {
+    final var properties = new LinkedHashMap<String, Object>();
+    properties.put("file", DocumentSchemas.document("The file"));
+    properties.put("body", DocumentSchemas.textOrDocument("The body"));
+    final Map<String, Object> schema =
+        Map.of("type", "object", "properties", properties, "required", List.of("file", "body"));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(), List.of(ToolDefinition.builder().name("send").inputSchema(schema).build()));
+
+    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+
+    final var declaration =
+        config.tools().orElseThrow().get(0).functionDeclarations().orElseThrow().get(0);
+    assertThat(declaration.parametersJsonSchema()).contains(schema);
   }
 
   @Test
