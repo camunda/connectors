@@ -357,7 +357,7 @@ applies it to its persisted context, and the next round continues with the conte
   a document is not.
 - A parameter that takes a document or something else is a union schema: an `anyOf` or `oneOf` with more than one
   alternative and a document schema (`DocumentSchemas.document(...)`) in an alternative, directly or inside the properties of an
-  object alternative or the items of an array alternative. Every handle at or below the value is a document; every other value,
+  object alternative or the items of an array alternative. Every handle at or below the value is a document; everything else,
   text included, is passed as it is. `RuntimeToolCall.argumentsAs` binds such a parameter to a property of the type `Object`,
   which receives a `AgentDocumentId` in the place of each handle or the value the model sent.
 

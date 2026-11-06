@@ -46,8 +46,9 @@ import org.jspecify.annotations.Nullable;
  * other value is invalid: a handle with an unknown id, an object without the {@code type}, text.
  *
  * <p>For a {@link DocumentParameter.Union} the value is scanned: every handle at or below it, also
- * inside objects and arrays, is a document, and invalid when its id is unknown. Every other value,
- * text, numbers, objects without the {@code type} and arrays, is left as it is.
+ * inside objects and arrays, is a document, and invalid when its id is unknown. Everything else is
+ * left as it is: text, numbers, booleans and {@code null}, and the rest of an object or an array
+ * around its handles.
  *
  * <p>The problem of an invalid value tells the model what to do: that the agent knows no documents
  * and none is to be passed, that the id of the handle is unknown, or what a handle looks like.

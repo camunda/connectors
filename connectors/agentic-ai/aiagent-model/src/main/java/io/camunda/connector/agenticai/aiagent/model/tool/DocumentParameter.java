@@ -35,7 +35,7 @@ import org.jspecify.annotations.Nullable;
  *       a handle schema sitting anywhere inside its alternatives: directly, in the {@code
  *       properties} of an object alternative, in the {@code items} of an array alternative or in a
  *       nested {@code anyOf} or {@code oneOf}. Every handle at or below the value is a document,
- *       every other value is no document.
+ *       everything else in the value is no document.
  * </ul>
  *
  * Both are found at the top level of the schema of the tool arguments, as array {@code items} and
@@ -62,8 +62,8 @@ public sealed interface DocumentParameter {
 
   /**
    * A parameter whose value may hold documents next to other values: every handle at or below the
-   * value is a document; text, numbers, objects without the handle type and arrays are no documents
-   * and stay as they are.
+   * value, also inside objects and arrays, is a document; text, numbers, booleans and {@code null}
+   * stay as they are, and so does the rest of an object or an array around its handles.
    */
   record Union(List<Step> path) implements DocumentParameter {
     public Union {
