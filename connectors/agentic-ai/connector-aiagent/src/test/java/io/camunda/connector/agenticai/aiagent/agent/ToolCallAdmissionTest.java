@@ -158,6 +158,28 @@ class ToolCallAdmissionTest {
   }
 
   @Test
+  void aCallOfEitherKindWithTheBareIdOfAKnownDocumentIsAdmittedAndOfAnUnknownOneRejected() {
+    final var knownId = AgentDocumentId.of(REPORT).value();
+    final var processKnown = new ToolCall("p1", "upload", Map.of("doc", knownId));
+    final var runtimeKnown = new ToolCall("r1", "acme_upload", Map.of("doc", " " + knownId + "\n"));
+    final var processUnknown = new ToolCall("p2", "upload", Map.of("doc", "doc_000000000000"));
+    final var runtimeUnknown = new ToolCall("r2", "acme_upload", Map.of("doc", "doc_000000000000"));
+
+    final var admitted =
+        admission.admit(
+            messageWith(processKnown, runtimeKnown, processUnknown, runtimeUnknown),
+            List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
+            KNOWING_REPORT);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(
+            processKnown,
+            runtimeKnown.withKind(ToolKind.RUNTIME),
+            processUnknown.withRejection(BOGUS_DOC),
+            runtimeUnknown.withKind(ToolKind.RUNTIME).withRejection(BOGUS_DOC));
+  }
+
+  @Test
   void rejectsOnlyTheCallsWithAnInvalidDocumentParameterOfABatch() {
     final var invalidProcessCall = new ToolCall("p1", "upload", Map.of("doc", "bogus"));
     final var validRuntimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", REPORT_HANDLE));

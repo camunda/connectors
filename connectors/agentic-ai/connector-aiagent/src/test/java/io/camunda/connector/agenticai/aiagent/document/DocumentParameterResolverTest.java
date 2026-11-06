@@ -113,6 +113,27 @@ class DocumentParameterResolverTest {
   }
 
   @Test
+  void aDocumentParameterAcceptsTheBareIdOfAKnownDocument() {
+    assertThat(
+            resolve(
+                Map.of("a", firstId.value(), "b", "\n " + secondId.value() + " \t"),
+                object("a", DOC, "b", DOC)))
+        .isEqualTo(
+            new Resolution.Resolved(Map.of("a", reference(firstId), "b", reference(secondId))));
+    assertThat(
+            resolveRuntime(
+                Map.of("a", firstId.value(), "b", List.of(secondId.value())),
+                object("a", DOC, "b", array(DOC))))
+        .isEqualTo(new Resolution.Resolved(Map.of("a", firstId, "b", List.of(secondId))));
+  }
+
+  @Test
+  void aDocumentParameterRejectsTheBareIdOfAnUnknownDocument() {
+    assertThat(resolve(Map.of("a", "doc_000000000000"), object("a", DOC)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("a"))));
+  }
+
+  @Test
   void replacesEveryElementOfAnArray() {
     final var result =
         resolve(
@@ -187,7 +208,7 @@ class DocumentParameterResolverTest {
             numberId,
             noId,
             Map.of(),
-            firstId.value(),
+            "doc_000000000000",
             "nope",
             "  ",
             "{\"id\":\"" + firstId + "\"}",
@@ -253,7 +274,7 @@ class DocumentParameterResolverTest {
   void aRuntimeCallReportsTheSameProblemsAsAProcessCall() {
     final var arguments =
         Map.<String, Object>of(
-            "a", "nope", "b", json(firstHandle) + "x", "c", 42, "d", firstId.value());
+            "a", "nope", "b", json(firstHandle) + "x", "c", 42, "d", "doc_000000000000");
     final var schema = object("a", DOC, "b", DOC, "c", DOC, "d", DOC);
 
     final var expected =
@@ -296,7 +317,7 @@ class DocumentParameterResolverTest {
 
   @Test
   void rejectsTheCallOfAToolOfTheProcessThatDoesNotNameAKnownDocument() {
-    final var call = new ToolCall("call", "upload", Map.of("doc", firstId.value()));
+    final var call = new ToolCall("call", "upload", Map.of("doc", "nope"));
 
     final var result = resolver.resolveProcessCall(agentContext(), call);
 
@@ -598,7 +619,8 @@ class DocumentParameterResolverTest {
             resolve(
                 Map.of("doc", firstId.value(), "text", firstId.value()),
                 object("doc", DOC, "text", UNION)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
+        .isEqualTo(
+            new Resolution.Resolved(Map.of("doc", reference(firstId), "text", firstId.value())));
     assertThat(resolve(Map.of("doc", "nope", "text", "nope"), object("doc", DOC, "text", UNION)))
         .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
   }
