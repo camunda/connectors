@@ -9,7 +9,7 @@ interfaces and real integrations relevant to that feature. Use CPT with BPMN, te
 variables, or the exposed API. Assert customer-visible results, including required observability.
 WireMock is fine for internal tests and incremental development; mock-based tests alone do not
 satisfy feature acceptance criteria. Each test asserts the whole observable outcome
-([domain rule 6](domain-rules.md)).
+([domain rule 6](implementation-rules.md#domain-rules)).
 
 ## Choosing e2e vs unit tests (mandatory decision)
 

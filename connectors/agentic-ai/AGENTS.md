@@ -27,9 +27,8 @@ Task guidance and architecture live in linked documents:
 - [`docs/reference/native-providers.md`](docs/reference/native-providers.md): per-provider specifics
   for the native/v2 (non-LangChain4j) chat model providers
 - [`docs/adr/`](docs/adr/): architecture decision records
-- [`docs/coding-guidelines.md`](docs/coding-guidelines.md): general coding behavior
-- [`docs/code-design.md`](docs/code-design.md): code design rules for new code
-- [`docs/domain-rules.md`](docs/domain-rules.md): domain rules from past review findings
+- [`docs/implementation-rules.md`](docs/implementation-rules.md): how to approach a change, domain rules
+  from past review findings, and code design rules for new code
 - [`docs/target-architecture.md`](docs/target-architecture.md): target state of the module
 - [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
 - E2E tests [`AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md): e2e
@@ -235,11 +234,8 @@ The [target architecture](docs/target-architecture.md) shows the target state be
 
 ## Working in this module
 
-Read these files before you plan, implement or review a change:
-
-- [`docs/coding-guidelines.md`](docs/coding-guidelines.md): how to approach a change
-- [`docs/code-design.md`](docs/code-design.md): rules for the structure of new code
-- [`docs/domain-rules.md`](docs/domain-rules.md): rules from past review findings
+Read the [implementation rules](docs/implementation-rules.md) before you plan, implement or review a
+change.
 
 Before you design stored shapes, names, defaults, limits or observability, also read
 [`docs/design-guidelines.md`](docs/design-guidelines.md). Before you plan a structural change (a new
@@ -294,8 +290,7 @@ Before claiming a change is complete:
 - [ ] Real-provider changes meet the [coverage requirements](docs/acceptance-testing.md#real-provider-coverage).
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
-- [ ] The change follows the [domain rules](docs/domain-rules.md) and the
-  [code design rules](docs/code-design.md).
+- [ ] The change follows the [implementation rules](docs/implementation-rules.md).
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
   A break of `aiagent-api` or `aiagent-model` fails the build until it is accepted in the module's

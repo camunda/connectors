@@ -5,7 +5,7 @@ resolves a contract choice, ask before choosing. State new contract decisions an
 in the PR description.
 
 This file covers contract and system design. For code structure, follow the
-[code design rules](code-design.md). For the target state of the module, read the
+[code design rules](implementation-rules.md#code-design). For the target state of the module, read the
 [target architecture](target-architecture.md).
 
 ## Architectural invariants
@@ -45,7 +45,7 @@ then relax as needed. Tightening a default later can break existing workloads; a
 upgrading installations must retain their previous value. In the PR, state the value, reason, how to
 observe a hit and how to configure it. Limit errors name every configuration option that must change
 to recover. A new field or capability does not change behavior when nobody sets it
-([domain rule 1](domain-rules.md)).
+([domain rule 1](implementation-rules.md#domain-rules)).
 
 ## Design observable automated behavior
 
