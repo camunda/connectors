@@ -36,7 +36,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17.0.21+9'
+          java-version: '25.0.5+8.0.LTS'
 
       - name: Configure git user
         run: |

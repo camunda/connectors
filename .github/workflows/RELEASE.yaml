@@ -122,7 +122,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.13+9.0.LTS'
+          java-version: '25.0.5+8.0.LTS'
 
       - name: Determine Maven cache key
         id: maven-cache-key
@@ -373,7 +373,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.13+9.0.LTS'
+          java-version: '25.0.5+8.0.LTS'
 
       - name: Import Secrets
         id: secrets
@@ -491,7 +491,7 @@ jobs:
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.13+9.0.LTS'
+          java-version: '25.0.5+8.0.LTS'
 
       # Same credentials and mirror as the setup job, in place before the first Maven call.
       - name: Import Secrets
