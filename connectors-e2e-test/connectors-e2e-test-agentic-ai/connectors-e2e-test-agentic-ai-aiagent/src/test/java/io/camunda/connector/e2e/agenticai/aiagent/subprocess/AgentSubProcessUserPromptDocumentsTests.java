@@ -19,10 +19,11 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentNotLoadedPrefix;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -135,7 +136,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     final var promptHandle =
         parseDocumentHandle(messages.get(1).contentParts().get(1).path("text").asText());
     assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
-    assertThat(parseDocumentHandle(messages.get(3).content()).id()).isEqualTo(promptHandle.id());
+    assertThat(messages.get(3).content()).isEqualTo(contentFollowsSentence(promptHandle));
 
     assertDocumentContentUserMessage(
         messages.get(4),
@@ -206,9 +207,9 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
   }
 
   /**
-   * The model asks to load a document of a type outside the allowlist: the tool result stays as it
-   * is, a note in the message that follows says why the document is not loaded, no incident is
-   * raised and the conversation continues.
+   * The model asks to load a document of a type outside the allowlist: the tool result says that
+   * the content is not loaded and why, no message with content follows, no incident is raised and
+   * the conversation continues.
    */
   @Test
   void rejectsLoadingADocumentOfATypeThatIsNotSupported() throws Exception {
@@ -233,21 +234,17 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
-    // the note follows the tool result; no content of the document is sent
+    // the tool result says why; no content of the document is sent
     final var messages = recorded.lastRequest().messages();
     assertThat(messages)
         .extracting(m -> m.role())
-        .containsExactly("system", "user", "assistant", "tool", "user");
+        .containsExactly("system", "user", "assistant", "tool");
     final var promptHandle =
         parseDocumentHandle(messages.get(1).contentParts().get(1).path("text").asText());
     assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
-    assertThat(parseDocumentHandle(messages.get(3).content()).id()).isEqualTo(promptHandle.id());
-    final var contentParts = messages.get(4).contentParts();
-    assertThat(contentParts).hasSize(2);
-    assertThat(contentParts.get(0).path("text").asText()).isEqualTo(DOCUMENT_CONTENT_PREAMBLE);
-    final var withheld = parseDocumentHandle(contentParts.get(1).path("text").asText());
-    assertThat(withheld.id()).isEqualTo(promptHandle.id());
-    assertThat(withheld.note()).contains("application/zip");
+    assertThat(messages.get(3).content())
+        .startsWith(contentNotLoadedPrefix(promptHandle))
+        .contains("application/zip");
 
     assertAgentResponse(
         zeebeTest,

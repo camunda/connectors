@@ -63,6 +63,14 @@ public final class ToolCallResultDocumentAssertions {
     return "The content of %s follows in the next message.".formatted(refOf(handle));
   }
 
+  /**
+   * What the agent writes into the tool result when the content is not loaded, up to the note that
+   * says why.
+   */
+  public static String contentNotLoadedPrefix(ParsedDocumentHandle handle) {
+    return "The content of %s is not loaded. ".formatted(refOf(handle));
+  }
+
   /** What the agent writes into the tool result when the content is in the conversation. */
   public static String contentAlreadyInConversationSentence(ParsedDocumentHandle handle) {
     return "The content of %s is already in the conversation.".formatted(refOf(handle));

@@ -46,9 +46,9 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.un
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadCount;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentNotLoadedPrefix;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -346,13 +346,13 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
   /**
    * A document of a tool with the delivery {@code content} that fails the content guard (a type
-   * outside the allowlist, a size above the limit) stays a handle: the handle in the message after
-   * the tool result carries a note that tells the model why no content was added, no content
-   * reaches the model, and the tool still receives the real bytes.
+   * outside the allowlist, a size above the limit) stays a reference: the tool result says that the
+   * content is not loaded and why, no message with content follows, no content reaches the model,
+   * and the tool still receives the real bytes.
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"unsupported.zip", LARGE_FILE})
-  void keepsADocumentOfAToolWithTheDeliveryContentThatFailsTheGuardAsAHandleWithANote(String file)
+  void keepsADocumentOfAToolWithTheDeliveryContentThatFailsTheGuardAsAReference(String file)
       throws Exception {
     final var expectedBytes = LARGE_FILE.equals(file) ? stubLargeTextFile() : servedFile(file);
     OpenAiCompletionsChatModelStubs.stubConversation(
@@ -365,15 +365,11 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var afterDownload = recorded.requests().get(1).messages();
     assertThat(afterDownload)
         .extracting(m -> m.role())
-        .containsExactly("system", "user", "assistant", "tool", "user");
-    final var handle = parseDocumentHandle(afterDownload.get(3).content());
-    final var contentParts = afterDownload.get(4).contentParts();
-    assertThat(contentParts).hasSize(2);
-    assertThat(contentParts.get(0).path("text").asText()).isEqualTo(DOCUMENT_CONTENT_PREAMBLE);
-    final var withheld = parseDocumentHandle(contentParts.get(1).path("text").asText());
-    assertThat(withheld.id()).isEqualTo(handle.id());
-    assertThat(withheld.note())
-        .isNotBlank()
+        .containsExactly("system", "user", "assistant", "tool");
+    final var toolResult = afterDownload.get(3).content();
+    final var handle = parseDocumentHandle(toolResult);
+    assertThat(toolResult)
+        .contains(contentNotLoadedPrefix(handle))
         .endsWith("If one of your tools can process the document, pass the handle to it.");
     assertThat(OpenAiCompletionsRecordedConversation.recordedRawBodies())
         .noneMatch(body -> body.contains(LARGE_FILE_MARKER));
