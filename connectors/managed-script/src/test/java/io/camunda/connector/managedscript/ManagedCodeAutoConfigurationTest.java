@@ -10,6 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
+import io.camunda.connector.managedscript.api.ExecutionRequest;
+import io.camunda.connector.managedscript.api.ExecutionResponse;
 import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
@@ -63,7 +65,9 @@ class ManagedCodeAutoConfigurationTest {
             "management.endpoints.web.exposure.include=managedcode")
         .run(context -> {
           assertThat(context).hasNotFailed();
-          final var report = context.getBean(ManagedCodeEndpoint.class).executors();
+          final var response = context.getBean(ManagedCodeEndpoint.class).executors();
+          assertThat(response.getStatus()).isEqualTo(200);
+          final var report = response.getBody();
           assertThat(report.provider()).isEqualTo("fake");
           assertThat(report.deploymentNamePrefix()).isEqualTo("ce-0123-");
           assertThat(report.executors())
@@ -86,6 +90,30 @@ class ManagedCodeAutoConfigurationTest {
             "management.endpoints.web.exposure.include=managedcode")
         .withBean("fakeProvider", ManagedCodeProvider.class, FakeProvider::new)
         .run(context -> assertThat(context).doesNotHaveBean(ManagedCodeEndpoint.class));
+  }
+
+  @Test
+  void answersNotImplementedRatherThanNoExecutorsWhenTheProviderDoesNotReportThem() {
+    final var provider =
+        new ManagedCodeProvider() {
+          @Override
+          public String name() {
+            return "custom";
+          }
+
+          @Override
+          public void ensureExecutors(ScriptLanguage language) {}
+
+          @Override
+          public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+            throw new UnsupportedOperationException();
+          }
+        };
+
+    final var response = new ManagedCodeEndpoint(provider, "camunda-ms-").executors();
+
+    assertThat(response.getStatus()).isEqualTo(501);
+    assertThat(response.getBody()).isNull();
   }
 
   @Test

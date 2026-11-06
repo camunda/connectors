@@ -65,8 +65,14 @@ public interface ManagedCodeProvider {
    * the platform, so it answers whether or not the executors exist yet.
    *
    * <p>Controller, or the operator, deletes the functions under the prefix that no runtime instance
-   * reports, so a provider reports every executor it may call. It has no default: a provider that
-   * reported none would have every executor of its cluster deleted.
+   * reports, so a provider that overrides it reports every executor it may call. The default throws
+   * rather than return an empty list, which would have every executor of the cluster deleted: the
+   * endpoint that reports the executors then answers that it cannot, and nothing is deleted.
+   *
+   * @throws UnsupportedOperationException when the provider does not report its executors
    */
-  List<ExecutorReference> executors();
+  default List<ExecutorReference> executors() {
+    throw new UnsupportedOperationException(
+        "The managed-code provider '%s' does not report its executors".formatted(name()));
+  }
 }

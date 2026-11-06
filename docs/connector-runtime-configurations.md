@@ -398,8 +398,9 @@ Once every instance runs the new release:
 
 1. Call `GET /actuator/managedcode` on **every** instance of every runtime configured with this
    prefix, on its own address rather than through a load balancer, and keep the names they
-   report. If an instance does not answer with 200,
-   delete nothing and try again later.
+   report. If an instance does not answer with 200, delete nothing and try again later. An
+   instance answers 501 when its provider does not report its executors, such as a provider of
+   your own that does not implement `executors()`.
 2. List the functions under the prefix:
    - AWS: `aws lambda list-functions --query "Functions[?starts_with(FunctionName, '<prefix>')].FunctionName"`
    - GCP: `gcloud functions list --v2 --regions=<region> --filter="name ~ /functions/<prefix>" --format="value(name)"`
