@@ -109,14 +109,18 @@ class ReturnDocumentToolTest {
     assertThat(ReturnDocumentTool.NAME).isEqualTo("c8__return_document");
     assertThat(definition.description())
         .isEqualTo(
-            "Attaches one document to your final response. Use this only for a document the user"
-                + " should receive in your answer; do not use it for documents you only pass to"
-                + " other tools. Call it once per document. The key is a stable identifier the"
-                + " process uses to find the document; it starts with a letter or an underscore and"
-                + " continues with letters, digits, underscores or hyphens. The description is"
-                + " optional. Calling it again with the same key replaces the document returned"
-                + " under that key. Documents you returned earlier stay attached to your later final"
-                + " responses too, so you do not need to return them again.");
+            "Adds one document to your final response, so that the process receives it. Use it only"
+                + " for a document that you see as a handle in the conversation: a JSON object with"
+                + " \"type\": \"camunda.agenticai.document\" and an \"id\" that starts with"
+                + " \"doc_\". This tool does not return text or values; put them in your final"
+                + " response. Do not call it when the conversation has no such handle, and do not"
+                + " use it for a document that you only pass to other tools. Call it once per"
+                + " document. The key is a stable identifier the process uses to find the document;"
+                + " it starts with a letter or an underscore and continues with letters, digits,"
+                + " underscores or hyphens. The description is optional. Calling it again with the"
+                + " same key replaces the document returned under that key. Documents you returned"
+                + " earlier stay attached to your later final responses too, so you do not need to"
+                + " return them again.");
     assertThat(definition.inputSchema())
         .isEqualTo(
             Map.of(
@@ -132,7 +136,7 @@ class ReturnDocumentToolTest {
                         "A stable identifier the process uses to find the document, matching"
                             + " [A-Za-z_][A-Za-z0-9_-]*."),
                     "document",
-                    DocumentSchemas.document("The document to return."),
+                    DocumentSchemas.document("The handle of the document to return."),
                     "description",
                     Map.of(
                         "type",
@@ -267,7 +271,10 @@ class ReturnDocumentToolTest {
     final var input =
         inputBuilder.build(agentContext, ToolCallBatch.of(admitted).withEntries(entries), Set.of());
 
-    assertThat(admitted.getFirst().rejection()).startsWith("Parameter 'document' must be");
+    assertThat(admitted.getFirst().rejection())
+        .startsWith(
+            "Parameter 'document' has the id 'unknown', but the conversation has no document"
+                + " with this id.");
     assertThat(entries)
         .singleElement()
         .satisfies(entry -> {
