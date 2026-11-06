@@ -195,7 +195,7 @@ class AgentInstanceHistoryMapperTest {
             .content(
                 List.of(
                     TextContent.textContent(
-                        "Document content requested by the tool calls above (added by the system):"),
+                        "Document content from tool calls (added by the system):"),
                     tag))
             .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
             .build();
@@ -212,8 +212,7 @@ class AgentInstanceHistoryMapperTest {
         .satisfies(item -> {
           assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.USER);
           assertThat(texts(item.content()))
-              .containsExactly(
-                  "Document content requested by the tool calls above (added by the system):");
+              .containsExactly("Document content from tool calls (added by the system):");
           assertThat(item.content()).hasSize(3);
           assertThat(objectJson(item.content().get(1)))
               .isEqualTo(TestDocuments.handleText(agentDocuments, tag.id()));

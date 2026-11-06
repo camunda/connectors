@@ -46,7 +46,7 @@ public class ToolCallResultsInputBuilder {
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
   static final String DOCUMENT_CONTENT_PREAMBLE =
-      "Document content requested by the tool calls above (added by the system):";
+      "Document content from tool calls (added by the system):";
 
   private final DocumentContentDelivery contentDelivery;
 

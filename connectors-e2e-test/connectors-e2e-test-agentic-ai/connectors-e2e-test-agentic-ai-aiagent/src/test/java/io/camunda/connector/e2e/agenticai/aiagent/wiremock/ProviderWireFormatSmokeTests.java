@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions;
 import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV1WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV2WireFormatFixture;
@@ -333,7 +334,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
             "get111", HANDLE_REGEX + " The content follows in the next message\\."),
         ProviderWireFormatExpectedMessage.userWithDocument(
-            "Document content requested by the tool calls above (added by the system):"));
+            ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
 
     assertAgentResponse(
         zeebeTest,
