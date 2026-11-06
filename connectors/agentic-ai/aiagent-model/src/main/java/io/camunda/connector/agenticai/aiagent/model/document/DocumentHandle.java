@@ -8,6 +8,9 @@ package io.camunda.connector.agenticai.aiagent.model.document;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +29,10 @@ import org.jspecify.annotations.Nullable;
  * document to a tool with the {@code type} and the {@code id}; the other fields are information for
  * the model only. The handle holds no origin: the message it sits in shows where the document came
  * from.
+ *
+ * <p>The text form is compact JSON, stable across requests (prompt caching). The tree form is a
+ * JSON object node with the same keys in the same order, for a handle that sits inside the object
+ * of a tool result.
  *
  * @param type always {@link #TYPE}
  * @param id the id of the document
@@ -47,6 +54,8 @@ public record DocumentHandle(
   /** The value of the {@code type} of every handle. */
   public static final String TYPE = "camunda.agent_document";
 
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
   public DocumentHandle {
     if (!TYPE.equals(type)) {
       throw new IllegalArgumentException("A document handle has the type '" + TYPE + "'");
@@ -55,6 +64,14 @@ public record DocumentHandle(
     fileName = StringUtils.defaultIfBlank(fileName, null);
     contentType = StringUtils.defaultIfBlank(contentType, null);
     note = StringUtils.defaultIfBlank(note, null);
+  }
+
+  /**
+   * The handle of the document with the given id, read from the known documents; the id only for a
+   * document the agent does not know.
+   */
+  public static DocumentHandle of(AgentDocuments documents, AgentDocumentId id) {
+    return documents.find(id).map(DocumentHandle::of).orElseGet(() -> of(id));
   }
 
   /** The handle of a document the agent does not know: the id only. */
@@ -75,6 +92,20 @@ public record DocumentHandle(
    */
   public static DocumentHandle of(Document document) {
     return of(AgentDocumentId.of(document), AgentDocument.Descriptors.of(document.reference()));
+  }
+
+  /** The handle as compact JSON text. */
+  public String text() {
+    try {
+      return MAPPER.writeValueAsString(this);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Failed to write the document handle", e);
+    }
+  }
+
+  /** The handle as a JSON object node. */
+  public JsonNode tree() {
+    return MAPPER.valueToTree(this);
   }
 
   /** This handle with the given note. */

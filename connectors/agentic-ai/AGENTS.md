@@ -251,9 +251,10 @@ High-frequency traps (detail behind each link):
   one an `AgentDocumentContent` (it never reaches a provider, which fails loudly on it). The id is `doc_` and 12 hex
   characters of a SHA-256 over the identity of the document (`AgentDocumentId.of`), never the id in the store; registering
   a different document under a known id, also within one batch, fails with `DOCUMENT_ID_COLLISION`. A block holds no file
-  name, size or origin: `DocumentHandles` renders the `DocumentHandle` the model reads (JSON with the keys `type`, `id`,
-  `fileName`, `contentType`, `size`, `note` in this order, no origin) from the agent document, as compact text or as an
-  object node. `DocumentExpander.expand(snapshot, documentHandling)`, a named step of the model call after
+  name, size or origin: the record `DocumentHandle` is what the model reads (JSON with the keys `type`, `id`,
+  `fileName`, `contentType`, `size`, `note` in this order, no origin); `DocumentHandle.of(agentDocuments, id)` builds it
+  from the agent document, `text()` is compact JSON and `tree()` an object node.
+  `DocumentExpander.expand(snapshot, documentHandling)`, a named step of the model call after
   `AgentConversation.window(int)`, turns a block into its handle text and, with the delivery `content`, the document; in
   a tool result it renders the handle as text and a document nested in an object as the handle object
   (`ObjectHandleRenderer`), so the providers have no document specific code. The word "handle" is this JSON, never the

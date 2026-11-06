@@ -16,7 +16,6 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -253,7 +252,7 @@ public class AgentInstanceHistoryMapper {
             case AgentDocumentContent block -> {
               blocks.add(
                   AgentInstanceHistoryContent.text(
-                      DocumentHandles.text(DocumentHandles.of(documents, block.id()))));
+                      DocumentHandle.of(documents, block.id()).text()));
               documentRestorer
                   .restore(documents, block.id())
                   .ifPresent(document ->
@@ -298,14 +297,14 @@ public class AgentInstanceHistoryMapper {
             case DocumentContent documentContent ->
                 addDocument(
                     blocks,
-                    DocumentHandles.of(documentContent.document()),
+                    DocumentHandle.of(documentContent.document()),
                     documentContent.document(),
                     wholeResult,
                     tracked);
             case AgentDocumentContent block ->
                 addDocument(
                     blocks,
-                    DocumentHandles.of(documents, block.id()),
+                    DocumentHandle.of(documents, block.id()),
                     documentRestorer.restore(documents, block.id()).orElse(null),
                     wholeResult,
                     tracked);
@@ -332,7 +331,7 @@ public class AgentInstanceHistoryMapper {
     final var chip = document != null && hasHistoryDocument(document) ? document : null;
     // the document of a whole result is its chip; without a chip the handle text is all there is
     if (!wholeResult || chip == null) {
-      blocks.add(AgentInstanceHistoryContent.text(DocumentHandles.text(handle)));
+      blocks.add(AgentInstanceHistoryContent.text(handle.text()));
     }
     if (chip != null) {
       blocks.add(documentHistoryContent(DocumentContent.documentContent(chip), documentHandling));
@@ -381,8 +380,7 @@ public class AgentInstanceHistoryMapper {
       case DocumentContent documentContent ->
           documentHistoryContent(documentContent, documentHandling);
       case AgentDocumentContent block ->
-          AgentInstanceHistoryContent.text(
-              DocumentHandles.text(DocumentHandles.ofUnknown(block.id())));
+          AgentInstanceHistoryContent.text(DocumentHandle.of(block.id()).text());
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };

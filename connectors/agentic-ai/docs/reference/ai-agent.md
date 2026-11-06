@@ -400,7 +400,7 @@ ready for chat model implementations that need them.
 `AgentDocumentContent` (content type `agentDocument`) is the persisted form of a known document for an agent instance
 that tracks its documents: the `AgentDocumentId` and a `delivery`, `reference` or `content` (and the content
 `metadata`). The file name, content type and size the model reads are those of the agent document of the
-id: `DocumentHandles` renders the handle the model sees from the agent documents. A document that is a whole tool result is
+id: `DocumentHandle.of(agentDocuments, id)` builds the handle the model sees. A document that is a whole tool result is
 persisted as such a block, which is rendered as its handle (`ToolCallResultContent.withDocumentsAsReferences`).
 `DocumentExpander.expand` expands it before a request is built (see §6): in a user message to the handle text and, with the
 delivery `content`, the document content; in a tool result to the handle text of the document. Only the agent sets the block.
@@ -1842,8 +1842,8 @@ call that failed has none.
 **The handle.** `{"type":"camunda.agent_document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}`,
 the keys in the order `type`, `id`, `fileName`, `contentType`, `size`, `note`, written as compact JSON by Jackson from the
 record `DocumentHandle` (`aiagent.model.document`, `DocumentHandle.TYPE` is the `type`). `fileName`, `contentType`, `size`
-and `note` are omitted when null or blank; `size` is a JSON number. `DocumentHandles` renders it from the agent document of
-the id as text or as an object node: the file name, content type and size are read from its reference, never by reading
+and `note` are omitted when null or blank; `size` is a JSON number. `DocumentHandle.of(agentDocuments, id)` builds it from the agent document of
+the id, and `text()` and `tree()` render it as text or as an object node: the file name, content type and size are read from its reference, never by reading
 the document, and an id the agent does not know is rendered as `{"type":"camunda.agent_document","id":"doc_…"}`.
 `fileName` is the Camunda metadata file name, the external reference `name` or the inline `name`; it is omitted when it
 equals the Camunda document id of the reference (what a document stored without a name gets). `contentType` comes from

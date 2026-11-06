@@ -298,8 +298,8 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
   identity of the document (the store and the id in the store of a Camunda document, the URL of an external document, the
   content of an inline document), so it is no longer the id of the document in its store.
   `AgentDocumentContent` holds the `AgentDocumentId`, the `delivery` and the content `metadata`; the file name, content
-  type and size the model reads are those of the agent document of the id, and `aiagent.document.DocumentHandles`
-  renders the `DocumentHandle` (JSON, see below). `DocumentContent` stays the content of a new document;
+  type and size the model reads are those of the agent document of the id, and the `DocumentHandle` (JSON, see below) is built from it.
+  `DocumentContent` stays the content of a new document;
   `AgentDocumentContent` is the persisted form of a document the agent knows.
 - Renamed: `DocumentReferenceXmlTag` (see the [module split](#module-split)) is `aiagent.document.LegacyDocumentReferenceXmlTag`,
   which only agent instances without the `documents` feature use.
