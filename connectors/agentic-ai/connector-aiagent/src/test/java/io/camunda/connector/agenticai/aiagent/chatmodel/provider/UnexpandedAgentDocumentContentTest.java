@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter;
@@ -16,12 +17,17 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Con
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.CompletionsRequestSpec;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentDialect;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.List;
 import java.util.function.Consumer;
@@ -76,6 +82,37 @@ class UnexpandedAgentDocumentContentTest {
             content ->
                 OpenAiCompletionsContentChunkStrategy.openAi(OBJECT_MAPPER)
                     .toContentParts(content)),
+        named(
+            "OpenAI Completions tool result",
+            content ->
+                new OpenAiCompletionsRequestConverter(
+                        "openai",
+                        new OpenAiContentConverter(OBJECT_MAPPER),
+                        OpenAiCompletionsContentChunkStrategy.openAi(OBJECT_MAPPER),
+                        OBJECT_MAPPER,
+                        OpenAiCompletionsContentDialect.none())
+                    .toRequest(
+                        new CompletionsRequestSpec(
+                            "gpt-4o",
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            new OpenAiRequestCustomizations(null, null, null)),
+                        null,
+                        new ConversationSnapshot(
+                            List.of(
+                                ToolCallResultMessage.builder()
+                                    .results(
+                                        List.of(
+                                            ToolCallResultContent.builder()
+                                                .id("call-1")
+                                                .name("tool")
+                                                .content(content)
+                                                .build()))
+                                    .build()),
+                            List.of()))),
         named(
             "LangChain4j user content",
             content -> {
