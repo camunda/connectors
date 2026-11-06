@@ -34,6 +34,7 @@ import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryCommitStatus;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.api.search.response.AgentInstanceHistory;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -62,8 +63,8 @@ import org.springframework.core.io.Resource;
 /**
  * Guards that the agent instance history is an auditable record of what the model receives: every
  * message of every model request must be covered by an item of the history as the engine returns
- * it. The formats may differ (a document is a block in the history and a tag in the request, a
- * history tag text is wrapped in backticks), the content may not.
+ * it. The formats may differ (a document is a block in the history and a handle in the request),
+ * the content may not.
  */
 @SlowTest
 @Import(AgentCoreMemoryTestConfiguration.class)
@@ -103,9 +104,8 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
   /**
    * Two tools return the attached document: one as the whole result, one nested in an object (and
-   * twice in it). The history shows each result as the model receives it: the tag of the document
-   * in inline code followed by the document, or the object with the tag strings followed by the
-   * document once.
+   * twice in it). The history shows the document of the first result as its block only and the
+   * second result as the object with the handles nested in it followed by the document once.
    */
   @Test
   void everyModelVisibleMessageOfToolResultDocumentsIsInTheHistory() throws Exception {
@@ -125,15 +125,10 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
     final var history = awaitCommittedHistory(agentInstanceKey);
     final var fetched = toolResultOf(history, "call_fetch");
     final var described = toolResultOf(history, "call_describe");
-    final var promptDocumentTag = promptDocumentTagIn(fetched);
-    assertThat(fetched.getContent()).hasSize(2);
-    assertThat(fetched.getContent().get(0))
-        .isInstanceOfSatisfying(
-            AgentInstanceHistoryContent.TextContent.class,
-            text -> assertThat(text.getText()).isEqualTo("`" + promptDocumentTag + "`"));
-    assertThat(fetched.getContent().get(1))
+    final var promptDocumentHandle = promptDocumentHandleInRequests();
+    assertThat(fetched.getContent())
+        .singleElement()
         .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
-    assertThat(promptDocumentTag).doesNotContain("toolName").doesNotContain("toolCallId");
 
     assertThat(described.getContent()).hasSize(2);
     assertThat(described.getContent().get(0))
@@ -146,9 +141,9 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
                             "status",
                             "found",
                             "file",
-                            promptDocumentTag,
+                            promptDocumentHandle,
                             "related",
-                            List.of(promptDocumentTag))));
+                            List.of(promptDocumentHandle))));
     assertThat(described.getContent().get(1))
         .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
   }
@@ -233,10 +228,19 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
         .orElseThrow();
   }
 
-  /** The tag the history shows for the document of a tool result, read from its text block. */
-  private static String promptDocumentTagIn(AgentInstanceHistory item) {
-    final var text = (AgentInstanceHistoryContent.TextContent) item.getContent().getFirst();
-    return text.getText().replace("`", "");
+  /** The handle of the prompt document as the model read it in the result of the first tool. */
+  private static Map<String, Object> promptDocumentHandleInRequests() {
+    final var result =
+        OpenAiCompletionsRecordedConversation.recorded().lastRequest().messages().stream()
+            .filter(message -> "call_fetch".equals(message.toolCallId()))
+            .findFirst()
+            .orElseThrow();
+    try {
+      return OBJECT_MAPPER.readValue(result.content(), new TypeReference<>() {});
+    } catch (Exception e) {
+      throw new IllegalStateException(
+          "The result of the tool is no handle: " + result.content(), e);
+    }
   }
 
   private List<AgentInstanceHistory> awaitCommittedHistory(long agentInstanceKey) {
@@ -313,8 +317,8 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   /**
    * A tool result of the chat completions request is one text: its parts joined by newlines. The
    * blocks of a history item cover it when their texts and objects follow each other in it,
-   * separated by one newline, and a document block has the tag of its document in an earlier block
-   * (the result holds no document content).
+   * separated by one newline, and a document block is the handle of its document in the text or has
+   * the handle of its document in an earlier block (the result holds no document content).
    */
   private static boolean joinedBlocksCover(
       List<AgentInstanceHistoryContent> blocks, int blockIndex, String text) {
@@ -322,13 +326,18 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
       return text.isEmpty();
     }
     final var block = blocks.get(blockIndex);
-    if (block instanceof AgentInstanceHistoryContent.DocumentContent document) {
-      return holdsTagBefore(blocks, blockIndex, document)
-          && joinedBlocksCover(blocks, blockIndex + 1, text);
-    }
     final String expected;
-    if (block instanceof AgentInstanceHistoryContent.TextContent textBlock) {
-      expected = strip(textBlock.getText());
+    if (block instanceof AgentInstanceHistoryContent.DocumentContent document) {
+      // compact JSON has no raw newline, so the handle ends at the first one
+      final var end = text.indexOf('\n');
+      final var candidate = end < 0 ? text : text.substring(0, end);
+      if (!isHandleOf(candidate, documentIdOf(document))) {
+        return holdsHandleBefore(blocks, blockIndex, document)
+            && joinedBlocksCover(blocks, blockIndex + 1, text);
+      }
+      expected = candidate;
+    } else if (block instanceof AgentInstanceHistoryContent.TextContent textBlock) {
+      expected = textBlock.getText();
       if (!text.startsWith(expected)) {
         return false;
       }
@@ -376,11 +385,11 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
   /**
    * The blocks of a history item cover the parts of a request message when they pair up one to one:
-   * a text block equals its text part without the inline code backticks of the history, an object
-   * block is the JSON of its part, and a document block is a part that is not a tag (the document
-   * content, as text or as a file). A document block has no part when an earlier block of the same
-   * item holds the tag of the document, as text or as a string of an object: the model sees the tag
-   * and the history adds the document reference.
+   * a text block equals its text part, an object block is the JSON of its part, and a document
+   * block is a part that is not a handle (the document content, as text or as a file) or the handle
+   * of the document. A document block has no part when an earlier block of the same item holds the
+   * handle of the document, as text or nested in an object: the model sees the handle and the
+   * history adds the document reference.
    */
   private static boolean blocksCover(
       List<AgentInstanceHistoryContent> blocks, List<ModelPart> parts) {
@@ -398,9 +407,11 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
     final var block = blocks.get(blockIndex);
     final var part = partIndex < parts.size() ? parts.get(partIndex) : null;
     if (block instanceof AgentInstanceHistoryContent.DocumentContent document) {
-      final var referenced = holdsTagBefore(blocks, blockIndex, document);
-      final var loaded = part != null && (part.text() == null || !part.text().contains("<doc "));
-      return (loaded && blocksCover(blocks, blockIndex + 1, parts, partIndex + 1))
+      final var id = documentIdOf(document);
+      final var referenced = holdsHandleBefore(blocks, blockIndex, document);
+      final var loaded = part != null && (part.text() == null || !isHandle(part.text()));
+      final var handled = part != null && part.text() != null && isHandleOf(part.text(), id);
+      return ((loaded || handled) && blocksCover(blocks, blockIndex + 1, parts, partIndex + 1))
           || (referenced && blocksCover(blocks, blockIndex + 1, parts, partIndex));
     }
     if (part == null) {
@@ -409,7 +420,7 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
     final var covered =
         switch (block) {
           case AgentInstanceHistoryContent.TextContent text ->
-              part.text() != null && strip(text.getText()).equals(strip(part.text()));
+              part.text() != null && text.getText().equals(part.text());
           case AgentInstanceHistoryContent.ObjectContent object ->
               part.text() != null
                   && jsonEquals(OBJECT_MAPPER.valueToTree(object.getObject()), part.text());
@@ -427,42 +438,63 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
     }
   }
 
-  /** Whether an earlier block of the item holds the tag of the document. */
-  private static boolean holdsTagBefore(
+  /** Whether the text is a document handle. */
+  private static boolean isHandle(String text) {
+    return text.startsWith("{\"type\":\"" + AgentDocumentHandle.TYPE + "\"");
+  }
+
+  /** Whether the text is exactly the handle of the document with the given id. */
+  private static boolean isHandleOf(String text, AgentDocumentId id) {
+    if (!isHandle(text)) {
+      return false;
+    }
+    try {
+      return isHandleNodeOf(OBJECT_MAPPER.readTree(text), id);
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  private static boolean isHandleNodeOf(JsonNode node, AgentDocumentId id) {
+    return node.isObject()
+        && AgentDocumentHandle.TYPE.equals(node.path("type").asText())
+        && id.value().equals(node.path("id").asText());
+  }
+
+  private static AgentDocumentId documentIdOf(
+      AgentInstanceHistoryContent.DocumentContent document) {
+    final var reference = document.getDocumentReference();
+    return AgentDocumentId.of(
+        new CamundaDocumentReferenceImpl(
+            reference.getStoreId(), reference.getDocumentId(), null, null));
+  }
+
+  /** Whether an earlier block of the item holds the handle of the document. */
+  private static boolean holdsHandleBefore(
       List<AgentInstanceHistoryContent> blocks,
       int blockIndex,
       AgentInstanceHistoryContent.DocumentContent document) {
-    final var reference = document.getDocumentReference();
-    final var id =
-        AgentDocumentId.of(
-            new CamundaDocumentReferenceImpl(
-                reference.getStoreId(), reference.getDocumentId(), null, null));
-    final var tagStart = "<doc id=\"" + id.value() + "\"";
+    final var id = documentIdOf(document);
     return blocks.subList(0, blockIndex).stream()
         .anyMatch(earlier ->
             switch (earlier) {
-              case AgentInstanceHistoryContent.TextContent text ->
-                  text.getText().contains(tagStart);
+              case AgentInstanceHistoryContent.TextContent text -> isHandleOf(text.getText(), id);
               case AgentInstanceHistoryContent.ObjectContent object ->
-                  holdsString(OBJECT_MAPPER.valueToTree(object.getObject()), tagStart);
+                  holdsHandle(OBJECT_MAPPER.valueToTree(object.getObject()), id);
               default -> false;
             });
   }
 
-  private static boolean holdsString(JsonNode node, String fragment) {
-    if (node.isTextual()) {
-      return node.asText().contains(fragment);
+  private static boolean holdsHandle(JsonNode node, AgentDocumentId id) {
+    if (isHandleNodeOf(node, id)) {
+      return true;
     }
     for (final var child : node) {
-      if (holdsString(child, fragment)) {
+      if (holdsHandle(child, id)) {
         return true;
       }
     }
     return false;
-  }
-
-  private static String strip(String text) {
-    return text.replace("`", "");
   }
 
   private static String describe(RecordedMessage message) {

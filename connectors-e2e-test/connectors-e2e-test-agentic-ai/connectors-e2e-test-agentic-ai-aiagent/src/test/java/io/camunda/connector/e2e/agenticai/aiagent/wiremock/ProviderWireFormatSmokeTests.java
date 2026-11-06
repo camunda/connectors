@@ -225,7 +225,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
-    // the model gets the tag of the document and its content
+    // the model gets the handle of the document and its content
     assertThat(fixture.modelCallCount()).isEqualTo(1);
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
@@ -253,7 +253,9 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             10,
             20,
             new ToolCallStub(
-                "get111", "c8__load_document", "{\"id\": \"<doc id=\\\"@@DOC_ID_0@@\\\" />\"}")),
+                "get111",
+                "c8__load_document",
+                "{\"id\": {\"type\":\"camunda.agent_document\",\"id\":\"@@DOC_ID_0@@\"}}")),
         TurnStub.text(responseText, 11, 22));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -275,7 +277,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.assistantWithToolCalls(
             toolCallMessage, "c8__load_document"),
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
-            "get111", "Document doc_[0-9a-f]{12} is already in the conversation\\."));
+            "get111", HANDLE_REGEX + " The document is already in the conversation\\."));
 
     assertAgentResponse(
         zeebeTest,
@@ -286,8 +288,8 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * A tool returns a document and the model asks for its content: the tool result holds the tag and
-   * the answer of the load-document tool, and the content follows in a message of its own.
+   * A tool returns a document and the model asks for its content: the answer of the load-document
+   * tool holds the handle, and the content follows in a message of its own.
    */
   @Test
   void documentOfAToolResultRequestedByTheModel() throws Exception {
@@ -311,7 +313,9 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             10,
             20,
             new ToolCallStub(
-                "get111", "c8__load_document", "{\"id\": \"<doc id=\\\"@@DOC_ID_0@@\\\" />\"}")),
+                "get111",
+                "c8__load_document",
+                "{\"id\": {\"type\":\"camunda.agent_document\",\"id\":\"@@DOC_ID_0@@\"}}")),
         TurnStub.text(responseText, 11, 22));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -319,8 +323,6 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
 
     assertThat(fixture.modelCallCount()).isEqualTo(3);
-    // the answer of the load-document tool is a text, the tag and a text, which the recorded text
-    // joins by a newline (chat completions formats) or by nothing (formats with a part per block)
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
@@ -328,15 +330,13 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.assistantWithToolCalls(
             downloadMessage, "Download_A_File"),
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
-            "dl1111",
-            "\\{\"status\":200,\"document\":\"<doc id=\\\\\"doc_[0-9a-f]{12}\\\\\"[^}]*/>\"\\}"),
+            "dl1111", "\\{\"status\":200,\"document\":" + HANDLE_REGEX + "\\}"),
         ProviderWireFormatExpectedMessage.assistantWithToolCalls(
             toolCallMessage, "c8__load_document"),
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
-            "get111",
-            "Requested the content of the document\\.\n?<doc id=\"doc_[0-9a-f]{12}\"[^>]*/>\n?It follows in the next message, or a note says why it cannot be loaded\\."),
+            "get111", HANDLE_REGEX + " The content follows in the next message\\."),
         ProviderWireFormatExpectedMessage.userWithDocument(
-            "System message, not written by the user: the content of the documents requested for the tool results above follows, or a note says why a document cannot be loaded."));
+            "Document content requested by the tool calls above (added by the system):"));
 
     assertAgentResponse(
         zeebeTest,
@@ -345,6 +345,10 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                 .isReady()
                 .hasResponseText(responseText));
   }
+
+  /** The handle of a document, which the model reads as text. */
+  private static final String HANDLE_REGEX =
+      "\\{\"type\":\"camunda\\.agent_document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}";
 
   private static final Map<String, Object> HAIKU_SCHEMA =
       Map.of(

@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.SUPERFLUX_PRODUCT_TOOL_NAME;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -108,12 +108,12 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
-    // tool result: the document shown as a <doc/> tag, its content is not part of the conversation
+    // tool result: the document shown as its handle, its content is not part of the conversation
     final var toolResultText = lastMessages.get(3).content();
-    final var documentTag = parseDocumentTag(toolResultText);
+    final var documentHandle = parseDocumentHandle(toolResultText);
     assertThat(lastMessages.get(3).role()).isEqualTo("tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
-    assertThat(documentTag.contentType()).isEqualTo(mimeType);
+    assertThat(documentHandle.contentType()).isEqualTo(mimeType);
 
     assertThat(lastMessages.get(4).role()).isEqualTo("assistant");
     assertThat(lastMessages.get(5).role()).isEqualTo("user");
@@ -169,12 +169,12 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
-    // tool result: external document shown as a <doc/> tag with its name, never its URL
+    // tool result: external document shown as a handle with its name, never its URL
     final var toolResultText = lastMessages.get(3).content();
-    final var externalTag = parseDocumentTag(toolResultText);
+    final var externalHandle = parseDocumentHandle(toolResultText);
     assertThat(lastMessages.get(3).role()).isEqualTo("tool");
-    assertThat(externalTag.fileName()).isEqualTo(docName);
-    assertThat(externalTag.size()).isNull();
+    assertThat(externalHandle.fileName()).isEqualTo(docName);
+    assertThat(externalHandle.size()).isNull();
     assertThat(toolResultText).doesNotContain(docUrl);
 
     assertAgentResponse(
