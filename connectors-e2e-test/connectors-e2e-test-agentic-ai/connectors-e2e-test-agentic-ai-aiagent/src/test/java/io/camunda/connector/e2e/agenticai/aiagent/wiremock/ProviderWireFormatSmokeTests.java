@@ -276,7 +276,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.assistantWithToolCalls(
             toolCallMessage, "c8__load_document"),
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
-            "get111", HANDLE_REGEX + " The document is already in the conversation\\."));
+            "get111", HANDLE_REGEX + "\\s*The document is already in the conversation\\."));
 
     assertAgentResponse(
         zeebeTest,
@@ -332,7 +332,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.assistantWithToolCalls(
             toolCallMessage, "c8__load_document"),
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
-            "get111", HANDLE_REGEX + " The content follows in the next message\\."),
+            "get111", HANDLE_REGEX + "\\s*The content follows in the next message\\."),
         ProviderWireFormatExpectedMessage.userWithDocument(
             ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
 

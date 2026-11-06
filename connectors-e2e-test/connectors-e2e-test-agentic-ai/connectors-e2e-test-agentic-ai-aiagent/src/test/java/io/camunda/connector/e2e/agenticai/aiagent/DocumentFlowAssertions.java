@@ -124,7 +124,7 @@ public final class DocumentFlowAssertions {
         .containsExactly("system", "user", "assistant", "tool", "assistant", "tool", "user");
     assertThat(afterLoad.get(5).toolCallId()).isEqualTo(GET_CALL_ID);
     assertThat(afterLoad.get(5).content())
-        .isEqualTo(handle.text() + " The content follows in the next message.");
+        .isEqualTo(handle.text() + "\nThe content follows in the next message.");
     assertDocumentContentUserMessage(
         afterLoad.get(6), DocumentWithContent.of(handle, contentBlockAssertion));
 
@@ -134,7 +134,7 @@ public final class DocumentFlowAssertions {
     assertThat(afterSecondLoad.get(8).role()).isEqualTo("tool");
     assertThat(afterSecondLoad.get(8).toolCallId()).isEqualTo(GET_AGAIN_CALL_ID);
     assertThat(afterSecondLoad.get(8).content())
-        .isEqualTo(handle.text() + " The document is already in the conversation.");
+        .isEqualTo(handle.text() + "\nThe document is already in the conversation.");
 
     // the tool received the id and the content is in the conversation once
     final var afterUpload = requests.get(4).messages();
