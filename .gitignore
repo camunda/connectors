@@ -83,3 +83,9 @@ __pycache__/
 # Claude Code: share skills with the team, keep local state out
 .claude/*
 !.claude/skills/
+
+# spm-managed Claude marketplace — materialized locally by `spm`, not committed.
+.spm/
+
+# spm-managed Copilot skills — materialized locally by `spm`, not committed.
+.agents/skills/spm-managed-skills/

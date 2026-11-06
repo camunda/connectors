@@ -1,0 +1,12 @@
+{
+  "targets": [
+    "claude","copilot"
+  ],
+  "skills": {
+    "product-context": {
+      "git": "https://github.com/camunda/product-line-engineering",
+      "branch": "main",
+      "path": "skills/product-context"
+    }
+  }
+}

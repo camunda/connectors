@@ -1,0 +1,12 @@
+{
+  "id": "spm-80c1dbf0",
+  "skills": {
+    "product-context": {
+      "git": "https://github.com/camunda/product-line-engineering",
+      "reference": "branch:main",
+      "commit": "a905a287abe76e1821256d6d91384ccfb4d253a7",
+      "path": "skills/product-context",
+      "store": "productlineengineering-fca4470029f4c6c5@a905a287abe76e1821256d6d91384ccfb4d253a7"
+    }
+  }
+}
