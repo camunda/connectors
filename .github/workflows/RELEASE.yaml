@@ -189,7 +189,7 @@ jobs:
 
       - name: Upload detailed surefire reports
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: surefire-reports
           path: '**/target/surefire-reports/*.xml'
@@ -247,7 +247,7 @@ jobs:
           APP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Upload repository
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: repository
           path: .
@@ -365,7 +365,7 @@ jobs:
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
 
       - name: Download repository
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: repository
 
@@ -588,7 +588,7 @@ jobs:
           echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
 
       - name: Download repository
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: repository
 
@@ -748,7 +748,7 @@ jobs:
         continue-on-error: true
 
       - name: Download repository
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: repository
 
