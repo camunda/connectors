@@ -102,8 +102,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
                     eventDocuments))
             .toList();
     final var events = new TurnInput(eventMessages, eventDocuments);
-    final var documentIdsWithContent =
-        previousConversation.documentIdsWithContent(configuration.contextWindowSize());
 
     boolean expectingToolCallResults =
         !previousConversation.turns().isEmpty()
@@ -139,6 +137,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         // calls that were not executed yet; a rejected call keeps its rejection
         batch = batch.withEntries(batch.unanswered().stream().map(this::cancelled).toList());
       }
+      // the model call reads the tool call result message and the event messages as well
+      final var documentIdsWithContent =
+          previousConversation.documentIdsWithContent(
+              configuration.contextWindowSize(), 1 + eventMessages.size());
       return new CompositionResult.Ready(
           agentContext, documentIdsWithContent, batch, TurnInput.empty(), events);
     }
@@ -150,6 +152,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
     }
+    // the model call reads the user prompt message and the event messages as well
+    final var documentIdsWithContent =
+        previousConversation.documentIdsWithContent(
+            configuration.contextWindowSize(), (userPrompt == null ? 0 : 1) + eventMessages.size());
     return new CompositionResult.Ready(
         agentContext,
         documentIdsWithContent,
