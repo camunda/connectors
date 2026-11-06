@@ -50,8 +50,7 @@ public final class ObjectHandleRenderer {
 
   /**
    * Renders the object with a {@link Document} at any depth as its handle object (see {@link
-   * DocumentHandles#tree(DocumentHandle)}), and returns the rendered tree with the documents it
-   * replaced.
+   * DocumentHandle#tree()}), and returns the rendered tree with the documents it replaced.
    */
   public RenderedObject render(Object value) {
     final var documents = new ArrayList<Document>();
@@ -81,7 +80,7 @@ public final class ObjectHandleRenderer {
       if (collected != null) {
         collected.add(document);
       }
-      gen.writeTree(DocumentHandles.tree(DocumentHandles.of(document)));
+      gen.writeTree(DocumentHandle.of(document).tree());
     }
   }
 }
