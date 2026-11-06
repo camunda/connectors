@@ -19,8 +19,11 @@ import java.util.Objects;
  *
  * <p>The content is handled like the result of a tool of the process: text is shown as it is, an
  * {@link io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent object} as
- * JSON, and a {@link io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent
- * document}, also one nested in an object, in a message that follows the tool results.
+ * JSON. The agent turns an object into plain JSON values (maps, lists, strings, numbers, booleans)
+ * when the tool returns it, the object a later job reads from the conversation; a document in the
+ * object, also one in a record, stays the document. A {@link
+ * io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent document}, also one
+ * nested in an object, is shown in a message that follows the tool results.
  */
 @Experimental
 public sealed interface RuntimeToolResult {

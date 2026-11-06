@@ -6,7 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.util.TokenBuffer;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
@@ -14,9 +20,14 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
+import io.camunda.connector.api.document.Document;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
@@ -39,7 +50,15 @@ public class RuntimeTools {
   private record Registration(RuntimeTool tool, ToolDefinition definition) {}
 
   private final Map<String, Registration> registrationsByName;
+
+  /**
+   * Reads an object of a result back as plain JSON values. It has no modules: the data of the
+   * object is never interpreted, and a document stays the document the tool returned.
+   */
+  private static final ObjectMapper PLAIN_READER = JsonMapper.builder().build();
+
   private final ObjectMapper argumentsMapper;
+  private final ObjectMapper resultMapper;
 
   /**
    * @throws IllegalStateException if two tools have the same name, a name is blank or a definition
@@ -48,6 +67,8 @@ public class RuntimeTools {
   public RuntimeTools(List<RuntimeTool> tools, ObjectMapper objectMapper) {
     this.registrationsByName = register(tools);
     this.argumentsMapper = RuntimeToolCallImpl.argumentsMapper(objectMapper);
+    this.resultMapper =
+        objectMapper.copy().registerModule(new SimpleModule().addSerializer(new DocumentAsItIs()));
   }
 
   /** The definitions of the enabled tools in registration order. */
@@ -110,8 +131,30 @@ public class RuntimeTools {
       LOGGER.debug("Runtime tool '{}' rejected the call '{}'", toolCall.name(), toolCall.id(), e);
       result = RuntimeToolResult.error(e.getMessage());
     }
-    return Objects.requireNonNull(
+    Objects.requireNonNull(
         result, "The runtime tool '%s' returned no result".formatted(toolCall.name()));
+    return result instanceof RuntimeToolResult.Success success
+        ? RuntimeToolResult.success(success.content().stream().map(this::plainContent).toList())
+        : result;
+  }
+
+  /**
+   * An object block with its object as plain JSON values (maps, lists, strings, numbers, booleans)
+   * and its documents at any depth, also those in a record or another object. The agent finds the
+   * documents of plain JSON values, and the object is the one a later job reads from the
+   * conversation.
+   */
+  private Content plainContent(Content content) {
+    if (!(content instanceof ObjectContent objectContent)) {
+      return content;
+    }
+    try (var buffer = new TokenBuffer(resultMapper, false)) {
+      resultMapper.writeValue(buffer, objectContent.content());
+      final Object plain = PLAIN_READER.readValue(buffer.asParser(), Object.class);
+      return new ObjectContent(plain, objectContent.metadata());
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   private static Map<String, Registration> register(List<RuntimeTool> tools) {
@@ -134,5 +177,20 @@ public class RuntimeTools {
       }
     }
     return registrations;
+  }
+
+  /** Writes a document as itself, so that the plain JSON values keep the document. */
+  private static final class DocumentAsItIs extends JsonSerializer<Document> {
+
+    @Override
+    public Class<Document> handledType() {
+      return Document.class;
+    }
+
+    @Override
+    public void serialize(Document document, JsonGenerator gen, SerializerProvider provider)
+        throws IOException {
+      gen.writeEmbeddedObject(document);
+    }
   }
 }
