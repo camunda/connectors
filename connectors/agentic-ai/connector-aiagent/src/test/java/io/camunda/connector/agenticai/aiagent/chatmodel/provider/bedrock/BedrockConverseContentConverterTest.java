@@ -215,7 +215,7 @@ class BedrockConverseContentConverterTest {
 
     @Test
     void documentBlockNameStaysWithinCharsetEvenForADisallowedCamundaDocumentId() {
-      // A CamundaDocumentReference's real documentId is is used verbatim to derive the
+      // A CamundaDocumentReference's real documentId is used verbatim to derive the
       // name, and DocumentCreationRequest.documentId(...)
       // accepts arbitrary strings, so it isn't guaranteed to fit Bedrock's charset on its own.
       final var documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
