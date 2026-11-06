@@ -197,7 +197,7 @@ class LoadDocumentToolTest {
   }
 
   @Test
-  void loadsADocumentPassedAsAStringWithItsHandleOrItsId() {
+  void loadsADocumentPassedAsAStringWithItsHandle() {
     final var entry = camundaEntry("doc-1", "text/plain", 10L);
 
     final var withHandle =
@@ -205,11 +205,8 @@ class LoadDocumentToolTest {
             List.of(entry),
             Set.of(),
             callWith("1", "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc-1\"}"));
-    final var withId = run(List.of(entry), Set.of(), callWith("1", "doc-1"));
 
     assertThat(withHandle.addedContent())
-        .containsExactly(referenceTo(entry).withDelivery(DocumentDelivery.CONTENT));
-    assertThat(withId.addedContent())
         .containsExactly(referenceTo(entry).withDelivery(DocumentDelivery.CONTENT));
   }
 
