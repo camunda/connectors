@@ -108,7 +108,7 @@ public final class ReturnDocumentTool implements RuntimeTool {
     final var document = arguments.document();
     if (document == null || context.documents().find(document).isEmpty()) {
       return RuntimeToolResult.error(
-          "Parameter '%s' must be the tag of a known document.".formatted(PARAMETER_DOCUMENT));
+          "Parameter '%s' must be the handle of a known document.".formatted(PARAMETER_DOCUMENT));
     }
 
     final var description =
