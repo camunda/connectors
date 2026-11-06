@@ -87,6 +87,6 @@ above and the review are necessary.
 
 ## In a review
 
-- Add a comment when a change changes behavior in a module and does not change that module's
+- Add a comment when a pull request changes behavior in a module and does not update that module's
   README or docs, or the architecture doc that names the changed type.
 - Add a comment when `api-signatures.lock` changes and no doc changes.
