@@ -216,7 +216,7 @@ client in its properties does not start.
 `AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
 process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent produces the tool call
 results of the other calls (`AgentConversationTurn.localToolCalls()`) itself and never hands them to the process. The
-response carries the Camunda document references in place of the document tags in the arguments of these calls
+response carries the Camunda document references in place of the document handles in the arguments of these calls
 (`DocumentParameterResolver.resolveProcessCall`), and the stored assistant message keeps the arguments as the model sent
 them. The constructors of `AgentResponseHandlerImpl`, `ToolCallAdmission` and `RuntimeTools` take the
 `DocumentParameterResolver`, a bean of the auto-configuration.
@@ -267,8 +267,7 @@ arguments; inject them as beans.
 `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before it calls the model, with the document
 factory of the job.
 `AgentConversation.nextRuntimeToolRound` takes a `UnaryOperator<AgentContext>` as a second parameter. The conversation
-applies it to its persisted context, and the next round continues with the context that it returns. The tool definitions of the snapshot
-have the format of their document parameters removed for the model provider.
+applies it to its persisted context, and the next round continues with the context that it returns.
 
 ### Runtime tools and tool names
 
@@ -373,7 +372,7 @@ have the format of their document parameters removed for the model provider.
   loads unchanged.
 - A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
   and without the `runtimeTools` feature. `kind` is the kind of the tool the call names; a call of a tool name that is not
-  offered, or of a process tool whose document parameter is not the tag of a known document (only with the `documents`
+  offered, or of a process tool whose document parameter is not the handle of a known document (only with the `documents`
   feature), gets a `rejection`, the error text that is its tool call result, and keeps the kind `PROCESS`. The JSON holds `kind`
   only for a call of a runtime tool and `rejection` only when set, and a missing value reads as `PROCESS` and as none, so
   state written by 8.10 loads unchanged. The agent never computes them again, so a custom `ConversationStore` must keep
