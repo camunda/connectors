@@ -60,7 +60,9 @@ public record AgentDocument(
   private static final ObjectMapper REFERENCE_MAPPER =
       ConnectorsObjectMapperSupplier.getCopy()
           .enable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
-          .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+          .setDefaultPropertyInclusion(
+              JsonInclude.Value.construct(
+                  JsonInclude.Include.NON_NULL, JsonInclude.Include.USE_DEFAULTS));
 
   public AgentDocument {
     Objects.requireNonNull(id, "id must not be null");
