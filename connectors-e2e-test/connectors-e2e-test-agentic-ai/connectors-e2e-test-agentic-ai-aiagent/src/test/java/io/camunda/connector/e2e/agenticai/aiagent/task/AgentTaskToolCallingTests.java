@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.SUPERFLUX_PRODUCT_TOOL_NAME;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -97,11 +97,11 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
     assertRole(lastMessages.get(1), "user"); // initial prompt
     assertRole(lastMessages.get(2), "assistant"); // tool call
 
-    // tool result: the document shown as a <doc/> tag (parsed from the tool message text)
+    // tool result: the document shown as its handle (parsed from the tool message text)
     assertRole(lastMessages.get(3), "tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
-    final var documentTag = parseDocumentTag(lastMessages.get(3).content());
-    assertThat(documentTag.contentType()).isEqualTo(mimeType);
+    final var documentHandle = parseDocumentHandle(lastMessages.get(3).content());
+    assertThat(documentHandle.contentType()).isEqualTo(mimeType);
 
     // the content of the document is not part of the conversation
     assertRole(lastMessages.get(4), "assistant"); // response after tool
@@ -156,13 +156,13 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
     assertRole(lastMessages.get(1), "user"); // initial prompt
     assertRole(lastMessages.get(2), "assistant"); // tool call
 
-    // tool result: external document shown as a <doc/> tag with its name, never its URL
+    // tool result: external document shown as a handle with its name, never its URL
     assertRole(lastMessages.get(3), "tool");
-    final var externalTag = parseDocumentTag(lastMessages.get(3).content());
-    assertThat(externalTag.fileName()).isEqualTo(docName);
+    final var externalHandle = parseDocumentHandle(lastMessages.get(3).content());
+    assertThat(externalHandle.fileName()).isEqualTo(docName);
     assertThat(lastMessages.get(3).content()).doesNotContain(docUrl);
 
-    assertThat(externalTag.size()).isNull();
+    assertThat(externalHandle.size()).isNull();
 
     assertAgentResponse(
         zeebeTest,

@@ -18,22 +18,22 @@ package io.camunda.connector.e2e.agenticai.aiagent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
  * Assertion helpers for the user message that carries the documents the model loaded with {@code
- * c8__load_document}, and for the document tags of the other messages.
+ * c8__load_document}, and for the document handles of the other messages.
  *
- * <p>The user message has the structure {@code preamble + (xml-tag, content-block)*}, so it can
+ * <p>The user message has the structure {@code preamble + (handle, content-block)*}, so it can
  * carry one or many loaded documents. Use {@link #assertDocumentContentUserMessage(RecordedMessage,
  * DocumentWithContent...)} to assert against any number of documents in one go.
  *
@@ -49,64 +49,64 @@ public final class ToolCallResultDocumentAssertions {
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
   public static final String DOCUMENT_CONTENT_PREAMBLE =
-      "System message, not written by the user: the content of the documents requested for the tool results above follows, or a note says why a document cannot be loaded.";
+      "Document content requested by the tool calls above (added by the system):";
 
-  private static final Pattern DOC_TAG = Pattern.compile("<doc ([^>]*?)\\s*/>");
-  private static final Pattern TAG_ATTRIBUTE = Pattern.compile("(\\w+)=\"([^\"]*)\"");
+  private static final String HANDLE_START = "{\"type\":\"" + AgentDocumentHandle.TYPE + "\"";
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private ToolCallResultDocumentAssertions() {}
 
   /**
-   * Parses the first {@code <doc/>} tag out of a serialized tool call result (a bare tag or a JSON
-   * value embedding one) into a {@link ParsedDocumentTag}, without origin attributes. Also asserts
-   * that the text does not carry any document reference field.
+   * Parses the first document handle out of a serialized tool call result (a bare handle, a handle
+   * followed by a sentence or a JSON value embedding one) into a {@link ParsedDocumentHandle}. Also
+   * asserts that the text does not carry any document reference field.
    *
-   * <p>Throws {@link AssertionError} if no tag is present.
+   * <p>Throws {@link AssertionError} if no handle is present.
    */
-  public static ParsedDocumentTag parseDocumentTag(String toolResultText) {
+  public static ParsedDocumentHandle parseDocumentHandle(String toolResultText) {
     assertThat(toolResultText)
         .as("tool result text")
         .doesNotContain("storeId", "contentHash", "camunda.document.type");
 
-    // a tag embedded in a JSON string has its quotes escaped
-    final var matcher = DOC_TAG.matcher(toolResultText.replace("\\\"", "\""));
-    if (!matcher.find()) {
-      throw new AssertionError("No <doc/> tag found in tool result text: " + toolResultText);
+    final var start = toolResultText.indexOf(HANDLE_START);
+    if (start < 0) {
+      throw new AssertionError("No document handle found in tool result text: " + toolResultText);
     }
-    final var attributes = new HashMap<String, String>();
-    final var attributeMatcher = TAG_ATTRIBUTE.matcher(matcher.group(1));
-    while (attributeMatcher.find()) {
-      attributes.put(attributeMatcher.group(1), unescapeXml(attributeMatcher.group(2)));
+    final JsonNode node;
+    try {
+      // reads the first JSON value and ignores what follows it
+      node = OBJECT_MAPPER.readTree(toolResultText.substring(start));
+    } catch (JsonProcessingException e) {
+      throw new AssertionError("Unparseable document handle in: " + toolResultText, e);
     }
-    assertThat(attributes).as("tag attributes").containsKey("id");
-    assertThat(attributes.keySet())
-        .as("tag attributes")
-        .isSubsetOf("id", "fileName", "contentType", "size", "source", "toolName", "toolCallId");
-    return new ParsedDocumentTag(
-        AgentDocumentId.of(attributes.get("id")),
-        attributes.get("fileName"),
-        attributes.get("contentType"),
-        attributes.containsKey("size") ? Long.valueOf(attributes.get("size")) : null,
-        matcher.group(1).replaceAll("\\s+(source|toolName|toolCallId)=\"[^\"]*\"", "").strip());
+
+    final var fieldNames = new HashSet<String>();
+    node.fieldNames().forEachRemaining(fieldNames::add);
+    assertThat(fieldNames)
+        .as("handle fields")
+        .isSubsetOf("type", "id", "fileName", "contentType", "size", "note")
+        .contains("type", "id");
+    return new ParsedDocumentHandle(
+        AgentDocumentId.of(node.path("id").asText()),
+        textOrNull(node, "fileName"),
+        textOrNull(node, "contentType"),
+        node.has("size") ? node.path("size").asLong() : null,
+        textOrNull(node, "note"),
+        node.toString());
   }
 
-  private static String unescapeXml(String value) {
-    return value
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&apos;", "'")
-        .replace("&amp;", "&");
+  private static @Nullable String textOrNull(JsonNode node, String field) {
+    return node.has(field) ? node.path(field).asText() : null;
   }
 
   /**
    * Asserts that {@code message} is a wire-format user message (OpenAI-compatible JSON) with the
-   * "loaded documents" structure: a preamble text block followed by an {@code (xml-tag,
+   * "loaded documents" structure: the preamble text block followed by a {@code (handle,
    * content-block)} pair per expected document.
    *
-   * <p>The XML tag is the tag the earlier message showed with the origin attributes of the document
-   * appended, so the assertion stays in sync with the production format. The content-block {@link
-   * JsonNode} is passed directly to each {@link DocumentWithContent#contentBlockAssertion()}.
+   * <p>The handle is the one the earlier message showed. The content-block {@link JsonNode} is
+   * passed directly to each {@link DocumentWithContent#contentBlockAssertion()}.
    */
   public static void assertDocumentContentUserMessage(
       RecordedMessage message, DocumentWithContent... expectedDocuments) {
@@ -124,15 +124,15 @@ public final class ToolCallResultDocumentAssertions {
 
     for (int i = 0; i < expectedDocuments.length; i++) {
       final var expected = expectedDocuments[i];
-      final var tagIndex = 1 + 2 * i;
-      final var contentIndex = tagIndex + 1;
+      final var handleIndex = 1 + 2 * i;
+      final var contentIndex = handleIndex + 1;
 
-      assertThat(contentParts.get(tagIndex).path("type").asText())
-          .as("XML tag type at index %d", tagIndex)
+      assertThat(contentParts.get(handleIndex).path("type").asText())
+          .as("handle type at index %d", handleIndex)
           .isEqualTo("text");
-      assertThat(contentParts.get(tagIndex).path("text").asText())
-          .as("XML tag text at index %d", tagIndex)
-          .isEqualTo(expected.expectedXmlTag());
+      assertThat(contentParts.get(handleIndex).path("text").asText())
+          .as("handle text at index %d", handleIndex)
+          .isEqualTo(expected.expectedHandle());
 
       final var contentBlock = contentParts.get(contentIndex);
       try {
@@ -147,18 +147,17 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
-   * Asserts that a wire-format content part (OpenAI JSON) is a text part holding the {@code <doc/>}
-   * tag of a user prompt document that exposes the document id and its source only: no store id,
-   * content hash or URL.
+   * Asserts that a wire-format content part (OpenAI JSON) is a text part holding the handle of a
+   * user prompt document that exposes the document id and its file information only: no store id,
+   * content hash, URL or origin.
    */
-  public static void assertDocumentTagPart(JsonNode part) {
-    assertThat(part.path("type").asText()).as("document tag part type").isEqualTo("text");
+  public static void assertDocumentHandlePart(JsonNode part) {
+    assertThat(part.path("type").asText()).as("document handle part type").isEqualTo("text");
     assertThat(part.path("text").asText())
-        .as("document tag text")
-        .startsWith("<doc id=\"")
-        .contains(" source=\"user_message\"")
-        .endsWith(" />")
-        .doesNotContain("storeId", "contentHash", "documentId", "http");
+        .as("document handle text")
+        .startsWith(HANDLE_START + ",\"id\":\"doc_")
+        .endsWith("}")
+        .doesNotContain("storeId", "contentHash", "documentId", "http", "source", "toolName");
   }
 
   /**
@@ -186,68 +185,35 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
-   * Specification of one expected loaded document slot in the user message: an XML tag plus a
-   * content block check operating on the raw OpenAI wire-format {@link JsonNode}.
+   * Specification of one expected loaded document slot in the user message: the handle the earlier
+   * message showed plus a content block check operating on the raw OpenAI wire-format {@link
+   * JsonNode}.
    */
   public record DocumentWithContent(
-      String expectedXmlTag, Consumer<JsonNode> contentBlockAssertion) {
+      String expectedHandle, Consumer<JsonNode> contentBlockAssertion) {
 
-    /**
-     * Document returned by a tool call result, identified by the tag the tool result itself showed
-     * (see {@link #parseDocumentTag}).
-     */
-    public static DocumentWithContent forToolCall(
-        String toolCallId,
-        String toolName,
-        ParsedDocumentTag resultTag,
-        Consumer<JsonNode> contentBlockAssertion) {
-      return new DocumentWithContent(
-          resultTag.withOrigin(AgentDocumentOrigin.toolCall(toolName, toolCallId)),
-          contentBlockAssertion);
-    }
-
-    /**
-     * Document of the user prompt, identified by the tag the prompt message showed (see {@link
-     * #parseDocumentTag}).
-     */
-    public static DocumentWithContent forUserPrompt(
-        ParsedDocumentTag promptTag, Consumer<JsonNode> contentBlockAssertion) {
-      return new DocumentWithContent(
-          promptTag.withOrigin(
-              AgentDocumentOrigin.userMessage(
-                  MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"))),
-          contentBlockAssertion);
+    /** The document with the given handle, as an earlier message showed it. */
+    public static DocumentWithContent of(
+        ParsedDocumentHandle handle, Consumer<JsonNode> contentBlockAssertion) {
+      return new DocumentWithContent(handle.text(), contentBlockAssertion);
     }
   }
 
   /**
-   * The attributes of a {@code <doc/>} tag the model saw, and the attribute text of the tag as it
-   * was rendered.
+   * The fields of a document handle the model saw.
    *
    * @param id the id of the document
-   * @param fileName the file name, or {@code null} if the tag has none
-   * @param contentType the content type, or {@code null} if the tag has none
-   * @param size the size, or {@code null} if the tag has none
-   * @param attributes the attributes of the tag as rendered
+   * @param fileName the file name, or {@code null} if the handle has none
+   * @param contentType the content type, or {@code null} if the handle has none
+   * @param size the size, or {@code null} if the handle has none
+   * @param note the note, or {@code null} if the handle has none
+   * @param text the handle as it was rendered
    */
-  public record ParsedDocumentTag(
+  public record ParsedDocumentHandle(
       AgentDocumentId id,
       @Nullable String fileName,
       @Nullable String contentType,
       @Nullable Long size,
-      String attributes) {
-
-    /** The long tag of the document: this tag with the origin attributes of the document. */
-    String withOrigin(AgentDocumentOrigin origin) {
-      final var originAttributes =
-          switch (origin) {
-            case AgentDocumentOrigin.UserMessage ignored -> " source=\"user_message\"";
-            case AgentDocumentOrigin.Event ignored -> " source=\"event\"";
-            case AgentDocumentOrigin.ToolCall toolCall ->
-                " toolName=\"%s\" toolCallId=\"%s\""
-                    .formatted(toolCall.toolName(), toolCall.toolCallId());
-          };
-      return "<doc " + attributes + originAttributes + " />";
-    }
-  }
+      @Nullable String note,
+      String text) {}
 }

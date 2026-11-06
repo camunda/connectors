@@ -22,7 +22,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -82,11 +82,11 @@ public final class DocumentFlowFixtures {
   }
 
   /**
-   * The {@code <doc />} tag of the document, escaped for a JSON string of the scripted arguments: a
-   * document parameter takes the tag of a document.
+   * The handle object of the document as a JSON value of the scripted arguments: a document
+   * parameter takes the handle of a document.
    */
-  public static String tag(String documentId) {
-    return "<doc id=\\\"" + documentId + "\\\" />";
+  public static String handle(String documentId) {
+    return "{\"type\":\"camunda.agent_document\",\"id\":\"%s\"}".formatted(documentId);
   }
 
   /** Loads the first known document of the request. */
@@ -103,7 +103,7 @@ public final class DocumentFlowFixtures {
         "I will read the document.",
         10,
         20,
-        ToolCall.of(callId, "c8__load_document", "{\"id\": \"%s\"}".formatted(tag(documentId))));
+        ToolCall.of(callId, "c8__load_document", "{\"id\": %s}".formatted(handle(documentId))));
   }
 
   /** Uploads the first known document of the request. */
@@ -117,11 +117,11 @@ public final class DocumentFlowFixtures {
         10,
         20,
         ToolCall.of(
-            UPLOAD_CALL_ID, "Upload_A_File", "{\"document\": \"%s\"}".formatted(tag(documentId))));
+            UPLOAD_CALL_ID, "Upload_A_File", "{\"document\": %s}".formatted(handle(documentId))));
   }
 
   /**
-   * One assistant message with an upload with the tag of an unknown document and a {@code Ping}
+   * One assistant message with an upload with the handle of an unknown document and a {@code Ping}
    * call.
    */
   public static Turn unknownUploadWithPingTurn() {
@@ -132,7 +132,7 @@ public final class DocumentFlowFixtures {
         ToolCall.of(
             UPLOAD_CALL_ID,
             "Upload_A_File",
-            "{\"document\": \"%s\"}".formatted(tag("no-such-document"))),
+            "{\"document\": %s}".formatted(handle("doc_000000000000"))),
         ToolCall.of(PING_CALL_ID, "Ping", "{}"));
   }
 
@@ -170,8 +170,8 @@ public final class DocumentFlowFixtures {
   }
 
   /**
-   * The id of the document in the {@code <doc/>} tag of the result of the tool call with the given
-   * id, as the last request of the conversation holds it.
+   * The id of the document in the handle of the result of the tool call with the given id, as the
+   * last request of the conversation holds it.
    */
   public static String documentIdOfToolResult(
       OpenAiCompletionsRecordedConversation recorded, String toolCallId) {
@@ -180,6 +180,6 @@ public final class DocumentFlowFixtures {
             .filter(m -> toolCallId.equals(m.toolCallId()))
             .findFirst()
             .orElseThrow(() -> new AssertionError("No tool result for call " + toolCallId));
-    return parseDocumentTag(result.content()).id().value();
+    return parseDocumentHandle(result.content()).id().value();
   }
 }

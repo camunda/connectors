@@ -56,11 +56,11 @@ sealed interface ProviderWireFormatExpectedMessage {
     return new UserMessage(List.of(contentParts));
   }
 
-  /** A user message with the text, the tag and the content of a loaded document. */
+  /** A user message with the text, the handle and the content of a loaded document. */
   static ProviderWireFormatExpectedMessage userWithDocument(String text) {
     return user(
         ExpectedContentPart.text(text),
-        ExpectedContentPart.documentTag(),
+        ExpectedContentPart.documentHandle(),
         ExpectedContentPart.attachment());
   }
 
@@ -196,8 +196,8 @@ sealed interface ProviderWireFormatExpectedMessage {
       return new Text(text);
     }
 
-    static ExpectedContentPart documentTag() {
-      return new DocumentTag();
+    static ExpectedContentPart documentHandle() {
+      return new AgentDocumentHandlePart();
     }
 
     static ExpectedContentPart attachment() {
@@ -218,12 +218,14 @@ sealed interface ProviderWireFormatExpectedMessage {
     }
 
     /**
-     * The id-only {@code <doc id="..." ... />} tag rendered as a text part before a document's
-     * content; it must carry the document id and none of the store internals.
+     * The document handle rendered as a text part before a document's content; it must carry the
+     * document id and none of the store internals.
      */
-    record DocumentTag() implements ExpectedContentPart {
+    record AgentDocumentHandlePart() implements ExpectedContentPart {
 
-      private static final Pattern DOC_TAG = Pattern.compile("<doc id=\"doc_[0-9a-f]{12}\"[^>]*/>");
+      private static final Pattern HANDLE =
+          Pattern.compile(
+              "\\{\"type\":\"camunda\\.agent_document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}");
 
       @Override
       public void assertMatches(int messageIndex, int partIndex, RecordedContentPart actual) {
@@ -231,8 +233,8 @@ sealed interface ProviderWireFormatExpectedMessage {
             .as("content part %d of message %d is text", partIndex, messageIndex)
             .isTrue();
         assertThat(actual.text().strip())
-            .as("document tag of content part %d of message %d", partIndex, messageIndex)
-            .matches(DOC_TAG)
+            .as("document handle of content part %d of message %d", partIndex, messageIndex)
+            .matches(HANDLE)
             .doesNotContain("storeId", "contentHash");
       }
     }

@@ -20,7 +20,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -56,9 +56,9 @@ import org.springframework.core.io.Resource;
 
 /**
  * A runtime tool of a custom extension returns a document the agent did not know: in a batch of
- * tool calls the agent answers entirely itself, the model reads the tag of the document and never
- * the store id, the content hash or an URL, the document is registered, and a later call of a tool
- * of the process takes the document by its tag.
+ * tool calls the agent answers entirely itself, the model reads the handle of the document and
+ * never the store id, the content hash or an URL, the document is registered, and a later call of a
+ * tool of the process takes the document by its handle.
  */
 @SlowTest
 @Import(AgentSubProcessRuntimeToolDocumentTests.ReportRuntimeToolConfiguration.class)
@@ -119,7 +119,7 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
   }
 
   @Test
-  void aDocumentOfARuntimeToolReachesTheModelAsItsTagOnlyAndIsRegistered() throws Exception {
+  void aDocumentOfARuntimeToolReachesTheModelAsItsHandleOnlyAndIsRegistered() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
             "I will create a report.", 10, 20, ToolCall.of(CREATE_CALL_ID, REPORT_TOOL, "{}")),
@@ -130,7 +130,7 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
             ToolCall.of(
                 UPLOAD_CALL_ID,
                 "Upload_A_File",
-                "{\"document\": \"%s\"}".formatted(DocumentFlowFixtures.tag(documentId(0))))),
+                "{\"document\": %s}".formatted(DocumentFlowFixtures.handle(documentId(0))))),
         finalTurn());
 
     final var zeebeTest =
@@ -147,7 +147,7 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     // the call of the runtime tool is answered in the same job: the model reads the sentence and
-    // the tag of the document
+    // the handle of the document
     final var afterCreate = recorded.requests().get(1).messages();
     assertThat(afterCreate)
         .extracting(m -> m.role())
@@ -156,13 +156,13 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
     final var resultLines = afterCreate.get(3).content().split("\n");
     assertThat(resultLines).hasSize(2);
     assertThat(resultLines[0]).isEqualTo("Created the report.");
-    final var tag = parseDocumentTag(resultLines[1]);
-    assertThat(tag.fileName()).isEqualTo(REPORT_FILE);
-    assertThat(tag.contentType()).isEqualTo("text/plain");
+    final var handle = parseDocumentHandle(resultLines[1]);
+    assertThat(handle.fileName()).isEqualTo(REPORT_FILE);
+    assertThat(handle.contentType()).isEqualTo("text/plain");
     // no store id, content hash or URL, in no request
     assertNoDocumentInternalsInLlmRequests();
 
-    // the document is known to the agent: the process tool takes it by its tag
+    // the document is known to the agent: the process tool takes it by its handle
     assertThat(recorded.requests().get(2).messages().getLast().toolCallId())
         .isEqualTo(UPLOAD_CALL_ID);
     assertThat(DocumentFlowFixtures.uploadCount()).isEqualTo(1);
@@ -176,7 +176,7 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
           assertThat(agentResponse.context().documents().all())
               .singleElement()
               .satisfies(entry -> {
-                assertThat(entry.id()).isEqualTo(tag.id());
+                assertThat(entry.id()).isEqualTo(handle.id());
                 assertThat(entry.origin())
                     .isEqualTo(AgentDocumentOrigin.toolCall(REPORT_TOOL, CREATE_CALL_ID));
                 // the reference stays in the agent documents, the model never reads it

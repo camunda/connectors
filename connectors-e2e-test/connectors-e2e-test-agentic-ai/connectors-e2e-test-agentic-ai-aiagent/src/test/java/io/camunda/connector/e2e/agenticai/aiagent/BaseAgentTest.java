@@ -29,9 +29,6 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import io.camunda.connector.agenticai.aiagent.document.ProviderToolDefinitions;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
@@ -253,18 +250,14 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
       OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
     // the model sees the tools of the process next to the built-in c8__ tools
     final var expected = new ArrayList<>(expectedTools());
-    ProviderToolDefinitions.of(
-            List.of(new LoadDocumentTool().definition()),
-            new DocumentHandling.Tracked(AgentDocuments.empty()))
-        .stream()
-        // a recorded request does not tell the kind of a tool
-        .map(definition ->
-            new ToolDefinition(
-                definition.name(),
-                definition.description(),
-                definition.inputSchema(),
-                ToolKind.PROCESS))
-        .forEach(expected::add);
+    final var loadDocument = new LoadDocumentTool().definition();
+    // a recorded request does not tell the kind of a tool
+    expected.add(
+        new ToolDefinition(
+            loadDocument.name(),
+            loadDocument.description(),
+            loadDocument.inputSchema(),
+            ToolKind.PROCESS));
     assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }
 

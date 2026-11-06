@@ -30,6 +30,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.as
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.handle;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.unknownUploadWithPingTurn;
@@ -40,7 +41,8 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.document.ProviderToolDefinitions;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -49,6 +51,7 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
 import java.util.function.Function;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -58,11 +61,13 @@ import org.springframework.core.io.Resource;
 
 /**
  * Document flow of the AI Agent Sub-process against a scripted model: a document parameter of a
- * tool (a real HTTP connector that uploads the document), loading a document, unknown document tags
- * and the window.
+ * tool (a real HTTP connector that uploads the document), loading a document, unknown document
+ * handles and the window.
  */
 @SlowTest
 public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
   private Resource documentsProcess;
@@ -78,26 +83,21 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   @Test
-  void
-      toolDefinitionMarksTheDocumentParameterWithTheDocumentFormatAndTheProviderGetsAStringWithAHint()
-          throws Exception {
+  void toolDefinitionHasTheHandleSchemaForTheDocumentParameterAndTheProviderGetsItAsItIs()
+      throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(finalTurn());
 
     final var zeebeTest = awaitProcessCompletion(startProcess(e -> e));
 
-    // the model provider sees a string schema without the format and with the hint
+    // the model provider sees the object schema of a document handle
     final var rawRequest = OpenAiCompletionsRecordedConversation.recordedRawBodies().getFirst();
     final var parameters = toolParameters(rawRequest, "Upload_A_File");
     final var document = parameters.path("properties").path("document");
-    assertThat(document.path("type").asText()).isEqualTo("string");
-    assertThat(document.has("format")).isFalse();
-    assertThat(document.path("description").asText())
-        .startsWith("The document to upload.")
-        .endsWith(ProviderToolDefinitions.HINT);
+    assertThat(document)
+        .isEqualTo(OBJECT_MAPPER.valueToTree(DocumentSchemas.document("The document to upload.")));
     assertThat(parameters.path("required")).extracting(n -> n.asText()).contains("document");
 
-    // the persisted tool definition keeps the format and the description as authored: the hint is
-    // added for the model provider only
+    // the persisted tool definition holds the same schema
     assertAgentResponse(
         zeebeTest,
         agentResponse -> {
@@ -106,10 +106,10 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
                   .filter(definition -> "Upload_A_File".equals(definition.name()))
                   .findFirst()
                   .orElseThrow();
-          assertThat(upload.inputSchema().toString())
-              .contains("format=camunda-document-id")
-              .contains("description=The document to upload.")
-              .doesNotContain(ProviderToolDefinitions.HINT);
+          assertThat(upload.inputSchema())
+              .extractingByKey("properties")
+              .asInstanceOf(InstanceOfAssertFactories.MAP)
+              .containsEntry("document", DocumentSchemas.document("The document to upload."));
         });
 
     // the built-in tool is offered next to the tools of the process
@@ -120,14 +120,14 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * A tool returns a document, the model loads it twice and passes its tag to a tool: the first
-   * load puts the content next to the tag, the second one is answered without loading again, and
+   * A tool returns a document, the model loads it twice and passes its handle to a tool: the first
+   * load puts the content next to the handle, the second one is answered without loading again, and
    * the tool receives the real bytes. The content is a text for a text document and a file for a
    * PDF.
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"test.txt", "test.pdf"})
-  void loadsAFetchedDocumentOnceAndPassesItsTagToATool(String file) throws Exception {
+  void loadsAFetchedDocumentOnceAndPassesItsHandleToATool(String file) throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), file),
         getDocumentTurn(GET_CALL_ID, documentId(0)),
@@ -156,11 +156,11 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The call with the unknown document tag gets its error result, the valid call of the same batch
-   * runs, and the model corrects the tag with one more call.
+   * The call with the unknown document handle gets its error result, the valid call of the same
+   * batch runs, and the model corrects the handle with one more call.
    */
   @Test
-  void mixedBatchWithAnUnknownDocumentTagRunsTheValidCallAndAnswersTheInvalidOne()
+  void mixedBatchWithAnUnknownDocumentHandleRunsTheValidCallAndAnswersTheInvalidOne()
       throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()),
@@ -180,10 +180,11 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .containsExactly(UPLOAD_CALL_ID, PING_CALL_ID);
     assertThat(results.get(0).content())
         .isEqualTo(
-            "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got '<doc id=\"no-such-document\" />'.");
+            "Parameter 'document' must be a document handle such as"
+                + " {\"type\":\"camunda.agent_document\",\"id\":\"doc_…\"} of a known document.");
     assertThat(results.get(1).content()).contains("pong");
 
-    // only the retry with the tag of the downloaded document uploads
+    // only the retry with the handle of the downloaded document uploads
     assertThat(uploadCount()).isEqualTo(1);
     assertUploaded(servedFile(DOWNLOADED_FILE));
 
@@ -201,9 +202,9 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   void documentOfAnEvictedMessageStaysPassable() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()),
-        // the model keeps the tag in its own text, which stays in the window
+        // the model keeps the handle in its own text, which stays in the window
         Turn.toolCalls(
-            "I downloaded <doc id=\"" + documentId(0) + "\"/>. Let me check that the tools work.",
+            "I downloaded " + handle(documentId(0)) + ". Let me check that the tools work.",
             10,
             20,
             OpenAiCompletionsChatModelStubs.ToolCall.of("call_ping", "Ping", "{}")),
@@ -222,7 +223,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .noneMatch(
             m -> m.contentParts().stream().anyMatch(p -> "file".equals(p.path("type").asText())));
 
-    // the model passed the tag of the evicted document and the tool still got the real bytes
+    // the model passed the handle of the evicted document and the tool still got the real bytes
     assertUploaded(servedFile(DOWNLOADED_FILE));
     assertNoDocumentInternalsInLlmRequests();
   }

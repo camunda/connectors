@@ -21,7 +21,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GE
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -98,9 +98,9 @@ public final class DocumentFlowAssertions {
 
   /**
    * Asserts the requests of the flow download, {@code c8__load_document}, {@code c8__load_document}
-   * again, upload, final answer: the download shows the tag only, the first load adds the tag and
-   * the content in a message after the tool result, the second load is answered without a message,
-   * and the upload receives the id.
+   * again, upload, final answer: the download shows the handle only, the first load adds the handle
+   * and the content in a message after the tool result, the second load is answered without a
+   * message, and the upload receives the id.
    *
    * @param contentBlockAssertion the check of the wire form of the document content
    */
@@ -109,27 +109,24 @@ public final class DocumentFlowAssertions {
     assertThat(recorded.modelCallCount()).isEqualTo(5);
     final var requests = recorded.requests();
 
-    // the download shows the tag only
+    // the download shows the handle only
     final var afterDownload = requests.get(1).messages();
     assertThat(afterDownload)
         .extracting(m -> m.role())
         .containsExactly("system", "user", "assistant", "tool");
     assertThat(afterDownload.get(3).toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
-    final var tag = parseDocumentTag(afterDownload.get(3).content());
+    final var handle = parseDocumentHandle(afterDownload.get(3).content());
 
-    // the first load: the tool result, then the message with the tag and the content
+    // the first load: the tool result, then the message with the handle and the content
     final var afterLoad = requests.get(2).messages();
     assertThat(afterLoad)
         .extracting(m -> m.role())
         .containsExactly("system", "user", "assistant", "tool", "assistant", "tool", "user");
     assertThat(afterLoad.get(5).toolCallId()).isEqualTo(GET_CALL_ID);
     assertThat(afterLoad.get(5).content())
-        .startsWith("Requested the content of the document.\n<doc id=\"" + tag.id() + "\"")
-        .endsWith(" />\nIt follows in the next message, or a note says why it cannot be loaded.");
+        .isEqualTo(handle.text() + " The content follows in the next message.");
     assertDocumentContentUserMessage(
-        afterLoad.get(6),
-        DocumentWithContent.forToolCall(
-            DOWNLOAD_CALL_ID, "Download_A_File", tag, contentBlockAssertion));
+        afterLoad.get(6), DocumentWithContent.of(handle, contentBlockAssertion));
 
     // the second load adds nothing
     final var afterSecondLoad = requests.get(3).messages();
@@ -137,7 +134,7 @@ public final class DocumentFlowAssertions {
     assertThat(afterSecondLoad.get(8).role()).isEqualTo("tool");
     assertThat(afterSecondLoad.get(8).toolCallId()).isEqualTo(GET_AGAIN_CALL_ID);
     assertThat(afterSecondLoad.get(8).content())
-        .isEqualTo("Document " + tag.id() + " is already in the conversation.");
+        .isEqualTo(handle.text() + " The document is already in the conversation.");
 
     // the tool received the id and the content is in the conversation once
     final var afterUpload = requests.get(4).messages();
