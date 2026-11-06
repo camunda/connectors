@@ -180,8 +180,9 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .containsExactly(UPLOAD_CALL_ID, PING_CALL_ID);
     assertThat(results.get(0).content())
         .isEqualTo(
-            "Parameter 'document' must be a document handle such as"
-                + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"} of a known document.");
+            "Parameter 'document' has the id 'doc_000000000000', but the conversation has no document"
+                + " with this id. Pass the handle of a document from the conversation: a JSON object"
+                + " such as {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.");
     assertThat(results.get(1).content()).contains("pong");
 
     // only the retry with the handle of the downloaded document uploads
