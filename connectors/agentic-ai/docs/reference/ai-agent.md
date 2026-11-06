@@ -2053,7 +2053,6 @@ and the documents the result returns are registered. The note is a standalone se
 
 | Check | Note |
 |-------|------|
-| the document is an external one (a URL) | `An external document cannot be loaded. If one of your tools can process the document, pass the handle to it.` |
 | the content type is missing or no model provider renders it | `Documents of type X cannot be loaded. If one of your tools can process the document, pass the handle to it.` (`A document without a content type cannot be loaded. ...` without a content type, `A document with a content type that cannot be read cannot be loaded. ...` for one that cannot be parsed) |
 | the size exceeds the limit of the kind of content | `The document is too large to load (S, limit L). If one of your tools can process the document, pass the handle to it.` (`S` is left out when the size is not known and the document was read up to the limit only) |
 | the size cannot be read | `The document could not be read.` (the cause is logged); the model can retry |
@@ -2070,16 +2069,18 @@ reference. The same holds for a parameter that takes text or a document, when th
 this version on) and cannot be switched off; an instance created before the feature is not offered it. A switch for it is a
 follow-up of [ADR 017](../adr/017-document-flow.md).
 
-**The guard.** `DocumentContentGuard` is the one check for every addition of content, whoever asks. An external document
-(a URL) is never loadable on request of a tool: its content type and size are known only after the runtime downloaded the
-whole body, so the guard can neither check nor bound them without that download; the model passes its handle to a tool that
-processes it. It classifies a document by its content type with the
+**The guard.** `DocumentContentGuard` is the one check for every addition of content, whoever asks, for a Camunda, an
+inline and an external document alike. It classifies a document by its content type with the
 classification of the model providers (`DocumentMimeTypes`): text-based types (`text/*`, `application/json`, `xml`, `yaml`,
 `x-yaml` and the suffixes `+json`, `+xml`, `+yaml`), `application/pdf`, and the images PNG, JPEG, GIF and WebP; parameters
 of a type and its case are ignored. A document without a content type, or with one that no provider renders, is not
 loadable, because a provider fails the model call for it. The limit depends on the kind and is configurable (see
-"Document content limits" in §16); the defaults are 256 KB for text, 3.5 MB for PDF and 3.5 MB for images. The size is read
-from the `size` of the reference metadata and, without one, by reading at most one byte more than the limit. The limits
+"Document content limits" in §16); the defaults are 256 KB for text, 3.5 MB for PDF and 3.5 MB for images. The content type and
+the size are read from the metadata of the document and, without a size, by reading at most one byte more than the limit.
+For an external document (a URL) the metadata is the response of its download, the headers `Content-Type` and
+`Content-Length`: the check downloads the whole body, so the download is not bounded by the limit, and the length of the
+downloaded bytes is the size without a `Content-Length`. A document that cannot be read, a failed download for example, gets
+the note that it could not be read. The limits
 apply to every provider and are those of the most restrictive one; a provider without support for a type it shares with
 the others, a PDF for example, still fails at the model call.
 

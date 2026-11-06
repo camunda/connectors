@@ -282,10 +282,10 @@ One guard decides every addition of content, whoever asks:
   not loadable, because a provider fails the call for it.
 * The limits per kind (text, PDF, image) are operator configuration, not a setting of a job. Their defaults are below
   the limits of the most restrictive supported provider and apply to every provider.
-* **External documents are reference-only for content that a tool or a tool activity triggers.** The runtime downloads
-  the whole body of an external document to learn its type and size, so no guard can bound the work. The model passes the
-  handle to a tool that processes it. The user prompt keeps its behavior: the model provider reads the content of an
-  external document in a user prompt whatever the delivery, as it reads every document of a user prompt.
+* **An external document is treated like every other document.** The guard checks it after the download, with the size
+  of the metadata (`Content-Length`) when known and the length of the downloaded bytes otherwise, and the content type
+  of the response. The user prompt keeps its behavior: the model provider reads the content of an external document in
+  a user prompt whatever the delivery, as it reads every document of a user prompt.
 * What the model reads about a rejection is a standalone sentence with the content type, the size and the limit at most,
   in the `note` of the handle of the document, so the sentence holds no id. The text is persisted and a failure message
   can hold a URL with a token, so the cause goes to the log only.
@@ -475,8 +475,9 @@ history back after a document flow and requires it.
   result for models that accept it, derived from persisted data, with the handle and a note otherwise. A provider needs a
   wire format test for documents in tool results first.
 * **A token-based guard, a per-turn budget or a removal mechanism.** Content is sticky and the limits are bytes.
-* **Bounded download and content delivery for external documents.** The runtime downloads the whole body, so no guard
-  can bound the work; external documents are reference-only on request of a tool.
+* **Bounded download of external documents.** The SDK downloads the whole body of an external document, also to read its
+  metadata, so the download is not bounded by the limits. A bounded download in the SDK would let the guard reject a
+  document before downloading it.
 * **History reporting of documents.** External document URLs are reported to the history and can expose a URL with a
   token. They should be reported as handles.
 * **Response documents in the agent documents.** The selections of `c8__return_document` could become a marker on the

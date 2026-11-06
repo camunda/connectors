@@ -271,8 +271,8 @@ High-frequency traps (detail behind each link):
   and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
   `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` runs the content guard
   (`DocumentContentGuard`, limits in `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document
-  whose content a tool asks for. A document that fails it (an external document, a type no provider renders, a size above
-  the limit) stays a reference: the result stays as the tool returned it and the message that follows the tool results
+  whose content a tool asks for. A document that fails it (a type no provider renders, a size above
+  the limit, a document that cannot be read) stays a reference: the result stays as the tool returned it and the message that follows the tool results
   shows the handle of the document with a note, no incident. A new document in a tool result is a `DocumentContent`, a known one an
   `AgentDocumentContent`, and content comes only through the effect; `LocalToolCallExecutor` fails the job when a result
   breaks this. Passing a handle to a tool never adds content. A tool
