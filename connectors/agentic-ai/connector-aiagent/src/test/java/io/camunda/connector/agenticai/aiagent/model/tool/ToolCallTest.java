@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 class ToolCallTest {
 
@@ -43,7 +44,12 @@ class ToolCallTest {
     final String json =
         objectMapper.writeValueAsString(new ToolCall("toolu_1", "get_weather", Map.of()));
 
-    assertThat(json).doesNotContain("metadata");
+    JSONAssert.assertEquals(
+        """
+        {"id": "toolu_1", "name": "get_weather", "arguments": {}}
+        """,
+        json,
+        true);
   }
 
   @Test
@@ -60,5 +66,157 @@ class ToolCallTest {
     final ToolCall roundTripped = objectMapper.readValue(json, ToolCall.class);
 
     assertThat(roundTripped).isEqualTo(toolCall);
+  }
+
+  @Test
+  void aProcessCallIsSerializedWithoutKind() throws Exception {
+    final String json =
+        objectMapper.writeValueAsString(
+            new ToolCall("toolu_1", "get_weather", Map.of("city", "Berlin")));
+
+    JSONAssert.assertEquals(
+        """
+        {"id": "toolu_1", "name": "get_weather", "arguments": {"city": "Berlin"}}
+        """,
+        json,
+        true);
+  }
+
+  @Test
+  void aRuntimeCallIsSerializedWithKind() throws Exception {
+    final var toolCall =
+        new ToolCall("toolu_1", "acme_note", Map.of(), Map.of("k", "v")).withKind(ToolKind.RUNTIME);
+
+    final String json = objectMapper.writeValueAsString(toolCall);
+
+    JSONAssert.assertEquals(
+        """
+        {
+          "id": "toolu_1",
+          "name": "acme_note",
+          "arguments": {},
+          "metadata": {"k": "v"},
+          "kind": "runtime"
+        }
+        """,
+        json,
+        true);
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
+  }
+
+  @Test
+  void jsonWithoutKindReadsAsProcess() throws Exception {
+    final String json = "{\"id\": \"toolu_1\", \"name\": \"get_weather\", \"arguments\": {}}";
+
+    assertThat(objectMapper.readValue(json, ToolCall.class).kind()).isEqualTo(ToolKind.PROCESS);
+  }
+
+  @Test
+  void jsonWithProcessKindReadsAsProcess() throws Exception {
+    final String json =
+        "{\"id\": \"toolu_1\", \"name\": \"get_weather\", \"arguments\": {}, \"kind\": \"PROCESS\"}";
+
+    assertThat(objectMapper.readValue(json, ToolCall.class).kind()).isEqualTo(ToolKind.PROCESS);
+  }
+
+  @Test
+  void theBuilderAndTheConstructorsDefaultToProcess() {
+    assertThat(ToolCall.builder().id("id").name("name").arguments(Map.of()).build().kind())
+        .isEqualTo(ToolKind.PROCESS);
+    assertThat(new ToolCall("id", "name", Map.of()).kind()).isEqualTo(ToolKind.PROCESS);
+    assertThat(new ToolCall("id", "name", Map.of(), Map.of("k", "v")).kind())
+        .isEqualTo(ToolKind.PROCESS);
+  }
+
+  @Test
+  void withKindReplacesOnlyTheKind() {
+    final var process = new ToolCall("id", "name", Map.of("a", 1), Map.of("k", "v"));
+
+    final var runtime = process.withKind(ToolKind.RUNTIME);
+
+    assertThat(runtime.kind()).isEqualTo(ToolKind.RUNTIME);
+    assertThat(runtime)
+        .isEqualTo(
+            new ToolCall("id", "name", Map.of("a", 1), Map.of("k", "v"), ToolKind.RUNTIME, null));
+    assertThat(runtime.withKind(ToolKind.PROCESS)).isEqualTo(process);
+  }
+
+  @Test
+  void aCallWithoutRejectionIsSerializedWithoutIt() throws Exception {
+    final String json =
+        objectMapper.writeValueAsString(new ToolCall("toolu_1", "get_weather", Map.of()));
+
+    assertThat(objectMapper.readTree(json).has("rejection")).isFalse();
+    assertThat(objectMapper.readValue(json, ToolCall.class).rejection()).isNull();
+  }
+
+  @Test
+  void aRejectedCallIsSerializedWithItsRejectionAndRoundTrips() throws Exception {
+    final var toolCall =
+        new ToolCall("toolu_1", "acme_unknown", Map.of("a", 1), Map.of("k", "v"))
+            .withRejection("The tool 'acme_unknown' does not exist.");
+
+    final String json = objectMapper.writeValueAsString(toolCall);
+
+    JSONAssert.assertEquals(
+        """
+        {
+          "id": "toolu_1",
+          "name": "acme_unknown",
+          "arguments": {"a": 1},
+          "metadata": {"k": "v"},
+          "rejection": "The tool 'acme_unknown' does not exist."
+        }
+        """,
+        json,
+        true);
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
+  }
+
+  @Test
+  void theResultSourceFollowsTheKindUnlessTheCallIsRejected() {
+    final var process = new ToolCall("id", "name", Map.of());
+    final var runtime = process.withKind(ToolKind.RUNTIME);
+
+    assertThat(process.resultSource()).isEqualTo(ToolCall.ResultSource.PROCESS);
+    assertThat(runtime.resultSource()).isEqualTo(ToolCall.ResultSource.RUNTIME);
+    assertThat(process.withRejection("no").resultSource())
+        .isEqualTo(ToolCall.ResultSource.REJECTED);
+    assertThat(runtime.withRejection("no").resultSource())
+        .isEqualTo(ToolCall.ResultSource.REJECTED);
+  }
+
+  @Test
+  void onlyACallOfTheProcessIsNotLocal() {
+    final var process = new ToolCall("id", "name", Map.of());
+
+    assertThat(process.isLocal()).isFalse();
+    assertThat(process.withKind(ToolKind.RUNTIME).isLocal()).isTrue();
+    assertThat(process.withRejection("no").isLocal()).isTrue();
+  }
+
+  @Test
+  void aRejectedRuntimeCallIsSerializedWithKindAndRejectionAndRoundTrips() throws Exception {
+    final var toolCall =
+        new ToolCall("toolu_1", "acme_note", Map.of(), Map.of("k", "v"))
+            .withKind(ToolKind.RUNTIME)
+            .withRejection("The argument 'a' is missing.");
+
+    final String json = objectMapper.writeValueAsString(toolCall);
+
+    JSONAssert.assertEquals(
+        """
+        {
+          "id": "toolu_1",
+          "name": "acme_note",
+          "arguments": {},
+          "metadata": {"k": "v"},
+          "kind": "runtime",
+          "rejection": "The argument 'a' is missing."
+        }
+        """,
+        json,
+        true);
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
   }
 }

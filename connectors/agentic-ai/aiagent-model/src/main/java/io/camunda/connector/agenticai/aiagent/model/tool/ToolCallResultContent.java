@@ -65,6 +65,25 @@ public record ToolCallResultContent(
   }
 
   /**
+   * The tool call result of a rejected call: its rejection as text.
+   *
+   * @throws IllegalArgumentException if the call is not rejected
+   */
+  public static ToolCallResultContent forRejectedToolCall(
+      ToolCall toolCall, OffsetDateTime completedAt) {
+    if (toolCall.rejection() == null) {
+      throw new IllegalArgumentException(
+          "The tool call '%s' is not rejected".formatted(toolCall.id()));
+    }
+    return builder()
+        .id(toolCall.id())
+        .name(toolCall.name())
+        .content(contentFromObject(toolCall.rejection()))
+        .completedAt(completedAt)
+        .build();
+  }
+
+  /**
    * Forward normalization: lifts a live {@link ToolCallResult}'s untyped {@code content} into the
    * structured {@link Content} list, preserving every other field verbatim.
    */
@@ -80,14 +99,14 @@ public record ToolCallResultContent(
   }
 
   /**
-   * The content-lift mapping for the forward path ({@link #from(ToolCallResult)}, operating on
-   * already-deserialized Java objects). The mirror-image lift for raw JSON nodes read from legacy
-   * (Camunda 8.9) data lives in {@code AgentContextSchemaMigration#liftLegacyContent}. Each branch
-   * produces a singleton list (or an empty one for null/blank) — a multi-element list only ever
-   * arises later once provider-specific chat model implementations emit structured content
-   * directly.
+   * Lifts the value of a tool result, an already-deserialized Java object, into content blocks:
+   * null and blank text give no block, text gives a {@link TextContent}, a document a {@link
+   * DocumentContent}, anything else an {@link ObjectContent}. The results of process tools ({@link
+   * #from(ToolCallResult)}) and of runtime tools take this path. The mirror-image lift for raw JSON
+   * nodes read from legacy (Camunda 8.9) data lives in {@code
+   * AgentContextSchemaMigration#liftLegacyContent}.
    */
-  static List<Content> contentFromObject(@Nullable Object content) {
+  public static List<Content> contentFromObject(@Nullable Object content) {
     return switch (content) {
       case null -> List.of();
       case String s -> s.isBlank() ? List.of() : List.of(TextContent.textContent(s));

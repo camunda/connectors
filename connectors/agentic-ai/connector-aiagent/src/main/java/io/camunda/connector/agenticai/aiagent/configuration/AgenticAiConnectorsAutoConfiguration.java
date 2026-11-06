@@ -21,8 +21,11 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandle
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
+import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallExecutor;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallAdmission;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceToolMapper;
@@ -31,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.api.systemprompt.SystemPromptContributor;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
@@ -50,6 +54,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerImpl;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
@@ -86,6 +91,25 @@ public class AgenticAiConnectorsAutoConfiguration {
   public GatewayToolHandlerRegistry aiAgentGatewayToolHandlerRegistry(
       List<GatewayToolHandler> gatewayToolHandlers) {
     return new GatewayToolHandlerRegistryImpl(gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ToolCallAdmission aiAgentToolCallAdmission() {
+    return new ToolCallAdmission();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public LocalToolCallExecutor aiAgentLocalToolCallExecutor(RuntimeTools runtimeTools) {
+    return new LocalToolCallExecutor(runtimeTools);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public RuntimeTools aiAgentRuntimeTools(
+      List<RuntimeTool> runtimeTools, @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new RuntimeTools(runtimeTools, objectMapper);
   }
 
   @Bean
@@ -209,8 +233,16 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentConversationTurnInputComposer aiAgentConversationTurnInputComposer(
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      ToolCallResultsInputBuilder toolCallResultsInputBuilder) {
+    return new AgentConversationTurnInputComposerImpl(
+        gatewayToolHandlers, toolCallResultsInputBuilder);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ToolCallResultsInputBuilder aiAgentToolCallResultsInputBuilder() {
+    return new ToolCallResultsInputBuilder();
   }
 
   @Bean
@@ -246,7 +278,10 @@ public class AgenticAiConnectorsAutoConfiguration {
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      RuntimeTools runtimeTools,
+      ToolCallAdmission toolCallAdmission,
+      LocalToolCallExecutor localToolCallExecutor) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -254,7 +289,10 @@ public class AgenticAiConnectorsAutoConfiguration {
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        runtimeTools,
+        toolCallAdmission,
+        localToolCallExecutor);
   }
 
   @Bean
@@ -288,7 +326,10 @@ public class AgenticAiConnectorsAutoConfiguration {
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      RuntimeTools runtimeTools,
+      ToolCallAdmission toolCallAdmission,
+      LocalToolCallExecutor localToolCallExecutor) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -296,7 +337,10 @@ public class AgenticAiConnectorsAutoConfiguration {
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        runtimeTools,
+        toolCallAdmission,
+        localToolCallExecutor);
   }
 
   @Bean

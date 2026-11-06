@@ -14,10 +14,14 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
+import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -31,14 +35,18 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +77,25 @@ class AgentConversationTurnInputComposerImplTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(gatewayToolHandlers.handlerForToolDefinition(any()))
         .thenReturn(java.util.Optional.empty());
-    composer = new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
+    composer =
+        new AgentConversationTurnInputComposerImpl(
+            gatewayToolHandlers, new ToolCallResultsInputBuilder());
+  }
+
+  private CompositionResult resolve(
+      AgentConfiguration configuration,
+      AgentContext agentContext,
+      PreviousConversation history,
+      AgentInput input) {
+    return composer.resolve(configuration, agentContext, history, input);
+  }
+
+  /** The input messages of a result that is ready and has no local tool calls to answer. */
+  private List<Message> messagesOf(CompositionResult result) {
+    assertThat(result).isInstanceOf(CompositionResult.Ready.class);
+    final var ready = (CompositionResult.Ready) result;
+    assertThat(ready.unansweredToolCalls()).isEmpty();
+    return composer.assemble(ready).messages();
   }
 
   private Document createDocument(String content, String contentType, String fileName) {
@@ -81,21 +107,24 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void firstTurn_withUserPrompt_returnsNextTurn() {
+  void firstTurn_withUserPrompt_returnsReady() {
     var input = AgentInput.from(new UserPromptConfiguration("Hello?", List.of()), List.of());
     var history = TurnReconstructor.reconstruct(List.of());
-    var result = composer.compose(CONFIG, CTX, history, input);
-    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
-    var nextTurn = (CompositionResult.NextTurn) result;
-    assertThat(nextTurn.messages()).hasSize(1);
-    assertThat(nextTurn.messages().getFirst()).isInstanceOf(UserMessage.class);
+    var result = resolve(CONFIG, CTX, history, input);
+    assertThat(result).isInstanceOf(CompositionResult.Ready.class);
+    var ready = (CompositionResult.Ready) result;
+    assertThat(ready.toolCallBatch()).isEqualTo(ToolCallBatch.of(List.of()));
+    assertThat(ready.eventMessages()).isEmpty();
+    assertThat(ready.userPrompt()).isNotNull();
+    assertThat(ready.userPrompt().content()).containsExactly(textContent("Hello?"));
+    assertThat(messagesOf(result)).containsExactly(ready.userPrompt());
   }
 
   @Test
   void firstTurn_emptyPrompt_returnsNoInput() {
     var input = AgentInput.from(new UserPromptConfiguration("", List.of()), List.of());
     var history = TurnReconstructor.reconstruct(List.of());
-    var result = composer.compose(CONFIG, CTX, history, input);
+    var result = resolve(CONFIG, CTX, history, input);
     assertThat(result).isInstanceOf(CompositionResult.NoInput.class);
   }
 
@@ -106,7 +135,7 @@ class AgentConversationTurnInputComposerImplTest {
         AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
     var history = TurnReconstructor.reconstruct(List.of());
 
-    assertThatThrownBy(() -> composer.compose(CONFIG, CTX, history, input))
+    assertThatThrownBy(() -> resolve(CONFIG, CTX, history, input))
         .isInstanceOfSatisfying(
             io.camunda.connector.api.error.ConnectorException.class,
             e ->
@@ -115,14 +144,14 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void toolResultTurn_allResultsPresent_returnsNextTurn() {
+  void toolResultTurn_allResultsPresent_returnsReady() {
     var input =
         AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
-    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
-    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    assertThat(result).isInstanceOf(CompositionResult.Ready.class);
   }
 
   @Test
@@ -133,7 +162,7 @@ class AgentConversationTurnInputComposerImplTest {
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
-    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
     // the arrived result is carried on Deferred so the caller can report it early (ADR 011)
     assertThat(((CompositionResult.Deferred) result).arrivedResults())
@@ -152,7 +181,7 @@ class AgentConversationTurnInputComposerImplTest {
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
-    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
     assertThat(((CompositionResult.Deferred) result).arrivedResults())
         .containsExactly(TOOL_CALL_RESULTS.getFirst());
@@ -179,17 +208,17 @@ class AgentConversationTurnInputComposerImplTest {
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
 
-    var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(config, CTX_WITH_CONVERSATION, history, input);
 
-    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
-    var nextTurn = (CompositionResult.NextTurn) result;
-    assertThat(nextTurn.messages()).hasSizeGreaterThanOrEqualTo(2);
-    assertThat(nextTurn.messages().getFirst()).isInstanceOf(ToolCallResultMessage.class);
-    var toolResults = ((ToolCallResultMessage) nextTurn.messages().getFirst()).results();
+    assertThat(result).isInstanceOf(CompositionResult.Ready.class);
+    var messages = messagesOf(result);
+    assertThat(messages).hasSizeGreaterThanOrEqualTo(2);
+    assertThat(messages.getFirst()).isInstanceOf(ToolCallResultMessage.class);
+    var toolResults = ((ToolCallResultMessage) messages.getFirst()).results();
     assertThat(toolResults).hasSize(2);
     assertThat(toolResults.get(1).content())
         .containsExactly(TextContent.textContent(ToolCallResult.CONTENT_CANCELLED));
-    assertThat(nextTurn.messages().getLast()).isInstanceOf(UserMessage.class);
+    assertThat(messages.getLast()).isInstanceOf(UserMessage.class);
   }
 
   @Test
@@ -200,10 +229,10 @@ class AgentConversationTurnInputComposerImplTest {
             new UserPromptConfiguration("Tell me a story", List.of(document)), List.of());
     var history = TurnReconstructor.reconstruct(List.of());
 
-    var result = composer.compose(CONFIG, CTX, history, input);
+    var result = resolve(CONFIG, CTX, history, input);
 
-    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
-    var userMessage = (UserMessage) ((CompositionResult.NextTurn) result).messages().getFirst();
+    assertThat(result).isInstanceOf(CompositionResult.Ready.class);
+    var userMessage = (UserMessage) messagesOf(result).getFirst();
     assertThat(userMessage.content()).contains(DocumentContent.documentContent(document));
   }
 
@@ -218,10 +247,9 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    var message =
-        (ToolCallResultMessage) ((CompositionResult.NextTurn) result).messages().getFirst();
+    var message = (ToolCallResultMessage) messagesOf(result).getFirst();
     // ordered to match the tool calls (getWeather=abcdef, getDateTime=fedcba), not input order
     assertThat(message.results())
         .extracting(ToolCallResultContent::id)
@@ -250,10 +278,10 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(config, CTX_WITH_CONVERSATION, history, input);
 
-    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
-    var messages = ((CompositionResult.NextTurn) result).messages();
+    assertThat(result).isInstanceOf(CompositionResult.Ready.class);
+    var messages = messagesOf(result);
     assertThat(messages.getFirst()).isInstanceOf(ToolCallResultMessage.class);
     assertThat(((ToolCallResultMessage) messages.getFirst()).results()).hasSize(2);
     // the event is appended as a trailing user message once all tool results are present
@@ -282,7 +310,7 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(config, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
     assertThat(((CompositionResult.Deferred) result).arrivedResults())
@@ -308,7 +336,7 @@ class AgentConversationTurnInputComposerImplTest {
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
 
-    var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(config, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
     assertThat(((CompositionResult.Deferred) result).arrivedResults())
@@ -326,10 +354,10 @@ class AgentConversationTurnInputComposerImplTest {
                 userMessage("hi"),
                 assistantMessage("a plain reply without tool calls", List.of())));
 
-    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
-    var messages = ((CompositionResult.NextTurn) result).messages();
+    assertThat(result).isInstanceOf(CompositionResult.Ready.class);
+    var messages = messagesOf(result);
     assertThat(messages).hasSize(1);
     assertThat(messages.getFirst()).isInstanceOf(UserMessage.class);
   }
@@ -353,10 +381,9 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    var message =
-        (ToolCallResultMessage) ((CompositionResult.NextTurn) result).messages().getFirst();
+    var message = (ToolCallResultMessage) messagesOf(result).getFirst();
     assertThat(message.results())
         .containsExactlyElementsOf(
             transformedResults.stream().map(ToolCallResultContent::from).toList());
@@ -383,9 +410,9 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    var messages = ((CompositionResult.NextTurn) result).messages();
+    var messages = messagesOf(result);
     assertThat(messages).hasSize(2);
     assertThat(messages.getFirst()).isInstanceOf(ToolCallResultMessage.class);
     assertThat(messages.get(1))
@@ -396,9 +423,7 @@ class AgentConversationTurnInputComposerImplTest {
                   .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
               assertThat(documentMessage.content())
                   .first()
-                  .isEqualTo(
-                      textContent(
-                          AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
+                  .isEqualTo(textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE));
               assertThat(documentMessage.content())
                   .contains(DocumentContent.documentContent(weatherDoc));
             });
@@ -430,9 +455,9 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    var messages = ((CompositionResult.NextTurn) result).messages();
+    var messages = messagesOf(result);
     assertThat(messages).hasSize(2);
     var toolCallResultMessage = (ToolCallResultMessage) messages.getFirst();
     assertThat(toolCallResultMessage.results())
@@ -478,10 +503,10 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(config, CTX_WITH_CONVERSATION, history, input);
+    var result = resolve(config, CTX_WITH_CONVERSATION, history, input);
 
     // order: tool call results -> tool-call documents -> event (with its documents)
-    var messages = ((CompositionResult.NextTurn) result).messages();
+    var messages = messagesOf(result);
     assertThat(messages).hasSize(3);
     assertThat(messages.get(0)).isInstanceOf(ToolCallResultMessage.class);
     assertThat(messages.get(1))
@@ -492,9 +517,7 @@ class AgentConversationTurnInputComposerImplTest {
                   .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
               assertThat(toolCallDocuments.content())
                   .first()
-                  .isEqualTo(
-                      textContent(
-                          AgentConversationTurnInputComposerImpl.TOOL_CALL_DOCUMENTS_PREAMBLE));
+                  .isEqualTo(textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE));
               assertThat(toolCallDocuments.content())
                   .contains(DocumentContent.documentContent(toolDoc));
             });
@@ -509,5 +532,290 @@ class AgentConversationTurnInputComposerImplTest {
               assertThat(eventMessage.metadata())
                   .doesNotContainKey(UserMessage.METADATA_TOOL_CALL_DOCUMENTS);
             });
+  }
+
+  private static final ToolCallResultContent RUNTIME_RESULT =
+      ToolCallResultContent.builder()
+          .id("abcdef")
+          .name("getWeather")
+          .content(List.of(textContent("result of the runtime tool")))
+          .completedAt(OffsetDateTime.parse("2026-10-05T10:00:00Z"))
+          .build();
+
+  private static final List<ToolCall> MIXED_CALLS =
+      List.of(TOOL_CALLS.get(0).withKind(ToolKind.RUNTIME), TOOL_CALLS.get(1));
+
+  private static final List<ToolCall> RUNTIME_CALLS =
+      TOOL_CALLS.stream().map(call -> call.withKind(ToolKind.RUNTIME)).toList();
+
+  private static final ToolCallResultContent SECOND_RUNTIME_RESULT =
+      RUNTIME_RESULT.withId("fedcba").withName("getDateTime");
+
+  private static final AgentConfiguration INTERRUPTING_CONFIG =
+      new AgentConfiguration(
+          null,
+          null,
+          null,
+          null,
+          null,
+          new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
+          null);
+
+  private static PreviousConversation historyWith(List<ToolCall> toolCalls) {
+    return TurnReconstructor.reconstruct(
+        List.of(userMessage("hi"), assistantMessage("thinking", toolCalls)));
+  }
+
+  private static AgentInput inputWith(ToolCallResult... processResults) {
+    return AgentInput.from(
+        new UserPromptConfiguration("user input", List.of()), List.of(processResults));
+  }
+
+  private static ToolCallBatch.Entry entryOf(ToolCallResultContent result) {
+    return ToolCallBatch.Entry.from(result);
+  }
+
+  private CompositionResult.Ready resolveReady(
+      AgentConfiguration configuration, PreviousConversation history, AgentInput input) {
+    final var result = composer.resolve(configuration, CTX_WITH_CONVERSATION, history, input);
+    assertThat(result).isInstanceOf(CompositionResult.Ready.class);
+    return (CompositionResult.Ready) result;
+  }
+
+  /**
+   * Composes like the request handler: the unanswered local tool calls of the resolved turn are
+   * answered with the given results before the turn is assembled.
+   */
+  private TurnInput assembleWithLocalResults(
+      AgentConfiguration configuration,
+      PreviousConversation history,
+      AgentInput input,
+      ToolCallResultContent... localResults) {
+    final var ready = resolveReady(configuration, history, input);
+    return composer.assemble(
+        ready.withResults(Arrays.stream(localResults).map(r -> entryOf(r)).toList()));
+  }
+
+  private static List<ToolCallResultContent> resultsOf(TurnInput input) {
+    return ((ToolCallResultMessage) input.messages().getFirst()).results();
+  }
+
+  @Test
+  void localToolCalls_mergeWithTheArrivedProcessResultsInToolCallOrder() {
+    // the first call is the runtime tool call, the result of the second one arrives
+    var input = inputWith(TOOL_CALL_RESULTS.get(1));
+
+    var turnInput =
+        assembleWithLocalResults(CONFIG, historyWith(MIXED_CALLS), input, RUNTIME_RESULT);
+
+    assertThat(turnInput.messages()).hasSize(1);
+    assertThat(resultsOf(turnInput))
+        .containsExactly(RUNTIME_RESULT, ToolCallResultContent.from(TOOL_CALL_RESULTS.get(1)));
+  }
+
+  @Test
+  void localToolCalls_keepToolCallOrderWhenTheRuntimeCallComesLast() {
+    var calls = List.of(TOOL_CALLS.get(0), TOOL_CALLS.get(1).withKind(ToolKind.RUNTIME));
+    var input = inputWith(TOOL_CALL_RESULTS.getFirst());
+
+    var turnInput =
+        assembleWithLocalResults(CONFIG, historyWith(calls), input, SECOND_RUNTIME_RESULT);
+
+    assertThat(resultsOf(turnInput))
+        .containsExactly(
+            ToolCallResultContent.from(TOOL_CALL_RESULTS.getFirst()), SECOND_RUNTIME_RESULT);
+  }
+
+  @Test
+  void runtimeToolCallResult_thatReturnsADocumentIsFollowedByTheDocumentMessage() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var runtimeResult =
+        RUNTIME_RESULT.withContent(List.of(DocumentContent.documentContent(document)));
+    var input = inputWith(TOOL_CALL_RESULTS.get(1));
+
+    var turnInput =
+        assembleWithLocalResults(CONFIG, historyWith(MIXED_CALLS), input, runtimeResult);
+
+    // the document of the result is handled like the document of a result of the process
+    var messages = turnInput.messages();
+    assertThat(messages).hasSize(2);
+    assertThat(messages.get(0)).isInstanceOf(ToolCallResultMessage.class);
+    assertThat(messages.get(1))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            toolCallDocuments -> {
+              assertThat(toolCallDocuments.metadata())
+                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+              assertThat(toolCallDocuments.content())
+                  .first()
+                  .isEqualTo(textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE));
+              assertThat(toolCallDocuments.content())
+                  .contains(DocumentContent.documentContent(document));
+            });
+  }
+
+  @Test
+  void aTurnOfRuntimeToolCallsOnly_isReadyWithAllCallsUnansweredAndNoProcessResult() {
+    var history = historyWith(RUNTIME_CALLS);
+
+    var ready = resolveReady(CONFIG, history, inputWith());
+
+    assertThat(ready.toolCallBatch()).isEqualTo(ToolCallBatch.of(RUNTIME_CALLS));
+    assertThat(ready.unansweredToolCalls()).isEqualTo(RUNTIME_CALLS);
+    assertThat(ready.userPrompt()).isNull();
+    assertThat(ready.eventMessages()).isEmpty();
+
+    var turnInput =
+        composer.assemble(
+            ready.withResults(List.of(entryOf(SECOND_RUNTIME_RESULT), entryOf(RUNTIME_RESULT))));
+
+    assertThat(resultsOf(turnInput)).containsExactly(RUNTIME_RESULT, SECOND_RUNTIME_RESULT);
+  }
+
+  @Test
+  void localToolCalls_areUnansweredOnceTheProcessResultsHaveArrived() {
+    var ready = resolveReady(CONFIG, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    assertThat(ready.unansweredToolCalls()).containsExactly(MIXED_CALLS.getFirst());
+    assertThat(ready.toolCallBatch())
+        .isEqualTo(
+            ToolCallBatch.of(MIXED_CALLS)
+                .withEntries(
+                    List.of(entryOf(ToolCallResultContent.from(TOOL_CALL_RESULTS.get(1))))));
+  }
+
+  @Test
+  void localToolCalls_defersWhileTheProcessResultsAreMissing() {
+    var result =
+        composer.resolve(CONFIG, CTX_WITH_CONVERSATION, historyWith(MIXED_CALLS), inputWith());
+
+    assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults()).isEmpty();
+  }
+
+  @Test
+  void localToolCalls_doNotGoThroughTheGatewayTransformation() {
+    var ready = resolveReady(CONFIG, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
+    composer.assemble(ready.withResults(List.of(entryOf(RUNTIME_RESULT))));
+
+    verify(gatewayToolHandlers, times(1))
+        .transformToolCallResults(any(), eq(List.of(TOOL_CALL_RESULTS.get(1))));
+    verify(gatewayToolHandlers, times(1)).transformToolCallResults(any(), any());
+  }
+
+  @Test
+  void localToolCalls_partialArrivalDefersAndCarriesOnlyTheProcessResults() {
+    var threeCalls =
+        List.of(
+            MIXED_CALLS.get(0),
+            MIXED_CALLS.get(1),
+            ToolCall.builder().id("third").name("getTime").build());
+    var thirdResult = ToolCallResult.builder().id("third").name("getTime").content("noon").build();
+
+    var result =
+        composer.resolve(
+            CONFIG, CTX_WITH_CONVERSATION, historyWith(threeCalls), inputWith(thirdResult));
+
+    // "fedcba" is still running: wait for it, the runtime tool call is not reported with the
+    // arrivals
+    assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
+    assertThat(((CompositionResult.Deferred) result).arrivedResults()).containsExactly(thirdResult);
+  }
+
+  @Test
+  void localToolCalls_interruptCancelsTheRuntimeCallsTooAsTheyWereNotExecutedYet() {
+    var input = inputWith(ToolCallResult.builder().content("An event occurred").build());
+
+    var ready = resolveReady(INTERRUPTING_CONFIG, historyWith(MIXED_CALLS), input);
+
+    // nothing is left to execute: the runtime call is cancelled like the missing process call
+    assertThat(ready.unansweredToolCalls()).isEmpty();
+    var turnInput = composer.assemble(ready);
+    var results = resultsOf(turnInput);
+    assertThat(results).extracting(ToolCallResultContent::id).containsExactly("abcdef", "fedcba");
+    assertThat(results)
+        .allSatisfy(result -> {
+          assertThat(result.content())
+              .containsExactly(textContent(ToolCallResult.CONTENT_CANCELLED));
+          assertThat(result.properties()).containsEntry(ToolCallResult.PROPERTY_INTERRUPTED, true);
+        });
+    assertThat(turnInput.messages().getLast())
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            event -> assertThat(event.content()).containsExactly(textContent("An event occurred")));
+  }
+
+  @Test
+  void localToolCalls_interruptKeepsTheArrivedProcessResultsAndTheRejections() {
+    var rejectedCall =
+        ToolCall.builder()
+            .id("rejected")
+            .name("unknownTool")
+            .build()
+            .withRejection("The tool 'unknownTool' does not exist.");
+    var calls = List.of(MIXED_CALLS.get(0), MIXED_CALLS.get(1), rejectedCall);
+    var input =
+        inputWith(
+            TOOL_CALL_RESULTS.get(1),
+            ToolCallResult.builder().content("An event occurred").build());
+
+    var ready = resolveReady(INTERRUPTING_CONFIG, historyWith(calls), input);
+
+    assertThat(ready.unansweredToolCalls()).isEmpty();
+    var results = resultsOf(composer.assemble(ready));
+    assertThat(results)
+        .extracting(ToolCallResultContent::id)
+        .containsExactly("abcdef", "fedcba", "rejected");
+    assertThat(results.get(0).content())
+        .containsExactly(textContent(ToolCallResult.CONTENT_CANCELLED));
+    assertThat(results.get(1)).isEqualTo(ToolCallResultContent.from(TOOL_CALL_RESULTS.get(1)));
+    assertThat(results.get(2).content())
+        .containsExactly(textContent("The tool 'unknownTool' does not exist."));
+  }
+
+  @Test
+  void assemblingWithoutTheResultOfALocalToolCall_fails() {
+    var ready = resolveReady(CONFIG, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    assertThatThrownBy(() -> composer.assemble(ready))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("abcdef")
+        .hasMessageNotContaining("fedcba");
+  }
+
+  @Test
+  void answeringAProcessToolCallAgain_fails() {
+    var ready = resolveReady(CONFIG, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
+    var entries = List.of(entryOf(RUNTIME_RESULT), entryOf(SECOND_RUNTIME_RESULT));
+
+    assertThatThrownBy(() -> ready.withResults(entries))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("fedcba");
+  }
+
+  @Test
+  void aTurnWithoutLocalToolCalls_isAssembledWithoutAnyLocalResult() {
+    var ready =
+        resolveReady(
+            CONFIG,
+            historyWith(TOOL_CALLS),
+            inputWith(TOOL_CALL_RESULTS.toArray(ToolCallResult[]::new)));
+
+    assertThat(ready.unansweredToolCalls()).isEmpty();
+    assertThat(resultsOf(composer.assemble(ready)))
+        .containsExactly(
+            ToolCallResultContent.from(TOOL_CALL_RESULTS.get(0)),
+            ToolCallResultContent.from(TOOL_CALL_RESULTS.get(1)));
+  }
+
+  @Test
+  void localToolCalls_areNotUnansweredForAPromptTurn() {
+    var input = AgentInput.from(new UserPromptConfiguration("Hello?", List.of()), List.of());
+    var history =
+        TurnReconstructor.reconstruct(List.of(userMessage("hi"), assistantMessage("hello")));
+
+    var result = composer.resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
+
+    assertThat(messagesOf(result)).singleElement().isInstanceOf(UserMessage.class);
   }
 }

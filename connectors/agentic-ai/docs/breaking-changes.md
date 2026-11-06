@@ -21,7 +21,12 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
-| [Persisted data](#persisted-data-8-11)                                       | Code reading the `CONFIGURATION` items of the agent instance history |
+| [Turn input composer and response handler](#turn-input-composer-and-response-handler) | Custom `AgentConversationTurnInputComposer` and `AgentResponseHandler` |
+| [Agent instance client and mappers](#agent-instance-client-and-mappers)      | Custom `AgentInstanceClient`, `AgentInstanceHistoryMapper`, `AgentInstanceToolMapper` |
+| [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers |
+| [Runtime tools and tool names](#runtime-tools-and-tool-names)                | Processes with a tool element named like a runtime tool        |
+| [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records (`AgentContext`, `ToolCall`) |
+| [Persisted data](#persisted-data-8-11)                                       | Custom `ConversationStore` implementations, code reading the agent context, stored tool calls or the `CONFIGURATION` items of the agent instance history |
 
 ### Module split
 
@@ -190,6 +195,86 @@ The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpU
 A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
 client in its properties does not start.
 
+### Turn input composer and response handler
+
+`AgentConversationTurnInputComposer`:
+
+- `compose(configuration, agentContext, previousConversation, agentInput)` is replaced by two steps. `resolve` with the
+  same parameters resolves only the results of the process tool calls of the previous turn and returns a
+  `CompositionResult`. `assemble(CompositionResult.Ready)` builds the input of the next turn and returns a `TurnInput`.
+  Between the two, the request handler produces the tool call results of the local tool calls (calls of runtime tools and
+  rejected calls) and adds them to the `Ready`. The composer executes no tool.
+- `CompositionResult` has the variants `Deferred`, `NoInput` and `Ready`. `NextTurn` is removed; its messages are in
+  `TurnInput`. `Ready` holds the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
+  of a turn without tool call results, and the event messages. `Deferred.arrivedResults` holds only the results that
+  arrived from the process.
+- The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`, a bean of the
+  auto-configuration.
+
+`AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
+process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent produces the tool call
+results of the other calls (`AgentConversationTurn.localToolCalls()`) itself and never hands them to the process.
+
+Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
+change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
+implement the response handler interface directly, hand only the process tool calls to the process.
+
+### Agent instance client and mappers
+
+- `AgentInstanceClient.applyToolCallResults` takes `List<ToolCallResultContent>` instead of `List<ToolCallResult>`; convert
+  with `ToolCallResultContent.from(result)`.
+- `AgentInstanceToolMapper` and `AgentInstanceHistoryMapper` keep their API. A runtime tool, decided by
+  `ToolDefinition.kind()`, and a local tool call and its result, decided by `ToolCall.isLocal()` (a runtime tool call or
+  a rejected call), are reported without an element id.
+
+Migration: if you implement or decorate `AgentInstanceClient.applyToolCallResults`, convert as described above. Most
+extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate them instead.
+
+### Replaceable bean constructors
+
+The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take
+`RuntimeTools`, `ToolCallAdmission` and `LocalToolCallExecutor`, and the constructor of
+`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`. The auto-configuration provides these
+beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra arguments; inject them as beans.
+
+### Runtime tools and tool names
+
+- Agent instances created from 8.11 on have the `runtimeTools` feature. An agent job fails with the error code
+  `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime tool that is
+  not enabled reserves no name. The connector registers no runtime tool itself, so only the runtime tools of your own runtime matter;
+  give them a name with a prefix of your own. The prefix `c8__` is meant for the tools the connector ships; no prefix is
+  checked or reserved, only the exact name. Agent instances created before keep their behavior: they are offered no
+  runtime tool and no name is checked.
+- Behavior change for every agent instance, with or without the `runtimeTools` feature, in both flavors: every tool call
+  is matched against the tools offered in the job. A call of a tool name that is not offered, for example a name the model
+  invented, no longer reaches the process. The agent rejects it once, when the model response arrives, and adds the tool
+  call result `The tool '<name>' does not exist.` in the same job (when the message has no process call) and calls the
+  model again; the process activates no element for it. Before, an agent instance without the feature handed such a
+  call to the process, which never returned a result for it, and the instance waited for a result forever, without an
+  incident.
+  This is a deliberate exception to gating a change of the persisted shape on the feature.
+- To add a tool of your own, implement `RuntimeTool` (`definition`, `isEnabled(RuntimeToolContext)`,
+  `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see §25.4 of the
+  [reference](reference/ai-agent.md)). Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
+  `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
+  call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
+  error result from the executor; neither goes to the process.
+- The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
+  tools.
+
+### Model classes
+
+- New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
+  builder, or for `ToolCall` the constructors with three or four arguments and for `ToolDefinition` the constructor with
+  three arguments: `AgentContext` (`features`, a list), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`
+  by default, and `rejection`, an optional error text, none by default; the canonical constructor has the six components
+  `id`, `name`, `arguments`, `metadata`, `kind` and `rejection`) and `ToolDefinition` (`kind`, `PROCESS` by default; a
+  runtime tool declares `RUNTIME`, for example with `ToolDefinition.runtime(...)`). The agent sets the kind and the
+  rejection of the tool calls of an assistant message once, when it receives the message. `ToolCall.resultSource()`
+  (`PROCESS`, `RUNTIME` or `REJECTED`) and `ToolCall.isLocal()` derive who produces the tool call result; neither is
+  written to JSON.
+- New in the libraries: the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult`,
+  `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
 
 <a id="persisted-data-8-11"></a>
 
@@ -198,6 +283,25 @@ client in its properties does not start.
 - The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
   SHA-256 over a JSON serialization of the configuration. Every running agent instance, also one created before 8.11, writes
   one additional `CONFIGURATION` history item on its first job after the upgrade.
+- `AgentContext` gains `features`. There is no schema version bump, and a missing field binds to its empty value, so
+  state written by 8.10 loads unchanged. An 8.10 connector runtime ignores `features` and drops it on its next write.
+- A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
+  and without the `runtimeTools` feature. `kind` is the kind of the tool the call names; a call of a tool name that is not
+  offered gets a `rejection`, the error text that is its tool call result, and keeps the kind `PROCESS`. The JSON holds `kind`
+  only for a call of a runtime tool and `rejection` only when set, and a missing value reads as `PROCESS` and as none, so
+  state written by 8.10 loads unchanged. The agent never computes them again, so a custom `ConversationStore` must keep
+  them: a store that drops them turns a runtime tool call or a rejected call into a process tool call that never gets a
+  result. Serializing the `ToolCall` record with Jackson keeps them.
+- **Mixed worker versions affect only a call of a runtime tool and a rejected call.** The JSON of every other tool call
+  is unchanged, so an agent instance that calls only tools of the process runs on any worker. A connector runtime that
+  predates this change ignores the unknown properties `kind` and `rejection` of a stored call, so it treats a call with the
+  kind `RUNTIME` or with a `rejection` as a call of the process. It raises no incident and the instance waits for a result
+  that never comes. A rejected call is the call of a tool that does not exist, which hung the agent before too. A call of a
+  runtime tool exists only once a runtime tool is registered. While such a call is in flight, run only workers of one
+  version, or drain the agent instances before a rolling upgrade.
+- The assistant message in the `responseMessage` of an `AgentResponse` (`includeAssistantMessage`) also carries `kind`
+  for a runtime tool call and `rejection` for a rejected call.
+- Do not rely on the JSON shape of this field in external systems.
 
 ## Camunda 8.9 to 8.10
 

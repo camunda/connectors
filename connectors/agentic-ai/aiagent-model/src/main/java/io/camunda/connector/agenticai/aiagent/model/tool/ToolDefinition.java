@@ -6,18 +6,43 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.tool;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
+import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-/** A tool definition, being a single tool available within the ad-hoc sub-process. */
+/**
+ * A tool definition, being a single tool offered to the model.
+ *
+ * <p>{@code kind} is the kind of tool offered; the agent instance history reads it. It is written
+ * to JSON only for a {@link ToolKind#RUNTIME} definition; a missing value reads as {@link
+ * ToolKind#PROCESS}.
+ */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)
 public record ToolDefinition(
-    String name, @Nullable String description, Map<String, Object> inputSchema)
+    String name,
+    @Nullable String description,
+    Map<String, Object> inputSchema,
+    @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = ProcessKindFilter.class)
+        @RecordBuilder.Initializer("DEFAULT_KIND")
+        ToolKind kind)
     implements ToolDefinitionBuilder.With {
+
+  public static final ToolKind DEFAULT_KIND = ToolKind.PROCESS;
+
+  public ToolDefinition(
+      String name, @Nullable String description, Map<String, Object> inputSchema) {
+    this(name, description, inputSchema, DEFAULT_KIND);
+  }
+
+  public static ToolDefinition runtime(
+      String name, @Nullable String description, Map<String, Object> inputSchema) {
+    return new ToolDefinition(name, description, inputSchema, ToolKind.RUNTIME);
+  }
 
   public static ToolDefinitionBuilder builder() {
     return ToolDefinitionBuilder.builder();
