@@ -39,7 +39,7 @@ Write the minimum code that solves the problem. Write nothing speculative.
 
 - Add no feature that the task does not ask for.
 - Add no flexibility or configuration that the task does not ask for.
-- Add no error handling for a case that cannot occur.
+- Add no error handling for a value that the types or input validation already exclude.
 
 ## Surgical changes
 
