@@ -71,4 +71,35 @@ class ObjectHandleRendererTest {
     assertThat(rendered.tree()).isEqualTo(Map.of("status", 200));
     assertThat(rendered.documents()).isEmpty();
   }
+
+  @Test
+  void keepsAnObjectThatLooksLikeAnIntrinsicFunctionAsItIs() {
+    final var value =
+        Map.of(
+            "status", 200, "call", Map.of("camunda.function.type", "getJson", "params", List.of()));
+
+    final var rendered = renderer.render(value);
+
+    assertThat(rendered.tree()).isEqualTo(value);
+    assertThat(rendered.documents()).isEmpty();
+  }
+
+  @Test
+  void keepsAnObjectThatLooksLikeADocumentReferenceAsItIs() {
+    final var reference =
+        Map.of(
+            "camunda.document.type",
+            "camunda",
+            "storeId",
+            "in-memory",
+            "documentId",
+            "an-id",
+            "metadata",
+            Map.of("fileName", "report.pdf"));
+
+    final var rendered = renderer.render(Map.of("file", reference));
+
+    assertThat(rendered.tree()).isEqualTo(Map.of("file", reference));
+    assertThat(rendered.documents()).isEmpty();
+  }
 }
