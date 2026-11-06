@@ -312,8 +312,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   /**
    * A tool whose activity sets the document delivery {@code content} returns a document: the agent
    * adds its content to the request in the message after the tool result, so the model reads it
-   * without a {@code c8__get_document} call and still passes its tag to a tool. The tool receives
-   * the real bytes.
+   * without a {@code c8__load_document} call and still passes its handle to a tool. The tool
+   * receives the real bytes.
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"test.txt", "test.pdf"})
@@ -331,13 +331,11 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .extracting(m -> m.role())
         .containsExactly("system", "user", "assistant", "tool", "user");
     assertThat(afterDownload.get(3).toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
-    final var tag = parseDocumentTag(afterDownload.get(3).content());
+    final var handle = parseDocumentHandle(afterDownload.get(3).content());
     assertDocumentContentUserMessage(
         afterDownload.get(4),
-        DocumentWithContent.forToolCall(
-            DOWNLOAD_CALL_ID,
-            "Download_A_File",
-            tag,
+        DocumentWithContent.of(
+            handle,
             block ->
                 assertDocumentContentBlockJson(
                     block,
@@ -350,7 +348,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .extracting(m -> m.role())
         .containsExactly("system", "user", "assistant", "tool", "user", "assistant", "tool");
     assertThat(afterUpload.get(6).toolCallId()).isEqualTo(UPLOAD_CALL_ID);
-    assertThat(afterUpload).noneMatch(m -> m.toString().contains("c8__get_document"));
+    assertThat(afterUpload).noneMatch(m -> m.toString().contains("c8__load_document"));
     assertUploaded(servedFile(file));
 
     assertAgentResponse(

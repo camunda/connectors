@@ -125,7 +125,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(recorded.lastRequest().messages().get(0).role()).isEqualTo("system");
     assertThat(recorded.lastRequest().messages().get(0).content()).isEqualTo(SYSTEM_PROMPT);
 
-    // user message: prompt text + the tags of the two documents
+    // user message: prompt text + the handles of the two documents
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
     assertThat(userMessage.contentParts()).isNotEmpty();
@@ -215,7 +215,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
 
   /**
    * With the document delivery {@code content} of the user prompt the content of the document is
-   * part of the user message of the first request, next to its tag: no {@code c8__load_document}
+   * part of the user message of the first request, next to its handle: no {@code c8__load_document}
    * call is needed.
    */
   @Test
@@ -270,7 +270,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
 
   /**
    * Without a document delivery, as in a process modeled before the option existed, the content of
-   * every prompt document is part of the user message of the first request, next to its tag.
+   * every prompt document is part of the user message of the first request, next to its handle.
    */
   @Test
   void addsTheContentOfPromptDocumentsWithoutADelivery() throws Exception {
