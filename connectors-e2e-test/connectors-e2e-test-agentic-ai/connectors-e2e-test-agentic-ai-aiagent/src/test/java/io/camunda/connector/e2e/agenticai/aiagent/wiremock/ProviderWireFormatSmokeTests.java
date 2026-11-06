@@ -20,7 +20,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtu
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_JSON_ASSERTIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -242,7 +241,6 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
 
   @Test
   void documentRequestedByTheModel() throws Exception {
-    assumeThat(fixture.supportsDocumentIdPlaceholders()).isTrue();
     final var userPrompt = "Summarize the following document";
     final var toolCallMessage = "I will read the document.";
     final var responseText = "TL;DR: it is pretty interesting";
@@ -293,7 +291,6 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
    */
   @Test
   void documentOfAToolResultRequestedByTheModel() throws Exception {
-    assumeThat(fixture.supportsDocumentIdPlaceholders()).isTrue();
     final var userPrompt = "Download the document and summarize it";
     final var downloadMessage = "I will download the document.";
     final var toolCallMessage = "I will read the document.";

@@ -228,7 +228,8 @@ public final class BedrockConverseRecordedConversation {
         return block.path("text").asText();
       }
       if (!block.path("json").isMissingNode()) {
-        return block.path("json").asText();
+        final var json = block.path("json");
+        return json.isValueNode() ? json.asText() : json.toString();
       }
       return "";
     }
