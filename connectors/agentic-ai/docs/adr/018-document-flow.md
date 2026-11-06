@@ -226,9 +226,9 @@ content, without the guard, whatever the delivery: the provider reads them.
 
 Content enters the request in two ways, which share one guard and one persisted form:
 
-* **On request.** The model calls the built-in tool `c8__get_document`. The model knows whether it needs to read a
-  document, and the tool answers with a result the model can act on when it cannot load it. It loads the whole document.
-  A range would be additive.
+* **On request.** The model calls the built-in tool `c8__load_document` with the handle of a document. The model knows
+  whether it needs to read a document. The tool returns no text about the content: the agent writes into the result that
+  the content follows, or that it is not loaded and why. It loads the whole document. A range would be additive.
 * **By opt-in.** The process knows what a document is at two places, so only they can opt in: the user prompt, with a
   dropdown, and a tool activity, with an extension property. This removes one model round trip per document for a prompt
   that always comes with a short PDF or a tool that returns a text file. Events, MCP tools and A2A tools stay references;
@@ -287,7 +287,7 @@ non-standard type; *a separate field next to the schema* would have to stay in s
 
 ### The built-in tools
 
-`c8__get_document` loads a document, as above. `c8__return_document` selects one document per call under a key, and the
+`c8__load_document` loads a document, as above. `c8__return_document` selects one document per call under a key, and the
 final response carries all selected documents as `responseDocuments`. The selections live in the agent context, because
 the tool can run in an earlier job than the final response, and stay for the lifetime of the instance, so a later final
 response carries them too. A key used again replaces its entry. There is no retract.
@@ -413,7 +413,7 @@ history back after a document flow and requires it.
 * **Pruning and a size budget of the agent documents.** Documents nobody references could be pruned.
 * **Compaction.** A compaction that rewrites or drops messages must keep the agent documents intact and decide what happens to
   references with the delivery `content` and the follow-up messages that hold them.
-* **Ranges for `c8__get_document`.** Pages, lines or bytes, as an additive field of the reference and an optional
+* **Ranges for `c8__load_document`.** Pages, lines or bytes, as an additive field of the reference and an optional
   argument.
 * **MCP and A2A tools that take documents.** Needs a mapping from the remote schema and from a document reference into
   the format the remote side expects.
