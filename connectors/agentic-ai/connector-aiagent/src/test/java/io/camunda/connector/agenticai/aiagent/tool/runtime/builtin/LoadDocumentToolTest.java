@@ -60,10 +60,10 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 /**
- * The {@code c8__get_document} tool run by the framework, the way the agent runs it: the runtime
+ * The {@code c8__load_document} tool run by the framework, the way the agent runs it: the runtime
  * tools runs the call and the input builder applies the effect of the result.
  */
-class GetDocumentToolTest {
+class LoadDocumentToolTest {
 
   private static final AgentConfiguration CONFIGURATION =
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
@@ -73,7 +73,7 @@ class GetDocumentToolTest {
           .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
 
   private final ObjectMapper objectMapper = objectMapperFor(InMemoryDocumentStore.INSTANCE);
-  private final GetDocumentTool tool = new GetDocumentTool();
+  private final LoadDocumentTool tool = new LoadDocumentTool();
   private final RuntimeTools runtimeTools =
       new RuntimeTools(
           List.of(tool),
@@ -138,7 +138,7 @@ class GetDocumentToolTest {
     return ((TextContent) result.content().getFirst()).text();
   }
 
-  /** What the agent does with a get_document call: the entry and the input of the next turn. */
+  /** What the agent does with a load_document call: the entry and the input of the next turn. */
   private record Run(ToolCallBatch.Entry entry, TurnInput input) {
 
     ToolCallResultContent result() {
@@ -157,7 +157,7 @@ class GetDocumentToolTest {
   void definitionHasASingleRequiredDocumentParameterAndTellsAboutLargeDocuments() {
     final var definition = tool.definition();
 
-    assertThat(GetDocumentTool.NAME).isEqualTo("c8__get_document");
+    assertThat(LoadDocumentTool.NAME).isEqualTo("c8__load_document");
     assertThat(definition.description())
         .isEqualTo(
             "Loads a known document so that its content can be read in the conversation. Use it when"
@@ -184,7 +184,7 @@ class GetDocumentToolTest {
 
     assertThat(runtimeTools.enabledDefinitions(executionContext, WITH_DOCUMENTS))
         .extracting(definition -> definition.name())
-        .containsExactly("c8__get_document");
+        .containsExactly("c8__load_document");
     assertThat(
             runtimeTools.enabledDefinitions(
                 executionContext,
@@ -300,7 +300,7 @@ class GetDocumentToolTest {
             Set.of(),
             new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
     final var arguments =
-        new RuntimeToolCallImpl("1", GetDocumentTool.NAME, Map.of(), objectMapper);
+        new RuntimeToolCallImpl("1", LoadDocumentTool.NAME, Map.of(), objectMapper);
 
     final var result = tool.call(context, arguments);
 
@@ -313,7 +313,7 @@ class GetDocumentToolTest {
   }
 
   private static ToolCall callWith(String id, String idArgument) {
-    return new ToolCall(id, GetDocumentTool.NAME, Map.of("id", idArgument))
+    return new ToolCall(id, LoadDocumentTool.NAME, Map.of("id", idArgument))
         .withKind(ToolKind.RUNTIME);
   }
 

@@ -34,7 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
@@ -254,7 +254,7 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
     // the model sees the tools of the process next to the built-in c8__ tools
     final var expected = new ArrayList<>(expectedTools());
     ProviderToolDefinitions.of(
-            List.of(new GetDocumentTool().definition()),
+            List.of(new LoadDocumentTool().definition()),
             new DocumentHandling.Tracked(AgentDocuments.empty()))
         .stream()
         // a recorded request does not tell the kind of a tool

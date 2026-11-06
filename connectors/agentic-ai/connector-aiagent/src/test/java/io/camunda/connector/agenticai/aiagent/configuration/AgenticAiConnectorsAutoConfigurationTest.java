@@ -100,7 +100,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
@@ -322,42 +322,44 @@ class AgenticAiConnectorsAutoConfigurationTest {
   }
 
   @Test
-  void theBuiltInGetDocumentToolIsRegisteredAsARuntimeTool() {
+  void theBuiltInLoadDocumentToolIsRegisteredAsARuntimeTool() {
     contextRunner.run(context ->
         assertThat(context.getBeansOfType(RuntimeTool.class).values())
             .extracting(tool -> tool.definition().name())
-            .containsExactly(GetDocumentTool.NAME));
+            .containsExactly(LoadDocumentTool.NAME));
   }
 
   @Test
   void aBeanWithTheBeanNameOfABuiltInToolReplacesIt() {
     final var custom =
-        StubRuntimeTool.of(GetDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+        StubRuntimeTool.of(
+            LoadDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
 
     contextRunner
-        .withBean("aiAgentGetDocumentRuntimeTool", RuntimeTool.class, () -> custom)
+        .withBean("aiAgentLoadDocumentRuntimeTool", RuntimeTool.class, () -> custom)
         .run(context -> {
           assertThat(context).hasNotFailed();
           assertThat(context.getBeansOfType(RuntimeTool.class)).containsValue(custom);
           assertThat(context.getBeansOfType(RuntimeTool.class).values())
-              .noneMatch(GetDocumentTool.class::isInstance);
+              .noneMatch(LoadDocumentTool.class::isInstance);
         });
   }
 
   @Test
   void aBeanWithAnotherBeanNameAndTheNameOfABuiltInToolFailsTheStartup() {
     final var custom =
-        StubRuntimeTool.of(GetDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+        StubRuntimeTool.of(
+            LoadDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
 
     contextRunner
-        .withBean("acmeGetDocument", RuntimeTool.class, () -> custom)
+        .withBean("acmeLoadDocument", RuntimeTool.class, () -> custom)
         .run(context ->
             assertThat(context)
                 .hasFailed()
                 .getFailure()
                 .rootCause()
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("More than one runtime tool is named 'c8__get_document'"));
+                .hasMessageContaining("More than one runtime tool is named 'c8__load_document'"));
   }
 
   @Test

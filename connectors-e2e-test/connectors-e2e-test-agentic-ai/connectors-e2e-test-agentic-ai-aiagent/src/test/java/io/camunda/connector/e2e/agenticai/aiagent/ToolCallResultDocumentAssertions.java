@@ -31,7 +31,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Assertion helpers for the user message that carries the documents the model loaded with {@code
- * c8__get_document}, and for the document tags of the other messages.
+ * c8__load_document}, and for the document tags of the other messages.
  *
  * <p>The user message has the structure {@code preamble + (xml-tag, content-block)*}, so it can
  * carry one or many loaded documents. Use {@link #assertDocumentContentUserMessage(RecordedMessage,

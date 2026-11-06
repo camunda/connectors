@@ -253,7 +253,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             10,
             20,
             new ToolCallStub(
-                "get111", "c8__get_document", "{\"id\": \"<doc id=\\\"@@DOC_ID_0@@\\\" />\"}")),
+                "get111", "c8__load_document", "{\"id\": \"<doc id=\\\"@@DOC_ID_0@@\\\" />\"}")),
         TurnStub.text(responseText, 11, 22));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -273,7 +273,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
         ProviderWireFormatExpectedMessage.userWithDocument(userPrompt),
         ProviderWireFormatExpectedMessage.assistantWithToolCalls(
-            toolCallMessage, "c8__get_document"),
+            toolCallMessage, "c8__load_document"),
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
             "get111", "Document doc_[0-9a-f]{12} is already in the conversation\\."));
 
@@ -287,7 +287,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
 
   /**
    * A tool returns a document and the model asks for its content: the tool result holds the tag and
-   * the answer of the get-document tool, and the content follows in a message of its own.
+   * the answer of the load-document tool, and the content follows in a message of its own.
    */
   @Test
   void documentOfAToolResultRequestedByTheModel() throws Exception {
@@ -311,7 +311,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             10,
             20,
             new ToolCallStub(
-                "get111", "c8__get_document", "{\"id\": \"<doc id=\\\"@@DOC_ID_0@@\\\" />\"}")),
+                "get111", "c8__load_document", "{\"id\": \"<doc id=\\\"@@DOC_ID_0@@\\\" />\"}")),
         TurnStub.text(responseText, 11, 22));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -319,7 +319,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
 
     assertThat(fixture.modelCallCount()).isEqualTo(3);
-    // the answer of the get-document tool is a text, the tag and a text, which the recorded text
+    // the answer of the load-document tool is a text, the tag and a text, which the recorded text
     // joins by a newline (chat completions formats) or by nothing (formats with a part per block)
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
@@ -331,7 +331,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             "dl1111",
             "\\{\"status\":200,\"document\":\"<doc id=\\\\\"doc_[0-9a-f]{12}\\\\\"[^}]*/>\"\\}"),
         ProviderWireFormatExpectedMessage.assistantWithToolCalls(
-            toolCallMessage, "c8__get_document"),
+            toolCallMessage, "c8__load_document"),
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
             "get111",
             "Requested the content of the document\\.\n?<doc id=\"doc_[0-9a-f]{12}\"[^>]*/>\n?It follows in the next message, or a note says why it cannot be loaded\\."),

@@ -115,7 +115,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     // the built-in tool is offered next to the tools of the process
     assertThat(OpenAiCompletionsRecordedConversation.recorded().lastRequest().toolNames())
         .containsExactlyInAnyOrder(
-            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "c8__get_document");
+            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "c8__load_document");
     assertNoDocumentInternalsInLlmRequests();
   }
 

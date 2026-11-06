@@ -97,7 +97,7 @@ public final class DocumentFlowAssertions {
   }
 
   /**
-   * Asserts the requests of the flow download, {@code c8__get_document}, {@code c8__get_document}
+   * Asserts the requests of the flow download, {@code c8__load_document}, {@code c8__load_document}
    * again, upload, final answer: the download shows the tag only, the first load adds the tag and
    * the content in a message after the tool result, the second load is answered without a message,
    * and the upload receives the id.

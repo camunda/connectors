@@ -60,7 +60,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerI
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
@@ -100,9 +100,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean(name = "aiAgentGetDocumentRuntimeTool")
-  public RuntimeTool aiAgentGetDocumentRuntimeTool() {
-    return new GetDocumentTool();
+  @ConditionalOnMissingBean(name = "aiAgentLoadDocumentRuntimeTool")
+  public RuntimeTool aiAgentLoadDocumentRuntimeTool() {
+    return new LoadDocumentTool();
   }
 
   @Bean
