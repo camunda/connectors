@@ -7,8 +7,14 @@ of them:
 |--------------------------------|---------------------------------------------------------------------------------------------|
 | `connectors`                   | connector, runtime, or bundle code — the image the failing run built and deployed           |
 | `c8-cross-component-e2e-tests` | the Playwright specs and page objects that ran (`tests/SM-8.x/`, `tests/8.x/`)              |
-| `camunda-platform-helm`        | **read-only** — chart values and Keycloak/Identity wiring, to diagnose a deploy-side cause  |
+| `camunda-platform-helm`        | **read-only**, except a CI step in its `.github/workflows/` (see below the table)           |
 | `camunda-docs`                 | **read-only** — the authority on intended behaviour; read before changing an assertion      |
+
+`camunda-platform-helm` is read for chart values and Keycloak/Identity wiring, to diagnose a
+deploy-side cause; those root causes are escalated, never changed. The one writable part is
+its shared reusable workflows under `.github/workflows/`: for the `helm-report-merge` and
+`ci-infra` surfaces you may fix a failing CI step there (for example the Merge E2E Reports
+job in `test-integration-runner.yaml`), targeting `main`.
 
 The SM specs execute from the published `@camunda/e2e-test-suite` npm package, so a
 report's `file` is a compiled basename. The source lives in
