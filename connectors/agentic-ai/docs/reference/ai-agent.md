@@ -377,7 +377,10 @@ reasoning, provider-native blocks) without stringifying it. The lift (`ToolCallR
 maps a `String` to `TextContent`, a `Document` to `DocumentContent`, and anything else to
 `ObjectContent`; for a result of a process tool it produces a singleton list. A runtime tool (§25.4) returns a
 `RuntimeToolResult` whose content is a list of typed blocks (`RuntimeToolResult.success(String)` is the one text block of
-`contentFromObject`), so such a result is typed from the start.
+`contentFromObject`), so such a result is typed from the start. `RuntimeTools` turns the object of an `ObjectContent` block
+into plain JSON values (maps, lists, strings, numbers, booleans) when the tool returns it and keeps the documents in it,
+also those in a record, as they are. The documents of the result are found in plain JSON values, and the object is the
+one a later job reads from the conversation.
 
 The sealed `Content` model gained two additive members alongside the existing `TextContent` /
 `DocumentContent` / `ObjectContent`:

@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SY
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
@@ -30,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.InlineDocument;
@@ -284,6 +286,37 @@ class RuntimeToolsTest {
         .singleElement()
         .satisfies(execution ->
             assertThat(execution.toolCallResult().content()).containsExactlyElementsOf(content));
+  }
+
+  record Attachment(String title, Document file) {}
+
+  @Test
+  void returnsAnObjectAsPlainJsonValuesThatKeepTheDocumentsOfARecord() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("report".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    final var tool =
+        StubRuntimeTool.of(
+            "acme_attach",
+            (context, call) ->
+                RuntimeToolResult.success(
+                    List.of(
+                        ObjectContent.objectContent(
+                            Map.of("attachments", List.of(new Attachment("Report", document)))))));
+
+    final var executions =
+        execute(toolsOf(tool), WITH_MEMORY, runtimeCall("a1", "acme_attach", Map.of()));
+
+    final var content = executions.getFirst().toolCallResult().content();
+    assertThat(content)
+        .containsExactly(
+            ObjectContent.objectContent(
+                Map.of("attachments", List.of(Map.of("title", "Report", "file", document)))));
+    assertThat(ToolCallResultDocumentExtractor.documentsOf(content)).containsExactly(document);
   }
 
   @Test
