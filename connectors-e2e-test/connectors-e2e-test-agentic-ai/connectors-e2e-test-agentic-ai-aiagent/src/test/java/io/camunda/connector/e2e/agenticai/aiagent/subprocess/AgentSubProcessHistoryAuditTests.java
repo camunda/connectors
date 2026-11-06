@@ -110,7 +110,7 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
    * Documents whose content the agent adds without being asked: the user prompt document through
    * the document delivery of the prompt, the documents of a tool with the delivery {@code content},
    * and the note of a document that fails the content guard. The content shows in the history next
-   * to its tag, the note as text.
+   * to its handle, the note in the handle.
    */
   @Test
   void everyModelVisibleMessageOfADocumentWithTheDeliveryContentIsInTheHistory() throws Exception {
@@ -126,8 +126,8 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
     final var messages = OpenAiCompletionsRecordedConversation.recorded().lastRequest().messages();
     assertThat(messages.toString())
-        .contains("pass its tag to a tool that processes it.")
-        .doesNotContain("c8__get_document");
+        .contains("Pass the handle to a tool that processes it.")
+        .doesNotContain("c8__load_document");
     assertHistoryCoversEveryModelRequest(agentInstanceKey);
   }
 

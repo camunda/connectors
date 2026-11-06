@@ -96,8 +96,8 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
   }
 
   /**
-   * The model loads the document with {@code c8__load_document}: the next request carries the tag
-   * and the content of the document in the form its content type has on the wire.
+   * The model loads the document with {@code c8__load_document}: the next request carries the
+   * handle and the content of the document in the form its content type has on the wire.
    */
   @ParameterizedTest
   @ValueSource(strings = {"test.pdf", "test.txt"})
@@ -124,7 +124,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
-    // the first request shows the tag only
+    // the first request shows the handle only
     assertThat(recorded.requests().getFirst().messages()).hasSize(2);
 
     final var messages = recorded.lastRequest().messages();
@@ -132,17 +132,15 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertThat(messages)
         .extracting(m -> m.role())
         .containsExactly("system", "user", "assistant", "tool", "user");
-    final var promptTag =
+    final var promptHandle =
         parseDocumentHandle(messages.get(1).contentParts().get(1).path("text").asText());
     assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
-    assertThat(messages.get(3).content())
-        .startsWith("Requested the content of the document.\n<doc id=\"" + promptTag.id() + "\"")
-        .endsWith(" />\nIt follows in the next message, or a note says why it cannot be loaded.");
+    assertThat(parseDocumentHandle(messages.get(3).content()).id()).isEqualTo(promptHandle.id());
 
     assertDocumentContentUserMessage(
         messages.get(4),
-        DocumentWithContent.forUserPrompt(
-            promptTag,
+        DocumentWithContent.of(
+            promptHandle,
             block ->
                 assertDocumentContentBlockJson(
                     block, contentBlockType(filename), mimeType(filename))));
@@ -240,15 +238,16 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertThat(messages)
         .extracting(m -> m.role())
         .containsExactly("system", "user", "assistant", "tool", "user");
-    final var promptTag =
-        parseDocumentTag(messages.get(1).contentParts().get(1).path("text").asText());
+    final var promptHandle =
+        parseDocumentHandle(messages.get(1).contentParts().get(1).path("text").asText());
     assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
-    assertThat(messages.get(3).content()).startsWith("Requested the content of the document.");
-    assertThat(messages.get(4).textContent())
-        .isEqualTo(
-            DOCUMENT_CONTENT_PREAMBLE
-                + "The document %s is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."
-                    .formatted(promptTag.id()));
+    assertThat(parseDocumentHandle(messages.get(3).content()).id()).isEqualTo(promptHandle.id());
+    final var contentParts = messages.get(4).contentParts();
+    assertThat(contentParts).hasSize(2);
+    assertThat(contentParts.get(0).path("text").asText()).isEqualTo(DOCUMENT_CONTENT_PREAMBLE);
+    final var withheld = parseDocumentHandle(contentParts.get(1).path("text").asText());
+    assertThat(withheld.id()).isEqualTo(promptHandle.id());
+    assertThat(withheld.note()).contains("application/zip");
 
     assertAgentResponse(
         zeebeTest,
@@ -262,7 +261,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
 
   /**
    * With the document delivery {@code content} of the user prompt the content of the document is
-   * part of the user message of the first request, next to its tag: no {@code c8__load_document}
+   * part of the user message of the first request, next to its handle: no {@code c8__load_document}
    * call is needed.
    */
   @ParameterizedTest
@@ -316,7 +315,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
 
   /**
    * Without a document delivery, as in a process modeled before the option existed, the content of
-   * every prompt document is part of the user message of the first request, next to its tag.
+   * every prompt document is part of the user message of the first request, next to its handle.
    */
   @ParameterizedTest
   @ValueSource(strings = {"test.pdf", "test.txt"})

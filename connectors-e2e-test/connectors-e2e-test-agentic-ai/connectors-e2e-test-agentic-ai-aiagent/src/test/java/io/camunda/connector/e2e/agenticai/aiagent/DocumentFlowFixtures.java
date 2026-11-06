@@ -118,7 +118,7 @@ public final class DocumentFlowFixtures {
   }
 
   /**
-   * Stubs a text file of about 300 KB, above the limit of {@code c8__get_document} for text, and
+   * Stubs a text file of about 300 KB, above the limit of {@code c8__load_document} for text, and
    * returns its bytes.
    */
   public static byte[] stubLargeTextFile() {
