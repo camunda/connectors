@@ -31,6 +31,8 @@ Task guidance and architecture live in linked documents:
   element templates
 - [`docs/implementation-rules.md`](docs/implementation-rules.md): how to approach a change, domain rules
   from past review findings, and code design rules for new code
+- [`docs/documentation-rules.md`](docs/documentation-rules.md): where each doc goes and how to keep the
+  docs up to date
 - [`docs/target-architecture.md`](docs/target-architecture.md): target state of the module
 - [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
 - E2E tests [`AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md): e2e
@@ -276,8 +278,8 @@ The [target architecture](docs/target-architecture.md) shows the target state be
 
 ## Working in this module
 
-Read the [implementation rules](docs/implementation-rules.md) before you plan, implement or review a
-change.
+Read the [implementation rules](docs/implementation-rules.md) and the
+[documentation rules](docs/documentation-rules.md) before you plan, implement or review a change.
 
 Before you design stored shapes, names, defaults, limits or observability, also read
 [`docs/design-guidelines.md`](docs/design-guidelines.md). Before you plan a structural change (a new
@@ -425,8 +427,9 @@ When writing or revising an ADR, read the [authoring rules](docs/adr/README.md).
 
 ## Keeping documentation up to date
 
-When a change touches documented structure (classes, interfaces, data-model records, config
-properties, error codes, behavioral contracts), update the matching doc in the same change:
+Update the docs in the same change as the code. Follow the
+[documentation rules](docs/documentation-rules.md): where each doc goes, how to find the docs that a
+change affects, and the checks that `ReferenceDocsTest` does.
 
 - **`AGENTS.md`** (this file): rules and links (mental model, navigation, glossary, gotchas,
   build/test commands). Each fact has one home: a module doc, a doc in `docs/`, or a Javadoc. Do not
