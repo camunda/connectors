@@ -361,7 +361,7 @@ applies it to its persisted context, and the next round continues with the conte
   built.
 - For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
   document goes out as content, as before, unless the process sets the delivery `reference` (the v2 templates preset it):
-  then the content is added on request; a document of an external URL always goes out as content. A document in a tool
+  then the content is added on request. A document in a tool
   result is text, its handle, instead of a `DocumentContent` or the reference JSON, and the content of a document follows
   in a user message only when the model loaded it with `c8__load_document` or the tool has the delivery `content`. A
   custom `ChatModel` that handles `DocumentContent` in tool results therefore sees text for these instances; instances
