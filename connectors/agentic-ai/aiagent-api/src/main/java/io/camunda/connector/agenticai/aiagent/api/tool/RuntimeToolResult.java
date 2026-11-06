@@ -19,9 +19,17 @@ import java.util.Objects;
  *
  * <p>The content is handled like the result of a tool of the process: text is shown as it is, an
  * {@link io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent object} as
- * JSON. A {@link io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent
- * document}, also one nested in an object, is new to the agent: the agent registers it, and the
- * model reads its tag, never its content, store id, content hash or URL.
+ * JSON.
+ *
+ * <p>How the model reads a {@link
+ * io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent document}, also one
+ * nested in an object, depends on the agent instance. For an instance that tracks its documents
+ * (one created with the {@link
+ * io.camunda.connector.agenticai.aiagent.model.AgentFeatures#DOCUMENTS} feature), the document is
+ * new to the agent: the agent registers it, and the model reads its handle, never its content,
+ * store id, content hash or URL. For an instance without the feature, the model reads the document
+ * reference in the tool result and the content of the document in a message after the tool results,
+ * as for a tool of the process.
  */
 @Experimental
 public sealed interface RuntimeToolResult {
