@@ -104,6 +104,8 @@ that caused it.
    - The engine rejects a stale lease only on create. On update, it accepts the command and skips the
      status change.
    - Do not document fencing that the engine does not do.
+   - In a review, flag a Javadoc, comment or document that claims a guarantee (fencing, ordering,
+     idempotency) that the other system does not enforce.
    - Why: older docs claimed fencing that the engine did not do. (#8342)
 6. **Tests pin the whole observable outcome.** An assertion covers the complete result and the number
    of interactions, not a subset. This rule applies to all test code, including the e2e module.
