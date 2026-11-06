@@ -1841,9 +1841,7 @@ sub-process flavor runs the detailed scenarios: a document parameter, union para
 eviction, a runtime tool that returns a document, and the history audit. The task flavor keeps the user prompt document
 tests and the tests of instances without the feature. A shared assertion checks every recorded model request for store
 ids and content hashes. Not covered end to end are real-provider document tests
-(paid model calls), a gateway handler with document parameters (unit tests only) and the wire format of a document with
-content on Bedrock (converter unit tests only, because the event-stream response bodies cannot carry the id
-placeholders).
+(paid model calls) and a gateway handler with document parameters (unit tests only).
 
 ---
 
