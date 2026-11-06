@@ -87,7 +87,7 @@ class ToolCallResultsInputBuilderTest {
   private static String withheldHandleOf(Document archive) {
     return DocumentHandle.of(archive)
         .withNote(
-            "Documents of type application/zip cannot be loaded. Pass the handle to a tool that processes it.")
+            "Documents of type application/zip cannot be loaded. If one of your tools can process the document, pass the handle to it.")
         .text();
   }
 

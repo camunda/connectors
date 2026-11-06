@@ -2053,9 +2053,9 @@ and the documents the result returns are registered. The note is a standalone se
 
 | Check | Note |
 |-------|------|
-| the document is an external one (a URL) | `An external document cannot be loaded. Pass the handle to a tool that processes it.` |
-| the content type is missing or no model provider renders it | `Documents of type X cannot be loaded. Pass the handle to a tool that processes it.` (`A document without a content type cannot be loaded. ...` without a content type, `A document with a content type that cannot be read cannot be loaded. ...` for one that cannot be parsed) |
-| the size exceeds the limit of the kind of content | `The document is too large to load (S, limit L). Pass the handle to a tool that processes it.` (`S` is left out when the size is not known and the document was read up to the limit only) |
+| the document is an external one (a URL) | `An external document cannot be loaded. If one of your tools can process the document, pass the handle to it.` |
+| the content type is missing or no model provider renders it | `Documents of type X cannot be loaded. If one of your tools can process the document, pass the handle to it.` (`A document without a content type cannot be loaded. ...` without a content type, `A document with a content type that cannot be read cannot be loaded. ...` for one that cannot be parsed) |
+| the size exceeds the limit of the kind of content | `The document is too large to load (S, limit L). If one of your tools can process the document, pass the handle to it.` (`S` is left out when the size is not known and the document was read up to the limit only) |
 | the size cannot be read | `The document could not be read.` (the cause is logged); the model can retry |
 
 Every note is plain text with no incident; the model retries or goes another way. The builder follows the tool result

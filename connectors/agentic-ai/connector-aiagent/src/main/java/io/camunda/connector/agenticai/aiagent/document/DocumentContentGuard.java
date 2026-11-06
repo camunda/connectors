@@ -127,7 +127,8 @@ public final class DocumentContentGuard {
     }
   }
 
-  private static final String PASS_THE_HANDLE = " Pass the handle to a tool that processes it.";
+  private static final String PASS_THE_HANDLE =
+      " If one of your tools can process the document, pass the handle to it.";
 
   /** The kinds of content the providers tell apart. */
   private enum Kind {
