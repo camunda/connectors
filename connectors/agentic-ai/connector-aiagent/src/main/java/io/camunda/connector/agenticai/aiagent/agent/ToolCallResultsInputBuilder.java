@@ -9,10 +9,10 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
@@ -116,8 +116,9 @@ public class ToolCallResultsInputBuilder {
           case DocumentContentDelivery.Outcome.Withheld withheld ->
               followUp.add(
                   textContent(
-                      DocumentHandles.text(
-                          DocumentHandles.of(known, withheld.id()).withNote(withheld.note()))));
+                      AgentDocumentHandle.of(known, withheld.id())
+                          .withNote(withheld.note())
+                          .text()));
         }
       }
       handledIds.addAll(requestedContent);

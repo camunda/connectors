@@ -253,7 +253,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             new ToolCallStub(
                 "get111",
                 "c8__load_document",
-                "{\"id\": {\"type\":\"camunda.agent_document\",\"id\":\"@@DOC_ID_0@@\"}}")),
+                "{\"id\": {\"type\":\"camunda.agenticai.document\",\"id\":\"@@DOC_ID_0@@\"}}")),
         TurnStub.text(responseText, 11, 22));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -312,7 +312,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             new ToolCallStub(
                 "get111",
                 "c8__load_document",
-                "{\"id\": {\"type\":\"camunda.agent_document\",\"id\":\"@@DOC_ID_0@@\"}}")),
+                "{\"id\": {\"type\":\"camunda.agenticai.document\",\"id\":\"@@DOC_ID_0@@\"}}")),
         TurnStub.text(responseText, 11, 22));
     enqueueUserFeedback(userSatisfiedFeedback());
 
@@ -345,7 +345,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
 
   /** The handle of a document, which the model reads as text. */
   private static final String HANDLE_REGEX =
-      "\\{\"type\":\"camunda\\.agent_document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}";
+      "\\{\"type\":\"camunda\\.agenticai\\.document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}";
 
   private static final Map<String, Object> HAIKU_SCHEMA =
       Map.of(

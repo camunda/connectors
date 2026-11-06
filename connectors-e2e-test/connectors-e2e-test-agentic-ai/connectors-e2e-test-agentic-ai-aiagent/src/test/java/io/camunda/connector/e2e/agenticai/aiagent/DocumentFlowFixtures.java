@@ -86,7 +86,7 @@ public final class DocumentFlowFixtures {
    * parameter takes the handle of a document.
    */
   public static String handle(String documentId) {
-    return "{\"type\":\"camunda.agent_document\",\"id\":\"%s\"}".formatted(documentId);
+    return "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\"}".formatted(documentId);
   }
 
   /** Loads the first known document of the request. */

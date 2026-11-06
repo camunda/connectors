@@ -181,7 +181,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(results.get(0).content())
         .isEqualTo(
             "Parameter 'document' must be a document handle such as"
-                + " {\"type\":\"camunda.agent_document\",\"id\":\"doc_…\"} of a known document.");
+                + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"} of a known document.");
     assertThat(results.get(1).content()).contains("pong");
 
     // only the retry with the handle of the downloaded document uploads
