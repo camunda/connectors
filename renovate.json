@@ -162,6 +162,16 @@
       "enabled": false
     },
     {
+      "description": "Disable major version updates for anthropic-java — 3.x sends Anthropic API version 2026-10-21 by default, in which the temperature, top_p and top_k request parameters are removed (a request that sends any of them returns a 400 error). The AI Agent connector still exposes these parameters for models that accept them, so they cannot be dropped while the old API version and those models need to be supported. Tracked in camunda/connectors#10236. Re-enable once the parameters can be removed from the connector configuration.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "matchPackageNames": [
+        "com.anthropic:anthropic-java*"
+      ],
+      "enabled": false
+    },
+    {
         "description": "kafka-clients: stay on the Apache versioning track. The Confluent Platform builds (-ce/-ccs/-cp suffixes, e.g. 8.2.1-ce) are republished under the same org.apache.kafka coordinates via artifacts.camunda.com and must not be treated as upgrades to the Apache releases (x.y.z).",
         "matchPackageNames": [
           "org.apache.kafka:kafka-clients"
