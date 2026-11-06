@@ -26,10 +26,12 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.fi
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.document.ProviderToolDefinitions;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -38,20 +40,23 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 
 /**
  * A tool parameter that takes text or a document ({@code fromAi(..., schema: {"anyOf": [{"type":
- * "string"}, {"type": "document"}]})}): the model provider gets a plain string with the hint, a tag
- * of a known document reaches the tool as the Camunda document reference, and every other text
- * reaches it as text.
+ * "string"}, {"type": "document"}]})}): the model provider gets the union of a string and the
+ * schema of a document handle, the handle of a known document reaches the tool as the Camunda
+ * document reference, and every string reaches it as text.
  */
 @SlowTest
 public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProcessTest {
 
-  private static final String TAG_CALL_ID = "call_send_tag";
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  private static final String HANDLE_CALL_ID = "call_send_handle";
   private static final String TEXT_CALL_ID = "call_send_text";
   private static final String BARE_ID_CALL_ID = "call_send_id";
 
@@ -64,7 +69,7 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
   }
 
   @Test
-  void theToolReceivesTheDocumentReferenceOfATagAndTextForEveryOtherValue() throws Exception {
+  void theToolReceivesTheDocumentReferenceOfAHandleAndTextForEveryString() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()),
         Turn.toolCalls(
@@ -72,9 +77,9 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
             10,
             20,
             ToolCall.of(
-                TAG_CALL_ID,
+                HANDLE_CALL_ID,
                 "Send_Message",
-                "{\"body\": \"<doc id=\\\"%s\\\" />\"}".formatted(documentId(0))),
+                "{\"body\": %s}".formatted(DocumentFlowFixtures.handle(documentId(0)))),
             ToolCall.of(TEXT_CALL_ID, "Send_Message", "{\"body\": \"plain text\"}"),
             ToolCall.of(
                 BARE_ID_CALL_ID, "Send_Message", "{\"body\": \"%s\"}".formatted(documentId(0)))),
@@ -87,18 +92,16 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
     final var id = documentIdOfToolResult(recorded, DOWNLOAD_CALL_ID);
 
     final var messages = recorded.lastRequest().messages();
-    // a tag is the document, text is text, also text that equals the id of a known document
+    // a handle object is the document, a string is text, also one that equals the id of a known
+    // document
     assertThat(toolResult(messages, TEXT_CALL_ID)).contains("text:plain text");
     assertThat(toolResult(messages, BARE_ID_CALL_ID)).contains("text:" + id);
 
-    // the model provider gets a plain string with the hint for the parameter
+    // the model provider gets the union of a string and the schema of a document handle
     final var rawRequest = OpenAiCompletionsRecordedConversation.recordedRawBodies().getFirst();
     final var body = toolParameters(rawRequest, "Send_Message").path("properties").path("body");
-    assertThat(body.fieldNames()).toIterable().containsExactlyInAnyOrder("type", "description");
-    assertThat(body.path("type").asText()).isEqualTo("string");
-    assertThat(body.path("description").asText())
-        .startsWith("The message body.")
-        .endsWith(ProviderToolDefinitions.UNION_HINT);
+    assertThat(body)
+        .isEqualTo(OBJECT_MAPPER.valueToTree(DocumentSchemas.textOrDocument("The message body.")));
 
     assertAgentResponse(
         zeebeTest,
@@ -106,7 +109,7 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(FINAL_TEXT);
-          // the tool gets the Camunda document reference of the document the tag names
+          // the tool gets the Camunda document reference of the document the handle names
           final var camundaDocumentId =
               ((CamundaDocumentReference)
                       agentResponse
@@ -116,18 +119,18 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
                           .orElseThrow()
                           .reference())
                   .getDocumentId();
-          assertThat(toolResult(messages, TAG_CALL_ID)).contains("document:" + camundaDocumentId);
-          // the persisted definition keeps the alternatives with the document format, without the
-          // hint
+          assertThat(toolResult(messages, HANDLE_CALL_ID))
+              .contains("document:" + camundaDocumentId);
+          // the persisted definition holds the same union
           final var send =
               agentResponse.context().toolDefinitions().stream()
                   .filter(definition -> "Send_Message".equals(definition.name()))
                   .findFirst()
                   .orElseThrow();
-          assertThat(send.inputSchema().toString())
-              .contains("anyOf", "format=camunda-document-id")
-              .contains("The message body.")
-              .doesNotContain(ProviderToolDefinitions.UNION_HINT);
+          assertThat(send.inputSchema())
+              .extractingByKey("properties")
+              .asInstanceOf(InstanceOfAssertFactories.MAP)
+              .containsEntry("body", DocumentSchemas.textOrDocument("The message body."));
         });
     assertNoDocumentInternalsInLlmRequests();
   }

@@ -25,13 +25,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Replaces document id placeholders in a stubbed model response with the ids of the {@code <doc/>}
- * tags found in the request the model is answering.
+ * Replaces document id placeholders in a stubbed model response with the document ids found in the
+ * request the model is answering.
  *
  * <p>Document ids are derived from the identity of the document, which a scripted model cannot know
  * up front. A placeholder {@code @@DOC_ID_n@@} resolves to the n-th distinct document id (order of
- * first appearance, zero based) in the request body. A placeholder without a matching tag is left
- * untouched, which surfaces as an unknown id in the agent.
+ * first appearance, zero based) in the request body, wherever it appears in it, so the escaping of
+ * the surrounding text does not matter. A placeholder without a matching id is left untouched,
+ * which surfaces as an unknown id in the agent.
  *
  * <p>The transformer applies to every stub, so the scripted model of any provider can use the
  * placeholders; a response without a placeholder is left untouched.
@@ -40,9 +41,7 @@ public final class DocumentIdPlaceholderTransformer implements ResponseDefinitio
 
   public static final String NAME = "document-id-placeholders";
 
-  // the tag sits in a JSON string that may itself be embedded in another JSON string, so the quotes
-  // around the id carry an arbitrary number of escaping backslashes
-  private static final Pattern TAG_ID = Pattern.compile("<doc id=(?:\\\\)*\"([^\\\\\"]+)");
+  private static final Pattern DOCUMENT_ID = Pattern.compile("doc_[0-9a-f]{12}");
   private static final Pattern PLACEHOLDER = Pattern.compile("@@DOC_ID_(\\d+)@@");
 
   /** The placeholder for the n-th document id (zero based) of the request. */
@@ -69,9 +68,9 @@ public final class DocumentIdPlaceholderTransformer implements ResponseDefinitio
     }
 
     final var ids = new LinkedHashSet<String>();
-    final var tagMatcher = TAG_ID.matcher(serveEvent.getRequest().getBodyAsString());
-    while (tagMatcher.find()) {
-      ids.add(tagMatcher.group(1));
+    final var idMatcher = DOCUMENT_ID.matcher(serveEvent.getRequest().getBodyAsString());
+    while (idMatcher.find()) {
+      ids.add(idMatcher.group());
     }
     final var idList = ids.stream().toList();
 

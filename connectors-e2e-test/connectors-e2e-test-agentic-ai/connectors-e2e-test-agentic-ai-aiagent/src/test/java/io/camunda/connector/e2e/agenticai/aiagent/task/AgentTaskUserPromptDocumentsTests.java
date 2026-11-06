@@ -18,8 +18,8 @@ package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentTagPart;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -35,7 +35,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/** The documents of the user prompt: the model gets the tag and the content of every document. */
+/**
+ * The documents of the user prompt: the model gets the handle and the content of every document.
+ */
 @SlowTest
 public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
 
@@ -80,17 +82,18 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(recorded.lastRequest().messages().get(0).role()).isEqualTo("system");
     assertThat(recorded.lastRequest().messages().get(0).content()).isEqualTo(SYSTEM_PROMPT);
 
-    // user message: the prompt text, the <doc/> tag and the content of the document (text files
+    // user message: the prompt text, the handle and the content of the document (text files
     // produce two text-type blocks; assertConversationMessages would concatenate them)
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.contentParts()).as("prompt text + <doc/> tag + content").hasSize(3);
+    assertThat(userMessage.contentParts()).as("prompt text + handle + content").hasSize(3);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentTagPart(userMessage.contentParts().get(1));
+    assertDocumentHandlePart(userMessage.contentParts().get(1));
     assertThat(
-            parseDocumentTag(userMessage.contentParts().get(1).path("text").asText()).contentType())
+            parseDocumentHandle(userMessage.contentParts().get(1).path("text").asText())
+                .contentType())
         .isEqualTo(mimeType(filename));
     assertDocumentContentBlockJson(
         userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
@@ -137,18 +140,18 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(recorded.lastRequest().messages().get(0).role()).isEqualTo("system");
     assertThat(recorded.lastRequest().messages().get(0).content()).isEqualTo(SYSTEM_PROMPT);
 
-    // user message: prompt text, then a <doc/> tag and the content for each of the two documents
+    // user message: prompt text, then a handle and the content for each of the two documents
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
     assertThat(userMessage.contentParts())
-        .as("prompt text + a <doc/> tag and the content for each of the 2 documents")
+        .as("prompt text + a handle and the content for each of the 2 documents")
         .hasSize(5);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentTagPart(userMessage.contentParts().get(1));
+    assertDocumentHandlePart(userMessage.contentParts().get(1));
     assertDocumentContentBlockJson(userMessage.contentParts().get(2), "text", "text/plain");
-    assertDocumentTagPart(userMessage.contentParts().get(3));
+    assertDocumentHandlePart(userMessage.contentParts().get(3));
     assertDocumentContentBlockJson(userMessage.contentParts().get(4), "base64", "image/jpeg");
 
     assertAgentResponse(

@@ -17,7 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.common.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -360,10 +360,10 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
     final var toolResultText = lastMessages.get(3).content();
-    final var documentTag = parseDocumentTag(toolResultText);
+    final var documentHandle = parseDocumentHandle(toolResultText);
     assertThat(lastMessages.get(3).role()).isEqualTo("tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("img111");
-    assertThat(documentTag.contentType()).isEqualTo("image/png");
+    assertThat(documentHandle.contentType()).isEqualTo("image/png");
 
     assertAgentResponse(
         zeebeTest,
