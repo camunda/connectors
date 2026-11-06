@@ -18,8 +18,8 @@ should be called out (here or in the PR) rather than left implicit.
 
 This file covers how to approach a change. It does not restate two neighbouring concerns:
 
-- Module operating rules (testing, the Definition of Done, ADRs, architectural invariants) live in the
-  module's own `AGENTS.md` (for agentic-ai: [`AGENTS.md`](../AGENTS.md)).
+- The module's own `AGENTS.md` links its operating rules (testing, the Definition of Done, ADRs and
+  architectural invariants; for agentic-ai: [`AGENTS.md`](../AGENTS.md)).
 - Repo-wide build, commit, PR, CI, spotless, and license conventions live in the repo-root `AGENTS.md`.
 
 These guidelines bias toward caution over speed. For trivial tasks, use judgment. Keep responses and
@@ -65,5 +65,15 @@ Define success criteria, then loop until verified.
 - Strong criteria let you work independently; weak criteria such as "make it work" force repeated
   re-clarification.
 
-For verification specifics (unit vs e2e, the Definition of Done, TDD), see your module's `AGENTS.md`
+For verification specifics (test levels and the Definition of Done), see your module's `AGENTS.md`
 (for agentic-ai: [`AGENTS.md`](../AGENTS.md)).
+
+## 5. Code comments and javadoc
+
+Write comments only when they clarify a non-obvious contract or constraint; do not narrate the code.
+State the code's own contract, not another module's rationale. Describe what a method does, its
+parameter requirements and precise caller-visible triggers. Link to sibling types in the same
+package when useful (e.g. `handleNoInput` to `CompositionResult.NoInput`).
+Do not use another package or module's internals or decision history to justify a precondition.
+If understanding a precondition requires reading a caller across that boundary, document the coupling
+in an ADR or reference doc, not the method's javadoc.
