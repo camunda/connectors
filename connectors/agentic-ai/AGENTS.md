@@ -232,7 +232,9 @@ High-frequency traps (detail behind each link):
   for `RUNTIME`, `rejection` only when set), so every conversation store must keep them. A call with a rejection
   (a rejected call) gets its rejection as its tool call result and is never executed, also when a runtime tool of that
   name is enabled later; the calls of runtime tools go to `RuntimeTools`. Both are local tool calls
-  (`ToolCall.isLocal()`), the calls whose tool call result the agent produces itself, in `LocalToolCallExecutor` only. When the model issues local tool calls and process tool calls together, only
+  (`ToolCall.isLocal()`), the calls whose tool call result the agent produces itself: the rejection when the
+  `ToolCallBatch` is created, the calls of runtime tools in `LocalToolCallExecutor` only. An interrupting event cancels
+  every call without a result, also the calls of runtime tools that were not executed yet. When the model issues local tool calls and process tool calls together, only
   the process tool calls are activated, and the agent adds the tool call results of the local tool calls when the next
   turn is composed, merged with the process results in call order. `ai-agent.md` §9, [ADR 016](docs/adr/016-runtime-tools.md).
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built

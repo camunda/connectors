@@ -119,16 +119,20 @@ The kind and the rejection give the **result source** of a call, who produces it
 * the agent for a **rejected** call.
 
 A **local tool call** is a call whose tool call result the agent produces itself: the call of a runtime tool and the
-rejected call. A **process tool call** gets its tool call result from the process. After admission, only one step of the
-agent reads the result source: the step that produces the tool call results of the local tool calls. The tool calls of
-an assistant message and their results form a batch, and the input of the next turn is assembled from the batch without
-knowing where a result came from.
+rejected call. A **process tool call** gets its tool call result from the process. The tool calls of an assistant
+message and their results form a batch. A rejected call has its result from the moment the batch is created: its
+rejection, decided at admission. After admission, the result source is read in two places only: when the batch is
+created, for the rejected calls, and in the step that executes the calls of runtime tools. The input of the next turn
+is assembled from the batch without knowing where a result came from.
 
 The composer of the next turn never executes a tool or changes the context. If the message has local tool calls only,
 the agent adds their tool call results in the same job and calls the model again; this round counts against the
 model-call limit. If the message also has process calls, **only the process calls are activated**. The agent produces
 the tool call results of the local tool calls in the job that receives the process results, and the input of the next
-turn has all results in call order. An interrupted turn still gets them.
+turn has all results in call order. When an event interrupts the tool calls, every call of the batch that has no
+result yet is cancelled: the missing process calls and the calls of runtime tools, which were not executed yet. A
+runtime tool therefore never runs once the agent has told the model that the tool executions were canceled. A rejected
+call keeps its rejection.
 
 The alternatives for mixed batches were:
 
@@ -159,8 +163,9 @@ The contract is stated in the javadoc of the SPI. A tool author can rely on it, 
 * **Below the job timeout.** The framework neither cancels nor times out a call.
 * **Failures** as described above.
 
-A rejected call gets an error result from the agent, and a runtime call whose tool is no longer enabled when it is
-executed gets the error result that the tool is not available from the executor. Neither goes to the process.
+A rejected call gets its rejection as its error result from the agent and is never executed, and a runtime call
+whose tool is no longer enabled when it is executed gets the error result that the tool is not available from the
+executor. Neither goes to the process.
 
 The executor keeps the start and completion time of every call, so later metrics and events with durations need no
 change of the contract.
