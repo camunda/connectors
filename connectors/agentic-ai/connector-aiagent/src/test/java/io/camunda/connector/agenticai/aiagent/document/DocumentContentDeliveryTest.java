@@ -58,7 +58,7 @@ class DocumentContentDeliveryTest {
   private Outcome withheldArchive() {
     return new Outcome.Withheld(
         idOf(archive),
-        "Documents of type application/zip cannot be loaded. Pass the handle to a tool that processes it.");
+        "Documents of type application/zip cannot be loaded. If one of your tools can process the document, pass the handle to it.");
   }
 
   @Test

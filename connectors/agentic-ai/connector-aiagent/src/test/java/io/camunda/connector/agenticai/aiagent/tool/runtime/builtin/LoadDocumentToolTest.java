@@ -273,7 +273,7 @@ class LoadDocumentToolTest {
         .containsExactly(
             notLoaded(
                 entry,
-                "The document is too large to load (300 KB, limit 256 KB). Pass the handle to a tool that processes it."));
+                "The document is too large to load (300 KB, limit 256 KB). If one of your tools can process the document, pass the handle to it."));
   }
 
   @Test
@@ -287,7 +287,7 @@ class LoadDocumentToolTest {
         .containsExactly(
             notLoaded(
                 entry,
-                "An external document cannot be loaded. Pass the handle to a tool that processes it."));
+                "An external document cannot be loaded. If one of your tools can process the document, pass the handle to it."));
   }
 
   @Test
