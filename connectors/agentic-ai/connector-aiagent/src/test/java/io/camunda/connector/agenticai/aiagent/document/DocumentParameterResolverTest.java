@@ -53,9 +53,22 @@ class DocumentParameterResolverTest {
     return Map.of("type", "camunda.agenticai.document", "id", id.value());
   }
 
-  private static String problem(String path) {
-    return ("Parameter '%s' must be a document handle such as"
-            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"} of a known document.")
+  private static String notAHandle(String path) {
+    return ("Parameter '%s' must be the handle of a document from the conversation: a JSON object"
+            + " such as {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.")
+        .formatted(path);
+  }
+
+  private static String unknownId(String path, String id) {
+    return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
+            + " Pass the handle of a document from the conversation: a JSON object such as"
+            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.")
+        .formatted(path, id);
+  }
+
+  private static String noDocuments(String path) {
+    return ("Parameter '%s' takes a document, but the conversation has no documents. Do not pass a"
+            + " document.")
         .formatted(path);
   }
 
@@ -130,7 +143,7 @@ class DocumentParameterResolverTest {
   @Test
   void aDocumentParameterRejectsTheBareIdOfAnUnknownDocument() {
     assertThat(resolve(Map.of("a", "doc_000000000000"), object("a", DOC)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("a"))));
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("a", "doc_000000000000"))));
   }
 
   @Test
@@ -194,35 +207,72 @@ class DocumentParameterResolverTest {
   void rejectsEveryValueThatIsNotTheHandleOfAKnownDocumentForADocumentParameter() {
     final var withoutType = Map.of("id", firstId.value());
     final var otherType = Map.of("type", "other", "id", firstId.value());
-    final var unknownId = Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000");
+    final var unknownHandle =
+        Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000");
     final var blankId = Map.of("type", "camunda.agenticai.document", "id", " ");
     final var numberId = Map.of("type", "camunda.agenticai.document", "id", 7);
     final var noId = Map.of("type", "camunda.agenticai.document");
+
+    final Map<Object, String> withUnknownId =
+        Map.of(
+            unknownHandle,
+            "doc_000000000000",
+            "doc_000000000000",
+            "doc_000000000000",
+            "nope",
+            "nope",
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_000000000000\"}",
+            "doc_000000000000",
+            "[" + json(firstHandle) + "]",
+            "[" + json(firstHandle) + "]");
+    withUnknownId.forEach((invalid, id) ->
+        assertThat(resolve(Map.of("doc", invalid), object("doc", DOC)))
+            .as("%s", invalid)
+            .isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", id)))));
 
     for (final Object invalid :
         List.of(
             withoutType,
             otherType,
-            unknownId,
             blankId,
             numberId,
             noId,
             Map.of(),
-            "doc_000000000000",
-            "nope",
             "  ",
             "{\"id\":\"" + firstId + "\"}",
-            "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_000000000000\"}",
             "{not json",
             json(firstHandle) + " and more",
             json(firstHandle) + json(secondHandle),
-            "[" + json(firstHandle) + "]",
             42,
             true,
             List.of(firstHandle))) {
       assertThat(resolve(Map.of("doc", invalid), object("doc", DOC)))
           .as("%s", invalid)
-          .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
+          .isEqualTo(new Resolution.Invalid(List.of(notAHandle("doc"))));
+    }
+  }
+
+  @Test
+  void tellsThatTheConversationHasNoDocumentsForEveryInvalidValueOfADocumentParameter() {
+    final var withoutDocuments =
+        AgentContext.empty().withFeatures(List.of(AgentFeatures.DOCUMENTS));
+    final var definition = definition("upload", object("doc", DOC));
+
+    for (final Object value :
+        List.of(
+            "doc_000000000000",
+            "nope",
+            "",
+            42,
+            Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000"),
+            Map.of("id", "x"))) {
+      assertThat(
+              resolver.check(
+                  withoutDocuments,
+                  new ToolCall("call", "upload", Map.of("doc", value)),
+                  definition))
+          .as("%s", value)
+          .isEqualTo(new Resolution.Invalid(List.of(noDocuments("doc"))));
     }
   }
 
@@ -235,7 +285,10 @@ class DocumentParameterResolverTest {
     assertThat(resolve(arguments, object("docs", array(DOC), "req", object("file", DOC))))
         .isEqualTo(
             new Resolution.Invalid(
-                List.of(problem("docs[1]"), problem("docs[2]"), problem("req.file"))));
+                List.of(
+                    unknownId("docs[1]", "nope"),
+                    notAHandle("docs[2]"),
+                    unknownId("req.file", "gone"))));
   }
 
   @Test
@@ -278,7 +331,12 @@ class DocumentParameterResolverTest {
     final var schema = object("a", DOC, "b", DOC, "c", DOC, "d", DOC);
 
     final var expected =
-        new Resolution.Invalid(List.of(problem("a"), problem("b"), problem("c"), problem("d")));
+        new Resolution.Invalid(
+            List.of(
+                unknownId("a", "nope"),
+                notAHandle("b"),
+                notAHandle("c"),
+                unknownId("d", "doc_000000000000")));
     assertThat(resolveRuntime(arguments, schema)).isEqualTo(expected);
     assertThat(resolve(arguments, schema)).isEqualTo(expected);
   }
@@ -324,7 +382,7 @@ class DocumentParameterResolverTest {
     assertThat(result)
         .isInstanceOfSatisfying(
             Resolution.Invalid.class,
-            invalid -> assertThat(invalid.message()).isEqualTo(problem("doc")));
+            invalid -> assertThat(invalid.message()).isEqualTo(unknownId("doc", "nope")));
   }
 
   @Test
@@ -338,7 +396,7 @@ class DocumentParameterResolverTest {
             Resolution.Invalid.class,
             invalid ->
                 assertThat(invalid.message())
-                    .isEqualTo(problem("docs[0]") + " " + problem("docs[1]")));
+                    .isEqualTo(unknownId("docs[0]", "a") + " " + unknownId("docs[1]", "b")));
   }
 
   @Test
@@ -408,7 +466,7 @@ class DocumentParameterResolverTest {
         resolver.resolveRuntimeCall(
             agentContext(), call, definition("c8__read", object("file", DOC)));
 
-    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(problem("file"))));
+    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(unknownId("file", "none"))));
   }
 
   @Test
@@ -420,7 +478,7 @@ class DocumentParameterResolverTest {
     assertThat(resolver.check(agentContext(), valid, definition))
         .isEqualTo(new Resolution.Resolved(Map.of("doc", firstId)));
     assertThat(resolver.check(agentContext(), invalid, definition))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", "nope"))));
     assertThat(
             resolver.check(
                 agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
@@ -490,15 +548,20 @@ class DocumentParameterResolverTest {
 
   @Test
   void aUnionParameterRejectsAnObjectWithTheHandleTypeAndAnUnknownIdOrNoId() {
+    assertThat(
+            resolve(
+                Map.of(
+                    "doc", Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000")),
+                object("doc", UNION)))
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", "doc_000000000000"))));
     for (final Object invalid :
         List.of(
-            Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000"),
             Map.of("type", "camunda.agenticai.document"),
             Map.of("type", "camunda.agenticai.document", "id", 5),
             Map.of("type", "camunda.agenticai.document", "id", " "))) {
       assertThat(resolve(Map.of("doc", invalid), object("doc", UNION)))
           .as("%s", invalid)
-          .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
+          .isEqualTo(new Resolution.Invalid(List.of(notAHandle("doc"))));
     }
   }
 
@@ -576,7 +639,7 @@ class DocumentParameterResolverTest {
             Map.of("items", List.of("text", handle(AgentDocumentId.of("none")))),
             object("items", array(UNION)));
 
-    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(problem("items[1]"))));
+    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(unknownId("items[1]", "none"))));
   }
 
   @Test
@@ -622,7 +685,7 @@ class DocumentParameterResolverTest {
         .isEqualTo(
             new Resolution.Resolved(Map.of("doc", reference(firstId), "text", firstId.value())));
     assertThat(resolve(Map.of("doc", "nope", "text", "nope"), object("doc", DOC, "text", UNION)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", "nope"))));
   }
 
   @Test
@@ -663,7 +726,7 @@ class DocumentParameterResolverTest {
     assertThat(
             resolveRuntime(
                 Map.of("handle", handle(AgentDocumentId.of("none"))), object("handle", UNION)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("handle"))));
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("handle", "none"))));
   }
 
   @Test
@@ -683,7 +746,7 @@ class DocumentParameterResolverTest {
         new ToolCall("call", "send", Map.of("body", handle(AgentDocumentId.of("none"))));
 
     assertThat(resolver.resolveProcessCall(agentContext(), call))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("body"))));
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("body", "none"))));
   }
 
   @Test
@@ -706,7 +769,7 @@ class DocumentParameterResolverTest {
     assertThat(
             resolver.resolveRuntimeCall(
                 agentContext(), call, definition("c8__send", object("body", UNION))))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("body"))));
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("body", "none"))));
   }
 
   @Test

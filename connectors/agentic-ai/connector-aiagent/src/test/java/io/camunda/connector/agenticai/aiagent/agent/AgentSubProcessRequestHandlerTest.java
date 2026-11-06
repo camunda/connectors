@@ -2193,7 +2193,8 @@ class AgentSubProcessRequestHandlerTest {
                       assertThat(result.elementId()).isNull();
                       assertThat(result.completedAt()).isNotNull();
                       assertThat(result.content())
-                          .containsExactly(TextContent.textContent(BOGUS_DOCUMENT));
+                          .containsExactly(
+                              TextContent.textContent(unknownIdRejection("doc", "bogus")));
                     }));
 
     // the call of the final round goes to the process as the model sent it, and the message of
@@ -2210,7 +2211,8 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(c.messages()).hasSize(5);
               assertThat(c.messages().get(2))
                   .isEqualTo(
-                      firstMessage.withToolCalls(List.of(rejectedForBogusDocument(badCall))));
+                      firstMessage.withToolCalls(
+                          List.of(badCall.withRejection(unknownIdRejection("doc", "bogus")))));
               assertThat(c.messages().get(3)).isInstanceOf(ToolCallResultMessage.class);
               assertThat(c.messages().get(4)).isEqualTo(secondMessage);
             });
@@ -2743,16 +2745,23 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
   }
 
-  private static final String BOGUS_DOCUMENT = rejectionFor("doc");
+  private static final String BOGUS_DOCUMENT = noDocumentsRejection("doc");
 
-  private static String rejectionFor(String path) {
-    return ("Parameter '%s' must be a document handle such as"
-            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"} of a known document.")
+  private static String noDocumentsRejection(String path) {
+    return ("Parameter '%s' takes a document, but the conversation has no documents. Do not pass a"
+            + " document.")
         .formatted(path);
   }
 
+  private static String unknownIdRejection(String path, String id) {
+    return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
+            + " Pass the handle of a document from the conversation: a JSON object such as"
+            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.")
+        .formatted(path, id);
+  }
+
   private static ToolCall rejectedForUnknownBody(ToolCall call) {
-    return call.withRejection(rejectionFor("body"));
+    return call.withRejection(noDocumentsRejection("body"));
   }
 
   private static ToolCall rejectedForBogusDocument(ToolCall call) {

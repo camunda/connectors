@@ -45,9 +45,9 @@ class ToolCallAdmissionTest {
   private static final ToolDefinition RUNTIME_SEND_TOOL =
       ToolDefinition.runtime("acme_send", "Send", unionSchema());
 
-  private static final String UNKNOWN_BODY = rejection("body");
+  private static final String UNKNOWN_BODY = rejection("body", "doc_000000000000");
 
-  private static final String BOGUS_DOC = rejection("doc");
+  private static final String BOGUS_DOC = rejection("doc", "bogus");
 
   private static final AgentContext NEW_INSTANCE =
       AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
@@ -128,6 +128,29 @@ class ToolCallAdmissionTest {
   }
 
   @Test
+  void aCallOfEitherKindWithADocumentParameterIsRejectedWhenTheAgentKnowsNoDocuments() {
+    final var knowingNothing =
+        AgentContext.empty()
+            .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+    final var processCall = new ToolCall("p1", "upload", Map.of("doc", REPORT_HANDLE));
+    final var runtimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", "bogus"));
+    final var noDocuments =
+        "Parameter 'doc' takes a document, but the conversation has no documents. Do not pass a"
+            + " document.";
+
+    final var admitted =
+        admission.admit(
+            messageWith(processCall, runtimeCall),
+            List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
+            knowingNothing);
+
+    assertThat(admitted.toolCalls())
+        .containsExactly(
+            processCall.withRejection(noDocuments),
+            runtimeCall.withKind(ToolKind.RUNTIME).withRejection(noDocuments));
+  }
+
+  @Test
   void aRuntimeCallWithAnInvalidDocumentParameterIsRejectedAndKeepsItsKind() {
     final var call = new ToolCall("r1", "acme_upload", Map.of("doc", "bogus"));
 
@@ -175,8 +198,10 @@ class ToolCallAdmissionTest {
         .containsExactly(
             processKnown,
             runtimeKnown.withKind(ToolKind.RUNTIME),
-            processUnknown.withRejection(BOGUS_DOC),
-            runtimeUnknown.withKind(ToolKind.RUNTIME).withRejection(BOGUS_DOC));
+            processUnknown.withRejection(rejection("doc", "doc_000000000000")),
+            runtimeUnknown
+                .withKind(ToolKind.RUNTIME)
+                .withRejection(rejection("doc", "doc_000000000000")));
   }
 
   @Test
@@ -271,10 +296,11 @@ class ToolCallAdmissionTest {
             runtimeHandle.withKind(ToolKind.RUNTIME));
   }
 
-  private static String rejection(String path) {
-    return ("Parameter '%s' must be a document handle such as"
-            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"} of a known document.")
-        .formatted(path);
+  private static String rejection(String path, String id) {
+    return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
+            + " Pass the handle of a document from the conversation: a JSON object such as"
+            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.")
+        .formatted(path, id);
   }
 
   private static Map<String, Object> unionSchema() {
