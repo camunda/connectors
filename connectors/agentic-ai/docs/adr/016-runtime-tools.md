@@ -190,6 +190,10 @@ has no element; a rejected call has none either. In a mixed batch the results ca
   or only workers of one version run.
 * A tool call that names a tool that is not offered, or a runtime tool that is not enabled when it is executed, gets an
   error result, and the model has to recover.
+* A model that keeps calling tools that are not offered, or keeps calling only runtime tools, gets a new model call in
+  the same job for every message, up to the model-call limit. The job then fails before the conversation is stored, so
+  a retry starts from the same state and repeats these model calls and their cost, while the agent instance history
+  already shows the rounds that were not stored. A paused turn that is continued again and again behaves the same way.
 * The model receives the results of the runtime calls of a mixed batch with the next request, together with the process
   results. A process call that never completes holds that request back, as it does for every result of the batch.
 * A tool is executed in the thread of the job without a timeout, so a slow or blocking tool holds the job.
