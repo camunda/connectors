@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -49,6 +50,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
+import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
@@ -58,6 +60,7 @@ import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -1167,6 +1170,184 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages())
         .singleElement()
         .isInstanceOf(ToolCallResultMessage.class);
+  }
+
+  private static AgentConfiguration configWithContextWindow(int contextWindowSize) {
+    return new AgentConfiguration(
+        null,
+        null,
+        null,
+        new MemoryTemplateConfiguration(null, contextWindowSize),
+        null,
+        new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
+        null);
+  }
+
+  /** The content of the first message is the oldest content the context window can keep. */
+  private static PreviousConversation historyWithTheContentFirstAndTheToolCallsLast(
+      Document document) {
+    return TurnReconstructor.reconstruct(
+        List.of(
+            UserMessage.builder()
+                .content(
+                    List.of(
+                        AgentDocumentContent.of(AgentDocumentId.of(document))
+                            .withDelivery(DocumentDelivery.CONTENT)))
+                .build(),
+            assistantMessage("first"),
+            userMessage("more"),
+            assistantMessage("thinking", MIXED_CALLS)));
+  }
+
+  private static ToolCallResult eventResult() {
+    return ToolCallResult.builder().content("event").build();
+  }
+
+  private List<Content> contentOfTheLoadingResult(
+      AgentConfiguration configuration, Document document, ToolCallResult... eventResults) {
+    var id = AgentDocumentId.of(document);
+    var results = new ArrayList<ToolCallResult>();
+    results.add(TOOL_CALL_RESULTS.get(1));
+    results.addAll(Arrays.asList(eventResults));
+    var ready =
+        resolveReady(
+            configuration,
+            contextKnowing(document),
+            historyWithTheContentFirstAndTheToolCallsLast(document),
+            AgentInput.from(new UserPromptConfiguration("user input", List.of()), results));
+
+    var messages = composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages();
+
+    return ((ToolCallResultMessage) messages.getFirst()).results().getFirst().content();
+  }
+
+  @Test
+  void runtimeToolCalls_aDocumentInTheOldestMessageOfTheWindowIsInTheConversationOfTheModelCall() {
+    // 4 previous messages + the tool call result message fill the window of 5
+    var document = createDocument("first", "text/plain", "first.txt");
+    var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
+
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(5), document))
+        .containsExactly(
+            textContent("Loaded the document."),
+            textContent("The content of " + ref + " is already in the conversation."));
+  }
+
+  @Test
+  void runtimeToolCalls_aDocumentThatTheToolCallResultMessageSqueezesOutOfTheWindowIsAddedAgain() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
+
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(4), document))
+        .containsExactly(
+            textContent("Loaded the document."),
+            textContent("The content of " + ref + " follows in the next message."));
+  }
+
+  @Test
+  void runtimeToolCalls_aDocumentThatAnEventMessageSqueezesOutOfTheWindowIsAddedAgain() {
+    // 4 previous messages + the tool call result message + the event message exceed the window
+    var document = createDocument("first", "text/plain", "first.txt");
+    var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
+
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(5), document, eventResult()))
+        .containsExactly(
+            textContent("Loaded the document."),
+            textContent("The content of " + ref + " follows in the next message."));
+  }
+
+  @Test
+  void
+      runtimeToolCalls_theContentMessageOfTheDocumentIsDeliveredWhenTheWindowPushesItsContentOut() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var ready =
+        resolveReady(
+            configWithContextWindow(4),
+            contextKnowing(document),
+            historyWithTheContentFirstAndTheToolCallsLast(document),
+            inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    var messages = composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages();
+
+    assertThat(ready.documentIdsWithContent()).isEmpty();
+    assertThat(messages).hasSize(2);
+    assertThat(((UserMessage) messages.get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+            AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT));
+  }
+
+  private static PreviousConversation historyWithTheContentFirst(Document document) {
+    return TurnReconstructor.reconstruct(
+        List.of(
+            UserMessage.builder()
+                .content(
+                    List.of(
+                        AgentDocumentContent.of(AgentDocumentId.of(document))
+                            .withDelivery(DocumentDelivery.CONTENT)))
+                .build(),
+            assistantMessage("one"),
+            userMessage("two"),
+            assistantMessage("three")));
+  }
+
+  @Test
+  void userPrompt_aDocumentInTheOldestMessageOfTheWindowIsInTheConversationOfTheModelCall() {
+    // 4 previous messages + the user prompt message fill the window of 5
+    var document = createDocument("first", "text/plain", "first.txt");
+
+    var ready =
+        resolveReady(
+            configWithContextWindow(5),
+            contextKnowing(document),
+            historyWithTheContentFirst(document),
+            AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of()));
+
+    assertThat(ready.documentIdsWithContent()).containsExactly(AgentDocumentId.of(document));
+  }
+
+  @Test
+  void userPrompt_aDocumentThatTheUserPromptMessageSqueezesOutOfTheWindowIsNotInTheConversation() {
+    var document = createDocument("first", "text/plain", "first.txt");
+
+    var ready =
+        resolveReady(
+            configWithContextWindow(4),
+            contextKnowing(document),
+            historyWithTheContentFirst(document),
+            AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of()));
+
+    assertThat(ready.documentIdsWithContent()).isEmpty();
+  }
+
+  @Test
+  void userPrompt_aDocumentThatAnEventMessageSqueezesOutOfTheWindowIsNotInTheConversation() {
+    var document = createDocument("first", "text/plain", "first.txt");
+
+    var ready =
+        resolveReady(
+            configWithContextWindow(5),
+            contextKnowing(document),
+            historyWithTheContentFirst(document),
+            AgentInput.from(
+                new UserPromptConfiguration("user input", List.of()), List.of(eventResult())));
+
+    assertThat(ready.documentIdsWithContent()).isEmpty();
+  }
+
+  @Test
+  void userPrompt_withoutAPromptMessageOnlyTheEventMessagesCount() {
+    var document = createDocument("first", "text/plain", "first.txt");
+
+    var ready =
+        resolveReady(
+            configWithContextWindow(5),
+            contextKnowing(document),
+            historyWithTheContentFirst(document),
+            AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(eventResult())));
+
+    assertThat(ready.documentIdsWithContent()).containsExactly(AgentDocumentId.of(document));
   }
 
   @Test
