@@ -51,6 +51,23 @@ public final class ToolCallResultDocumentAssertions {
   public static final String DOCUMENT_CONTENT_PREAMBLE =
       "Document content from tool calls (added by the system):";
 
+  /** The file name and the id of a document as the sentences about its content name it. */
+  private static String refOf(ParsedDocumentHandle handle) {
+    return handle.fileName() == null
+        ? handle.id().value()
+        : "%s (%s)".formatted(handle.fileName(), handle.id().value());
+  }
+
+  /** What the agent writes into the tool result when the content follows in the next message. */
+  public static String contentFollowsSentence(ParsedDocumentHandle handle) {
+    return "The content of %s follows in the next message.".formatted(refOf(handle));
+  }
+
+  /** What the agent writes into the tool result when the content is in the conversation. */
+  public static String contentAlreadyInConversationSentence(ParsedDocumentHandle handle) {
+    return "The content of %s is already in the conversation.".formatted(refOf(handle));
+  }
+
   private static final String HANDLE_START = "{\"type\":\"" + AgentDocumentHandle.TYPE + "\"";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();

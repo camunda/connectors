@@ -104,8 +104,9 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
   /**
    * Two tools return the attached document: one as the whole result, one nested in an object (and
-   * twice in it). The history shows the document of the first result as its block only and the
-   * second result as the object with the handles nested in it followed by the document once.
+   * twice in it). The history shows the document of the first result as its handle and the document
+   * and the second result as the object with the handles nested in it followed by the document
+   * once.
    */
   @Test
   void everyModelVisibleMessageOfToolResultDocumentsIsInTheHistory() throws Exception {
@@ -126,8 +127,12 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
     final var fetched = toolResultOf(history, "call_fetch");
     final var described = toolResultOf(history, "call_describe");
     final var promptDocumentHandle = promptDocumentHandleInRequests();
-    assertThat(fetched.getContent())
-        .singleElement()
+    assertThat(fetched.getContent()).hasSize(2);
+    assertThat(fetched.getContent().get(0))
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object -> assertThat(object.getObject()).isEqualTo(promptDocumentHandle));
+    assertThat(fetched.getContent().get(1))
         .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
 
     assertThat(described.getContent()).hasSize(2);

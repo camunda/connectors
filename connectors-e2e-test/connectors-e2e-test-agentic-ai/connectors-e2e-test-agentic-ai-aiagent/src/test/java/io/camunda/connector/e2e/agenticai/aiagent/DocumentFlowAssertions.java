@@ -21,6 +21,8 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GE
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentAlreadyInConversationSentence;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -98,9 +100,9 @@ public final class DocumentFlowAssertions {
 
   /**
    * Asserts the requests of the flow download, {@code c8__load_document}, {@code c8__load_document}
-   * again, upload, final answer: the download shows the handle only, the first load adds the handle
-   * and the content in a message after the tool result, the second load is answered without a
-   * message, and the upload receives the id.
+   * again, upload, final answer: the download shows the handle only, the first load adds the
+   * content in a message after the tool result, the second load is answered without a message, and
+   * the upload receives the id.
    *
    * @param contentBlockAssertion the check of the wire form of the document content
    */
@@ -123,8 +125,7 @@ public final class DocumentFlowAssertions {
         .extracting(m -> m.role())
         .containsExactly("system", "user", "assistant", "tool", "assistant", "tool", "user");
     assertThat(afterLoad.get(5).toolCallId()).isEqualTo(GET_CALL_ID);
-    assertThat(afterLoad.get(5).content())
-        .isEqualTo(handle.text() + "\nThe content follows in the next message.");
+    assertThat(afterLoad.get(5).content()).isEqualTo(contentFollowsSentence(handle));
     assertDocumentContentUserMessage(
         afterLoad.get(6), DocumentWithContent.of(handle, contentBlockAssertion));
 
@@ -134,7 +135,7 @@ public final class DocumentFlowAssertions {
     assertThat(afterSecondLoad.get(8).role()).isEqualTo("tool");
     assertThat(afterSecondLoad.get(8).toolCallId()).isEqualTo(GET_AGAIN_CALL_ID);
     assertThat(afterSecondLoad.get(8).content())
-        .isEqualTo(handle.text() + "\nThe document is already in the conversation.");
+        .isEqualTo(contentAlreadyInConversationSentence(handle));
 
     // the tool received the id and the content is in the conversation once
     final var afterUpload = requests.get(4).messages();
