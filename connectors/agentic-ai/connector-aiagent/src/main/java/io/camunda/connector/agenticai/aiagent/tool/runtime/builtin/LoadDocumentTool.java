@@ -26,7 +26,7 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The built-in {@code c8__get_document} tool. The model calls it to read the content of a known
+ * The built-in {@code c8__load_document} tool. The model calls it to read the content of a known
  * document, which it otherwise sees as a {@code <doc/>} tag only. It is offered to every agent
  * instance with the documents feature.
  *
@@ -39,10 +39,10 @@ import org.jspecify.annotations.Nullable;
  * external document: the document stays a reference and the message that follows the tool results
  * holds a note.
  */
-public final class GetDocumentTool implements RuntimeTool {
+public final class LoadDocumentTool implements RuntimeTool {
 
   /** The tool name, with the prefix of the built-in tools. */
-  public static final String NAME = BuiltInToolNames.PREFIX + "get_document";
+  public static final String NAME = BuiltInToolNames.PREFIX + "load_document";
 
   /** The parameter carrying the document to load. */
   public static final String PARAMETER_ID = "id";
