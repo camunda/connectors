@@ -106,9 +106,9 @@ public sealed interface RuntimeToolResult {
      * {@link RuntimeToolDocuments}, or of a document this result returns ({@link
      * AgentDocumentId#of(Document)}).
      *
-     * <p>The agent writes into the tool result one sentence per document it is asked for, after the
-     * content of the result: the content follows in the next message, it is not loaded and why, or
-     * it is in the conversation already. A tool therefore needs no text of its own for the
+     * <p>The agent ends the result with one sentence per document it is asked for: the content
+     * follows in the next message, it is not loaded and why, or it is in the conversation already.
+     * The tool does not write such a sentence itself, so it needs no text of its own for the
      * document. The agent runs its content guard before it adds anything: when the document is not
      * allowed as content, for example because of its type or its size, the document stays a
      * reference and the sentence tells the model why the content is not loaded. A document whose

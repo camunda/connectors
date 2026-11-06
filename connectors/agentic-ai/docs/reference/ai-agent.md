@@ -2626,7 +2626,8 @@ the persisted `AgentDocument` of `aiagent-model`; `document(AgentDocumentId)` re
 an `IllegalArgumentException`, a reference that cannot be restored an `IllegalStateException`). A `DocumentContent` block in the
 result is a new document: after the calls of the message ran, the agent registers it with the tool call as its origin, and
 the model reads its handle only (§19). An error result registers nothing. `hasContentInConversation(AgentDocumentId)` tells a tool
-whether the model reads the content of a document already.
+whether the model reads the content of a document already: in the messages the next model call reads (the context window),
+including the messages this turn adds.
 
 **Effects.** `RuntimeToolResult.success(...)` returns a `Success`, which has the effect `withDocumentContent(AgentDocumentId)`
 (or `withDocumentContent(Document)` for a document the result returns itself): the agent adds the content of a known
@@ -2634,7 +2635,8 @@ document, or of one the result returns itself, to the request that follows the t
 sealed `ToolCallEffect` (`aiagent-model`); `Success.effects()` lists them, `with*` methods append. `LoadDocumentTool` is the
 reference. The agent runs the content guard (`DocumentContentGuard`: the content type and the size limit of its kind) before
 it adds anything. A document that is not allowed stays a reference, and the agent writes into the result that the content is not loaded and why;
-the agent writes one sentence per document whose content a result asks for, so a tool needs no text of its own for it; a document the model reads already, or that an earlier result of the
+the agent ends the result with one sentence per document it asks content for (the content follows in the next message, is not loaded
+and why, or is already in the conversation), so a tool does not write such a sentence itself; a document the model reads already, or that an earlier result of the
 message asked for, is not added again. The rule for the documents in a result: a new document is a `DocumentContent`, a
 known one an `AgentDocumentContent` reference, and content comes only through the effect. A reference block with the
 delivery `content`, and a reference block or an effect that names a document that neither the agent knew when the batch

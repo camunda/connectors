@@ -52,10 +52,12 @@ public interface RuntimeToolDocuments {
 
   /**
    * Whether the model reads the content of the document in its conversation as of the start of the
-   * batch of calls: a message within the context window holds it. The agent does not add the
-   * content of such a document a second time (see {@link
-   * RuntimeToolResult.Success#withDocumentContent}). It does not change while the batch runs. The
-   * context passed to {@link RuntimeTool#isEnabled} has no batch, so it is {@code false} there.
+   * batch of calls: a message within the context window holds it. The window is the one of the next
+   * model call, so it counts the messages this turn adds as well (the tool call result message,
+   * event messages and the user prompt message). The agent does not add the content of such a
+   * document a second time (see {@link RuntimeToolResult.Success#withDocumentContent}). It does not
+   * change while the batch runs. The context passed to {@link RuntimeTool#isEnabled} has no batch,
+   * so it is {@code false} there.
    */
   boolean hasContentInConversation(AgentDocumentId id);
 }
