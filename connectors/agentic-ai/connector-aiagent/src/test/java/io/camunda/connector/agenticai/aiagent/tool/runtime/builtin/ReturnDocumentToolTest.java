@@ -266,16 +266,19 @@ class ReturnDocumentToolTest {
         new ToolCallAdmission(resolver)
             .admit(message, List.of(tool.definition()), agentContext)
             .toolCalls();
+    // the batch answers a rejected call with its rejection, so nothing is left to execute
+    final var batch = ToolCallBatch.of(admitted);
     final var entries =
-        executor.execute(withConfiguration(CONFIGURATION), agentContext, Set.of(), admitted);
-    final var input =
-        inputBuilder.build(agentContext, ToolCallBatch.of(admitted).withEntries(entries), Set.of());
+        executor.execute(
+            withConfiguration(CONFIGURATION), agentContext, Set.of(), batch.unanswered());
+    final var input = inputBuilder.build(agentContext, batch.withEntries(entries), Set.of());
 
     assertThat(admitted.getFirst().rejection())
         .startsWith(
             "Parameter 'document' has the id 'unknown', but the conversation has no document"
                 + " with this id.");
-    assertThat(entries)
+    assertThat(entries).isEmpty();
+    assertThat(batch.entriesInCallOrder())
         .singleElement()
         .satisfies(entry -> {
           assertThat(text(entry.result())).isEqualTo(admitted.getFirst().rejection());
