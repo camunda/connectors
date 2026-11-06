@@ -60,11 +60,21 @@
       "automerge": true
     },
     {
-      "description": "Automerge major updates too (as separate PRs, not grouped) once CI is green, on main and on stable/* branches, for all managers including github-actions. Rules below that disable updates (per-package major holds and the io.camunda* hold on stable/*) still apply.",
+      "description": "Automerge major updates too (as separate PRs, not grouped) once CI is green, on main only, for all managers including github-actions. Major updates on stable/* branches are disabled by the rule below. Rules below that disable updates (per-package major holds and the io.camunda* hold on stable/*) still apply.",
       "matchUpdateTypes": [
         "major"
       ],
       "automerge": true
+    },
+    {
+      "description": "Do not raise major updates on stable/* branches. Majors are only for main; they risk breaking the stable lines and flooded the repo when this rule was dropped in #10136.",
+      "matchBaseBranches": [
+        "stable/*"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
     },
     {
       "matchManagers": [
