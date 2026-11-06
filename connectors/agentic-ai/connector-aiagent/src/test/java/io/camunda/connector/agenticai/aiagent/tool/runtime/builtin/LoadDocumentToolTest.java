@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agent.TurnInput;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -121,7 +120,7 @@ class LoadDocumentToolTest {
   }
 
   private static String handleText(AgentDocument entry) {
-    return DocumentHandles.text(DocumentHandle.of(entry));
+    return DocumentHandle.of(entry).text();
   }
 
   /**
@@ -135,7 +134,7 @@ class LoadDocumentToolTest {
    * What the model reads in the message that follows the tool results for a document not loaded.
    */
   private static Content notLoaded(AgentDocument entry, String note) {
-    return textContent(DocumentHandles.text(DocumentHandle.of(entry).withNote(note)));
+    return textContent(DocumentHandle.of(entry).withNote(note).text());
   }
 
   private static String text(ToolCallResultContent result) {
@@ -222,7 +221,7 @@ class LoadDocumentToolTest {
         run(
             List.of(entry),
             Set.of(),
-            callWith("1", "{\"type\":\"camunda.agent_document\",\"id\":\"doc-1\"}"));
+            callWith("1", "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc-1\"}"));
     final var withId = run(List.of(entry), Set.of(), callWith("1", "doc-1"));
 
     assertThat(withHandle.addedContent())

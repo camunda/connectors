@@ -14,13 +14,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallBatch.Entry;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -85,10 +85,10 @@ class ToolCallResultsInputBuilderTest {
 
   /** The handle with the note of the guard that the model reads for the archive. */
   private static String withheldHandleOf(Document archive) {
-    return DocumentHandles.text(
-        DocumentHandles.of(archive)
-            .withNote(
-                "Documents of type application/zip cannot be loaded. Pass the handle to a tool that processes it."));
+    return DocumentHandle.of(archive)
+        .withNote(
+            "Documents of type application/zip cannot be loaded. Pass the handle to a tool that processes it.")
+        .text();
   }
 
   private static AgentContext knowing(Document... documents) {
