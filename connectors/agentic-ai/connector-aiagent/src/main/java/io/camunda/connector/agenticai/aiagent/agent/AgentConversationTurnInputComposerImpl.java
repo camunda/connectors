@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -163,12 +164,15 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   @Override
-  public TurnInput assemble(CompositionResult.Ready ready) {
+  public TurnInput assemble(CompositionResult.Ready ready, DocumentFactory documentFactory) {
     final var input =
         ready.toolCallBatch().toolCalls().isEmpty()
             ? ready.userPrompt()
             : toolCallResultsInputBuilder.build(
-                ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
+                ready.agentContext(),
+                ready.toolCallBatch(),
+                ready.documentIdsWithContent(),
+                documentFactory);
     return input.followedBy(ready.events());
   }
 

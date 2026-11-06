@@ -109,7 +109,6 @@ class AgentTaskRequestHandlerTest {
       new RuntimeTools(
           List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
           TestObjectMapperSupplier.INSTANCE,
-          TestDocuments.documentFactory(),
           new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
   @Spy
@@ -458,13 +457,16 @@ class AgentTaskRequestHandlerTest {
                 Set.of(),
                 ToolCallBatch.of(List.of())));
     lenient()
-        .when(agentInputComposer.assemble(any()))
+        .when(agentInputComposer.assemble(any(), any()))
         .thenAnswer(invocation -> {
           final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
           return ready.toolCallBatch().toolCalls().isEmpty()
               ? new TurnInput(List.of(inputMessages))
               : resultsInputBuilder.build(
-                  ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
+                  ready.agentContext(),
+                  ready.toolCallBatch(),
+                  ready.documentIdsWithContent(),
+                  TestDocuments.documentFactory());
         });
   }
 

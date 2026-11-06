@@ -101,10 +101,7 @@ class RuntimeToolsTest {
 
   private static RuntimeTools toolsOf(RuntimeTool... tools) {
     return new RuntimeTools(
-        List.of(tools),
-        TestObjectMapperSupplier.INSTANCE,
-        TestDocuments.documentFactory(),
-        new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
+        List.of(tools), TestObjectMapperSupplier.INSTANCE, new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
   }
 
   private static RuntimeTool tool(String name, Predicate<RuntimeToolContext> enabled) {
