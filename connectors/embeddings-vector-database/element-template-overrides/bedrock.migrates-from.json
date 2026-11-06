@@ -15,6 +15,24 @@
             "equals": "Custom"
           },
           "note": "The legacy custom model name is copied into Model."
+        },
+        {
+          "to": "embeddingModelProvider.bedrock.dimensions",
+          "set": "D1024",
+          "when": {
+            "path": "embeddingModelProvider.bedrock.modelName",
+            "equals": "Custom"
+          },
+          "note": "Dimensions preserve the Amazon Titan V2 default used by legacy custom models."
+        },
+        {
+          "to": "embeddingModelProvider.bedrock.normalize",
+          "set": true,
+          "when": {
+            "path": "embeddingModelProvider.bedrock.modelName",
+            "equals": "Custom"
+          },
+          "note": "Normalization preserves the Amazon Titan V2 default used by legacy custom models."
         }
       ]
     }

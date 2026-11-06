@@ -60,11 +60,21 @@
       "automerge": true
     },
     {
-      "description": "Automerge major updates too (as separate PRs, not grouped) once CI is green, on main and on stable/* branches, for all managers including github-actions. Rules below that disable updates (per-package major holds and the io.camunda* hold on stable/*) still apply.",
+      "description": "Automerge major updates too (as separate PRs, not grouped) once CI is green, on main only, for all managers including github-actions. Major updates on stable/* branches are disabled by the rule below. Rules below that disable updates (per-package major holds and the io.camunda* hold on stable/*) still apply.",
       "matchUpdateTypes": [
         "major"
       ],
       "automerge": true
+    },
+    {
+      "description": "Do not raise major updates on stable/* branches. Majors are only for main; they risk breaking the stable lines and flooded the repo when this rule was dropped in #10136.",
+      "matchBaseBranches": [
+        "stable/*"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
     },
     {
       "matchManagers": [
@@ -176,6 +186,22 @@
         "org.apache.maven.plugins:maven-failsafe-plugin"
       ],
       "enabled": false
+    },
+    {
+      "description": "LangChain4j community modules are built against one LangChain4j core release (1.x.y-betaN needs core 1.x.y), so version.langchain4j-community must move together with version.langchain4j. Group them in one PR without automerge, so a core bump that arrives before the matching community release is reviewed instead of merged.",
+      "matchPackageNames": [
+        "dev.langchain4j:langchain4j-bom",
+        "/^dev\\.langchain4j:langchain4j-community-/"
+      ],
+      "groupName": "langchain4j",
+      "automerge": false
+    },
+    {
+      "description": "LangChain4j community modules are only published as beta versions; without this, Renovate never moves them to the next core release's beta.",
+      "matchPackageNames": [
+        "/^dev\\.langchain4j:langchain4j-community-/"
+      ],
+      "ignoreUnstable": false
     },
     {
       "description": "Disable minor/patch updates for the A2A Java SDK — 0.3.4 (published to Maven Central without the .Final suffix) changed A2AHttpClient's getAsyncSSE/postAsyncSSE to take Consumer<ServerSentEvent> instead of Consumer<String> and removed Task.TYPE_REFERENCE, so the agentic-ai CustomJdkA2AHttpClient and A2aClientWebhookExecutable no longer compile. Upgrading needs a code migration of our forked JDK HTTP client's SSE handling. Re-enable once that lands.",

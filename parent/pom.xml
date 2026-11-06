@@ -117,7 +117,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
 
-    <version.aws-sdk2>2.57.9</version.aws-sdk2>
+    <version.aws-sdk2>2.57.10</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -135,9 +135,9 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-services-drive>v3-rev20261023-2.9.2</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.55.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.56.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.91.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.92.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
     <!-- keep in sync with langchain4j-google-genai -->
     <version.google-genai>1.80.0</version.google-genai>
@@ -206,6 +206,8 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.24.2</version.auth0.jwks>
 
     <version.langchain4j>1.23.0</version.langchain4j>
+    <!-- community releases are built against one core release: keep the prefix equal to version.langchain4j -->
+    <version.langchain4j-community>1.23.0-beta33</version.langchain4j-community>
     <version.mcp-sdk>2.1.0</version.mcp-sdk>
     <version.elasticsearch-java>8.19.24</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.24</version.elasticsearch-rest-client>
@@ -399,6 +401,16 @@ limitations under the License.</license.inlineheader>
         <version>${version.langchain4j}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-community-s3-vectors</artifactId>
+        <version>${version.langchain4j-community}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-community-dynamodb</artifactId>
+        <version>${version.langchain4j-community}</version>
       </dependency>
 
       <!-- MPC SDK BOM -->

@@ -13,6 +13,7 @@ import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
 import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
@@ -73,5 +74,38 @@ class DefaultRetrievingActionProcessorTest {
     Assertions.assertThat(response.chunks().getFirst().score()).isEqualTo(matchedChunkScore);
     Assertions.assertThat(response.chunks().getFirst().chunkId())
         .isEqualTo(matchedChunkEmbeddingId);
+  }
+
+  @Test
+  void retrieve_FailsWhenMatchHasNoText() {
+    final var request = EmbeddingsVectorDBRequestFixture.createDefaultRetrieve();
+
+    final var embeddingModelProvider = Mockito.mock(DefaultEmbeddingModelFactory.class);
+    final var model = Mockito.mock(EmbeddingModel.class);
+    Mockito.when(embeddingModelProvider.createEmbeddingModel(request.embeddingModelProvider()))
+        .thenReturn(model);
+    Mockito.when(
+            model.embed(
+                ((RetrieveDocumentOperation) request.vectorDatabaseConnectorOperation()).query()))
+        .thenReturn(Response.from(Embedding.from(List.of(0.1f, 0.2f, 0.3f))));
+
+    final var embeddingStoreProvider = Mockito.mock(DefaultEmbeddingStoreFactory.class);
+    final var store = Mockito.mock(ClosableEmbeddingStore.class);
+    Mockito.when(
+            embeddingStoreProvider.initializeVectorStore(
+                request.vectorStore(), model, request.vectorDatabaseConnectorOperation()))
+        .thenReturn(store);
+    Mockito.when(store.search(ArgumentMatchers.any()))
+        .thenReturn(
+            new EmbeddingSearchResult<>(
+                List.of(new EmbeddingMatch<TextSegment>(0.9d, "foreign-id", null, null))));
+
+    final var processor =
+        new DefaultRetrievingActionProcessor(embeddingModelProvider, embeddingStoreProvider);
+
+    Assertions.assertThatThrownBy(
+            () -> processor.retrieve(request, Mockito.mock(DocumentFactory.class)))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageStartingWith("Vector store entry 'foreign-id' has no text.");
   }
 }

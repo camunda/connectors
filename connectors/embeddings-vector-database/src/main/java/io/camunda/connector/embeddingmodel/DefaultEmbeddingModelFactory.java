@@ -127,7 +127,9 @@ public class DefaultEmbeddingModelFactory {
       BedrockEmbeddingModelProvider bedrockEmbeddingModelProvider) {
     final var bedrock = bedrockEmbeddingModelProvider.bedrock();
     final var modelName = bedrock.resolveSelectedModelName();
-    final var titanV2 = BedrockModels.TitanEmbedTextV2.getModelName().equals(modelName);
+    final var titanV2 =
+        !BedrockModels.Custom.name().equalsIgnoreCase(bedrock.modelName())
+            && BedrockModels.TitanEmbedTextV2.getModelName().equals(modelName);
 
     var builder =
         BedrockTitanEmbeddingModel.builder()

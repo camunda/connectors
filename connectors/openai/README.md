@@ -31,6 +31,9 @@ name** into the new model field. If your upgrade tool does not apply the recipe,
 the custom model name manually.
 Bedrock embeddings require a model compatible with the Amazon Titan embedding API;
 dimensions and normalization are available for `amazon.titan-embed-text-v2:0`.
+For legacy **Custom** models, the recipe uses 1024 dimensions and enables **Normalize**
+to preserve the Titan V2 provider defaults. If you migrate a Custom Titan V2 model manually,
+set **Embedding dimensions** to 1024 and enable **Normalize**.
 
 ## Moderation
 

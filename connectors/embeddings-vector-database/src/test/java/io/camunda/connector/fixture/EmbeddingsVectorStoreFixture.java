@@ -6,7 +6,9 @@
  */
 package io.camunda.connector.fixture;
 
+import io.camunda.connector.model.embedding.vector.store.AmazonDynamoDbVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.AmazonS3VectorsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAuthentication;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
@@ -18,31 +20,37 @@ public class EmbeddingsVectorStoreFixture {
   public static ElasticsearchVectorStore createElasticsearchVectorStore() {
     return new ElasticsearchVectorStore(
         new ElasticsearchVectorStore.Configuration(
-            "https://elastic.local:9200", null, "elastic", "changeme", "embeddings_idx"));
+            "https://elastic.local:9200", "elastic", "changeme", "embeddings_idx"));
   }
 
   public static OpenSearchVectorStore createOpenSearchVectorStore() {
     return new OpenSearchVectorStore(
         new OpenSearchVectorStore.Configuration(
-            "https://opensearch.local:9200", null, "opensearch", "changeme", "embeddings_idx"));
+            "https://opensearch.local:9200", "opensearch", "changeme", "embeddings_idx"));
   }
 
   public static AmazonManagedOpenSearchVectorStore createAmazonManagedOpenVectorStore() {
     return new AmazonManagedOpenSearchVectorStore(
         new AmazonManagedOpenSearchVectorStore.Configuration(
-            null,
-            "ACCESS_KEY",
-            "SECRET_KEY",
-            "https://opensearch.aws",
-            "us-east-1",
-            "embeddings_idx"));
+            "ACCESS_KEY", "SECRET_KEY", "https://opensearch.aws", "us-east-1", "embeddings_idx"));
+  }
+
+  public static AmazonS3VectorsVectorStore createAmazonS3VectorsVectorStore() {
+    return new AmazonS3VectorsVectorStore(
+        new AmazonS3VectorsVectorStore.Configuration(
+            "ACCESS_KEY", "SECRET_KEY", "us-east-1", "vector-bucket", "embeddings-idx"));
+  }
+
+  public static AmazonDynamoDbVectorStore createAmazonDynamoDbVectorStore() {
+    return new AmazonDynamoDbVectorStore(
+        new AmazonDynamoDbVectorStore.Configuration(
+            "ACCESS_KEY", "SECRET_KEY", "us-east-1", "embeddings", "embeddings_idx"));
   }
 
   public static AzureCosmosDbNoSqlVectorStore createAzureCosmosDbNoSqlVectorStore() {
     return new AzureCosmosDbNoSqlVectorStore(
         new AzureCosmosDbNoSqlVectorStore.Configuration(
             "https://example.documents.azure.com:443/",
-            null,
             new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
             "database-name",
             "container-name",
@@ -55,7 +63,6 @@ public class EmbeddingsVectorStoreFixture {
     return new AzureAiSearchVectorStore(
         new AzureAiSearchVectorStore.Configuration(
             "https://your-search-service.search.windows.net",
-            null,
             new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
             "searchindex"));
   }

@@ -15,7 +15,6 @@ public class EmbeddingModelProviderFixture {
   public static BedrockEmbeddingModelProvider createDefaultBedrockEmbeddingModel() {
     return new BedrockEmbeddingModelProvider(
         new BedrockEmbeddingModelProvider.Configuration(
-            null,
             "ACCESS_KEY",
             "SECRET_KEY",
             "us-east-1",

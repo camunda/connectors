@@ -13,6 +13,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
 import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
@@ -70,6 +71,11 @@ public class DefaultRetrievingActionProcessor implements RetrievingActionProcess
       // then they can be used by other connectors
       final var chunks = new ArrayList<RetrievedChunk>();
       for (EmbeddingMatch<TextSegment> matched : relevant) {
+        if (matched.embedded() == null) {
+          throw new ConnectorException(
+              "Vector store entry '%s' has no text. Only entries written by this connector can be retrieved."
+                  .formatted(matched.embeddingId()));
+        }
         final var persistedDoc =
             documentFactory.create(
                 DocumentCreationRequest.from(

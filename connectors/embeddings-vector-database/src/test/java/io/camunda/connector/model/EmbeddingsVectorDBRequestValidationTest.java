@@ -12,6 +12,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.model.embedding.models.EmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.OpenAiEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.splitter.RecursiveDocumentSplitter;
+import io.camunda.connector.model.embedding.vector.store.AmazonDynamoDbVectorStore;
+import io.camunda.connector.model.embedding.vector.store.AmazonS3VectorsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAuthentication;
 import io.camunda.connector.model.embedding.vector.store.ElasticsearchVectorStore;
@@ -115,15 +117,14 @@ class EmbeddingsVectorDBRequestValidationTest {
             sampleOperation(),
             new OpenAiEmbeddingModelProvider(
                 new OpenAiEmbeddingModelProvider.Configuration(
-                    null, "", null, null, null, null, null, emptyMap(), null)),
+                    "", null, null, null, null, null, emptyMap(), null)),
             sampleVectorStore());
     var violations = validator.validate(request);
     assertThat(violations).hasSize(2);
     assertThat(violations)
         .anySatisfy(violation -> {
-          assertThat(violation.getMessage())
-              .isEqualTo("No API key provided by the credential or the element template");
-          assertThat(violation.getPropertyPath().toString()).contains("apiKeyPresent");
+          assertThat(violation.getMessage()).isEqualTo("must not be blank");
+          assertThat(violation.getPropertyPath().toString()).contains("apiKey");
         });
     assertThat(violations)
         .anySatisfy(violation -> {
@@ -140,7 +141,7 @@ class EmbeddingsVectorDBRequestValidationTest {
             sampleModelProvider(),
             new AzureAiSearchVectorStore(
                 new AzureAiSearchVectorStore.Configuration(
-                    null, null, new AzureAuthentication.AzureApiKeyAuthentication(null), " ")));
+                    null, new AzureAuthentication.AzureApiKeyAuthentication(null), " ")));
     var violations = validator.validate(request);
     assertThat(violations).hasSize(3);
     assertThat(violations)
@@ -160,6 +161,38 @@ class EmbeddingsVectorDBRequestValidationTest {
         });
   }
 
+  @Test
+  void validationShouldFailWhenS3VectorsIndexNameIsInvalid() {
+    var request =
+        new EmbeddingsVectorDBRequest(
+            sampleOperation(),
+            sampleModelProvider(),
+            new AmazonS3VectorsVectorStore(
+                new AmazonS3VectorsVectorStore.Configuration(
+                    "AK", "SK", "us-east-1", "bucket", "My_Index")));
+    assertThat(validator.validate(request))
+        .singleElement()
+        .satisfies(violation -> {
+          assertThat(violation.getMessage()).startsWith("must be 3 to 63 lowercase letters");
+          assertThat(violation.getPropertyPath().toString()).contains("indexName");
+        });
+  }
+
+  @Test
+  void validationShouldFailWhenDynamoDbNamesAreInvalid() {
+    var request =
+        new EmbeddingsVectorDBRequest(
+            sampleOperation(),
+            sampleModelProvider(),
+            new AmazonDynamoDbVectorStore(
+                new AmazonDynamoDbVectorStore.Configuration(
+                    "AK", "SK", "us-east-1", "my table", "ix")));
+    assertThat(validator.validate(request))
+        .hasSize(2)
+        .allSatisfy(
+            violation -> assertThat(violation.getMessage()).startsWith("must be 3 to 255 letters"));
+  }
+
   private VectorDatabaseConnectorOperation sampleOperation() {
     return new EmbedDocumentOperation(
         EmbedDocumentSource.PlainText,
@@ -171,12 +204,12 @@ class EmbeddingsVectorDBRequestValidationTest {
   private EmbeddingModelProvider sampleModelProvider() {
     return new OpenAiEmbeddingModelProvider(
         new OpenAiEmbeddingModelProvider.Configuration(
-            null, "API_KEY", "MODEL_NAME", null, null, null, null, emptyMap(), null));
+            "API_KEY", "MODEL_NAME", null, null, null, null, emptyMap(), null));
   }
 
   private EmbeddingsVectorStore sampleVectorStore() {
     return new ElasticsearchVectorStore(
         new ElasticsearchVectorStore.Configuration(
-            "http://localhost:9200", null, "username", "password", "index-name"));
+            "http://localhost:9200", "username", "password", "index-name"));
   }
 }
