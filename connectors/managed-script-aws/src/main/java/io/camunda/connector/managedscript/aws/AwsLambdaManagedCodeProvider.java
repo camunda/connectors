@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
@@ -21,6 +22,7 @@ import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
@@ -190,6 +192,17 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
   @Override
   public String name() {
     return NAME;
+  }
+
+  /** The executor of each language, with its log group, which the provider creates with it. */
+  @Override
+  public List<ExecutorReference> executors() {
+    return executors.values().stream()
+        .map(executor -> {
+          final var name = executor.functionName(prefix);
+          return new ExecutorReference(executor.language(), name, logGroupName(name));
+        })
+        .toList();
   }
 
   /**

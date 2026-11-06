@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.managedscript.api;
 
+import java.util.List;
+
 /**
  * Provider SPI for managed-script execution through generic executors: one trusted function per
  * language and cluster, with no user code in it, that runs every script it receives in a new child
@@ -56,4 +58,15 @@ public interface ManagedCodeProvider {
    *     propagate, and fails without retries after
    */
   ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request);
+
+  /**
+   * The executors this runtime may call: for each language, the executor of its own wrapper, the
+   * only one it calls (ADR-0008). Computed from the wrapper and the configuration, without calling
+   * the platform, so it answers whether or not the executors exist yet.
+   *
+   * <p>Controller, or the operator, deletes the functions under the prefix that no runtime instance
+   * reports, so a provider reports every executor it may call. It has no default: a provider that
+   * reported none would have every executor of its cluster deleted.
+   */
+  List<ExecutorReference> executors();
 }

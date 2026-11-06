@@ -7,8 +7,10 @@
 package io.camunda.connector.managedscript;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
+import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import io.camunda.connector.managedscript.local.LocalManagedCodeProperties;
@@ -17,6 +19,7 @@ import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
@@ -50,6 +53,55 @@ class ManagedCodeAutoConfigurationTest {
           assertThat(context).doesNotHaveBean(ManagedScriptJobHandler.class);
           assertThat(context).doesNotHaveBean(ManagedScriptFunction.class);
         });
+  }
+
+  @Test
+  void reportsTheExecutorsInUseOnceTheEndpointIsExposed() {
+    enabled
+        .withPropertyValues(
+            "camunda.connector.managed-code.deployment-name-prefix=ce-0123-",
+            "management.endpoints.web.exposure.include=managedcode")
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          final var report = context.getBean(ManagedCodeEndpoint.class).executors();
+          assertThat(report.provider()).isEqualTo("fake");
+          assertThat(report.deploymentNamePrefix()).isEqualTo("ce-0123-");
+          assertThat(report.executors())
+              .containsExactly(
+                  new ManagedCodeEndpoint.Executor("python", "fake-py-0123456789ab", null),
+                  new ManagedCodeEndpoint.Executor(
+                      "javascript", "fake-js-0123456789ab", "/logs/fake-js"));
+        });
+  }
+
+  @Test
+  void doesNotServeTheEndpointUnlessItIsExposed() {
+    enabled.run(context -> {
+      assertThat(context).hasNotFailed();
+      assertThat(context).doesNotHaveBean(ManagedCodeEndpoint.class);
+    });
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.provider=fake",
+            "management.endpoints.web.exposure.include=managedcode")
+        .withBean("fakeProvider", ManagedCodeProvider.class, FakeProvider::new)
+        .run(context -> assertThat(context).doesNotHaveBean(ManagedCodeEndpoint.class));
+  }
+
+  @Test
+  void failsTheReportWhenTheProviderCannotComputeItsExecutors() {
+    final var provider =
+        new FakeProvider() {
+          @Override
+          public List<ExecutorReference> executors() {
+            throw new IllegalStateException("Missing executor wrapper file child.py");
+          }
+        };
+    final var endpoint = new ManagedCodeEndpoint(provider, "camunda-ms-");
+
+    assertThatThrownBy(endpoint::executors)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("child.py");
   }
 
   @Test

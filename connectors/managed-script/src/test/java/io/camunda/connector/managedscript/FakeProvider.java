@@ -8,6 +8,7 @@ package io.camunda.connector.managedscript;
 
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.util.ArrayDeque;
@@ -64,6 +65,14 @@ class FakeProvider implements ManagedCodeProvider {
     if (!ensureFailures.isEmpty()) {
       throw ensureFailures.poll();
     }
+  }
+
+  @Override
+  public List<ExecutorReference> executors() {
+    return List.of(
+        new ExecutorReference(ScriptLanguage.PYTHON, name + "-py-0123456789ab", null),
+        new ExecutorReference(
+            ScriptLanguage.JAVASCRIPT, name + "-js-0123456789ab", "/logs/" + name + "-js"));
   }
 
   @Override

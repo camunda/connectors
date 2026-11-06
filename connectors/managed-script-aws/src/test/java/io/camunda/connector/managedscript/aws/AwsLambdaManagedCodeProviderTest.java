@@ -16,12 +16,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.io.ByteArrayInputStream;
@@ -221,6 +223,18 @@ class AwsLambdaManagedCodeProviderTest {
         .updateFunctionConfiguration(any(UpdateFunctionConfigurationRequest.class));
     verify(logs, never()).createLogGroup(any(CreateLogGroupRequest.class));
     assertThat(sleeps).isEmpty();
+  }
+
+  @Test
+  void reportsTheExecutorOfItsWrapperPerLanguageWithItsLogGroupWithoutCallingAws() {
+    assertThat(provider.executors())
+        .containsExactlyInAnyOrder(
+            new ExecutorReference(
+                ScriptLanguage.PYTHON, PYTHON_EXECUTOR, "/aws/lambda/" + PYTHON_EXECUTOR),
+            new ExecutorReference(
+                ScriptLanguage.JAVASCRIPT, NODE_EXECUTOR, "/aws/lambda/" + NODE_EXECUTOR));
+    assertThat(PYTHON_EXECUTOR).matches(PREFIX + "py-[0-9a-f]{12}");
+    verifyNoInteractions(lambda, invoker, logs);
   }
 
   @Test

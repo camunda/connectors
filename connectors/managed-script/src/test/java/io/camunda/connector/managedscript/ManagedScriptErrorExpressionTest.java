@@ -27,6 +27,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.managedscript.ScriptResources.ScriptResource;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
@@ -99,6 +100,11 @@ class ManagedScriptErrorExpressionTest {
 
           @Override
           public void ensureExecutors(ScriptLanguage language) {}
+
+          @Override
+          public List<ExecutorReference> executors() {
+            return List.of();
+          }
 
           @Override
           public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {

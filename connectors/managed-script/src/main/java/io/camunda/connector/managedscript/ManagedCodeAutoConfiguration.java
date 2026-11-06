@@ -12,6 +12,7 @@ import io.camunda.connector.managedscript.local.LocalManagedCodeConfiguration;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.boot.actuate.autoconfigure.endpoint.condition.ConditionalOnAvailableEndpoint;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -74,6 +75,18 @@ public class ManagedCodeAutoConfiguration {
   public ManagedScriptFunction managedScriptFunction(
       ManagedScriptJobHandler handler, PhysicalTenantClientSelector clients) {
     return new ManagedScriptFunction(handler, clients);
+  }
+
+  /**
+   * Reports the executors in use on the management port, once exposed with {@code
+   * management.endpoints.web.exposure.include}: the SaaS bundle exposes it for Controller.
+   */
+  @Bean
+  @ConditionalOnAvailableEndpoint
+  ManagedCodeEndpoint managedCodeEndpoint(
+      ObjectProvider<ManagedCodeProvider> providers, ManagedCodeProperties properties) {
+    return new ManagedCodeEndpoint(
+        requireProvider(providers, properties), properties.deploymentNamePrefix());
   }
 
   /**

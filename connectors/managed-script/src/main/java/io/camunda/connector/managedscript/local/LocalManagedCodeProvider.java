@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ExecutorWrapper;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ProvisioningException;
@@ -26,6 +27,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -108,6 +110,21 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
   @Override
   public String name() {
     return NAME;
+  }
+
+  /**
+   * The directory of the wrapper files of each language, named after their digest, under the
+   * configured directory. They are no function and have no log group.
+   */
+  @Override
+  public List<ExecutorReference> executors() {
+    return Arrays.stream(ScriptLanguage.values())
+        .map(language ->
+            new ExecutorReference(
+                language,
+                wrapper(LocalRuntime.of(language)).executorName("", WRAPPER_RUNTIME),
+                null))
+        .toList();
   }
 
   /**
