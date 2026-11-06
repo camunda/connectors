@@ -18,12 +18,15 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -62,6 +65,7 @@ class DocumentContentGuardTest {
   private static Document documentOfUnknownSize(String contentType, InputStream content) {
     final var metadata = mock(DocumentMetadata.class);
     when(metadata.getContentType()).thenReturn(contentType);
+    when(metadata.getSize()).thenReturn(-1L);
     final var document = mock(Document.class);
     when(document.metadata()).thenReturn(metadata);
     when(document.asInputStream()).thenReturn(content);
@@ -79,25 +83,106 @@ class DocumentContentGuardTest {
     return document;
   }
 
+  /** An external document whose download answers with the given headers and body. */
+  private static ExternalDocument externalDocument(
+      Map<String, List<String>> headers, byte[] body, AtomicInteger downloads) {
+    return new ExternalDocument(
+        "https://files.example.com/report?token=secret",
+        "report",
+        url -> {
+          downloads.incrementAndGet();
+          return new HttpResponse<>(200, "OK", headers, body);
+        });
+  }
+
   @Test
-  void rejectsAnExternalDocumentWithoutDownloadingIt() {
+  void letsAnExternalDocumentPassByTheTypeAndTheSizeOfItsResponse() {
     final var downloads = new AtomicInteger();
     final var external =
+        externalDocument(
+            Map.of("content-type", List.of("application/pdf"), "content-length", List.of("100")),
+            new byte[100],
+            downloads);
+
+    assertThat(guard.check(external)).isEqualTo(ALLOWED);
+    assertThat(downloads).hasValue(1);
+  }
+
+  @Test
+  void rejectsAnExternalDocumentAboveTheLimitByItsContentLength() {
+    final var external =
+        externalDocument(
+            Map.of("content-type", List.of("text/plain"), "content-length", List.of("300000")),
+            new byte[10],
+            new AtomicInteger());
+
+    final var rejection = rejectionOf(external);
+
+    assertThat(rejection).isInstanceOf(Rejection.TooLarge.class);
+    assertThat(rejection.modelText())
+        .isEqualTo("The document is too large to load (293 KB, limit 256 KB)." + PASS_THE_HANDLE);
+  }
+
+  @Test
+  void measuresTheDownloadedBytesOfAnExternalDocumentWithoutContentLength() {
+    final var body = new byte[256 * 1024 + 1];
+
+    final var external =
+        externalDocument(Map.of("content-type", List.of("text/plain")), body, new AtomicInteger());
+
+    final var rejection = rejectionOf(external);
+
+    assertThat(rejection).isEqualTo(new Rejection.TooLarge(null, 256 * 1024));
+    assertThat(
+            guard.check(
+                externalDocument(
+                    Map.of("content-type", List.of("text/plain")),
+                    new byte[256 * 1024],
+                    new AtomicInteger())))
+        .isEqualTo(ALLOWED);
+  }
+
+  @Test
+  void rejectsAnExternalDocumentOfATypeNoProviderRenders() {
+    final var external =
+        externalDocument(
+            Map.of("content-type", List.of("application/zip"), "content-length", List.of("10")),
+            new byte[10],
+            new AtomicInteger());
+
+    final var rejection = rejectionOf(external);
+
+    assertThat(rejection).isInstanceOf(Rejection.UnsupportedType.class);
+    assertThat(rejection.modelText())
+        .isEqualTo("Documents of type application/zip cannot be loaded." + PASS_THE_HANDLE);
+  }
+
+  @Test
+  void rejectsAnExternalDocumentWithoutAContentType() {
+    final var external =
+        externalDocument(
+            Map.of("content-length", List.of("10")), new byte[10], new AtomicInteger());
+
+    assertThat(rejectionOf(external).modelText())
+        .isEqualTo("A document without a content type cannot be loaded." + PASS_THE_HANDLE);
+  }
+
+  @Test
+  void reportsAnExternalDocumentThatCannotBeDownloadedAsRetryable() {
+    final var failure = new IllegalStateException("connection refused");
+    final var external =
         new ExternalDocument(
-            "https://files.example.com/report.pdf?token=secret",
-            "report.pdf",
+            "https://files.example.com/report",
+            "report",
             url -> {
-              downloads.incrementAndGet();
-              return null;
+              throw failure;
             });
 
     final var rejection = rejectionOf(external);
 
-    assertThat(rejection).isEqualTo(new Rejection.External());
-    assertThat(rejection.modelText())
-        .isEqualTo(
-            "An external document cannot be loaded. If one of your tools can process the document, pass the handle to it.");
-    assertThat(downloads).hasValue(0);
+    assertThat(rejection).isInstanceOf(Rejection.Unreadable.class);
+    assertThat(rejection.modelText()).isEqualTo("The document could not be read.");
+    assertThat(rejection.cause()).isSameAs(failure);
   }
 
   @Test

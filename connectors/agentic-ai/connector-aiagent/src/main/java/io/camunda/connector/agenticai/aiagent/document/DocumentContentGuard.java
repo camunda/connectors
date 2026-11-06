@@ -7,30 +7,25 @@
 package io.camunda.connector.agenticai.aiagent.document;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.io.IOException;
 import org.apache.hc.core5.http.ContentType;
 import org.jspecify.annotations.Nullable;
 
 /**
  * The guard every addition of document content to the conversation passes on request of a tool or
- * of the process: the document must not be an external one, it must have a content type that a
- * model provider can render, and it must not exceed the limit of its kind of content (see {@link
- * DocumentContentLimits}).
+ * of the process: the document must have a content type that a model provider can render, and it
+ * must not exceed the limit of its kind of content (see {@link DocumentContentLimits}).
  *
  * <p>The kinds are the ones the model providers tell apart ({@link DocumentMimeTypes}): text, PDF
  * and image. A document without a content type has no kind and is not loadable, because a provider
  * fails the model call for it. A document with content stays in the conversation until its message
  * leaves the window, so a document that a provider cannot render would fail every later model call.
  *
- * <p>The content of an external document, one that is a URL, is never added on request of a tool:
- * its content type and size are only known after the runtime downloaded the whole body, so the
- * guard could neither check nor bound them. The model passes its handle to a tool that processes
- * it.
- *
- * <p>The size is read from the reference metadata without reading the document; when the metadata
- * has none, at most one byte more than the limit is read.
+ * <p>The content type and the size are read from the metadata of the document, which is known
+ * without reading the content for a Camunda or an inline document. The metadata of an external
+ * document, one that is a URL, is the response of its download (the headers {@code Content-Type}
+ * and {@code Content-Length}), so the check downloads it. When the metadata has no size, at most
+ * one byte more than the limit is read. A document that cannot be read is rejected as unreadable.
  *
  * <p>A runtime tool asks for content by naming a document (see {@code
  * RuntimeToolResult.Success#withDocumentContent}) and the agent checks it with this guard.
@@ -61,7 +56,7 @@ public final class DocumentContentGuard {
   public sealed interface Rejection {
 
     /**
-     * The note the model reads in the handle of the document, such as {@code An external document
+     * The note the model reads in the handle of the document, such as {@code Documents of type X
      * cannot be loaded.} followed by what to do instead.
      */
     String modelText();
@@ -69,15 +64,6 @@ public final class DocumentContentGuard {
     /** The failure behind the rejection, for the log; never shown to the model. */
     default @Nullable Throwable cause() {
       return null;
-    }
-
-    /** The document is an external one. */
-    record External() implements Rejection {
-
-      @Override
-      public String modelText() {
-        return "An external document cannot be loaded." + PASS_THE_HANDLE;
-      }
     }
 
     /**
@@ -114,7 +100,7 @@ public final class DocumentContentGuard {
     }
 
     /**
-     * The document could not be read to find out its size; a later attempt can succeed.
+     * The document could not be read to find out its type or size; a later attempt can succeed.
      *
      * @param cause the failure
      */
@@ -139,13 +125,14 @@ public final class DocumentContentGuard {
 
   /** Checks whether the content of the document may be added to the conversation. */
   public Verdict check(Document document) {
-    return switch (document.reference()) {
-      case ExternalDocumentReference ignored -> new Verdict.Rejected(new Rejection.External());
-      case null, default -> checkContent(document);
-    };
+    try {
+      return checkContent(document);
+    } catch (IOException | RuntimeException e) {
+      return new Verdict.Rejected(new Rejection.Unreadable(e));
+    }
   }
 
-  private Verdict checkContent(Document document) {
+  private Verdict checkContent(Document document) throws IOException {
     final var contentType = contentTypeOf(document);
     if (contentType == null) {
       return unsupported("A document without a content type");
@@ -165,11 +152,7 @@ public final class DocumentContentGuard {
       return size > limit ? tooLarge(size, limit) : allowed();
     }
 
-    try {
-      return exceeds(document, limit) ? tooLarge(null, limit) : allowed();
-    } catch (IOException | RuntimeException e) {
-      return new Verdict.Rejected(new Rejection.Unreadable(e));
-    }
+    return exceeds(document, limit) ? tooLarge(null, limit) : allowed();
   }
 
   private static Verdict allowed() {
@@ -184,21 +167,14 @@ public final class DocumentContentGuard {
     return new Verdict.Rejected(new Rejection.TooLarge(size, limit));
   }
 
-  /** The size from the metadata of a Camunda document, which is known without reading it. */
+  /** The size from the metadata of the document; none when it is not known (a negative size). */
   private static @Nullable Long sizeOf(Document document) {
-    return switch (document.reference()) {
-      case CamundaDocumentReference ignored -> {
-        final var metadata = document.metadata();
-        yield metadata != null ? metadata.getSize() : null;
-      }
-      case null, default -> null;
-    };
+    final var metadata = document.metadata();
+    final var size = metadata != null ? metadata.getSize() : null;
+    return size == null || size < 0 ? null : size;
   }
 
-  /**
-   * The content type the model providers read: the one of the document metadata, which a document
-   * of a Camunda or inline reference has without reading its content.
-   */
+  /** The content type the model providers read: the one of the document metadata. */
   private static @Nullable String contentTypeOf(Document document) {
     final var metadata = document.metadata();
     final var contentType = metadata != null ? metadata.getContentType() : null;

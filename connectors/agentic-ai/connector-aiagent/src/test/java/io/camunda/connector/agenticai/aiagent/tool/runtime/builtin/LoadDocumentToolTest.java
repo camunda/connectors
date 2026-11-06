@@ -44,7 +44,6 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
@@ -109,15 +108,6 @@ class LoadDocumentToolTest {
         reference);
   }
 
-  /** A document that is a URL: nothing of it is known without downloading it. */
-  private static AgentDocument externalEntry(String id) {
-    final var reference =
-        new ExternalDocumentReferenceModel(
-            "https://files.example.com/" + id + "?token=secret", id + ".pdf");
-    return new AgentDocument(
-        AgentDocumentId.of(id), AgentDocumentOrigin.toolCall("search", "call-1"), reference);
-  }
-
   private static AgentDocumentContent referenceTo(AgentDocument entry) {
     return AgentDocumentContent.of(entry.id());
   }
@@ -170,12 +160,11 @@ class LoadDocumentToolTest {
     assertThat(definition.description())
         .isEqualTo(
             "Loads a known document so that its content can be read in the conversation. Use it when"
-                + " you need the content of a document that you only see as a handle. It does not"
-                + " load documents that are too large and documents that are external links, a note"
-                + " in the handle tells you so: pass the handle of such a document to a tool that"
-                + " processes it instead, for example a sandbox. Only text, PDF and image documents"
-                + " can be loaded. A document that is already in the conversation is not loaded"
-                + " again.");
+                + " you need the content of a document that you only see as a handle. Only text, PDF"
+                + " and image documents can be loaded, and not documents that are too large: a note"
+                + " in the handle tells you so, and you can pass the handle of such a document to a"
+                + " tool that processes it instead, for example a sandbox. A document that is already"
+                + " in the conversation is not loaded again.");
     // the stored schema is the schema of a document handle
     assertThat(definition.inputSchema())
         .isEqualTo(
@@ -274,20 +263,6 @@ class LoadDocumentToolTest {
             notLoaded(
                 entry,
                 "The document is too large to load (300 KB, limit 256 KB). If one of your tools can process the document, pass the handle to it."));
-  }
-
-  @Test
-  void keepsTheResultAndAddsANoteForAnExternalDocument() {
-    final var entry = externalEntry("ext-1");
-
-    final var run = run(List.of(entry), Set.of(), call("1", "ext-1"));
-
-    assertThat(run.result().content()).isEqualTo(requestedAnswer(entry));
-    assertThat(run.addedContent())
-        .containsExactly(
-            notLoaded(
-                entry,
-                "An external document cannot be loaded. If one of your tools can process the document, pass the handle to it."));
   }
 
   @Test
