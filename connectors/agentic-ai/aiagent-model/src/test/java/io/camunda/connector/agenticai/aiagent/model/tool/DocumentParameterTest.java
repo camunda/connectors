@@ -72,7 +72,8 @@ class DocumentParameterTest {
             DocumentParameter.isDocumentSchema(
                 object(
                     "type",
-                    Map.of("type", "string", "enum", List.of("camunda.agent_document", "other")))))
+                    Map.of(
+                        "type", "string", "enum", List.of("camunda.agenticai.document", "other")))))
         .isFalse();
     assertThat(DocumentParameter.isDocumentSchema(object("type", string()))).isFalse();
     assertThat(DocumentParameter.isDocumentSchema(string())).isFalse();
@@ -215,7 +216,7 @@ class DocumentParameterTest {
         "properties",
         Map.of(
             "type",
-            Map.of("type", "string", "enum", List.of("camunda.agent_document")),
+            Map.of("type", "string", "enum", List.of("camunda.agenticai.document")),
             "id",
             Map.of("type", "string")),
         "required",

@@ -27,7 +27,7 @@ class DocumentSchemasTest {
         "properties",
         Map.of(
             "type",
-            Map.of("type", "string", "enum", List.of("camunda.agent_document")),
+            Map.of("type", "string", "enum", List.of("camunda.agenticai.document")),
             "id",
             Map.of("type", "string", "description", "The id of the document.")));
     expected.put("required", List.of("type", "id"));

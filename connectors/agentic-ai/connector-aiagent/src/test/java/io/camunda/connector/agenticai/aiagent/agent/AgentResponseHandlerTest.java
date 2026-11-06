@@ -450,7 +450,7 @@ class AgentResponseHandlerTest {
                         report, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
 
     private static Map<String, Object> handle(String id) {
-      return Map.of("type", "camunda.agent_document", "id", id);
+      return Map.of("type", "camunda.agenticai.document", "id", id);
     }
 
     private AgentConversation conversation(List<String> features, ToolCall... calls) {

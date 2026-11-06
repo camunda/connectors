@@ -29,7 +29,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <ul>
  *   <li>a {@link Document}: the schema of a {@link AgentDocumentHandle}, an object whose {@code
- *       properties.type.enum} is {@code ["camunda.agent_document"]}, or
+ *       properties.type.enum} is {@code ["camunda.agenticai.document"]}, or
  *   <li>a {@link TextOrDocument}: a node with {@code anyOf} or {@code oneOf} alternatives, one of
  *       which is such a handle schema and at least one other alternative exists (a string, an
  *       object, ...). A string value of it is text; an object value with the handle {@code type} is

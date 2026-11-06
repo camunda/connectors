@@ -519,7 +519,7 @@ class RuntimeToolsTest {
 
   private static String rejection(String path) {
     return ("Parameter '%s' must be a document handle such as"
-            + " {\"type\":\"camunda.agent_document\",\"id\":\"doc_…\"} of a known document.")
+            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"} of a known document.")
         .formatted(path);
   }
 
@@ -544,7 +544,7 @@ class RuntimeToolsTest {
   }
 
   private static Map<String, Object> handleOf(Document document) {
-    return Map.of("type", "camunda.agent_document", "id", AgentDocumentId.of(document).value());
+    return Map.of("type", "camunda.agenticai.document", "id", AgentDocumentId.of(document).value());
   }
 
   @Test
@@ -595,7 +595,7 @@ class RuntimeToolsTest {
             "file",
             Map.of(
                 "type",
-                "camunda.agent_document",
+                "camunda.agenticai.document",
                 "id",
                 AgentDocumentId.of(report).value(),
                 "fileName",
@@ -672,7 +672,7 @@ class RuntimeToolsTest {
         runtimeCall(
             "r1",
             "c8__send",
-            Map.of("body", Map.of("type", "camunda.agent_document", "id", "doc_000000000000")));
+            Map.of("body", Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000")));
 
     assertThatThrownBy(
             () -> toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(), List.of(call)))

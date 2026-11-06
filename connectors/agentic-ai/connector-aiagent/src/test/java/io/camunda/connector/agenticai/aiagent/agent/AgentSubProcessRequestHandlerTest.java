@@ -2651,7 +2651,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   private static Map<String, Object> docHandle(AgentDocumentId documentId) {
-    return Map.of("type", "camunda.agent_document", "id", documentId.value());
+    return Map.of("type", "camunda.agenticai.document", "id", documentId.value());
   }
 
   private void mockProceedWithDocument(Document document) {
@@ -2747,7 +2747,7 @@ class AgentSubProcessRequestHandlerTest {
 
   private static String rejectionFor(String path) {
     return ("Parameter '%s' must be a document handle such as"
-            + " {\"type\":\"camunda.agent_document\",\"id\":\"doc_…\"} of a known document.")
+            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"} of a known document.")
         .formatted(path);
   }
 

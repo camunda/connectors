@@ -413,7 +413,7 @@ class AdHocToolSchemaGeneratorTest {
               "type": "object",
               "description": "The invoice",
               "properties": {
-                "type": {"type": "string", "enum": ["camunda.agent_document"]},
+                "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
                 "id": {"type": "string", "description": "The id of the document."}
               },
               "required": ["type", "id"]
@@ -457,7 +457,7 @@ class AdHocToolSchemaGeneratorTest {
                 {
                   "type": "object",
                   "properties": {
-                    "type": {"type": "string", "enum": ["camunda.agent_document"]},
+                    "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
                     "id": {"type": "string", "description": "The id of the document."}
                   },
                   "required": ["type", "id"]
@@ -472,7 +472,7 @@ class AdHocToolSchemaGeneratorTest {
                 {
                   "type": "object",
                   "properties": {
-                    "type": {"type": "string", "enum": ["camunda.agent_document"]},
+                    "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
                     "id": {"type": "string", "description": "The id of the document."}
                   },
                   "required": ["type", "id"]
