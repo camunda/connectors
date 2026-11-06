@@ -266,7 +266,7 @@ class AgentConversationTurnInputComposerImplTest {
             TestDocuments.handleText(
                 AgentDocuments.empty().register(ingested), AgentDocumentId.of(document)))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"notes.txt\",\"contentType\":\"text/plain\"}"
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"notes.txt\",\"contentType\":\"text/plain\"}"
                 .formatted(AgentDocumentId.of(document)));
   }
 

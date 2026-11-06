@@ -97,7 +97,7 @@ class DocumentExpanderTest {
     final var block =
         new AgentDocumentContent(AgentDocumentId.of(document), DocumentDelivery.REFERENCE, null);
     final var expectedText =
-        "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"r \\\"1\\\".pdf\"}"
+        "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"r \\\"1\\\".pdf\"}"
             .formatted(AgentDocumentId.of(document));
 
     final var expanded =
@@ -229,7 +229,7 @@ class DocumentExpanderTest {
     final var document = camundaDocument("hello");
     final var agentDocuments = agentDocumentsOf(document, DocumentOrigin.userMessage());
     final var literal =
-        "{\"type\":\"camunda.agent_document\",\"id\":\"%s\"}"
+        "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\"}"
             .formatted(AgentDocumentId.of(document));
     final var content = List.<Content>of(textContent("See " + literal), textContent(literal));
 

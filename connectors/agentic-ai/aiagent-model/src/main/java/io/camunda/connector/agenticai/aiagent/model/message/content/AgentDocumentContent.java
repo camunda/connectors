@@ -30,7 +30,7 @@ import org.jspecify.annotations.Nullable;
  * <p>The model sees the block as the {@link DocumentHandle} of the document, e.g.:
  *
  * <pre>{@code
- * {"type":"camunda.agent_document","id":"doc_3f9a1c0b27de","fileName":"report.pdf","contentType":"application/pdf","size":48213}
+ * {"type":"camunda.agenticai.document","id":"doc_3f9a1c0b27de","fileName":"report.pdf","contentType":"application/pdf","size":48213}
  * }</pre>
  *
  * <p>The {@code delivery} tells how the document reaches the model: with {@link

@@ -1839,12 +1839,12 @@ of the message ran, in the order of the calls and together with the documents of
 `ToolCallResultsInputBuilder`, which the composer and the runtime tool round of the request handler share; the result of a
 call that failed has none.
 
-**The handle.** `{"type":"camunda.agent_document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}`,
+**The handle.** `{"type":"camunda.agenticai.document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}`,
 the keys in the order `type`, `id`, `fileName`, `contentType`, `size`, `note`, written as compact JSON by Jackson from the
 record `DocumentHandle` (`aiagent.model.document`, `DocumentHandle.TYPE` is the `type`). `fileName`, `contentType`, `size`
 and `note` are omitted when null or blank; `size` is a JSON number. `DocumentHandle.of(agentDocuments, id)` builds it from the agent document of
 the id, and `text()` and `tree()` render it as text or as an object node: the file name, content type and size are read from its reference, never by reading
-the document, and an id the agent does not know is rendered as `{"type":"camunda.agent_document","id":"doc_…"}`.
+the document, and an id the agent does not know is rendered as `{"type":"camunda.agenticai.document","id":"doc_…"}`.
 `fileName` is the Camunda metadata file name, the external reference `name` or the inline `name`; it is omitted when it
 equals the Camunda document id of the reference (what a document stored without a name gets). `contentType` comes from
 the Camunda metadata or the `contentType` of an inline reference and is omitted for external documents (their metadata is
@@ -2053,14 +2053,14 @@ lease-fenced `update()` mechanism).
   (`id == null`) have no originating call and carry `{}`; a result with a non-null id and no matching
   tool call is an invariant violation and fails the turn.
 - **Documents in the history** (an instance that tracks its documents). The history shows what the model reads. Every
-  document is its handle text, as a `TEXT` block of its own that is never joined with other text and has no inline code,
-  exactly as `DocumentExpander` renders it for the model, so a block that is exactly one handle (`type` =
-  `camunda.agent_document`) can be rendered as a card. Where a document enters the conversation (the user prompt, an
+  document is its handle, as an `OBJECT` block of its own that holds exactly the handle (no marker key besides the handle's
+  own `type` = `camunda.agenticai.document`) and is never joined with other content, the same object `DocumentExpander`
+  renders for the model, so a consumer can render it as a card. Where a document enters the conversation (the user prompt, an
   event, a tool result, also a tool result that is only a document) a Camunda document is followed by a `DOCUMENT` block
   and an external document by an `OBJECT` block with its reference (the chip). An object with documents in it is reported as the
-  object with the handle objects nested, followed by the chips. An inline document has its handle text only. When a
+  object with the handle objects nested, followed by the chips. An inline document has its handle only. When a
   document reported as a `DOCUMENT` block has no file name, the reported metadata carries the agent document id (`doc_…`)
-  as the file name, so the chip shows the id the handle shows; the document and its stored reference are not changed. A
+  as the file name, and an external document without a name is reported under that id as its name, so the chip shows the id the handle shows; the document and its stored reference are not changed. A
   text is reported as it is, also when it holds a handle.
   `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `DocumentHandling` of the agent instance: it
   decides what the history shows, and the agent documents of a `Tracked` instance are what the handles are expanded with. An

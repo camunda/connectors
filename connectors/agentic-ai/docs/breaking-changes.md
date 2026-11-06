@@ -304,7 +304,7 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
 - Renamed: `DocumentReferenceXmlTag` (see the [module split](#module-split)) is `aiagent.document.LegacyDocumentReferenceXmlTag`,
   which only agent instances without the `documents` feature use.
 - New in the model: `aiagent.model.document.DocumentHandle`, the JSON object the model reads for a document of an agent
-  instance with the `documents` feature, `{"type":"camunda.agent_document","id":"doc_…","fileName":…,"contentType":…,"size":…}`
+  instance with the `documents` feature, `{"type":"camunda.agenticai.document","id":"doc_…","fileName":…,"contentType":…,"size":…}`
   (the keys in this order, absent values omitted, no origin). It replaces the XML tag `<doc id="…" … />` for these
   instances; instances without the feature keep the XML tag. A custom `ChatModel` sees the handle as the text of a
   `TextContent`.

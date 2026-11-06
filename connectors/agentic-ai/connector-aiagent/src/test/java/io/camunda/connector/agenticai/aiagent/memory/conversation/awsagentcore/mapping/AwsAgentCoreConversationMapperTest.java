@@ -216,7 +216,8 @@ class AwsAgentCoreConversationMapperTest {
 
     // then
     assertThat(payloads.getFirst().conversational().content().text())
-        .isEqualTo("{\"type\":\"camunda.agent_document\",\"id\":\"%s\"}".formatted(reference.id()));
+        .isEqualTo(
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\"}".formatted(reference.id()));
   }
 
   @Test

@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * tells what is known about it without reading it, e.g.
  *
  * <pre>{@code
- * {"type":"camunda.agent_document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}
+ * {"type":"camunda.agenticai.document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}
  * }</pre>
  *
  * <p>The keys are written in the order {@code type}, {@code id}, {@code fileName}, {@code
@@ -52,7 +52,7 @@ public record DocumentHandle(
     @Nullable String note) {
 
   /** The value of the {@code type} of every handle. */
-  public static final String TYPE = "camunda.agent_document";
+  public static final String TYPE = "camunda.agenticai.document";
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 

@@ -257,7 +257,7 @@ High-frequency traps (detail behind each link):
   `DocumentExpander.expand(snapshot, documentHandling)`, a named step of the model call after
   `AgentConversation.window(int)`, turns a block into its handle text and, with the delivery `content`, the document; in
   a tool result it renders the handle as text and a document nested in an object as the handle object
-  (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle text as a `TEXT` block of its own and a
+  (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
   documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order.
