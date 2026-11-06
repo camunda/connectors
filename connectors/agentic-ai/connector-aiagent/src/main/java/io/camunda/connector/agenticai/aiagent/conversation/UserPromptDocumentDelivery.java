@@ -21,7 +21,7 @@ public enum UserPromptDocumentDelivery {
    * does: the content of every document goes to the model.
    */
   UNSET,
-  /** The model reads the tag of a document; a tool can load the content on request. */
+  /** The model reads the handle of a document; a tool can load the content on request. */
   REFERENCE,
   /** The agent adds the content of every document, unless the model reads it already. */
   CONTENT;
