@@ -145,11 +145,12 @@ class LoadDocumentToolTest {
     assertThat(LoadDocumentTool.NAME).isEqualTo("c8__load_document");
     assertThat(definition.description())
         .isEqualTo(
-            "Loads a known document so that its content can be read in the conversation. Use it when"
-                + " you need the content of a document that you only see as a handle. Only text, PDF"
-                + " and image documents that are not too large can be loaded; the result tells you"
-                + " when a document is not loaded and why. A document that is already in the"
-                + " conversation is not loaded again.");
+            "Loads the content of a document that you see as a handle in the conversation: a JSON"
+                + " object with \"type\": \"camunda.agenticai.document\" and an \"id\" that"
+                + " starts with \"doc_\". Do not call it when the conversation has no such handle."
+                + " Only text, PDF and image documents that are not too large can be loaded; the"
+                + " result tells you when a document is not loaded and why. A document that is"
+                + " already in the conversation is not loaded again.");
     // the stored schema is the schema of a document handle
     assertThat(definition.inputSchema())
         .isEqualTo(
@@ -157,7 +158,7 @@ class LoadDocumentToolTest {
                 "type",
                 "object",
                 "properties",
-                Map.of("id", DocumentSchemas.document("The document to load.")),
+                Map.of("id", DocumentSchemas.document("The handle of the document to load.")),
                 "required",
                 List.of("id")));
   }
@@ -280,7 +281,9 @@ class LoadDocumentToolTest {
 
     assertThat(result)
         .isEqualTo(
-            RuntimeToolResult.error("Parameter 'id' must be the handle of a known document."));
+            RuntimeToolResult.error(
+                "Parameter 'id' must be the handle of a document from the conversation: a JSON"
+                    + " object such as {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}."));
   }
 
   private static ToolCall call(String id, String documentId) {

@@ -2038,12 +2038,14 @@ content, fails with `UNSUPPORTED_DOCUMENT_REFERENCE`. The id never exposes
 a store id, the id of the document in its store or a URL.
 
 **Loading content: `c8__load_document`.** The model calls it with the handle of a document (`id`, a document parameter; the
-tool receives an `AgentDocumentId`). It loads the whole document, no ranges. For a known document the tool returns
+tool receives an `AgentDocumentId`). The tool is offered to every agent instance with the `documents` feature, also when the
+conversation holds no document, because a change of the tool list would break the prompt cache; its description therefore says
+what a handle looks like and not to call the tool without one. It loads the whole document, no ranges. For a known document the tool returns
 no text of its own: the result has no content and asks the agent to add the content
 (`RuntimeToolResult.Success.withDocumentContent`, the effect `ToolCallEffect.AddDocumentContent`), also when the document is
 already in the windowed conversation (a block with the delivery `content` in a windowed user message,
-`RuntimeToolDocuments.hasContentInConversation`); it is loadable again after that message left the window. An unknown
-document is an error result. The agent, not the tool,
+`RuntimeToolDocuments.hasContentInConversation`); it is loadable again after that message left the window. A missing
+or unknown id is an error result. The agent, not the tool,
 applies the effect after all calls of the message ran,
 in the order of the calls, in `ToolCallResultsInputBuilder`: `DocumentContentDelivery` decides for every document a result
 names, with the content guard, whether the content is added, and adds nothing for a document the model reads already or an

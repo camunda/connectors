@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,9 +46,10 @@ public final class LoadDocumentTool implements RuntimeTool {
   private static final ToolDefinition DEFINITION =
       ToolDefinition.runtime(
           NAME,
-          "Loads a known document so that its content can be read in the conversation. Use it when"
-              + " you need the content of a document that you only see as a handle. Only text, PDF"
-              + " and image documents that are not too large can be loaded; the result tells you"
+          "Loads the content of a document that you see as a handle in the conversation: a JSON"
+              + " object with \"type\": \"camunda.agenticai.document\" and an \"id\" that starts"
+              + " with \"doc_\". Do not call it when the conversation has no such handle. Only text,"
+              + " PDF and image documents that are not too large can be loaded; the result tells you"
               + " when a document is not loaded and why. A document that is already in the"
               + " conversation is not loaded again.",
           schema());
@@ -60,7 +62,7 @@ public final class LoadDocumentTool implements RuntimeTool {
     schema.put(PROPERTY_TYPE, TYPE_OBJECT);
     schema.put(
         PROPERTY_PROPERTIES,
-        Map.of(PARAMETER_ID, DocumentSchemas.document("The document to load.")));
+        Map.of(PARAMETER_ID, DocumentSchemas.document("The handle of the document to load.")));
     schema.put(PROPERTY_REQUIRED, List.of(PARAMETER_ID));
     return schema;
   }
@@ -83,7 +85,9 @@ public final class LoadDocumentTool implements RuntimeTool {
     final var document = id == null ? null : documents.find(id).orElse(null);
     if (document == null) {
       return RuntimeToolResult.error(
-          "Parameter '%s' must be the handle of a known document.".formatted(PARAMETER_ID));
+          ("Parameter '%s' must be the handle of a document from the conversation: a JSON object"
+                  + " such as {\"type\":\"%s\",\"id\":\"doc_…\"}.")
+              .formatted(PARAMETER_ID, DocumentHandle.TYPE));
     }
 
     return RuntimeToolResult.success(List.of()).withDocumentContent(document.id());
