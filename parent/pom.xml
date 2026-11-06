@@ -112,7 +112,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
-    <version.amqp-client>5.37.0</version.amqp-client>
+    <version.amqp-client>5.37.1</version.amqp-client>
     <version.netty>4.2.20.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
@@ -135,9 +135,9 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-services-drive>v3-rev20261023-2.9.2</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.56.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.57.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.92.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.93.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
     <!-- keep in sync with langchain4j-google-genai -->
     <version.google-genai>1.80.0</version.google-genai>
@@ -163,7 +163,7 @@ limitations under the License.</license.inlineheader>
     <version.lz4-java>1.13.0</version.lz4-java>
 
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
-    <version.microsoft-kiota-abstraction>1.10.4</version.microsoft-kiota-abstraction>
+    <version.microsoft-kiota-abstraction>1.10.5</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.19.0</version.azure-identity>
     <version.azure-core>1.61.0</version.azure-core>
@@ -219,7 +219,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-exec-plugin>3.6.4</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.2.0</plugin.version.maven-install-plugin>
     <plugin.version.license>5.1.2</plugin.version.license>
-    <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
+    <plugin.version.license.codehaus>2.8.0</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>3.11.0</plugin.version.spotless-maven-plugin>
@@ -856,7 +856,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>animal-sniffer-annotations</artifactId>
-        <version>1.28</version>
+        <version>1.29</version>
       </dependency>
       <dependency>
         <groupId>org.jetbrains</groupId>
@@ -1717,7 +1717,7 @@ See: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>flatten-maven-plugin</artifactId>
-            <version>1.8.0</version>
+            <version>1.9.0</version>
             <configuration>
               <flattenMode>ossrh</flattenMode>
               <updatePomFile>true</updatePomFile>
