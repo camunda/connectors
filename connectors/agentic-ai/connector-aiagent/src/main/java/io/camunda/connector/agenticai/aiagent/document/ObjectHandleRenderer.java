@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
@@ -28,6 +29,13 @@ import java.util.List;
 public final class ObjectHandleRenderer {
 
   private static final String COLLECTED_DOCUMENTS = "collectedDocuments";
+
+  /**
+   * Reads the rendered object back as plain JSON values. It has no modules: the data of the object
+   * is never interpreted, such as a map that looks like a document reference or an intrinsic
+   * function.
+   */
+  private static final ObjectMapper PLAIN_READER = JsonMapper.builder().build();
 
   private final ObjectMapper handleMapper;
 
@@ -56,7 +64,7 @@ public final class ObjectHandleRenderer {
     final var documents = new ArrayList<Document>();
     try (var buffer = new TokenBuffer(handleMapper, false)) {
       handleMapper.writer().withAttribute(COLLECTED_DOCUMENTS, documents).writeValue(buffer, value);
-      final Object tree = handleMapper.readValue(buffer.asParser(), Object.class);
+      final Object tree = PLAIN_READER.readValue(buffer.asParser(), Object.class);
       return new RenderedObject(tree, List.copyOf(documents));
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Failed to render the object with document handles", e);
