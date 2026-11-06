@@ -23,7 +23,9 @@ A change in this module often has more than one location to change. Before you p
 location that the change must reach:
 
 - **Both flavors:** the AI Agent Task and the AI Agent Sub-process.
-- **All element template versions** that expose the feature: v1 and v2.
+- **All element template versions** that expose the feature: v1 and v2. A deprecated version gets
+  only bug fixes and security patches, no new features. Example: the v1 (legacy) AI Agent element
+  templates.
 - **All conversation stores:** in-process, Camunda document and AWS AgentCore.
 - **All providers** that the change applies to, native and LangChain4j.
 - **Running process instances:** instances that started on an earlier connector version, and process
