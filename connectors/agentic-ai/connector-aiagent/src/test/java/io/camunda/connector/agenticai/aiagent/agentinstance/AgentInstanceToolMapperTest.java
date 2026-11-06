@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,6 +61,18 @@ class AgentInstanceToolMapperTest {
           assertThat(agentTool.getElementId()).isNull();
         });
     verifyNoInteractions(gatewayToolHandlers);
+  }
+
+  @Test
+  void theBuiltInReturnDocumentToolHasNoElementId() {
+    final var mapped = mapper.mapTools(List.of(new ReturnDocumentTool().definition()));
+
+    assertThat(mapped)
+        .singleElement()
+        .satisfies(agentTool -> {
+          assertThat(agentTool.getName()).isEqualTo("c8__return_document");
+          assertThat(agentTool.getElementId()).isNull();
+        });
   }
 
   @Test

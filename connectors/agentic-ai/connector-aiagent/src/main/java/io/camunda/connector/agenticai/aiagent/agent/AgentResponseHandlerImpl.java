@@ -11,11 +11,15 @@ import static io.camunda.connector.agenticai.aiagent.util.ResponseTextUtil.strip
 import static io.camunda.connector.agenticai.common.json.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
@@ -26,7 +30,9 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfigura
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -75,6 +81,11 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             .orElse(DEFAULT_RESPONSE_CONFIGURATION);
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
+    if (toolCalls.isEmpty() && agentContext.supports(AgentFeatures.DOCUMENTS)) {
+      // every final response carries all response documents, which stay in the context for the
+      // lifetime of the agent instance
+      builder.responseDocuments(responseDocuments(agentContext));
+    }
     if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {
       builder.responseMessage(assistantMessage);
     }
@@ -118,6 +129,29 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     return Objects.requireNonNull(
         lastTurn.assistantMessage(),
         "Cannot create an agent response: the last turn has no assistant message");
+  }
+
+  private Map<String, ReturnedDocument> responseDocuments(AgentContext agentContext) {
+    final var returned = new LinkedHashMap<String, ReturnedDocument>();
+    for (final var selected : agentContext.responseDocuments()) {
+      final var document =
+          agentContext
+              .documents()
+              .find(selected.document())
+              .orElseThrow(() ->
+                  new IllegalStateException(
+                      "The response document '%s' is the document '%s', which the agent does not know"
+                          .formatted(selected.key(), selected.document())));
+      returned.put(
+          selected.key(), new ReturnedDocument(referenceJson(document), selected.description()));
+    }
+    return returned;
+  }
+
+  /** The document reference in the JSON format it is persisted in. */
+  private Map<String, Object> referenceJson(AgentDocument document) {
+    return objectMapper.convertValue(
+        objectMapper.valueToTree(document).path("reference"), new TypeReference<>() {});
   }
 
   private Optional<String> deriveResponseText(AssistantMessage assistantMessage) {

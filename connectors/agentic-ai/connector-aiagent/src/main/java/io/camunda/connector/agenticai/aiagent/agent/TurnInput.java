@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentIdCollisionException;
 import io.camunda.connector.agenticai.aiagent.model.document.InlineDocumentTooLargeException;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import java.util.ArrayList;
@@ -21,12 +22,21 @@ import java.util.List;
  * @param documents the documents that enter the conversation with the messages, in order, to be
  *     registered in the documents of the agent context; empty for an agent instance that does not
  *     track its documents
+ * @param responseDocuments the response documents the tool call results select, in call order
  */
-public record TurnInput(List<Message> messages, List<AgentDocuments.NewDocument> documents) {
+public record TurnInput(
+    List<Message> messages,
+    List<AgentDocuments.NewDocument> documents,
+    List<ResponseDocumentSelection> responseDocuments) {
 
   public TurnInput {
     messages = List.copyOf(messages);
     documents = List.copyOf(documents);
+    responseDocuments = List.copyOf(responseDocuments);
+  }
+
+  public TurnInput(List<Message> messages, List<AgentDocuments.NewDocument> documents) {
+    this(messages, documents, List.of());
   }
 
   public TurnInput(List<Message> messages) {
@@ -38,7 +48,8 @@ public record TurnInput(List<Message> messages, List<AgentDocuments.NewDocument>
   }
 
   /**
-   * The agent context with the documents of this input registered. It depends on the context and
+   * The agent context the turn continues with: {@code agentContext} with the response documents
+   * selected, in order, and the documents of this input registered. It depends on the context and
    * the input only, so a job that runs again computes the same context.
    *
    * @throws InlineDocumentTooLargeException if a new document is an inline document with too much
@@ -49,10 +60,14 @@ public record TurnInput(List<Message> messages, List<AgentDocuments.NewDocument>
    *     supported
    */
   public AgentContext applyTo(AgentContext agentContext) {
-    if (documents.isEmpty()) {
-      return agentContext;
+    var updated = agentContext;
+    for (final var selection : responseDocuments) {
+      updated = updated.withResponseDocument(selection);
     }
-    return agentContext.withDocuments(agentContext.documents().register(documents));
+    if (documents.isEmpty()) {
+      return updated;
+    }
+    return updated.withDocuments(updated.documents().register(documents));
   }
 
   public boolean isEmpty() {
@@ -65,6 +80,8 @@ public record TurnInput(List<Message> messages, List<AgentDocuments.NewDocument>
     allMessages.addAll(next.messages());
     final var allDocuments = new ArrayList<>(documents);
     allDocuments.addAll(next.documents());
-    return new TurnInput(allMessages, allDocuments);
+    final var allResponseDocuments = new ArrayList<>(responseDocuments);
+    allResponseDocuments.addAll(next.responseDocuments());
+    return new TurnInput(allMessages, allDocuments, allResponseDocuments);
   }
 }

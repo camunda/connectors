@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
@@ -16,6 +17,7 @@ import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The outcome of a runtime tool call: a {@link Success} or an {@link Error}. The model reads {@link
@@ -50,6 +52,8 @@ import java.util.Objects;
  * <ul>
  *   <li>{@link Success#withDocumentContent}: the agent adds the content of a known document to the
  *       request that follows the tool results.
+ *   <li>{@link Success#withResponseDocument}: the agent selects a known document for the final
+ *       response.
  * </ul>
  *
  * <p>A new document is a {@link
@@ -132,6 +136,43 @@ public sealed interface RuntimeToolResult {
      */
     public Success withDocumentContent(Document document) {
       return withDocumentContent(AgentDocumentId.of(Objects.requireNonNull(document)));
+    }
+
+    /**
+     * Returns a copy that also asks the agent to select a known document for the final response
+     * under {@code key}, which is the key the process finds the document by. Every final response
+     * of the agent instance carries all selected documents. A selection under a key that is already
+     * used, by this result, an earlier call or an earlier turn, replaces the earlier selection and
+     * keeps its position.
+     *
+     * <p>The id is the one of a document in {@link RuntimeToolDocuments}, or of a document this
+     * result returns. An id of a document the agent does not know is a defect of the tool: the
+     * agent throws an {@link IllegalArgumentException} and the job fails. The agent knows documents
+     * only with the documents feature, so a tool that selects response documents is enabled for
+     * agents that have it (see {@link RuntimeTool#isEnabled}).
+     *
+     * @param key the key of the document in the response, see {@link
+     *     ResponseDocumentSelection#KEY_PATTERN}
+     * @param id the id of the document
+     * @param description what the response says about the document, or {@code null}
+     * @throws IllegalArgumentException if the key does not match the pattern
+     */
+    public Success withResponseDocument(
+        String key, AgentDocumentId id, @Nullable String description) {
+      return withEffect(
+          new ToolCallEffect.SelectResponseDocument(
+              new ResponseDocumentSelection(key, Objects.requireNonNull(id), description)));
+    }
+
+    /**
+     * Returns a copy that asks the agent to select the given document, which this result returns
+     * itself or the agent knows, for the final response. See {@link #withResponseDocument(String,
+     * AgentDocumentId, String)}.
+     */
+    public Success withResponseDocument(
+        String key, Document document, @Nullable String description) {
+      return withResponseDocument(
+          key, AgentDocumentId.of(Objects.requireNonNull(document)), description);
     }
 
     private Success withEffect(ToolCallEffect effect) {

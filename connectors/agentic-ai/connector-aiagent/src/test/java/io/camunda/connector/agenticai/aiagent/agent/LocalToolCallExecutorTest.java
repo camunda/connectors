@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -173,6 +174,110 @@ class LocalToolCallExecutorTest {
         .hasMessage(
             "The runtime tool 'getWeather' refers to the document '%s', which the agent does not know and the result does not return"
                 .formatted(KNOWN_ID));
+  }
+
+  @Test
+  void keepsTheSelectionOfAKnownDocumentForTheResponse() {
+    var selection = new ResponseDocumentSelection("report", KNOWN_ID, "The report");
+    var execution =
+        runtimeExecution(
+            RuntimeToolResult.success("ok").withResponseDocument("report", KNOWN_ID, "The report"));
+    when(runtimeTools.execute(
+            executionContext, AGENT_CONTEXT_WITH_DOCUMENT, Set.of(), List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(execution));
+
+    var entries =
+        executor.execute(
+            executionContext, AGENT_CONTEXT_WITH_DOCUMENT, Set.of(), List.of(RUNTIME_CALL));
+
+    assertThat(entries)
+        .singleElement()
+        .satisfies(entry ->
+            assertThat(entry.effects())
+                .containsExactly(new ToolCallEffect.SelectResponseDocument(selection)));
+  }
+
+  @Test
+  void aResultMayReturnADocumentAndSelectItForTheResponse() {
+    var returned = createDocument("returned", "returned.txt");
+    var id = AgentDocumentId.of(returned);
+    var execution =
+        runtimeExecution(
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
+                .withResponseDocument("created", id, null));
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(execution));
+
+    var entries =
+        executor.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL));
+
+    assertThat(entries)
+        .singleElement()
+        .satisfies(entry ->
+            assertThat(entry.effects())
+                .containsExactly(
+                    new ToolCallEffect.SelectResponseDocument(
+                        new ResponseDocumentSelection("created", id, null))));
+  }
+
+  @Test
+  void aSelectionOfAnUnknownDocumentIsADefectOfTheTool() {
+    var unknown = AgentDocumentId.of("unknown");
+    when(runtimeTools.execute(
+            executionContext, AGENT_CONTEXT_WITH_DOCUMENT, Set.of(), List.of(RUNTIME_CALL)))
+        .thenReturn(
+            List.of(
+                runtimeExecution(
+                    RuntimeToolResult.success("a").withResponseDocument("k", unknown, null))));
+
+    assertThatThrownBy(() ->
+            executor.execute(
+                executionContext, AGENT_CONTEXT_WITH_DOCUMENT, Set.of(), List.of(RUNTIME_CALL)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'getWeather' refers to the document '%s', which the agent does not know and the result does not return"
+                .formatted(unknown));
+  }
+
+  @Test
+  void aCallNeverSelectsADocumentAnotherCallReturned() {
+    var returned = createDocument("returned", "returned.txt");
+    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var returning =
+        new RuntimeToolExecution(
+            RUNTIME_CALL,
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned))),
+            now,
+            now);
+    var selecting =
+        new RuntimeToolExecution(
+            SECOND_RUNTIME_CALL,
+            RuntimeToolResult.success("a")
+                .withResponseDocument("k", AgentDocumentId.of(returned), null),
+            now,
+            now);
+    var calls = List.of(RUNTIME_CALL, SECOND_RUNTIME_CALL);
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), calls))
+        .thenReturn(List.of(returning, selecting));
+
+    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, Set.of(), calls))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("'getDateTime'")
+        .hasMessageContaining(AgentDocumentId.of(returned).value());
+  }
+
+  @Test
+  void anAgentWithoutDocumentsKnowsNoDocumentToSelect() {
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+        .thenReturn(
+            List.of(
+                runtimeExecution(
+                    RuntimeToolResult.success("a").withResponseDocument("k", KNOWN_ID, null))));
+
+    assertThatThrownBy(() ->
+            executor.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("which the agent does not know");
   }
 
   @Test

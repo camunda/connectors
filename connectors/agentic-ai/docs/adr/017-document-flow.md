@@ -177,10 +177,11 @@ to the state of the agent, which ADR 016 avoids.
 ### State changes only through the named effects
 
 A runtime tool does not change the agent context ([ADR 016](016-runtime-tools.md)). What the document flow needs beyond
-the content of a result is a request to the agent, and a successful result names it: add the content of a known document
-to the request that follows the tool results. The effects belong to a successful result only. An error result has none,
-so a failed call never applies half of what it asked for. The effects are a closed set, a sealed type, so a new kind of
-effect fails to compile wherever effects are applied.
+the content of a result is a request to the agent, and a successful result names it. There are two effects: add the
+content of a known document to the request that follows the tool results, and select a known document for the final
+response. The effects belong to a successful result only. An error result has none, so a failed call never applies half of
+what it asked for. The effects are a closed set, a sealed type, so a new kind of effect fails to compile wherever effects
+are applied.
 
 The agent applies the effects after all calls of a message ran, in the order of the calls, in the place that registers
 the returned documents and builds the input of the next turn. The composer of a mixed batch and the runtime tool round of
@@ -193,6 +194,15 @@ tool result. For every document a result asks content for, the agent writes one 
 the content the tool returned: the content follows in the next message, the content is not loaded and why, or it is in the
 conversation already. The tool writes none of it, because the agent decides where the content goes. A document whose
 content the model reads already, or that an earlier result of the same message asked for, is not added again.
+
+The selection of a response document changes the agent context, which is the one state a tool can reach. The place that
+applies the effects therefore hands the selections on with the input, and the caller applies the input to the agent
+context it persists, together with the documents the input registers (`TurnInput.applyTo`). The selections are kept in the
+order of the calls, and a key that is already used, by an earlier call or an earlier turn, keeps its position and gets the
+new document. The update is a function of the agent context and the results only, so a job that runs again from the same
+context computes the same context. The selection of a result whose content the guard rejects is applied all the same. Besides the registered documents of the results, the
+response documents are all a tool changes in the agent context; metrics, tool definitions, the conversation and the
+properties stay with the agent.
 
 Alternatives:
 
@@ -348,10 +358,14 @@ next to the schema* would have to stay in sync with it.
 
 ### The built-in tools
 
-`c8__load_document` loads a document, as above. `c8__return_document` selects one document per call under a key, and the
-final response carries all selected documents as `responseDocuments`. The selections live in the agent context, because
-the tool can run in an earlier job than the final response, and stay for the lifetime of the instance, so a later final
-response carries them too. A key used again replaces its entry. There is no retract.
+`c8__load_document` loads a document, as above. `c8__return_document` selects one document per call under a key, with an
+optional description, by the effect of its result, and the final response carries all selected documents as
+`responseDocuments`. The selections live in the agent context, because the tool can run in an earlier job than the final
+response, and stay for the lifetime of the instance, so a later final response carries them too. A key used again replaces
+its entry in place. There is no retract. A call with an invalid key, a missing parameter or an unknown document is answered
+with an error result and selects nothing. The final response carries the Camunda document reference of each selected
+document, which an inline document holds with its content, and the order of the entries of the response is not specified:
+the context keeps the order of selection.
 
 Alternatives for returning: *interpret handles in the final text* returns documents nobody selected, because the model
 writes handles in prose for other reasons; *an opt-in response option* is not needed while the field is omitted when empty.
@@ -361,11 +375,12 @@ tool SPI of ADR 016.
 
 ### Built-in tools use the public SPI
 
-The connector ships `c8__load_document` as a built-in runtime tool. It is an ordinary bean of the SPI, depends only on the
-API, the model and a few libraries (an architecture test enforces it), and is replaced by registering a bean with its
-bean name. A bean with another bean name but the name of a built-in tool fails the startup, because tool names are unique.
-The core names no built-in tool in its own code. A built-in tool is enabled for the agent instances that have the feature
-it needs, as a custom tool would be: `c8__load_document` works with the agent documents, so it needs the `documents` feature.
+The connector ships `c8__load_document` and `c8__return_document` as built-in runtime tools. Each is an ordinary bean of
+the SPI, depends only on the API, the model and a few libraries (an architecture test enforces it), and is replaced by
+registering a bean with its bean name. A bean with another bean name but the name of a built-in tool fails the startup,
+because tool names are unique. The core names no built-in tool in its own code. A built-in tool is enabled for the agent
+instances that have the feature it needs, as a custom tool would be: both tools work with the agent documents, so they need
+the `documents` feature.
 
 ### Where content comes from, and how tool results render
 

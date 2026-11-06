@@ -22,6 +22,19 @@
       "id": "Field_0cj02xb"
     },
     {
+      "label": "Response Documents",
+      "type": "documentPreview",
+      "layout": {
+        "row": "Row_0vv7o2w",
+        "columns": null
+      },
+      "id": "Field_13n34q9",
+      "dataSource": "=responseDocuments",
+      "conditional": {
+        "hide": "=responseDocuments = null or is empty(responseDocuments)"
+      }
+    },
+    {
       "type": "separator",
       "layout": {
         "row": "Row_06uyv64",
@@ -81,7 +94,7 @@
   "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.51.1"
+    "version": "5.52.0"
   },
   "schemaVersion": 19
 }

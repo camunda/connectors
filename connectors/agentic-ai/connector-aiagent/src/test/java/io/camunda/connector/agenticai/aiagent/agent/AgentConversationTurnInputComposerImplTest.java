@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -979,9 +980,21 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   private static ToolCallBatch.Entry loadingEntry(AgentDocumentId id) {
-    final var result = RuntimeToolResult.success("Loaded the document.").withDocumentContent(id);
-    final var execution = new RuntimeToolExecution(MIXED_CALLS.getFirst(), result, NOW, NOW);
-    return ToolCallBatch.Entry.from(execution.toolCallResult(), result.effects());
+    final var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
+            NOW,
+            NOW);
+    return entryOf(execution);
+  }
+
+  private static ToolCallBatch.Entry entryOf(RuntimeToolExecution execution) {
+    return switch (execution.result()) {
+      case RuntimeToolResult.Success success ->
+          ToolCallBatch.Entry.from(execution.toolCallResult(), success.effects());
+      case RuntimeToolResult.Error ignored -> ToolCallBatch.Entry.from(execution.toolCallResult());
+    };
   }
 
   @Test
@@ -1220,6 +1233,81 @@ class AgentConversationTurnInputComposerImplTest {
             AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(eventResult())));
 
     assertThat(ready.documentIdsWithContent()).containsExactly(AgentDocumentId.of(document));
+  }
+
+  @Test
+  void runtimeToolCalls_aResultThatSelectsAResponseDocumentIsAppliedToTheContextOfTheNextTurn() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var context = contextKnowing(document);
+    var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Returned the document.")
+                .withResponseDocument("report", id, "The report"),
+            NOW,
+            NOW);
+    var ready =
+        resolveReady(
+            CONFIG, context, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    var input =
+        composer.assemble(
+            ready.withResults(List.of(entryOf(execution))), TestDocuments.documentFactory());
+
+    assertThat(input.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("report", id, "The report"));
+    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    var applied = input.applyTo(context);
+    assertThat(applied.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("report", id, "The report"));
+    // nothing but the response documents differs from the context the composer was given
+    assertThat(applied.withResponseDocuments(List.of())).isEqualTo(context);
+  }
+
+  @Test
+  void runtimeToolCalls_aResultThatReturnsADocumentCanSelectItInTheSameResult() {
+    var document = createDocument("created", "text/plain", "created.txt");
+    var id = AgentDocumentId.of(document);
+    var context = CTX_WITH_CONVERSATION.withFeatures(List.of(AgentFeatures.DOCUMENTS));
+    var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(document)))
+                .withResponseDocument("created", id, null),
+            NOW,
+            NOW);
+    var ready =
+        resolveReady(
+            CONFIG, context, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    var input =
+        composer.assemble(
+            ready.withResults(List.of(entryOf(execution))), TestDocuments.documentFactory());
+
+    assertThat(input.documents())
+        .containsExactly(
+            new NewDocument(document, DocumentOrigin.toolCall("getWeather", "abcdef")));
+    assertThat(input.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("created", id, null));
+    var applied = input.applyTo(context);
+    assertThat(applied.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("created", id, null));
+    assertThat(applied.documents().find(id)).isPresent();
+  }
+
+  @Test
+  void aTurnWithoutRuntimeToolResultsContinuesWithTheContextItWasGiven() {
+    var input =
+        inputOf(
+            composer.resolve(
+                CONFIG,
+                CTX_WITH_CONVERSATION,
+                historyWith(TOOL_CALLS),
+                inputWith(TOOL_CALL_RESULTS.toArray(ToolCallResult[]::new))));
+
+    assertThat(input.responseDocuments()).isEmpty();
+    assertThat(input.applyTo(CTX_WITH_CONVERSATION)).isEqualTo(CTX_WITH_CONVERSATION);
   }
 
   @Test

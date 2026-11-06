@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 
 /**
  * What the result of a local tool call asks of the agent besides its content. The agent applies the
@@ -23,4 +24,13 @@ public sealed interface ToolCallEffect {
    * @param id the id of a document the agent knows, or of a document the same result returns
    */
   record AddDocumentContent(AgentDocumentId id) implements ToolCallEffect {}
+
+  /**
+   * A known document is selected for the final response of the agent, under the key of the
+   * selection. A selection under a key that is already used replaces the earlier one.
+   *
+   * @param selection the document, its key and its description; the document is one the agent
+   *     knows, or one the same result returns
+   */
+  record SelectResponseDocument(ResponseDocumentSelection selection) implements ToolCallEffect {}
 }

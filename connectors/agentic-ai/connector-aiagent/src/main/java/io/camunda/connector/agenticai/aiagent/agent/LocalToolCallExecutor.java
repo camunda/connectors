@@ -112,6 +112,8 @@ public class LocalToolCallExecutor {
     for (final var effect : entry.effects()) {
       switch (effect) {
         case ToolCallEffect.AddDocumentContent add -> requireKnown.accept(add.id());
+        case ToolCallEffect.SelectResponseDocument select ->
+            requireKnown.accept(select.selection().document());
       }
     }
   }
