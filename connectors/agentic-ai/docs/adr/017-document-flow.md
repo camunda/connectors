@@ -174,6 +174,41 @@ Alternatives: *register the documents while the calls run* lets a call see the d
 contract to a sequential execution; *a method of the tool context that registers a document* gives a tool write access
 to the state of the agent, which ADR 016 avoids.
 
+### State changes only through the named effects
+
+A runtime tool does not change the agent context ([ADR 016](016-runtime-tools.md)). What the document flow needs beyond
+the content of a result is a request to the agent, and a successful result names it: add the content of a known document
+to the request that follows the tool results. The effects belong to a successful result only. An error result has none,
+so a failed call never applies half of what it asked for. The effects are a closed set, a sealed type, so a new kind of
+effect fails to compile wherever effects are applied.
+
+The agent applies the effects after all calls of a message ran, in the order of the calls, in the place that registers
+the returned documents and builds the input of the next turn. The composer of a mixed batch and the runtime tool round of
+a job share that place, so both give the same input. A call neither sees nor depends on the effect of another call, which
+follows the contract of ADR 016. Whether an effect is applied depends on the agent context, the results and the documents
+whose content the model reads as of the start of the batch only, so a job that runs again computes the same input. A
+result can name a document it returns itself. A document that nobody knows is a defect of the tool and fails the job. The
+content guard checks every document: when it rejects one, the document stays a reference and the agent says so in the
+tool result. For every document a result asks content for, the agent writes one sentence at the end of that result, after
+the content the tool returned: the content follows in the next message, the content is not loaded and why, or it is in the
+conversation already. The tool writes none of it, because the agent decides where the content goes. A document whose
+content the model reads already, or that an earlier result of the same message asked for, is not added again.
+
+Alternatives:
+
+* *A general update of the agent context* (a function from the context to the context). Rejected: a tool could rewrite
+  anything, including metrics and persisted tool definitions; effects could not be discarded with a failed attempt or
+  applied in a defined order; and the SPI would be bound to the whole shape of the context.
+* *State per tool.* Rejected: it needs a namespace in the agent context and a migration story, and no tool needs it. The
+  author keeps no state in the bean, because the agent runs on any worker.
+* *A property of the agent context, set by a tool.* Deferred: the properties of the context hold the state of the
+  gateway tools (the MCP and A2A client elements), and a tool needs its own key namespace first. It is added when a tool
+  needs it.
+* *Apply the effects of a call before the next call runs.* Rejected: a call would see what earlier calls did, which ties
+  the contract to a sequential execution.
+* *A method of the tool context that adds the content right away.* Rejected: it gives a tool write access to the state of
+  the agent while it runs, and a failed attempt would have to undo it.
+
 ### The model reads document handles only
 
 The model sees a document as a small JSON object, its handle:
@@ -184,8 +219,7 @@ The model sees a document as a small JSON object, its handle:
 
 The keys come in this order: `type`, `id`, `fileName`, `contentType`, `size` and `note`. Everything but `type` and `id` is
 omitted when it is not known, and `size` is a number. The handle is read-only information apart from `type` and `id`,
-which are what the model passes to a tool. `note` is used only where the agent withholds the content of a document, with a
-sentence that says why. Nothing else about a document reaches the model, a tool argument or an error text. The handle
+which are what the model passes to a tool. `note` is a sentence about the document that only the agent writes. Nothing else about a document reaches the model, a tool argument or an error text. The handle
 sits in the message it belongs to: in a user message as a text block before the document, in a tool result as text, and in
 the object of a tool result in place of the document, as a nested JSON object. It is written by Jackson from a record with
 a fixed key order, so the bytes are the same in every request, which keeps the prompt cache valid.
@@ -226,9 +260,11 @@ content, without the guard, whatever the delivery: the provider reads them.
 
 Content enters the request in two ways, which share one guard and one persisted form:
 
-* **On request.** The model calls the built-in tool `c8__load_document` with the handle of a document. The model knows
-  whether it needs to read a document. The tool returns no text about the content: the agent writes into the result that
-  the content follows, or that it is not loaded and why. It loads the whole document. A range would be additive.
+* **On request.** The model calls the built-in tool `c8__load_document`. The model knows whether it needs to read a
+  document, and the tool result tells it when a document cannot be loaded. The tool returns no text of its own: the agent
+  writes into the result that the content follows in the next message, or that it is not loaded and why. The message with
+  the content starts with the preamble `Document content from tool calls (added by the system):` and holds the handle and
+  the document of each document that is loaded. It loads the whole document. A range would be additive.
 * **By opt-in.** The process knows what a document is at two places, so only they can opt in: the user prompt, with a
   dropdown, and a tool activity, with an extension property. This removes one model round trip per document for a prompt
   that always comes with a short PDF or a tool that returns a text file. Events, MCP tools and A2A tools stay references;
@@ -246,14 +282,15 @@ One guard decides every addition of content, whoever asks:
   not loadable, because a provider fails the call for it.
 * The limits per kind (text, PDF, image) are operator configuration, not a setting of a job. Their defaults are below
   the limits of the most restrictive supported provider and apply to every provider.
-* **External documents are reference-only for content that a tool or a tool activity triggers.** The runtime downloads
-  the whole body of an external document to learn its type and size, so no guard can bound the work. The model passes the
-  handle to a tool that processes it. The user prompt keeps its behavior: the model provider reads the content of an
-  external document in a user prompt whatever the delivery, as it reads every document of a user prompt.
-* What the model reads about a rejection is a fixed sentence with the content type, the size and the limit at most. The
-  text is persisted and a failure message can hold a URL with a token, so the cause goes to the log only.
-* A rejection on request is an error result and no incident. A rejection in an opt-in leaves the document a reference and
-  adds a note, because the model could not have read the document anyway.
+* **An external document is treated like every other document.** The guard checks it after the download, with the size
+  of the metadata (`Content-Length`) when known and the length of the downloaded bytes otherwise, and the content type
+  of the response. The user prompt keeps its behavior: the model provider reads the content of an external document in
+  a user prompt whatever the delivery, as it reads every document of a user prompt.
+* What the model reads about a rejection is a standalone sentence with the content type, the size and the limit at most,
+  so that it holds no id; the agent puts it behind the name of the document in the tool result. The text is persisted and a failure message
+  can hold a URL with a token, so the cause goes to the log only.
+* A rejection leaves the document a reference and says so in the tool result, whoever asked, and is no incident: the content of the result of the tool
+  and the documents it returns stay as they are, and the model could not have read the document anyway.
 
 Bytes are a poor proxy for tokens (a small PDF can cost many input tokens), and limits that are the same for every
 provider are as strict as the strictest one. Both are accepted until a token-based guard and a provider capability
@@ -322,6 +359,14 @@ writes handles in prose for other reasons; *an opt-in response option* is not ne
 Both tools are offered to every new instance and cannot be switched off yet (see Follow-up). They use only the runtime
 tool SPI of ADR 016.
 
+### Built-in tools use the public SPI
+
+The connector ships `c8__load_document` as a built-in runtime tool. It is an ordinary bean of the SPI, depends only on the
+API, the model and a few libraries (an architecture test enforces it), and is replaced by registering a bean with its
+bean name. A bean with another bean name but the name of a built-in tool fails the startup, because tool names are unique.
+The core names no built-in tool in its own code. A built-in tool is enabled for the agent instances that have the feature
+it needs, as a custom tool would be: `c8__load_document` works with the agent documents, so it needs the `documents` feature.
+
 ### Where content comes from, and how tool results render
 
 The content of a document is never persisted in the conversation. One component expands the persisted blocks into what
@@ -389,7 +434,9 @@ stays in the variables of the tool elements. It shows exactly what the model rea
 a consumer can recognise a block that is exactly one handle by its `type`. Where a document enters the conversation (the user prompt,
 an event, a tool result) a Camunda or external document is followed by the document itself, which a consumer shows as a
 chip; the chip of a document without a file name, and of an external document without a name, carries the agent document id, the same id the handle shows. A document
-nested in the object of a tool result is shown as the handle object inside the object, followed by the documents. The arguments of a call are shown as the model sent them. It never shows the Camunda
+nested in the object of a tool result is shown as the handle object inside the object, followed by the documents. In the message
+that follows the tool results a document that is delivered is its handle object and a chip. The sentences the agent writes
+into a tool result about the content of a document are text. The arguments of a call are shown as the model sent them. It never shows the Camunda
 document reference a tool received. Each message of a model request is covered by a history item, and a test reads the
 history back after a document flow and requires it.
 
@@ -425,13 +472,18 @@ history back after a document flow and requires it.
   can change tool selection for agents that never use documents. ADR 016 lists the general allow and deny list.
 * **Per-tool document scoping.** Allowed document sources per tool. Any agent document can be passed to any tool by
   handle, so text a tool returned can name another document.
+* **Where the content goes.** The agent decides it when it composes the turn, and the decision is stored with the turn.
+  A model that takes documents in tool results gets them there from the builder, in place of the message that follows.
+  Replaying stored turns to another model would need the rendering step to move them, which belongs to the replay across
+  providers.
 * **Per-provider limits and native tool-result documents.** A capability matrix of the providers would
   reject a type before the load and replace the global limits, and would let the window place content in the tool
   result for models that accept it, derived from persisted data, with the handle and a note otherwise. A provider needs a
   wire format test for documents in tool results first.
 * **A token-based guard, a per-turn budget or a removal mechanism.** Content is sticky and the limits are bytes.
-* **Bounded download and content delivery for external documents.** The runtime downloads the whole body, so no guard
-  can bound the work; external documents are reference-only on request of a tool.
+* **Bounded download of external documents.** The SDK downloads the whole body of an external document, also to read its
+  metadata, so the download is not bounded by the limits. A bounded download in the SDK would let the guard reject a
+  document before downloading it.
 * **History reporting of documents.** External document URLs are reported to the history and can expose a URL with a
   token. They should be reported as handles.
 * **Response documents in the agent documents.** The selections of `c8__return_document` could become a marker on the
@@ -446,8 +498,11 @@ history back after a document flow and requires it.
   the format the remote side expects.
 * **A reference-only agent document for inline documents.** It would replace the limits above and the several copies.
 * **Content type sniffing** for documents of unknown type.
-* **Expiry of a document in its store.** The agent does not notice it; whether it drops the document and tells the model, or
-  leaves it to the tool that dereferences the document, is open.
+* **Expiry of a document in its store.** The agent does not notice it today. At every model call, the agent checks each
+  document whose content is sent against its `expiresAt`, with a margin. An expired document is sent as its handle with a
+  note and no incident. A not-found while fetching the content gives the same note and a warning in the log. The content
+  guard rejects an expired document. Whether the handle shows `expiresAt` is open. A process tool stays responsible for
+  dereferencing the document it receives. The prompt cache breaks once when a document expires.
 * **Documents named only in the content of an evicted assistant message,** and handles the model writes in the final text,
   are not tracked or interpreted.
 * **Modeler and template support.** The extension property of the delivery is set by hand, and the type `document` of

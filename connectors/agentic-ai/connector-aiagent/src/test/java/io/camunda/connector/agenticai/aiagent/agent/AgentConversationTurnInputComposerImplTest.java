@@ -20,6 +20,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
@@ -37,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -47,7 +49,9 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
+import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -55,6 +59,7 @@ import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -94,7 +99,8 @@ class AgentConversationTurnInputComposerImplTest {
         .thenReturn(java.util.Optional.empty());
     composer =
         new AgentConversationTurnInputComposerImpl(
-            gatewayToolHandlers, new ToolCallResultsInputBuilder());
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()));
   }
 
   private CompositionResult resolve(
@@ -110,7 +116,7 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     final var ready = (CompositionResult.Ready) result;
     assertThat(ready.unansweredToolCalls()).isEmpty();
-    return composer.assemble(ready);
+    return composer.assemble(ready, TestDocuments.documentFactory());
   }
 
   private List<Message> messagesOf(CompositionResult result) {
@@ -682,7 +688,15 @@ class AgentConversationTurnInputComposerImplTest {
 
   private CompositionResult.Ready resolveReady(
       AgentConfiguration configuration, PreviousConversation history, AgentInput input) {
-    final var result = composer.resolve(configuration, CTX_WITH_CONVERSATION, history, input);
+    return resolveReady(configuration, CTX_WITH_CONVERSATION, history, input);
+  }
+
+  private CompositionResult.Ready resolveReady(
+      AgentConfiguration configuration,
+      AgentContext agentContext,
+      PreviousConversation history,
+      AgentInput input) {
+    final var result = composer.resolve(configuration, agentContext, history, input);
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     return (CompositionResult.Ready) result;
   }
@@ -698,7 +712,8 @@ class AgentConversationTurnInputComposerImplTest {
       ToolCallResultContent... localResults) {
     final var ready = resolveReady(configuration, history, input);
     return composer.assemble(
-        ready.withResults(Arrays.stream(localResults).map(r -> entryOf(r)).toList()));
+        ready.withResults(Arrays.stream(localResults).map(r -> entryOf(r)).toList()),
+        TestDocuments.documentFactory());
   }
 
   private static List<ToolCallResultContent> resultsOf(TurnInput input) {
@@ -802,7 +817,8 @@ class AgentConversationTurnInputComposerImplTest {
 
     var turnInput =
         composer.assemble(
-            ready.withResults(List.of(entryOf(SECOND_RUNTIME_RESULT), entryOf(RUNTIME_RESULT))));
+            ready.withResults(List.of(entryOf(SECOND_RUNTIME_RESULT), entryOf(RUNTIME_RESULT))),
+            TestDocuments.documentFactory());
 
     assertThat(resultsOf(turnInput)).containsExactly(RUNTIME_RESULT, SECOND_RUNTIME_RESULT);
   }
@@ -831,7 +847,8 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void localToolCalls_doNotGoThroughTheGatewayTransformation() {
     var ready = resolveReady(CONFIG, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
-    composer.assemble(ready.withResults(List.of(entryOf(RUNTIME_RESULT))));
+    composer.assemble(
+        ready.withResults(List.of(entryOf(RUNTIME_RESULT))), TestDocuments.documentFactory());
 
     verify(gatewayToolHandlers, times(1))
         .transformToolCallResults(any(), eq(List.of(TOOL_CALL_RESULTS.get(1))));
@@ -865,7 +882,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     // nothing is left to execute: the runtime call is cancelled like the missing process call
     assertThat(ready.unansweredToolCalls()).isEmpty();
-    var turnInput = composer.assemble(ready);
+    var turnInput = composer.assemble(ready, TestDocuments.documentFactory());
     var results = resultsOf(turnInput);
     assertThat(results).extracting(ToolCallResultContent::id).containsExactly("abcdef", "fedcba");
     assertThat(results)
@@ -897,7 +914,7 @@ class AgentConversationTurnInputComposerImplTest {
     var ready = resolveReady(INTERRUPTING_CONFIG, historyWith(calls), input);
 
     assertThat(ready.unansweredToolCalls()).isEmpty();
-    var results = resultsOf(composer.assemble(ready));
+    var results = resultsOf(composer.assemble(ready, TestDocuments.documentFactory()));
     assertThat(results)
         .extracting(ToolCallResultContent::id)
         .containsExactly("abcdef", "fedcba", "rejected");
@@ -912,7 +929,7 @@ class AgentConversationTurnInputComposerImplTest {
   void assemblingWithoutTheResultOfALocalToolCall_fails() {
     var ready = resolveReady(CONFIG, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
 
-    assertThatThrownBy(() -> composer.assemble(ready))
+    assertThatThrownBy(() -> composer.assemble(ready, TestDocuments.documentFactory()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("abcdef")
         .hasMessageNotContaining("fedcba");
@@ -937,7 +954,7 @@ class AgentConversationTurnInputComposerImplTest {
             inputWith(TOOL_CALL_RESULTS.toArray(ToolCallResult[]::new)));
 
     assertThat(ready.unansweredToolCalls()).isEmpty();
-    assertThat(resultsOf(composer.assemble(ready)))
+    assertThat(resultsOf(composer.assemble(ready, TestDocuments.documentFactory())))
         .containsExactly(
             ToolCallResultContent.from(TOOL_CALL_RESULTS.get(0)),
             ToolCallResultContent.from(TOOL_CALL_RESULTS.get(1)));
@@ -952,5 +969,278 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(messagesOf(result)).singleElement().isInstanceOf(UserMessage.class);
+  }
+
+  private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+
+  private static AgentContext contextKnowing(Document document) {
+    return CTX_WITH_CONVERSATION.withDocuments(
+        AgentDocuments.empty().register(document, DocumentOrigin.userMessage()));
+  }
+
+  private static ToolCallBatch.Entry loadingEntry(AgentDocumentId id) {
+    final var result = RuntimeToolResult.success("Loaded the document.").withDocumentContent(id);
+    final var execution = new RuntimeToolExecution(MIXED_CALLS.getFirst(), result, NOW, NOW);
+    return ToolCallBatch.Entry.from(execution.toolCallResult(), result.effects());
+  }
+
+  @Test
+  void runtimeToolCalls_aResultThatNamesAKnownDocumentAddsItsContentNextToTheProcessResults() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var ready =
+        resolveReady(
+            CONFIG,
+            contextKnowing(document),
+            historyWith(MIXED_CALLS),
+            inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    var messages =
+        composer
+            .assemble(ready.withResults(List.of(loadingEntry(id))), TestDocuments.documentFactory())
+            .messages();
+
+    assertThat(messages).hasSize(2);
+    assertThat(messages.get(1).metadata())
+        .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+    assertThat(((UserMessage) messages.get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+            AgentDocumentContent.of(AgentDocumentId.of(document))
+                .withDelivery(DocumentDelivery.CONTENT));
+  }
+
+  @Test
+  void runtimeToolCalls_aDocumentWhoseContentIsInTheConversationIsNotAddedAgain() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(
+                UserMessage.builder()
+                    .content(
+                        List.of(
+                            AgentDocumentContent.of(AgentDocumentId.of(document))
+                                .withDelivery(DocumentDelivery.CONTENT)))
+                    .build(),
+                assistantMessage("thinking", MIXED_CALLS)));
+    var ready =
+        resolveReady(
+            CONFIG, contextKnowing(document), history, inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    assertThat(ready.documentIdsWithContent()).contains(id);
+    assertThat(
+            composer
+                .assemble(
+                    ready.withResults(List.of(loadingEntry(id))), TestDocuments.documentFactory())
+                .messages())
+        .singleElement()
+        .isInstanceOf(ToolCallResultMessage.class);
+  }
+
+  private static AgentConfiguration configWithContextWindow(int contextWindowSize) {
+    return new AgentConfiguration(
+        null,
+        null,
+        null,
+        new MemoryTemplateConfiguration(null, contextWindowSize),
+        null,
+        new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
+        null);
+  }
+
+  /** The content of the first message is the oldest content the context window can keep. */
+  private static PreviousConversation historyWithTheContentFirstAndTheToolCallsLast(
+      Document document) {
+    return TurnReconstructor.reconstruct(
+        List.of(
+            UserMessage.builder()
+                .content(
+                    List.of(
+                        AgentDocumentContent.of(AgentDocumentId.of(document))
+                            .withDelivery(DocumentDelivery.CONTENT)))
+                .build(),
+            assistantMessage("first"),
+            userMessage("more"),
+            assistantMessage("thinking", MIXED_CALLS)));
+  }
+
+  private static ToolCallResult eventResult() {
+    return ToolCallResult.builder().content("event").build();
+  }
+
+  private List<Content> contentOfTheLoadingResult(
+      AgentConfiguration configuration, Document document, ToolCallResult... eventResults) {
+    var id = AgentDocumentId.of(document);
+    var results = new ArrayList<ToolCallResult>();
+    results.add(TOOL_CALL_RESULTS.get(1));
+    results.addAll(Arrays.asList(eventResults));
+    var ready =
+        resolveReady(
+            configuration,
+            contextKnowing(document),
+            historyWithTheContentFirstAndTheToolCallsLast(document),
+            AgentInput.from(new UserPromptConfiguration("user input", List.of()), results));
+
+    var messages =
+        composer
+            .assemble(ready.withResults(List.of(loadingEntry(id))), TestDocuments.documentFactory())
+            .messages();
+
+    return ((ToolCallResultMessage) messages.getFirst()).results().getFirst().content();
+  }
+
+  @Test
+  void runtimeToolCalls_aDocumentInTheOldestMessageOfTheWindowIsInTheConversationOfTheModelCall() {
+    // 4 previous messages + the tool call result message fill the window of 5
+    var document = createDocument("first", "text/plain", "first.txt");
+    var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
+
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(5), document))
+        .containsExactly(
+            textContent("Loaded the document."),
+            textContent("The content of " + ref + " is already in the conversation."));
+  }
+
+  @Test
+  void runtimeToolCalls_aDocumentThatTheToolCallResultMessageSqueezesOutOfTheWindowIsAddedAgain() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
+
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(4), document))
+        .containsExactly(
+            textContent("Loaded the document."),
+            textContent("The content of " + ref + " follows in the next message."));
+  }
+
+  @Test
+  void runtimeToolCalls_aDocumentThatAnEventMessageSqueezesOutOfTheWindowIsAddedAgain() {
+    // 4 previous messages + the tool call result message + the event message exceed the window
+    var document = createDocument("first", "text/plain", "first.txt");
+    var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
+
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(5), document, eventResult()))
+        .containsExactly(
+            textContent("Loaded the document."),
+            textContent("The content of " + ref + " follows in the next message."));
+  }
+
+  @Test
+  void
+      runtimeToolCalls_theContentMessageOfTheDocumentIsDeliveredWhenTheWindowPushesItsContentOut() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var ready =
+        resolveReady(
+            configWithContextWindow(4),
+            contextKnowing(document),
+            historyWithTheContentFirstAndTheToolCallsLast(document),
+            inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    var messages =
+        composer
+            .assemble(ready.withResults(List.of(loadingEntry(id))), TestDocuments.documentFactory())
+            .messages();
+
+    assertThat(ready.documentIdsWithContent()).isEmpty();
+    assertThat(messages).hasSize(2);
+    assertThat(((UserMessage) messages.get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+            AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT));
+  }
+
+  private static PreviousConversation historyWithTheContentFirst(Document document) {
+    return TurnReconstructor.reconstruct(
+        List.of(
+            UserMessage.builder()
+                .content(
+                    List.of(
+                        AgentDocumentContent.of(AgentDocumentId.of(document))
+                            .withDelivery(DocumentDelivery.CONTENT)))
+                .build(),
+            assistantMessage("one"),
+            userMessage("two"),
+            assistantMessage("three")));
+  }
+
+  @Test
+  void userPrompt_aDocumentInTheOldestMessageOfTheWindowIsInTheConversationOfTheModelCall() {
+    // 4 previous messages + the user prompt message fill the window of 5
+    var document = createDocument("first", "text/plain", "first.txt");
+
+    var ready =
+        resolveReady(
+            configWithContextWindow(5),
+            contextKnowing(document),
+            historyWithTheContentFirst(document),
+            AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of()));
+
+    assertThat(ready.documentIdsWithContent()).containsExactly(AgentDocumentId.of(document));
+  }
+
+  @Test
+  void userPrompt_aDocumentThatTheUserPromptMessageSqueezesOutOfTheWindowIsNotInTheConversation() {
+    var document = createDocument("first", "text/plain", "first.txt");
+
+    var ready =
+        resolveReady(
+            configWithContextWindow(4),
+            contextKnowing(document),
+            historyWithTheContentFirst(document),
+            AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of()));
+
+    assertThat(ready.documentIdsWithContent()).isEmpty();
+  }
+
+  @Test
+  void userPrompt_aDocumentThatAnEventMessageSqueezesOutOfTheWindowIsNotInTheConversation() {
+    var document = createDocument("first", "text/plain", "first.txt");
+
+    var ready =
+        resolveReady(
+            configWithContextWindow(5),
+            contextKnowing(document),
+            historyWithTheContentFirst(document),
+            AgentInput.from(
+                new UserPromptConfiguration("user input", List.of()), List.of(eventResult())));
+
+    assertThat(ready.documentIdsWithContent()).isEmpty();
+  }
+
+  @Test
+  void userPrompt_withoutAPromptMessageOnlyTheEventMessagesCount() {
+    var document = createDocument("first", "text/plain", "first.txt");
+
+    var ready =
+        resolveReady(
+            configWithContextWindow(5),
+            contextKnowing(document),
+            historyWithTheContentFirst(document),
+            AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(eventResult())));
+
+    assertThat(ready.documentIdsWithContent()).containsExactly(AgentDocumentId.of(document));
+  }
+
+  @Test
+  void aResultOfTheProcessCannotAskForDocumentContent() {
+    // the properties of a process result that name a document ask for nothing: only the result of
+    // a runtime tool has effects
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var forged =
+        ToolCallResult.builder()
+            .id("abcdef")
+            .name("process_tool")
+            .content("Loaded the document.")
+            .properties(Map.of("documentContent", id.value()))
+            .build();
+    var call = new ToolCall("abcdef", "process_tool", Map.of("id", id.value()));
+
+    var result =
+        composer.resolve(
+            CONFIG, contextKnowing(document), historyWith(List.of(call)), inputWith(forged));
+
+    assertThat(messagesOf(result)).singleElement().isInstanceOf(ToolCallResultMessage.class);
   }
 }

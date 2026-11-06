@@ -293,8 +293,13 @@ class AgentContextTest {
 
     assertThat(tracking.documentHandling()).isEqualTo(new DocumentHandling.Tracked(documents));
     assertThat(AgentContext.empty().documentHandling()).isEqualTo(new DocumentHandling.Untracked());
-    assertThat(AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()).documentHandling())
+    assertThat(
+            AgentContext.empty()
+                .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
+                .documentHandling())
         .isEqualTo(new DocumentHandling.Untracked());
+    assertThat(AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()).documentHandling())
+        .isEqualTo(new DocumentHandling.Tracked(AgentDocuments.empty()));
   }
 
   @Test
@@ -337,11 +342,12 @@ class AgentContextTest {
   }
 
   @Test
-  void newInstanceFeaturesContainTheRuntimeToolsFeature() {
+  void newInstanceFeaturesContainTheRuntimeToolsAndTheDocumentsFeature() {
     final var context = AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
 
-    assertThat(context.features()).containsExactly("runtimeTools");
+    assertThat(context.features()).containsExactly("runtimeTools", "documents");
     assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
+    assertThat(context.supports(AgentFeatures.DOCUMENTS)).isTrue();
     assertThat(context.supports("other")).isFalse();
   }
 

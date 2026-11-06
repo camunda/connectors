@@ -39,6 +39,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
@@ -58,6 +60,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerI
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
@@ -94,6 +97,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   public GatewayToolHandlerRegistry aiAgentGatewayToolHandlerRegistry(
       List<GatewayToolHandler> gatewayToolHandlers) {
     return new GatewayToolHandlerRegistryImpl(gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(name = "aiAgentLoadDocumentRuntimeTool")
+  public RuntimeTool aiAgentLoadDocumentRuntimeTool() {
+    return new LoadDocumentTool();
   }
 
   @Bean
@@ -247,8 +256,23 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolCallResultsInputBuilder aiAgentToolCallResultsInputBuilder() {
-    return new ToolCallResultsInputBuilder();
+  public ToolCallResultsInputBuilder aiAgentToolCallResultsInputBuilder(
+      DocumentContentDelivery documentContentDelivery) {
+    return new ToolCallResultsInputBuilder(documentContentDelivery);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public DocumentContentDelivery aiAgentDocumentContentDelivery(
+      DocumentContentGuard documentContentGuard) {
+    return new DocumentContentDelivery(documentContentGuard);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public DocumentContentGuard aiAgentDocumentContentGuard(
+      AgenticAiConnectorsConfigurationProperties configuration) {
+    return new DocumentContentGuard(configuration.aiagent().document().contentLimits().toLimits());
   }
 
   @Bean

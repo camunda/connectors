@@ -8,7 +8,11 @@ package io.camunda.connector.agenticai.testutil;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -33,6 +37,16 @@ public final class TestDocuments {
   /** The document factory of the in-memory store, the document factory of a job in a test. */
   public static DocumentFactory documentFactory() {
     return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+  }
+
+  /** Restores the documents of the in-memory store. */
+  public static DocumentRestorer documentRestorer() {
+    return new DocumentRestorer(documentFactory());
+  }
+
+  /** Decides the content of the documents of the in-memory store with the default limits. */
+  public static DocumentContentDelivery documentContentDelivery() {
+    return new DocumentContentDelivery(new DocumentContentGuard(DocumentContentLimits.defaults()));
   }
 
   public static ObjectHandleRenderer objectHandleRenderer() {

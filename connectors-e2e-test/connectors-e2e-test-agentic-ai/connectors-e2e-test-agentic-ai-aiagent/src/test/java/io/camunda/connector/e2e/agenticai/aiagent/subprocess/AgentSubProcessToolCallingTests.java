@@ -17,15 +17,18 @@
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.SUPERFLUX_PRODUCT_TOOL_NAME;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseExternalDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.ExtractedDocument;
+import io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -70,20 +73,8 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
   }
 
   @ParameterizedTest
-  @CsvSource({
-    "test.csv,text,text/csv",
-    "test.gif,base64,image/gif",
-    "test.jpg,base64,image/jpeg",
-    "test.json,text,application/json",
-    "test.pdf,base64,application/pdf",
-    "test.png,base64,image/png",
-    "test.txt,text,text/plain",
-    "test.webp,base64,image/webp",
-    "test.xml,text,application/xml",
-    "test.yaml,text,application/yaml"
-  })
-  void supportsDocumentResponsesFromToolCalls(String filename, String type, String mimeType)
-      throws Exception {
+  @CsvSource({"test.pdf,application/pdf", "test.txt,text/plain"})
+  void supportsDocumentResponsesFromToolCalls(String filename, String mimeType) throws Exception {
     final var initialUserPrompt = "Go and download a document!";
     final var aiToolCallText =
         "The user asked me to download a document. I will call the Download_A_File tool to do so.";
@@ -113,34 +104,26 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
                 Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     final var lastMessages = recorded.lastRequest().messages();
-    assertThat(lastMessages).hasSize(7);
+    assertThat(lastMessages).hasSize(6);
 
     assertThat(lastMessages.get(0).role()).isEqualTo("system");
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
-    // tool result: document reference serialized as JSON
+    // tool result: the document shown as its handle, its content is not part of the conversation
     final var toolResultText = lastMessages.get(3).content();
-    final var documentReference = parseDocumentReference(toolResultText);
+    final var documentHandle = parseDocumentHandle(toolResultText);
     assertThat(lastMessages.get(3).role()).isEqualTo("tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
-    assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
+    assertThat(documentHandle.contentType()).isEqualTo(mimeType);
 
-    // document user message: extracted document content (decoded from wire format)
-    assertExtractedDocumentsUserMessage(
-        lastMessages.get(4),
-        ExtractedDocument.forToolCall(
-            "aaa111",
-            "Download_A_File",
-            documentReference,
-            block -> assertDocumentContentBlockJson(block, type, mimeType)));
-
-    assertThat(lastMessages.get(5).role()).isEqualTo("assistant");
-    assertThat(lastMessages.get(6).role()).isEqualTo("user");
-    assertThat(lastMessages.get(6).textContent()).isEqualTo("What is the content type?");
+    assertThat(lastMessages.get(4).role()).isEqualTo("assistant");
+    assertThat(lastMessages.get(5).role()).isEqualTo("user");
+    assertThat(lastMessages.get(5).textContent()).isEqualTo("What is the content type?");
 
     assertAgentResponse(
         zeebeTest,
@@ -152,6 +135,50 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
                 .hasResponseText(aiFinalResponseText));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
+  }
+
+  @Test
+  void loadsTheContentOfAnExternalDocumentOnRequest() throws Exception {
+    final var docUrl = wireMock.getHttpBaseUrl() + "/test.txt";
+    final var aiFinalResponseText = "Read the external document.";
+
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            "I will reference an externally hosted file.",
+            10,
+            20,
+            ToolCall.of(
+                "ext111",
+                "External_File_Reference",
+                "{\"url\": \"%s\", \"name\": \"Notes\"}".formatted(docUrl))),
+        DocumentFlowFixtures.getDocumentTurn("load111", documentId(0)),
+        Turn.text(aiFinalResponseText, 11, 22));
+
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    awaitProcessCompletion(
+        createProcessInstance(
+            elementTemplate -> elementTemplate,
+            Map.of("userPrompt", "Reference an external document and read it!")));
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
+
+    final var lastMessages = recorded.lastRequest().messages();
+    assertThat(lastMessages)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "assistant", "tool", "user");
+
+    final var externalHandle = parseDocumentHandle(lastMessages.get(3).content());
+    assertThat(externalHandle.fileName()).isEqualTo("Notes");
+    assertThat(lastMessages.get(5).content()).isEqualTo(contentFollowsSentence(externalHandle));
+
+    // the content of the external document is loaded like the one of any other document
+    assertDocumentContentUserMessage(
+        lastMessages.get(6),
+        DocumentWithContent.of(
+            externalHandle, block -> assertDocumentContentBlockJson(block, "text", "text/plain")));
   }
 
   @Test
@@ -182,29 +209,23 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
                 Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     final var lastMessages = recorded.lastRequest().messages();
-    assertThat(lastMessages).hasSize(5);
+    assertThat(lastMessages).hasSize(4);
 
     assertThat(lastMessages.get(0).role()).isEqualTo("system");
     assertThat(lastMessages.get(1).role()).isEqualTo("user");
     assertThat(lastMessages.get(2).role()).isEqualTo("assistant");
 
-    // tool result: external document reference serialized as { url, name }
+    // tool result: external document shown as a handle with its name, never its URL
     final var toolResultText = lastMessages.get(3).content();
-    final var externalRef = parseExternalDocumentReference(toolResultText);
-    assertThat(externalRef.url()).isEqualTo(docUrl);
-    assertThat(externalRef.name()).isEqualTo(docName);
-
-    // document user message: external doc rendered with content block
-    assertExtractedDocumentsUserMessage(
-        lastMessages.get(4),
-        ExtractedDocument.forExternalToolCall(
-            "ext111",
-            "External_File_Reference",
-            externalRef,
-            block -> assertDocumentContentBlockJson(block, "base64", "application/pdf")));
+    final var externalHandle = parseDocumentHandle(toolResultText);
+    assertThat(lastMessages.get(3).role()).isEqualTo("tool");
+    assertThat(externalHandle.fileName()).isEqualTo(docName);
+    assertThat(externalHandle.size()).isNull();
+    assertThat(toolResultText).doesNotContain(docUrl);
 
     assertAgentResponse(
         zeebeTest,

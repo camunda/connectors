@@ -52,8 +52,8 @@ class ToolCallAdmissionTest {
 
   private static final String BOGUS_DOC = mustBeHandle("doc");
 
-  private static final AgentContext NEW_INSTANCE =
-      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+  private static final AgentContext WITHOUT_DOCUMENTS =
+      AgentContext.empty().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS));
 
   private static final Document REPORT = createDocument("report data", "report.txt");
   private static final Map<String, Object> REPORT_HANDLE =
@@ -80,7 +80,7 @@ class ToolCallAdmissionTest {
             new ToolCall("r1", "acme_note", Map.of("text", "x")));
 
     final var admitted =
-        admission.admit(message, List.of(PROCESS_TOOL, RUNTIME_TOOL), NEW_INSTANCE);
+        admission.admit(message, List.of(PROCESS_TOOL, RUNTIME_TOOL), WITHOUT_DOCUMENTS);
 
     assertThat(admitted)
         .isEqualTo(
@@ -98,7 +98,7 @@ class ToolCallAdmissionTest {
             new ToolCall("x1", "acme_unknown", Map.of()),
             new ToolCall("p1", "getWeather", Map.of()));
 
-    final var admitted = admission.admit(message, List.of(PROCESS_TOOL), NEW_INSTANCE);
+    final var admitted = admission.admit(message, List.of(PROCESS_TOOL), WITHOUT_DOCUMENTS);
 
     assertThat(admitted.toolCalls())
         .containsExactly(
@@ -111,7 +111,8 @@ class ToolCallAdmissionTest {
   void aMessageWithoutCallsIsReturnedAsItIs() {
     final var message = AssistantMessage.builder().content(List.of(textContent("Hi"))).build();
 
-    assertThat(admission.admit(message, List.of(PROCESS_TOOL), NEW_INSTANCE)).isSameAs(message);
+    assertThat(admission.admit(message, List.of(PROCESS_TOOL), WITHOUT_DOCUMENTS))
+        .isSameAs(message);
   }
 
   @Test
@@ -230,7 +231,7 @@ class ToolCallAdmissionTest {
         admission.admit(
             messageWith(processCall, runtimeCall),
             List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
-            NEW_INSTANCE);
+            WITHOUT_DOCUMENTS);
 
     assertThat(admitted.toolCalls())
         .containsExactly(processCall, runtimeCall.withKind(ToolKind.RUNTIME));

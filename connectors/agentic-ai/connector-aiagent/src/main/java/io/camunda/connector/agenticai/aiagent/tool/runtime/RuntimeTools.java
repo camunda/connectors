@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +85,9 @@ public class RuntimeTools {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return List.of();
     }
-    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
+    final var context =
+        RuntimeToolContextImpl.of(
+            executionContext, agentContext, Set.of(), executionContext.documentFactory());
     return registrationsByName.values().stream()
         .filter(registration -> registration.tool().isEnabled(context))
         .map(Registration::definition)
@@ -96,10 +100,21 @@ public class RuntimeTools {
    *
    * <p>A call of a tool that is not enabled when it is executed gets an error result, and so does a
    * {@link RuntimeToolException}. Any other exception propagates.
+   *
+   * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
+   *     start of the batch
    */
   public List<RuntimeToolExecution> execute(
-      AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
-    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      Set<AgentDocumentId> documentIdsWithContent,
+      List<ToolCall> calls) {
+    final var context =
+        RuntimeToolContextImpl.of(
+            executionContext,
+            agentContext,
+            documentIdsWithContent,
+            executionContext.documentFactory());
     return calls.stream().map(call -> execute(context, call)).toList();
   }
 
@@ -155,7 +170,8 @@ public class RuntimeTools {
     Objects.requireNonNull(
         result, "The runtime tool '%s' returned no result".formatted(toolCall.name()));
     return result instanceof RuntimeToolResult.Success success
-        ? RuntimeToolResult.success(success.content().stream().map(this::plainContent).toList())
+        ? new RuntimeToolResult.Success(
+            success.content().stream().map(this::plainContent).toList(), success.effects())
         : result;
   }
 

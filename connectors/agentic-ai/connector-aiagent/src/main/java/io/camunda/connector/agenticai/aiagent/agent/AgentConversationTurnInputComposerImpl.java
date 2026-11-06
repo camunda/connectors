@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfigu
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -137,7 +138,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         // calls that were not executed yet; a rejected call keeps its rejection
         batch = batch.withEntries(batch.unanswered().stream().map(this::cancelled).toList());
       }
-      return new CompositionResult.Ready(agentContext, batch, TurnInput.empty(), events);
+      // the model call reads the tool call result message and the event messages as well
+      final var documentIdsWithContent =
+          previousConversation.documentIdsWithContent(
+              configuration.contextWindowSize(), 1 + eventMessages.size());
+      return new CompositionResult.Ready(
+          agentContext, documentIdsWithContent, batch, TurnInput.empty(), events);
     }
 
     final var promptDocuments = new ArrayList<NewDocument>();
@@ -147,8 +153,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
     }
+    // the model call reads the user prompt message and the event messages as well
+    final var documentIdsWithContent =
+        previousConversation.documentIdsWithContent(
+            configuration.contextWindowSize(), (userPrompt == null ? 0 : 1) + eventMessages.size());
     return new CompositionResult.Ready(
         agentContext,
+        documentIdsWithContent,
         ToolCallBatch.of(List.of()),
         userPrompt == null
             ? TurnInput.empty()
@@ -157,11 +168,15 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   @Override
-  public TurnInput assemble(CompositionResult.Ready ready) {
+  public TurnInput assemble(CompositionResult.Ready ready, DocumentFactory documentFactory) {
     final var input =
         ready.toolCallBatch().toolCalls().isEmpty()
             ? ready.userPrompt()
-            : toolCallResultsInputBuilder.build(ready.agentContext(), ready.toolCallBatch());
+            : toolCallResultsInputBuilder.build(
+                ready.agentContext(),
+                ready.toolCallBatch(),
+                ready.documentIdsWithContent(),
+                documentFactory);
     return input.followedBy(ready.events());
   }
 

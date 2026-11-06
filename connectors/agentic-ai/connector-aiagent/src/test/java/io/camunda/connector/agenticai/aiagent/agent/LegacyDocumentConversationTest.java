@@ -113,7 +113,8 @@ class LegacyDocumentConversationTest {
       PreviousConversation previous,
       AgentInput input) {
     return composer.assemble(
-        (CompositionResult.Ready) composer.resolve(configuration, context, previous, input));
+        (CompositionResult.Ready) composer.resolve(configuration, context, previous, input),
+        TestDocuments.documentFactory());
   }
 
   @org.junit.jupiter.api.BeforeEach
@@ -124,7 +125,8 @@ class LegacyDocumentConversationTest {
     when(gatewayToolHandlers.handlerForToolDefinition(any())).thenReturn(Optional.empty());
     composer =
         new AgentConversationTurnInputComposerImpl(
-            gatewayToolHandlers, new ToolCallResultsInputBuilder());
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()));
   }
 
   @Test

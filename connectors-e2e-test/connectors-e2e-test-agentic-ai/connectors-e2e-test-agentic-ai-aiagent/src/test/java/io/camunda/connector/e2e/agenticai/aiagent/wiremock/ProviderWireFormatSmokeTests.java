@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions;
 import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV1WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV2WireFormatFixture;
@@ -224,6 +225,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
+    // the model gets the handle of the document and its content
     assertThat(fixture.modelCallCount()).isEqualTo(1);
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
@@ -237,6 +239,118 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                 .isReady()
                 .hasResponseText(responseText));
   }
+
+  @Test
+  void documentRequestedByTheModel() throws Exception {
+    final var userPrompt = "Summarize the following document";
+    final var toolCallMessage = "I will read the document.";
+    final var responseText = "TL;DR: it is pretty interesting";
+
+    fixture.stubConversation(
+        TurnStub.toolCalls(
+            toolCallMessage,
+            10,
+            20,
+            new ToolCallStub(
+                "get111",
+                "c8__load_document",
+                "{\"id\": {\"type\":\"camunda.agenticai.document\",\"id\":\"@@DOC_ID_0@@\"}}")),
+        TurnStub.text(responseText, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                Map.of(
+                    "userPrompt",
+                    userPrompt,
+                    "downloadUrls",
+                    List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
+
+    assertThat(fixture.modelCallCount()).isEqualTo(2);
+    // the content of the document is in the conversation already
+    ProviderWireFormatExpectedMessage.assertConversationMessages(
+        fixture.lastRecordedRequest(),
+        ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+        ProviderWireFormatExpectedMessage.userWithDocument(userPrompt),
+        ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+            toolCallMessage, "c8__load_document"),
+        ProviderWireFormatExpectedMessage.toolCallResultMatching(
+            "get111",
+            "The content of " + DOCUMENT_REF_REGEX + " is already in the conversation\\."));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(responseText));
+  }
+
+  /**
+   * A tool returns a document and the model asks for its content: the answer of the load-document
+   * tool says that the content follows, and the content follows in a message of its own.
+   */
+  @Test
+  void documentOfAToolResultRequestedByTheModel() throws Exception {
+    final var userPrompt = "Download the document and summarize it";
+    final var downloadMessage = "I will download the document.";
+    final var toolCallMessage = "I will read the document.";
+    final var responseText = "TL;DR: it is pretty interesting";
+
+    fixture.stubConversation(
+        TurnStub.toolCalls(
+            downloadMessage,
+            10,
+            20,
+            new ToolCallStub(
+                "dl1111",
+                "Download_A_File",
+                "{\"url\": \"" + wireMock.getHttpBaseUrl() + "/test.jpg\"}")),
+        TurnStub.toolCalls(
+            toolCallMessage,
+            10,
+            20,
+            new ToolCallStub(
+                "get111",
+                "c8__load_document",
+                "{\"id\": {\"type\":\"camunda.agenticai.document\",\"id\":\"@@DOC_ID_0@@\"}}")),
+        TurnStub.text(responseText, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
+
+    assertThat(fixture.modelCallCount()).isEqualTo(3);
+    ProviderWireFormatExpectedMessage.assertConversationMessages(
+        fixture.lastRecordedRequest(),
+        ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+        ProviderWireFormatExpectedMessage.user(userPrompt),
+        ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+            downloadMessage, "Download_A_File"),
+        ProviderWireFormatExpectedMessage.toolCallResultMatching(
+            "dl1111", "\\{\"status\":200,\"document\":" + HANDLE_REGEX + "\\}"),
+        ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+            toolCallMessage, "c8__load_document"),
+        ProviderWireFormatExpectedMessage.toolCallResultMatching(
+            "get111", "The content of " + DOCUMENT_REF_REGEX + " follows in the next message\\."),
+        ProviderWireFormatExpectedMessage.userWithDocument(
+            ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(responseText));
+  }
+
+  /** The handle of a document, which the model reads as text. */
+  private static final String HANDLE_REGEX =
+      "\\{\"type\":\"camunda\\.agenticai\\.document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}";
+
+  /** The file name and the id of a document as the sentences about its content name it. */
+  private static final String DOCUMENT_REF_REGEX = "(?:[^()]+ \\()?doc_[0-9a-f]{12}\\)?";
 
   private static final Map<String, Object> HAIKU_SCHEMA =
       Map.of(

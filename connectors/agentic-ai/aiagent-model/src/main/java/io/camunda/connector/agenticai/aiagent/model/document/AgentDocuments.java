@@ -112,14 +112,18 @@ public final class AgentDocuments {
   }
 
   private static void rejectLargeInlineContent(AgentDocument document) {
-    if (!(document.reference() instanceof InlineDocumentReference inline)
-        || inline.content() == null) {
-      return;
-    }
-    final long bytes = inline.content().getBytes(StandardCharsets.UTF_8).length;
-    if (bytes > InlineSizeGuard.MAX_INLINE_BYTES) {
-      final var name = document.fileName();
-      throw new InlineDocumentTooLargeException(name != null ? name : document.id().value(), bytes);
+    switch (document.reference()) {
+      case InlineDocumentReference inline when inline.content() != null -> {
+        final long bytes = inline.content().getBytes(StandardCharsets.UTF_8).length;
+        if (bytes > InlineSizeGuard.MAX_INLINE_BYTES) {
+          final var name = document.fileName();
+          throw new InlineDocumentTooLargeException(
+              name != null ? name : document.id().value(), bytes);
+        }
+      }
+      default -> {
+        // only an inline reference holds content
+      }
     }
   }
 

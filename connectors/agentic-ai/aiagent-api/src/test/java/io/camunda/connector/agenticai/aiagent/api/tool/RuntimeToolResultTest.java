@@ -10,12 +10,21 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class RuntimeToolResultTest {
+
+  private static final AgentDocumentId DOC_1 = AgentDocumentId.of("doc-1");
+  private static final AgentDocumentId DOC_2 = AgentDocumentId.of("doc-2");
 
   @Test
   void aTextBecomesTheContent() {
@@ -71,6 +80,55 @@ class RuntimeToolResultTest {
 
     assertThat(result.content()).containsExactly(textContent("a"));
     assertThatThrownBy(() -> result.content().add(textContent("c")))
+        .isInstanceOf(UnsupportedOperationException.class);
+  }
+
+  @Test
+  void aSuccessfulResultKeepsTheEffectsInTheOrderTheyWereAdded() {
+    final var result =
+        RuntimeToolResult.success("ok").withDocumentContent(DOC_2).withDocumentContent(DOC_1);
+
+    assertThat(result.effects())
+        .containsExactly(
+            new ToolCallEffect.AddDocumentContent(DOC_2),
+            new ToolCallEffect.AddDocumentContent(DOC_1));
+    assertThat(result.content()).containsExactly(textContent("ok"));
+  }
+
+  @Test
+  void aDocumentNamesItsIdAsTheDocumentContentEffect() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .build());
+
+    final var result = RuntimeToolResult.success("ok").withDocumentContent(document);
+
+    assertThat(result.effects())
+        .containsExactly(new ToolCallEffect.AddDocumentContent(AgentDocumentId.of(document)));
+  }
+
+  @Test
+  void aSuccessfulResultWithoutEffectsHasNone() {
+    assertThat(RuntimeToolResult.success("ok").effects()).isEmpty();
+  }
+
+  @Test
+  void aWitherLeavesTheOriginalResultUnchanged() {
+    final var original = RuntimeToolResult.success("ok");
+
+    original.withDocumentContent(DOC_1);
+
+    assertThat(original.effects()).isEmpty();
+  }
+
+  @Test
+  void theEffectsAreACopyThatCannotBeChanged() {
+    final var result = RuntimeToolResult.success("ok").withDocumentContent(DOC_1);
+
+    assertThatThrownBy(() -> result.effects().add(new ToolCallEffect.AddDocumentContent(DOC_2)))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 }
