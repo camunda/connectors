@@ -194,13 +194,13 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void userPrompt_withReferenceDelivery_addsTheContentOfAnExternalDocument() {
+  void userPrompt_withReferenceDelivery_keepsAnExternalDocumentAsAReference() {
     final var external = externalDocument();
 
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.REFERENCE, List.of(), external));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), block(external, true));
+        .containsExactly(textContent("Hello?"), block(external, false));
   }
 
   @Test

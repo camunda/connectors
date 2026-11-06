@@ -27,8 +27,7 @@ public final class AgentInput {
   /**
    * Domain representation of the per-invocation user prompt, derived from the request-level {@link
    * UserPromptConfiguration} so the conversation turn composition does not depend on the request
-   * DTO. The {@code documentDelivery} says how the documents reach the model; the documents of an
-   * external URL always go out as content, as the model provider reads them.
+   * DTO. The {@code documentDelivery} says how the documents reach the model.
    */
   public record UserPrompt(
       String prompt, List<Document> documents, UserPromptDocumentDelivery documentDelivery) {

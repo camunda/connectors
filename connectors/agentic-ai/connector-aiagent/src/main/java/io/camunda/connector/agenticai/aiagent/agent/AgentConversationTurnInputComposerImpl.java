@@ -35,7 +35,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -245,9 +244,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * The blocks of the documents of the user prompt. The content of a document is added when the
-   * model is called, for a block with the delivery content. The documents of an external URL always
-   * go out as content: the model provider reads them.
+   * The blocks of the documents of the user prompt, by the delivery of the prompt, for every kind
+   * of document. With the delivery content the content of a document is added when the model is
+   * called. Without a delivery the content of every document is added.
    */
   private List<Content> trackedPromptDocuments(
       UserPrompt userPrompt, AgentDocuments known, Set<AgentDocumentId> idsWithContent) {
@@ -256,10 +255,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     for (final var doc : userPrompt.documents()) {
       final var reference = AgentDocumentContent.of(AgentDocumentId.of(doc));
       final var withContent = reference.withDelivery(DocumentDelivery.CONTENT);
-      if (doc.reference() instanceof ExternalDocumentReference) {
-        blocks.add(withContent);
-        continue;
-      }
       switch (userPrompt.documentDelivery()) {
         case UNSET -> blocks.add(withContent);
         case REFERENCE -> blocks.add(reference);
