@@ -34,9 +34,9 @@ import org.jspecify.annotations.Nullable;
  * the next message.}, and asks the agent to add the content of the document ({@link
  * RuntimeToolResult.Success#withDocumentContent}). A document the model reads the content of
  * already is not asked for again. The agent keeps the result as it is when it does not add the
- * content, for example because of the content type or the size of the document, or because it is an
- * external document: the message that follows the tool results then holds the handle of the
- * document with a note that says why the content is not loaded.
+ * content, for example because of the content type or the size of the document: the message that
+ * follows the tool results then holds the handle of the document with a note that says why the
+ * content is not loaded.
  */
 public final class LoadDocumentTool implements RuntimeTool {
 
@@ -50,12 +50,11 @@ public final class LoadDocumentTool implements RuntimeTool {
       ToolDefinition.runtime(
           NAME,
           "Loads a known document so that its content can be read in the conversation. Use it when"
-              + " you need the content of a document that you only see as a handle. It does not"
-              + " load documents that are too large and documents that are external links, a note"
-              + " in the handle tells you so: pass the handle of such a document to a tool that"
-              + " processes it instead, for example a sandbox. Only text, PDF and image documents"
-              + " can be loaded. A document that is already in the conversation is not loaded"
-              + " again.",
+              + " you need the content of a document that you only see as a handle. Only text, PDF"
+              + " and image documents can be loaded, and not documents that are too large: a note"
+              + " in the handle tells you so, and you can pass the handle of such a document to a"
+              + " tool that processes it instead, for example a sandbox. A document that is already"
+              + " in the conversation is not loaded again.",
           schema());
 
   /** The arguments of a call: the document to load. */
