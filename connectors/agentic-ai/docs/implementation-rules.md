@@ -13,9 +13,9 @@ they do not conflict with these rules. If they conflict, these rules apply, and 
 divergence. Module operating rules (testing, the Definition of Done, ADRs, architectural invariants)
 are in [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md).
 
-Review a rule when its SDK or API area changes. Remove a rule when a build check enforces it. Remove a
-rule when it only causes noise. When a review finds a problem that a build check can find, add the
-check, or open a follow-up issue under #9591.
+In a review, flag a problem that a build check can find, and name the check. In a review, flag a rule
+that conflicts with the change or that a build check in the change now enforces. A maintainer decides
+the follow-up.
 
 ## Before you plan
 
