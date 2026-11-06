@@ -276,7 +276,8 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.assistantWithToolCalls(
             toolCallMessage, "c8__load_document"),
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
-            "get111", HANDLE_REGEX + "\\s*The document is already in the conversation\\."));
+            "get111",
+            "The content of " + DOCUMENT_REF_REGEX + " is already in the conversation\\."));
 
     assertAgentResponse(
         zeebeTest,
@@ -288,7 +289,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
 
   /**
    * A tool returns a document and the model asks for its content: the answer of the load-document
-   * tool holds the handle, and the content follows in a message of its own.
+   * tool says that the content follows, and the content follows in a message of its own.
    */
   @Test
   void documentOfAToolResultRequestedByTheModel() throws Exception {
@@ -332,7 +333,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.assistantWithToolCalls(
             toolCallMessage, "c8__load_document"),
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
-            "get111", HANDLE_REGEX + "\\s*The content follows in the next message\\."),
+            "get111", "The content of " + DOCUMENT_REF_REGEX + " follows in the next message\\."),
         ProviderWireFormatExpectedMessage.userWithDocument(
             ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
 
@@ -347,6 +348,9 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
   /** The handle of a document, which the model reads as text. */
   private static final String HANDLE_REGEX =
       "\\{\"type\":\"camunda\\.agenticai\\.document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}";
+
+  /** The file name and the id of a document as the sentences about its content name it. */
+  private static final String DOCUMENT_REF_REGEX = "(?:[^()]+ \\()?doc_[0-9a-f]{12}\\)?";
 
   private static final Map<String, Object> HAIKU_SCHEMA =
       Map.of(
