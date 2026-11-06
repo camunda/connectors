@@ -2290,7 +2290,11 @@ lease-fenced `update()` mechanism).
   object with the handle objects nested, followed by the chips. An inline document has its handle only. When a
   document reported as a `DOCUMENT` block has no file name, the reported metadata carries the agent document id (`doc_…`)
   as the file name, and an external document without a name is reported under that id as its name, so the chip shows the id the handle shows; the document and its stored reference are not changed. A
-  text is reported as it is, also when it holds a handle.
+  text is reported as it is, also when it holds a handle, except a text that is exactly the handle of a known document in a
+  tool result (the answer of `c8__load_document` has the handle and its sentence as two text blocks) and in the message that
+  follows the tool results: it is reported as the handle object. The message that follows the tool results is reported as
+  its preamble text, per delivered document the handle object and its chip, and per document whose content is not loaded the
+  handle object with its `note` and no chip, because the document has its chip where it entered the conversation.
   `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `DocumentHandling` of the agent instance: it
   decides what the history shows, and the agent documents of a `Tracked` instance are what the handles are expanded with. An
   `Untracked` agent instance reports texts as they are.

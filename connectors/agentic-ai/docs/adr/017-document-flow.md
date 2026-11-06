@@ -434,7 +434,9 @@ stays in the variables of the tool elements. It shows exactly what the model rea
 a consumer can recognise a block that is exactly one handle by its `type`. Where a document enters the conversation (the user prompt,
 an event, a tool result) a Camunda or external document is followed by the document itself, which a consumer shows as a
 chip; the chip of a document without a file name, and of an external document without a name, carries the agent document id, the same id the handle shows. A document
-nested in the object of a tool result is shown as the handle object inside the object, followed by the documents. The arguments of a call are shown as the model sent them. It never shows the Camunda
+nested in the object of a tool result is shown as the handle object inside the object, followed by the documents. In the message
+that follows the tool results a document that is delivered is its handle object and a chip, and a document whose content is
+not loaded is its handle object with the note and no chip. The arguments of a call are shown as the model sent them. It never shows the Camunda
 document reference a tool received. Each message of a model request is covered by a history item, and a test reads the
 history back after a document flow and requires it.
 
