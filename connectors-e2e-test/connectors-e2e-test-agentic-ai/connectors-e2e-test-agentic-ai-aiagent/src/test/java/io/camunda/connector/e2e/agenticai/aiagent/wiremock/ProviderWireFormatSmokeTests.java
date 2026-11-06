@@ -291,8 +291,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
           ProviderWireFormatExpectedMessage.assistantWithToolCalls(
               toolCallMessage, "c8__load_document"),
           ProviderWireFormatExpectedMessage.toolCallResultMatching(
-              "get111",
-              "The content of " + DOCUMENT_REF_REGEX + " follows in the next message\\."),
+              "get111", "The content of " + DOCUMENT_REF_REGEX + " follows in the next message\\."),
           ProviderWireFormatExpectedMessage.userWithDocument(
               ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
     }
