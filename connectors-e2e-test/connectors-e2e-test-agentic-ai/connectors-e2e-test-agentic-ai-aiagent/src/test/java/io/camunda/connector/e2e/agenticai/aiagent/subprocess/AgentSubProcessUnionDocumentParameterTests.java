@@ -27,6 +27,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlac
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessResponse;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
@@ -39,6 +40,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
@@ -46,10 +48,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 
 /**
- * A tool parameter that takes text or a document ({@code fromAi(..., schema: {"anyOf": [{"type":
- * "string"}, {"type": "document"}]})}): the model provider gets the union of a string and the
- * schema of a document handle, the handle of a known document reaches the tool as the Camunda
- * document reference, and every string reaches it as text.
+ * A tool parameter that takes a document or something else ({@code fromAi(..., schema: {"anyOf":
+ * [{"type": "string"}, {"type": "document"}]})}): the model provider gets the union with the schema
+ * of a document handle, every handle of a known document at or below the value reaches the tool as
+ * the Camunda document reference, and every other value, a string included, reaches it as it is.
  */
 @SlowTest
 public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProcessTest {
@@ -59,6 +61,9 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
   private static final String HANDLE_CALL_ID = "call_send_handle";
   private static final String TEXT_CALL_ID = "call_send_text";
   private static final String BARE_ID_CALL_ID = "call_send_id";
+  private static final String SECOND_DOWNLOAD_CALL_ID = "call_download_2";
+  private static final String LIST_CALL_ID = "call_send_list";
+  private static final String SINGLE_CALL_ID = "call_send_single";
 
   @Value("classpath:agentic-ai-ahsp-connectors-documents-union.bpmn")
   private Resource unionProcess;
@@ -100,8 +105,7 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
     // the model provider gets the union of a string and the schema of a document handle
     final var rawRequest = OpenAiCompletionsRecordedConversation.recordedRawBodies().getFirst();
     final var body = toolParameters(rawRequest, "Send_Message").path("properties").path("body");
-    assertThat(body)
-        .isEqualTo(OBJECT_MAPPER.valueToTree(DocumentSchemas.textOrDocument("The message body.")));
+    assertThat(body).isEqualTo(OBJECT_MAPPER.valueToTree(textOrDocument("The message body.")));
 
     assertAgentResponse(
         zeebeTest,
@@ -130,12 +134,99 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
           assertThat(send.inputSchema())
               .extractingByKey("properties")
               .asInstanceOf(InstanceOfAssertFactories.MAP)
-              .containsEntry("body", DocumentSchemas.textOrDocument("The message body."));
+              .containsEntry("body", textOrDocument("The message body."));
         });
     assertNoDocumentInternalsInLlmRequests();
   }
 
-  private static String toolResult(java.util.List<RecordedMessage> messages, String toolCallId) {
+  @Test
+  void theToolReceivesTheDocumentReferencesOfAListAndOfASingleDocument() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            "I will download two files.",
+            10,
+            20,
+            ToolCall.of(
+                DOWNLOAD_CALL_ID,
+                "Download_A_File",
+                "{\"url\": \"%s/test.pdf\"}".formatted(wireMock.getHttpBaseUrl())),
+            ToolCall.of(
+                SECOND_DOWNLOAD_CALL_ID,
+                "Download_A_File",
+                "{\"url\": \"%s/test.txt\"}".formatted(wireMock.getHttpBaseUrl()))),
+        Turn.toolCalls(
+            "I will send the files.",
+            10,
+            20,
+            ToolCall.of(
+                LIST_CALL_ID,
+                "Send_Files",
+                "{\"files\": [%s, %s]}"
+                    .formatted(
+                        DocumentFlowFixtures.handle(documentId(0)),
+                        DocumentFlowFixtures.handle(documentId(1)))),
+            ToolCall.of(
+                SINGLE_CALL_ID,
+                "Send_Files",
+                "{\"files\": %s}".formatted(DocumentFlowFixtures.handle(documentId(1))))),
+        finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startProcess());
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
+    final var firstId = documentIdOfToolResult(recorded, DOWNLOAD_CALL_ID);
+    final var secondId = documentIdOfToolResult(recorded, SECOND_DOWNLOAD_CALL_ID);
+    assertThat(firstId).isNotEqualTo(secondId);
+    final var messages = recorded.lastRequest().messages();
+
+    // the model provider gets one document or a list of documents
+    final var rawRequest = OpenAiCompletionsRecordedConversation.recordedRawBodies().getFirst();
+    final var files = toolParameters(rawRequest, "Send_Files").path("properties").path("files");
+    assertThat(files.path("anyOf"))
+        .isEqualTo(
+            OBJECT_MAPPER.valueToTree(
+                List.of(
+                    DocumentSchemas.document(null),
+                    Map.of("type", "array", "items", DocumentSchemas.document(null)))));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasResponseText(FINAL_TEXT);
+          final var first = camundaDocumentId(agentResponse, firstId);
+          final var second = camundaDocumentId(agentResponse, secondId);
+          // the tool gets the Camunda document reference of every document of the list, and of the
+          // single document
+          assertThat(toolResult(messages, LIST_CALL_ID))
+              .contains("documents:" + first + "," + second);
+          assertThat(toolResult(messages, SINGLE_CALL_ID)).contains("document:" + second);
+        });
+    assertNoDocumentInternalsInLlmRequests();
+  }
+
+  private static String camundaDocumentId(AgentSubProcessResponse agentResponse, String id) {
+    return ((CamundaDocumentReference)
+            agentResponse
+                .context()
+                .documents()
+                .find(AgentDocumentId.of(id))
+                .orElseThrow()
+                .reference())
+        .getDocumentId();
+  }
+
+  private static Map<String, Object> textOrDocument(String description) {
+    return Map.of(
+        "description",
+        description,
+        "anyOf",
+        List.of(Map.of("type", "string"), DocumentSchemas.document(null)));
+  }
+
+  private static String toolResult(List<RecordedMessage> messages, String toolCallId) {
     return messages.stream()
         .filter(message -> toolCallId.equals(message.toolCallId()))
         .findFirst()
