@@ -41,9 +41,10 @@ import org.jspecify.annotations.Nullable;
  * {@value DocumentHandle#TYPE} and the {@code id} of a known document. Other fields of the object
  * are ignored; the {@code type} is required.
  *
- * <p>For a {@link DocumentParameter.Document} the value is a handle object, or a string that holds
- * such an object as JSON. Any other value is invalid: an object without the {@code type}, an
- * unknown id, a bare id, other text.
+ * <p>For a {@link DocumentParameter.Document} the value is a handle object, a string that holds
+ * such an object as JSON, or a string that is the bare id of a known document (surrounding
+ * whitespace is ignored). Any other value is invalid: an object without the {@code type}, an
+ * unknown id, other text.
  *
  * <p>For a {@link DocumentParameter.TextOrDocument} a string is always text, also one that equals
  * the id of a known document or holds a handle. An object with the handle {@code type} is a
@@ -270,6 +271,16 @@ public class DocumentParameterResolver {
       AgentDocuments documents,
       Function<AgentDocument, Object> replacement,
       List<String> problems) {
+    if (value instanceof String text && !text.stripLeading().startsWith("{")) {
+      final var id = text.strip();
+      final var document =
+          id.isEmpty() ? Optional.<AgentDocument>empty() : documents.find(AgentDocumentId.of(id));
+      if (document.isEmpty()) {
+        problems.add(invalidProblem(path));
+        return value;
+      }
+      return replacement.apply(document.get());
+    }
     final var object = value instanceof String text ? parseObject(text) : value;
     if (!(object instanceof Map<?, ?> map)) {
       problems.add(invalidProblem(path));
