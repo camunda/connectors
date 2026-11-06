@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -245,9 +246,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
   /**
    * The blocks of the documents of the user prompt. The content of a document is added when the
-   * model is called, for a block with the delivery content. The documents of an external URL always
-   * go out as content: the model provider reads them, so the content guard could neither check nor
-   * bound them.
+   * model is called, for a block with the delivery content. A document that fails the content guard
+   * is its handle with a note instead of a block. The documents of an external URL always go out as
+   * content: the model provider reads them, so the content guard could neither check nor bound
+   * them.
    */
   private List<Content> trackedPromptDocuments(
       AgentInput.UserPrompt userPrompt, AgentDocuments known, Set<AgentDocumentId> idsWithContent) {
@@ -273,10 +275,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             switch (outcome) {
               case DocumentContentDelivery.Outcome.Delivered delivered ->
                   blocks.add(delivered.withContent());
-              case DocumentContentDelivery.Outcome.Withheld withheld -> {
-                blocks.add(reference);
-                blocks.add(textContent(withheld.note()));
-              }
+              case DocumentContentDelivery.Outcome.Withheld withheld ->
+                  blocks.add(
+                      textContent(
+                          DocumentHandles.text(
+                              DocumentHandles.of(known, withheld.id()).withNote(withheld.note()))));
             }
           }
         }
