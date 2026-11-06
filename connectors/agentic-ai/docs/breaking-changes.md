@@ -271,6 +271,8 @@ built with `new` needs the extra arguments; inject them as beans.
 `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before it calls the model, with the document
 factory of the job.
 `AgentConversation.nextRuntimeToolRound` takes the `AgentContext` the next round continues with as a second parameter.
+The tool definitions of the snapshot are the ones the model provider gets: without the document delivery of a tool
+(`ToolDefinition.withoutDocumentDelivery()`).
 
 ### Runtime tools and tool names
 
