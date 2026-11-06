@@ -403,7 +403,7 @@ Once every instance runs the new release:
    your own that does not implement `executors()`.
 2. List the functions under the prefix:
    - AWS: `aws lambda list-functions --query "Functions[?starts_with(FunctionName, '<prefix>')].FunctionName"`
-   - GCP: `gcloud functions list --v2 --regions=<region> --filter="name ~ /functions/<prefix>" --format="value(name)"`
+   - GCP: `gcloud functions list --v2 --regions=<region> --filter="name ~ /functions/<prefix>" --format="value(name.basename())"`, which prints the function IDs that the endpoint reports, not their full resource names
 3. Delete the functions that no instance reported:
    - AWS: `aws lambda delete-function --function-name <name>`, then its log group,
      `aws logs delete-log-group --log-group-name /aws/lambda/<name>`.

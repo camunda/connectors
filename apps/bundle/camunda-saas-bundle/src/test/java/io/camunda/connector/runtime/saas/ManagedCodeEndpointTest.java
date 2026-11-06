@@ -24,6 +24,10 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -31,11 +35,9 @@ import java.util.Properties;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
-import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalManagementPort;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -88,17 +90,22 @@ class ManagedCodeEndpointTest {
   @LocalManagementPort int managementPort;
 
   @Test
-  void reportsTheExecutorsInUseOnTheManagementPortWithoutAToken() throws IOException {
-    final var response =
-        new RestTemplateBuilder()
-            .rootUri("http://localhost:" + managementPort + "/actuator")
-            .connectTimeout(Duration.ofSeconds(60))
-            .readTimeout(Duration.ofSeconds(60))
-            .build()
-            .getForEntity("/managedcode", String.class);
+  void reportsTheExecutorsInUseOnTheManagementPortWithoutAToken()
+      throws IOException, InterruptedException {
+    final HttpResponse<String> response;
+    try (var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60)).build()) {
+      response =
+          client.send(
+              HttpRequest.newBuilder(
+                      URI.create("http://localhost:" + managementPort + "/actuator/managedcode"))
+                  .timeout(Duration.ofSeconds(60))
+                  .GET()
+                  .build(),
+              HttpResponse.BodyHandlers.ofString());
+    }
 
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    final JsonNode body = new ObjectMapper().readTree(response.getBody());
+    assertThat(response.statusCode()).isEqualTo(200);
+    final JsonNode body = new ObjectMapper().readTree(response.body());
     assertThat(body.get("provider").asText()).isEqualTo("local");
     assertThat(body.get("deploymentNamePrefix").asText()).isEqualTo("ce-0123-");
     assertThat(body.get("executors")).hasSize(2);
