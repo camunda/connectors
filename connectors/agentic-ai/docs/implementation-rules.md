@@ -11,7 +11,7 @@ a rule. Give the name of the rule.
 Follow the repo-wide connectors conventions in the repo-root [`AGENTS.md`](../../../AGENTS.md) where
 they do not conflict with these rules. If they conflict, these rules apply, and the PR states the
 divergence. Module operating rules (testing, the Definition of Done, ADRs, architectural invariants)
-are in the module [`AGENTS.md`](../AGENTS.md).
+are in [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md).
 
 Review a rule when its SDK or API area changes. Remove a rule when a build check enforces it. Remove a
 rule when it only causes noise. When a review finds a problem that a build check can find, add the
@@ -121,7 +121,7 @@ that caused it.
 
 ## Code design
 
-Make new code agree with the [target architecture](target-architecture.md). These rules are not from
+Make new code agree with the [target architecture](target-architecture.md) (`connectors/agentic-ai/docs/target-architecture.md`). These rules are not from
 past findings. They apply to new code. Existing code moves to them only in dedicated issues.
 
 Write code in a functional style. A function gets its inputs as arguments and gives its result as the
@@ -150,7 +150,7 @@ below make this style specific.
   Do not use a flag, `null` or an exception for an expected outcome. Use an exception only for an
   error. Example: `CompositionResult` with `NextTurn`, `NoInput` and `Deferred`.
 - **Null-marked code.** All code is `@NullMarked`. Mark each value that can be absent with `@Nullable`.
-  See [Null safety](../AGENTS.md#null-safety).
+  See [Null safety in `connectors/agentic-ai/AGENTS.md`](../AGENTS.md#null-safety).
 - **`Optional` only as a return type.** Use `@Nullable` for fields and parameters.
 - **Generated builders, not long constructors.** For a record with many components, use
   `@AgenticAiRecord` and its generated builder. Example: `AgentMetrics`.
@@ -166,4 +166,4 @@ below make this style specific.
   named step. Do not add one more method to the orchestrator. Example: `BaseAgentRequestHandler` calls
   `AgentInitializer` and `AgentConversationTurnInputComposer` as steps.
 
-For interfaces, follow the convention in [`AGENTS.md`](../AGENTS.md#architectural-invariants) (#9539).
+For interfaces, follow the convention in [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md#architectural-invariants) (#9539).
