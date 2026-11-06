@@ -59,9 +59,9 @@ that caused it.
 
 1. **Changes are compatible with running processes.** A process that runs today MUST continue to
    deploy and run after the change. A new field or capability MUST NOT change behavior when nobody
-   sets it.
-   - In this module: a new element template field is optional. It has no default value, or a default
-     value that keeps the current behavior. This also applies to a field in a new optional object.
+   sets it. In this module:
+   - A new element template field is optional. It has no default value, or a default value that keeps
+     the current behavior. This also applies to a field in a new optional object.
      (#5904, #7765)
    - Call an SDK overload that adds a field only when the field has a value.
    - A changed default value in a template is a behavior change for users who deploy with that
