@@ -225,7 +225,7 @@ sealed interface ProviderWireFormatExpectedMessage {
 
       private static final Pattern HANDLE =
           Pattern.compile(
-              "\\{\"type\":\"camunda\\.agent_document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}");
+              "\\{\"type\":\"camunda\\.agenticai\\.document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}");
 
       @Override
       public void assertMatches(int messageIndex, int partIndex, RecordedContentPart actual) {
