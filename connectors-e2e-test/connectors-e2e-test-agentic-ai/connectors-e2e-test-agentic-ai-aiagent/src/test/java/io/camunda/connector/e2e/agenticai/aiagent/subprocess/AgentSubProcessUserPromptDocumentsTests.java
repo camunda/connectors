@@ -19,12 +19,10 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentBlockType;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.mimeType;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -135,7 +133,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     final var promptHandle =
         parseDocumentHandle(messages.get(1).contentParts().get(1).path("text").asText());
     assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
-    assertThat(parseDocumentHandle(messages.get(3).content()).id()).isEqualTo(promptHandle.id());
+    assertThat(messages.get(3).content()).isEqualTo(contentFollowsSentence(promptHandle));
 
     assertDocumentContentUserMessage(
         messages.get(4),
