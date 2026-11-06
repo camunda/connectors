@@ -30,9 +30,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -125,12 +125,12 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     return nextTurn(composer, result);
   }
 
-  private static boolean isTagWithContent(Content content) {
-    return content instanceof AgentDocumentContent tag
-        && tag.delivery() == DocumentDelivery.CONTENT;
+  private static boolean isBlockWithContent(Content content) {
+    return content instanceof AgentDocumentContent block
+        && block.delivery() == DocumentDelivery.CONTENT;
   }
 
-  private static AgentDocumentContent tag(Document document, boolean loaded) {
+  private static AgentDocumentContent block(Document document, boolean loaded) {
     return AgentDocumentContent.of(AgentDocumentId.of(document))
         .withDelivery(loaded ? DocumentDelivery.CONTENT : DocumentDelivery.REFERENCE);
   }
@@ -155,11 +155,12 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), doc));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), tag(doc, true));
+        .containsExactly(textContent("Hello?"), block(doc, true));
     assertThat(turn.documents())
         .containsExactly(
             AgentDocument.of(
-                doc, AgentDocumentOrigin.userMessage(((UserMessage) turn.messages().getFirst()).id())));
+                doc,
+                AgentDocumentOrigin.userMessage(((UserMessage) turn.messages().getFirst()).id())));
   }
 
   @Test
@@ -169,7 +170,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn = nextTurn(composePrompt(CTX, null, List.of(), pdf));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), tag(pdf, true));
+        .containsExactly(textContent("Hello?"), block(pdf, true));
   }
 
   @Test
@@ -179,7 +180,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn = nextTurn(composePrompt(CTX, null, List.of(), archive));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), tag(archive, true));
+        .containsExactly(textContent("Hello?"), block(archive, true));
   }
 
   @Test
@@ -189,7 +190,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn = nextTurn(composePrompt(CTX, null, List.of(), external));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), tag(external, true));
+        .containsExactly(textContent("Hello?"), block(external, true));
   }
 
   @Test
@@ -199,7 +200,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.REFERENCE, List.of(), external));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), tag(external, true));
+        .containsExactly(textContent("Hello?"), block(external, true));
   }
 
   @Test
@@ -209,7 +210,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.REFERENCE, List.of(), doc));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), tag(doc, false));
+        .containsExactly(textContent("Hello?"), block(doc, false));
   }
 
   @Test
@@ -227,7 +228,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), external));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), tag(external, true));
+        .containsExactly(textContent("Hello?"), block(external, true));
     assertThat(downloads).hasValue(0);
   }
 
@@ -238,7 +239,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), doc, doc));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .filteredOn(AgentConversationTurnInputComposerDocumentDeliveryTest::isTagWithContent)
+        .filteredOn(AgentConversationTurnInputComposerDocumentDeliveryTest::isBlockWithContent)
         .hasSize(1);
   }
 
@@ -246,7 +247,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   void
       userPrompt_withTheDeliveryContent_doesNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
-    final var earlier = UserMessage.builder().content(List.of(tag(doc, true))).build();
+    final var earlier = UserMessage.builder().content(List.of(block(doc, true))).build();
 
     final var turn =
         nextTurn(
@@ -257,14 +258,14 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                 doc));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), tag(doc, false));
+        .containsExactly(textContent("Hello?"), block(doc, false));
   }
 
   @Test
   void
       userPrompt_withoutADelivery_addsTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
-    final var earlier = UserMessage.builder().content(List.of(tag(doc, true))).build();
+    final var earlier = UserMessage.builder().content(List.of(block(doc, true))).build();
 
     final var turn =
         nextTurn(
@@ -272,7 +273,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                 CTX_WITH_CONVERSATION, null, List.of(earlier, assistantMessage("done")), doc, doc));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), tag(doc, true), tag(doc, true));
+        .containsExactly(textContent("Hello?"), block(doc, true), block(doc, true));
   }
 
   @Test
@@ -320,7 +321,8 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void toolResults_ofAToolWithTheDeliveryContent_arePutIntoAFollowUpMessageAsTagsWithContent() {
+  void
+      toolResults_ofAToolWithTheDeliveryContent_arePutIntoAFollowUpMessageAsDocumentsWithContent() {
     final var doc = document("weather data", "text/plain", "weather.txt");
     final var nested = document("nested data", "application/json", "nested.json");
 
@@ -341,7 +343,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                   .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
               assertThat(followUp.content())
                   .startsWith(textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE))
-                  .contains(tag(doc, true), tag(nested, true))
+                  .contains(block(doc, true), block(nested, true))
                   .hasSize(3);
             });
     assertThat(turn.documents())
@@ -375,7 +377,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                 dateTimeResult()));
 
     assertThat(turn.messages()).hasSize(2);
-    assertThat(((UserMessage) turn.messages().get(1)).content()).contains(tag(doc, true));
+    assertThat(((UserMessage) turn.messages().get(1)).content()).contains(block(doc, true));
   }
 
   @Test
@@ -399,7 +401,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   void
       toolResults_ofAToolWithTheDeliveryContent_doNotAddADocumentWhoseContentIsInTheConversation() {
     final var doc = document("weather data", "text/plain", "weather.txt");
-    final var earlier = UserMessage.builder().content(List.of(tag(doc, true))).build();
+    final var earlier = UserMessage.builder().content(List.of(block(doc, true))).build();
     final var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
@@ -451,7 +453,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
 
     assertThat(((UserMessage) turn.messages().get(1)).content())
         .containsExactly(
-            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE), tag(doc, true));
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE), block(doc, true));
   }
 
   @Test
@@ -472,6 +474,6 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     assertThat(turn.messages()).hasSize(2);
     assertThat(((UserMessage) turn.messages().get(1)).content())
         .contains(DocumentContent.documentContent(doc))
-        .noneMatch(AgentConversationTurnInputComposerDocumentDeliveryTest::isTagWithContent);
+        .noneMatch(AgentConversationTurnInputComposerDocumentDeliveryTest::isBlockWithContent);
   }
 }
