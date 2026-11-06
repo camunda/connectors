@@ -1,5 +1,9 @@
 # Agentic loop
 
+This document provides a comprehensive, code-level reference for the AI Agent implementation within the Camunda
+Connectors `agentic-ai` module. It covers concepts, interaction patterns, data flow, concurrency challenges, and all
+nuances of the distributed agent loop.
+
 ## Foundational Concepts
 
 ### What is a Camunda Connector?

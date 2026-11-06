@@ -4,6 +4,9 @@
 
 The Gateway Tool Pattern is the extensibility mechanism that allows the AI Agent to integrate with external tool providers that expose **multiple tools behind a single BPMN element**. MCP and A2A are both implementations of this pattern.
 
+For MCP integration details, see [`mcp-gateway-tool.md`](../../aiagent-mcp-integration/docs/mcp-gateway-tool.md).
+For A2A integration details, see [`a2a-gateway-tool.md`](../../aiagent-a2a-integration/docs/a2a-gateway-tool.md).
+
 ### Core Concept
 
 A regular tool in the ad-hoc sub-process is a 1:1 mapping: one BPMN element = one tool the LLM can call. A **gateway tool** breaks this: one BPMN element = a **gateway** to many tools that are discovered at runtime.
