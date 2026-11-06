@@ -49,7 +49,7 @@ public final class ToolCallResultDocumentAssertions {
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
   public static final String DOCUMENT_CONTENT_PREAMBLE =
-      "Document content requested by the tool calls above (added by the system):";
+      "Document content from tool calls (added by the system):";
 
   private static final String HANDLE_START = "{\"type\":\"" + AgentDocumentHandle.TYPE + "\"";
 
