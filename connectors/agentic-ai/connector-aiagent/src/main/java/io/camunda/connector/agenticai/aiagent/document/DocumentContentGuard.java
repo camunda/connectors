@@ -56,8 +56,8 @@ public final class DocumentContentGuard {
   public sealed interface Rejection {
 
     /**
-     * The note the model reads in the handle of the document, such as {@code Documents of type X
-     * cannot be loaded.} followed by what to do instead.
+     * The note the model reads in the tool result behind the name of the document, such as {@code
+     * Documents of type X cannot be loaded.} followed by what to do instead.
      */
     String modelText();
 
