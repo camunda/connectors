@@ -317,7 +317,7 @@ factory of the job.
 - A tool activity can opt its documents into the delivery `content` with the extension property
   `io.camunda.agenticai.documents.delivery` = `content`. The agent then adds the content of the documents the tool returns
   to the request that follows the tool results, after the content guard accepted them; a document the guard rejects stays
-  a reference and the model gets a note. A custom `GatewayToolHandler` opts its tools in with
+  a reference, and the tool result tells the model that its content is not loaded and why. A custom `GatewayToolHandler` opts its tools in with
   `ToolDefinition.documentDelivery`; the MCP and A2A handlers set none. The result of a runtime tool is never affected: it
   names the documents whose content it wants. The property takes `reference` or `content`; any other value fails the tool
   discovery of the agent with a message that names the element. A tool without the property has the delivery `reference`

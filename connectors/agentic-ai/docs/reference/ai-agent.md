@@ -2166,9 +2166,10 @@ composer reads the delivery of a tool from the stored tool definitions (`AgentCo
 tool without one) and gives the entry of the result of a tool with the delivery `content` an `AddDocumentContent` effect for
 every document of the result: the same effect a runtime tool adds to ask for content, so `ToolCallResultsInputBuilder`
 applies it in the order of the calls with the guard, the rule that a document whose content the model reads or that an
-earlier request of the turn handled is not added twice, and the note. A document that passes becomes a block with the
+earlier request of the turn handled is not added twice, and the sentences about the content that the builder writes at
+the end of the tool result of every request (the same sentences as for `c8__load_document`, above). A document that passes becomes a block with the
 delivery `content` in the follow-up user message of the tool results (same preamble and `toolCallDocuments` metadata as
-above, the documents and the notes in the order of the requests), and one that fails stays its handle, with a note as above; the
+above, the documents in the order of the requests), and one that fails stays a reference, and its result says why it is not loaded; the
 delivery `content` never fails the run and never turns a result into an error. The delivery of a tool concerns the results of process
 tools: a runtime tool asks for the content of a document by naming it, and its result is never delivered by the delivery of
 a tool definition. An instance without the `documents` feature ignores the delivery. The model providers never see the
