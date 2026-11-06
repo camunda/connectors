@@ -492,8 +492,11 @@ history back after a document flow and requires it.
   the format the remote side expects.
 * **A reference-only agent document for inline documents.** It would replace the limits above and the several copies.
 * **Content type sniffing** for documents of unknown type.
-* **Expiry of a document in its store.** The agent does not notice it; whether it drops the document and tells the model, or
-  leaves it to the tool that dereferences the document, is open.
+* **Expiry of a document in its store.** The agent does not notice it today. At every model call, the agent checks each
+  document whose content is sent against its `expiresAt`, with a margin. An expired document is sent as its handle with a
+  note and no incident. A not-found while fetching the content gives the same note and a warning in the log. The content
+  guard rejects an expired document. Whether the handle shows `expiresAt` is open. A process tool stays responsible for
+  dereferencing the document it receives. The prompt cache breaks once when a document expires.
 * **Documents named only in the content of an evicted assistant message,** and handles the model writes in the final text,
   are not tracked or interpreted.
 * **Modeler and template support.** The extension property of the delivery is set by hand, and the type `document` of
