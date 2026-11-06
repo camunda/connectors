@@ -42,7 +42,7 @@ import org.jspecify.annotations.Nullable;
  * <p>A parameter that takes a document or something else is a plain {@code anyOf} or {@code oneOf}
  * with more than one alternative, one of them {@link #document document(...)}, directly or inside
  * the properties of an object alternative or the items of an array alternative. Every handle in the
- * value of such a parameter is replaced; all other values reach the tool as they are.
+ * value of such a parameter is replaced; the rest of the value reaches the tool as it is.
  */
 @Experimental
 public final class DocumentSchemas {
