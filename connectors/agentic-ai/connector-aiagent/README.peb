@@ -1,0 +1,155 @@
+# connector-aiagent
+
+<!-- README.md is generated from README.peb in the Maven process-classes phase. Edit README.peb. -->
+
+## Purpose
+
+The AI Agent connectors: the AI Agent Task on a service task and the AI Agent Sub-process on an ad-hoc
+sub-process, both in v1 and v2. The module holds the agent orchestration, the chat model providers
+(native and LangChain4j), the conversation stores (in-process, Camunda document and AWS AgentCore) and
+the agent instance client.
+
+## Key types
+
+- `AgentTaskV1Function` and `AgentTaskV2Function`: the AI Agent Task connectors.
+- `AgentSubProcessV1Function` and `AgentSubProcessV2Function`: the AI Agent Sub-process connectors.
+- `BaseAgentRequestHandler`: the orchestrator that both flavors share.
+- `AgentInitializerImpl`: the agent state machine and the gateway tool discovery.
+- `AgentConversation`: the immutable turn aggregate of one invocation.
+- `ChatModelRegistryImpl`: selects the `ChatModelFactory` for a chat model configuration. The providers
+  are in the packages below `aiagent.chatmodel.provider`.
+- `ConversationStoreRegistry`: selects the conversation store. The built-in stores are
+  `InProcessConversationStore`, `CamundaDocumentConversationStore` and `AwsAgentCoreConversationStore`.
+- `CamundaAgentInstanceClient`: reports status, metrics and history to the agent instance API.
+- `AgenticAiConnectorsAutoConfiguration`: the Spring configuration.
+
+## Docs
+
+- [Two flavors: AI Agent Task and AI Agent Sub-process](docs/flavors.md)
+- [Agent state machine and initialization](docs/agent-state-machine.md)
+- [Conversation memory](docs/conversation-memory.md)
+- [AWS AgentCore memory storage](docs/aws-agentcore-memory.md)
+- [Chat model implementation](docs/chat-model.md)
+- [Native providers](docs/native-providers.md)
+- [System prompt composition](docs/system-prompt.md)
+- [Response handling](docs/response-handling.md)
+- [Error codes](docs/error-codes.md)
+- [Process instance migration](docs/process-instance-migration.md)
+- [Agent instance integration](docs/agent-instance.md)
+- [Key code paths](docs/code-paths.md)
+- [Agentic loop](../docs/architecture/agentic-loop.md)
+- [Extension points](../docs/architecture/extension-points.md)
+- [Spring auto-configuration](../docs/architecture/spring-auto-configuration.md)
+- [Element templates](element-templates/README.md)
+
+## Examples Directory Reference
+
+The `examples/` directory contains reference BPMN processes and configurations. When making code changes that affect
+connector behavior, element template properties, or data model shapes, update the relevant examples to stay in sync.
+
+### AI Agent Examples
+
+- **`ai-agent/ad-hoc-sub-process/`**: Recommended approach — AI Agent as job worker on AHSP
+  - Shows tool elements inside AHSP, event handling, and the implicit feedback loop
+- **`ai-agent/service-task/`**: AI Agent as connector on service task
+  - Shows explicit BPMN loop with gateway checking for tool calls
+  - Multi-instance AHSP for parallel tool execution
+
+## {{name}}
+
+![{{name}} connector icon]({{icon}})
+
+{{ description }}
+
+Find the user documentation in our [Camunda Documentation](https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
+
+### Build
+
+```bash
+mvn clean package
+```
+
+### API
+
+#### Result
+
+The following json structure will be returned by the Connector and can be used in the result expression. Depending on the
+configuration, the result will contain the following fields:
+
+##### Text response
+
+```json
+{{ exampleData["default"].json }}
+
+```
+
+The response text can be accessed via FEEL:
+```json
+{{ exampleData["default"].feel }}
+
+```
+leading to the following result
+```json
+{{ exampleData["default"].feelResultJson }}
+
+```
+
+##### JSON response
+
+```json
+{{ exampleData["json"].json }}
+
+```
+
+The JSON body can be accessed via FEEL:
+```json
+{{ exampleData["json"].feel }}
+
+```
+leading to the following result
+```json
+{{ exampleData["json"].feelResultJson }}
+
+```
+
+##### Response containing the full assistant message
+
+```json
+{{ exampleData["assistantMessage"].json }}
+
+```
+
+The response message can be accessed via FEEL:
+```json
+{{ exampleData["assistantMessage"].feel }}
+
+```
+leading to the following result
+```json
+{{ exampleData["assistantMessage"].feelResultJson }}
+
+```
+
+##### Response containing tool call requests
+
+```json
+{{ exampleData["withToolCalls"].json }}
+
+```
+
+The list of tool calls can be accessed via FEEL:
+```json
+{{ exampleData["withToolCalls"].feel }}
+
+```
+leading to the following result
+```json
+{{ exampleData["withToolCalls"].feelResultJson }}
+
+```
+
+| Connector Info            |                                                                       |
+| ---                       | ---                                                                   |
+| Type                      | {{ type }}                                                            |
+| Version                   | {{ version }}                                                         |
+| Supported element types   | {% for elementType in elementTypes %}{{ elementType }}{% endfor %}    |
