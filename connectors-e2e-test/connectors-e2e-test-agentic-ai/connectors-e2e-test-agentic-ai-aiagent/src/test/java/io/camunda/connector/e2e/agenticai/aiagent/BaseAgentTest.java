@@ -254,13 +254,12 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
     final var expected = new ArrayList<>(expectedTools());
     // a recorded request does not tell the kind of a tool
     Stream.of(new ReturnDocumentTool().definition(), new LoadDocumentTool().definition())
-        .map(
-            definition ->
-                new ToolDefinition(
-                    definition.name(),
-                    definition.description(),
-                    definition.inputSchema(),
-                    ToolKind.PROCESS))
+        .map(definition ->
+            new ToolDefinition(
+                definition.name(),
+                definition.description(),
+                definition.inputSchema(),
+                ToolKind.PROCESS))
         .forEach(expected::add);
     assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }
