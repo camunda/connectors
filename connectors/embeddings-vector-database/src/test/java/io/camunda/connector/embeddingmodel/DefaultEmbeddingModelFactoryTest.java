@@ -89,7 +89,10 @@ class DefaultEmbeddingModelFactoryTest {
                       "dimensions", "D1024",
                       "normalize", true),
                   BedrockEmbeddingModelProvider.Configuration.class);
-      var builder = mock(BedrockTitanEmbeddingModel.Builder.class, Answers.RETURNS_SELF);
+      var builder =
+          mock(
+              BedrockTitanEmbeddingModel.BedrockTitanEmbeddingModelBuilder.class,
+              Answers.RETURNS_SELF);
       when(builder.build()).thenReturn(mock(BedrockTitanEmbeddingModel.class));
       try (var modelMock = mockStatic(BedrockTitanEmbeddingModel.class)) {
         modelMock.when(BedrockTitanEmbeddingModel::builder).thenReturn(builder);

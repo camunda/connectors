@@ -70,7 +70,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
           @NotBlank
           @TemplateProperty(
               group = "embeddingModel",
-              label = "Model name",
+              label = "Model",
               feel = FeelMode.optional,
               placeholder = "amazon.titan-embed-text-v2:0",
               tooltip = "Model ID compatible with the Amazon Titan embedding API.")
@@ -82,22 +82,14 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
               description = "The size of the vector used to represent data",
               feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
-              defaultValue = "D1024",
-              condition =
-                  @PropertyCondition(
-                      property = "embeddingModelProvider.bedrock.modelName",
-                      oneOf = {"TitanEmbedTextV2", "amazon.titan-embed-text-v2:0"}))
+              defaultValue = "D1024")
           BedrockDimensions dimensions,
       @TemplateProperty(
               group = "embeddingModel",
               label = "Normalize",
               description = "Normalize vector",
               defaultValueType = DefaultValueType.Boolean,
-              defaultValue = "false",
-              condition =
-                  @PropertyCondition(
-                      property = "embeddingModelProvider.bedrock.modelName",
-                      oneOf = {"TitanEmbedTextV2", "amazon.titan-embed-text-v2:0"}))
+              defaultValue = "false")
           Boolean normalize,
       @TemplateProperty(
               group = "embeddingModel",

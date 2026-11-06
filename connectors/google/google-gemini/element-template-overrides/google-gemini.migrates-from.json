@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/camunda/c8ctl/main/default-plugins/element-template/migration/migrates-from.schema.json",
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "kind": "upgrade",
+      "sourceTemplateId": "io.camunda.connectors.GoogleGemini.v1",
+      "toVersion": 5,
+      "paths": [
+        {
+          "from": "input.customModelName",
+          "to": "input.model",
+          "when": {
+            "path": "input.model",
+            "equals": "CUSTOM"
+          },
+          "note": "The legacy custom model name is copied into Model."
+        }
+      ]
+    }
+  ]
+}

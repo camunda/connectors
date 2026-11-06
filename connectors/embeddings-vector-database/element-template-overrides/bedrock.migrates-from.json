@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/camunda/c8ctl/main/default-plugins/element-template/migration/migrates-from.schema.json",
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "kind": "upgrade",
+      "sourceTemplateId": "io.camunda.connectors.EmbeddingsVectorDB.v1",
+      "toVersion": 5,
+      "paths": [
+        {
+          "from": "embeddingModelProvider.bedrock.customModelName",
+          "to": "embeddingModelProvider.bedrock.modelName",
+          "when": {
+            "path": "embeddingModelProvider.bedrock.modelName",
+            "equals": "Custom"
+          },
+          "note": "The legacy custom model name is copied into Model."
+        }
+      ]
+    }
+  ]
+}

@@ -3,8 +3,27 @@
   "name" : "Hybrid Embeddings Vector DB Outbound Connector",
   "id" : "io.camunda.connectors.EmbeddingsVectorDB.v1-hybrid",
   "description" : "Embed and download documents with vector databases",
+  "metadata" : {
+    "migratesFrom" : {
+      "schemaVersion" : 1,
+      "sources" : [ {
+        "kind" : "upgrade",
+        "sourceTemplateId" : "io.camunda.connectors.EmbeddingsVectorDB.v1-hybrid",
+        "toVersion" : 5,
+        "paths" : [ {
+          "from" : "embeddingModelProvider.bedrock.customModelName",
+          "to" : "embeddingModelProvider.bedrock.modelName",
+          "when" : {
+            "path" : "embeddingModelProvider.bedrock.modelName",
+            "equals" : "Custom"
+          },
+          "note" : "The legacy custom model name is copied into Model."
+        } ]
+      } ]
+    }
+  },
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
-  "version" : 4,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -530,13 +549,12 @@
     "type" : "String"
   }, {
     "id" : "embeddingModelProvider.bedrock.modelName",
-    "label" : "Model name",
-    "description" : "Bedrock model name or identifier",
+    "label" : "Model",
     "optional" : false,
-    "value" : "TitanEmbedTextV2",
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
       "name" : "embeddingModelProvider.bedrock.modelName",
@@ -547,41 +565,8 @@
       "equals" : "bedrockModelProvider",
       "type" : "simple"
     },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Custom",
-      "value" : "Custom"
-    }, {
-      "name" : "amazon.titan-embed-text-v1",
-      "value" : "TitanEmbedTextV1"
-    }, {
-      "name" : "amazon.titan-embed-text-v2:0",
-      "value" : "TitanEmbedTextV2"
-    } ]
-  }, {
-    "id" : "embeddingModelProvider.bedrock.customModelName",
-    "label" : "Custom model name",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "embeddingModel",
-    "binding" : {
-      "name" : "embeddingModelProvider.bedrock.customModelName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "embeddingModelProvider.bedrock.modelName",
-        "equals" : "Custom",
-        "type" : "simple"
-      }, {
-        "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "bedrockModelProvider",
-        "type" : "simple"
-      } ]
-    },
+    "tooltip" : "Model ID compatible with the Amazon Titan embedding API.",
+    "placeholder" : "amazon.titan-embed-text-v2:0",
     "type" : "String"
   }, {
     "id" : "embeddingModelProvider.bedrock.dimensions",
@@ -595,15 +580,9 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "embeddingModelProvider.bedrock.modelName",
-        "equals" : "TitanEmbedTextV2",
-        "type" : "simple"
-      }, {
-        "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "bedrockModelProvider",
-        "type" : "simple"
-      } ]
+      "property" : "embeddingModelProvider.modelProvider",
+      "equals" : "bedrockModelProvider",
+      "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -629,15 +608,9 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "embeddingModelProvider.bedrock.modelName",
-        "equals" : "TitanEmbedTextV2",
-        "type" : "simple"
-      }, {
-        "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "bedrockModelProvider",
-        "type" : "simple"
-      } ]
+      "property" : "embeddingModelProvider.modelProvider",
+      "equals" : "bedrockModelProvider",
+      "type" : "simple"
     },
     "type" : "Boolean"
   }, {
@@ -777,7 +750,7 @@
     "secret" : true
   }, {
     "id" : "embeddingModelProvider.googleVertexAi.modelName",
-    "label" : "Model name",
+    "label" : "Model",
     "description" : "Vertex AI embedding model name",
     "optional" : false,
     "constraints" : {
@@ -895,7 +868,7 @@
     "type" : "String"
   }, {
     "id" : "embeddingModelProvider.openAi.modelName",
-    "label" : "Model name",
+    "label" : "Model",
     "description" : "Specify the model name. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
@@ -2125,7 +2098,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "5",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

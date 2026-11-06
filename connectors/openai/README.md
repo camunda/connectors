@@ -20,13 +20,15 @@ Refer to the [Models](https://platform.openai.com/docs/models) section of OpenAI
 for current models. Availability depends on your account privileges.
 
 Template version 9 replaces the model dropdown. Existing named selections remain valid.
-Before upgrading a template that uses **Custom**, save **Custom model version**, then paste it
-into **Model** after the upgrade. The request expression also supports legacy `custom` selections when
-the `internal_custom_model` input is still present. Older template versions remain available.
+When upgrading a version 8 task that uses **Custom**, `c8ctl element-template update` applies
+the migration recipe and copies **Custom model version** into the new **Model** field.
+If your upgrade tool does not apply the recipe, save **Custom model version** before upgrading
+and paste it into **Model** afterward. Older template versions remain available.
 
 The Google Gemini and Bedrock embeddings templates follow the same free-text pattern starting
-with version 5. Their connectors still accept legacy dropdown values. When upgrading a **Custom**
-selection, save **Custom model name** and paste it into the new model field after the upgrade.
+with version 5. Their recipes let `c8ctl element-template update` copy a legacy **Custom model
+name** into the new model field. If your upgrade tool does not apply the recipe, save and copy
+the custom model name manually.
 Bedrock embeddings require a model compatible with the Amazon Titan embedding API;
 dimensions and normalization are available for `amazon.titan-embed-text-v2:0`.
 

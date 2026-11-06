@@ -262,6 +262,54 @@
           <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.gmavenplus</groupId>
+        <artifactId>gmavenplus-plugin</artifactId>
+        <version>5.1.0</version>
+        <executions>
+          <execution>
+            <id>inject-template-migration-recipes</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/../bin/inject-element-template-migration.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>migrationRecipes</name>
+                  <value>
+${project.basedir}/element-templates/embeddings-vector-database-outbound-connector.json=${project.basedir}/element-template-overrides/bedrock.migrates-from.json
+${project.basedir}/element-templates/hybrid/embeddings-vector-database-outbound-connector-hybrid.json=${project.basedir}/element-template-overrides/bedrock-hybrid.migrates-from.json
+                  </value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>6.0.0</version>
+            <scope>runtime</scope>
+          </dependency>
+          <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-ant</artifactId>
+            <version>6.0.0</version>
+            <scope>runtime</scope>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${version.jackson-bom}</version>
+            <scope>runtime</scope>
+          </dependency>
+        </dependencies>
+      </plugin>
     </plugins>
   </build>
 
