@@ -6,10 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
@@ -32,14 +37,18 @@ import org.jspecify.annotations.Nullable;
  * schema of the tool; the arguments of a tool call mirror the schema, so each parameter addresses
  * the argument values that carry a document.
  *
- * <p>For a {@link DocumentParameter.Document} the model passes the {@code <doc />} tag of a known
- * document: a value that is exactly one tag, surrounded by whitespace at most, stands for the
- * document of its {@code id} attribute. Any other value is invalid, also a string that equals the
- * id of a known document.
+ * <p>A value stands for a document when it is a document handle: an object with the {@code type}
+ * {@value AgentDocumentHandle#TYPE} and the {@code id} of a known document. Other fields of the
+ * object are ignored; the {@code type} is required.
  *
- * <p>For a {@link DocumentParameter.TextOrDocument} only a value that is exactly one tag stands for
- * a document. Any other value is left as it is: a plain string, also one that equals the id of a
- * known document, text that holds a tag, and a value that is not a string.
+ * <p>For a {@link DocumentParameter.Document} the value is a handle object, or a string that holds
+ * such an object as JSON. Any other value is invalid: an object without the {@code type}, an
+ * unknown id, a bare id, other text.
+ *
+ * <p>For a {@link DocumentParameter.TextOrDocument} a string is always text, also one that equals
+ * the id of a known document or holds a handle. An object with the handle {@code type} is a
+ * document, and invalid when its id is unknown. Any other value, such as an object without the
+ * {@code type} for another alternative of the union, is left as it is.
  *
  * <p>Every document is replaced by the Camunda document reference JSON of the registered document
  * ({@link #resolveProcessCall}), or, for a runtime tool that looks the documents up itself, by its
@@ -51,7 +60,16 @@ import org.jspecify.annotations.Nullable;
  */
 public class DocumentParameterResolver {
 
+  private static final String EXPECTED_HANDLE =
+      "a document handle such as {\"type\":\"%s\",\"id\":\"doc_…\"} of a known document."
+          .formatted(AgentDocumentHandle.TYPE);
+
   private final ObjectMapper referenceMapper = ConnectorsObjectMapperSupplier.getCopy();
+
+  private final ObjectReader jsonReader =
+      referenceMapper
+          .readerFor(JsonNode.class)
+          .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
 
   /** Outcome of resolving the document parameters of one tool call. */
   public sealed interface Resolution {
@@ -135,13 +153,12 @@ public class DocumentParameterResolver {
 
   /**
    * Resolves the document parameters of {@code toolCall}. A parameter that is missing or {@code
-   * null} is left as is. For a document parameter, a value that is not exactly one tag with the id
-   * of a registered document (not a string, a bare id, text around a tag, more than one tag, an
-   * unknown id) is reported as a problem naming the parameter. For a text-or-document parameter,
-   * only a tag with an unknown id is reported. Each valid document is replaced by what {@code
+   * null} is left as is. For a document parameter, a value that is not a handle of a registered
+   * document is reported as a problem naming the parameter. For a text-or-document parameter, only
+   * a handle object with an unknown id is reported. Each valid document is replaced by what {@code
    * replacement} returns for it.
    */
-  private static Resolution resolve(
+  private Resolution resolve(
       ToolCall toolCall,
       ToolDefinition toolDefinition,
       AgentDocuments documents,
@@ -154,7 +171,7 @@ public class DocumentParameterResolver {
   }
 
   @SuppressWarnings("unchecked")
-  private static Map<String, Object> walkAll(
+  private Map<String, Object> walkAll(
       ToolCall toolCall,
       ToolDefinition toolDefinition,
       AgentDocuments documents,
@@ -168,7 +185,7 @@ public class DocumentParameterResolver {
     return Objects.requireNonNull((Map<String, Object>) resolved);
   }
 
-  private static @Nullable Object walk(
+  private @Nullable Object walk(
       @Nullable Object node,
       DocumentParameter parameter,
       int index,
@@ -180,7 +197,7 @@ public class DocumentParameterResolver {
     if (index == steps.size()) {
       return switch (parameter) {
         case DocumentParameter.Document ignored ->
-            resolveId(node, path, documents, replacement, problems);
+            resolveDocument(node, path, documents, replacement, problems);
         case DocumentParameter.TextOrDocument ignored ->
             resolveUnion(node, path, documents, replacement, problems);
       };
@@ -232,8 +249,8 @@ public class DocumentParameterResolver {
   }
 
   /**
-   * A union parameter: only a value that is exactly one tag stands for a document, every other
-   * value is returned as it is.
+   * A union parameter: only an object with the handle type stands for a document, every other value
+   * is returned as it is.
    */
   private static @Nullable Object resolveUnion(
       @Nullable Object value,
@@ -241,52 +258,63 @@ public class DocumentParameterResolver {
       AgentDocuments documents,
       Function<AgentDocument, Object> replacement,
       List<String> problems) {
-    if (!(value instanceof String text)) {
+    if (!(value instanceof Map<?, ?> object)
+        || !AgentDocumentHandle.TYPE.equals(object.get("type"))) {
       return value;
     }
-    final var tagId = DocumentTags.idOfSingleTag(text);
-    if (tagId == null) {
-      return text;
-    }
-    final var entry = documents.find(tagId);
-    if (entry.isEmpty()) {
-      problems.add(unknownUnionTagProblem(path, tagId));
-      return text;
-    }
-    return replacement.apply(entry.get());
+    return resolveHandle(object, path, documents, replacement, problems);
   }
 
-  private static Object resolveId(
+  private @Nullable Object resolveDocument(
       @Nullable Object value,
       String path,
       AgentDocuments documents,
       Function<AgentDocument, Object> replacement,
       List<String> problems) {
-    if (!(value instanceof String text)) {
-      problems.add(
-          ("Parameter '%s' must be the <doc /> tag of a known document, exactly as you read it, a"
-                  + " string.")
-              .formatted(path));
-      return value == null ? "" : value;
+    final var object = value instanceof String text ? parseObject(text) : value;
+    if (!(object instanceof Map<?, ?> map)) {
+      problems.add(invalidProblem(path));
+      return value;
     }
-    final var tagId = DocumentTags.idOfSingleTag(text);
-    final var entry = Optional.ofNullable(tagId).flatMap(documents::find);
-    if (entry.isEmpty()) {
-      problems.add(invalidDocumentProblem(path, text));
-      return text;
-    }
-    return replacement.apply(entry.get());
+    return resolveHandle(map, path, documents, replacement, problems);
   }
 
-  private static String invalidDocumentProblem(String path, String value) {
-    return ("Parameter '%s' must be the <doc /> tag of a known document, exactly as you read it,"
-            + " got '%s'.")
-        .formatted(path, value);
+  private static @Nullable Object resolveHandle(
+      Map<?, ?> handle,
+      String path,
+      AgentDocuments documents,
+      Function<AgentDocument, Object> replacement,
+      List<String> problems) {
+    final var id = handle.get("id");
+    final var document =
+        AgentDocumentHandle.TYPE.equals(handle.get("type"))
+                && id instanceof String text
+                && !text.isBlank()
+            ? documents.find(AgentDocumentId.of(text))
+            : Optional.<AgentDocument>empty();
+    if (document.isEmpty()) {
+      problems.add(invalidProblem(path));
+      return handle;
+    }
+    return replacement.apply(document.get());
   }
 
-  private static String unknownUnionTagProblem(String path, AgentDocumentId id) {
-    return ("Parameter '%s' holds a <doc /> tag with the id '%s'. That is not a known document."
-            + " Pass the tag of a document exactly as you read it, or pass other text.")
-        .formatted(path, id);
+  /** The JSON object a string holds as a whole, or {@code null} for any other string. */
+  private @Nullable Map<?, ?> parseObject(String text) {
+    if (!text.stripLeading().startsWith("{")) {
+      return null;
+    }
+    try {
+      final JsonNode node = jsonReader.readTree(text);
+      return node != null && node.isObject()
+          ? referenceMapper.convertValue(node, new TypeReference<Map<String, Object>>() {})
+          : null;
+    } catch (JsonProcessingException | IllegalArgumentException e) {
+      return null;
+    }
+  }
+
+  private static String invalidProblem(String path) {
+    return "Parameter '%s' must be %s".formatted(path, EXPECTED_HANDLE);
   }
 }

@@ -23,11 +23,9 @@ import org.jspecify.annotations.Nullable;
  * to JSON only for a {@link ToolKind#RUNTIME} definition; a missing value reads as {@link
  * ToolKind#PROCESS}.
  *
- * <p>A parameter that carries a document has the string schema with the format {@link
- * DocumentParameter#FORMAT_DOCUMENT_ID} (see {@link #documentParameters()}). The stored schema
- * keeps that format and does not hold the description hint the model gets for such a parameter; the
- * model providers get the schema with the hint and without the format, which is derived where the
- * conversation snapshot is built.
+ * <p>A parameter that carries a document has the object schema of a {@link
+ * io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle} (see {@link
+ * #documentParameters()}). The schema is stored and sent to the model provider as it is.
  */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)

@@ -10,8 +10,8 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.*;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.ProviderToolDefinitions;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -199,58 +199,35 @@ class AgentConversationTest {
   }
 
   @Test
-  void window_offersDocumentParametersAsStringSchemasToTheProviderAndKeepsTheAuthoredDefinitions() {
+  void window_offersTheToolDefinitionsWithDocumentParametersAsConfigured() {
     var authored =
         ToolDefinition.builder()
-            .name("upload")
-            .description("Uploads a file")
+            .name("send")
+            .description("Sends a message")
             .inputSchema(
                 Map.of(
                     "type",
                     "object",
                     "properties",
                     Map.of(
-                        "doc",
-                        Map.of(
-                            "type",
-                            "string",
-                            "format",
-                            "camunda-document-id",
-                            "description",
-                            "The file"))))
+                        "file",
+                        DocumentSchemas.document("The file"),
+                        "body",
+                        DocumentSchemas.textOrDocument("The body"))))
             .build();
-    var configuration = CONFIG.withToolDefinitions(List.of(authored));
     var conv =
         AgentConversation.rehydrate(
-            configuration,
+            CONFIG.withToolDefinitions(List.of(authored)),
             BASE_CONTEXT.withToolDefinitions(List.of(authored)),
             TurnReconstructor.reconstruct(List.of()),
             SYSTEM_MESSAGE,
             List.of(userMessage("hi")));
 
-    var snapshot = conv.window(20);
-
-    assertThat(snapshot.toolDefinitions()).hasSize(1);
-    assertThat(snapshot.toolDefinitions().getFirst().inputSchema())
-        .isEqualTo(
-            Map.of(
-                "type",
-                "object",
-                "properties",
-                Map.of(
-                    "doc",
-                    Map.of(
-                        "type",
-                        "string",
-                        "description",
-                        "The file. " + ProviderToolDefinitions.HINT))));
-    // nothing persisted or configured is rewritten
-    assertThat(conv.configuration().toolDefinitions()).containsExactly(authored);
-    assertThat(conv.toAgentContext().toolDefinitions()).containsExactly(authored);
+    assertThat(conv.window(20).toolDefinitions()).containsExactly(authored);
   }
 
   @Test
-  void window_offersTheDocumentParametersAsAuthoredWhenTheAgentInstanceDoesNotTrackItsDocuments() {
+  void window_offersTheToolDefinitionsAsConfiguredWhenTheAgentInstanceDoesNotTrackItsDocuments() {
     var authored =
         ToolDefinition.builder()
             .name("upload")
@@ -260,15 +237,7 @@ class AgentConversationTest {
                     "type",
                     "object",
                     "properties",
-                    Map.of(
-                        "doc",
-                        Map.of(
-                            "type",
-                            "string",
-                            "format",
-                            "camunda-document-id",
-                            "description",
-                            "The file"))))
+                    Map.of("doc", DocumentSchemas.document("The file"))))
             .build();
     var untracked =
         BASE_CONTEXT
@@ -283,56 +252,6 @@ class AgentConversationTest {
             List.of(userMessage("hi")));
 
     assertThat(conv.window(20).toolDefinitions()).containsExactly(authored);
-  }
-
-  @Test
-  void window_offersUnionParametersAsPlainStringsToTheProviderAndKeepsTheAuthoredDefinitions() {
-    var authored =
-        ToolDefinition.builder()
-            .name("send")
-            .description("Sends a message")
-            .inputSchema(
-                Map.of(
-                    "type",
-                    "object",
-                    "properties",
-                    Map.of(
-                        "body",
-                        Map.of(
-                            "anyOf",
-                            List.of(
-                                Map.of("type", "string"),
-                                Map.of("type", "string", "format", "camunda-document-id")),
-                            "description",
-                            "The body"))))
-            .build();
-    var configuration = CONFIG.withToolDefinitions(List.of(authored));
-    var conv =
-        AgentConversation.rehydrate(
-            configuration,
-            BASE_CONTEXT.withToolDefinitions(List.of(authored)),
-            TurnReconstructor.reconstruct(List.of()),
-            SYSTEM_MESSAGE,
-            List.of(userMessage("hi")));
-
-    var snapshot = conv.window(20);
-
-    assertThat(snapshot.toolDefinitions().getFirst().inputSchema())
-        .isEqualTo(
-            Map.of(
-                "type",
-                "object",
-                "properties",
-                Map.of(
-                    "body",
-                    Map.of(
-                        "type",
-                        "string",
-                        "description",
-                        "The body. " + ProviderToolDefinitions.UNION_HINT))));
-    // nothing persisted or configured is rewritten
-    assertThat(conv.configuration().toolDefinitions()).containsExactly(authored);
-    assertThat(conv.toAgentContext().toolDefinitions()).containsExactly(authored);
   }
 
   @Test

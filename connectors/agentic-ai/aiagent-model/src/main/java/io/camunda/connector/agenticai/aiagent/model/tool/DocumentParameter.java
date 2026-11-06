@@ -7,11 +7,14 @@
 package io.camunda.connector.agenticai.aiagent.model.tool;
 
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ANYOF;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_FORMAT;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ENUM;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ITEMS;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ONEOF;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_OBJECT;
 
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -25,24 +28,22 @@ import org.jspecify.annotations.Nullable;
  * ToolDefinition tool definition}. It is either
  *
  * <ul>
- *   <li>a {@link Document}: a string schema with the format {@link #FORMAT_DOCUMENT_ID}, whose
- *       value is the {@code <doc />} tag of a known document, or
+ *   <li>a {@link Document}: the schema of a {@link AgentDocumentHandle}, an object whose {@code
+ *       properties.type.enum} is {@code ["camunda.agent_document"]}, or
  *   <li>a {@link TextOrDocument}: a node with {@code anyOf} or {@code oneOf} alternatives, one of
- *       which is such a string schema and at least one other alternative exists (typically a plain
- *       string). Its value is a document only when it is exactly one {@code <doc />} tag; any other
- *       value is not a document.
+ *       which is such a handle schema and at least one other alternative exists (a string, an
+ *       object, ...). A string value of it is text; an object value with the handle {@code type} is
+ *       a document.
  * </ul>
  *
  * Both are found at the top level of the schema of the tool arguments, as array {@code items} and
  * recursively through object {@code properties} and array {@code items} (see {@link
- * Step#mapChildren}). The alternatives of a {@link TextOrDocument} are not searched further: a
- * document inside an object or array alternative is not a document parameter. The format inside
- * {@code $ref} does not make a document parameter.
+ * Step#mapChildren}). The search stops at a handle schema, so its {@code type} and {@code id}
+ * properties are no parameters, and at a {@link TextOrDocument}: the alternatives of a union are
+ * not searched further, because a value cannot be assigned to one of its alternatives reliably. A
+ * handle schema behind {@code $ref} does not make a document parameter.
  */
 public sealed interface DocumentParameter {
-
-  /** Schema format which marks a string parameter as the id of a known document. */
-  String FORMAT_DOCUMENT_ID = "camunda-document-id";
 
   /**
    * The steps from the object schema of the tool arguments to the parameter. The arguments of a
@@ -113,14 +114,20 @@ public sealed interface DocumentParameter {
     return List.copyOf(parameters);
   }
 
-  /** Whether the schema node is a string schema with the format {@link #FORMAT_DOCUMENT_ID}. */
+  /**
+   * Whether the schema node is the schema of a document handle: an object whose {@code
+   * properties.type.enum} is exactly the handle type.
+   */
   static boolean isDocumentSchema(Map<?, ?> schema) {
-    return FORMAT_DOCUMENT_ID.equals(schema.get(PROPERTY_FORMAT));
+    return TYPE_OBJECT.equals(schema.get(PROPERTY_TYPE))
+        && schema.get(PROPERTY_PROPERTIES) instanceof Map<?, ?> properties
+        && properties.get(PROPERTY_TYPE) instanceof Map<?, ?> type
+        && List.of(AgentDocumentHandle.TYPE).equals(type.get(PROPERTY_ENUM));
   }
 
   /**
    * Whether the schema node has {@code anyOf} or {@code oneOf} alternatives, one of them a document
-   * schema and at least one other.
+   * schema and at least one other, of any kind.
    */
   static boolean isTextOrDocumentSchema(Map<?, ?> schema) {
     return alternativesKeyword(schema) != null;

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.tools.schema;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.api.tool.TypePropertyBasedGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
@@ -63,40 +64,14 @@ class AdHocToolsSchemaResolverTest {
         AdHocToolElement.builder().elementId("Test_Tool").documentation("A tool.").build();
     final var schema =
         Map.<String, Object>of(
-            "type",
-            "object",
-            "properties",
-            Map.of(
-                "doc",
-                Map.of(
-                    "type",
-                    "string",
-                    "format",
-                    "camunda-document-id",
-                    "description",
-                    "The invoice")));
+            "type", "object", "properties", Map.of("doc", DocumentSchemas.document("The invoice")));
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(schema);
 
     final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
     assertThat(schemaResponse.toolDefinitions())
         .singleElement()
-        .satisfies(toolDefinition ->
-            assertThat(toolDefinition.inputSchema())
-                .isEqualTo(
-                    Map.of(
-                        "type",
-                        "object",
-                        "properties",
-                        Map.of(
-                            "doc",
-                            Map.of(
-                                "type",
-                                "string",
-                                "format",
-                                "camunda-document-id",
-                                "description",
-                                "The invoice")))));
+        .satisfies(toolDefinition -> assertThat(toolDefinition.inputSchema()).isEqualTo(schema));
   }
 
   @ParameterizedTest

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -16,8 +17,19 @@ class ToolDefinitionTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
+  private static final Map<String, Object> HANDLE_SCHEMA =
+      Map.of(
+          "type",
+          "object",
+          "properties",
+          Map.of(
+              "type", Map.of("type", "string", "enum", List.of("camunda.agent_document")),
+              "id", Map.of("type", "string")),
+          "required",
+          List.of("type", "id"));
+
   @Test
-  void roundTripsDocumentParametersWithTheDocumentFormat() throws Exception {
+  void roundTripsDocumentParametersWithTheHandleSchema() throws Exception {
     final var toolDefinition =
         ToolDefinition.builder()
             .name("tool")
@@ -28,24 +40,25 @@ class ToolDefinitionTest {
                     "properties",
                     Map.of(
                         "doc",
-                        Map.of(
-                            "type",
-                            "string",
-                            "format",
-                            "camunda-document-id",
-                            "description",
-                            "A document"),
+                        HANDLE_SCHEMA,
                         "docs",
-                        Map.of(
-                            "type",
-                            "array",
-                            "items",
-                            Map.of("type", "string", "format", "camunda-document-id")))))
+                        Map.of("type", "array", "items", HANDLE_SCHEMA))))
             .build();
 
     final var json = objectMapper.writeValueAsString(toolDefinition);
     final var restored = objectMapper.readValue(json, ToolDefinition.class);
 
+    final var handle =
+        """
+        {
+          "type": "object",
+          "properties": {
+            "type": {"type": "string", "enum": ["camunda.agent_document"]},
+            "id": {"type": "string"}
+          },
+          "required": ["type", "id"]
+        }
+        """;
     assertThat(objectMapper.readTree(json))
         .isEqualTo(
             objectMapper.readTree(
@@ -55,20 +68,20 @@ class ToolDefinitionTest {
                   "inputSchema": {
                     "type": "object",
                     "properties": {
-                      "doc": {
-                        "type": "string",
-                        "format": "camunda-document-id",
-                        "description": "A document"
-                      },
-                      "docs": {
-                        "type": "array",
-                        "items": {"type": "string", "format": "camunda-document-id"}
-                      }
+                      "doc": %s,
+                      "docs": {"type": "array", "items": %s}
                     }
                   }
                 }
-                """));
+                """
+                    .formatted(handle, handle)));
     assertThat(restored).isEqualTo(toolDefinition);
-    assertThat(restored.documentParameters()).isEqualTo(toolDefinition.documentParameters());
+    assertThat(restored.documentParameters())
+        .containsExactlyInAnyOrder(
+            new DocumentParameter.Document(List.of(new DocumentParameter.Step.Property("doc"))),
+            new DocumentParameter.Document(
+                List.of(
+                    new DocumentParameter.Step.Property("docs"),
+                    new DocumentParameter.Step.Items())));
   }
 }

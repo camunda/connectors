@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.conversation;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
-import io.camunda.connector.agenticai.aiagent.document.ProviderToolDefinitions;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -299,15 +298,11 @@ public final class AgentConversation {
    * AgentContext} — {@link AgentConfiguration#toolDefinitions()} is the authoritative current tool
    * list for this invocation once the handler has populated it via {@link
    * AgentConfiguration#withToolDefinitions} with the tools of the process and the enabled runtime
-   * tools. For an agent instance that tracks its documents, the document parameters of the tools
-   * are offered to the provider as string parameters (see {@link ProviderToolDefinitions}).
+   * tools.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    return new ConversationSnapshot(
-        windowed,
-        ProviderToolDefinitions.of(
-            configuration.toolDefinitions(), currentContext.documentHandling()));
+    return new ConversationSnapshot(windowed, configuration.toolDefinitions());
   }
 
   /**

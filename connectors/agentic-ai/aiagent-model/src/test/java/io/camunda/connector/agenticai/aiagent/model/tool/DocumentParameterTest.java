@@ -36,8 +36,7 @@ class DocumentParameterTest {
   void findsTopLevelArrayAndNestedDocumentParameters() {
     final var schema =
         object(
-            "doc",
-                Map.of("type", "string", "format", "camunda-document-id", "description", "A doc"),
+            "doc", withDescription(doc(), "A doc"),
             "docs", Map.of("type", "array", "items", doc()),
             "req", object("file", doc(), "note", string()),
             "rows", Map.of("type", "array", "items", object("file", doc())));
@@ -51,13 +50,39 @@ class DocumentParameterTest {
   }
 
   @Test
-  void findsNoDocumentParameterInASchemaWithoutDocumentFormat() {
+  void findsNoDocumentParameterInASchemaWithoutTheHandleSchema() {
     final var schema =
         object(
             "text", string(),
             "type", Map.of("type", "string", "description", "a property named type"));
 
     assertThat(DocumentParameter.in(schema)).isEmpty();
+  }
+
+  @Test
+  void anObjectIsAHandleSchemaOnlyWithTheHandleTypeAsTheOnlyValueOfTheTypeProperty() {
+    assertThat(DocumentParameter.isDocumentSchema(doc())).isTrue();
+    assertThat(DocumentParameter.isDocumentSchema(withDescription(doc(), "A doc"))).isTrue();
+    assertThat(DocumentParameter.isDocumentSchema(object("id", string()))).isFalse();
+    assertThat(
+            DocumentParameter.isDocumentSchema(
+                object("type", Map.of("type", "string", "enum", List.of("other")))))
+        .isFalse();
+    assertThat(
+            DocumentParameter.isDocumentSchema(
+                object(
+                    "type",
+                    Map.of("type", "string", "enum", List.of("camunda.agent_document", "other")))))
+        .isFalse();
+    assertThat(DocumentParameter.isDocumentSchema(object("type", string()))).isFalse();
+    assertThat(DocumentParameter.isDocumentSchema(string())).isFalse();
+  }
+
+  @Test
+  void theSearchStopsAtAHandleSchemaAndNeverTreatsItsPropertiesAsParameters() {
+    final var schema = object("doc", doc());
+
+    assertThat(DocumentParameter.in(schema)).containsExactly(document(property("doc")));
   }
 
   @Test
@@ -87,12 +112,21 @@ class DocumentParameterTest {
   }
 
   @Test
-  void aNodeWithAlternativesTakesTextOrADocumentOnlyWithADocumentAlternativeAndAnotherOne() {
+  void aNodeWithAlternativesTakesTextOrADocumentWithADocumentAlternativeAndAnotherOneOfAnyKind() {
     assertThat(DocumentParameter.isTextOrDocumentSchema(Map.of("anyOf", List.of(string(), doc()))))
         .isTrue();
     assertThat(
             DocumentParameter.isTextOrDocumentSchema(
                 Map.of("oneOf", List.of(doc(), Map.of("type", "null")))))
+        .isTrue();
+    // the other alternatives may be objects or arrays
+    assertThat(
+            DocumentParameter.isTextOrDocumentSchema(
+                Map.of("anyOf", List.of(object("a", string()), doc()))))
+        .isTrue();
+    assertThat(
+            DocumentParameter.isTextOrDocumentSchema(
+                Map.of("oneOf", List.of(Map.of("type", "array", "items", string()), doc()))))
         .isTrue();
     // no document alternative
     assertThat(
@@ -175,7 +209,23 @@ class DocumentParameterTest {
   }
 
   private static Map<String, Object> doc() {
-    return Map.of("type", "string", "format", "camunda-document-id");
+    return Map.of(
+        "type",
+        "object",
+        "properties",
+        Map.of(
+            "type",
+            Map.of("type", "string", "enum", List.of("camunda.agent_document")),
+            "id",
+            Map.of("type", "string")),
+        "required",
+        List.of("type", "id"));
+  }
+
+  private static Map<String, Object> withDescription(Map<String, Object> schema, String text) {
+    final var result = new LinkedHashMap<>(schema);
+    result.put("description", text);
+    return result;
   }
 
   private static Map<String, Object> string() {

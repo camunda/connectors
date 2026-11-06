@@ -74,7 +74,7 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
             authoredSchema.put(PROPERTY_TYPE, parameter.type());
           }
 
-          // the shorthand type "document" becomes a string with the document format
+          // the shorthand type "document" becomes the object schema of a document handle
           final var propertySchema = new LinkedHashMap<>(normalizer.normalize(authoredSchema));
 
           // default to string if no type is set (not on parameter, not in schema directly); a

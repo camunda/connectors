@@ -17,22 +17,51 @@ import org.junit.jupiter.api.Test;
 
 class DocumentSchemasTest {
 
+  private static Map<String, Object> handleSchema(String description) {
+    final var expected = new LinkedHashMap<String, Object>();
+    expected.put("type", "object");
+    if (description != null) {
+      expected.put("description", description);
+    }
+    expected.put(
+        "properties",
+        Map.of(
+            "type",
+            Map.of("type", "string", "enum", List.of("camunda.agent_document")),
+            "id",
+            Map.of("type", "string", "description", "The id of the document.")));
+    expected.put("required", List.of("type", "id"));
+    return expected;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> properties(Map<String, Object> schema) {
+    return (Map<String, Object>) schema.get("properties");
+  }
+
   @Test
-  void aDocumentIsAStringWithTheDocumentFormatAndTheDescription() {
+  void aDocumentIsTheObjectSchemaOfAHandleWithTheDescription() {
     final var schema = DocumentSchemas.document("The file");
 
-    assertThat(schema)
-        .isEqualTo(
-            Map.of("type", "string", "format", "camunda-document-id", "description", "The file"));
-    assertThat(List.copyOf(schema.keySet())).containsExactly("type", "format", "description");
+    assertThat(schema).isEqualTo(handleSchema("The file"));
+    assertThat(List.copyOf(schema.keySet()))
+        .containsExactly("type", "description", "properties", "required");
+    assertThat(List.copyOf(properties(schema).keySet())).containsExactly("type", "id");
   }
 
   @Test
   void aDocumentWithoutAUsableDescriptionHasNone() {
-    final var expected = Map.of("type", "string", "format", "camunda-document-id");
+    final var schema = DocumentSchemas.document(null);
 
-    assertThat(DocumentSchemas.document(null)).isEqualTo(expected);
-    assertThat(DocumentSchemas.document("  ")).isEqualTo(expected);
+    assertThat(schema).isEqualTo(handleSchema(null));
+    assertThat(List.copyOf(schema.keySet())).containsExactly("type", "properties", "required");
+    assertThat(DocumentSchemas.document("  ")).isEqualTo(handleSchema(null));
+  }
+
+  @Test
+  void aDocumentSchemaHasNoFormatAndNoAdditionalPropertiesRule() {
+    assertThat(DocumentSchemas.document("The file"))
+        .doesNotContainKeys("format", "additionalProperties");
   }
 
   @Test
@@ -45,17 +74,10 @@ class DocumentSchemasTest {
                 "description",
                 "The body",
                 "anyOf",
-                List.of(
-                    Map.of("type", "string"),
-                    Map.of("type", "string", "format", "camunda-document-id"))));
+                List.of(Map.of("type", "string"), handleSchema(null))));
     assertThat(List.copyOf(schema.keySet())).containsExactly("description", "anyOf");
     assertThat(DocumentSchemas.textOrDocument(null))
-        .isEqualTo(
-            Map.of(
-                "anyOf",
-                List.of(
-                    Map.of("type", "string"),
-                    Map.of("type", "string", "format", "camunda-document-id"))));
+        .isEqualTo(Map.of("anyOf", List.of(Map.of("type", "string"), handleSchema(null))));
   }
 
   @Test

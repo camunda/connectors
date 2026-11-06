@@ -410,9 +410,13 @@ class AdHocToolSchemaGeneratorTest {
           "type": "object",
           "properties": {
             "doc": {
-              "type": "string",
-              "format": "camunda-document-id",
-              "description": "The invoice"
+              "type": "object",
+              "description": "The invoice",
+              "properties": {
+                "type": {"type": "string", "enum": ["camunda.agent_document"]},
+                "id": {"type": "string", "description": "The id of the document."}
+              },
+              "required": ["type", "id"]
             },
             "note": {
               "type": "string",
@@ -450,7 +454,14 @@ class AdHocToolSchemaGeneratorTest {
             "body": {
               "anyOf": [
                 {"type": "string"},
-                {"type": "string", "format": "camunda-document-id"}
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "string", "enum": ["camunda.agent_document"]},
+                    "id": {"type": "string", "description": "The id of the document."}
+                  },
+                  "required": ["type", "id"]
+                }
               ],
               "type": "string",
               "description": "The body"
@@ -458,7 +469,14 @@ class AdHocToolSchemaGeneratorTest {
             "value": {
               "oneOf": [
                 {"type": "number"},
-                {"type": "string", "format": "camunda-document-id"}
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "string", "enum": ["camunda.agent_document"]},
+                    "id": {"type": "string", "description": "The id of the document."}
+                  },
+                  "required": ["type", "id"]
+                }
               ],
               "description": "The value"
             }

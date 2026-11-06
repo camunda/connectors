@@ -151,9 +151,7 @@ class AgentSubProcessRequestHandlerTest {
                               "type",
                               "object",
                               "properties",
-                              Map.of(
-                                  "doc",
-                                  Map.of("type", "string", "format", "camunda-document-id"))))
+                              Map.of("doc", DocumentSchemas.document(null))))
                       .build(),
                   ToolDefinition.builder()
                       .name("send")
@@ -162,17 +160,7 @@ class AgentSubProcessRequestHandlerTest {
                               "type",
                               "object",
                               "properties",
-                              Map.of(
-                                  "body",
-                                  Map.of(
-                                      "anyOf",
-                                      List.of(
-                                          Map.of("type", "string"),
-                                          Map.of(
-                                              "type",
-                                              "string",
-                                              "format",
-                                              "camunda-document-id"))))))
+                              Map.of("body", DocumentSchemas.textOrDocument(null))))
                       .build()))
           .toList();
 
@@ -2173,7 +2161,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
     final var goodCall =
-        new ToolCall("call-2", "upload", Map.of("doc", docTag(AgentDocumentId.of(document))));
+        new ToolCall("call-2", "upload", Map.of("doc", docHandle(AgentDocumentId.of(document))));
     final var firstMessage = AssistantMessage.builder().toolCalls(List.of(badCall)).build();
     final var secondMessage = AssistantMessage.builder().toolCalls(List.of(goodCall)).build();
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
@@ -2205,9 +2193,7 @@ class AgentSubProcessRequestHandlerTest {
                       assertThat(result.elementId()).isNull();
                       assertThat(result.completedAt()).isNotNull();
                       assertThat(result.content())
-                          .containsExactly(
-                              TextContent.textContent(
-                                  "Parameter 'doc' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'."));
+                          .containsExactly(TextContent.textContent(BOGUS_DOCUMENT));
                     }));
 
     // the call of the final round goes to the process as the model sent it, and the message of
@@ -2425,13 +2411,14 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void rejectsTheCallWithATagOfAnUnknownDocumentInAUnionParameter() {
+  void rejectsTheCallWithAHandleOfAnUnknownDocumentInAUnionParameter() {
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
 
-    final var badCall = new ToolCall("call-1", "send", Map.of("body", "<doc id=\"nope\" />"));
+    final var badCall =
+        new ToolCall("call-1", "send", Map.of("body", docHandle(AgentDocumentId.of("none"))));
     final var textCall = new ToolCall("call-2", "send", Map.of("body", "plain text"));
     final var message = AssistantMessage.builder().toolCalls(List.of(badCall, textCall)).build();
     mockChatModelExecution(message);
@@ -2471,11 +2458,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results())
                     .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
                     .containsExactly(
-                        tuple(
-                            "call-1",
-                            List.of(
-                                TextContent.textContent(
-                                    "Parameter 'doc' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'."))),
+                        tuple("call-1", List.of(TextContent.textContent(BOGUS_DOCUMENT))),
                         tuple("call-2", List.of(TextContent.textContent("Sunny")))));
   }
 
@@ -2667,8 +2650,8 @@ class AgentSubProcessRequestHandlerTest {
     when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
   }
 
-  private static String docTag(AgentDocumentId documentId) {
-    return "<doc id=\"" + documentId + "\" />";
+  private static Map<String, Object> docHandle(AgentDocumentId documentId) {
+    return Map.of("type", "camunda.agent_document", "id", documentId.value());
   }
 
   private void mockProceedWithDocument(Document document) {
@@ -2760,13 +2743,16 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
   }
 
-  private static final String BOGUS_DOCUMENT =
-      "Parameter 'doc' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'.";
+  private static final String BOGUS_DOCUMENT = rejectionFor("doc");
+
+  private static String rejectionFor(String path) {
+    return ("Parameter '%s' must be a document handle such as"
+            + " {\"type\":\"camunda.agent_document\",\"id\":\"doc_…\"} of a known document.")
+        .formatted(path);
+  }
 
   private static ToolCall rejectedForUnknownBody(ToolCall call) {
-    return call.withRejection(
-        "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document."
-            + " Pass the tag of a document exactly as you read it, or pass other text.");
+    return call.withRejection(rejectionFor("body"));
   }
 
   private static ToolCall rejectedForBogusDocument(ToolCall call) {

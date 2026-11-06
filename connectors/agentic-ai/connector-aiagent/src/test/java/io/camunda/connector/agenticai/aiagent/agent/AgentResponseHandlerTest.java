@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
@@ -424,10 +425,7 @@ class AgentResponseHandlerTest {
             .name("upload")
             .inputSchema(
                 Map.of(
-                    "type",
-                    "object",
-                    "properties",
-                    Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))))
+                    "type", "object", "properties", Map.of("doc", DocumentSchemas.document(null))))
             .build();
     private static final ToolDefinition SEND =
         ToolDefinition.builder()
@@ -437,13 +435,7 @@ class AgentResponseHandlerTest {
                     "type",
                     "object",
                     "properties",
-                    Map.of(
-                        "body",
-                        Map.of(
-                            "anyOf",
-                            List.of(
-                                Map.of("type", "string"),
-                                Map.of("type", "string", "format", "camunda-document-id"))))))
+                    Map.of("body", DocumentSchemas.textOrDocument(null))))
             .build();
     private static final ToolDefinition WEATHER =
         ToolDefinition.builder().name("getWeather").inputSchema(Map.of("type", "object")).build();
@@ -456,6 +448,10 @@ class AgentResponseHandlerTest {
                 List.of(
                     AgentDocument.of(
                         report, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
+
+    private static Map<String, Object> handle(String id) {
+      return Map.of("type", "camunda.agent_document", "id", id);
+    }
 
     private AgentConversation conversation(List<String> features, ToolCall... calls) {
       final var context =
@@ -481,9 +477,8 @@ class AgentResponseHandlerTest {
     }
 
     @Test
-    void handsTheCamundaDocumentReferenceOfAKnownTagToTheProcess() {
-      final var call =
-          new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"" + reportId + "\" />"));
+    void handsTheCamundaDocumentReferenceOfAKnownHandleToTheProcess() {
+      final var call = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
 
       final var response = responseHandler.createResponse(conversation(call));
 
@@ -498,9 +493,8 @@ class AgentResponseHandlerTest {
     }
 
     @Test
-    void handsTheCamundaDocumentReferenceOfATagInAUnionParameterAndKeepsTextAsText() {
-      final var tagged =
-          new ToolCall("s1", "send", Map.of("body", "<doc id=\"" + reportId + "\" />"));
+    void handsTheCamundaDocumentReferenceOfAHandleInAUnionParameterAndKeepsTextAsText() {
+      final var tagged = new ToolCall("s1", "send", Map.of("body", handle(reportId.value())));
       final var text = new ToolCall("s2", "send", Map.of("body", "hello " + reportId));
 
       final var response = responseHandler.createResponse(conversation(tagged, text));
@@ -513,8 +507,8 @@ class AgentResponseHandlerTest {
     }
 
     @Test
-    void failsForACallWithATagOfAnUnknownDocumentInAUnionParameterThatIsHandedToTheProcess() {
-      final var call = new ToolCall("s1", "send", Map.of("body", "<doc id=\"nope\" />"));
+    void failsForACallWithAHandleOfAnUnknownDocumentInAUnionParameterThatIsHandedToTheProcess() {
+      final var call = new ToolCall("s1", "send", Map.of("body", handle("doc_000000000000")));
 
       assertThatThrownBy(() -> responseHandler.createResponse(conversation(call)))
           .isInstanceOf(IllegalStateException.class)
@@ -524,8 +518,7 @@ class AgentResponseHandlerTest {
 
     @Test
     void keepsTheToolCallsOfTheStoredAssistantMessageAsTheModelSentThem() {
-      final var call =
-          new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"" + reportId + "\" />"));
+      final var call = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
       final var conversation = conversation(call);
 
       responseHandler.createResponse(conversation);
@@ -536,8 +529,7 @@ class AgentResponseHandlerTest {
 
     @Test
     void resolvesTheDocumentsOfEveryCallOfTheProcessAndLeavesCallsWithoutDocumentParameters() {
-      final var upload =
-          new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"" + reportId + "\" />"));
+      final var upload = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
       final var weather = new ToolCall("w1", "getWeather", Map.of("doc", "nope"));
 
       final var response = responseHandler.createResponse(conversation(upload, weather));
@@ -551,8 +543,7 @@ class AgentResponseHandlerTest {
 
     @Test
     void passesTheCallsWithResolvedArgumentsToTheGatewayToolHandlers() {
-      final var call =
-          new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"" + reportId + "\" />"));
+      final var call = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
 
       responseHandler.createResponse(conversation(call));
 
@@ -569,7 +560,7 @@ class AgentResponseHandlerTest {
 
     @Test
     void anAgentInstanceWithoutTheDocumentsFeatureHandsTheArgumentsAsTheModelSentThem() {
-      final var call = new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"x\" />"));
+      final var call = new ToolCall("u1", "upload", Map.of("doc", handle("doc_000000000000")));
 
       final var response =
           responseHandler.createResponse(conversation(List.of(AgentFeatures.RUNTIME_TOOLS), call));
@@ -577,7 +568,7 @@ class AgentResponseHandlerTest {
       assertThat(response.toolCalls())
           .singleElement()
           .satisfies(toolCall ->
-              assertThat(toolCall.arguments()).containsEntry("doc", "<doc id=\"x\" />"));
+              assertThat(toolCall.arguments()).containsEntry("doc", handle("doc_000000000000")));
     }
 
     @Test

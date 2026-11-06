@@ -7,11 +7,11 @@
 package io.camunda.connector.agenticai.tools.schema;
 
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ANYOF;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_FORMAT;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_DESCRIPTION;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ONEOF;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_STRING;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter.Step;
 import java.util.ArrayList;
@@ -22,14 +22,14 @@ import java.util.Map;
 
 /**
  * Turns the shorthand type {@value #TYPE_DOCUMENT} that an authored {@code fromAi} schema uses for
- * a document into the string schema with the format {@link DocumentParameter#FORMAT_DOCUMENT_ID},
+ * a document into the object schema of a document handle (see {@link DocumentSchemas#document}),
  * the form of a {@link DocumentParameter document parameter}.
  *
  * <p>A node is normalized where a document parameter can be found: at the top level, in the object
  * {@code properties} and the array {@code items} (see {@link Step#mapChildren}), and among the
  * direct {@code anyOf} and {@code oneOf} alternatives of such a node. The shorthand anywhere else,
  * such as inside an object alternative, is left as authored: it is no document parameter, and the
- * format that marks one must not appear where nothing resolves it.
+ * handle schema must not appear where nothing resolves it.
  */
 final class AuthoredSchemaNormalizer {
 
@@ -63,10 +63,7 @@ final class AuthoredSchemaNormalizer {
 
   private Map<String, Object> normalizeType(Map<String, Object> node) {
     if (TYPE_DOCUMENT.equals(node.get(PROPERTY_TYPE))) {
-      final var result = new LinkedHashMap<>(node);
-      result.put(PROPERTY_TYPE, TYPE_STRING);
-      result.put(PROPERTY_FORMAT, DocumentParameter.FORMAT_DOCUMENT_ID);
-      return result;
+      return documentNode(node);
     }
     if (node.get(PROPERTY_TYPE) instanceof List<?> types
         && types.contains(TYPE_DOCUMENT)
@@ -77,17 +74,29 @@ final class AuthoredSchemaNormalizer {
     return new LinkedHashMap<>(node);
   }
 
+  /**
+   * The handle schema with the description of the node; the other authored entries follow it unless
+   * the handle schema defines them.
+   */
+  private Map<String, Object> documentNode(Map<String, Object> node) {
+    final var result =
+        new LinkedHashMap<>(
+            DocumentSchemas.document(
+                node.get(PROPERTY_DESCRIPTION) instanceof String description ? description : null));
+    node.forEach(result::putIfAbsent);
+    return result;
+  }
+
   private Map<String, Object> typeArrayToAlternatives(Map<String, Object> node, List<?> types) {
     final var alternatives = new ArrayList<Map<String, Object>>();
     for (final var type : types) {
       final var alternative = new LinkedHashMap<String, Object>();
       if (TYPE_DOCUMENT.equals(type)) {
-        alternative.put(PROPERTY_TYPE, TYPE_STRING);
-        alternative.put(PROPERTY_FORMAT, DocumentParameter.FORMAT_DOCUMENT_ID);
+        alternatives.add(DocumentSchemas.document(null));
       } else {
         alternative.put(PROPERTY_TYPE, type);
+        alternatives.add(alternative);
       }
-      alternatives.add(alternative);
     }
 
     final var result = new LinkedHashMap<String, Object>();
