@@ -189,7 +189,7 @@ follows the contract of ADR 016. Whether an effect is applied depends on the age
 whose content the model reads as of the start of the batch only, so a job that runs again computes the same input. A
 result can name a document it returns itself. A document that nobody knows is a defect of the tool and fails the job. The
 content guard checks every document: when it rejects one, the result stays as the tool returned it, the document stays a
-reference, and a note in the message that follows the tool results tells the model why the content is not loaded. A
+reference, and the message that follows the tool results shows its handle with a note that tells the model why the content is not loaded. A
 document whose content the model reads already, or that an earlier result of the same
 message asked for, is not added again.
 
@@ -261,8 +261,10 @@ content, without the guard, whatever the delivery: the provider reads them.
 Content enters the request in two ways, which share one guard and one persisted form:
 
 * **On request.** The model calls the built-in tool `c8__load_document`. The model knows whether it needs to read a
-  document, and the tool answers with a result the model can act on when it cannot load it. It loads the whole document.
-  A range would be additive.
+  document, and the message that follows the tool results shows the handle with a note when it cannot load it. The tool
+  answers with the handle and the sentence that the content follows in the next message; the message with the content
+  starts with a preamble that says it was requested by the tool calls above and holds the handle and the document of
+  each document, or the handle with the note. It loads the whole document. A range would be additive.
 * **By opt-in.** The process knows what a document is at two places, so only they can opt in: the user prompt, with a
   dropdown, and a tool activity, with an extension property. This removes one model round trip per document for a prompt
   that always comes with a short PDF or a tool that returns a text file. Events, MCP tools and A2A tools stay references;
@@ -284,9 +286,10 @@ One guard decides every addition of content, whoever asks:
   the whole body of an external document to learn its type and size, so no guard can bound the work. The model passes the
   handle to a tool that processes it. The user prompt keeps its behavior: the model provider reads the content of an
   external document in a user prompt whatever the delivery, as it reads every document of a user prompt.
-* What the model reads about a rejection is a fixed sentence with the content type, the size and the limit at most. The
-  text is persisted and a failure message can hold a URL with a token, so the cause goes to the log only.
-* A rejection leaves the document a reference and adds a note, whoever asked, and is no incident: the result of the tool
+* What the model reads about a rejection is a standalone sentence with the content type, the size and the limit at most,
+  in the `note` of the handle of the document, so the sentence holds no id. The text is persisted and a failure message
+  can hold a URL with a token, so the cause goes to the log only.
+* A rejection leaves the document a reference and shows its handle with the note, whoever asked, and is no incident: the result of the tool
   and the documents it returns stay as they are, and the model could not have read the document anyway.
 
 Bytes are a poor proxy for tokens (a small PDF can cost many input tokens), and limits that are the same for every

@@ -61,8 +61,8 @@ import org.springframework.core.io.ResourceLoader;
  * (LangChain4j-backed) and v2 (native) provider configurations.
  *
  * <p>Validates that real LLM providers can reason about PDF documents returned by tool calls: a
- * tool result shows the {@code <doc/>} tag of each document and the model loads the content it
- * needs with {@code c8__load_document}.
+ * tool result shows the handle of each document and the model loads the content it needs with
+ * {@code c8__load_document}.
  *
  * <p>Local-only: runs only when {@code RUN_NATIVE_LLM_E2E=true} and the row's API key is present.
  * Configure API keys via environment variables:

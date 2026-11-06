@@ -540,8 +540,8 @@ are and a `Document` in a tool result is serialized as its Camunda reference JSO
 tool result, so the content of a document reaches the model only in a user message. The content of a document stays in every request until
 the message that holds it leaves the window; there is no removal.
 
-The window never announces a document whose message it hides. The agent documents still resolve the tag of such a document,
-so a tag that is still in the model's context, in its own text for example, can be passed to a tool or loaded again within
+The window never announces a document whose message it hides. The agent documents still resolve the handle of such a document,
+so a handle that is still in the model's context, in its own text for example, can be passed to a tool or loaded again within
 the guard.
 
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
@@ -2037,42 +2037,43 @@ absent part is hashed as such, never as the text `null`. Any other kind of refer
 content, fails with `UNSUPPORTED_DOCUMENT_REFERENCE`. The id never exposes
 a store id, the id of the document in its store or a URL.
 
-**Loading content: `c8__load_document`.** The model calls it with the tag of a document (`id`, a document parameter; the
+**Loading content: `c8__load_document`.** The model calls it with the handle of a document (`id`, a document parameter; the
 tool receives an `AgentDocumentId`). It loads the whole document, no ranges. The tool answers without asking for content when the
 document is already in the windowed conversation (a block with the delivery `content` in a windowed user message,
-`RuntimeToolDocuments.hasContentInConversation`): success, `Document <id> is already in the conversation.`; loadable again after
-that message left the window. Otherwise the result is the text `Requested the content of the document.`, a reference block of
-the document (the tag the model saw, the delivery `reference`) and the text `It follows in the next message, or a note says
-why it cannot be loaded.`, and it asks the agent to add the content (`RuntimeToolResult.Success.withDocumentContent`, the
-effect `ToolCallEffect.AddDocumentContent`). The agent, not the tool, applies the effect after all calls of the message ran,
+`RuntimeToolDocuments.hasContentInConversation`): success, `<handle> The document is already in the conversation.`; loadable
+again after that message left the window. Otherwise the result is one text, the handle of the document and the sentence
+`The content follows in the next message.`, and it asks the agent to add the content
+(`RuntimeToolResult.Success.withDocumentContent`, the effect `ToolCallEffect.AddDocumentContent`). The agent, not the tool,
+applies the effect after all calls of the message ran,
 in the order of the calls, in `ToolCallResultsInputBuilder`: `DocumentContentDelivery` decides for every document a result
 names, with the content guard, whether the content is added, and adds nothing for a document the model reads already or an
 earlier result of the same message dealt with. The result stays as the tool returned it, whatever the decision; the
-document stays a reference. A document the guard rejects gets a note in the message that follows, and the documents the
-result returns are registered:
+document stays a reference. A document the guard rejects is shown in the message that follows as its handle with a `note`,
+and the documents the result returns are registered. The note is a standalone sentence without the id (the handle carries it):
 
 | Check | Note |
 |-------|------|
-| the document is an external one (a URL) | `The document <id> is an external document, which cannot be loaded into the conversation; pass its tag to a tool that processes it.` |
-| the content type is missing or no model provider renders it | `The document <id> is of type X which cannot be loaded into the conversation; pass its tag to a tool that processes it.` (`The document <id> has no content type, so it cannot be loaded into the conversation; ...` without a content type) |
-| the size exceeds the limit of the kind of content | `The document <id> is N KB, too large to load into the conversation (limit L KB); pass its tag to a tool that processes it.` |
-| the size cannot be read | `The document <id> could not be read, so its content is not loaded.` (the cause is logged); the model can retry |
+| the document is an external one (a URL) | `An external document cannot be loaded. Pass the handle to a tool that processes it.` |
+| the content type is missing or no model provider renders it | `Documents of type X cannot be loaded. Pass the handle to a tool that processes it.` (`A document without a content type cannot be loaded. ...` without a content type, `A document with a content type that cannot be read cannot be loaded. ...` for one that cannot be parsed) |
+| the size exceeds the limit of the kind of content | `The document is too large to load (S, limit L). Pass the handle to a tool that processes it.` (`S` is left out when the size is not known and the document was read up to the limit only) |
+| the size cannot be read | `The document could not be read.` (the cause is logged); the model can retry |
 
 Every note is plain text with no incident; the model retries or goes another way. The builder follows the tool result
-message with a user message with the preamble `System message, not written by the user: the content of the
-documents requested for the tool results above follows, or a note says why a document cannot be loaded.` and, in the order the documents were asked for, a block with the delivery `content`
-or a note per document. Its
+message with a user message that starts with the preamble `Document content requested by the tool calls above (added by the
+system):` and has, in the order the documents were asked for, per document its handle followed by the document (a block with
+the delivery `content`), or the handle with the note. Its
 metadata `toolCallDocuments` makes it leave the context window together with its tool results (`MessageWindowFilter`). The
-tag text and the content are added from the agent documents when the request is built (`DocumentExpander`). Passing the tag of a document to
+handle text and the content are added from the agent documents when the request is built (`DocumentExpander`); the handle
+with a note is persisted as text. Passing the handle of a document to
 a tool parameter declared with `fromAi(..., "document")` never adds content: the tool receives the full Camunda document
-reference. The same holds for a parameter that takes text or a document, when the model passes a tag.
+reference. The same holds for a parameter that takes text or a document, when the model passes a handle.
 `c8__load_document` is offered to every agent instance with the `documents` feature (every instance created from
 this version on) and cannot be switched off; an instance created before the feature is not offered it. A switch for it is a
 follow-up of [ADR 017](../adr/017-document-flow.md).
 
 **The guard.** `DocumentContentGuard` is the one check for every addition of content, whoever asks. An external document
 (a URL) is never loadable on request of a tool: its content type and size are known only after the runtime downloaded the
-whole body, so the guard can neither check nor bound them without that download; the model passes its tag to a tool that
+whole body, so the guard can neither check nor bound them without that download; the model passes its handle to a tool that
 processes it. It classifies a document by its content type with the
 classification of the model providers (`DocumentMimeTypes`): text-based types (`text/*`, `application/json`, `xml`, `yaml`,
 `x-yaml` and the suffixes `+json`, `+xml`, `+yaml`), `application/pdf`, and the images PNG, JPEG, GIF and WebP; parameters
@@ -2622,7 +2623,7 @@ document, or of one the result returns itself, to the request that follows the t
 sealed `ToolCallEffect` (`aiagent-model`); `Success.effects()` lists them, `with*` methods append. `LoadDocumentTool` is the
 reference. The agent runs the content guard (`DocumentContentGuard`: the content type and the size limit of its kind) before
 it adds anything. A document that is not allowed leaves the result as it is, the document a reference, and the model reads
-a note in the message that follows the tool results; a document the model reads already, or that an earlier result of the
+its handle with a note in the message that follows the tool results; a document the model reads already, or that an earlier result of the
 message asked for, is not added again. The rule for the documents in a result: a new document is a `DocumentContent`, a
 known one an `AgentDocumentContent` reference, and content comes only through the effect. A reference block with the
 delivery `content`, and a reference block or an effect that names a document that neither the agent knew when the batch

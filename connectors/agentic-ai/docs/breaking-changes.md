@@ -289,7 +289,7 @@ factory of the job.
   ask the agent to add the content of a known document to the request that follows the tool results
   (`withDocumentContent(AgentDocumentId)` or `withDocumentContent(Document)`; they add a variant of the sealed
   `ToolCallEffect`, listed by `Success.effects()`), which the agent applies after all calls of the message ran, in call
-  order, and after its content guard accepted the document; a document the guard rejects stays a reference and a note
+  order, and after its content guard accepted the document; a document the guard rejects stays a reference and its handle with a note
   follows the tool results. An error result has no effects. A reference block with the delivery `content` in a result, and
   a reference block or an effect that names a document neither known to the agent nor returned by the result, fail the job.
   `RuntimeToolDocuments` returns the `AgentDocument` of `aiagent-model`, restores the live document with
