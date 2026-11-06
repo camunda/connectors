@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import static java.util.Objects.requireNonNullElse;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
 import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
@@ -21,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -60,6 +63,10 @@ import org.jspecify.annotations.Nullable;
  * {@link CamundaAgentInstanceClient}.
  */
 public class AgentInstanceHistoryMapper {
+
+  private static final String HANDLE_TEXT_PREFIX = "{\"type\":\"" + AgentDocumentHandle.TYPE + "\"";
+
+  private static final ObjectMapper HANDLE_READER = new ObjectMapper();
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ObjectHandleRenderer objectHandleRenderer;
@@ -102,7 +109,11 @@ public class AgentInstanceHistoryMapper {
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  messageContent(userMessage.content(), documents),
+                  messageContent(
+                      userMessage.content(),
+                      documents,
+                      Boolean.TRUE.equals(
+                          userMessage.metadata().get(UserMessage.METADATA_TOOL_CALL_DOCUMENTS))),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
@@ -125,7 +136,7 @@ public class AgentInstanceHistoryMapper {
     // them); default to empty strings, which the client model accepts
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
-        messageContent(result.content(), documents),
+        messageContent(result.content(), documents, true),
         List.of(
             new AgentInstanceHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
@@ -236,10 +247,17 @@ public class AgentInstanceHistoryMapper {
    * gets, in a user message, an event and a tool result. Where the document enters the conversation
    * the handle is followed by the document itself (the chip); a document nested in an object is
    * replaced by its handle object, as the model gets it, and the documents follow the object. Text
-   * is reported as it is, also when it holds a handle.
+   * is reported as it is, also when it holds a handle, except where the agent writes a handle as text: a text that is exactly the
+   * handle of a known document, in a tool result and in the message that follows the tool results
+   * (the handle of a document whose content is not loaded, with its note), is reported as the
+   * handle object, with no chip because the document has its chip where it entered the
+   * conversation.
+   *
+   * @param handlesAsText whether a text that is exactly the handle of a known document is reported
+   *     as the handle object
    */
   private List<AgentInstanceHistoryContent> messageContent(
-      List<Content> contents, HistoryDocuments historyDocuments) {
+      List<Content> contents, HistoryDocuments historyDocuments, boolean handlesAsText) {
     final var documentHandling = historyDocuments.handling();
     final var restorer = historyDocuments.restorer();
     return switch (documentHandling) {
@@ -249,8 +267,13 @@ public class AgentInstanceHistoryMapper {
         final var blocks = new ArrayList<AgentInstanceHistoryContent>();
         for (final var content : contents) {
           switch (content) {
-            case TextContent textContent ->
-                blocks.add(toHistoryContent(textContent, documentHandling));
+            case TextContent textContent -> {
+              final var handle = handlesAsText ? handleOf(textContent.text(), documents) : null;
+              blocks.add(
+                  handle != null
+                      ? objectHistoryContent(handle.tree())
+                      : toHistoryContent(textContent, documentHandling));
+            }
             case DocumentContent documentContent ->
                 addDocument(
                     blocks,
@@ -273,6 +296,25 @@ public class AgentInstanceHistoryMapper {
         yield List.copyOf(blocks);
       }
     };
+  }
+
+  /**
+   * The handle that a text is exactly, in the form the agent writes it, when it is the handle of a
+   * known document; {@code null} for every other text.
+   */
+  private static @Nullable AgentDocumentHandle handleOf(String text, AgentDocuments documents) {
+    if (!text.startsWith(HANDLE_TEXT_PREFIX)) {
+      return null;
+    }
+    try {
+      final var handle = HANDLE_READER.readValue(text, AgentDocumentHandle.class);
+      return handle.text().equals(text)
+              && documents.find(AgentDocumentId.of(handle.id())).isPresent()
+          ? handle
+          : null;
+    } catch (JsonProcessingException e) {
+      return null;
+    }
   }
 
   private void addDocument(
