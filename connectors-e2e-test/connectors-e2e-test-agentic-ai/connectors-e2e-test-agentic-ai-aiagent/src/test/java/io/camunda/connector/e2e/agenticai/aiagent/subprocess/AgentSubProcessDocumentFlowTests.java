@@ -374,7 +374,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(withheld.id()).isEqualTo(handle.id());
     assertThat(withheld.note())
         .isNotBlank()
-        .endsWith("Pass the handle to a tool that processes it.");
+        .endsWith("If one of your tools can process the document, pass the handle to it.");
     assertThat(OpenAiCompletionsRecordedConversation.recordedRawBodies())
         .noneMatch(body -> body.contains(LARGE_FILE_MARKER));
 
