@@ -33,6 +33,7 @@ import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.util.Timeout;
+import org.apache.hc.core5.util.VersionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,6 +100,7 @@ public class ProxyAwareHttpClient implements Closeable {
 
     builder
         .setDefaultRequestConfig(getRequestTimeoutConfig(timeoutConfiguration))
+        .setUserAgent(userAgent())
         .useSystemProperties();
     if (!followRedirects) {
       builder.disableRedirectHandling();
@@ -106,6 +108,25 @@ public class ProxyAwareHttpClient implements Closeable {
       builder.setRedirectStrategy(DefaultRedirectStrategy.INSTANCE);
     }
     return builder.build();
+  }
+
+  /**
+   * The same user agent {@link HttpClientBuilder#build()} would pick with {@code
+   * useSystemProperties()}: the {@code http.agent} system property if set, otherwise the Apache
+   * HttpClient default. Without an explicit user agent, every {@code build()} reads {@code
+   * version.properties} from the httpclient5 jar to compute that default. In the nested-jar
+   * runtime, such a read on a virtual thread can trigger a class-loading deadlock (see
+   * camunda/connectors#10102), so the default is computed once and cached.
+   */
+  static String userAgent() {
+    var systemUserAgent = System.getProperty("http.agent");
+    return systemUserAgent != null ? systemUserAgent : DefaultUserAgent.VALUE;
+  }
+
+  private static final class DefaultUserAgent {
+    private static final String VALUE =
+        VersionInfo.getSoftwareInfo(
+            "Apache-HttpClient", "org.apache.hc.client5", HttpClientBuilder.class);
   }
 
   private void setProxyIfConfigured(ProxyContext proxyContext, HttpClientBuilder builder) {
