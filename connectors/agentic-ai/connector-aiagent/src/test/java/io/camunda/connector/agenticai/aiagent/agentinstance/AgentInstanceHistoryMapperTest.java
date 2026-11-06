@@ -181,7 +181,8 @@ class AgentInstanceHistoryMapperTest {
             loadedMessage,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(), TestDocuments.documentFactory());
+            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items)
         .singleElement()
@@ -238,7 +239,8 @@ class AgentInstanceHistoryMapperTest {
             message,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(), TestDocuments.documentFactory());
+            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items)
         .singleElement()
@@ -274,7 +276,8 @@ class AgentInstanceHistoryMapperTest {
             message,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(), TestDocuments.documentFactory());
+            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items)
         .singleElement()
@@ -295,7 +298,8 @@ class AgentInstanceHistoryMapperTest {
             message,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(), TestDocuments.documentFactory());
+            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items)
         .singleElement()
@@ -323,7 +327,8 @@ class AgentInstanceHistoryMapperTest {
             ToolCallResultMessage.builder().results(List.of(result)).build(),
             Map.of("call-1", toolCall),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(), TestDocuments.documentFactory());
+            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items)
         .singleElement()

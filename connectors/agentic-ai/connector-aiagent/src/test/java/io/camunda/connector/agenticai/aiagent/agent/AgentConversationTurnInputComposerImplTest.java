@@ -116,7 +116,7 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     final var ready = (CompositionResult.Ready) result;
     assertThat(ready.unansweredToolCalls()).isEmpty();
-    return composer.assemble(ready);
+    return composer.assemble(ready, TestDocuments.documentFactory());
   }
 
   private List<Message> messagesOf(CompositionResult result) {
@@ -712,7 +712,8 @@ class AgentConversationTurnInputComposerImplTest {
       ToolCallResultContent... localResults) {
     final var ready = resolveReady(configuration, history, input);
     return composer.assemble(
-        ready.withResults(Arrays.stream(localResults).map(r -> entryOf(r)).toList()));
+        ready.withResults(Arrays.stream(localResults).map(r -> entryOf(r)).toList()),
+        TestDocuments.documentFactory());
   }
 
   private static List<ToolCallResultContent> resultsOf(TurnInput input) {
@@ -816,7 +817,8 @@ class AgentConversationTurnInputComposerImplTest {
 
     var turnInput =
         composer.assemble(
-            ready.withResults(List.of(entryOf(SECOND_RUNTIME_RESULT), entryOf(RUNTIME_RESULT))));
+            ready.withResults(List.of(entryOf(SECOND_RUNTIME_RESULT), entryOf(RUNTIME_RESULT))),
+            TestDocuments.documentFactory());
 
     assertThat(resultsOf(turnInput)).containsExactly(RUNTIME_RESULT, SECOND_RUNTIME_RESULT);
   }
@@ -845,7 +847,8 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void localToolCalls_doNotGoThroughTheGatewayTransformation() {
     var ready = resolveReady(CONFIG, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
-    composer.assemble(ready.withResults(List.of(entryOf(RUNTIME_RESULT))));
+    composer.assemble(
+        ready.withResults(List.of(entryOf(RUNTIME_RESULT))), TestDocuments.documentFactory());
 
     verify(gatewayToolHandlers, times(1))
         .transformToolCallResults(any(), eq(List.of(TOOL_CALL_RESULTS.get(1))));
@@ -879,7 +882,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     // nothing is left to execute: the runtime call is cancelled like the missing process call
     assertThat(ready.unansweredToolCalls()).isEmpty();
-    var turnInput = composer.assemble(ready);
+    var turnInput = composer.assemble(ready, TestDocuments.documentFactory());
     var results = resultsOf(turnInput);
     assertThat(results).extracting(ToolCallResultContent::id).containsExactly("abcdef", "fedcba");
     assertThat(results)
@@ -911,7 +914,7 @@ class AgentConversationTurnInputComposerImplTest {
     var ready = resolveReady(INTERRUPTING_CONFIG, historyWith(calls), input);
 
     assertThat(ready.unansweredToolCalls()).isEmpty();
-    var results = resultsOf(composer.assemble(ready));
+    var results = resultsOf(composer.assemble(ready, TestDocuments.documentFactory()));
     assertThat(results)
         .extracting(ToolCallResultContent::id)
         .containsExactly("abcdef", "fedcba", "rejected");
@@ -926,7 +929,7 @@ class AgentConversationTurnInputComposerImplTest {
   void assemblingWithoutTheResultOfALocalToolCall_fails() {
     var ready = resolveReady(CONFIG, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
 
-    assertThatThrownBy(() -> composer.assemble(ready))
+    assertThatThrownBy(() -> composer.assemble(ready, TestDocuments.documentFactory()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("abcdef")
         .hasMessageNotContaining("fedcba");
@@ -951,7 +954,7 @@ class AgentConversationTurnInputComposerImplTest {
             inputWith(TOOL_CALL_RESULTS.toArray(ToolCallResult[]::new)));
 
     assertThat(ready.unansweredToolCalls()).isEmpty();
-    assertThat(resultsOf(composer.assemble(ready)))
+    assertThat(resultsOf(composer.assemble(ready, TestDocuments.documentFactory())))
         .containsExactly(
             ToolCallResultContent.from(TOOL_CALL_RESULTS.get(0)),
             ToolCallResultContent.from(TOOL_CALL_RESULTS.get(1)));
@@ -992,7 +995,10 @@ class AgentConversationTurnInputComposerImplTest {
             historyWith(MIXED_CALLS),
             inputWith(TOOL_CALL_RESULTS.get(1)));
 
-    var messages = composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages();
+    var messages =
+        composer
+            .assemble(ready.withResults(List.of(loadingEntry(id))), TestDocuments.documentFactory())
+            .messages();
 
     assertThat(messages).hasSize(2);
     assertThat(messages.get(1).metadata())
@@ -1023,7 +1029,11 @@ class AgentConversationTurnInputComposerImplTest {
             CONFIG, contextKnowing(document), history, inputWith(TOOL_CALL_RESULTS.get(1)));
 
     assertThat(ready.documentIdsWithContent()).contains(id);
-    assertThat(composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages())
+    assertThat(
+            composer
+                .assemble(
+                    ready.withResults(List.of(loadingEntry(id))), TestDocuments.documentFactory())
+                .messages())
         .singleElement()
         .isInstanceOf(ToolCallResultMessage.class);
   }
@@ -1072,7 +1082,10 @@ class AgentConversationTurnInputComposerImplTest {
             historyWithTheContentFirstAndTheToolCallsLast(document),
             AgentInput.from(new UserPromptConfiguration("user input", List.of()), results));
 
-    var messages = composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages();
+    var messages =
+        composer
+            .assemble(ready.withResults(List.of(loadingEntry(id))), TestDocuments.documentFactory())
+            .messages();
 
     return ((ToolCallResultMessage) messages.getFirst()).results().getFirst().content();
   }
@@ -1124,7 +1137,10 @@ class AgentConversationTurnInputComposerImplTest {
             historyWithTheContentFirstAndTheToolCallsLast(document),
             inputWith(TOOL_CALL_RESULTS.get(1)));
 
-    var messages = composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages();
+    var messages =
+        composer
+            .assemble(ready.withResults(List.of(loadingEntry(id))), TestDocuments.documentFactory())
+            .messages();
 
     assertThat(ready.documentIdsWithContent()).isEmpty();
     assertThat(messages).hasSize(2);

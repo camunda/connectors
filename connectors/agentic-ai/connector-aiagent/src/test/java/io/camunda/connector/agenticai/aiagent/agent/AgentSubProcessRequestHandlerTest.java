@@ -267,7 +267,6 @@ class AgentSubProcessRequestHandlerTest {
               LOAD_DOCUMENT_TOOL,
               new LoadDocumentTool()),
           TestObjectMapperSupplier.INSTANCE,
-          TestDocuments.documentFactory(),
           new DocumentParameterResolver());
 
   @Spy
@@ -319,6 +318,10 @@ class AgentSubProcessRequestHandlerTest {
     // avoid deep-stubbing a mock UserPromptConfiguration (these tests drive the turn via the
     // composer mock and don't rely on the user prompt)
     lenient().doReturn(null).when(agentExecutionContext).userPrompt();
+    lenient()
+        .doReturn(TestDocuments.documentFactory())
+        .when(agentExecutionContext)
+        .documentFactory();
   }
 
   @Test
@@ -1274,7 +1277,8 @@ class AgentSubProcessRequestHandlerTest {
             .withEntries(List.of(ToolCallBatch.Entry.from(processResult)));
     when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(CompositionResult.Ready.of(context, Set.of(), batch));
-    when(agentInputComposer.assemble(any())).thenReturn(new TurnInput(List.of(USER_MESSAGE)));
+    when(agentInputComposer.assemble(any(), any()))
+        .thenReturn(new TurnInput(List.of(USER_MESSAGE)));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -1283,7 +1287,7 @@ class AgentSubProcessRequestHandlerTest {
     requestHandler.handleRequest(agentExecutionContext);
 
     final var readyCaptor = ArgumentCaptor.forClass(CompositionResult.Ready.class);
-    verify(agentInputComposer, times(1)).assemble(readyCaptor.capture());
+    verify(agentInputComposer, times(1)).assemble(readyCaptor.capture(), any());
     assertThat(readyCaptor.getValue().toolCallBatch().entriesInCallOrder())
         .extracting(entry -> entry.result().id(), entry -> entry.result().content())
         .containsExactly(
@@ -1858,7 +1862,7 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(
             CompositionResult.Ready.of(
                 CONTEXT_WITH_DOCUMENTS, Set.of(), ToolCallBatch.of(List.of())));
-    when(agentInputComposer.assemble(any()))
+    when(agentInputComposer.assemble(any(), any()))
         .thenReturn(
             new TurnInput(
                 List.of(USER_MESSAGE),
@@ -1922,7 +1926,7 @@ class AgentSubProcessRequestHandlerTest {
     reset(agentInitializer, agentInputComposer);
     when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(CompositionResult.Ready.of(context, Set.of(), ToolCallBatch.of(List.of())));
-    when(agentInputComposer.assemble(any()))
+    when(agentInputComposer.assemble(any(), any()))
         .thenReturn(
             new TurnInput(
                 List.of(USER_MESSAGE),
@@ -2814,8 +2818,8 @@ class AgentSubProcessRequestHandlerTest {
             realComposer.resolve(
                 i.getArgument(0), i.getArgument(1), i.getArgument(2), i.getArgument(3)));
     lenient()
-        .when(agentInputComposer.assemble(any()))
-        .thenAnswer(i -> realComposer.assemble(i.getArgument(0)));
+        .when(agentInputComposer.assemble(any(), any()))
+        .thenAnswer(i -> realComposer.assemble(i.getArgument(0), i.getArgument(1)));
   }
 
   /**
@@ -2948,10 +2952,13 @@ class AgentSubProcessRequestHandlerTest {
           return ready.toolCallBatch().toolCalls().isEmpty()
               ? firstTurnInput
               : resultsInputBuilder.build(
-                  ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
+                  ready.agentContext(),
+                  ready.toolCallBatch(),
+                  ready.documentIdsWithContent(),
+                  TestDocuments.documentFactory());
         })
         .when(agentInputComposer)
-        .assemble(any());
+        .assemble(any(), any());
   }
 
   private void mockResponseHandler() {

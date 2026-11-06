@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -81,15 +82,21 @@ public class ToolCallResultsInputBuilder {
    *
    * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
    *     start of the batch
+   * @param documentFactory the document factory of the job, which restores the documents whose
+   *     content a result asks for
    * @throws IllegalStateException if a call of the batch has no result
    * @throws IllegalArgumentException if a result asks for the content of a document that neither
    *     {@code agentContext} nor the result knows
    */
   public TurnInput build(
-      AgentContext agentContext, ToolCallBatch batch, Set<AgentDocumentId> documentIdsWithContent) {
+      AgentContext agentContext,
+      ToolCallBatch batch,
+      Set<AgentDocumentId> documentIdsWithContent,
+      DocumentFactory documentFactory) {
     final var entries = batch.entriesInCallOrder();
     final var documentHandling = agentContext.documentHandling();
-    final var applied = applyEffects(documentHandling, entries, documentIdsWithContent);
+    final var applied =
+        applyEffects(documentHandling, entries, documentIdsWithContent, documentFactory);
     return switch (documentHandling) {
       case DocumentHandling.Tracked ignored -> buildWithDocumentBlocks(entries, applied);
       case DocumentHandling.Untracked ignored -> buildWithDocumentMessage(entries);
@@ -113,7 +120,8 @@ public class ToolCallResultsInputBuilder {
   private AppliedEffects applyEffects(
       DocumentHandling documentHandling,
       List<ToolCallBatch.Entry> entries,
-      Set<AgentDocumentId> documentIdsWithContent) {
+      Set<AgentDocumentId> documentIdsWithContent,
+      DocumentFactory documentFactory) {
     final var handledIds = new HashSet<>(documentIdsWithContent);
     final var statements = new ArrayList<List<Content>>();
     final var delivered = new ArrayList<AgentDocumentContent>();
@@ -138,7 +146,8 @@ public class ToolCallResultsInputBuilder {
             case DocumentHandling.Untracked ignored -> AgentDocuments.empty();
           };
       final var entryStatements = new ArrayList<Content>();
-      for (final var outcome : contentDelivery.deliver(known, requestedContent, handledIds)) {
+      for (final var outcome :
+          contentDelivery.deliver(known, requestedContent, handledIds, documentFactory)) {
         switch (outcome) {
           case DocumentContentDelivery.Outcome.Delivered delivery -> {
             delivered.add(delivery.withContent());

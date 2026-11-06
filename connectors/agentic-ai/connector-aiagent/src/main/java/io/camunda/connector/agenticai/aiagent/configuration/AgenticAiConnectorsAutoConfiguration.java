@@ -123,9 +123,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   public RuntimeTools aiAgentRuntimeTools(
       List<RuntimeTool> runtimeTools,
       @ConnectorsObjectMapper ObjectMapper objectMapper,
-      DocumentFactory documentFactory,
       DocumentParameterResolver documentParameterResolver) {
-    return new RuntimeTools(runtimeTools, objectMapper, documentFactory, documentParameterResolver);
+    return new RuntimeTools(runtimeTools, objectMapper, documentParameterResolver);
   }
 
   @Bean
@@ -265,8 +264,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public DocumentContentDelivery aiAgentDocumentContentDelivery(
-      DocumentContentGuard documentContentGuard, DocumentRestorer documentRestorer) {
-    return new DocumentContentDelivery(documentContentGuard, documentRestorer);
+      DocumentContentGuard documentContentGuard) {
+    return new DocumentContentDelivery(documentContentGuard);
   }
 
   @Bean

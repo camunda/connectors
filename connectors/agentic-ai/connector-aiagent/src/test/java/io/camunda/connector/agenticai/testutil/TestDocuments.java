@@ -46,8 +46,7 @@ public final class TestDocuments {
 
   /** Decides the content of the documents of the in-memory store with the default limits. */
   public static DocumentContentDelivery documentContentDelivery() {
-    return new DocumentContentDelivery(
-        new DocumentContentGuard(DocumentContentLimits.defaults()), documentRestorer());
+    return new DocumentContentDelivery(new DocumentContentGuard(DocumentContentLimits.defaults()));
   }
 
   public static ObjectHandleRenderer objectHandleRenderer() {

@@ -269,7 +269,7 @@ High-frequency traps (detail behind each link):
   the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
   a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
   and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
-  `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` runs the content guard
+  `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` (with the document factory of the job) runs the content guard
   (`DocumentContentGuard`, limits in `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document
   whose content a tool asks for. A document that fails it (a type no provider renders, a size above
   the limit, a document that cannot be read) stays a reference, no incident: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that

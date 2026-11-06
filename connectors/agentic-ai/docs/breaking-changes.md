@@ -202,7 +202,8 @@ client in its properties does not start.
 
 - `compose(configuration, agentContext, previousConversation, agentInput)` is replaced by two steps. `resolve` with the
   same parameters resolves only the results of the process tool calls of the previous turn and returns a
-  `CompositionResult`. `assemble(CompositionResult.Ready)` builds the input of the next turn and returns a `TurnInput`.
+  `CompositionResult`. `assemble(CompositionResult.Ready, DocumentFactory)` builds the input of the next turn and returns
+  a `TurnInput`; the document factory is the one of the job (`AgentExecutionContext.documentFactory()`).
   Between the two, the request handler produces the tool call results of the local tool calls (calls of runtime tools and
   rejected calls) and adds them to the `Ready`. The composer executes no tool.
 - `CompositionResult` has the variants `Deferred`, `NoInput` and `Ready`. `NextTurn` is removed; its messages are in
@@ -251,9 +252,9 @@ The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler
 `RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`. The constructor of
 `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`, and the `ToolCallResultsInputBuilder`
 takes the `DocumentContentDelivery`, which decides whether the content of a document is added and takes the
-`DocumentContentGuard`, the check of the documents whose content the agent adds, and the `DocumentRestorer` that restores a
-document from its reference. `RuntimeTools` also takes the SDK `DocumentFactory`, with which a runtime
-tool restores the documents it reads. The size limits of the guard are set by the properties
+`DocumentContentGuard`, the check of the documents whose content the agent adds. The content delivery and the runtime
+tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`), never with a
+`DocumentFactory` bean. The size limits of the guard are set by the properties
 `camunda.connector.agenticai.aiagent.document.content-limits.*` (see §16 of the [reference](reference/ai-agent.md)). The
 auto-configuration provides these beans and the built-in runtime tool, each `@ConditionalOnMissingBean`. A custom bean
 built with `new` needs the extra arguments; inject them as beans.
