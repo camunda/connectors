@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -83,5 +84,49 @@ class ToolDefinitionTest {
                 List.of(
                     new DocumentParameter.Step.Property("docs"),
                     new DocumentParameter.Step.Items())));
+  }
+
+  @Test
+  void roundTripsTheDocumentDeliveryAndOmitsItWhenAbsent() throws Exception {
+    final var content =
+        ToolDefinition.builder()
+            .name("tool")
+            .inputSchema(Map.of("type", "object"))
+            .documentDelivery(DocumentDelivery.CONTENT)
+            .build();
+    final var byReference =
+        ToolDefinition.builder().name("tool").inputSchema(Map.of("type", "object")).build();
+
+    final var contentJson = objectMapper.writeValueAsString(content);
+    final var referenceJson = objectMapper.writeValueAsString(byReference);
+
+    assertThat(contentJson).contains("\"documentDelivery\":\"content\"");
+    assertThat(objectMapper.readValue(contentJson, ToolDefinition.class)).isEqualTo(content);
+    assertThat(referenceJson).doesNotContain("documentDelivery");
+    assertThat(objectMapper.readValue(referenceJson, ToolDefinition.class).documentDelivery())
+        .isNull();
+  }
+
+  @Test
+  void readsAStoredDefinitionWithoutADocumentDeliveryAsByReference() throws Exception {
+    final var restored =
+        objectMapper.readValue(
+            "{\"name\":\"tool\",\"inputSchema\":{\"type\":\"object\"}}", ToolDefinition.class);
+
+    assertThat(restored.documentDelivery()).isNull();
+  }
+
+  @Test
+  void withoutDocumentDeliveryDropsTheDeliveryAndKeepsTheRest() {
+    final var content =
+        ToolDefinition.runtime("tool", "does it", Map.of("type", "object"))
+            .withDocumentDelivery(DocumentDelivery.CONTENT);
+
+    final var stripped = content.withoutDocumentDelivery();
+
+    assertThat(stripped.documentDelivery()).isNull();
+    assertThat(stripped).isEqualTo(content.withDocumentDelivery(null));
+    assertThat(stripped.kind()).isEqualTo(ToolKind.RUNTIME);
+    assertThat(stripped.withoutDocumentDelivery()).isSameAs(stripped);
   }
 }

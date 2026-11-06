@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -67,7 +68,7 @@ class DocumentExpanderTest {
 
   private static AgentDocumentContent reference(
       AgentDocuments agentDocuments, int index, DocumentDelivery delivery) {
-    return new AgentDocumentContent(agentDocuments.all().get(index).id(), delivery, null);
+    return new AgentDocumentContent(agentDocuments.all().get(index).id(), delivery, null, null);
   }
 
   private static TextContent handleOf(
@@ -95,7 +96,8 @@ class DocumentExpanderTest {
     final var document = new ExternalDocument("https://example.com/r", "r \"1\".pdf", u -> null);
     final var agentDocuments = agentDocumentsOf(document, DocumentOrigin.userMessage());
     final var block =
-        new AgentDocumentContent(AgentDocumentId.of(document), DocumentDelivery.REFERENCE, null);
+        new AgentDocumentContent(
+            AgentDocumentId.of(document), DocumentDelivery.REFERENCE, null, null);
     final var expectedText =
         "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"r \\\"1\\\".pdf\"}"
             .formatted(AgentDocumentId.of(document));
@@ -107,6 +109,25 @@ class DocumentExpanderTest {
     assertThat(((UserMessage) expanded.get(0)).content())
         .containsExactly(textContent(expectedText));
     assertThat(resultContent(expanded.get(1))).containsExactly(textContent(expectedText));
+  }
+
+  @Test
+  void rendersTheNoteOfABlockInTheHandleAndAddsNoContentInAUserMessageAndAToolResult() {
+    final var document = camundaDocument("zip");
+    final var agentDocuments = agentDocumentsOf(document, DocumentOrigin.userMessage());
+    final var block =
+        reference(agentDocuments, 0, DocumentDelivery.REFERENCE).withNote("It cannot be loaded.");
+    final var expectedText =
+        DocumentHandle.of(agentDocuments, block.id()).withNote("It cannot be loaded.").text();
+
+    final var expanded =
+        expander.expandMessages(
+            List.of(userMessage(block), toolResultMessage(block)), agentDocuments, documentFactory);
+
+    assertThat(((UserMessage) expanded.get(0)).content())
+        .containsExactly(textContent(expectedText));
+    assertThat(resultContent(expanded.get(1))).containsExactly(textContent(expectedText));
+    assertThat(expectedText).contains("\"note\":\"It cannot be loaded.\"");
   }
 
   @Test
@@ -187,7 +208,8 @@ class DocumentExpanderTest {
   @Test
   void expandingForTheModelKeepsTheHandleWithoutContentWhenTheDocumentIsNotKnownToTheAgent() {
     final var reference =
-        new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
+        new AgentDocumentContent(
+            AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null, null);
 
     final var expanded =
         expander.expandMessages(
@@ -218,7 +240,8 @@ class DocumentExpanderTest {
   @Test
   void expandsABlockToItsHandleOnlyWhenTheAgentCannotSupplyTheDocument() {
     final var unknown =
-        new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
+        new AgentDocumentContent(
+            AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null, null);
     final var document = camundaDocument("hello");
     final var documents = agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
     final var known = reference(documents, 0, DocumentDelivery.CONTENT);

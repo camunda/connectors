@@ -24,28 +24,29 @@ class AgentDocumentContentTest {
 
     assertThat(AgentDocumentContent.of(AgentDocumentId.of(doc)))
         .isEqualTo(
-            new AgentDocumentContent(AgentDocumentId.of(doc), DocumentDelivery.REFERENCE, null));
+            new AgentDocumentContent(
+                AgentDocumentId.of(doc), DocumentDelivery.REFERENCE, null, null));
   }
 
   @Test
   void withDeliveryReturnsACopyWithTheDeliveryAndEverythingElseUnchanged() {
     final var reference =
         new AgentDocumentContent(
-            AgentDocumentId.of("doc-1"), DocumentDelivery.REFERENCE, Map.of("k", "v"));
+            AgentDocumentId.of("doc-1"), DocumentDelivery.REFERENCE, null, Map.of("k", "v"));
 
     final var withContent = reference.withDelivery(DocumentDelivery.CONTENT);
 
     assertThat(withContent)
         .isEqualTo(
             new AgentDocumentContent(
-                AgentDocumentId.of("doc-1"), DocumentDelivery.CONTENT, Map.of("k", "v")));
+                AgentDocumentId.of("doc-1"), DocumentDelivery.CONTENT, null, Map.of("k", "v")));
     assertThat(reference.delivery()).isEqualTo(DocumentDelivery.REFERENCE);
     assertThat(withContent.withDelivery(DocumentDelivery.REFERENCE)).isEqualTo(reference);
   }
 
   @Test
   void rejectsAMissingId() {
-    assertThatThrownBy(() -> new AgentDocumentContent(null, DocumentDelivery.REFERENCE, null))
+    assertThatThrownBy(() -> new AgentDocumentContent(null, DocumentDelivery.REFERENCE, null, null))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -54,7 +55,7 @@ class AgentDocumentContentTest {
     final var objectMapper = new ObjectMapper();
     final Content reference =
         new AgentDocumentContent(
-            AgentDocumentId.of("doc-1"), DocumentDelivery.CONTENT, Map.of("k", "v"));
+            AgentDocumentId.of("doc-1"), DocumentDelivery.CONTENT, null, Map.of("k", "v"));
 
     final var serialized = objectMapper.writeValueAsString(reference);
 
@@ -67,7 +68,8 @@ class AgentDocumentContentTest {
   void serializesWithoutAbsentAttributesAndReadsAMissingDeliveryAsReference() throws Exception {
     final var objectMapper = new ObjectMapper();
     final var reference =
-        new AgentDocumentContent(AgentDocumentId.of("doc-1"), DocumentDelivery.REFERENCE, null);
+        new AgentDocumentContent(
+            AgentDocumentId.of("doc-1"), DocumentDelivery.REFERENCE, null, null);
 
     final var serialized = objectMapper.writeValueAsString(reference);
 
@@ -83,6 +85,45 @@ class AgentDocumentContentTest {
     assertThat(AgentDocumentContent.of(AgentDocumentId.of("doc-1")))
         .isEqualTo(
             new AgentDocumentContent(
-                AgentDocumentId.of("doc-1"), DocumentDelivery.REFERENCE, null));
+                AgentDocumentId.of("doc-1"), DocumentDelivery.REFERENCE, null, null));
+  }
+
+  @Test
+  void withNoteReturnsACopyWithTheNoteAndEverythingElseUnchanged() {
+    final var block =
+        new AgentDocumentContent(
+            AgentDocumentId.of("doc-1"), DocumentDelivery.REFERENCE, null, Map.of("k", "v"));
+
+    final var withNote = block.withNote("It cannot be loaded.");
+
+    assertThat(withNote)
+        .isEqualTo(
+            new AgentDocumentContent(
+                AgentDocumentId.of("doc-1"),
+                DocumentDelivery.REFERENCE,
+                "It cannot be loaded.",
+                Map.of("k", "v")));
+    assertThat(block.note()).isNull();
+    assertThat(withNote.withDelivery(DocumentDelivery.CONTENT).note())
+        .isEqualTo("It cannot be loaded.");
+  }
+
+  @Test
+  void aBlankNoteIsNoNote() {
+    assertThat(AgentDocumentContent.of(AgentDocumentId.of("doc-1")).withNote("  ").note()).isNull();
+  }
+
+  @Test
+  void theNoteIsPersistedOnlyWhenSetAndRoundTrips() throws Exception {
+    final var objectMapper = new ObjectMapper();
+    final Content withNote =
+        AgentDocumentContent.of(AgentDocumentId.of("doc-1")).withNote("It cannot be loaded.");
+
+    final var serialized = objectMapper.writeValueAsString(withNote);
+
+    assertThat(serialized)
+        .isEqualTo(
+            "{\"type\":\"agentDocument\",\"id\":\"doc-1\",\"delivery\":\"reference\",\"note\":\"It cannot be loaded.\"}");
+    assertThat(objectMapper.readValue(serialized, Content.class)).isEqualTo(withNote);
   }
 }

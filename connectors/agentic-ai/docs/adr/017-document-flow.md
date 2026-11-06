@@ -265,8 +265,10 @@ The default is `reference` for the documents of a tool result and for the docume
 sets `reference`. A user prompt without a delivery, as in a process modeled before the option existed and in every v1
 template, behaves as before: every document goes out as content, with no content guard, and a failure of the provider
 stays a failure of the provider. An explicit `content` runs the guard. The v2 templates preset the dropdown to
-`reference`, so a newly modeled process chooses it. The documents of an external URL in the user prompt always go out as
-content, without the guard, whatever the delivery: the provider reads them.
+`reference`, so a newly modeled process chooses it. The documents of an external URL follow the delivery like every other
+document. A document of the user prompt that fails the guard stays a block with the delivery `reference` and a `note`, the
+model reads it as its handle with the note, and the history shows the handle with the note and the chip of the document,
+because the document enters the conversation with the prompt.
 
 Content enters the request in two ways, which share one guard and one persisted form:
 
@@ -279,6 +281,19 @@ Content enters the request in two ways, which share one guard and one persisted 
   dropdown, and a tool activity, with an extension property. This removes one model round trip per document for a prompt
   that always comes with a short PDF or a tool that returns a text file. Events, MCP tools and A2A tools stay references;
   a gateway handler can set the delivery on the tool definitions it creates.
+
+The opt-in of a tool activity is the same request a runtime tool makes: the agent gives the result of a tool with the
+delivery `content` a request for the content of each of its documents, so one rule decides the guard, a document the
+model reads already, and the note for a rejected document, whoever asks. The user prompt uses the same decision for an
+explicit `content`, for every kind of document. The delivery of the prompt is read at the
+edge of the request: a process that sets none is its own case in the domain, not a missing value. A value of the
+extension property that is neither `reference` nor `content` is a modeling error and fails the tool discovery with a
+message that names the element, instead of silently keeping the references. The delivery of a tool is part of the stored
+tool definition but not of what the model providers get.
+
+Upgrading a task or sub-process to the v2 template version that has the dropdown in the Modeler applies its default
+`reference`. This is intended: it is the default for newly modeled processes, and the documents of a tool result are
+references by default, where content was the only behavior before.
 
 Content is sticky: a loaded document stays in every request until the message that holds it leaves the window. An
 explicit removal or a summary would need its own design.
@@ -294,8 +309,7 @@ One guard decides every addition of content, whoever asks:
   the limits of the most restrictive supported provider and apply to every provider.
 * **An external document is treated like every other document.** The guard checks it after the download, with the size
   of the metadata (`Content-Length`) when known and the length of the downloaded bytes otherwise, and the content type
-  of the response. The user prompt keeps its behavior: the model provider reads the content of an external document in
-  a user prompt whatever the delivery, as it reads every document of a user prompt.
+  of the response, whoever asks, the user prompt included.
 * What the model reads about a rejection is a standalone sentence with the content type, the size and the limit at most,
   so that it holds no id; the agent puts it behind the name of the document in the tool result. The text is persisted and a failure message
   can hold a URL with a token, so the cause goes to the log only.
@@ -451,7 +465,8 @@ an event, a tool result) a Camunda or external document is followed by the docum
 chip; the chip of a document without a file name, and of an external document without a name, carries the agent document id, the same id the handle shows. A document
 nested in the object of a tool result is shown as the handle object inside the object, followed by the documents. In the message
 that follows the tool results a document that is delivered is its handle object and a chip. The sentences the agent writes
-into a tool result about the content of a document are text. The arguments of a call are shown as the model sent them. It never shows the Camunda
+into a tool result about the content of a document are text. A document of the user prompt whose content is withheld is its
+handle object with the note and a chip, because it enters the conversation there. The arguments of a call are shown as the model sent them. It never shows the Camunda
 document reference a tool received. Each message of a model request is covered by a history item, and a test reads the
 history back after a document flow and requires it.
 

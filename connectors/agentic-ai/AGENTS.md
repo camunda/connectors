@@ -264,11 +264,20 @@ High-frequency traps (detail behind each link):
   a tool result it renders the handle as text and a document nested in an object as the handle object
   (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
-  SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
+  SDK `DocumentReference`. A user prompt document is a block whose delivery the process chooses with the dropdown
+  `data.userPrompt.documentDelivery` (`reference` by default, or `content`; the v2 templates have it, the frozen v1
+  templates leave it out through `v1OmittedPropertyIds` in the pom): `UserPromptDocumentDelivery`, `UNSET` for a process
+  without a value, adds the content of every document without the guard, `REFERENCE` gives handles, `CONTENT` runs the
+  guard (an external document is checked after its download) and keeps a rejected document as a block with the delivery
+  `reference` and a `note` (`AgentDocumentContent.note`, persisted only when set), which the model reads as its handle
+  with the note and the history shows as the handle object with the note followed by the chip; the delivery applies to a
+  document of an external URL like to every other one. `TurnInput.applyTo(agentContext)` registers the
   documents of a turn input, also those a runtime tool returns; the documents a runtime tool returns are registered, and
   the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
   a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
-  and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
+  and gets content only through `c8__load_document` or the delivery `content` of the tool (the extension property
+  `io.camunda.agenticai.documents.delivery` on the tool activity, `ToolDefinition.documentDelivery`, which providers never
+  see; the composer turns it into an `AddDocumentContent` effect for every document of the result): a tool asks for content with the sealed `ToolCallEffect`
   `AddDocumentContent` of its `RuntimeToolResult.Success`, and selects a document for the final response with
   `SelectResponseDocument` (`AgentContext.responseDocuments`, which every final response carries as `responseDocuments`;
   `TurnInput.applyTo(agentContext)` applies the selections), and `DocumentContentDelivery` (with the document factory of the job) runs the content guard
@@ -445,6 +454,13 @@ hidden `zeebe:agentDefinition` property so the engine detects a native agent at 
 Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
 execution order does not matter — the sub-process transformer cannot carry the task marker into the
 derived template regardless of when the task-marker script runs.
+
+### Properties the v1 templates leave out
+
+The v1 and v2 templates are generated from shared data classes, so a property added for v2 only would reach the
+frozen v1 templates. List its template property id in the pom property `v1OmittedPropertyIds`
+(comma-separated); the transform scripts get it as `omittedPropertyIds` in the four v1 executions and drop those
+properties. Check that the diff of the v1 template files against the base branch stays empty.
 
 ### Deprecation marker (v1 only)
 

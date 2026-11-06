@@ -176,7 +176,7 @@ class AwsAgentCoreConversationMapperTest {
   void shouldRoundTripDocumentReferenceContentInOrderAsBlob() {
     // given - a document reference between plain texts keeps its delivery and its position
     var reference =
-        new AgentDocumentContent(AgentDocumentId.of("d1"), DocumentDelivery.CONTENT, null);
+        new AgentDocumentContent(AgentDocumentId.of("d1"), DocumentDelivery.CONTENT, null, null);
     UserMessage original =
         UserMessage.builder()
             .content(List.of(textContent("before"), reference, textContent("after")))

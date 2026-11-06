@@ -279,6 +279,7 @@ class A2aGatewayToolHandlerTest {
       assertThat(result).hasSize(1);
       var toolDefinition = result.getFirst();
       assertThat(toolDefinition.documentParameters()).isEmpty();
+      assertThat(toolDefinition.documentDelivery()).isNull();
     }
 
     @Test

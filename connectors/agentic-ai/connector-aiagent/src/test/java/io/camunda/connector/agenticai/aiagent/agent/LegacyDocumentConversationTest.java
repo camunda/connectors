@@ -113,7 +113,9 @@ class LegacyDocumentConversationTest {
       PreviousConversation previous,
       AgentInput input) {
     return composer.assemble(
-        (CompositionResult.Ready) composer.resolve(configuration, context, previous, input),
+        (CompositionResult.Ready)
+            composer.resolve(
+                configuration, context, previous, input, TestDocuments.documentFactory()),
         TestDocuments.documentFactory());
   }
 
@@ -126,7 +128,8 @@ class LegacyDocumentConversationTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()));
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
+            TestDocuments.documentContentDelivery());
   }
 
   @Test

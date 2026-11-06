@@ -101,7 +101,8 @@ class AgentConversationTurnInputComposerImplTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()));
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
+            TestDocuments.documentContentDelivery());
   }
 
   private CompositionResult resolve(
@@ -109,7 +110,8 @@ class AgentConversationTurnInputComposerImplTest {
       AgentContext agentContext,
       PreviousConversation history,
       AgentInput input) {
-    return composer.resolve(configuration, agentContext, history, input);
+    return composer.resolve(
+        configuration, agentContext, history, input, TestDocuments.documentFactory());
   }
 
   /** The input of a result that is ready and has no local tool calls to answer. */
@@ -253,11 +255,13 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void firstTurn_withUserPromptDocuments_addsTheReferencesWithTheDeliveryContent() {
+  void firstTurn_withUserPromptDocumentsOfTheDeliveryReference_addsTheTagWithoutTheContent() {
     var document = createDocument("story notes", "text/plain", "notes.txt");
     var input =
         AgentInput.from(
-            new UserPromptConfiguration("Tell me a story", List.of(document)), List.of());
+            new UserPromptConfiguration(
+                "Tell me a story", List.of(document), DocumentDelivery.REFERENCE),
+            List.of());
     var history = TurnReconstructor.reconstruct(List.of());
 
     var result = resolve(CONFIG, CTX, history, input);
@@ -266,7 +270,8 @@ class AgentConversationTurnInputComposerImplTest {
     var userMessage = (UserMessage) messagesOf(result).getFirst();
     assertThat(userMessage.content())
         .containsExactly(
-            textContent("Tell me a story"), documentReference(document, DocumentDelivery.CONTENT));
+            textContent("Tell me a story"),
+            documentReference(document, DocumentDelivery.REFERENCE));
     final var ingested = inputOf(result).documents();
     assertThat(ingested).containsExactly(new NewDocument(document, DocumentOrigin.userMessage()));
     assertThat(
@@ -279,7 +284,7 @@ class AgentConversationTurnInputComposerImplTest {
 
   private static AgentDocumentContent documentReference(
       Document document, DocumentDelivery delivery) {
-    return new AgentDocumentContent(AgentDocumentId.of(document), delivery, null);
+    return new AgentDocumentContent(AgentDocumentId.of(document), delivery, null, null);
   }
 
   @Test
@@ -697,7 +702,9 @@ class AgentConversationTurnInputComposerImplTest {
       AgentContext agentContext,
       PreviousConversation history,
       AgentInput input) {
-    final var result = composer.resolve(configuration, agentContext, history, input);
+    final var result =
+        composer.resolve(
+            configuration, agentContext, history, input, TestDocuments.documentFactory());
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     return (CompositionResult.Ready) result;
   }
@@ -839,7 +846,12 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void localToolCalls_defersWhileTheProcessResultsAreMissing() {
     var result =
-        composer.resolve(CONFIG, CTX_WITH_CONVERSATION, historyWith(MIXED_CALLS), inputWith());
+        composer.resolve(
+            CONFIG,
+            CTX_WITH_CONVERSATION,
+            historyWith(MIXED_CALLS),
+            inputWith(),
+            TestDocuments.documentFactory());
 
     assertThat(result).isInstanceOf(CompositionResult.Deferred.class);
     assertThat(((CompositionResult.Deferred) result).arrivedResults()).isEmpty();
@@ -867,7 +879,11 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result =
         composer.resolve(
-            CONFIG, CTX_WITH_CONVERSATION, historyWith(threeCalls), inputWith(thirdResult));
+            CONFIG,
+            CTX_WITH_CONVERSATION,
+            historyWith(threeCalls),
+            inputWith(thirdResult),
+            TestDocuments.documentFactory());
 
     // "fedcba" is still running: wait for it, the runtime tool call is not reported with the
     // arrivals
@@ -967,7 +983,9 @@ class AgentConversationTurnInputComposerImplTest {
     var history =
         TurnReconstructor.reconstruct(List.of(userMessage("hi"), assistantMessage("hello")));
 
-    var result = composer.resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
+    var result =
+        composer.resolve(
+            CONFIG, CTX_WITH_CONVERSATION, history, input, TestDocuments.documentFactory());
 
     assertThat(messagesOf(result)).singleElement().isInstanceOf(UserMessage.class);
   }
@@ -1304,7 +1322,8 @@ class AgentConversationTurnInputComposerImplTest {
                 CONFIG,
                 CTX_WITH_CONVERSATION,
                 historyWith(TOOL_CALLS),
-                inputWith(TOOL_CALL_RESULTS.toArray(ToolCallResult[]::new))));
+                inputWith(TOOL_CALL_RESULTS.toArray(ToolCallResult[]::new)),
+                TestDocuments.documentFactory()));
 
     assertThat(input.responseDocuments()).isEmpty();
     assertThat(input.applyTo(CTX_WITH_CONVERSATION)).isEqualTo(CTX_WITH_CONVERSATION);
@@ -1327,7 +1346,11 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result =
         composer.resolve(
-            CONFIG, contextKnowing(document), historyWith(List.of(call)), inputWith(forged));
+            CONFIG,
+            contextKnowing(document),
+            historyWith(List.of(call)),
+            inputWith(forged),
+            TestDocuments.documentFactory());
 
     assertThat(messagesOf(result)).singleElement().isInstanceOf(ToolCallResultMessage.class);
   }

@@ -225,12 +225,15 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
-    // the model gets the handle of the document and its content
+    // the document is referenced by its handle; its content is sent only for a template without a
+    // delivery of the prompt documents
     assertThat(fixture.modelCallCount()).isEqualTo(1);
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-        ProviderWireFormatExpectedMessage.userWithDocument(userPrompt));
+        fixture.promptDocumentsAsContent()
+            ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt)
+            : ProviderWireFormatExpectedMessage.userWithDocumentHandle(userPrompt));
 
     assertAgentResponse(
         zeebeTest,
@@ -268,16 +271,30 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
     assertThat(fixture.modelCallCount()).isEqualTo(2);
-    // the content of the document is in the conversation already
-    ProviderWireFormatExpectedMessage.assertConversationMessages(
-        fixture.lastRecordedRequest(),
-        ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-        ProviderWireFormatExpectedMessage.userWithDocument(userPrompt),
-        ProviderWireFormatExpectedMessage.assistantWithToolCalls(
-            toolCallMessage, "c8__load_document"),
-        ProviderWireFormatExpectedMessage.toolCallResultMatching(
-            "get111",
-            "The content of " + DOCUMENT_REF_REGEX + " is already in the conversation\\."));
+    if (fixture.promptDocumentsAsContent()) {
+      // the content of the document is in the conversation already
+      ProviderWireFormatExpectedMessage.assertConversationMessages(
+          fixture.lastRecordedRequest(),
+          ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+          ProviderWireFormatExpectedMessage.userWithDocument(userPrompt),
+          ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+              toolCallMessage, "c8__load_document"),
+          ProviderWireFormatExpectedMessage.toolCallResultMatching(
+              "get111",
+              "The content of " + DOCUMENT_REF_REGEX + " is already in the conversation\\."));
+    } else {
+      // the content of the document follows the tool result in a message of its own
+      ProviderWireFormatExpectedMessage.assertConversationMessages(
+          fixture.lastRecordedRequest(),
+          ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+          ProviderWireFormatExpectedMessage.userWithDocumentHandle(userPrompt),
+          ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+              toolCallMessage, "c8__load_document"),
+          ProviderWireFormatExpectedMessage.toolCallResultMatching(
+              "get111", "The content of " + DOCUMENT_REF_REGEX + " follows in the next message\\."),
+          ProviderWireFormatExpectedMessage.userWithDocument(
+              ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
+    }
 
     assertAgentResponse(
         zeebeTest,

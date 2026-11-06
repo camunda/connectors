@@ -557,7 +557,7 @@ class AgentSubProcessRequestHandlerTest {
   void silentlyCompletesJobWhenInputComposerReturnsNoOp() {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.resolve(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.Deferred(List.of()));
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -596,7 +596,7 @@ class AgentSubProcessRequestHandlerTest {
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(agentContextWithHistory, List.of(arrivedResult)));
-    when(agentInputComposer.resolve(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.Deferred(List.of(arrivedResult)));
 
     // when
@@ -621,7 +621,7 @@ class AgentSubProcessRequestHandlerTest {
   void silentlyCompletesJobWhenInputComposerReturnsNoInput() {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.resolve(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.NoInput());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -1289,7 +1289,7 @@ class AgentSubProcessRequestHandlerTest {
     final var batch =
         ToolCallBatch.of(List.of(lookupCall, processCall))
             .withEntries(List.of(ToolCallBatch.Entry.from(processResult)));
-    when(agentInputComposer.resolve(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any(), any()))
         .thenReturn(CompositionResult.Ready.of(context, Set.of(), batch));
     when(agentInputComposer.assemble(any(), any()))
         .thenReturn(new TurnInput(List.of(USER_MESSAGE)));
@@ -1874,7 +1874,7 @@ class AgentSubProcessRequestHandlerTest {
   void persistsAndReportsTheDocumentsFromTheComposedTurn() {
     final var document = createDocument("tool data", "tool.txt");
     mockSystemPrompt();
-    when(agentInputComposer.resolve(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any(), any()))
         .thenReturn(
             CompositionResult.Ready.of(
                 CONTEXT_WITH_DOCUMENTS, Set.of(), ToolCallBatch.of(List.of())));
@@ -1940,7 +1940,7 @@ class AgentSubProcessRequestHandlerTest {
 
   private String failureCodeOfRegistering(AgentContext context, Document document) {
     reset(agentInitializer, agentInputComposer);
-    when(agentInputComposer.resolve(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any(), any()))
         .thenReturn(CompositionResult.Ready.of(context, Set.of(), ToolCallBatch.of(List.of())));
     when(agentInputComposer.assemble(any(), any()))
         .thenReturn(
@@ -3026,12 +3026,17 @@ class AgentSubProcessRequestHandlerTest {
         .when(gatewayToolHandlers.transformToolCallResults(any(), any()))
         .thenAnswer(i -> i.getArgument(1));
     final var realComposer =
-        new AgentConversationTurnInputComposerImpl(gatewayToolHandlers, resultsInputBuilder);
+        new AgentConversationTurnInputComposerImpl(
+            gatewayToolHandlers, resultsInputBuilder, TestDocuments.documentContentDelivery());
     lenient()
-        .when(agentInputComposer.resolve(any(), any(), any(), any()))
+        .when(agentInputComposer.resolve(any(), any(), any(), any(), any()))
         .thenAnswer(i ->
             realComposer.resolve(
-                i.getArgument(0), i.getArgument(1), i.getArgument(2), i.getArgument(3)));
+                i.getArgument(0),
+                i.getArgument(1),
+                i.getArgument(2),
+                i.getArgument(3),
+                TestDocuments.documentFactory()));
     lenient()
         .when(agentInputComposer.assemble(any(), any()))
         .thenAnswer(i -> realComposer.assemble(i.getArgument(0), i.getArgument(1)));
@@ -3160,7 +3165,7 @@ class AgentSubProcessRequestHandlerTest {
                 Set.of(),
                 ToolCallBatch.of(List.of())))
         .when(agentInputComposer)
-        .resolve(any(), any(), any(), any());
+        .resolve(any(), any(), any(), any(), any());
     lenient()
         .doAnswer(invocation -> {
           final var ready = invocation.getArgument(0, CompositionResult.Ready.class);

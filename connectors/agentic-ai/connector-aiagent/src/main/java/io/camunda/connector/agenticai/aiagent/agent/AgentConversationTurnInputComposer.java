@@ -23,12 +23,16 @@ public interface AgentConversationTurnInputComposer {
    * Resolves the next turn. When the previous turn has tool calls, the results of its process tool
    * calls must all have arrived (or the missing ones be cancelled by an interrupting event), else
    * the result is {@link CompositionResult.Deferred}.
+   *
+   * @param documentFactory the document factory of the job, which restores the documents of the
+   *     user prompt whose content is checked
    */
   CompositionResult resolve(
       AgentConfiguration configuration,
       AgentContext agentContext,
       PreviousConversation previousConversation,
-      AgentInput agentInput);
+      AgentInput agentInput,
+      DocumentFactory documentFactory);
 
   /**
    * Assembles the input of the next turn: the tool call results of the batch in call order, or the

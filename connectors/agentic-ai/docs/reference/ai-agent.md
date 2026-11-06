@@ -539,7 +539,8 @@ to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. Fo
 `documents` feature `DocumentExpander.expand` expands the document blocks
 (`AgentDocumentContent`, a typed content block with the delivery `reference` or `content`) with the agent documents
 (see "Document Extraction from Tool Call Results" in §19).
-The stored messages hold the document block only. In a user message a block becomes its handle text as a
+The stored messages hold the document block only. In a user message a block becomes its handle text, with the `note` of the
+block when it has one, as a
 `TextContent` and, for the delivery `content`, the `DocumentContent` restored from the agent document after it. In a tool
 result a top-level block becomes the handle text as a `TextContent`, and a document nested in an object becomes its handle
 object inside the object, so the model providers have no document specific code for tool results. A block whose document
@@ -737,8 +738,16 @@ Tools come from the `adHocSubProcessElements` special variable populated by Zeeb
 ```
 
 The `AdHocToolsSchemaResolver` processes these into:
-1. **ToolDefinitions**: Regular tools with name, description, and JSON schema for input parameters
+1. **ToolDefinitions**: Regular tools with name, description, JSON schema for input parameters and the optional
+   `documentDelivery`
 2. **GatewayToolDefinitions**: Special tools (MCP clients, A2A) that need discovery
+
+A tool activity with the extension property `io.camunda.agenticai.documents.delivery` gets the `documentDelivery` the
+property names (`DocumentDelivery.fromExtension`: `reference` or `content`, ignoring case and surrounding blanks; a blank or
+absent property is `reference`). A value that is neither fails the tool discovery with a message that names the element
+and the allowed values. With `content` the agent adds the content of the documents the tool returns to the request instead
+of leaving them as references. The field is part of the stored tool definition and of the configuration fingerprint when
+set, and the model providers do not get it (`ToolDefinition.withoutDocumentDelivery()` drops it where the conversation is windowed for the model call). See [ADR 017](../adr/017-document-flow.md).
 
 ### Connector (Task) Flavor
 
@@ -1094,7 +1103,9 @@ checks the result of a runtime tool against the documents known at the start of 
 effects of the results in `ToolCallResultsInputBuilder.build`, for both paths: the rounds of local tool calls only and the
 job that resolves a mixed batch. The input it returns carries the response documents the results selected, and the caller
 applies it to its agent context (`TurnInput.applyTo`); the update is a function of the agent context and the results only,
-so a job that runs again computes the same context. No state about the local tool calls is persisted between
+so a job that runs again computes the same context. The effects of a process tool whose definition has the document
+delivery `content` are `AddDocumentContent` effects the composer gives its entries (see "Document Extraction from Tool
+Call Results"); a runtime tool asks for content by naming a document instead. No state about the local tool calls is persisted between
 jobs apart from the `kind` and the `rejection` of the calls and the response documents of the agent context. See [ADR 016](../adr/016-runtime-tools.md).
 
 ### No-Op Detection in BaseAgentRequestHandler
@@ -1633,7 +1644,7 @@ instance itself, so its key is invariant.
 - `BaseAgentRequestHandler.callModel()` → Calls `ToolCallAdmission.admit`, the one place the tool calls of an assistant message get the kind of their tool (`PROCESS` / `RUNTIME`) or a `rejection`, before `ingest`
 - `LocalToolCallExecutor.execute()` → Executes the unanswered local tool calls, the calls of runtime tools, through `RuntimeTools.execute`; it fails for a process call or a rejected call, which has its result from its `ToolCallBatch`. The handler calls it for the unanswered calls of a `Ready`, in the job that composes the next turn and in a round of local tool calls only (`addLocalToolCallResults`, after the model-call limit check)
 - `RuntimeTools.execute()` → Executes calls of runtime tools, the one place a `RuntimeTool` is called; a call of a tool that is not enabled gets the error result "is not available"
-- `ToolCallResultsInputBuilder.build()` → Builds the tool call result message (and the document message) from a `ToolCallBatch`, in call order, applying the effects of the runtime tool results (content of documents, response documents)
+- `ToolCallResultsInputBuilder.build()` → Builds the tool call result message (and the document message) from a `ToolCallBatch`, in call order, applying the effects of the results (content of the documents a runtime tool names or a tool with the delivery `content` returns, response documents)
 - `AgentConversation.rehydrate()` / `ingest()` / `window()` / `nextContinuationRound()` / `nextRuntimeToolRound()` / `toAgentContext()` → Immutable turn aggregate lifecycle
 - `BaseAgentRequestHandler.throwIfLimitsReached()` → Model-call limit check (reads the model calls of the agent context before the local tool calls of a `Ready` are executed, and `totalMetrics().modelCalls()` before every further round of the job)
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting; hands the process tool calls of the last turn to the gateway handlers and adds `responseDocuments`
@@ -1855,14 +1866,14 @@ The e2e modules, their test base classes and how to run them are described in th
 
 The agent documents are covered by unit tests, each rule where it lives: `AgentDocumentId`, `AgentDocument` and `AgentDocuments`, the
 document block and the handles rendered from the agent documents, the composer and `ToolCallResultsInputBuilder` (document blocks, origins, the merge of runtime and
-process results in call order, the content and response document effects), the guard, the built-in tools, the expander and the window, the runtime tool executor and the request handler
+process results in call order, the content and response document effects, the delivery of the user prompt and of a tool), the guard, the built-in tools, the expander and the window, the runtime tool executor and the request handler
 with a test-only stateful tool, the response handler (the references the process receives and the response documents), the history mapper, and the persistence round trips. A conversation persisted by Camunda
 8.10 pins the behavior of instances without the `documents` feature. End-to-end tests run against a WireMock
 model, with a placeholder transformer that lets scripted tool calls name the ids of documents the store generated. The
 sub-process flavor runs the detailed scenarios: a document parameter, union parameters, loading a document, unknown handles,
-eviction, a runtime tool that returns a document, mixed batches with `c8__return_document`, response documents that
+eviction, the delivery `content` of a tool, a runtime tool that returns a document, mixed batches with `c8__return_document`, response documents that
 accumulate over several turns, and the history audit. The task flavor keeps one mixed-batch scenario, the accumulation of
-response documents, the user prompt document tests and the tests of instances without the feature. A shared assertion checks every recorded model request for store
+response documents, the user prompt document tests (every delivery) and the tests of instances without the feature. A shared assertion checks every recorded model request for store
 ids and content hashes. Not covered end to end are real-provider document tests
 (paid model calls) and a gateway handler with document parameters (unit tests only).
 
@@ -2020,6 +2031,11 @@ with an error result to the model, and the handler is not given the call; a call
 not touched. The MCP and A2A handlers declare no document parameters, because the schema of an MCP tool comes from the
 remote server and the A2A schema is fixed, and neither has a document type; nothing of theirs is resolved.
 
+The document delivery of the documents a tool returns (`ToolDefinition.documentDelivery`) is set by the extension property
+`io.camunda.agenticai.documents.delivery` on ad-hoc tool elements only. A handler that sets `documentDelivery` on the definitions
+it returns opts its tools in, matched by the name of the (transformed) tool call result. The MCP and A2A handlers set none, so
+their documents keep the delivery `reference`. See [ADR 017](../adr/017-document-flow.md).
+
 ### Document Extraction from Tool Call Results
 
 Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
@@ -2140,9 +2156,35 @@ What the model reads about a rejected document is a fixed sentence with the cont
 most. The message and the cause of a failure, such as one while reading the document, are only logged: a message can hold a
 URL with a token, and the text is part of the persisted conversation.
 
-**The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
-document goes out with the prompt, with no size limit and no type check, and a document the provider cannot read fails the
-model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
+**The delivery `content`.** It is the opt-in that adds content without a `c8__load_document` call, through the same
+guard (`DocumentContentDelivery`) and the same persisted form. It is set for the documents of the user prompt, with the
+dropdown *Document delivery* (`data.userPrompt.documentDelivery`, choices `reference` (default) and `content`; the v2
+templates have it, the frozen v1 templates leave it out), and for the documents a process tool returns, with the extension
+property `io.camunda.agenticai.documents.delivery` on the tool activity (§7), which takes `reference` or `content`
+(`DocumentDelivery.fromExtension`; another value fails the tool discovery with a message that names the element). The
+composer reads the delivery of a tool from the stored tool definitions (`AgentContext.documentDeliveryOf`, `reference` for a
+tool without one) and gives the entry of the result of a tool with the delivery `content` an `AddDocumentContent` effect for
+every document of the result: the same effect a runtime tool adds to ask for content, so `ToolCallResultsInputBuilder`
+applies it in the order of the calls with the guard, the rule that a document whose content the model reads or that an
+earlier request of the turn handled is not added twice, and the sentences about the content that the builder writes at
+the end of the tool result of every request (the same sentences as for `c8__load_document`, above). A document that passes becomes a block with the
+delivery `content` in the follow-up user message of the tool results (same preamble and `toolCallDocuments` metadata as
+above, the documents in the order of the requests), and one that fails stays a reference, and its result says why it is not loaded; the
+delivery `content` never fails the run and never turns a result into an error. The delivery of a tool concerns the results of process
+tools: a runtime tool asks for the content of a document by naming it, and its result is never delivered by the delivery of
+a tool definition. An instance without the `documents` feature ignores the delivery. The model providers never see the
+delivery of a tool: `AgentConversation.window(int)` drops it from the definitions they get.
+
+**The user prompt.** The delivery of the documents of the user prompt is one of three cases (`UserPromptDocumentDelivery`),
+translated from the optional property of the request at the edge (`AgentInput`). `UNSET`, a process modeled before the
+dropdown existed and every v1 template, behaves as before: the content of every document goes out with the prompt, with no
+guard (no size limit, no type check), and a document the provider cannot read fails the model call. `CONTENT` runs the
+guard through `DocumentContentDelivery` (a document that fails stays a block with the delivery `reference` and a `note`,
+`AgentDocumentContent.note`, persisted only when set; the model reads its handle with the note, and the history shows the
+handle object with the note and the chip), and `REFERENCE` gives the handles. The delivery applies to the documents of an
+external URL like to every other document; the guard checks an external document after its download. A document whose content is already in the conversation is not added twice. Documents of events
+stay references, and so do those of the MCP and A2A gateway tools (a gateway handler can opt its tools in through
+`ToolDefinition.documentDelivery`). See [ADR 017](../adr/017-document-flow.md).
 
 A document with inline content (a reference that holds the content itself, as opposed to a Camunda or an external
 document) is registered only if its content fits into a job completion (`InlineSizeGuard.MAX_INLINE_BYTES`, 1.5 MB,
@@ -2169,10 +2211,11 @@ file as a Camunda document instead.
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
 
-**Limits.** A document that expires in its store is not noticed by the agent. Documents named only in the content of an
-evicted assistant message are not tracked, and handles the model writes in the final text are not interpreted. A
-content type is not sniffed from the bytes for documents of unknown type. The follow-ups that close these limits are
-listed in [ADR 017](../adr/017-document-flow.md).
+**Limits.** The delivery is stored on each block, so the history can show the same document with different deliveries. A
+document that expires in its store is not noticed by the agent. Documents named only in the content of an evicted
+assistant message are not tracked, and handles the model writes in the final text are not interpreted. A content type is
+not sniffed from the bytes for documents of unknown type. The extension property of the delivery is set by hand in the
+properties panel. The follow-ups that close these limits are listed in [ADR 017](../adr/017-document-flow.md).
 
 `ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` for each
 process tool call result, before `ToolCallResultsInputBuilder` builds the `ToolCallResultMessage`. For each result it asks the registry which handler manages
@@ -2340,7 +2383,8 @@ lease-fenced `update()` mechanism).
   renders for the model, so a consumer can render it as a card. Where a document enters the conversation (the user prompt, an
   event, a tool result, also a tool result that is only a document) a Camunda document is followed by a `DOCUMENT` block
   and an external document by an `OBJECT` block with its reference (the chip). An object with documents in it is reported as the
-  object with the handle objects nested, followed by the chips. An inline document has its handle only. When a
+  object with the handle objects nested, followed by the chips. An inline document has its handle only. A document of the user
+  prompt whose content is withheld (a block with a `note`) is its handle object with the note, followed by the chip. When a
   document reported as a `DOCUMENT` block has no file name, the reported metadata carries the agent document id (`doc_…`)
   as the file name, and an external document without a name is reported under that id as its name, so the chip shows the id the handle shows; the document and its stored reference are not changed. A
   text is reported as it is, also when it holds a handle. The answer of `c8__load_document` is the one text block the agent
@@ -2388,7 +2432,8 @@ tool's input schema is unspecified after a record builder copied it. The order o
 list values is significant, so the parameter order enters the hash as a list. The serialization is written and read
 once before hashing, so a number hashes the same for a fresh tool definition and for one loaded from the process
 variable. The fingerprint has its own mapper and does not inherit the settings of the connectors mapper; it writes a date or a
-duration as ISO text, never as a timestamp.
+duration as ISO text, never as a timestamp. The document delivery of a tool enters the hash only when it is set, so a tool
+without one keeps its fingerprint.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither

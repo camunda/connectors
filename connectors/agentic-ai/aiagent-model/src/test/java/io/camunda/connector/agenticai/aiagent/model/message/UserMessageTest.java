@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 class UserMessageTest {
 
   private static AgentDocumentContent block(String id, DocumentDelivery delivery) {
-    return new AgentDocumentContent(AgentDocumentId.of(id), delivery, null);
+    return new AgentDocumentContent(AgentDocumentId.of(id), delivery, null, null);
   }
 
   @Test

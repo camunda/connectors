@@ -151,6 +151,50 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
+  void aUserMessageWithAWithheldDocumentBlockIsReportedWithTheHandleObjectWithTheNoteAndTheChip() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/zip")
+                    .fileName("archive.zip")
+                    .build());
+    final var agentDocuments =
+        AgentDocuments.empty()
+            .register(List.of(new NewDocument(document, DocumentOrigin.userMessage())));
+    final var block =
+        AgentDocumentContent.of(AgentDocumentId.of(document))
+            .withNote("Documents of type application/zip cannot be loaded.");
+    final var userMessage =
+        UserMessage.builder().content(List.of(TextContent.textContent("see"), block)).build();
+
+    final var items =
+        mapper.inputHistoryItems(
+            userMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(),
+            TestDocuments.documentFactory());
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(item -> {
+          assertThat(item.content()).hasSize(3);
+          assertThat(texts(item.content())).containsExactly("see");
+          assertThat(objectJson(item.content().get(1)))
+              .isEqualTo(
+                  "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"archive.zip\",\"contentType\":\"application/zip\",\"note\":\"Documents of type application/zip cannot be loaded.\"}"
+                      .formatted(block.id().value()));
+          assertThat(item.content().get(2))
+              .isInstanceOfSatisfying(
+                  AgentInstanceHistoryContent.DocumentContent.class,
+                  chip ->
+                      assertThat(chip.getDocumentReference().getMetadata().getFileName())
+                          .isEqualTo("archive.zip"));
+        });
+  }
+
+  @Test
   void theMessageThatLoadsADocumentIsReportedAsAUserItemWithTheHandleAndTheDocumentReference() {
     final var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
@@ -341,7 +385,8 @@ class AgentInstanceHistoryMapperTest {
   @Test
   void aDocumentBlockOfAnUnknownDocumentIsReportedAsTheHandleObjectOnly() {
     final var tag =
-        new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);
+        new AgentDocumentContent(
+            AgentDocumentId.of("unknown"), DocumentDelivery.REFERENCE, null, null);
     final var userMessage = UserMessage.builder().content(List.of(tag)).build();
 
     final var items =
@@ -1241,7 +1286,8 @@ class AgentInstanceHistoryMapperTest {
     @Test
     void aTypedReferenceOfAnUnknownDocumentIsItsHandleOnly() {
       final var unknown =
-          new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);
+          new AgentDocumentContent(
+              AgentDocumentId.of("unknown"), DocumentDelivery.REFERENCE, null, null);
 
       final var item = item(message(unknown), WITH_DOCUMENTS);
 

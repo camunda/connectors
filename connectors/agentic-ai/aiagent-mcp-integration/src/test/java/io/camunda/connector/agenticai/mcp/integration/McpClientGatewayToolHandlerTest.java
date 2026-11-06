@@ -331,6 +331,7 @@ class McpClientGatewayToolHandlerTest {
       var toolDefinition = result.getFirst();
       assertThat(toolDefinition.inputSchema()).isEqualTo(inputSchema);
       assertThat(toolDefinition.documentParameters()).isEmpty();
+      assertThat(toolDefinition.documentDelivery()).isNull();
     }
 
     @Test

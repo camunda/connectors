@@ -56,6 +56,11 @@ sealed interface ProviderWireFormatExpectedMessage {
     return new UserMessage(List.of(contentParts));
   }
 
+  /** A user message with the text and the handle of a document that is not loaded. */
+  static ProviderWireFormatExpectedMessage userWithDocumentHandle(String text) {
+    return user(ExpectedContentPart.text(text), ExpectedContentPart.documentHandle());
+  }
+
   /** A user message with the text, the handle and the content of a loaded document. */
   static ProviderWireFormatExpectedMessage userWithDocument(String text) {
     return user(

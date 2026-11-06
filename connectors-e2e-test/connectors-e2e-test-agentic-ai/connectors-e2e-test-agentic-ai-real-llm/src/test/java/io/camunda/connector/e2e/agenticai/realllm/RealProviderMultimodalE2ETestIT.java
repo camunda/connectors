@@ -69,13 +69,18 @@ class RealProviderMultimodalE2ETestIT extends RealProviderApiSmokeSupport {
 
     // Reuses the document BPMN (which downloads downloadUrls into `downloadedFiles` before the
     // agent) but routes the single downloaded PDF into the user message instead of a tool result,
-    // so this exercises the user-message multimodal path rather than the tool-result path.
+    // so this exercises the user-message multimodal path rather than the tool-result path. The
+    // delivery `content` puts the document itself into the user message: the default `reference`
+    // would send its tag only.
     var model =
         buildModel(
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             DOCUMENT_BPMN_RESOURCE,
-            template -> template.property("data.userPrompt.documents", "=downloadedFiles"));
+            template ->
+                template
+                    .property("data.userPrompt.documents", "=downloadedFiles")
+                    .property("data.userPrompt.documentDelivery", "content"));
 
     var instance =
         startAgent(

@@ -28,7 +28,9 @@ import org.jspecify.annotations.Nullable;
  * one byte more than the limit is read. A document that cannot be read is rejected as unreadable.
  *
  * <p>A runtime tool asks for content by naming a document (see {@code
- * RuntimeToolResult.Success#withDocumentContent}) and the agent checks it with this guard.
+ * RuntimeToolResult.Success#withDocumentContent}) and the agent checks it with this guard. The
+ * agent checks the documents of the result of a tool with the delivery {@code content} the same
+ * way, so the same documents pass whoever asks.
  */
 public final class DocumentContentGuard {
 

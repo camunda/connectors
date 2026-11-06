@@ -269,7 +269,7 @@ public class AgentInstanceHistoryMapper {
             case AgentDocumentContent block ->
                 addDocument(
                     blocks,
-                    DocumentHandle.of(documents, block.id()),
+                    DocumentHandle.of(documents, block.id()).withNote(block.note()),
                     restorer.restore(documents, block.id()).orElse(null),
                     tracked);
             case ObjectContent objectContent -> addObject(blocks, objectContent, tracked);
@@ -338,7 +338,8 @@ public class AgentInstanceHistoryMapper {
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent ->
           documentHistoryContent(documentContent, documentHandling);
-      case AgentDocumentContent block -> objectHistoryContent(DocumentHandle.of(block.id()).tree());
+      case AgentDocumentContent block ->
+          objectHistoryContent(DocumentHandle.of(block.id()).withNote(block.note()).tree());
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };
