@@ -80,7 +80,10 @@ class DocumentBlocksModelFacingTest {
         new ToolCall(
             "call-1",
             "load_document",
-            Map.of("id", "<doc id=\"" + AgentDocumentId.of(report) + "\" />"));
+            Map.of(
+                "document",
+                Map.of(
+                    "type", "camunda.agent_document", "id", AgentDocumentId.of(report).value())));
     final var previous =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("loading", List.of(call))));
@@ -136,8 +139,8 @@ class DocumentBlocksModelFacingTest {
     return mapper.valueToTree(value);
   }
 
-  private String loadedTag() {
-    return "<doc id=\"%s\" fileName=\"report.txt\" contentType=\"text/plain\" />"
+  private String loadedHandle() {
+    return "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"report.txt\",\"contentType\":\"text/plain\"}"
         .formatted(AgentDocumentId.of(report));
   }
 
@@ -163,7 +166,7 @@ class DocumentBlocksModelFacingTest {
                 OBJECT_MAPPER.writeValueAsString(
                     List.of(
                         Map.of("type", "text", "text", "Loaded the document."),
-                        Map.of("type", "text", "text", loadedTag()),
+                        Map.of("type", "text", "text", loadedHandle()),
                         Map.of(
                             "type", "text", "text", "Its content follows in the next message.")))));
   }
@@ -176,7 +179,7 @@ class DocumentBlocksModelFacingTest {
     assertThat(converter.toToolResultBlocks(toolResultContent(messages)))
         .extracting(block -> block.text())
         .containsExactly(
-            "Loaded the document.", loadedTag(), "Its content follows in the next message.");
+            "Loaded the document.", loadedHandle(), "Its content follows in the next message.");
   }
 
   @Test
@@ -209,7 +212,7 @@ class DocumentBlocksModelFacingTest {
                                         "output",
                                         List.of(
                                             "Loaded the document.",
-                                            loadedTag(),
+                                            loadedHandle(),
                                             "Its content follows in the next message.")))))))));
   }
 
@@ -226,7 +229,7 @@ class DocumentBlocksModelFacingTest {
                 OBJECT_MAPPER.writeValueAsString(
                     List.of(
                         Map.of("type", "input_text", "text", "Loaded the document."),
-                        Map.of("type", "input_text", "text", loadedTag()),
+                        Map.of("type", "input_text", "text", loadedHandle()),
                         Map.of(
                             "type",
                             "input_text",
@@ -264,7 +267,9 @@ class DocumentBlocksModelFacingTest {
     assertThat(messages.get(2).path("role").asText()).isEqualTo("tool");
     assertThat(messages.get(2).path("content").asText())
         .isEqualTo(
-            "Loaded the document.\n" + loadedTag() + "\nIts content follows in the next message.");
+            "Loaded the document.\n"
+                + loadedHandle()
+                + "\nIts content follows in the next message.");
   }
 
   @Test
@@ -280,6 +285,8 @@ class DocumentBlocksModelFacingTest {
 
     assertThat(new ToolCallConverterImpl(OBJECT_MAPPER).asToolExecutionResultMessage(result).text())
         .isEqualTo(
-            "Loaded the document.\n" + loadedTag() + "\nIts content follows in the next message.");
+            "Loaded the document.\n"
+                + loadedHandle()
+                + "\nIts content follows in the next message.");
   }
 }

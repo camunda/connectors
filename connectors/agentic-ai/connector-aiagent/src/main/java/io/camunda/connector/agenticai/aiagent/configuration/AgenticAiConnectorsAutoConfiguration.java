@@ -41,7 +41,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.A
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
-import io.camunda.connector.agenticai.aiagent.document.ObjectTagRenderer;
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -128,8 +128,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AgentInstanceHistoryMapper aiAgentInstanceHistoryMapper(
       GatewayToolHandlerRegistry gatewayToolHandlers,
       DocumentRestorer documentRestorer,
-      ObjectTagRenderer objectTagRenderer) {
-    return new AgentInstanceHistoryMapper(gatewayToolHandlers, documentRestorer, objectTagRenderer);
+      ObjectHandleRenderer objectHandleRenderer) {
+    return new AgentInstanceHistoryMapper(
+        gatewayToolHandlers, documentRestorer, objectHandleRenderer);
   }
 
   @Bean
@@ -258,16 +259,16 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ObjectTagRenderer aiAgentObjectTagRenderer(
+  public ObjectHandleRenderer aiAgentObjectHandleRenderer(
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new ObjectTagRenderer(objectMapper);
+    return new ObjectHandleRenderer(objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public DocumentExpander aiAgentDocumentExpander(
-      DocumentRestorer documentRestorer, ObjectTagRenderer objectTagRenderer) {
-    return new DocumentExpander(documentRestorer, objectTagRenderer);
+      DocumentRestorer documentRestorer, ObjectHandleRenderer objectHandleRenderer) {
+    return new DocumentExpander(documentRestorer, objectHandleRenderer);
   }
 
   @Bean

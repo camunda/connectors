@@ -10,14 +10,14 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumen
 
 /**
  * The failure of a provider chat model that is handed an {@link AgentDocumentContent}: the agent
- * expands it to its tag text and document content before the request is built, so it never reaches
- * a provider.
+ * expands it to its handle text and document content before the request is built, so it never
+ * reaches a provider.
  */
 public class UnexpandedAgentDocumentException extends IllegalStateException {
 
   public UnexpandedAgentDocumentException(AgentDocumentContent content) {
     super(
-        "AgentDocumentContent of document '%s' must be expanded to its tag text and document content before the request"
+        "AgentDocumentContent of document '%s' must be expanded to its handle text and document content before the request"
             .formatted(content.id()));
   }
 }

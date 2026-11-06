@@ -30,7 +30,7 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
-class DocumentTagsTest {
+class DocumentHandlesTest {
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
@@ -39,13 +39,12 @@ class DocumentTagsTest {
     return AgentDocuments.empty().register(document, origin);
   }
 
-  private static String longTag(Document document, DocumentOrigin origin) {
-    return DocumentTags.longTag(agentDocumentsOf(document, origin), AgentDocumentId.of(document));
-  }
-
-  private static String shortTag(Document document) {
-    return DocumentTags.shortTag(
-        agentDocumentsOf(document, DocumentOrigin.userMessage()), AgentDocumentId.of(document));
+  /** The text of the handle of the known document. */
+  private static String text(Document document) {
+    return DocumentHandles.text(
+        DocumentHandles.of(
+            agentDocumentsOf(document, DocumentOrigin.userMessage()),
+            AgentDocumentId.of(document)));
   }
 
   private Document camundaDocument(@Nullable String fileName, @Nullable String contentType) {
@@ -76,25 +75,26 @@ class DocumentTagsTest {
   }
 
   @Test
-  void camundaDocumentRendersIdFileNameContentTypeAndToolOriginAndNeverItsStoreInternals() {
+  void camundaDocumentRendersIdFileNameAndContentTypeAndNeverItsStoreInternals() {
     final var doc = camundaDocument("report.pdf", "application/pdf");
 
-    final var tag = longTag(doc, DocumentOrigin.toolCall("search", "call_abc"));
+    final var text = text(doc);
 
-    assertThat(tag)
+    assertThat(text)
         .isEqualTo(
-            "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" toolName=\"search\" toolCallId=\"call_abc\" />"
+            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"report.pdf\",\"contentType\":\"application/pdf\"}"
                 .formatted(AgentDocumentId.of(doc)));
-    assertThat(tag).doesNotContain("storeId", "contentHash", "documentId", "metadata", "url");
+    assertThat(text).doesNotContain("storeId", "contentHash", "documentId", "metadata", "url");
   }
 
   @Test
   void camundaDocumentWithoutMetadataOmitsFileNameAndContentType() {
     final var doc = camundaDocument(null, null);
 
-    assertThat(longTag(doc, DocumentOrigin.toolCall("search", "call_abc")))
-        .startsWith("<doc id=\"%s\"".formatted(AgentDocumentId.of(doc)))
-        .doesNotContain("fileName", "contentType");
+    assertThat(text(doc))
+        .isEqualTo(
+            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\"}"
+                .formatted(AgentDocumentId.of(doc)));
   }
 
   @Test
@@ -104,13 +104,13 @@ class DocumentTagsTest {
         new ExternalDocument(
             "https://example.com/files/report.pdf?X-Token=secret", "Quarterly Report", u -> null);
 
-    final var tag = longTag(doc, DocumentOrigin.toolCall("search", "call_abc"));
+    final var text = text(doc);
 
-    assertThat(tag)
+    assertThat(text)
         .isEqualTo(
-            "<doc id=\"%s\" fileName=\"Quarterly Report\" toolName=\"search\" toolCallId=\"call_abc\" />"
+            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"Quarterly Report\"}"
                 .formatted(AgentDocumentId.of(doc)));
-    assertThat(tag).doesNotContain("example.com", "secret", "url");
+    assertThat(text).doesNotContain("example.com", "secret", "url");
   }
 
   @Test
@@ -119,8 +119,11 @@ class DocumentTagsTest {
         new ExternalDocument(
             "https://example.com/a/b/my%20file.pdf?X-Token=secret#frag", null, u -> null);
 
-    assertThat(shortTag(doc)).isEqualTo("<doc id=\"%s\" />".formatted(AgentDocumentId.of(doc)));
-    assertThat(shortTag(new ExternalDocument("https://example.com/x", "", u -> null)))
+    assertThat(text(doc))
+        .isEqualTo(
+            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\"}"
+                .formatted(AgentDocumentId.of(doc)));
+    assertThat(text(new ExternalDocument("https://example.com/x", "", u -> null)))
         .doesNotContain("fileName");
   }
 
@@ -128,17 +131,19 @@ class DocumentTagsTest {
   void inlineDocumentWithoutContentTypeOmitsItInsteadOfResolvingItFromTheName() {
     final var doc = new InlineDocument("{\"a\":1}", "data.json", null);
 
-    assertThat(shortTag(doc))
-        .isEqualTo("<doc id=\"%s\" fileName=\"data.json\" />".formatted(AgentDocumentId.of(doc)));
+    assertThat(text(doc))
+        .isEqualTo(
+            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"data.json\"}"
+                .formatted(AgentDocumentId.of(doc)));
   }
 
   @Test
-  void inlineDocumentRendersNameAndContentType() {
+  void inlineDocumentRendersNameAndContentTypeAndNeverItsContent() {
     final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
 
-    assertThat(longTag(doc, DocumentOrigin.toolCall("gen", "call_1")))
+    assertThat(text(doc))
         .isEqualTo(
-            "<doc id=\"%s\" fileName=\"data.json\" contentType=\"application/json\" toolName=\"gen\" toolCallId=\"call_1\" />"
+            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"data.json\",\"contentType\":\"application/json\"}"
                 .formatted(AgentDocumentId.of(doc)));
   }
 
@@ -151,15 +156,11 @@ class DocumentTagsTest {
                 .fileName("0f6b0a1e-aaaa-bbbb-cccc-0123456789ab")
                 .contentType("text/plain")
                 .build());
-    final var id = AgentDocumentId.of(doc);
-    final var origin = DocumentOrigin.toolCall("tool", "call_1");
 
-    assertThat(longTag(doc, origin))
+    assertThat(text(doc))
         .isEqualTo(
-            "<doc id=\"%s\" contentType=\"text/plain\" toolName=\"tool\" toolCallId=\"call_1\" />"
-                .formatted(id));
-    assertThat(DocumentTags.shortTag(doc))
-        .isEqualTo("<doc id=\"%s\" contentType=\"text/plain\" />".formatted(id));
+            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"contentType\":\"text/plain\"}"
+                .formatted(AgentDocumentId.of(doc)));
   }
 
   @Test
@@ -171,72 +172,51 @@ class DocumentTagsTest {
                 .fileName("doc-1.txt")
                 .build());
 
-    assertThat(shortTag(doc))
-        .isEqualTo("<doc id=\"%s\" fileName=\"doc-1.txt\" />".formatted(AgentDocumentId.of(doc)));
+    assertThat(text(doc))
+        .isEqualTo(
+            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"doc-1.txt\"}"
+                .formatted(AgentDocumentId.of(doc)));
   }
 
   @Test
-  void escapesSpecialCharactersInAttributes() {
+  void escapesSpecialCharactersInTheFileName() {
     final var doc = new ExternalDocument("https://example.com/x", "a<b>\"c\"&.pdf", u -> null);
 
-    assertThat(longTag(doc, DocumentOrigin.toolCall("tool<with\"quotes>", "call_1")))
-        .contains("fileName=\"a&lt;b&gt;&quot;c&quot;&amp;.pdf\"")
-        .contains("toolName=\"tool&lt;with&quot;quotes&gt;\"");
+    assertThat(text(doc)).contains("\"fileName\":\"a<b>\\\"c\\\"&.pdf\"");
   }
 
   @Test
-  void userMessageAndEventDocumentsCarryTheSourceInsteadOfToolAttributes() {
-    final var doc = camundaDocument("a.txt", "text/plain");
-    final var id = AgentDocumentId.of(doc);
+  void writesAllFieldsInOrderWithTheSizeAsANumber() {
+    final var doc = camundaDocumentWithSize(48213L);
 
-    assertThat(longTag(doc, DocumentOrigin.userMessage()))
+    assertThat(text(doc))
         .isEqualTo(
-            "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"user_message\" />"
-                .formatted(id));
-    assertThat(longTag(doc, DocumentOrigin.event()))
-        .isEqualTo(
-            "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"event\" />"
-                .formatted(id));
+            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"report.pdf\",\"contentType\":\"application/pdf\",\"size\":48213}"
+                .formatted(AgentDocumentId.of(doc)));
   }
 
   @Test
-  void theShortTagHasNoOriginAttributesWhateverTheOriginOfTheDocument() {
+  void theHandleHasNoOriginWhateverTheOriginOfTheDocument() {
     final var doc = camundaDocument("a.txt", "text/plain");
-    final var expected =
-        "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" />"
-            .formatted(AgentDocumentId.of(doc));
+    final var expected = DocumentHandles.text(DocumentHandles.of(doc));
 
     for (final var origin :
         List.of(
             DocumentOrigin.userMessage(),
             DocumentOrigin.event(),
             DocumentOrigin.toolCall("search", "call_1"))) {
-      assertThat(DocumentTags.shortTag(agentDocumentsOf(doc, origin), AgentDocumentId.of(doc)))
+      assertThat(
+              DocumentHandles.text(
+                  DocumentHandles.of(agentDocumentsOf(doc, origin), AgentDocumentId.of(doc))))
           .isEqualTo(expected);
     }
-    assertThat(DocumentTags.shortTag(doc)).isEqualTo(expected);
-  }
-
-  @Test
-  void rendersAllAttributesInOrder() {
-    final var doc = camundaDocumentWithSize(48213L);
-    final var id = AgentDocumentId.of(doc);
-
-    assertThat(longTag(doc, DocumentOrigin.userMessage()))
-        .isEqualTo(
-            "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" source=\"user_message\" />"
-                .formatted(id));
-    assertThat(longTag(doc, DocumentOrigin.toolCall("search", "call_abc")))
-        .isEqualTo(
-            "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" toolName=\"search\" toolCallId=\"call_abc\" />"
-                .formatted(id));
   }
 
   @Test
   void theSizeIsReadFromTheMetadataWithoutReadingTheDocument() {
     final var document = camundaDocumentWithSize(10L);
 
-    assertThat(DocumentTags.shortTag(document)).contains("size=\"10\"");
+    assertThat(DocumentHandles.text(DocumentHandles.of(document))).contains("\"size\":10");
 
     verify(document, atLeastOnce()).reference();
     verifyNoMoreInteractions(document);
@@ -244,15 +224,15 @@ class DocumentTagsTest {
 
   @Test
   void aDocumentWithoutAKnownSizeRendersNone() {
-    assertThat(shortTag(camundaDocumentWithSize(null))).doesNotContain("size=");
-    assertThat(shortTag(new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null)))
-        .doesNotContain("size=");
-    assertThat(shortTag(new InlineDocument("{\"a\":1}", "d.json", "application/json")))
-        .doesNotContain("size=");
+    assertThat(text(camundaDocumentWithSize(null))).doesNotContain("size");
+    assertThat(text(new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null)))
+        .doesNotContain("size");
+    assertThat(text(new InlineDocument("{\"a\":1}", "d.json", "application/json")))
+        .doesNotContain("size");
   }
 
   @Test
-  void shortTagOfADocumentEqualsTheShortTagOfItsAgentDocument() {
+  void theHandleOfAKnownIdEqualsTheHandleOfTheLiveDocument() {
     final var documents =
         List.<Document>of(
             camundaDocument("a.txt", "text/plain"),
@@ -265,18 +245,32 @@ class DocumentTagsTest {
             new InlineDocument("{\"a\":1}", "data.json", null));
 
     for (final var doc : documents) {
-      assertThat(shortTag(doc)).as("%s", doc.reference()).isEqualTo(DocumentTags.shortTag(doc));
+      assertThat(text(doc))
+          .as("%s", doc.reference())
+          .isEqualTo(DocumentHandles.text(DocumentHandles.of(doc)));
     }
   }
 
   @Test
   void aDocumentTheAgentDoesNotKnowIsRenderedWithItsIdOnly() {
     final var id = AgentDocumentId.of("doc_000000000000");
+    final var expected = "{\"type\":\"camunda.agent_document\",\"id\":\"doc_000000000000\"}";
 
-    assertThat(DocumentTags.longTag(AgentDocuments.empty(), id))
-        .isEqualTo("<doc id=\"doc_000000000000\" />");
-    assertThat(DocumentTags.shortTag(AgentDocuments.empty(), id))
-        .isEqualTo("<doc id=\"doc_000000000000\" />");
-    assertThat(DocumentTags.idOnlyTag(id)).isEqualTo("<doc id=\"doc_000000000000\" />");
+    assertThat(DocumentHandles.text(DocumentHandles.of(AgentDocuments.empty(), id)))
+        .isEqualTo(expected);
+    assertThat(DocumentHandles.text(DocumentHandles.ofUnknown(id))).isEqualTo(expected);
+  }
+
+  @Test
+  void theTreeHasTheKeysOfTheTextInOrder() {
+    final var doc = camundaDocumentWithSize(48213L);
+    final var tree = DocumentHandles.tree(DocumentHandles.of(doc));
+
+    assertThat(tree.isObject()).isTrue();
+    assertThat(tree.fieldNames())
+        .toIterable()
+        .containsExactly("type", "id", "fileName", "contentType", "size");
+    assertThat(tree.get("size").isNumber()).isTrue();
+    assertThat(tree.toString()).isEqualTo(text(doc));
   }
 }

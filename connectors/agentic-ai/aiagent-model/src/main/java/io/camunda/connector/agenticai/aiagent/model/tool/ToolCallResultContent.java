@@ -121,7 +121,7 @@ public record ToolCallResultContent(
 
   /**
    * The result with every document that is the whole content of the result (a top-level {@link
-   * DocumentContent}) as an {@link AgentDocumentContent}, which the model sees as the short tag.
+   * DocumentContent}) as an {@link AgentDocumentContent}, which the model sees as its handle.
    * Documents nested in an {@link ObjectContent} stay documents. A result that holds no top-level
    * document is returned as it is, so applying this twice gives the same result.
    *

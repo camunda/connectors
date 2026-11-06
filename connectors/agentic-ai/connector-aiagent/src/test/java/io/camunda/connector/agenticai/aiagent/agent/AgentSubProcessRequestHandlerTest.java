@@ -59,7 +59,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -1873,7 +1872,7 @@ class AgentSubProcessRequestHandlerTest {
               .isEqualTo(DocumentOrigin.toolCall("acme_create_report", "call-1"));
         });
 
-    // the model reads the tag of the document in the tool result, never the document
+    // the model reads the handle of the document in the tool result, never the document
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
             ToolCallResultMessage.class,
@@ -1881,7 +1880,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
                         TextContent.textContent("Created the report."),
-                        TextContent.textContent(DocumentTags.shortTag(NEW_REPORT))));
+                        TextContent.textContent(TestDocuments.handleText(NEW_REPORT))));
 
     // the history of the second round is written with the agent documents that holds the document
     final var startHandlings = ArgumentCaptor.forClass(DocumentHandling.class);
@@ -1909,7 +1908,8 @@ class AgentSubProcessRequestHandlerTest {
             tuple(
                 AgentDocumentId.of(processDocument),
                 DocumentOrigin.toolCall("getWeather", "call-2")));
-    // the document of the runtime tool is shown as its tag in the tool result of the next request
+    // the document of the runtime tool is shown as its handle in the tool result of the next
+    // request
     assertThat(run.chatRequests().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
             ToolCallResultMessage.class,
@@ -1917,7 +1917,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
                         TextContent.textContent("Created the report."),
-                        TextContent.textContent(DocumentTags.shortTag(NEW_REPORT))));
+                        TextContent.textContent(TestDocuments.handleText(NEW_REPORT))));
   }
 
   @Test

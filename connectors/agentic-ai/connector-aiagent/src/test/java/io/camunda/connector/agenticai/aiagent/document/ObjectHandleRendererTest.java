@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.document;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -18,12 +19,12 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class ObjectTagRendererTest {
+class ObjectHandleRendererTest {
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-  private final ObjectTagRenderer renderer =
-      new ObjectTagRenderer(TestObjectMapperSupplier.INSTANCE);
+  private final ObjectHandleRenderer renderer =
+      new ObjectHandleRenderer(TestObjectMapperSupplier.INSTANCE);
 
   private Document camundaDocument(String content) {
     return documentFactory.create(
@@ -34,31 +35,40 @@ class ObjectTagRendererTest {
   }
 
   @Test
-  void rendersADocumentAtAnyDepthAsItsTagAndCollectsTheDocuments() {
+  void rendersADocumentAtAnyDepthAsItsHandleObjectAndCollectsTheDocuments() {
     final var first = camundaDocument("one");
     final var second = camundaDocument("two");
 
-    final var tagged =
+    final var rendered =
         renderer.render(
             Map.of("status", 200, "files", List.of(Map.of("file", first), Map.of("file", second))));
 
-    assertThat(tagged.tree())
+    assertThat(rendered.tree())
         .isEqualTo(
             Map.of(
                 "status",
                 200,
                 "files",
                 List.of(
-                    Map.of("file", DocumentTags.shortTag(first)),
-                    Map.of("file", DocumentTags.shortTag(second)))));
-    assertThat(tagged.documents()).containsExactly(first, second);
+                    Map.of("file", TestDocuments.handleObject(first)),
+                    Map.of("file", TestDocuments.handleObject(second)))));
+    assertThat(rendered.documents()).containsExactly(first, second);
+  }
+
+  @Test
+  void keepsTheKeyOrderOfTheHandleInTheRenderedTree() {
+    final var rendered = renderer.render(Map.of("file", camundaDocument("one")));
+
+    @SuppressWarnings("unchecked")
+    final var handle = (Map<String, Object>) ((Map<String, Object>) rendered.tree()).get("file");
+    assertThat(handle.keySet()).containsExactly("type", "id", "fileName", "contentType");
   }
 
   @Test
   void reportsNoDocumentsForAnObjectWithoutDocuments() {
-    final var tagged = renderer.render(Map.of("status", 200));
+    final var rendered = renderer.render(Map.of("status", 200));
 
-    assertThat(tagged.tree()).isEqualTo(Map.of("status", 200));
-    assertThat(tagged.documents()).isEmpty();
+    assertThat(rendered.tree()).isEqualTo(Map.of("status", 200));
+    assertThat(rendered.documents()).isEmpty();
   }
 }

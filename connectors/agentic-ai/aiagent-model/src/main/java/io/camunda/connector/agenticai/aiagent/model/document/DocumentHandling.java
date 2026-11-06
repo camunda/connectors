@@ -14,7 +14,7 @@ public sealed interface DocumentHandling {
 
   /**
    * The agent instance does not track its documents: a document is the {@code DocumentContent} it
-   * entered the conversation with, and the model sees the tag format of the first release.
+   * entered the conversation with, and the model sees the XML tag format of the first release.
    */
   record Untracked() implements DocumentHandling {}
 

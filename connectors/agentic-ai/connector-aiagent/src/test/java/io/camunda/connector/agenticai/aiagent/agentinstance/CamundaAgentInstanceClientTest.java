@@ -152,7 +152,7 @@ class CamundaAgentInstanceClientTest {
         new AgentInstanceHistoryMapper(
             gatewayToolHandlers,
             TestDocuments.documentRestorer(),
-            TestDocuments.objectTagRenderer());
+            TestDocuments.objectHandleRenderer());
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
@@ -186,7 +186,7 @@ class CamundaAgentInstanceClientTest {
                 new AgentInstanceHistoryMapper(
                     gatewayToolHandlers,
                     TestDocuments.documentRestorer(),
-                    TestDocuments.objectTagRenderer()),
+                    TestDocuments.objectHandleRenderer()),
                 new AgentInstanceToolMapper(gatewayToolHandlers))
             .create(executionContext);
 

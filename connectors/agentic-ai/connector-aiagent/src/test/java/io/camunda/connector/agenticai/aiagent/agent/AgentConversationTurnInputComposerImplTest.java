@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -49,6 +48,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -263,10 +263,10 @@ class AgentConversationTurnInputComposerImplTest {
     final var ingested = inputOf(result).documents();
     assertThat(ingested).containsExactly(new NewDocument(document, DocumentOrigin.userMessage()));
     assertThat(
-            DocumentTags.longTag(
+            TestDocuments.handleText(
                 AgentDocuments.empty().register(ingested), AgentDocumentId.of(document)))
         .isEqualTo(
-            "<doc id=\"%s\" fileName=\"notes.txt\" contentType=\"text/plain\" source=\"user_message\" />"
+            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"notes.txt\",\"contentType\":\"text/plain\"}"
                 .formatted(AgentDocumentId.of(document)));
   }
 
@@ -451,7 +451,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    // the document is shown as its tag inside the tool result; the message holds it untouched
+    // the document is shown as its handle inside the tool result; the message holds it untouched
     var nextTurn = inputOf(result);
     assertThat(nextTurn.messages()).hasSize(1);
     var toolCallResultMessage = (ToolCallResultMessage) nextTurn.messages().getFirst();
@@ -471,7 +471,7 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void toolResultTurn_bareDocumentResult_isPersistedAsItsReferenceWithoutADocumentMessage() {
     // a tool call result whose whole content is a Document (not nested in an object) is persisted
-    // as the reference that renders the tag the model sees, and is still ingested into the
+    // as the reference that renders the handle the model sees, and is still ingested into the
     // agent documents
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
@@ -547,7 +547,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void waitForToolResults_toolAndEventDocuments_emitsTheToolResultsThenTheEventWithTags() {
+  void waitForToolResults_toolAndEventDocuments_emitsTheToolResultsThenTheEventWithHandles() {
     var config =
         new AgentConfiguration(
             null,
@@ -578,7 +578,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = resolve(config, CTX_WITH_CONVERSATION, history, input);
 
-    // order: tool call results -> event (with its document tags)
+    // order: tool call results -> event (with its document handles)
     var messages = messagesOf(result);
     assertThat(messages).hasSize(2);
     assertThat(messages.get(0)).isInstanceOf(ToolCallResultMessage.class);
@@ -589,7 +589,7 @@ class AgentConversationTurnInputComposerImplTest {
               assertThat(eventMessage.content())
                   .contains(
                       textContent(
-                          AgentConversationTurnInputComposerImpl.EVENT_DOCUMENT_TAGS_PREAMBLE))
+                          AgentConversationTurnInputComposerImpl.EVENT_DOCUMENT_HANDLES_PREAMBLE))
                   .contains(documentReference(eventDoc, DocumentDelivery.REFERENCE))
                   .noneMatch(DocumentContent.class::isInstance);
               assertThat(eventMessage.metadata())
