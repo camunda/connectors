@@ -7,7 +7,7 @@ Read this document before you plan a structural change. A structural change adds
 ## How the code gets to the target
 
 - New code follows the target from the start.
-- Existing code moves to the target only in dedicated issues. Do not move it as a side effect of a different change. The [coding guidelines](coding-guidelines.md) on surgical changes stay in effect.
+- Existing code moves to the target only in dedicated issues. Do not move it as a side effect of a different change. The [surgical changes rule](implementation-rules.md#surgical-changes) stays in effect.
 - When a trait is stable, the team adds an architecture test for it and removes the prose rule.
 
 ## Traits

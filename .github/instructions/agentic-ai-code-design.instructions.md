@@ -1,1 +1,0 @@
-../../connectors/agentic-ai/docs/code-design.md

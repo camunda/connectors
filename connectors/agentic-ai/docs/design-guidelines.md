@@ -7,7 +7,7 @@ including the pattern or requirement they follow. A passing API compatibility ch
 justify a product name or a default.
 
 This file covers contract and system design. For code structure, follow the
-[code design rules](code-design.md). For the target state of the module, read the
+[code design rules](implementation-rules.md#code-design). For the target state of the module, read the
 [target architecture](target-architecture.md).
 
 ## Architectural invariants
@@ -50,7 +50,7 @@ Tightening a default later can break existing workloads. Record breaking changes
 mechanism without an agreed requirement. In the PR, state new or changed values, their reasons, how
 to observe a limit hit and how to configure it. Limit errors name every configuration option that
 must change to recover. A new field or capability does not change behavior when nobody sets it
-([domain rule 1](domain-rules.md)).
+([domain rule 1](implementation-rules.md#domain-rules)).
 
 ## Design observable automated behavior
 

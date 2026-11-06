@@ -8,7 +8,7 @@ Accept a complete user-facing feature with an e2e test through customer-availabl
 Use CPT with BPMN, templates and process variables, or the exposed API. Assert customer-visible
 results, including required observability. For integration-dependent behavior, follow the
 [integration-target rules](#integration-targets). Each test asserts the whole observable outcome
-([domain rule 6](domain-rules.md)).
+([domain rule 6](implementation-rules.md#domain-rules)).
 
 ## Choosing e2e vs unit tests (mandatory decision)
 
