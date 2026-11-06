@@ -539,7 +539,8 @@ to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. Fo
 `documents` feature `DocumentExpander.expand` expands the document blocks
 (`AgentDocumentContent`, a typed content block with the delivery `reference` or `content`) with the agent documents
 (see "Document Extraction from Tool Call Results" in §19).
-The stored messages hold the document block only. In a user message a block becomes its handle text as a
+The stored messages hold the document block only. In a user message a block becomes its handle text, with the `note` of the
+block when it has one, as a
 `TextContent` and, for the delivery `content`, the `DocumentContent` restored from the agent document after it. In a tool
 result a top-level block becomes the handle text as a `TextContent`, and a document nested in an object becomes its handle
 object inside the object, so the model providers have no document specific code for tool results. A block whose document
@@ -2168,8 +2169,7 @@ applies it in the order of the calls with the guard, the rule that a document wh
 earlier request of the turn handled is not added twice, and the note. A document that passes becomes a block with the
 delivery `content` in the follow-up user message of the tool results (same preamble and `toolCallDocuments` metadata as
 above, the documents and the notes in the order of the requests), and one that fails stays its handle, with a note as above; the
-delivery `content` never fails the run and never turns a result into an error. An external document is rejected this way,
-but not in the user prompt, where the model provider reads it. The delivery of a tool concerns the results of process
+delivery `content` never fails the run and never turns a result into an error. The delivery of a tool concerns the results of process
 tools: a runtime tool asks for the content of a document by naming it, and its result is never delivered by the delivery of
 a tool definition. An instance without the `documents` feature ignores the delivery. The model providers never see the
 delivery of a tool: `AgentConversation.window(int)` drops it from the definitions they get.
@@ -2178,9 +2178,10 @@ delivery of a tool: `AgentConversation.window(int)` drops it from the definition
 translated from the optional property of the request at the edge (`AgentInput`). `UNSET`, a process modeled before the
 dropdown existed and every v1 template, behaves as before: the content of every document goes out with the prompt, with no
 guard (no size limit, no type check), and a document the provider cannot read fails the model call. `CONTENT` runs the
-guard through `DocumentContentDelivery` (a document that fails is given as its handle with the note above), and
-`REFERENCE` gives the handles. The documents of an external URL in the user prompt always go out as content, unguarded,
-whatever the delivery. A document whose content is already in the conversation is not added twice. Documents of events
+guard through `DocumentContentDelivery` (a document that fails stays a block with the delivery `reference` and a `note`,
+`AgentDocumentContent.note`, persisted only when set; the model reads its handle with the note, and the history shows the
+handle object with the note and the chip), and `REFERENCE` gives the handles. The delivery applies to the documents of an
+external URL like to every other document; the guard checks an external document after its download. A document whose content is already in the conversation is not added twice. Documents of events
 stay references, and so do those of the MCP and A2A gateway tools (a gateway handler can opt its tools in through
 `ToolDefinition.documentDelivery`). See [ADR 017](../adr/017-document-flow.md).
 
@@ -2381,7 +2382,8 @@ lease-fenced `update()` mechanism).
   renders for the model, so a consumer can render it as a card. Where a document enters the conversation (the user prompt, an
   event, a tool result, also a tool result that is only a document) a Camunda document is followed by a `DOCUMENT` block
   and an external document by an `OBJECT` block with its reference (the chip). An object with documents in it is reported as the
-  object with the handle objects nested, followed by the chips. An inline document has its handle only. When a
+  object with the handle objects nested, followed by the chips. An inline document has its handle only. A document of the user
+  prompt whose content is withheld (a block with a `note`) is its handle object with the note, followed by the chip. When a
   document reported as a `DOCUMENT` block has no file name, the reported metadata carries the agent document id (`doc_…`)
   as the file name, and an external document without a name is reported under that id as its name, so the chip shows the id the handle shows; the document and its stored reference are not changed. A
   text is reported as it is, also when it holds a handle. The answer of `c8__load_document` is the one text block the agent

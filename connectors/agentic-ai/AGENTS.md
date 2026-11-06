@@ -268,8 +268,10 @@ High-frequency traps (detail behind each link):
   `data.userPrompt.documentDelivery` (`reference` by default, or `content`; the v2 templates have it, the frozen v1
   templates leave it out through `v1OmittedPropertyIds` in the pom): `UserPromptDocumentDelivery`, `UNSET` for a process
   without a value, adds the content of every document without the guard, `REFERENCE` gives handles, `CONTENT` runs the
-  guard and gives a rejected document its handle with a note, and the documents of an external URL always go out as
-  content. `TurnInput.applyTo(agentContext)` registers the
+  guard (an external document is checked after its download) and keeps a rejected document as a block with the delivery
+  `reference` and a `note` (`AgentDocumentContent.note`, persisted only when set), which the model reads as its handle
+  with the note and the history shows as the handle object with the note followed by the chip; the delivery applies to a
+  document of an external URL like to every other one. `TurnInput.applyTo(agentContext)` registers the
   documents of a turn input, also those a runtime tool returns; the documents a runtime tool returns are registered, and
   the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
   a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
