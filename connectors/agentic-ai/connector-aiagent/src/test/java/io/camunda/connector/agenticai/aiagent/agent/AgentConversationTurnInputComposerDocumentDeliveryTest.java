@@ -33,11 +33,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -176,13 +176,22 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     return ((DocumentContentGuard.Verdict.Rejected) verdict).rejection().modelText();
   }
 
-  /** The handle of a document that fails the content guard, with the note of the rejection. */
-  private static Content withheld(Document document) {
-    final var known = AgentDocuments.empty().register(document, DocumentOrigin.userMessage());
+  /** The file name and the id of a document as the sentences about its content name it. */
+  private static String refOf(Document document) {
+    final var fileName = AgentDocument.Descriptors.of(document.reference()).fileName();
+    final var id = AgentDocumentId.of(document).value();
+    return fileName == null ? id : "%s (%s)".formatted(fileName, id);
+  }
+
+  /** What the tool result says about a document whose content is added. */
+  private static Content followsSentence(Document document) {
+    return textContent("The content of " + refOf(document) + " follows in the next message.");
+  }
+
+  /** What the tool result says about a document that fails the content guard. */
+  private static Content notLoadedSentence(Document document) {
     return textContent(
-        DocumentHandle.of(known, AgentDocumentId.of(document))
-            .withNote(rejectionNote(document))
-            .text());
+        "The content of " + refOf(document) + " is not loaded. " + rejectionNote(document));
   }
 
   /** The block of a document of the user prompt that fails the content guard. */
@@ -438,6 +447,13 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                   .hasSize(3);
             });
     assertThat(turn.documents()).extracting(NewDocument::document).contains(doc, nested);
+    // the result of the tool says that the content of both documents follows, the other result
+    // is as it was
+    final var results = ((ToolCallResultMessage) turn.messages().getFirst()).results();
+    assertThat(results.get(0).content()).hasSize(3);
+    assertThat(results.get(0).content().subList(1, 3))
+        .containsExactlyInAnyOrder(followsSentence(doc), followsSentence(nested));
+    assertThat(results.get(1).content()).containsExactly(textContent("15:00"));
   }
 
   @Test
@@ -485,8 +501,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void
-      toolResults_ofAToolWithTheDeliveryContent_fallBackToTheHandleWithANoteForADocumentThatFailsTheGuard() {
+  void toolResults_ofAToolWithTheDeliveryContent_sayThatADocumentThatFailsTheGuardIsNotLoaded() {
     final var loadable = document("weather data", "text/plain", "weather.txt");
     final var archive = document("zip", "application/zip", "archive.zip");
 
@@ -500,12 +515,16 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     assertThat(((UserMessage) turn.messages().get(1)).content())
         .containsExactly(
             textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
-            block(loadable, true),
-            withheld(archive));
+            block(loadable, true));
+    final var content =
+        ((ToolCallResultMessage) turn.messages().getFirst()).results().getFirst().content();
+    assertThat(content).hasSize(3);
+    assertThat(content.subList(content.size() - 2, content.size()))
+        .containsExactly(followsSentence(loadable), notLoadedSentence(archive));
   }
 
   @Test
-  void toolResults_ofAToolWithTheDeliveryContent_keepAnExternalDocumentAsTheHandleWithANote() {
+  void toolResults_ofAToolWithTheDeliveryContent_sayThatAnExternalDocumentIsNotLoaded() {
     final var external = externalDocument();
 
     final var turn =
@@ -515,9 +534,10 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                 result("abcdef", "getWeather", external),
                 dateTimeResult()));
 
-    assertThat(((UserMessage) turn.messages().get(1)).content())
-        .containsExactly(
-            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE), withheld(external));
+    // nothing is loaded: the result says so and no message follows
+    assertThat(turn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    assertThat(((ToolCallResultMessage) turn.messages().getFirst()).results().getFirst().content())
+        .endsWith(notLoadedSentence(external));
     // the document is known to the agent and the model reads its handle in the tool result
     assertThat(turn.documents()).extracting(NewDocument::document).containsExactly(external);
   }
@@ -538,6 +558,8 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         nextTurn(composer.resolve(CONFIG, contextWithTools(CONTENT_TOOL), history, input));
 
     assertThat(turn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    assertThat(((ToolCallResultMessage) turn.messages().getFirst()).results().getFirst().content())
+        .endsWith(textContent("The content of " + refOf(doc) + " is already in the conversation."));
   }
 
   @Test

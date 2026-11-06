@@ -263,15 +263,14 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         case CONTENT -> {
           final var outcomes = contentDelivery.deliver(known, List.of(reference.id()), handled);
           handled.add(reference.id());
-          if (outcomes.isEmpty()) {
-            blocks.add(reference);
-          }
           for (final var outcome : outcomes) {
             switch (outcome) {
               case DocumentContentDelivery.Outcome.Delivered delivered ->
                   blocks.add(delivered.withContent());
               case DocumentContentDelivery.Outcome.Withheld withheld ->
                   blocks.add(reference.withNote(withheld.note()));
+              case DocumentContentDelivery.Outcome.AlreadyInConversation ignored ->
+                  blocks.add(reference);
             }
           }
         }
