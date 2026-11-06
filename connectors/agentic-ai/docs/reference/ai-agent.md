@@ -798,8 +798,8 @@ assistant message is never rewritten, so the stored conversation and the history
 
 - **The admission of a call.** `ToolCallAdmission` admits the tool calls of an assistant message before it is ingested
   (see [§9](#9-tool-completion)). A call of a tool of either kind whose document parameters are invalid keeps its kind and
-  gets the sentences above as its `ToolCall.rejection`. Like every rejected call it is answered by `LocalToolCallExecutor`
-  with the rejection as its tool call result and is never executed or activated.
+  gets the sentences above as its `ToolCall.rejection`. Like every rejected call it has the rejection as its tool call result from the
+  moment its `ToolCallBatch` is created, and is never executed or activated.
 - **The call that goes to the process.** `AgentResponseHandlerImpl` resolves the document parameters of the process tool
   calls of the last turn into the Camunda document references before the gateway transformation, and the response carries
   them.
@@ -853,7 +853,7 @@ object (for another alternative, such as a structured value) or an array around 
 for text. This
 holds also for a union without a text alternative. A union parameter is resolved by the same `DocumentParameterResolver`, at the
 same three places as a document parameter: a call of a tool of either kind with an unknown handle is rejected at admission,
-keeps its kind, carries the sentence as its `ToolCall.rejection` and is answered by `LocalToolCallExecutor`. A union is stored as
+keeps its kind, carries the sentence as its `ToolCall.rejection` and has the rejection as its tool call result. A union is stored as
 it is authored, with the shorthand turned into the handle schema. A union with a handle schema in an alternative gets no default
 `type: string` next to its `anyOf`. The search for document parameters stops at a union, and it does not look into `allOf`,
 `not`, `if`/`then`/`else`, `additionalProperties`, `patternProperties`, `prefixItems`, `$defs` or `$ref`. The output of the Ad-Hoc
