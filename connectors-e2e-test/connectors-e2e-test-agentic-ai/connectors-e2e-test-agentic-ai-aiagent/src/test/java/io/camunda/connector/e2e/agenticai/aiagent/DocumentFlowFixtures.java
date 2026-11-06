@@ -134,7 +134,7 @@ public final class DocumentFlowFixtures {
   public static final String RETURN_DESCRIPTION = "The downloaded document";
 
   private static final String RETURN_ARGUMENTS =
-      "{\"key\": \"%s\", \"document\": \"%%s\", \"description\": \"%s\"}"
+      "{\"key\": \"%s\", \"document\": %%s, \"description\": \"%s\"}"
           .formatted(RETURN_KEY, RETURN_DESCRIPTION);
 
   public static Turn returnDocumentTurn() {
@@ -143,7 +143,9 @@ public final class DocumentFlowFixtures {
         10,
         20,
         ToolCall.of(
-            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(tag(documentId(0)))));
+            RETURN_CALL_ID,
+            "c8__return_document",
+            RETURN_ARGUMENTS.formatted(handle(documentId(0)))));
   }
 
   /** Returns the document with the given id under the given key. */
@@ -156,8 +158,8 @@ public final class DocumentFlowFixtures {
         ToolCall.of(
             callId,
             "c8__return_document",
-            "{\"key\": \"%s\", \"document\": \"%s\", \"description\": \"%s\"}"
-                .formatted(key, tag(documentId), description)));
+            "{\"key\": \"%s\", \"document\": %s, \"description\": \"%s\"}"
+                .formatted(key, handle(documentId), description)));
   }
 
   /**
@@ -169,7 +171,9 @@ public final class DocumentFlowFixtures {
         10,
         20,
         ToolCall.of(
-            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(tag(documentId(0)))),
+            RETURN_CALL_ID,
+            "c8__return_document",
+            RETURN_ARGUMENTS.formatted(handle(documentId(0)))),
         ToolCall.of(PING_CALL_ID, "Ping", "{}"));
   }
 
@@ -183,7 +187,9 @@ public final class DocumentFlowFixtures {
         10,
         20,
         ToolCall.of(
-            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(tag(documentId(0)))),
+            RETURN_CALL_ID,
+            "c8__return_document",
+            RETURN_ARGUMENTS.formatted(handle(documentId(0)))),
         ToolCall.of(SLOW_TOOL_CALL_ID, "Slow_Tool", "{}"));
   }
 
@@ -238,7 +244,7 @@ public final class DocumentFlowFixtures {
 
   /**
    * Asserts that a response document reference is the Camunda document reference of the document
-   * with the given id, the id the model reads in the tag of the document.
+   * with the given id, the id the model reads in the handle of the document.
    */
   public static void assertCamundaDocumentReference(
       Map<String, Object> reference, String expectedDocumentId) {
