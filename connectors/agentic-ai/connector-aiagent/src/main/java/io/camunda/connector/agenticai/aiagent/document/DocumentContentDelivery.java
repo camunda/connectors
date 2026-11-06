@@ -43,9 +43,10 @@ public final class DocumentContentDelivery {
     /**
      * The content is not added. The reason and its cause are logged, never put into the note.
      *
-     * @param note the text the model reads instead of the content
+     * @param id the id of the document
+     * @param note the sentence the model reads in the handle of the document instead of the content
      */
-    record Withheld(String note) implements Outcome {}
+    record Withheld(AgentDocumentId id, String note) implements Outcome {}
   }
 
   private final DocumentContentGuard contentGuard;
@@ -105,8 +106,7 @@ public final class DocumentContentDelivery {
             id,
             rejection.modelText(),
             rejection.cause());
-        yield new Outcome.Withheld(
-            "The document %s %s.".formatted(id.value(), rejection.modelText()));
+        yield new Outcome.Withheld(id, rejection.modelText());
       }
     };
   }

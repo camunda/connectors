@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agent.TurnInput;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -27,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -118,16 +120,22 @@ class LoadDocumentToolTest {
     return AgentDocumentContent.of(entry.id());
   }
 
-  /** The answer of a request: the document as a reference block between two texts. */
-  private static List<Content> requestedAnswer(AgentDocument entry) {
-    return List.of(
-        textContent("Requested the content of the document."),
-        referenceTo(entry),
-        textContent("It follows in the next message, or a note says why it cannot be loaded."));
+  private static String handleText(AgentDocument entry) {
+    return DocumentHandles.text(DocumentHandle.of(entry));
   }
 
-  private static String notLoaded(String id, String reason) {
-    return "The document %s %s.".formatted(id, reason);
+  /**
+   * The answer of a request: the handle of the document and the sentence that the content follows.
+   */
+  private static List<Content> requestedAnswer(AgentDocument entry) {
+    return List.of(textContent(handleText(entry) + " The content follows in the next message."));
+  }
+
+  /**
+   * What the model reads in the message that follows the tool results for a document not loaded.
+   */
+  private static Content notLoaded(AgentDocument entry, String note) {
+    return textContent(DocumentHandles.text(DocumentHandle.of(entry).withNote(note)));
   }
 
   private static String text(ToolCallResultContent result) {
@@ -142,7 +150,9 @@ class LoadDocumentToolTest {
       return ((ToolCallResultMessage) input.messages().getFirst()).results().getFirst();
     }
 
-    /** What the agent adds after the tool results: the content of documents or notes. */
+    /**
+     * What the agent adds after the tool results: the content of documents or handles with a note.
+     */
     List<Content> addedContent() {
       return input.messages().size() < 2
           ? List.of()
@@ -158,12 +168,13 @@ class LoadDocumentToolTest {
     assertThat(definition.description())
         .isEqualTo(
             "Loads a known document so that its content can be read in the conversation. Use it when"
-                + " you need the content of a document that you only see as a <doc/> tag. It does not"
+                + " you need the content of a document that you only see as a handle. It does not"
                 + " load documents that are too large and documents that are external links, a note"
-                + " tells you so: pass the tag of such a document to a tool that processes it"
-                + " instead, for example a sandbox. Only text, PDF and image documents can be"
-                + " loaded. A document that is already in the conversation is not loaded again.");
-    // the stored schema holds the document format and no hint: the model providers get the hint
+                + " in the handle tells you so: pass the handle of such a document to a tool that"
+                + " processes it instead, for example a sandbox. Only text, PDF and image documents"
+                + " can be loaded. A document that is already in the conversation is not loaded"
+                + " again.");
+    // the stored schema is the schema of a document handle
     assertThat(definition.inputSchema())
         .isEqualTo(
             Map.of(
@@ -204,35 +215,39 @@ class LoadDocumentToolTest {
   }
 
   @Test
-  void loadsADocumentPassedAsItsTag() {
+  void loadsADocumentPassedAsAStringWithItsHandleOrItsId() {
     final var entry = camundaEntry("doc-1", "text/plain", 10L);
 
-    final var run =
+    final var withHandle =
         run(
             List.of(entry),
             Set.of(),
-            callWith("1", "<doc id=\"doc-1\" contentType=\"text/plain\" />"));
+            callWith("1", "{\"type\":\"camunda.agent_document\",\"id\":\"doc-1\"}"));
+    final var withId = run(List.of(entry), Set.of(), callWith("1", "doc-1"));
 
-    assertThat(run.addedContent())
+    assertThat(withHandle.addedContent())
+        .containsExactly(referenceTo(entry).withDelivery(DocumentDelivery.CONTENT));
+    assertThat(withId.addedContent())
         .containsExactly(referenceTo(entry).withDelivery(DocumentDelivery.CONTENT));
   }
 
   @Test
   void doesNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
     final var entry = camundaEntry("doc-1", "text/plain", 10L);
-    final var tagWithContent = referenceTo(entry).withDelivery(DocumentDelivery.CONTENT);
+    final var withContent = referenceTo(entry).withDelivery(DocumentDelivery.CONTENT);
     final var inConversation =
-        UserMessage.builder().content(List.of(tagWithContent)).build().documentIdsWithContent();
+        UserMessage.builder().content(List.of(withContent)).build().documentIdsWithContent();
 
     final var run = run(List.of(entry), inConversation, call("1", "doc-1"));
 
-    assertThat(text(run.result())).isEqualTo("Document doc-1 is already in the conversation.");
+    assertThat(text(run.result()))
+        .isEqualTo(handleText(entry) + " The document is already in the conversation.");
     assertThat(run.entry().effects()).isEmpty();
     assertThat(run.addedContent()).isEmpty();
   }
 
   @Test
-  void loadsADocumentWhoseTagIsOnlyAReference() {
+  void loadsADocumentThatIsOnlyAReferenceInTheConversation() {
     final var entry = camundaEntry("doc-1", "text/plain", 10L);
     final var inConversation =
         UserMessage.builder().content(List.of(referenceTo(entry))).build().documentIdsWithContent();
@@ -254,10 +269,9 @@ class LoadDocumentToolTest {
     assertThat(run.result().content()).isEqualTo(requestedAnswer(entry));
     assertThat(run.addedContent())
         .containsExactly(
-            textContent(
-                notLoaded(
-                    "doc-1",
-                    "is 300 KB, too large to load into the conversation (limit 256 KB); pass its tag to a tool that processes it")));
+            notLoaded(
+                entry,
+                "The document is too large to load (300 KB, limit 256 KB). Pass the handle to a tool that processes it."));
   }
 
   @Test
@@ -269,10 +283,9 @@ class LoadDocumentToolTest {
     assertThat(run.result().content()).isEqualTo(requestedAnswer(entry));
     assertThat(run.addedContent())
         .containsExactly(
-            textContent(
-                notLoaded(
-                    "ext-1",
-                    "is an external document, which cannot be loaded into the conversation; pass its tag to a tool that processes it")));
+            notLoaded(
+                entry,
+                "An external document cannot be loaded. Pass the handle to a tool that processes it."));
   }
 
   @Test
@@ -284,8 +297,7 @@ class LoadDocumentToolTest {
 
     assertThat(run.result().content()).isEqualTo(requestedAnswer(entry));
     assertThat(run.addedContent())
-        .containsExactly(
-            textContent(notLoaded("doc-1", "could not be read, so its content is not loaded")));
+        .containsExactly(notLoaded(entry, "The document could not be read."));
   }
 
   @Test
@@ -302,14 +314,15 @@ class LoadDocumentToolTest {
     final var result = tool.call(context, arguments);
 
     assertThat(result)
-        .isEqualTo(RuntimeToolResult.error("Parameter 'id' must be the tag of a known document."));
+        .isEqualTo(
+            RuntimeToolResult.error("Parameter 'id' must be the handle of a known document."));
   }
 
   private static ToolCall call(String id, String documentId) {
-    return callWith(id, "<doc id=\"" + documentId + "\" />");
+    return callWith(id, Map.of("type", DocumentHandle.TYPE, "id", documentId));
   }
 
-  private static ToolCall callWith(String id, String idArgument) {
+  private static ToolCall callWith(String id, Object idArgument) {
     return new ToolCall(id, LoadDocumentTool.NAME, Map.of("id", idArgument))
         .withKind(ToolKind.RUNTIME);
   }

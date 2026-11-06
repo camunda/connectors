@@ -26,7 +26,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>The content of an external document, one that is a URL, is never added on request of a tool:
  * its content type and size are only known after the runtime downloaded the whole body, so the
- * guard could neither check nor bound them. The model passes its tag to a tool that processes it.
+ * guard could neither check nor bound them. The model passes its handle to a tool that processes
+ * it.
  *
  * <p>The size is read from the reference metadata without reading the document; when the metadata
  * has none, at most one byte more than the limit is read.
@@ -53,14 +54,15 @@ public final class DocumentContentGuard {
   }
 
   /**
-   * Why a document gets no content. The text for the model holds the content type and the size at
-   * most, never the cause of a failure.
+   * Why a document gets no content. The note for the model is a standalone sentence that holds the
+   * content type and the size at most, never the id of the document and never the cause of a
+   * failure.
    */
   public sealed interface Rejection {
 
     /**
-     * What the model reads about the document: a predicate that follows {@code The document <id>},
-     * such as {@code is of type X which cannot be loaded into the conversation}.
+     * The note the model reads in the handle of the document, such as {@code An external document
+     * cannot be loaded.} followed by what to do instead.
      */
     String modelText();
 
@@ -74,36 +76,40 @@ public final class DocumentContentGuard {
 
       @Override
       public String modelText() {
-        return "is an external document, which cannot be loaded into the conversation"
-            + PASS_THE_TAG;
+        return "An external document cannot be loaded." + PASS_THE_HANDLE;
       }
     }
 
     /**
      * The document has no content type or a content type that no provider can render.
      *
-     * @param problem the problem as a predicate of the document
+     * @param subject what cannot be loaded, as the subject of a sentence such as {@code Documents
+     *     of type X}
      */
-    record UnsupportedType(String problem) implements Rejection {
+    record UnsupportedType(String subject) implements Rejection {
 
       @Override
       public String modelText() {
-        return problem + PASS_THE_TAG;
+        return subject + " cannot be loaded." + PASS_THE_HANDLE;
       }
     }
 
     /**
      * The document is above the limit of its kind.
      *
-     * @param sizeText the size of the document, or what is known of it
+     * @param size the size of the document in bytes, or {@code null} when it is not known because
+     *     the document was only read up to the limit
      * @param limit the limit in bytes
      */
-    record TooLarge(String sizeText, long limit) implements Rejection {
+    record TooLarge(@Nullable Long size, long limit) implements Rejection {
 
       @Override
       public String modelText() {
-        return "%s, too large to load into the conversation (limit %s)%s"
-            .formatted(sizeText, kilobytes(limit), PASS_THE_TAG);
+        final var sizes =
+            size != null
+                ? "%s, limit %s".formatted(kilobytes(size), kilobytes(limit))
+                : "limit " + kilobytes(limit);
+        return "The document is too large to load (%s).%s".formatted(sizes, PASS_THE_HANDLE);
       }
     }
 
@@ -116,12 +122,12 @@ public final class DocumentContentGuard {
 
       @Override
       public String modelText() {
-        return "could not be read, so its content is not loaded";
+        return "The document could not be read.";
       }
     }
   }
 
-  private static final String PASS_THE_TAG = "; pass its tag to a tool that processes it";
+  private static final String PASS_THE_HANDLE = " Pass the handle to a tool that processes it.";
 
   /** The kinds of content the providers tell apart. */
   private enum Kind {
@@ -141,30 +147,25 @@ public final class DocumentContentGuard {
   private Verdict checkContent(Document document) {
     final var contentType = contentTypeOf(document);
     if (contentType == null) {
-      return unsupported("has no content type, so it cannot be loaded into the conversation");
+      return unsupported("A document without a content type");
     }
     final var parsed = DocumentMimeTypes.parse(contentType);
     if (parsed == null) {
-      return unsupported(
-          "has a content type that cannot be read, so it cannot be loaded into the conversation");
+      return unsupported("A document with a content type that cannot be read");
     }
     final var kind = kindOf(parsed);
     if (kind == null) {
-      return unsupported(
-          "is of type %s which cannot be loaded into the conversation"
-              .formatted(parsed.getMimeType()));
+      return unsupported("Documents of type %s".formatted(parsed.getMimeType()));
     }
 
     final var limit = limitFor(kind);
     final var size = sizeOf(document);
     if (size != null) {
-      return size > limit ? tooLarge("is " + kilobytes(size), limit) : allowed();
+      return size > limit ? tooLarge(size, limit) : allowed();
     }
 
     try {
-      return exceeds(document, limit)
-          ? tooLarge("is larger than " + kilobytes(limit), limit)
-          : allowed();
+      return exceeds(document, limit) ? tooLarge(null, limit) : allowed();
     } catch (IOException | RuntimeException e) {
       return new Verdict.Rejected(new Rejection.Unreadable(e));
     }
@@ -174,12 +175,12 @@ public final class DocumentContentGuard {
     return new Verdict.Allowed();
   }
 
-  private static Verdict unsupported(String problem) {
-    return new Verdict.Rejected(new Rejection.UnsupportedType(problem));
+  private static Verdict unsupported(String subject) {
+    return new Verdict.Rejected(new Rejection.UnsupportedType(subject));
   }
 
-  private static Verdict tooLarge(String sizeText, long limit) {
-    return new Verdict.Rejected(new Rejection.TooLarge(sizeText, limit));
+  private static Verdict tooLarge(@Nullable Long size, long limit) {
+    return new Verdict.Rejected(new Rejection.TooLarge(size, limit));
   }
 
   /** The size from the metadata of a Camunda document, which is known without reading it. */

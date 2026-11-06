@@ -14,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallBatch.Entry;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -80,6 +81,14 @@ class ToolCallResultsInputBuilderTest {
 
   private static AgentDocumentId idOf(Document document) {
     return AgentDocumentId.of(document);
+  }
+
+  /** The handle with the note of the guard that the model reads for the archive. */
+  private static String withheldHandleOf(Document archive) {
+    return DocumentHandles.text(
+        DocumentHandles.of(archive)
+            .withNote(
+                "Documents of type application/zip cannot be loaded. Pass the handle to a tool that processes it."));
   }
 
   private static AgentContext knowing(Document... documents) {
@@ -302,9 +311,7 @@ class ToolCallResultsInputBuilderTest {
     assertThat(((UserMessage) input.messages().get(1)).content())
         .containsExactly(
             textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
-            textContent(
-                "The document %s is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."
-                    .formatted(idOf(archive))));
+            textContent(withheldHandleOf(archive)));
     assertThat(input.documents())
         .containsExactly(new NewDocument(first, DocumentOrigin.toolCall("alpha", "c1")));
   }
@@ -328,9 +335,7 @@ class ToolCallResultsInputBuilderTest {
         .containsExactly(
             textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
             AgentDocumentContent.of(idOf(known)).withDelivery(DocumentDelivery.CONTENT),
-            textContent(
-                "The document %s is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."
-                    .formatted(idOf(archive))));
+            textContent(withheldHandleOf(archive)));
   }
 
   @Test
@@ -347,9 +352,7 @@ class ToolCallResultsInputBuilderTest {
     assertThat(((UserMessage) input.messages().get(1)).content())
         .containsExactly(
             textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
-            textContent(
-                "The document %s is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it."
-                    .formatted(idOf(archive))));
+            textContent(withheldHandleOf(archive)));
   }
 
   @Test

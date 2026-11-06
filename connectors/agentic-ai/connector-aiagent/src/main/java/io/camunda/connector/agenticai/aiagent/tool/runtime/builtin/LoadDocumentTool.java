@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 
-import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_REQUIRED;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
@@ -17,8 +16,10 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,17 +28,16 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The built-in {@code c8__load_document} tool. The model calls it to read the content of a known
- * document, which it otherwise sees as a {@code <doc/>} tag only. It is offered to every agent
- * instance with the documents feature.
+ * document, which it otherwise sees as a handle only. It is offered to every agent instance with
+ * the documents feature.
  *
- * <p>A call answers with the text {@code Requested the content of the document.}, the document as a
- * reference block, and a text that says the content follows in the next message or a note says why
- * it cannot be loaded, and asks the agent to add the content of the document ({@link
+ * <p>A call answers with the handle of the document and the sentence {@code The content follows in
+ * the next message.}, and asks the agent to add the content of the document ({@link
  * RuntimeToolResult.Success#withDocumentContent}). A document the model reads the content of
  * already is not asked for again. The agent keeps the result as it is when it does not add the
  * content, for example because of the content type or the size of the document, or because it is an
- * external document: the document stays a reference and the message that follows the tool results
- * holds a note.
+ * external document: the message that follows the tool results then holds the handle of the
+ * document with a note that says why the content is not loaded.
  */
 public final class LoadDocumentTool implements RuntimeTool {
 
@@ -51,11 +51,12 @@ public final class LoadDocumentTool implements RuntimeTool {
       ToolDefinition.runtime(
           NAME,
           "Loads a known document so that its content can be read in the conversation. Use it when"
-              + " you need the content of a document that you only see as a <doc/> tag. It does not"
+              + " you need the content of a document that you only see as a handle. It does not"
               + " load documents that are too large and documents that are external links, a note"
-              + " tells you so: pass the tag of such a document to a tool that processes it"
-              + " instead, for example a sandbox. Only text, PDF and image documents can be"
-              + " loaded. A document that is already in the conversation is not loaded again.",
+              + " in the handle tells you so: pass the handle of such a document to a tool that"
+              + " processes it instead, for example a sandbox. Only text, PDF and image documents"
+              + " can be loaded. A document that is already in the conversation is not loaded"
+              + " again.",
           schema());
 
   /** The arguments of a call: the document to load. */
@@ -86,21 +87,18 @@ public final class LoadDocumentTool implements RuntimeTool {
   public RuntimeToolResult call(RuntimeToolContext context, RuntimeToolCall call) {
     final var documents = context.documents();
     final var id = call.argumentsAs(Arguments.class).id();
-    if (id == null || documents.find(id).isEmpty()) {
+    final var document = id == null ? null : documents.find(id).orElse(null);
+    if (document == null) {
       return RuntimeToolResult.error(
-          "Parameter '%s' must be the tag of a known document.".formatted(PARAMETER_ID));
+          "Parameter '%s' must be the handle of a known document.".formatted(PARAMETER_ID));
     }
 
-    if (documents.hasContentInConversation(id)) {
-      return RuntimeToolResult.success("Document %s is already in the conversation.".formatted(id));
+    final var handle = DocumentHandles.text(DocumentHandle.of(document));
+    if (documents.hasContentInConversation(document.id())) {
+      return RuntimeToolResult.success(handle + " The document is already in the conversation.");
     }
 
-    return RuntimeToolResult.success(
-            List.of(
-                textContent("Requested the content of the document."),
-                documents.reference(id),
-                textContent(
-                    "It follows in the next message, or a note says why it cannot be loaded.")))
-        .withDocumentContent(id);
+    return RuntimeToolResult.success(handle + " The content follows in the next message.")
+        .withDocumentContent(document.id());
   }
 }
