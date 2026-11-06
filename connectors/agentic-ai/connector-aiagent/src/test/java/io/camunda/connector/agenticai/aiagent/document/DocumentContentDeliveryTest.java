@@ -83,13 +83,16 @@ class DocumentContentDeliveryTest {
   }
 
   @Test
-  void decidesNothingForADocumentThatIsHandledAlready() {
+  void reportsADocumentThatIsHandledAlreadyAsInTheConversation() {
     assertThat(
             delivery.deliver(
                 known,
                 List.of(idOf(text), idOf(archive), idOf(other)),
                 Set.of(idOf(text), idOf(archive))))
-        .containsExactly(delivered(other));
+        .containsExactly(
+            new Outcome.AlreadyInConversation(idOf(text)),
+            new Outcome.AlreadyInConversation(idOf(archive)),
+            delivered(other));
   }
 
   @Test

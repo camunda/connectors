@@ -44,9 +44,17 @@ public final class DocumentContentDelivery {
      * The content is not added. The reason and its cause are logged, never put into the note.
      *
      * @param id the id of the document
-     * @param note the sentence the model reads in the handle of the document instead of the content
+     * @param note the sentence that tells the model why the content is not loaded
      */
     record Withheld(AgentDocumentId id, String note) implements Outcome {}
+
+    /**
+     * The content is not added because the model reads it already, or an earlier request of the
+     * same batch dealt with it.
+     *
+     * @param id the id of the document
+     */
+    record AlreadyInConversation(AgentDocumentId id) implements Outcome {}
   }
 
   private final DocumentContentGuard contentGuard;
@@ -64,12 +72,12 @@ public final class DocumentContentDelivery {
 
   /**
    * Decides for each document that was asked for, in the order of the first request, whether its
-   * content is added. A document in {@code handled} has no outcome: the model reads its content
-   * already, or an earlier request of the same batch dealt with it.
+   * content is added. A document in {@code handled} is {@link Outcome.AlreadyInConversation}: the
+   * model reads its content already, or an earlier request of the same batch dealt with it.
    *
    * @param known the documents the agent knows
    * @param requested the ids of the documents whose content is asked for
-   * @param handled the ids of the documents that need no outcome
+   * @param handled the ids of the documents whose content is not added again
    * @throws IllegalArgumentException if a requested id is not the one of a known document
    * @throws IllegalStateException if the document of a requested id cannot be restored
    */
@@ -82,9 +90,8 @@ public final class DocumentContentDelivery {
             "The content of the document '%s' is asked for, but the agent does not know it"
                 .formatted(id));
       }
-      if (!handled.contains(id)) {
-        outcomes.add(outcomeOf(known, id));
-      }
+      outcomes.add(
+          handled.contains(id) ? new Outcome.AlreadyInConversation(id) : outcomeOf(known, id));
     }
     return List.copyOf(outcomes);
   }
