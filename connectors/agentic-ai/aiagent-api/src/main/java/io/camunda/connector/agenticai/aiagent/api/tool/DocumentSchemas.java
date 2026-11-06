@@ -8,11 +8,14 @@ package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ANYOF;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_DESCRIPTION;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_FORMAT;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ENUM;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_REQUIRED;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_OBJECT;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_STRING;
 
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 import java.util.LinkedHashMap;
@@ -22,20 +25,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Creates the schemas of the parameters of a tool that carry a document, so that nobody writes the
- * format that marks them by hand. Put the schema into the {@code properties} of the input schema of
- * the {@link ToolDefinition tool definition}: of a {@link RuntimeTool#definition() runtime tool} or
- * of a tool that a {@link GatewayToolHandler} returns from {@link
- * GatewayToolHandler#handleToolDiscoveryResults}.
+ * Creates the schemas of the parameters of a tool that carry a document. Put the schema into the
+ * {@code properties} of the input schema of the {@link ToolDefinition tool definition}: of a {@link
+ * RuntimeTool#definition() runtime tool} or of a tool that a {@link GatewayToolHandler} returns
+ * from {@link GatewayToolHandler#handleToolDiscoveryResults}.
  *
  * <p>{@link Experimental}, see {@link RuntimeTool}.
  *
- * <p>The agent adds a sentence to the description that tells the model to pass the tag of a known
- * document, and takes the format away, before the schema goes to the model provider. The stored
- * definition keeps the schema as it is created here. The model passes a document as its {@code <doc
- * id="..." />} tag. A call whose document parameter does not hold the tag of a known document is
- * rejected before the tool is reached, and the model reads the reason as the result of the call.
- * What the tool receives instead of the tag depends on its kind: a runtime tool gets the {@link
+ * <p>The schema of a document is the object schema of its {@link DocumentHandle}: the model passes
+ * the {@code type} and the {@code id} of a handle it read, and the schema goes to the model
+ * provider as it is. A call whose document parameter does not hold the handle of a known document
+ * is rejected before the tool is reached, and the model reads the reason as the result of the call.
+ * What the tool receives instead of the handle depends on its kind: a runtime tool gets the {@link
  * io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId} (see {@link
  * RuntimeToolCall}), the process or a gateway tool the Camunda document reference.
  */
@@ -45,26 +46,39 @@ public final class DocumentSchemas {
   private DocumentSchemas() {}
 
   /**
-   * The schema of a parameter that is always a document: a string with the format {@link
-   * DocumentParameter#FORMAT_DOCUMENT_ID}.
+   * The schema of a parameter that is always a document: an object with the properties {@code type}
+   * (the handle type) and {@code id}, both required.
    *
    * @param description what the parameter is for, shown to the model, or {@code null}
    * @return an insertion-ordered map
    */
   public static Map<String, Object> document(@Nullable String description) {
+    final var type = new LinkedHashMap<String, Object>();
+    type.put(PROPERTY_TYPE, TYPE_STRING);
+    type.put(PROPERTY_ENUM, List.of(DocumentHandle.TYPE));
+
+    final var id = new LinkedHashMap<String, Object>();
+    id.put(PROPERTY_TYPE, TYPE_STRING);
+    id.put(PROPERTY_DESCRIPTION, "The id of the document.");
+
+    final var properties = new LinkedHashMap<String, Object>();
+    properties.put("type", type);
+    properties.put("id", id);
+
     final var schema = new LinkedHashMap<String, Object>();
-    schema.put(PROPERTY_TYPE, TYPE_STRING);
-    schema.put(PROPERTY_FORMAT, DocumentParameter.FORMAT_DOCUMENT_ID);
+    schema.put(PROPERTY_TYPE, TYPE_OBJECT);
     if (StringUtils.isNotBlank(description)) {
       schema.put(PROPERTY_DESCRIPTION, description);
     }
+    schema.put(PROPERTY_PROPERTIES, properties);
+    schema.put(PROPERTY_REQUIRED, List.of("type", "id"));
     return schema;
   }
 
   /**
    * The schema of a parameter that is text or a document: an {@code anyOf} of a plain string and
-   * the {@link #document document schema}. The tool receives a document when the model passed
-   * exactly one document tag and the text otherwise.
+   * the {@link #document document schema}. A string is always text; the tool receives a document
+   * when the model passed a handle object.
    *
    * @param description what the parameter is for, shown to the model, or {@code null}
    * @return an insertion-ordered map

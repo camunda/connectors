@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -131,7 +132,7 @@ class AgentToolsResolverTest {
                       "type",
                       "object",
                       "properties",
-                      Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))))
+                      Map.of("doc", DocumentSchemas.document(null))))
               .build();
       final var agentContext = AgentContext.empty().withToolDefinitions(List.of(toolWithDocuments));
 
@@ -153,10 +154,7 @@ class AgentToolsResolverTest {
       final var withDocuments =
           TOOL_1.withInputSchema(
               Map.of(
-                  "type",
-                  "object",
-                  "properties",
-                  Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))));
+                  "type", "object", "properties", Map.of("doc", DocumentSchemas.document(null))));
 
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(withDocuments), List.of()));

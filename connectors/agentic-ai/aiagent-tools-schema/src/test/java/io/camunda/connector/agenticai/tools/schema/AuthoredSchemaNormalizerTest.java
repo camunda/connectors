@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.tools.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter.Step;
 import java.util.LinkedHashMap;
@@ -20,7 +21,7 @@ class AuthoredSchemaNormalizerTest {
   private final AuthoredSchemaNormalizer normalizer = new AuthoredSchemaNormalizer();
 
   @Test
-  void normalizesTheShorthandTypeToTheDocumentFormat() {
+  void normalizesTheShorthandTypeToTheHandleSchema() {
     final var schema =
         object(
             "doc", Map.of("type", "document", "description", "A document"),
@@ -30,16 +31,25 @@ class AuthoredSchemaNormalizerTest {
     assertThat(normalizer.normalize(schema))
         .isEqualTo(
             object(
-                "doc",
-                    Map.of(
-                        "type",
-                        "string",
-                        "format",
-                        "camunda-document-id",
-                        "description",
-                        "A document"),
+                "doc", DocumentSchemas.document("A document"),
                 "docs", Map.of("type", "array", "items", doc()),
                 "req", object("file", doc())));
+    assertThat(List.copyOf(valueOf(normalizer.normalize(schema), "doc").keySet()))
+        .containsExactly("type", "description", "properties", "required");
+  }
+
+  @Test
+  void keepsTheOtherAuthoredEntriesOfTheShorthandAfterTheHandleSchema() {
+    final var node = new LinkedHashMap<String, Object>();
+    node.put("title", "Doc");
+    node.put("type", "document");
+    node.put("description", "A document");
+
+    final var normalized = valueOf(normalizer.normalize(object("doc", node)), "doc");
+
+    assertThat(normalized).isEqualTo(withTitle(DocumentSchemas.document("A document"), "Doc"));
+    assertThat(List.copyOf(normalized.keySet()))
+        .containsExactly("type", "description", "properties", "required", "title");
   }
 
   @Test
@@ -140,8 +150,8 @@ class AuthoredSchemaNormalizerTest {
 
     final var normalized = normalizer.normalize(schema);
 
-    // a shorthand where no document parameter is found stays as authored, so the format that marks
-    // a document parameter appears exactly where the parameter is found
+    // a shorthand where no document parameter is found stays as authored, so the handle schema
+    // appears exactly where the parameter is found
     assertThat(normalized)
         .isEqualTo(
             object(
@@ -162,7 +172,13 @@ class AuthoredSchemaNormalizerTest {
   }
 
   private static Map<String, Object> doc() {
-    return Map.of("type", "string", "format", "camunda-document-id");
+    return DocumentSchemas.document(null);
+  }
+
+  private static Map<String, Object> withTitle(Map<String, Object> schema, String title) {
+    final var result = new LinkedHashMap<>(schema);
+    result.put("title", title);
+    return result;
   }
 
   private static Map<String, Object> string() {

@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.aiagent.document;
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver.Resolution;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -21,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,38 +44,39 @@ class DocumentParameterResolverTest {
 
   private final AgentDocumentId firstId = AgentDocumentId.of(first);
   private final AgentDocumentId secondId = AgentDocumentId.of(second);
-  private final String firstTag = tag(firstId);
-  private final String secondTag = tag(secondId);
+  private final Map<String, Object> firstHandle = handle(firstId);
+  private final Map<String, Object> secondHandle = handle(secondId);
 
-  private static String tag(AgentDocumentId id) {
-    return "<doc id=\"" + id + "\" />";
+  private static Map<String, Object> handle(AgentDocumentId id) {
+    return Map.of("type", "camunda.agent_document", "id", id.value());
   }
 
-  private static String notAString(String path) {
-    return "Parameter '%s' must be the <doc /> tag of a known document, exactly as you read it,"
-            .formatted(path)
-        + " a string.";
-  }
-
-  private static String problem(String path, String value) {
-    return "Parameter '%s' must be the <doc /> tag of a known document, exactly as you read it,"
-            .formatted(path)
-        + " got '%s'.".formatted(value);
-  }
-
-  private static String unionProblem(String path, String id) {
-    return "Parameter '%s' holds a <doc /> tag with the id '%s'. That is not a known document."
-            .formatted(path, id)
-        + " Pass the tag of a document exactly as you read it, or pass other text.";
+  private static String problem(String path) {
+    return ("Parameter '%s' must be a document handle such as"
+            + " {\"type\":\"camunda.agent_document\",\"id\":\"doc_…\"} of a known document.")
+        .formatted(path);
   }
 
   private Map<String, Object> reference(AgentDocumentId id) {
     return TestDocuments.referenceJson(documents.find(id).orElseThrow());
   }
 
+  /** The handle JSON the model reads, with all its read-only fields. */
+  private String handleJson(AgentDocumentId id) {
+    return TestDocuments.handleText(documents, id);
+  }
+
+  private static String json(Object value) {
+    try {
+      return new ObjectMapper().writeValueAsString(value);
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
   @Test
-  void replacesATopLevelTagWithTheDocumentReference() {
-    final var result = resolve(Map.of("doc", firstTag, "other", "kept"), object("doc", DOC));
+  void replacesAHandleObjectWithTheDocumentReference() {
+    final var result = resolve(Map.of("doc", firstHandle, "other", "kept"), object("doc", DOC));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -87,9 +91,30 @@ class DocumentParameterResolverTest {
   }
 
   @Test
+  void ignoresTheOtherFieldsOfAHandleObject() {
+    final var handle = new LinkedHashMap<String, Object>(firstHandle);
+    handle.put("fileName", "renamed.txt");
+    handle.put("size", 1);
+    handle.put("unknown", List.of(1, 2));
+
+    assertThat(resolve(Map.of("doc", handle), object("doc", DOC)))
+        .isEqualTo(new Resolution.Resolved(Map.of("doc", reference(firstId))));
+  }
+
+  @Test
+  void aDocumentParameterAcceptsAStringThatHoldsAHandleObject() {
+    final var spaced = "\n " + json(secondHandle) + " \t";
+
+    assertThat(resolve(Map.of("a", handleJson(firstId), "b", spaced), object("a", DOC, "b", DOC)))
+        .isEqualTo(
+            new Resolution.Resolved(Map.of("a", reference(firstId), "b", reference(secondId))));
+  }
+
+  @Test
   void replacesEveryElementOfAnArray() {
     final var result =
-        resolve(Map.of("docs", List.of(firstTag, secondTag)), object("docs", array(DOC)));
+        resolve(
+            Map.of("docs", List.of(firstHandle, handleJson(secondId))), object("docs", array(DOC)));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -104,9 +129,9 @@ class DocumentParameterResolverTest {
     final var arguments =
         Map.<String, Object>of(
             "req",
-            Map.of("file", firstTag, "note", "n"),
+            Map.of("file", firstHandle, "note", "n"),
             "rows",
-            List.of(Map.of("file", secondTag), Map.of("file", firstTag)));
+            List.of(Map.of("file", secondHandle), Map.of("file", firstHandle)));
 
     final var result =
         resolve(arguments, object("req", object("file", DOC), "rows", array(object("file", DOC))));
@@ -126,7 +151,7 @@ class DocumentParameterResolverTest {
 
   @Test
   void leavesAbsentAndNullParametersAlone() {
-    final var withNull = new java.util.HashMap<String, Object>();
+    final var withNull = new HashMap<String, Object>();
     withNull.put("doc", null);
 
     assertThat(resolve(Map.of(), object("doc", DOC))).isEqualTo(new Resolution.Resolved(Map.of()));
@@ -135,57 +160,71 @@ class DocumentParameterResolverTest {
 
   @Test
   void doesNotModifyTheOriginalArguments() {
-    final var arguments = Map.<String, Object>of("doc", firstTag);
+    final var arguments = Map.<String, Object>of("doc", firstHandle);
 
     resolve(arguments, object("doc", DOC));
 
-    assertThat(arguments).containsEntry("doc", firstTag);
+    assertThat(arguments).containsEntry("doc", firstHandle);
   }
 
   @Test
-  void reportsAValueThatIsNotATag() {
-    assertThat(resolve(Map.of("doc", "nope"), object("doc", DOC)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", "nope"))));
-  }
+  void rejectsEveryValueThatIsNotTheHandleOfAKnownDocumentForADocumentParameter() {
+    final var withoutType = Map.of("id", firstId.value());
+    final var otherType = Map.of("type", "other", "id", firstId.value());
+    final var unknownId = Map.of("type", "camunda.agent_document", "id", "doc_000000000000");
+    final var blankId = Map.of("type", "camunda.agent_document", "id", " ");
+    final var numberId = Map.of("type", "camunda.agent_document", "id", 7);
+    final var noId = Map.of("type", "camunda.agent_document");
 
-  @Test
-  void reportsABareIdOfAKnownDocument() {
-    assertThat(resolve(Map.of("doc", firstId.value()), object("doc", DOC)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", firstId.value()))));
+    for (final Object invalid :
+        List.of(
+            withoutType,
+            otherType,
+            unknownId,
+            blankId,
+            numberId,
+            noId,
+            Map.of(),
+            firstId.value(),
+            "nope",
+            "  ",
+            "{\"id\":\"" + firstId + "\"}",
+            "{\"type\":\"camunda.agent_document\",\"id\":\"doc_000000000000\"}",
+            "{not json",
+            json(firstHandle) + " and more",
+            json(firstHandle) + json(secondHandle),
+            "[" + json(firstHandle) + "]",
+            42,
+            true,
+            List.of(firstHandle))) {
+      assertThat(resolve(Map.of("doc", invalid), object("doc", DOC)))
+          .as("%s", invalid)
+          .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
+    }
   }
 
   @Test
   void reportsTheArrayIndexAndNestedPathOfEveryInvalidValue() {
-    final var result =
-        resolve(
-            Map.of("docs", List.of(firstTag, "nope"), "req", Map.of("file", "gone")),
-            object("docs", array(DOC), "req", object("file", DOC)));
+    final var arguments = new HashMap<String, Object>();
+    arguments.put("docs", Arrays.asList(firstHandle, "nope", null));
+    arguments.put("req", Map.of("file", "gone"));
 
-    assertThat(result)
+    assertThat(resolve(arguments, object("docs", array(DOC), "req", object("file", DOC))))
         .isEqualTo(
             new Resolution.Invalid(
-                List.of(problem("docs[1]", "nope"), problem("req.file", "gone"))));
+                List.of(problem("docs[1]"), problem("docs[2]"), problem("req.file"))));
   }
 
   @Test
-  void reportsATagWithAnUnknownIdWithTheTag() {
-    final var tag = "<doc id=\"nope\" fileName=\"x\" />";
-
-    assertThat(resolve(Map.of("doc", tag), object("doc", DOC)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", tag))));
-  }
-
-  @Test
-  void aRuntimeCallReplacesTagsByTheirIdInArraysAndNestedObjects() {
-    final var tag = "<doc id=\"" + secondId + "\" fileName=\"x\" />";
+  void aRuntimeCallReplacesHandlesByTheirIdInArraysAndNestedObjects() {
     final var arguments =
         Map.<String, Object>of(
             "doc",
-            firstTag,
+            handleJson(firstId),
             "docs",
-            List.of(tag, firstTag),
+            List.of(secondHandle, firstHandle),
             "req",
-            Map.of("file", tag, "note", "n"),
+            Map.of("file", secondHandle, "note", "n"),
             "other",
             "kept");
 
@@ -210,54 +249,26 @@ class DocumentParameterResolverTest {
 
   @Test
   void aRuntimeCallReportsTheSameProblemsAsAProcessCall() {
-    final var twoTags = firstTag + secondTag;
     final var arguments =
-        Map.<String, Object>of("a", "nope", "b", twoTags, "c", 42, "d", firstId.value());
+        Map.<String, Object>of(
+            "a", "nope", "b", json(firstHandle) + "x", "c", 42, "d", firstId.value());
     final var schema = object("a", DOC, "b", DOC, "c", DOC, "d", DOC);
 
     final var expected =
-        new Resolution.Invalid(
-            List.of(
-                problem("a", "nope"),
-                problem("b", twoTags),
-                notAString("c"),
-                problem("d", firstId.value())));
+        new Resolution.Invalid(List.of(problem("a"), problem("b"), problem("c"), problem("d")));
     assertThat(resolveRuntime(arguments, schema)).isEqualTo(expected);
     assertThat(resolve(arguments, schema)).isEqualTo(expected);
   }
 
   @Test
-  void reportsABlankValue() {
-    assertThat(resolve(Map.of("doc", "  "), object("doc", DOC)))
-        .isInstanceOfSatisfying(
-            Resolution.Invalid.class,
-            invalid -> assertThat(invalid.problems()).containsExactly(problem("doc", "  ")));
-  }
-
-  @Test
-  void reportsNonStringValues() {
-    final var arguments = new java.util.HashMap<String, Object>();
-    arguments.put("a", 42);
-    arguments.put("b", Map.of("documentId", firstId.value()));
-    arguments.put("c", Arrays.asList(firstTag, null));
-
-    assertThat(resolve(arguments, object("a", DOC, "b", DOC, "c", array(DOC))))
-        .isInstanceOfSatisfying(
-            Resolution.Invalid.class,
-            invalid ->
-                assertThat(invalid.problems())
-                    .containsExactly(notAString("a"), notAString("b"), notAString("c[1]")));
-  }
-
-  @Test
   void reportsAnArrayParameterThatIsNotAnArray() {
-    assertThat(resolve(Map.of("docs", firstTag), object("docs", array(DOC))))
+    assertThat(resolve(Map.of("docs", firstHandle), object("docs", array(DOC))))
         .isEqualTo(new Resolution.Invalid(List.of("Parameter 'docs' must be an array.")));
   }
 
   @Test
   void resolvesPropertyNamesWithSpecialCharacters() {
-    final var result = resolve(Map.of("a/b~c", firstTag), object("a/b~c", DOC));
+    final var result = resolve(Map.of("a/b~c", firstHandle), object("a/b~c", DOC));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -268,7 +279,7 @@ class DocumentParameterResolverTest {
 
   @Test
   void resolvesTheCallOfAToolOfTheProcessWithTheToolDefinitionOfTheAgentContext() {
-    final var call = new ToolCall("call", "upload", Map.of("doc", firstTag, "other", "kept"));
+    final var call = new ToolCall("call", "upload", Map.of("doc", firstHandle, "other", "kept"));
 
     final var result = resolver.resolveProcessCall(agentContext(), call);
 
@@ -290,7 +301,7 @@ class DocumentParameterResolverTest {
     assertThat(result)
         .isInstanceOfSatisfying(
             Resolution.Invalid.class,
-            invalid -> assertThat(invalid.message()).isEqualTo(problem("doc", firstId.value())));
+            invalid -> assertThat(invalid.message()).isEqualTo(problem("doc")));
   }
 
   @Test
@@ -304,7 +315,7 @@ class DocumentParameterResolverTest {
             Resolution.Invalid.class,
             invalid ->
                 assertThat(invalid.message())
-                    .isEqualTo(problem("docs[0]", "a") + " " + problem("docs[1]", "b")));
+                    .isEqualTo(problem("docs[0]") + " " + problem("docs[1]")));
   }
 
   @Test
@@ -350,7 +361,7 @@ class DocumentParameterResolverTest {
 
   @Test
   void resolvesTheCallOfARuntimeToolToTheIdsOfTheDocuments() {
-    final var call = new ToolCall("call", "c8__read", Map.of("file", firstTag, "other", "kept"));
+    final var call = new ToolCall("call", "c8__read", Map.of("file", firstHandle, "other", "kept"));
 
     final var result =
         resolver.resolveRuntimeCall(
@@ -367,26 +378,26 @@ class DocumentParameterResolverTest {
 
   @Test
   void rejectsTheCallOfARuntimeToolThatDoesNotNameAKnownDocument() {
-    final var unknown = tag(AgentDocumentId.of("none"));
-    final var call = new ToolCall("call", "c8__read", Map.of("file", unknown));
+    final var call =
+        new ToolCall("call", "c8__read", Map.of("file", handle(AgentDocumentId.of("none"))));
 
     final var result =
         resolver.resolveRuntimeCall(
             agentContext(), call, definition("c8__read", object("file", DOC)));
 
-    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(problem("file", unknown))));
+    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(problem("file"))));
   }
 
   @Test
   void checksTheCallOfAToolOfEitherKindLikeTheCallOfARuntimeTool() {
     final var definition = definition("upload", object("doc", DOC));
-    final var valid = new ToolCall("call", "upload", Map.of("doc", firstTag));
+    final var valid = new ToolCall("call", "upload", Map.of("doc", firstHandle));
     final var invalid = new ToolCall("call", "upload", Map.of("doc", "nope"));
 
     assertThat(resolver.check(agentContext(), valid, definition))
         .isEqualTo(new Resolution.Resolved(Map.of("doc", firstId)));
     assertThat(resolver.check(agentContext(), invalid, definition))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", "nope"))));
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
     assertThat(
             resolver.check(
                 agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
@@ -411,7 +422,7 @@ class DocumentParameterResolverTest {
 
   @Test
   void theOutcomeIsTheSameEveryTimeItIsComputedFromTheSameContext() {
-    final var call = new ToolCall("call", "upload", Map.of("doc", firstTag));
+    final var call = new ToolCall("call", "upload", Map.of("doc", firstHandle));
     final var context = agentContext();
 
     assertThat(resolver.resolveProcessCall(context, call))
@@ -419,47 +430,62 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void aUnionParameterResolvesAValueThatIsExactlyOneTag() {
-    final var tag = "<doc id=\"" + firstId + "\" fileName=\"first.txt\" />";
-    final var spaced = "\n <doc id=\"" + secondId + "\"/> \t";
+  void aUnionParameterResolvesAnObjectWithTheHandleType() {
+    final var handle = new LinkedHashMap<String, Object>(firstHandle);
+    handle.put("fileName", "first.txt");
 
-    assertThat(resolve(Map.of("a", tag, "b", spaced), object("a", UNION, "b", ONE_OF_UNION)))
+    assertThat(
+            resolve(Map.of("a", handle, "b", secondHandle), object("a", UNION, "b", ONE_OF_UNION)))
         .isEqualTo(
             new Resolution.Resolved(Map.of("a", reference(firstId), "b", reference(secondId))));
   }
 
   @Test
-  void aUnionParameterKeepsAPlainStringAsItIs() {
-    final var arguments = Map.<String, Object>of("a", "hello", "b", "", "c", "  padded  ");
+  void aUnionParameterKeepsEveryStringAsText() {
+    final var arguments =
+        Map.<String, Object>of(
+            "plain", "hello",
+            "empty", "",
+            "padded", "  padded  ",
+            "bareId", firstId.value(),
+            "handleJson", handleJson(firstId),
+            "unknownHandleJson",
+                "{\"type\":\"camunda.agent_document\",\"id\":\"doc_000000000000\"}");
 
-    assertThat(resolve(arguments, object("a", UNION, "b", UNION, "c", UNION)))
+    assertThat(
+            resolve(
+                arguments,
+                object(
+                    "plain", UNION,
+                    "empty", UNION,
+                    "padded", UNION,
+                    "bareId", UNION,
+                    "handleJson", UNION,
+                    "unknownHandleJson", UNION)))
         .isEqualTo(new Resolution.Resolved(arguments));
   }
 
   @Test
-  void aUnionParameterKeepsABareKnownIdAsText() {
-    final var arguments = Map.<String, Object>of("a", firstId.value(), "b", " " + secondId + "\n");
-
-    assertThat(resolve(arguments, object("a", UNION, "b", UNION)))
-        .isEqualTo(new Resolution.Resolved(arguments));
+  void aUnionParameterRejectsAnObjectWithTheHandleTypeAndAnUnknownIdOrNoId() {
+    for (final Object invalid :
+        List.of(
+            Map.of("type", "camunda.agent_document", "id", "doc_000000000000"),
+            Map.of("type", "camunda.agent_document"),
+            Map.of("type", "camunda.agent_document", "id", 5),
+            Map.of("type", "camunda.agent_document", "id", " "))) {
+      assertThat(resolve(Map.of("doc", invalid), object("doc", UNION)))
+          .as("%s", invalid)
+          .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
+    }
   }
 
   @Test
-  void aUnionParameterReportsATagWithAnUnknownIdWithItsOwnText() {
-    final var tag = "<doc id=\"nope\" fileName=\"x\" />";
-
-    assertThat(resolve(Map.of("doc", tag), object("doc", UNION)))
-        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("doc", "nope"))));
-    assertThat(resolve(Map.of("doc", tag), object("doc", DOC)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", tag))));
-  }
-
-  @Test
-  void aUnionParameterLeavesValuesThatAreNotStringsAlone() {
-    final var arguments = new java.util.HashMap<String, Object>();
+  void aUnionParameterPassesOtherObjectsAndValuesThatAreNotStringsAsTheyAre() {
+    final var arguments = new HashMap<String, Object>();
     arguments.put("number", 42);
     arguments.put("flag", true);
-    arguments.put("object", Map.of("documentId", firstId.value()));
+    arguments.put("withoutType", Map.of("id", firstId.value()));
+    arguments.put("otherType", Map.of("type", "other", "id", firstId.value()));
     arguments.put("list", List.of(firstId.value(), "x"));
     arguments.put("nothing", null);
 
@@ -467,16 +493,41 @@ class DocumentParameterResolverTest {
             resolve(
                 arguments,
                 object(
-                    "number", UNION, "flag", UNION, "object", UNION, "list", UNION, "nothing",
+                    "number",
+                    UNION,
+                    "flag",
+                    UNION,
+                    "withoutType",
+                    UNION,
+                    "otherType",
+                    UNION,
+                    "list",
+                    UNION,
+                    "nothing",
                     UNION)))
         .isEqualTo(new Resolution.Resolved(arguments));
   }
 
   @Test
-  void aUnionParameterInAnArrayResolvesEveryElementThatIsATag() {
-    final var tag = "<doc id=\"" + secondId + "\" />";
+  void aUnionWithAnotherObjectAlternativePassesAnObjectWithoutTheHandleTypeAsItIs() {
+    final var other = Map.<String, Object>of("city", "Berlin");
+    final var arguments = Map.<String, Object>of("where", other, "doc", firstHandle);
+
+    assertThat(
+            resolve(
+                arguments,
+                object(
+                    "where",
+                    Map.of("anyOf", List.of(object("city", string()), DOC)),
+                    "doc",
+                    Map.of("oneOf", List.of(object("city", string()), DOC)))))
+        .isEqualTo(new Resolution.Resolved(Map.of("where", other, "doc", reference(firstId))));
+  }
+
+  @Test
+  void aUnionParameterInAnArrayResolvesEveryElementThatIsAHandleObject() {
     final var elements =
-        Arrays.<Object>asList(tag, "text", 7, firstId.value(), null, Map.of("k", "v"));
+        Arrays.<Object>asList(secondHandle, "text", 7, firstId.value(), null, Map.of("k", "v"));
 
     final var result = resolve(Map.of("items", elements), object("items", array(UNION)));
 
@@ -496,21 +547,21 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void aUnionParameterInAnArrayReportsTheIndexOfATagWithAnUnknownId() {
+  void aUnionParameterInAnArrayReportsTheIndexOfAHandleWithAnUnknownId() {
     final var result =
         resolve(
-            Map.of("items", List.of("text", "<doc id=\"nope\" />")), object("items", array(UNION)));
+            Map.of("items", List.of("text", handle(AgentDocumentId.of("none")))),
+            object("items", array(UNION)));
 
-    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(unionProblem("items[1]", "nope"))));
+    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(problem("items[1]"))));
   }
 
   @Test
   void aUnionParameterInsideObjectsResolvesLikeATopLevelOne() {
-    final var tag = "<doc id=\"" + firstId + "\" />";
     final var arguments =
         Map.<String, Object>of(
             "req",
-            Map.of("file", tag, "note", "n"),
+            Map.of("file", firstHandle, "note", "n"),
             "rows",
             List.of(Map.of("file", firstId.value())));
 
@@ -535,47 +586,47 @@ class DocumentParameterResolverTest {
 
   @Test
   void aDocumentParameterKeepsItsRulesNextToAUnionParameter() {
-    final var arguments = Map.<String, Object>of("doc", firstTag, "text", firstId.value());
-
-    assertThat(resolve(arguments, object("doc", DOC, "text", UNION)))
+    assertThat(
+            resolve(
+                Map.of("doc", firstHandle, "text", firstId.value()),
+                object("doc", DOC, "text", UNION)))
         .isEqualTo(
             new Resolution.Resolved(Map.of("doc", reference(firstId), "text", firstId.value())));
     assertThat(
             resolve(
                 Map.of("doc", firstId.value(), "text", firstId.value()),
                 object("doc", DOC, "text", UNION)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", firstId.value()))));
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
     assertThat(resolve(Map.of("doc", "nope", "text", "nope"), object("doc", DOC, "text", UNION)))
-        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", "nope"))));
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));
   }
 
   @Test
-  void aRuntimeCallHandsAUnionParameterTheIdOfATagAndKeepsTextAsText() {
-    final var tag = "<doc id=\"" + secondId + "\" fileName=\"x\" />";
+  void aRuntimeCallHandsAUnionParameterTheIdOfAHandleAndKeepsTextAsText() {
     final var arguments =
         Map.<String, Object>of(
-            "tagged",
-            tag,
+            "handle",
+            secondHandle,
             "bare",
             firstId.value(),
             "text",
             "hello",
             "list",
-            List.of(tag, "hello", 3),
+            List.of(secondHandle, "hello", 3),
             "doc",
-            tag);
+            handleJson(secondId));
 
     final var result =
         resolveRuntime(
             arguments,
             object(
-                "tagged", UNION, "bare", UNION, "text", UNION, "list", array(UNION), "doc", DOC));
+                "handle", UNION, "bare", UNION, "text", UNION, "list", array(UNION), "doc", DOC));
 
     assertThat(result)
         .isEqualTo(
             new Resolution.Resolved(
                 Map.of(
-                    "tagged",
+                    "handle",
                     secondId,
                     "bare",
                     firstId.value(),
@@ -585,55 +636,58 @@ class DocumentParameterResolverTest {
                     List.of(secondId, "hello", 3),
                     "doc",
                     secondId)));
-    assertThat(resolveRuntime(Map.of("tagged", "<doc id=\"nope\" />"), object("tagged", UNION)))
-        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("tagged", "nope"))));
+    assertThat(
+            resolveRuntime(
+                Map.of("handle", handle(AgentDocumentId.of("none"))), object("handle", UNION)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("handle"))));
   }
 
   @Test
-  void resolvesAUnionParameterOfTheCallOfAToolOfTheProcessToTheReferenceOfATag() {
-    final var tagged = new ToolCall("call", "send", Map.of("body", firstTag, "other", "kept"));
+  void resolvesAUnionParameterOfTheCallOfAToolOfTheProcessToTheReferenceOfAHandle() {
+    final var handle = new ToolCall("call", "send", Map.of("body", firstHandle, "other", "kept"));
     final var text = new ToolCall("call", "send", Map.of("body", "hello"));
 
-    assertThat(resolver.resolveProcessCall(agentContext(), tagged))
+    assertThat(resolver.resolveProcessCall(agentContext(), handle))
         .isEqualTo(new Resolution.Resolved(Map.of("body", reference(firstId), "other", "kept")));
     assertThat(resolver.resolveProcessCall(agentContext(), text))
         .isEqualTo(new Resolution.Resolved(Map.of("body", "hello")));
   }
 
   @Test
-  void rejectsTheCallOfAToolOfTheProcessWithATagOfAnUnknownDocumentInAUnionParameter() {
-    final var call = new ToolCall("call", "send", Map.of("body", tag(AgentDocumentId.of("none"))));
+  void rejectsTheCallOfAToolOfTheProcessWithAHandleOfAnUnknownDocumentInAUnionParameter() {
+    final var call =
+        new ToolCall("call", "send", Map.of("body", handle(AgentDocumentId.of("none"))));
 
     assertThat(resolver.resolveProcessCall(agentContext(), call))
-        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("body", "none"))));
+        .isEqualTo(new Resolution.Invalid(List.of(problem("body"))));
   }
 
   @Test
-  void resolvesAUnionParameterOfTheCallOfARuntimeToolToTheIdOfATagAndKeepsTextAsText() {
+  void resolvesAUnionParameterOfTheCallOfARuntimeToolToTheIdOfAHandleAndKeepsTextAsText() {
     final var definition = definition("c8__send", object("body", UNION));
-    final var tagged = new ToolCall("call", "c8__send", Map.of("body", firstTag));
+    final var handle = new ToolCall("call", "c8__send", Map.of("body", firstHandle));
     final var text = new ToolCall("call", "c8__send", Map.of("body", firstId.value()));
 
-    assertThat(resolver.resolveRuntimeCall(agentContext(), tagged, definition))
+    assertThat(resolver.resolveRuntimeCall(agentContext(), handle, definition))
         .isEqualTo(new Resolution.Resolved(Map.of("body", firstId)));
     assertThat(resolver.resolveRuntimeCall(agentContext(), text, definition))
         .isEqualTo(new Resolution.Resolved(Map.of("body", firstId.value())));
   }
 
   @Test
-  void rejectsTheCallOfARuntimeToolWithATagOfAnUnknownDocumentInAUnionParameter() {
+  void rejectsTheCallOfARuntimeToolWithAHandleOfAnUnknownDocumentInAUnionParameter() {
     final var call =
-        new ToolCall("call", "c8__send", Map.of("body", tag(AgentDocumentId.of("none"))));
+        new ToolCall("call", "c8__send", Map.of("body", handle(AgentDocumentId.of("none"))));
 
     assertThat(
             resolver.resolveRuntimeCall(
                 agentContext(), call, definition("c8__send", object("body", UNION))))
-        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("body", "none"))));
+        .isEqualTo(new Resolution.Invalid(List.of(problem("body"))));
   }
 
   @Test
   void anAgentInstanceWithoutTheDocumentsFeatureHasNoUnionParameters() {
-    final var call = new ToolCall("call", "send", Map.of("body", firstTag));
+    final var call = new ToolCall("call", "send", Map.of("body", firstHandle));
     final var withoutDocuments = agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS));
 
     assertThat(resolver.resolveProcessCall(withoutDocuments, call))
@@ -656,8 +710,7 @@ class DocumentParameterResolverTest {
     return ToolDefinition.builder().name(name).inputSchema(inputSchema).build();
   }
 
-  private static final Map<String, Object> DOC =
-      Map.of("type", "string", "format", "camunda-document-id");
+  private static final Map<String, Object> DOC = DocumentSchemas.document(null);
 
   private static final Map<String, Object> UNION =
       Map.of("anyOf", List.of(Map.of("type", "string"), DOC));

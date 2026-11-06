@@ -516,12 +516,15 @@ class RuntimeToolsTest {
 
   // document parameters
 
-  private static final String BOGUS_FILE =
-      "Parameter 'file' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'.";
+  private static final String BOGUS_FILE = rejection("file");
 
-  private static final String UNKNOWN_BODY =
-      "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document."
-          + " Pass the tag of a document exactly as you read it, or pass other text.";
+  private static final String UNKNOWN_BODY = rejection("body");
+
+  private static String rejection(String path) {
+    return ("Parameter '%s' must be a document handle such as"
+            + " {\"type\":\"camunda.agent_document\",\"id\":\"doc_…\"} of a known document.")
+        .formatted(path);
+  }
 
   private static ToolDefinition definitionOf(String name, Map<String, Object> properties) {
     return ToolDefinition.runtime(name, null, Map.of("type", "object", "properties", properties));
@@ -541,8 +544,8 @@ class RuntimeToolsTest {
         .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
   }
 
-  private static String tagOf(Document document) {
-    return "<doc id=\"" + AgentDocumentId.of(document) + "\" />";
+  private static Map<String, Object> handleOf(Document document) {
+    return Map.of("type", "camunda.agent_document", "id", AgentDocumentId.of(document).value());
   }
 
   @Test
@@ -571,14 +574,14 @@ class RuntimeToolsTest {
             .execute(
                 WITH_MEMORY,
                 knowingWithDocumentsFeature(report),
-                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", tagOf(report)))));
+                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", handleOf(report)))));
 
     assertThat(text(executions.getFirst())).isEqualTo("read");
     assertThat(received).containsExactly(AgentDocumentId.of(report), null);
   }
 
   @Test
-  void handsTheIdOfATagWithMoreAttributesAndKeepsTheOtherArguments() {
+  void handsTheIdOfAHandleWithMoreFieldsAndKeepsTheOtherArguments() {
     final var report = createDocument("report", "report.txt");
     final var received = new ArrayList<Object>();
     final var tool =
@@ -591,7 +594,13 @@ class RuntimeToolsTest {
     final var arguments =
         Map.<String, Object>of(
             "file",
-            "<doc id=\"" + AgentDocumentId.of(report) + "\" fileName=\"report.txt\" />",
+            Map.of(
+                "type",
+                "camunda.agent_document",
+                "id",
+                AgentDocumentId.of(report).value(),
+                "fileName",
+                "report.txt"),
             "other",
             "kept");
 
@@ -627,7 +636,7 @@ class RuntimeToolsTest {
   }
 
   @Test
-  void handsTheIdOfATagInAUnionParameterToARuntimeToolAndKeepsTextAsText() {
+  void handsTheIdOfAHandleInAUnionParameterToARuntimeToolAndKeepsTextAsText() {
     final var report = createDocument("report", "report.txt");
     final var received = new ArrayList<Object>();
     record Args(Object body) {}
@@ -644,14 +653,14 @@ class RuntimeToolsTest {
             WITH_MEMORY,
             knowingWithDocumentsFeature(report),
             List.of(
-                runtimeCall("r1", "c8__send", Map.of("body", tagOf(report))),
+                runtimeCall("r1", "c8__send", Map.of("body", handleOf(report))),
                 runtimeCall("r2", "c8__send", Map.of("body", "hello"))));
 
     assertThat(received).containsExactly(AgentDocumentId.of(report), "hello");
   }
 
   @Test
-  void aCallWithATagOfAnUnknownDocumentInAUnionParameterFailsAndDoesNotRunTheTool() {
+  void aCallWithAHandleOfAnUnknownDocumentInAUnionParameterFailsAndDoesNotRunTheTool() {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
@@ -660,7 +669,11 @@ class RuntimeToolsTest {
               runs.incrementAndGet();
               return RuntimeToolResult.success("sent");
             });
-    final var call = runtimeCall("r1", "c8__send", Map.of("body", "<doc id=\"nope\" />"));
+    final var call =
+        runtimeCall(
+            "r1",
+            "c8__send",
+            Map.of("body", Map.of("type", "camunda.agent_document", "id", "doc_000000000000")));
 
     assertThatThrownBy(
             () -> toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(), List.of(call)))

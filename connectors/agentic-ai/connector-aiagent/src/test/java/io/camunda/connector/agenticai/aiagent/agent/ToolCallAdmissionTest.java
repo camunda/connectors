@@ -44,18 +44,19 @@ class ToolCallAdmissionTest {
   private static final ToolDefinition RUNTIME_SEND_TOOL =
       ToolDefinition.runtime("acme_send", "Send", unionSchema());
 
-  private static final String UNKNOWN_BODY =
-      "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document."
-          + " Pass the tag of a document exactly as you read it, or pass other text.";
+  private static final String UNKNOWN_BODY = rejection("body");
 
-  private static final String BOGUS_DOC =
-      "Parameter 'doc' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'.";
+  private static final String BOGUS_DOC = rejection("doc");
 
   private static final AgentContext NEW_INSTANCE =
       AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
 
   private static final Document REPORT = createDocument("report data", "report.txt");
-  private static final String REPORT_TAG = "<doc id=\"" + AgentDocumentId.of(REPORT) + "\" />";
+  private static final Map<String, Object> REPORT_HANDLE =
+      Map.of("type", "camunda.agent_document", "id", AgentDocumentId.of(REPORT).value());
+
+  private static final Map<String, Object> UNKNOWN_HANDLE =
+      Map.of("type", "camunda.agent_document", "id", "doc_000000000000");
 
   private static final AgentContext KNOWING_REPORT =
       AgentContext.empty()
@@ -137,9 +138,9 @@ class ToolCallAdmissionTest {
   }
 
   @Test
-  void aCallOfEitherKindWithTheTagOfAKnownDocumentIsAdmittedWithItsArgumentsUnchanged() {
-    final var processCall = new ToolCall("p1", "upload", Map.of("doc", REPORT_TAG));
-    final var runtimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", REPORT_TAG));
+  void aCallOfEitherKindWithAHandleOfAKnownDocumentIsAdmittedWithItsArgumentsUnchanged() {
+    final var processCall = new ToolCall("p1", "upload", Map.of("doc", REPORT_HANDLE));
+    final var runtimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", REPORT_HANDLE));
 
     final var admitted =
         admission.admit(
@@ -155,7 +156,7 @@ class ToolCallAdmissionTest {
   @Test
   void rejectsOnlyTheCallsWithAnInvalidDocumentParameterOfABatch() {
     final var invalidProcessCall = new ToolCall("p1", "upload", Map.of("doc", "bogus"));
-    final var validRuntimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", REPORT_TAG));
+    final var validRuntimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", REPORT_HANDLE));
     final var invalidRuntimeCall = new ToolCall("r2", "acme_upload", Map.of("doc", "bogus"));
     final var otherCall = new ToolCall("p2", "getWeather", Map.of("city", "Berlin"));
 
@@ -204,9 +205,9 @@ class ToolCallAdmissionTest {
   }
 
   @Test
-  void aCallOfEitherKindWithTheTagOfAnUnknownDocumentInAUnionParameterIsRejectedAndKeepsItsKind() {
-    final var processCall = new ToolCall("p1", "send", Map.of("body", "<doc id=\"nope\" />"));
-    final var runtimeCall = new ToolCall("r1", "acme_send", Map.of("body", "<doc id=\"nope\" />"));
+  void aCallOfEitherKindWithAHandleOfAnUnknownDocumentInAUnionParameterIsRejectedAndKeepsItsKind() {
+    final var processCall = new ToolCall("p1", "send", Map.of("body", UNKNOWN_HANDLE));
+    final var runtimeCall = new ToolCall("r1", "acme_send", Map.of("body", UNKNOWN_HANDLE));
 
     final var admitted =
         admission.admit(
@@ -224,24 +225,30 @@ class ToolCallAdmissionTest {
   }
 
   @Test
-  void aCallOfEitherKindWithTextOrTheTagOfAKnownDocumentInAUnionParameterIsAdmitted() {
+  void aCallOfEitherKindWithTextOrAHandleOfAKnownDocumentInAUnionParameterIsAdmitted() {
     final var processText = new ToolCall("p1", "send", Map.of("body", "hello"));
-    final var processTag = new ToolCall("p2", "send", Map.of("body", REPORT_TAG));
+    final var processHandle = new ToolCall("p2", "send", Map.of("body", REPORT_HANDLE));
     final var runtimeText = new ToolCall("r1", "acme_send", Map.of("body", "hello"));
-    final var runtimeTag = new ToolCall("r2", "acme_send", Map.of("body", REPORT_TAG));
+    final var runtimeHandle = new ToolCall("r2", "acme_send", Map.of("body", REPORT_HANDLE));
 
     final var admitted =
         admission.admit(
-            messageWith(processText, processTag, runtimeText, runtimeTag),
+            messageWith(processText, processHandle, runtimeText, runtimeHandle),
             List.of(PROCESS_SEND_TOOL, RUNTIME_SEND_TOOL),
             KNOWING_REPORT);
 
     assertThat(admitted.toolCalls())
         .containsExactly(
             processText,
-            processTag,
+            processHandle,
             runtimeText.withKind(ToolKind.RUNTIME),
-            runtimeTag.withKind(ToolKind.RUNTIME));
+            runtimeHandle.withKind(ToolKind.RUNTIME));
+  }
+
+  private static String rejection(String path) {
+    return ("Parameter '%s' must be a document handle such as"
+            + " {\"type\":\"camunda.agent_document\",\"id\":\"doc_…\"} of a known document.")
+        .formatted(path);
   }
 
   private static Map<String, Object> unionSchema() {

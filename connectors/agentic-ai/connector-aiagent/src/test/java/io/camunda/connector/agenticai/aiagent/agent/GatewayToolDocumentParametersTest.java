@@ -86,12 +86,16 @@ class GatewayToolDocumentParametersTest {
   }
 
   @Test
-  void theHandlerReceivesTheResolvedDocumentOfAKnownTag() {
+  void theHandlerReceivesTheResolvedDocumentOfAKnownHandle() {
     final var call =
         new ToolCall(
             "call-2",
             UPLOAD_TOOL,
-            Map.of("document", "<doc id=\"%s\" />".formatted(reportId), "folder", "/inbox"));
+            Map.of(
+                "document",
+                Map.of("type", "camunda.agent_document", "id", reportId.value()),
+                "folder",
+                "/inbox"));
 
     final var response = respond(conversation(call));
 
