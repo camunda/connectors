@@ -1,5 +1,6 @@
-# connector-aiagent
+{% extends "CONNECTOR_README_LAYOUT.peb" %}
 
+{% block content %}
 <!-- README.md is generated from README.peb in the Maven process-classes phase. Edit README.peb. -->
 
 ## Purpose
@@ -57,28 +58,22 @@ The paths are under [`connectors/agentic-ai/examples/`](../examples/).
   - Shows explicit BPMN loop with gateway checking for tool calls
   - Multi-instance AHSP for parallel tool execution
 
-## {{name}}
-
-![{{name}} connector icon]({{icon}})
-
-{{ description }}
-
 Find the user documentation in our [Camunda Documentation](https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
 
-### Build
+## Build
 
 ```bash
 mvn clean package
 ```
 
-### API
+## API
 
-#### Result
+### Result
 
 The following json structure will be returned by the Connector and can be used in the result expression. Depending on the
 configuration, the result will contain the following fields:
 
-##### Text response
+#### Text response
 
 ```json
 {{ exampleData["default"].json }}
@@ -96,7 +91,7 @@ leading to the following result
 
 ```
 
-##### JSON response
+#### JSON response
 
 ```json
 {{ exampleData["json"].json }}
@@ -114,7 +109,7 @@ leading to the following result
 
 ```
 
-##### Response containing the full assistant message
+#### Response containing the full assistant message
 
 ```json
 {{ exampleData["assistantMessage"].json }}
@@ -132,7 +127,7 @@ leading to the following result
 
 ```
 
-##### Response containing tool call requests
+#### Response containing tool call requests
 
 ```json
 {{ exampleData["withToolCalls"].json }}
@@ -150,8 +145,4 @@ leading to the following result
 
 ```
 
-| Connector Info            |                                                                       |
-| ---                       | ---                                                                   |
-| Type                      | {{ type }}                                                            |
-| Version                   | {{ version }}                                                         |
-| Supported element types   | {% for elementType in elementTypes %}{{ elementType }}{% endfor %}    |
+{% endblock %}

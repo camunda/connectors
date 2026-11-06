@@ -453,7 +453,9 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 - **`<module>/README.md`** and **`<module>/docs/`**: the purpose and key types of a module, and the docs
   about its types (data model, memory, tools, converters, providers, error codes, MCP, A2A). The
   `## Docs` section of the README links every file in `<module>/docs/`.
-  `connector-aiagent/README.md` is generated: edit `connector-aiagent/README.peb`.
+  `connector-aiagent/README.md` is generated: edit `connector-aiagent/README.peb`. It uses the shared
+  connector README layout, so it starts with the icon, `# AI Agent Task` and the description instead of
+  `# connector-aiagent`. `## Purpose`, `## Key types` and `## Docs` still come first after that.
 - **`docs/architecture/`**: content that spans modules (the agentic loop, extension points, Spring
   auto-configuration).
 - **`docs/design-guidelines.md`**: the architectural invariants.
