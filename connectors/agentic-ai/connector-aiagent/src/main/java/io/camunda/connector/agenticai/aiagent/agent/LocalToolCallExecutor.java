@@ -33,12 +33,10 @@ public class LocalToolCallExecutor {
   public List<ToolCallBatch.Entry> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
     for (final var call : calls) {
-      switch (call.resultSource()) {
-        case RUNTIME -> {}
-        case PROCESS, REJECTED ->
-            throw new IllegalStateException(
-                "The call '%s' of the tool '%s' is not executed by the agent, its result source is %s"
-                    .formatted(call.id(), call.name(), call.resultSource()));
+      if (!isExecutedByTheAgent(call)) {
+        throw new IllegalStateException(
+            "The call '%s' of the tool '%s' is not executed by the agent, its result source is %s"
+                .formatted(call.id(), call.name(), call.resultSource()));
       }
     }
     if (calls.isEmpty()) {
@@ -47,5 +45,12 @@ public class LocalToolCallExecutor {
     return runtimeTools.execute(executionContext, agentContext, calls).stream()
         .map(execution -> ToolCallBatch.Entry.from(execution.toolCallResult()))
         .toList();
+  }
+
+  private static boolean isExecutedByTheAgent(ToolCall call) {
+    return switch (call.resultSource()) {
+      case RUNTIME -> true;
+      case PROCESS, REJECTED -> false;
+    };
   }
 }
