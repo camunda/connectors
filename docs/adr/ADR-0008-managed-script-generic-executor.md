@@ -182,6 +182,47 @@ generates the cluster's prefix, so it can list the functions under it.
   Controller deletes nothing and tries again later.
 - Controller retries a deletion that fails.
 
+The endpoint is the actuator endpoint `GET /actuator/managedcode`, served only with managed code
+enabled. It answers with the provider, the prefix and, per language, the name of the executor of
+the running wrapper and, on AWS, its log group, `/aws/lambda/<name>`:
+
+```json
+{
+  "provider": "aws",
+  "deploymentNamePrefix": "ce-0123456789abcdef01234567-",
+  "executors": [
+    { "language": "python", "name": "ce-0123456789abcdef01234567-py-0123456789ab", "logGroup": "/aws/lambda/ce-0123456789abcdef01234567-py-0123456789ab" },
+    { "language": "javascript", "name": "ce-0123456789abcdef01234567-js-ba9876543210", "logGroup": "/aws/lambda/ce-0123456789abcdef01234567-js-ba9876543210" }
+  ]
+}
+```
+
+`logGroup` is `null` on GCP, whose functions have no log group of their own.
+
+- The provider computes the names from the wrapper digest and the prefix, as it does to create
+  the executors, without listing or calling the platform. The endpoint therefore answers before
+  the executors exist, and holds no list rights.
+- A provider reports every executor it may call (`executors()` in the SPI). A failure answers
+  with an error status, never with an empty list, which would let Controller delete every
+  function under the prefix: 501 when the provider does not report its executors, as with a
+  provider written outside this repository that does not override `executors()`, and 500 for any
+  other failure.
+- **An actuator endpoint, without a token.** Controller has to ask every instance, so it calls each
+  pod directly, not through the load balancer. In SaaS, the actuator is served on the management
+  port, 9080, apart from the API port, like health and metrics. A token checked by the runtime would
+  need an OIDC client for Controller and a token per cluster in its reconcile loop. The response
+  changes nothing and holds no secret: the names follow from the prefix and the wrapper digest,
+  which is published in the API module. The SaaS bundle exposes it. The default bundle does not: a
+  Self-Managed operator exposes it with `management.endpoints.web.exposure.include` and secures it
+  like the other actuator endpoints.
+- **Open with Controller.** This assumes that Controller can reach the management port of each
+  runtime pod, that the port is not exposed outside the cluster network, and that network isolation
+  is enough for this endpoint. If one of these does not hold, the endpoint needs a token, on the
+  API port.
+- An instance that answers 404 runs managed code disabled, or a release without the endpoint, or
+  has not exposed it. Controller cannot tell these apart, so it deletes nothing for a 404 either,
+  nor for any other answer than 200.
+
 Listing by prefix also catches the executors of wrappers several releases old, and the functions
 of a runtime that no longer answers. A runtime instance does not delete executors when it shuts
 down: executors are shared by every instance of a cluster and keep their names across a restart,
@@ -426,6 +467,11 @@ name.
   contract response. It returns a failure as a `FAILED` response instead of throwing it, and reports
   a missing executor as `DEPLOYMENT_MISSING`. The one exception is a denied invocation, thrown as a
   permission denial, so that the connector waits it out within the grant-propagation window.
+- `executors()`: the executor of each language that the runtime may call, with its log group when
+  the platform has one of its own, computed without calling the platform. The endpoint above
+  reports it. Its default throws `UnsupportedOperationException`, so that a provider written
+  outside this repository need not implement it, and the endpoint then answers 501. It does not
+  default to an empty list, which would have every executor of the cluster deleted.
 
 Every executor runs **our wrapper**, whatever the provider: the wrapper implements the contract,
 calls the script's `execute`, and enforces the child process, the limits and the cleanup. The

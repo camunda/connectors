@@ -167,7 +167,8 @@ camunda.connector.managed-code.aws.log-retention-days=30
   after the credentials resolved, when they are refreshed. Once the credentials have resolved, a
   refresh that cannot reach STS or the metadata server fails with `PLATFORM_UNAVAILABLE`.
 - The runtime never deletes an executor or its log group. After an upgrade of the wrapper, delete
-  the functions and log groups under the prefix that no runtime instance uses any more.
+  the functions and log groups under the prefix that no runtime instance uses any more, as
+  described in [Deleting executors that are no longer in use](#deleting-executors-that-are-no-longer-in-use).
 
 The **execution role** is attached to the executors, which run customer code: it must grant
 nothing but writing to their log groups, since a script can read the memory of the wrapper during
@@ -287,7 +288,8 @@ camunda.connector.managed-code.gcp.max-instance-count=1000
   invoking them, is retried as long as the grants of a new cluster may still be propagating, and
   then fails with `PLATFORM_REJECTED`.
 - The runtime never deletes an executor. After an upgrade of the wrapper, delete the functions under
-  the prefix that no runtime instance uses any more. A function whose build failed stays failed:
+  the prefix that no runtime instance uses any more, as described in
+  [Deleting executors that are no longer in use](#deleting-executors-that-are-no-longer-in-use). A function whose build failed stays failed:
   delete it, and the next job creates it again.
 
 The project needs the Cloud Functions, Cloud Run, Cloud Build, Artifact Registry and IAM Service
@@ -355,6 +357,62 @@ Each failure has an error code, and the code decides what happens to the job's r
 The incident shows the error message, and the script's stack trace when the script raised the
 failure. Both also reach the runtime's error log, so a script must not let a sensitive value reach
 an exception message. Secrets in the script input are resolved as for any connector.
+
+### Deleting executors that are no longer in use
+
+The runtime never deletes an executor: executors are shared by every instance of a cluster, and an
+instance cannot know whether it is the last one that calls them. A runtime only calls the
+executors of its own wrapper, so after an upgrade that changes the wrapper, the executors of the
+previous release stay until you delete them. In SaaS, Controller does it.
+
+Each instance reports the executors it calls on the actuator endpoint `managedcode`, served with
+managed code enabled. Add it to the endpoints you already expose, such as those of the default
+bundle:
+
+```properties
+management.endpoints.web.exposure.include=metrics,health,prometheus,loggers,managedcode
+```
+
+`GET /actuator/managedcode` answers with one executor per language. The names are computed from
+the wrapper and `deployment-name-prefix`, without listing anything on the platform, so the answer
+is the same before the executors exist. `logGroup` is the log group to delete with the function
+on AWS, and `null` on the other platforms:
+
+```json
+{
+  "provider": "aws",
+  "deploymentNamePrefix": "ce-0123456789abcdef01234567-",
+  "executors": [
+    { "language": "python", "name": "ce-0123456789abcdef01234567-py-0123456789ab", "logGroup": "/aws/lambda/ce-0123456789abcdef01234567-py-0123456789ab" },
+    { "language": "javascript", "name": "ce-0123456789abcdef01234567-js-ba9876543210", "logGroup": "/aws/lambda/ce-0123456789abcdef01234567-js-ba9876543210" }
+  ]
+}
+```
+
+The endpoint is not authenticated by the runtime. It changes nothing, and the names follow from the
+prefix and the published wrapper, but expose it only where the actuator is not public, such as on a management port
+(`management.server.port`) that only your cluster network reaches, as for the other actuator
+endpoints.
+
+Once every instance runs the new release:
+
+1. Call `GET /actuator/managedcode` on **every** instance of every runtime configured with this
+   prefix, on its own address rather than through a load balancer, and keep the names they
+   report. If an instance does not answer with 200, delete nothing and try again later. An
+   instance answers 501 when its provider does not report its executors, such as a provider of
+   your own that does not implement `executors()`.
+2. List the functions under the prefix:
+   - AWS: `aws lambda list-functions --query "Functions[?starts_with(FunctionName, '<prefix>')].FunctionName"`
+   - GCP: `gcloud functions list --v2 --regions=<region> --filter="name ~ /functions/<prefix>" --format="value(name.basename())"`, which prints the function IDs that the endpoint reports, not their full resource names
+3. Delete the functions that no instance reported:
+   - AWS: `aws lambda delete-function --function-name <name>`, then its log group,
+     `aws logs delete-log-group --log-group-name /aws/lambda/<name>`.
+   - GCP: `gcloud functions delete <name> --region=<region>`.
+
+Do not delete a function that an instance reports: its jobs would wait until the runtime creates
+it again. The identity that deletes needs list and delete rights on the functions, which the identity of the
+runtime does not have. When a cluster is removed, delete every function under its prefix and, on
+AWS, their log groups.
 
 ## Connect to INT SaaS from a local connector runtime
 

@@ -29,6 +29,7 @@ import com.google.rpc.Status;
 import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
@@ -208,6 +209,18 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
   @Override
   public String name() {
     return NAME;
+  }
+
+  /**
+   * The executor of each language. Cloud Run functions have no log group of their own: their logs
+   * are entries of the project, which expire with its retention.
+   */
+  @Override
+  public List<ExecutorReference> executors() {
+    return executors.values().stream()
+        .map(executor ->
+            new ExecutorReference(executor.language(), executor.functionName(prefix), null))
+        .toList();
   }
 
   /**
