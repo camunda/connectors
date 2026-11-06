@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
@@ -68,8 +69,8 @@ class ReturnDocumentToolTest {
   private final Document summary = createDocument("summary", "summary.txt");
   private final AgentDocumentId reportId = AgentDocumentId.of(report);
   private final AgentDocumentId summaryId = AgentDocumentId.of(summary);
-  private final String reportTag = "<doc id=\"" + reportId + "\" />";
-  private final String summaryTag = "<doc id=\"" + summaryId + "\" />";
+  private final Map<String, Object> reportHandle = handle(reportId);
+  private final Map<String, Object> summaryHandle = handle(summaryId);
 
   private final AgentDocuments registered =
       AgentDocuments.empty()
@@ -153,8 +154,7 @@ class ReturnDocumentToolTest {
     assertThat(((Map<String, Object>) properties.get("key")).keySet())
         .containsExactly("type", "description");
     assertThat(((Map<String, Object>) properties.get("document")).keySet())
-        .containsExactly("type", "format", "description");
-    assertThat(schema.toString()).doesNotContain("Pass the tag of a known document");
+        .containsExactly("type", "description", "properties", "required");
   }
 
   @Test
@@ -173,7 +173,7 @@ class ReturnDocumentToolTest {
   @Test
   void answersAValidCallAndSelectsTheDocumentUnderItsKey() {
     final var run =
-        run(call("1", Map.of("key", "summary", "document", summaryTag, "description", "Short")));
+        run(call("1", Map.of("key", "summary", "document", summaryHandle, "description", "Short")));
 
     assertThat(run.results())
         .extracting(ReturnDocumentToolTest::text)
@@ -190,7 +190,7 @@ class ReturnDocumentToolTest {
 
   @Test
   void theDescriptionIsOptional() {
-    final var run = run(call("1", Map.of("key", "report", "document", reportTag)));
+    final var run = run(call("1", Map.of("key", "report", "document", reportHandle)));
 
     assertThat(run.responseDocuments())
         .containsExactly(new ResponseDocumentSelection("report", reportId, null));
@@ -199,7 +199,7 @@ class ReturnDocumentToolTest {
   @Test
   void aBlankDescriptionIsLeftOut() {
     final var run =
-        run(call("1", Map.of("key", "report", "document", reportTag, "description", " ")));
+        run(call("1", Map.of("key", "report", "document", reportHandle, "description", " ")));
 
     assertThat(run.responseDocuments())
         .containsExactly(new ResponseDocumentSelection("report", reportId, null));
@@ -207,7 +207,7 @@ class ReturnDocumentToolTest {
 
   @Test
   void acceptsKeysWithUnderscoresDigitsAndHyphens() {
-    final var run = run(call("1", Map.of("key", "_report-2024_final", "document", reportTag)));
+    final var run = run(call("1", Map.of("key", "_report-2024_final", "document", reportHandle)));
 
     assertThat(run.responseDocuments())
         .extracting(ResponseDocumentSelection::key)
@@ -217,7 +217,7 @@ class ReturnDocumentToolTest {
   @Test
   void answersAnInvalidKeyWithAnErrorAndSelectsNothing() {
     for (final var key : List.of("", "1abc", "a b", "a.b", "-a")) {
-      final var run = run(call("1", Map.of("key", key, "document", reportTag)));
+      final var run = run(call("1", Map.of("key", key, "document", reportHandle)));
 
       assertThat(run.results())
           .singleElement()
@@ -233,10 +233,11 @@ class ReturnDocumentToolTest {
   void answersAMissingKeyOrDocumentWithAnErrorAndSelectsNothing() {
     final var nullKey = new HashMap<String, Object>();
     nullKey.put("key", null);
-    nullKey.put("document", reportTag);
+    nullKey.put("document", reportHandle);
 
     for (final var arguments :
-        List.<Map<String, Object>>of(Map.of("document", reportTag), nullKey, Map.of("key", "k"))) {
+        List.<Map<String, Object>>of(
+            Map.of("document", reportHandle), nullKey, Map.of("key", "k"))) {
       final var run = run(call("1", arguments));
 
       assertThat(run.results()).singleElement();
@@ -250,7 +251,11 @@ class ReturnDocumentToolTest {
     final var agentContext = WITH_DOCUMENTS.withDocuments(registered);
     final var message =
         AssistantMessage.builder()
-            .toolCalls(List.of(call("1", Map.of("key", "k", "document", "<doc id=\"unknown\" />"))))
+            .toolCalls(
+                List.of(
+                    call(
+                        "1",
+                        Map.of("key", "k", "document", handle(AgentDocumentId.of("unknown"))))))
             .build();
 
     final var admitted =
@@ -277,9 +282,9 @@ class ReturnDocumentToolTest {
   void selectsTheDocumentsOfSeveralCallsInTheOrderOfTheCallsAndKeepsTheLastOfAKey() {
     final var run =
         run(
-            call("1", Map.of("key", "a", "document", reportTag, "description", "one")),
-            call("2", Map.of("key", "b", "document", summaryTag)),
-            call("3", Map.of("key", "a", "document", summaryTag, "description", "three")));
+            call("1", Map.of("key", "a", "document", reportHandle, "description", "one")),
+            call("2", Map.of("key", "b", "document", summaryHandle)),
+            call("3", Map.of("key", "a", "document", summaryHandle, "description", "three")));
 
     assertThat(run.input().responseDocuments())
         .containsExactly(
@@ -298,10 +303,14 @@ class ReturnDocumentToolTest {
     final var run =
         run(
             WITH_DOCUMENTS.withDocuments(registered).withResponseDocument(earlier),
-            call("1", Map.of("key", "second", "document", summaryTag)));
+            call("1", Map.of("key", "second", "document", summaryHandle)));
 
     assertThat(run.responseDocuments())
         .containsExactly(earlier, new ResponseDocumentSelection("second", summaryId, null));
+  }
+
+  private static Map<String, Object> handle(AgentDocumentId id) {
+    return Map.of("type", AgentDocumentHandle.TYPE, "id", id.value());
   }
 
   private static ToolCall call(String id, Map<String, Object> arguments) {

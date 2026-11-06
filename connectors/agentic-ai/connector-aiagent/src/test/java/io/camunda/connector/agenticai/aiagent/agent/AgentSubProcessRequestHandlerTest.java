@@ -2696,7 +2696,7 @@ class AgentSubProcessRequestHandlerTest {
                 "key",
                 "report",
                 "document",
-                docTag(AgentDocumentId.of(KNOWN_DOCUMENT)),
+                docHandle(AgentDocumentId.of(KNOWN_DOCUMENT)),
                 "description",
                 "The report"));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
@@ -2743,7 +2743,7 @@ class AgentSubProcessRequestHandlerTest {
         new ToolCall(
             "call-1",
             ReturnDocumentTool.NAME,
-            Map.of("key", "not a key", "document", docTag(AgentDocumentId.of(KNOWN_DOCUMENT))));
+            Map.of("key", "not a key", "document", docHandle(AgentDocumentId.of(KNOWN_DOCUMENT))));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
     doReturn(
@@ -2769,7 +2769,7 @@ class AgentSubProcessRequestHandlerTest {
         new ToolCall(
             "call-1",
             ReturnDocumentTool.NAME,
-            Map.of("key", "report", "document", docTag(AgentDocumentId.of(KNOWN_DOCUMENT))));
+            Map.of("key", "report", "document", docHandle(AgentDocumentId.of(KNOWN_DOCUMENT))));
     final var processCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     mockChatModelExecution(
         AssistantMessage.builder().toolCalls(List.of(returnCall, processCall)).build());
@@ -2790,7 +2790,7 @@ class AgentSubProcessRequestHandlerTest {
   void leavesTheReturnDocumentCallOfAMixedBatchToTheNextTurnAndSelectsItsDocumentThen() {
     final var arguments =
         Map.<String, Object>of(
-            "key", "report", "document", docTag(AgentDocumentId.of(KNOWN_DOCUMENT)));
+            "key", "report", "document", docHandle(AgentDocumentId.of(KNOWN_DOCUMENT)));
 
     final var run =
         runMixedBatchInTwoJobs(
