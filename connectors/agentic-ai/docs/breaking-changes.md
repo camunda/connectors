@@ -372,7 +372,7 @@ applies it to its persisted context, and the next round continues with the conte
   loads unchanged.
 - A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
   and without the `runtimeTools` feature. `kind` is the kind of the tool the call names; a call of a tool name that is not
-  offered, or of a process tool whose document parameter is not the handle of a known document (only with the `documents`
+  offered, or of a tool of either kind whose document parameter is not the handle of a known document (only with the `documents`
   feature), gets a `rejection`, the error text that is its tool call result, and keeps the kind `PROCESS`. The JSON holds `kind`
   only for a call of a runtime tool and `rejection` only when set, and a missing value reads as `PROCESS` and as none, so
   state written by 8.10 loads unchanged. The agent never computes them again, so a custom `ConversationStore` must keep
