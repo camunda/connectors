@@ -12,9 +12,57 @@ This file covers contract and system design. For code structure, follow the
 
 ## Architectural invariants
 
-Before changing architecture or extension points, read and preserve the
-[invariants in §24](reference/ai-agent.md#24-architectural-invariants), the authoritative rules,
-rationale, examples and enforcement details.
+Before changing architecture or extension points, read and preserve these invariants.
+These are the boundaries that keep the module maintainable and framework-pluggable.
+They are documented here as the single source of truth. The
+[architecture tests](../AGENTS.md#architecture-tests) enforce framework isolation and interface naming
+(I1 to I3), so violations fail the build; review checks the rest. I4 and I5 are behavioral contracts:
+review and the tests of the stores and SPIs enforce them.
+
+- **I1. Framework-agnostic core.** The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
+  framework-neutral. Only the LangChain4j adapter package may depend on LangChain4j.
+  - **Rule**: nothing outside `io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.**` may
+    import `dev.langchain4j.*`.
+  - **Why**: the LLM provider is an SPI (`ChatModel` / `ChatModelFactory`, see
+    [`chat-model-spi.md`](../aiagent-api/docs/chat-model-spi.md)). Keeping LangChain4j behind the SPI means it can be replaced or
+    extended per provider without touching orchestration, memory, or the data model.
+  - **Verify**: `grep -rl "import dev.langchain4j" --include="*.java"
+    connector-aiagent/src/main/java/io/camunda/connector/agenticai | grep -v /chatmodel/provider/langchain4j/` returns nothing.
+- **I2. Domain types never leak framework types.** The module owns a framework-agnostic domain model in
+  `io.camunda.connector.agenticai.aiagent.model.*` (the `Message`, `Content`, `ToolCall`, and `ToolDefinition` sealed types).
+  - **Rule**: these types must not expose LangChain4j types in their API. Conversion to/from
+    `dev.langchain4j` types happens **only** in the converter chain (see
+    [`chat-model.md`](../connector-aiagent/docs/chat-model.md#converter-chain-architecture) for the converters).
+  - **Why**: a leak here re-couples the whole codebase to the framework and defeats I1.
+- **I3. Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
+  (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
+  `*Impl`. Wire impls as Spring beans, depend on the interface (constructor injection). The architecture tests check that a class
+  named `FooImpl` implements the interface `Foo`; review checks the rest.
+  - The single implementation is named `<Interface>Impl` in the same package (e.g.
+    `ConversationStoreRegistry` / `ConversationStoreRegistryImpl`, `AgentToolsResolver` / `AgentToolsResolverImpl`,
+    `SystemPromptComposer` / `SystemPromptComposerImpl`). The convention is pervasive, so follow the nearest
+    existing pair.
+  - **Rule**: register the `Impl` as a Spring bean (typically `@ConditionalOnMissingBean` so it can be
+    overridden). Don't inject `*Impl` directly.
+  - **Enforced by**: review checks that there is a single implementation and that it is registered as an
+    overridable bean.
+  - [#9539](https://github.com/camunda/connectors/issues/9539) tracks a change to this convention.
+- **I4. SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
+  gateway tool by implementing the SPI and registering a bean. See
+  [Extension Points](architecture/extension-points.md#extension-points). Do not modify the core to
+  special-case a new provider, store, or contributor. The SPIs:
+
+  | SPI                       | Add a…                          | Where to start      |
+  |---------------------------|---------------------------------|---------------------|
+  | `ChatModelFactory`        | LLM provider                    | [Add an LLM provider](architecture/extension-points.md#add-an-llm-provider) |
+  | `SystemPromptContributor` | system-prompt contribution      | [Add a `SystemPromptContributor`](architecture/extension-points.md#add-a-systempromptcontributor) |
+  | `ConversationStore`       | conversation memory backend     | [Add a `ConversationStore`](architecture/extension-points.md#add-a-conversationstore) |
+  | `GatewayToolHandler`      | multi-tool gateway (MCP/A2A)    | [Gateway Tool Pattern](architecture/extension-points.md#gateway-tool-pattern) |
+- **I5. Conversation stores follow the write-ahead, pointer-based contract.** Any `ConversationStore` must
+  write each turn to a **new** location and load **only** what the `AgentContext` pointer references; never
+  overwrite data the current pointer resolves to. This is the correctness foundation for
+  retry/supersession safety; full statement in
+  [Storage Contract](../aiagent-api/docs/conversation-store-spi.md#storage-contract).
 
 ## Preserve stored data
 
