@@ -17,38 +17,6 @@ Review a rule when its SDK or API area changes. Remove a rule when a build check
 rule when it only causes noise. When a review finds a problem that a build check can find, add the
 check, or open a follow-up issue under #9591.
 
-## Before you plan
-
-A change in this module often has more than one location to change. Before you plan, find each
-location that the change must reach:
-
-- **Both flavors:** the AI Agent Task and the AI Agent Sub-process.
-- **All element template versions** that expose the feature: v1 and v2.
-- **All conversation stores:** in-process, Camunda document and AWS AgentCore.
-- **All providers** that the change applies to, native and LangChain4j.
-- **Running process instances:** instances that started on an earlier connector version, and process
-  instance migration. See [domain rule 1](#domain-rules).
-
-The plan names each location, or says why the change does not apply to it.
-
-## Simplicity first
-
-Write the minimum code that solves the problem. Write nothing speculative.
-
-- Add no feature that the task does not ask for.
-- Add no flexibility or configuration that the task does not ask for.
-- Add no error handling for a case that cannot occur.
-
-## Surgical changes
-
-Change only what the task needs. Clean up only your own changes.
-
-- Do not improve adjacent code, comments or formatting.
-- Do not refactor code that works. Ask before each refactor, also a small one.
-- Tell about dead code that is not related to your change. Do not remove it unless you get a request.
-- Remove the variables and functions that your change made unused.
-- The test: each changed line comes directly from the request.
-
 ## Domain rules
 
 Each rule gives a principle, the location in this module where it applies, and the review finding
@@ -167,3 +135,35 @@ below make this style specific.
   `AgentInitializer` and `AgentConversationTurnInputComposer` as steps.
 
 For interfaces, follow the convention in [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md#architectural-invariants) (#9539).
+
+## Before you plan
+
+A change in this module often has more than one location to change. Before you plan, find each
+location that the change must reach:
+
+- **Both flavors:** the AI Agent Task and the AI Agent Sub-process.
+- **All element template versions** that expose the feature: v1 and v2.
+- **All conversation stores:** in-process, Camunda document and AWS AgentCore.
+- **All providers** that the change applies to, native and LangChain4j.
+- **Running process instances:** instances that started on an earlier connector version, and process
+  instance migration. See [domain rule 1](#domain-rules).
+
+The plan names each location, or says why the change does not apply to it.
+
+## Simplicity first
+
+Write the minimum code that solves the problem. Write nothing speculative.
+
+- Add no feature that the task does not ask for.
+- Add no flexibility or configuration that the task does not ask for.
+- Add no error handling for a case that cannot occur.
+
+## Surgical changes
+
+Change only what the task needs. Clean up only your own changes.
+
+- Do not improve adjacent code, comments or formatting.
+- Do not refactor code that works. Ask before each refactor, also a small one.
+- Tell about dead code that is not related to your change. Do not remove it unless you get a request.
+- Remove the variables and functions that your change made unused.
+- The test: each changed line comes directly from the request.
