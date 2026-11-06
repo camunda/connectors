@@ -2371,7 +2371,7 @@ the system prompt by the `CONFIGURATION` item, user messages by `USER` items, as
 tool results by `TOOL_RESULT` items. The representations may differ: a document with content is a `DOCUMENT` block next to
 its handle in the history and the handle plus the native block in the request, so the history is a superset of what the model
 receives. The history API has no tool kind and no result status, so a runtime tool is recognizable only by its missing
-element id and an error result is plain text; tool input schemas are not reported; the documents the agent returns appear only as the text of the `c8__return_document` result and as the tag in its arguments.
+element id and an error result is plain text; tool input schemas are not reported; the documents the agent returns appear only as the text of the `c8__return_document` result and as the handle in its arguments.
 
 **`historyItemId` (`AgentInstanceHistoryItemIds`).** Every history item carries a `historyItemId` so a
 retried batch write, and the same result written by two jobs, dedup against the previous write (the engine keeps the first): `USER`/`ASSISTANT` items key off the domain
