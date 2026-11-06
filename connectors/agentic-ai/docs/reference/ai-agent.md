@@ -1903,13 +1903,16 @@ The module owns a framework-agnostic domain model in `io.camunda.connector.agent
 ### I3. Interface in package root, single `*Impl` alongside
 
 Public collaborators are interfaces; the single implementation is named `<Interface>Impl` in the same
-package (e.g. `ConversationStoreRegistry` / `ConversationStoreRegistryImpl`). The convention is
+package (e.g. `ConversationStoreRegistry` / `ConversationStoreRegistryImpl`, `AgentToolsResolver` /
+`AgentToolsResolverImpl`, `SystemPromptComposer` / `SystemPromptComposerImpl`). The convention is
 pervasive, so follow the nearest existing pair.
 
 - **Rule**: depend on the interface (constructor injection); register the `Impl` as a Spring bean
   (typically `@ConditionalOnMissingBean` so it can be overridden). Don't inject `*Impl` directly.
 - **Enforced by**: a class named `FooImpl` implements the interface `Foo` (architecture tests). Review
   checks that there is a single implementation and that it is registered as an overridable bean.
+
+[#9539](https://github.com/camunda/connectors/issues/9539) tracks a change to this convention.
 
 ### I4. Extension points are plug-in SPIs
 

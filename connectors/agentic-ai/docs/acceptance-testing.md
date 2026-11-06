@@ -1,22 +1,22 @@
 # Acceptance testing through public interfaces
 
-Follow TDD (red, green, refactor) wherever possible. E2e tests can be written implementation-independently
-first: express the behavior, watch it fail, implement, then confirm it passes. Test use cases and
-observable behavior, not per-class coverage gaps.
+Test use cases and observable behavior, not per-class coverage gaps. Where practical, express the
+expected behavior or reproduce a bug with a failing test before implementing the change.
+Do not require non-compiling tests.
 
-Accept a complete user-facing feature only with end-to-end evidence through customer-available
-interfaces and real integrations relevant to that feature. Use CPT with BPMN, templates and process
-variables, or the exposed API. Assert customer-visible results, including required observability.
-WireMock is fine for internal tests and incremental development; mock-based tests alone do not
-satisfy feature acceptance criteria. Each test asserts the whole observable outcome
+Accept a complete user-facing feature with an e2e test through customer-available interfaces.
+Use CPT with BPMN, templates and process variables, or the exposed API. Assert customer-visible
+results, including required observability. For integration-dependent behavior, follow the
+[integration-target rules](#integration-targets). Each test asserts the whole observable outcome
 ([domain rule 6](implementation-rules.md#domain-rules)).
 
 ## Choosing e2e vs unit tests (mandatory decision)
 
-For every code change, explicitly decide whether an e2e test is warranted, using this rule. If you add
-none for a change that touches the element template or behavioral characteristics, say why. If you are unsure, ask before
-starting a change. The examples below are illustrative, not exhaustive; when a case is not
-listed, reason from the principle (does correctness depend on the engine and BPMN wiring?).
+Choose the test level before implementing each code change; an e2e test is not required for every
+change. If you add none for a change that touches the element template or behavioral characteristics,
+say why. If requirements
+are unclear, ask before starting. The examples below are illustrative, not exhaustive; reason from
+the principle: does correctness depend on the engine and BPMN wiring?
 
 - **E2E test required** when the change touches the distributed / BPMN contract:
     - job completion semantics or ad-hoc sub-process directives
@@ -26,15 +26,15 @@ listed, reason from the principle (does correctness depend on the engine and BPM
     - event handling (interrupt / wait behaviors)
     - the full request → LLM → response cycle
     - element-template behavior
-- **Unit-test-only is sufficient** when the change is internal to a single class/converter and provable
-  without the engine:
+- **Tests without a cluster are sufficient** when correctness is provable without the engine:
     - prompt composition, schema generation, content/tool conversion
     - response formatting, error messages, pure transformations
 
 ## Test suites
 
-Unit tests use JUnit 5, Mockito, and AssertJ. In this module use unit tests only, apart from the few
-existing Spring Boot tests and the e2e suite.
+Unit and component/integration tests that do not require a Camunda cluster belong in the connector
+modules. Use JUnit 5, Mockito and AssertJ as appropriate; Spring context slice, autoconfiguration
+and WireMock tests are also valid when they exercise the relevant behavior.
 
 E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/` (Camunda Process Test scenarios
 plus WireMock LLM stubs, and acceptance tests against real LLM providers). Its
@@ -42,6 +42,18 @@ plus WireMock LLM stubs, and acceptance tests against real LLM providers). Its
 modules, their prerequisites, how to run them, where new tests go, and the real-LLM CPT coverage.
 The [E2E runbook](../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md) covers test
 ownership, local commands, paid-provider authorization, and how to verify that tests ran.
+
+## Integration targets
+
+For changes that depend on an integration, name the test target and explain what it establishes
+in the PR description. A real protocol reference server can establish MCP/A2A interoperability
+without LLM API keys. When behavior depends on an LLM provider, add a real-provider test if API
+keys are available.
+
+WireMock tests can establish connector behavior and BPMN wiring, but do not prove interoperability
+with a real integration. When credentials or other prerequisites are unavailable, state in the PR
+description what was tested and what remains unverified; do not report a stubbed run as a successful
+real-integration test.
 
 ## Real-provider coverage
 
