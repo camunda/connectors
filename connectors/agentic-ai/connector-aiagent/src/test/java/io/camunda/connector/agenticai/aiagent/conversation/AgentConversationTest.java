@@ -256,6 +256,43 @@ class AgentConversationTest {
   }
 
   @Test
+  void window_offersTheToolDefinitionsWithoutTheirDocumentDelivery() {
+    var toolWithDelivery =
+        ToolDefinition.builder()
+            .name("download")
+            .description("Downloads a file")
+            .inputSchema(Map.of("type", "object", "properties", Map.of()))
+            .documentDelivery(DocumentDelivery.CONTENT)
+            .build();
+    var toolWithoutDelivery = toolWithDelivery.withDocumentDelivery(null).withName("plain");
+    var tools = List.of(toolWithDelivery, toolWithoutDelivery);
+
+    var tracked =
+        AgentConversation.rehydrate(
+            CONFIG.withToolDefinitions(tools),
+            BASE_CONTEXT.withToolDefinitions(tools),
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+    var untracked =
+        AgentConversation.rehydrate(
+            CONFIG.withToolDefinitions(tools),
+            BASE_CONTEXT
+                .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
+                .withToolDefinitions(tools),
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    for (var conv : List.of(tracked, untracked)) {
+      assertThat(conv.window(20).toolDefinitions())
+          .containsExactly(toolWithDelivery.withDocumentDelivery(null), toolWithoutDelivery);
+    }
+    // the configuration keeps the delivery
+    assertThat(tracked.configuration().toolDefinitions()).contains(toolWithDelivery);
+  }
+
+  @Test
   void window_leavesOutTheDocumentOfAnEvictedMessageAndAddsNoNote() {
     var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)

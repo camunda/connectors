@@ -115,4 +115,18 @@ class ToolDefinitionTest {
 
     assertThat(restored.documentDelivery()).isNull();
   }
+
+  @Test
+  void withoutDocumentDeliveryDropsTheDeliveryAndKeepsTheRest() {
+    final var content =
+        ToolDefinition.runtime("tool", "does it", Map.of("type", "object"))
+            .withDocumentDelivery(DocumentDelivery.CONTENT);
+
+    final var stripped = content.withoutDocumentDelivery();
+
+    assertThat(stripped.documentDelivery()).isNull();
+    assertThat(stripped).isEqualTo(content.withDocumentDelivery(null));
+    assertThat(stripped.kind()).isEqualTo(ToolKind.RUNTIME);
+    assertThat(stripped.withoutDocumentDelivery()).isSameAs(stripped);
+  }
 }
