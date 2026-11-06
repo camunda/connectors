@@ -41,6 +41,15 @@
           <zeebe:script expression="=if body instance of context then &#34;document:&#34; + body.documentId else &#34;text:&#34; + string(body)" resultVariable="toolCallResult" />
         </bpmn:extensionElements>
       </bpmn:scriptTask>
+      <bpmn:scriptTask id="Send_Files" name="Send files">
+        <bpmn:documentation>Sends one document or a list of documents. Answers what it received.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:ioMapping>
+            <zeebe:input source="=fromAi(value: toolCall.files, description: &#34;The files to send.&#34;, schema: {&#34;anyOf&#34;: [{&#34;type&#34;: &#34;document&#34;}, {&#34;type&#34;: &#34;array&#34;, &#34;items&#34;: {&#34;type&#34;: &#34;document&#34;}}]})" target="files" />
+          </zeebe:ioMapping>
+          <zeebe:script expression="=if files instance of list then &#34;documents:&#34; + string join(for f in files return f.documentId, &#34;,&#34;) else &#34;document:&#34; + files.documentId" resultVariable="toolCallResult" />
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
     </bpmn:adHocSubProcess>
     <bpmn:sequenceFlow id="Flow_end" sourceRef="AI_Agent" targetRef="EndEvent_ExecuteAgent" />
     <bpmn:endEvent id="EndEvent_ExecuteAgent">
@@ -50,9 +59,10 @@
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Agentic_AI_Connectors_Documents_Union">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1"><dc:Bounds x="100" y="100" width="36" height="36" /></bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="AI_Agent_di" bpmnElement="AI_Agent" isExpanded="true"><dc:Bounds x="176" y="100" width="300" height="160" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="AI_Agent_di" bpmnElement="AI_Agent" isExpanded="true"><dc:Bounds x="176" y="100" width="300" height="270" /></bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Download_A_File_di" bpmnElement="Download_A_File"><dc:Bounds x="196" y="160" width="100" height="80" /></bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Send_Message_di" bpmnElement="Send_Message"><dc:Bounds x="336" y="160" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Send_Files_di" bpmnElement="Send_Files"><dc:Bounds x="336" y="270" width="100" height="80" /></bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndEvent_ExecuteAgent_di" bpmnElement="EndEvent_ExecuteAgent"><dc:Bounds x="536" y="100" width="36" height="36" /></bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_start_di" bpmnElement="Flow_start"><di:waypoint x="136" y="118" /><di:waypoint x="176" y="180" /></bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_end_di" bpmnElement="Flow_end"><di:waypoint x="476" y="180" /><di:waypoint x="536" y="118" /></bpmndi:BPMNEdge>
