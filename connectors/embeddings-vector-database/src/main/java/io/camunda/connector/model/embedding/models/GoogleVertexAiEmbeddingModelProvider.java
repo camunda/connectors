@@ -49,7 +49,7 @@ public record GoogleVertexAiEmbeddingModelProvider(@Valid @NotNull Configuration
       @NotBlank
           @TemplateProperty(
               group = "embeddingModel",
-              label = "Model name",
+              label = "Model",
               description = "Vertex AI embedding model name",
               feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

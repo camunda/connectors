@@ -6,11 +6,10 @@
  */
 package io.camunda.connector.model.embedding.models;
 
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -43,47 +42,30 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
               label = "Region",
               description = "AWS Bedrock region")
           String region,
-      @NotNull
+      @FEEL
+          @NotBlank
           @TemplateProperty(
               group = "embeddingModel",
-              label = "Model name",
-              feel = FeelMode.required,
-              type = TemplateProperty.PropertyType.Dropdown,
-              description = "Bedrock model name or identifier",
-              defaultValue = "TitanEmbedTextV2")
-          BedrockModels modelName,
-      @TemplateProperty(
-              group = "embeddingModel",
-              label = "Custom model name",
+              label = "Model",
               feel = FeelMode.optional,
-              constraints = @PropertyConstraints(notEmpty = true),
-              condition =
-                  @PropertyCondition(
-                      property = "embeddingModelProvider.bedrock.modelName",
-                      equals = "Custom"))
-          String customModelName,
+              placeholder = "amazon.titan-embed-text-v2:0",
+              tooltip = "Model ID compatible with the Amazon Titan embedding API.")
+          String modelName,
+      @TemplateProperty(ignore = true) String customModelName,
       @TemplateProperty(
               group = "embeddingModel",
               label = "Embedding dimensions",
               description = "The size of the vector used to represent data",
               feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
-              defaultValue = "D1024",
-              condition =
-                  @PropertyCondition(
-                      property = "embeddingModelProvider.bedrock.modelName",
-                      equals = "TitanEmbedTextV2"))
+              defaultValue = "D1024")
           BedrockDimensions dimensions,
       @TemplateProperty(
               group = "embeddingModel",
               label = "Normalize",
               description = "Normalize vector",
               defaultValueType = DefaultValueType.Boolean,
-              defaultValue = "false",
-              condition =
-                  @PropertyCondition(
-                      property = "embeddingModelProvider.bedrock.modelName",
-                      equals = "TitanEmbedTextV2"))
+              defaultValue = "false")
           Boolean normalize,
       @TemplateProperty(
               group = "embeddingModel",
@@ -94,11 +76,15 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
           Integer maxRetries) {
 
     public String resolveSelectedModelName() {
-      if (modelName == BedrockModels.Custom) {
+      if (BedrockModels.Custom.name().equalsIgnoreCase(modelName)) {
         return customModelName;
-      } else {
-        return modelName.getModelName();
       }
+      for (BedrockModels legacyModel : BedrockModels.values()) {
+        if (legacyModel.name().equalsIgnoreCase(modelName)) {
+          return legacyModel.getModelName();
+        }
+      }
+      return modelName;
     }
 
     @Override

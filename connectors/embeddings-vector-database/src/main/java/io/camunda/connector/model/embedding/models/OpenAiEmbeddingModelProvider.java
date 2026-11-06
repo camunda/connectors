@@ -35,7 +35,7 @@ public record OpenAiEmbeddingModelProvider(@Valid @NotNull Configuration openAi)
       @NotBlank
           @TemplateProperty(
               group = "embeddingModel",
-              label = "Model name",
+              label = "Model",
               description =
                   "Specify the model name. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,

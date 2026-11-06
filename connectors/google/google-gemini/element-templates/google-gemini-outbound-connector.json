@@ -4,8 +4,27 @@
   "id" : "io.camunda.connectors.GoogleGemini.v1",
   "description" : " A large language model (LLM) created by Google AI. It's a multimodal model, meaning it can understand and work with different types of information like text, code, audio, images, and video",
   "keywords" : [ "generate text", "AI", "LLM", "language model", "chat", "completion", "generative AI", "prompt", "multimodal" ],
+  "metadata" : {
+    "migratesFrom" : {
+      "schemaVersion" : 1,
+      "sources" : [ {
+        "kind" : "upgrade",
+        "sourceTemplateId" : "io.camunda.connectors.GoogleGemini.v1",
+        "toVersion" : 5,
+        "paths" : [ {
+          "from" : "input.customModelName",
+          "to" : "input.model",
+          "when" : {
+            "path" : "input.model",
+            "equals" : "CUSTOM"
+          },
+          "note" : "The legacy custom model name is copied into Model."
+        } ]
+      } ]
+    }
+  },
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/google-gemini/",
-  "version" : 4,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -217,52 +236,14 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.model",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "gemini-2.5-pro",
-      "value" : "GEMINI_2_5_PRO"
-    }, {
-      "name" : "gemini-2.5-flash",
-      "value" : "GEMINI_2_5_FLASH"
-    }, {
-      "name" : "gemini-2.5-flash-image",
-      "value" : "GEMINI_2_5_FLASH_IMAGE"
-    }, {
-      "name" : "gemini-2.5-flash-lite",
-      "value" : "GEMINI_2_5_FLASH_LITE"
-    }, {
-      "name" : "gemini-2.0-flash",
-      "value" : "GEMINI_2_0_FLASH"
-    }, {
-      "name" : "gemini-2.0-flash-lite",
-      "value" : "GEMINI_2_0_FLASH_LITE"
-    }, {
-      "name" : "Custom",
-      "value" : "CUSTOM"
-    } ]
-  }, {
-    "id" : "input.customModelName",
-    "label" : "Custom model name",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "input",
-    "binding" : {
-      "name" : "input.customModelName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.model",
-      "equals" : "CUSTOM",
-      "type" : "simple"
-    },
+    "tooltip" : "Model ID available in your Vertex AI project.",
+    "placeholder" : "gemini-3-pro-preview",
     "type" : "String"
   }, {
     "id" : "input.prompts",
@@ -579,7 +560,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "5",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
