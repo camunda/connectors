@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -247,9 +246,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   /**
    * The blocks of the documents of the user prompt. The content of a document is added when the
    * model is called, for a block with the delivery content. A document that fails the content guard
-   * is its handle with a note instead of a block. The documents of an external URL always go out as
-   * content: the model provider reads them, so the content guard could neither check nor bound
-   * them.
+   * stays a block with the delivery reference and a note. The documents of an external URL always
+   * go out as content: the model provider reads them, so the content guard could neither check nor
+   * bound them.
    */
   private List<Content> trackedPromptDocuments(
       AgentInput.UserPrompt userPrompt, AgentDocuments known, Set<AgentDocumentId> idsWithContent) {
@@ -276,11 +275,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               case DocumentContentDelivery.Outcome.Delivered delivered ->
                   blocks.add(delivered.withContent());
               case DocumentContentDelivery.Outcome.Withheld withheld ->
-                  blocks.add(
-                      textContent(
-                          DocumentHandle.of(known, withheld.id())
-                              .withNote(withheld.note())
-                              .text()));
+                  blocks.add(reference.withNote(withheld.note()));
             }
           }
         }

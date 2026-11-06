@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -41,8 +42,12 @@ import org.jspecify.annotations.Nullable;
  * <p>A tool result that is a document holds this block; the model sees its handle for it. A
  * document nested in the object of a tool result stays a document.
  *
+ * <p>The {@code note} is a sentence about the document for the model, set when the content of the
+ * document is withheld; the model sees it in the handle. It is stored only when set.
+ *
  * @param id the stable id of the document
  * @param delivery how the document reaches the model
+ * @param note a sentence for the model about the document, or {@code null}
  * @param metadata the metadata of the content block
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -50,6 +55,7 @@ import org.jspecify.annotations.Nullable;
 public record AgentDocumentContent(
     AgentDocumentId id,
     DocumentDelivery delivery,
+    @Nullable String note,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements Content {
 
@@ -60,15 +66,21 @@ public record AgentDocumentContent(
     if (delivery == null) {
       delivery = DocumentDelivery.REFERENCE;
     }
+    note = StringUtils.defaultIfBlank(note, null);
   }
 
   /** The block of the document with the delivery {@link DocumentDelivery#REFERENCE}. */
   public static AgentDocumentContent of(AgentDocumentId id) {
-    return new AgentDocumentContent(id, DocumentDelivery.REFERENCE, null);
+    return new AgentDocumentContent(id, DocumentDelivery.REFERENCE, null, null);
   }
 
   /** Returns the block with the given delivery. */
   public AgentDocumentContent withDelivery(DocumentDelivery delivery) {
-    return new AgentDocumentContent(id, delivery, metadata);
+    return new AgentDocumentContent(id, delivery, note, metadata);
+  }
+
+  /** Returns the block with the given note. */
+  public AgentDocumentContent withNote(@Nullable String note) {
+    return new AgentDocumentContent(id, delivery, note, metadata);
   }
 }

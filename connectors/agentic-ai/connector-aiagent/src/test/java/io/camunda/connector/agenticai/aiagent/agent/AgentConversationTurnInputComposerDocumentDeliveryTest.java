@@ -137,14 +137,25 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         .withDelivery(loaded ? DocumentDelivery.CONTENT : DocumentDelivery.REFERENCE);
   }
 
-  /** The handle of a document that fails the content guard, with the note of the rejection. */
-  private static Content withheld(Document document) {
+  /** The note of the rejection of a document that fails the content guard. */
+  private static String rejectionNote(Document document) {
     final var verdict = new DocumentContentGuard(DocumentContentLimits.defaults()).check(document);
     assertThat(verdict).isInstanceOf(DocumentContentGuard.Verdict.Rejected.class);
-    final var note = ((DocumentContentGuard.Verdict.Rejected) verdict).rejection().modelText();
+    return ((DocumentContentGuard.Verdict.Rejected) verdict).rejection().modelText();
+  }
+
+  /** The handle of a document that fails the content guard, with the note of the rejection. */
+  private static Content withheld(Document document) {
     final var known = AgentDocuments.empty().register(document, DocumentOrigin.userMessage());
     return textContent(
-        DocumentHandle.of(known, AgentDocumentId.of(document)).withNote(note).text());
+        DocumentHandle.of(known, AgentDocumentId.of(document))
+            .withNote(rejectionNote(document))
+            .text());
+  }
+
+  /** The block of a document of the user prompt that fails the content guard. */
+  private static AgentDocumentContent withheldBlock(Document document) {
+    return block(document, false).withNote(rejectionNote(document));
   }
 
   // --- user prompt
@@ -219,7 +230,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), pdf));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), withheld(pdf));
+        .containsExactly(textContent("Hello?"), withheldBlock(pdf));
   }
 
   @Test
@@ -233,8 +244,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void
-      userPrompt_withTheDeliveryContent_fallsBackToTheHandleWithANoteForADocumentThatFailsTheGuard() {
+  void userPrompt_withTheDeliveryContent_keepsTheBlockWithANoteForADocumentThatFailsTheGuard() {
     final var loadable = document("prompt data", "text/plain", "prompt.txt");
     final var archive = document("zip", "application/zip", "archive.zip");
 
@@ -242,7 +252,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), loadable, archive));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), block(loadable, true), withheld(archive));
+        .containsExactly(textContent("Hello?"), block(loadable, true), withheldBlock(archive));
     // both documents are registered, loaded or not
     assertThat(turn.documents())
         .extracting(NewDocument::document)

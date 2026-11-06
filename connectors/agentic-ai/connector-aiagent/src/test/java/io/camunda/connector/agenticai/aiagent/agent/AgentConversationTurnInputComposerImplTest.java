@@ -283,7 +283,7 @@ class AgentConversationTurnInputComposerImplTest {
 
   private static AgentDocumentContent documentReference(
       Document document, DocumentDelivery delivery) {
-    return new AgentDocumentContent(AgentDocumentId.of(document), delivery, null);
+    return new AgentDocumentContent(AgentDocumentId.of(document), delivery, null, null);
   }
 
   @Test

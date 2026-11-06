@@ -46,7 +46,8 @@ class UnexpandedAgentDocumentContentTest {
 
   private static final List<Content> CONTENT =
       List.of(
-          new AgentDocumentContent(AgentDocumentId.of("doc-1"), DocumentDelivery.CONTENT, null));
+          new AgentDocumentContent(
+              AgentDocumentId.of("doc-1"), DocumentDelivery.CONTENT, null, null));
 
   static Stream<Named<Consumer<List<Content>>>> converters() {
     return Stream.of(

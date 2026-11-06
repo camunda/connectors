@@ -38,8 +38,8 @@ import org.jspecify.annotations.Nullable;
  * <p>The persisted form of a document is its block only; the document is restored from the agent
  * documents. In a user message the model gets the handle text of every block and the document
  * content of the blocks with {@link DocumentDelivery#CONTENT}. A document the agent does not know,
- * or that cannot be restored, leaves the handle text alone. A handle a user typed into a prompt is
- * text and stays text.
+ * or that cannot be restored, leaves the handle text alone. The handle of a block with a note
+ * carries the note. A handle a user typed into a prompt is text and stays text.
  *
  * <p>In a tool result a block becomes the handle text of the document, which for the model is the
  * handle only: the delivery of such a block is not read. A document nested in an object is replaced
@@ -103,7 +103,7 @@ public final class DocumentExpander {
     for (int i = 0; i < contents.size(); i++) {
       switch (contents.get(i)) {
         case AgentDocumentContent block -> {
-          expanded.add(new TextContent(handleText(documents, block.id()), block.metadata()));
+          expanded.add(new TextContent(handleText(documents, block), block.metadata()));
           final var next = i + 1 < contents.size() ? contents.get(i + 1) : null;
           if (block.delivery() == DocumentDelivery.CONTENT
               && !isFollowedByDocument(next, block.id())) {
@@ -136,7 +136,7 @@ public final class DocumentExpander {
       expanded.add(
           switch (content) {
             case AgentDocumentContent block ->
-                new TextContent(handleText(documents, block.id()), block.metadata());
+                new TextContent(handleText(documents, block), block.metadata());
             case ObjectContent objectContent -> renderObject(objectContent);
             case TextContent textContent -> textContent;
             case DocumentContent documentContent -> documentContent;
@@ -147,8 +147,8 @@ public final class DocumentExpander {
     return List.copyOf(expanded);
   }
 
-  private static String handleText(AgentDocuments documents, AgentDocumentId id) {
-    return DocumentHandle.of(documents, id).text();
+  private static String handleText(AgentDocuments documents, AgentDocumentContent block) {
+    return DocumentHandle.of(documents, block.id()).withNote(block.note()).text();
   }
 
   /**

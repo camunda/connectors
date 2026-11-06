@@ -22,7 +22,7 @@ class PreviousConversationTest {
   private static final AgentDocumentId LOADED = AgentDocumentId.of("loaded");
 
   private static AgentDocumentContent block(AgentDocumentId id, DocumentDelivery delivery) {
-    return new AgentDocumentContent(id, delivery, null);
+    return new AgentDocumentContent(id, delivery, null, null);
   }
 
   private static PreviousConversation conversationWithTheLoadedDocumentFirst() {
