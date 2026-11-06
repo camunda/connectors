@@ -49,6 +49,10 @@ public sealed interface CompositionResult {
       implements CompositionResult {
 
     public Ready {
+      if (userPrompt != null && !toolCallBatch.toolCalls().isEmpty()) {
+        throw new IllegalArgumentException(
+            "The next turn has either tool call results or a user prompt, not both");
+      }
       eventMessages = List.copyOf(eventMessages);
     }
 
