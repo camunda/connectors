@@ -761,28 +761,33 @@ A tool parameter that carries a document is declared with the type `document`:
 (`DocumentSchemas.document`): an object with the properties `type`, whose one allowed value is `camunda.agenticai.document`, and
 `id`, both required, and the description as authored; it sets no `additionalProperties`.
 `AuthoredSchemaNormalizer` of the tools schema module normalizes the shorthand type also inside the `items` and
-`properties` of an authored schema and in the direct alternatives of such a node, and nowhere else. The schema goes to the
+`properties` of an authored schema and in the `anyOf` and `oneOf` alternatives of such a node at any depth, and nowhere else
+(`allOf`, `not`, `if`/`then`/`else`, `additionalProperties`, `patternProperties`, `prefixItems`, `$defs` and `$ref` keep the shorthand as
+authored). The schema goes to the
 model provider as it is, so the stored definition, the configuration fingerprint and the request hold the same wording, and
 nothing is appended to a description. Document parameters are found at the top level, as array `items` and through object
 `properties` at any depth (`ToolDefinition#documentParameters()`, the sealed `DocumentParameter` of `Document` and
-`TextOrDocument`). A node is a document parameter when it is an object whose `properties.type.enum` is exactly
-`["camunda.agenticai.document"]`; the search stops there, so its `type` and `id` properties are no parameters. A handle schema
-behind `$ref`, or inside an `anyOf` or `oneOf` alternative that is an object or array, is not a document parameter.
+`Union`). A node is a `Document` when it is an object whose `properties.type.enum` is exactly
+`["camunda.agenticai.document"]`; the search stops there, so its `type` and `id` properties are no parameters. A node is a
+`Union` when it has `anyOf` or `oneOf` with more than one alternative and a handle schema sits inside its alternatives (see
+below); the search stops there too. A handle schema behind `$ref` is not a document parameter.
 
-The model passes the handle it read as the value: `{"type": "camunda.agenticai.document", "id": "doc_0123456789ab"}`. Further
-fields of the object, such as `fileName` and `size`, are ignored, and the `type` is required. A parameter that always takes
-a document is lenient in two ways: it also accepts a string that holds the handle object as JSON (a model or a tool-calling
-API that stringified the argument) and a string that is the bare id of a known document, surrounding whitespace ignored;
-the schema advertises the handle object only. Anything else is invalid: an object without the `type`, an unknown id, other
-text, a number. A call with an invalid value is answered by the agent itself, with a tool result of one sentence per invalid
+The model passes the handle it read as the value: `{"type": "camunda.agenticai.document", "id": "doc_0123456789ab"}`. One
+rule defines a handle everywhere: an object with the `type` `camunda.agenticai.document`, or a string that is exactly such an
+object as JSON (a model or a tool-calling API that stringified the argument), surrounding whitespace ignored. Further fields of
+the object, such as `fileName` and `size`, are ignored, and the `type` is required. A string that is the bare id of a document
+is no handle. The value of a `Document` parameter must be a handle of a known document. Anything else is invalid: a bare id, an
+object without the `type`, an unknown id, other text, a number. A call with an invalid value is answered by the agent itself, with a tool result of one sentence per invalid
 value, joined by a space, and the tool does not run. The sentence depends on the value. When the agent knows no documents, it
 tells the model to pass none (it wins over the other two):
 `Parameter 'docs[1]' takes a document, but the conversation has no documents. Do not pass a document.`
-When the value is a handle or a bare id that is not known, it names the id:
+When the value is a handle with an id that is not known, it names the id:
 `Parameter 'docs[1]' has the id 'doc_000000000000', but the conversation has no document with this id. Pass the handle of a document from the conversation: a JSON object such as {"type":"camunda.agenticai.document","id":"doc_…"}.`
 For any other value it names the expected shape:
 `Parameter 'docs[1]' must be the handle of a document from the conversation: a JSON object such as {"type":"camunda.agenticai.document","id":"doc_…"}.`
-(`name`, `parent.name` and `name[i]` are the parameter paths; an array parameter that is not an array reads
+In a union parameter that holds a handle while the agent knows no documents, the first sentence reads
+`Parameter 'message.file' holds a document handle, but the conversation has no documents. Do not pass a document handle.`
+(`name`, `parent.name` and `name[i]` are the paths of the value; an array parameter that is not an array reads
 `Parameter 'p' must be an array.`). A missing or `null` argument is left alone.
 
 `DocumentParameterResolver` resolves the document parameters of a call from the call, the tool definition and the agent
@@ -801,9 +806,10 @@ assistant message is never rewritten, so the stored conversation and the history
 - **The execution of a runtime call.** `RuntimeTools` resolves the document parameters of an admitted runtime tool call
   into `AgentDocumentId`s before it calls the tool.
 
-A parameter that takes text or a document (a union parameter) is declared with the schema argument of `fromAi()`, an
-`anyOf` (or `oneOf`) with a plain alternative and a `document` alternative. Leave the type argument out with named
-arguments, so the type of the other alternatives stays valid:
+A parameter that takes a document or something else (a union parameter) is declared with the schema argument of `fromAi()`,
+an `anyOf` (or `oneOf`) with more than one alternative, a `document` among them, directly or inside an object alternative
+(its properties) or an array alternative (its items). Leave the type argument out with named arguments, so the type of the
+other alternatives stays valid. Text or a document:
 
 ```feel
 fromAi(
@@ -813,21 +819,46 @@ fromAi(
 )
 ```
 
+One document or a list of documents:
+
+```feel
+fromAi(
+  value: toolCall.files,
+  description: "The files to attach.",
+  schema: {"anyOf": [{"type": "document"}, {"type": "array", "items": {"type": "document"}}]}
+)
+```
+
+Text or a file with a caption:
+
+```feel
+fromAi(
+  value: toolCall.message,
+  description: "The message.",
+  schema: {"anyOf": [
+    {"type": "string"},
+    {"type": "object", "properties": {"file": {"type": "document"}, "caption": {"type": "string"}}}
+  ]}
+)
+```
+
 The type array form `schema: {"type": ["string", "document"]}` is rewritten to the same `anyOf`; the alternative `document`
-becomes the handle schema and the other alternatives stay as authored, whatever they are (a string, an object, an array). A
-union is a node with an `anyOf` or `oneOf` that has a handle alternative and at least one other. A string value of a union is
-always text, also one that equals the id of a known document or holds a handle as JSON (the leniency of a document-only
-parameter does not reach a union); a runtime tool receives a `String` for it. An object with the `type` of a handle is a
-document: the tool receives the Camunda document reference, a runtime tool an `AgentDocumentId`, and a handle with an unknown
-id is answered with the sentence above and the tool does not run. An object without that `type` is passed as it is, for
-another alternative of the union, such as a structured value; so is a number, a boolean or an array. A union parameter is
-resolved by the same `DocumentParameterResolver`, at the same three places as a document parameter: a call of a tool of
-either kind with an unknown handle is rejected at admission, keeps its kind, carries the sentence as its
-`ToolCall.rejection` and is answered by `LocalToolCallExecutor`. A union is stored as it is authored and is not searched for
-documents inside its alternatives that are objects or arrays, because a value cannot be assigned to one alternative
-reliably. The output of the Ad-Hoc Tools Schema Resolver carries the handle schema, which every provider accepts as it is,
-so another LLM connector that sends it to its provider needs no rewrite. The shorthand type `document` is normalized only for
-`fromAi()` parameters. See [ADR 017](../adr/017-document-flow.md).
+becomes the handle schema wherever the shorthand sits in an alternative, and the other alternatives stay as authored. The agent
+does not assign the value to an alternative: a handle identifies itself by its `type`, so the agent scans the value of a union
+and every handle at or below it is a document. The tool receives the Camunda document reference for it, a runtime tool an
+`AgentDocumentId`, and a handle with an unknown id is answered with the sentence above, with the path of the handle (for
+example `files[1]` or `message.file`), and the tool does not run. Every other value is passed as it is: text (also a string that
+equals the id of a known document, or a string that is not a handle as JSON), a number, a boolean, an object without the handle
+`type` (for another alternative, such as a structured value), and an array; a runtime tool receives a `String` for text. This
+holds also for a union without a text alternative. A union parameter is resolved by the same `DocumentParameterResolver`, at the
+same three places as a document parameter: a call of a tool of either kind with an unknown handle is rejected at admission,
+keeps its kind, carries the sentence as its `ToolCall.rejection` and is answered by `LocalToolCallExecutor`. A union is stored as
+it is authored, with the shorthand turned into the handle schema. A union with a handle schema in an alternative gets no default
+`type: string` next to its `anyOf`. The search for document parameters stops at a union, and it does not look into `allOf`,
+`not`, `if`/`then`/`else`, `additionalProperties`, `patternProperties`, `prefixItems`, `$defs` or `$ref`. The output of the Ad-Hoc
+Tools Schema Resolver carries the handle schema, which every provider accepts as it is, so another LLM connector that sends it to
+its provider needs no rewrite. The shorthand type `document` is normalized only for `fromAi()` parameters. See
+[ADR 017](../adr/017-document-flow.md).
 
 ---
 
@@ -1913,7 +1944,7 @@ These are used during discovery checking and tool call result transformation.
 A gateway handler that defines its tools itself can declare document parameters in them. The tool definitions
 a handler returns from `handleToolDiscoveryResults` are stored as they are, so a handler writes the stored form of a document
 parameter (`DocumentSchemas.document(...)`: the object schema of a document handle) or of a
-union parameter (`DocumentSchemas.textOrDocument(...)`); the
+union parameter (an `anyOf` or `oneOf` with `DocumentSchemas.document(...)` as one alternative); the
 shorthand type `document` is normalized only for `fromAi()` parameters. The agent resolves the document parameters of a call
 on the model's tool call, by the definition the model saw, before `transformToolCalls()`, so the handler receives the
 Camunda document references in the arguments it wraps into its envelope. A call with an invalid document value is answered
@@ -2465,9 +2496,10 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   result the model reads.
 
 **Document parameters.** A parameter that carries a document is declared with `DocumentSchemas.document(...)`, one that
-takes text or a document with `textOrDocument(...)`, and the agent resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, a property typed `AgentDocumentId` receives it and
+takes a document or something else with an `anyOf` or `oneOf` that has `DocumentSchemas.document(...)` as one alternative (directly or inside an
+object or array alternative), and the agent resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, a property typed `AgentDocumentId` receives it and
 a property typed `String` the text of the id, a property typed `Object` a `AgentDocumentId` for a document and the value the
-model passed for any other value. A call with a parameter that does not name a known document is rejected at admission: the agent answers it with the
+model passed for any other value; a union parameter holds an `AgentDocumentId` in the place of every handle in the value. A call with a parameter that does not name a known document is rejected at admission: the agent answers it with the
 error and the tool is not called. A runtime tool whose definition gains a document parameter between the jobs of a mixed
 batch fails the job (`IllegalStateException`) for a call admitted before, instead of giving the model an error.
 

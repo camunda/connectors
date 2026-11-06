@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -516,7 +517,9 @@ class RuntimeToolsTest {
 
   // document parameters
 
-  private static final String BOGUS_FILE = rejection("file", "bogus");
+  private static final String BOGUS_FILE =
+      "Parameter 'file' must be the handle of a document from the conversation: a JSON object such as"
+          + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.";
 
   private static final String UNKNOWN_BODY = rejection("body", "doc_000000000000");
 
@@ -647,7 +650,7 @@ class RuntimeToolsTest {
     record Args(Object body) {}
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__send", Map.of("body", DocumentSchemas.textOrDocument("The body"))),
+            definitionOf("c8__send", Map.of("body", TestDocuments.textOrDocument("The body"))),
             (context, call) -> {
               received.add(call.argumentsAs(Args.class).body());
               return RuntimeToolResult.success("sent");
@@ -669,7 +672,7 @@ class RuntimeToolsTest {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__send", Map.of("body", DocumentSchemas.textOrDocument("The body"))),
+            definitionOf("c8__send", Map.of("body", TestDocuments.textOrDocument("The body"))),
             (context, call) -> {
               runs.incrementAndGet();
               return RuntimeToolResult.success("sent");

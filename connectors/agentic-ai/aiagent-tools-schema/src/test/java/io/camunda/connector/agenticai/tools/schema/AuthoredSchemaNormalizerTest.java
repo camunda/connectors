@@ -99,7 +99,7 @@ class AuthoredSchemaNormalizerTest {
                     "The body")));
     assertThat(List.copyOf(valueOf(normalized, "body").keySet()))
         .containsExactly("title", "anyOf", "description");
-    assertThat(DocumentParameter.isTextOrDocumentSchema(valueOf(normalized, "body"))).isTrue();
+    assertThat(DocumentParameter.isUnionSchema(valueOf(normalized, "body"))).isTrue();
   }
 
   @Test
@@ -131,32 +131,99 @@ class AuthoredSchemaNormalizerTest {
   }
 
   @Test
-  void normalizesExactlyWhereADocumentParameterIsFound() {
-    final var inObjectAlternative =
-        Map.of("anyOf", List.of(string(), object("file", Map.of("type", "document"))));
-    final var inArrayAlternative =
-        Map.of(
-            "oneOf",
-            List.of(string(), Map.of("type", "array", "items", Map.of("type", "document"))));
-    final var itemsNextToProperties = new LinkedHashMap<String, Object>();
-    itemsNextToProperties.put("type", "object");
-    itemsNextToProperties.put("properties", Map.of("file", Map.of("type", "document")));
-    itemsNextToProperties.put("items", Map.of("type", "document"));
+  void normalizesTheShorthandInsideObjectAndArrayAlternatives() {
     final var schema =
         object(
-            "objectAlternative", inObjectAlternative,
-            "arrayAlternative", inArrayAlternative,
+            "message",
+                Map.of(
+                    "anyOf",
+                    List.of(
+                        string(), object("file", Map.of("type", "document"), "caption", string()))),
+            "files",
+                Map.of(
+                    "oneOf",
+                    List.of(
+                        Map.of("type", "document"),
+                        Map.of("type", "array", "items", Map.of("type", "document")))));
+
+    final var normalized = normalizer.normalize(schema);
+
+    assertThat(normalized)
+        .isEqualTo(
+            object(
+                "message",
+                    Map.of("anyOf", List.of(string(), object("file", doc(), "caption", string()))),
+                "files", Map.of("oneOf", List.of(doc(), Map.of("type", "array", "items", doc())))));
+    assertThat(DocumentParameter.in(normalized))
+        .containsExactly(
+            new DocumentParameter.Union(List.of(new Step.Property("message"))),
+            new DocumentParameter.Union(List.of(new Step.Property("files"))));
+  }
+
+  @Test
+  void normalizesTheShorthandInsideNestedAlternatives() {
+    final var schema =
+        object(
+            "value",
+            Map.of(
+                "anyOf",
+                List.of(
+                    Map.of("type", "number"),
+                    Map.of("oneOf", List.of(string(), Map.of("type", "document"))))));
+
+    assertThat(normalizer.normalize(schema))
+        .isEqualTo(
+            object(
+                "value",
+                Map.of(
+                    "anyOf",
+                    List.of(Map.of("type", "number"), Map.of("oneOf", List.of(string(), doc()))))));
+  }
+
+  @Test
+  void normalizesATypeArrayInsideAnAlternative() {
+    final var schema =
+        object(
+            "value",
+            Map.of(
+                "anyOf",
+                List.of(string(), object("file", Map.of("type", List.of("string", "document"))))));
+
+    assertThat(normalizer.normalize(schema))
+        .isEqualTo(
+            object(
+                "value",
+                Map.of(
+                    "anyOf",
+                    List.of(string(), object("file", Map.of("anyOf", List.of(string(), doc())))))));
+  }
+
+  @Test
+  void leavesTheShorthandWhereTheAgentResolvesNoDocumentAsAuthored() {
+    final var shorthand = Map.<String, Object>of("type", "document");
+    final var itemsNextToProperties = new LinkedHashMap<String, Object>();
+    itemsNextToProperties.put("type", "object");
+    itemsNextToProperties.put("properties", Map.of("file", shorthand));
+    itemsNextToProperties.put("items", shorthand);
+    final var schema =
+        object(
+            "all", Map.of("allOf", List.of(shorthand)),
+            "not", Map.of("not", shorthand),
+            "additional", Map.of("type", "object", "additionalProperties", shorthand),
+            "prefix", Map.of("type", "array", "prefixItems", List.of(shorthand)),
+            "defs", Map.of("$defs", Map.of("file", shorthand)),
             "both", itemsNextToProperties);
 
     final var normalized = normalizer.normalize(schema);
 
-    // a shorthand where no document parameter is found stays as authored, so the handle schema
-    // appears exactly where the parameter is found
     assertThat(normalized)
         .isEqualTo(
             object(
-                "objectAlternative", inObjectAlternative,
-                "arrayAlternative", inArrayAlternative,
+                "all", Map.of("allOf", List.of(shorthand)),
+                "not", Map.of("not", shorthand),
+                "additional", Map.of("type", "object", "additionalProperties", shorthand),
+                "prefix", Map.of("type", "array", "prefixItems", List.of(shorthand)),
+                "defs", Map.of("$defs", Map.of("file", shorthand)),
                 "both",
                     Map.of(
                         "type",
@@ -164,11 +231,7 @@ class AuthoredSchemaNormalizerTest {
                         "properties",
                         Map.of("file", doc()),
                         "items",
-                        Map.of("type", "document"))));
-    assertThat(DocumentParameter.in(normalized))
-        .containsExactly(
-            new DocumentParameter.Document(
-                List.of(new Step.Property("both"), new Step.Property("file"))));
+                        shorthand)));
   }
 
   private static Map<String, Object> doc() {

@@ -37,22 +37,20 @@ import org.jspecify.annotations.Nullable;
  * schema of the tool; the arguments of a tool call mirror the schema, so each parameter addresses
  * the argument values that carry a document.
  *
- * <p>A value stands for a document when it is a document handle: an object with the {@code type}
- * {@value DocumentHandle#TYPE} and the {@code id} of a known document. Other fields of the object
- * are ignored; the {@code type} is required.
+ * <p>A value is a document handle when it is an object with the {@code type} {@value
+ * DocumentHandle#TYPE}, or a string that is exactly such an object as JSON (surrounding whitespace
+ * is ignored). Other fields of the object are ignored; the {@code type} is required. A string that
+ * is the id of a document is no handle.
  *
- * <p>For a {@link DocumentParameter.Document} the value is a handle object, a string that holds
- * such an object as JSON, or a string that is the bare id of a known document (surrounding
- * whitespace is ignored). Any other value is invalid: an object without the {@code type}, an
- * unknown id, other text.
+ * <p>For a {@link DocumentParameter.Document} the value must be a handle of a known document. Any
+ * other value is invalid: a handle with an unknown id, an object without the {@code type}, text.
+ *
+ * <p>For a {@link DocumentParameter.Union} the value is scanned: every handle at or below it, also
+ * inside objects and arrays, is a document, and invalid when its id is unknown. Every other value,
+ * text, numbers, objects without the {@code type} and arrays, is left as it is.
  *
  * <p>The problem of an invalid value tells the model what to do: that the agent knows no documents
- * and none is to be passed, that the id of the value is unknown, or what a handle looks like.
- *
- * <p>For a {@link DocumentParameter.TextOrDocument} a string is always text, also one that equals
- * the id of a known document or holds a handle. An object with the handle {@code type} is a
- * document, and invalid when its id is unknown. Any other value, such as an object without the
- * {@code type} for another alternative of the union, is left as it is.
+ * and none is to be passed, that the id of the handle is unknown, or what a handle looks like.
  *
  * <p>Every document is replaced by the Camunda document reference JSON of the registered document
  * ({@link #resolveProcessCall}), or, for a runtime tool that looks the documents up itself, by its
@@ -157,9 +155,9 @@ public class DocumentParameterResolver {
   /**
    * Resolves the document parameters of {@code toolCall}. A parameter that is missing or {@code
    * null} is left as is. For a document parameter, a value that is not a handle of a registered
-   * document is reported as a problem naming the parameter. For a text-or-document parameter, only
-   * a handle object with an unknown id is reported. Each valid document is replaced by what {@code
-   * replacement} returns for it.
+   * document is reported as a problem naming the value. For a union parameter, only a handle with
+   * an unknown id is reported. Each valid document is replaced by what {@code replacement} returns
+   * for it.
    */
   private Resolution resolve(
       ToolCall toolCall,
@@ -201,7 +199,7 @@ public class DocumentParameterResolver {
       return switch (parameter) {
         case DocumentParameter.Document ignored ->
             resolveDocument(node, path, documents, replacement, problems);
-        case DocumentParameter.TextOrDocument ignored ->
+        case DocumentParameter.Union ignored ->
             resolveUnion(node, path, documents, replacement, problems);
       };
     }
@@ -252,19 +250,40 @@ public class DocumentParameterResolver {
   }
 
   /**
-   * A union parameter: only an object with the handle type stands for a document, every other value
-   * is returned as it is.
+   * A union parameter: every handle at or below the value is resolved, every other value is
+   * returned as it is.
    */
-  private static @Nullable Object resolveUnion(
+  private @Nullable Object resolveUnion(
       @Nullable Object value,
       String path,
       AgentDocuments documents,
       Function<AgentDocument, Object> replacement,
       List<String> problems) {
-    if (!(value instanceof Map<?, ?> object) || !DocumentHandle.TYPE.equals(object.get("type"))) {
-      return value;
+    final var handle = asHandle(value);
+    if (handle != null) {
+      return resolveHandle(handle, path, documents, replacement, problems, true);
     }
-    return resolveHandle(object, path, documents, replacement, problems);
+    if (value instanceof Map<?, ?> object) {
+      final var copy = new LinkedHashMap<Object, Object>();
+      object.forEach((key, child) ->
+          copy.put(
+              key,
+              resolveUnion(
+                  child,
+                  path.isEmpty() ? String.valueOf(key) : path + "." + key,
+                  documents,
+                  replacement,
+                  problems)));
+      return copy;
+    }
+    if (value instanceof List<?> list) {
+      final var copy = new ArrayList<@Nullable Object>(list.size());
+      for (int i = 0; i < list.size(); i++) {
+        copy.add(resolveUnion(list.get(i), path + "[" + i + "]", documents, replacement, problems));
+      }
+      return copy;
+    }
+    return value;
   }
 
   private @Nullable Object resolveDocument(
@@ -273,22 +292,13 @@ public class DocumentParameterResolver {
       AgentDocuments documents,
       Function<AgentDocument, Object> replacement,
       List<String> problems) {
-    if (value instanceof String text && !text.stripLeading().startsWith("{")) {
-      final var id = text.strip();
-      final var document =
-          id.isEmpty() ? Optional.<AgentDocument>empty() : documents.find(AgentDocumentId.of(id));
-      if (document.isEmpty()) {
-        problems.add(invalidProblem(path, documents, id));
-        return value;
-      }
-      return replacement.apply(document.get());
-    }
-    final var object = value instanceof String text ? parseObject(text) : value;
-    if (!(object instanceof Map<?, ?> map)) {
-      problems.add(invalidProblem(path, documents, null));
+    final var handle = asHandle(value);
+    if (handle == null) {
+      problems.add(
+          documents.all().isEmpty() ? noDocumentsProblem(path) : mustBeHandleProblem(path));
       return value;
     }
-    return resolveHandle(map, path, documents, replacement, problems);
+    return resolveHandle(handle, path, documents, replacement, problems, false);
   }
 
   private static @Nullable Object resolveHandle(
@@ -296,21 +306,27 @@ public class DocumentParameterResolver {
       String path,
       AgentDocuments documents,
       Function<AgentDocument, Object> replacement,
-      List<String> problems) {
-    final var id = handle.get("id");
+      List<String> problems,
+      boolean inUnion) {
+    final var id = handle.get("id") instanceof String text && !text.isBlank() ? text : null;
     final var document =
-        DocumentHandle.TYPE.equals(handle.get("type"))
-                && id instanceof String text
-                && !text.isBlank()
-            ? documents.find(AgentDocumentId.of(text))
-            : Optional.<AgentDocument>empty();
+        id != null ? documents.find(AgentDocumentId.of(id)) : Optional.<AgentDocument>empty();
     if (document.isEmpty()) {
-      final var unknownId =
-          DocumentHandle.TYPE.equals(handle.get("type")) && id instanceof String text ? text : null;
-      problems.add(invalidProblem(path, documents, unknownId));
+      problems.add(unknownHandleProblem(path, documents, id, inUnion));
       return handle;
     }
     return replacement.apply(document.get());
+  }
+
+  /**
+   * The handle a value stands for: the object itself, or the object a string holds as JSON, when
+   * its {@code type} is the handle type; {@code null} for every other value.
+   */
+  private @Nullable Map<?, ?> asHandle(@Nullable Object value) {
+    final var object = value instanceof String text ? parseObject(text) : value;
+    return object instanceof Map<?, ?> map && DocumentHandle.TYPE.equals(map.get("type"))
+        ? map
+        : null;
   }
 
   /** The JSON object a string holds as a whole, or {@code null} for any other string. */
@@ -329,20 +345,36 @@ public class DocumentParameterResolver {
   }
 
   /**
-   * The problem of a value that is not the handle of a known document: the agent knows no
-   * documents, the id of the value is not known ({@code unknownId}), or the value is no handle.
+   * The problem of a handle whose document is not known: the agent knows no documents, or the id of
+   * the handle is not known. A handle in a union is reached only when the value holds one.
    */
-  private static String invalidProblem(
-      String path, AgentDocuments documents, @Nullable String unknownId) {
+  private static String unknownHandleProblem(
+      String path, AgentDocuments documents, @Nullable String id, boolean inUnion) {
     if (documents.all().isEmpty()) {
-      return "Parameter '%s' takes a document, but the conversation has no documents. Do not pass a document."
-          .formatted(path);
+      return inUnion
+          ? "Parameter '%s' holds a document handle, but the conversation has no documents. Do not pass a document handle."
+              .formatted(path)
+          : noDocumentsProblem(path);
     }
-    if (unknownId != null && !unknownId.isBlank()) {
-      return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
-              + " Pass the handle of a document from the conversation: %s")
-          .formatted(path, unknownId, HANDLE_EXAMPLE);
+    return unknownIdProblem(path, id);
+  }
+
+  private static String noDocumentsProblem(String path) {
+    return "Parameter '%s' takes a document, but the conversation has no documents. Do not pass a document."
+        .formatted(path);
+  }
+
+  /** A handle of an unknown id, or a handle without a usable id. */
+  private static String unknownIdProblem(String path, @Nullable String id) {
+    if (id == null) {
+      return mustBeHandleProblem(path);
     }
+    return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
+            + " Pass the handle of a document from the conversation: %s")
+        .formatted(path, id, HANDLE_EXAMPLE);
+  }
+
+  private static String mustBeHandleProblem(String path) {
     return "Parameter '%s' must be the handle of a document from the conversation: %s"
         .formatted(path, HANDLE_EXAMPLE);
   }

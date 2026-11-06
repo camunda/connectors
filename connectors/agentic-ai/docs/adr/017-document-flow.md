@@ -269,36 +269,32 @@ or added where the provider tool definitions are built: the stored definition, t
 hold the same wording. The schema sets no `additionalProperties: false`; a provider whose strict mode needs it adds it, and the
 agent ignores extra fields, so a model that copies `fileName` or `size` along with the handle is not rejected.
 
-A value resolves only when it is a handle of a known document. The `type` is required: an object with only an `id` could be
-any object a tool result holds, and the `type` is what makes the model's intent unambiguous in a parameter that takes text or
-a document. A parameter that always takes a document is lenient in two ways, because the intent is clear there: it also
-accepts a string that holds the handle as JSON, since models and tool-calling APIs stringify nested objects often enough that
-rejecting the call would cost a round trip for no gain, and a string that is the bare id of a known document, since a model
-that copies only the id means the document. The schema still advertises the handle object only. Anything else is invalid, an
-unknown id included, and the agent answers the call with an error, without the tool running and without activating a process
-element. The error depends on the value: it tells the model to pass no document when the agent knows none, names an id that is
-not known, and otherwise names the expected shape, so that a model that invents an id learns that the conversation has no such
-document. Alternatives: *accept only a handle* is stricter and costs a round trip whenever the
-model passes the id; *accept an id found anywhere in the text* would replace a tool argument that happens to contain an id;
+A value resolves only when it is a handle of a known document, and one rule defines a handle everywhere: an object with the
+`type` `camunda.agenticai.document`, or a string that is exactly such an object as JSON, surrounding whitespace ignored. The `type` is
+required: an object with only an `id` could be any object a tool result holds, and the `type` is what makes the model's intent
+unambiguous. Other fields of the object are ignored. The JSON string is accepted because models and tool-calling APIs stringify
+nested objects often enough that rejecting the call would cost a round trip for no gain. A string that is the bare id of a document is
+not a handle. The error text corrects the model in one round trip, and a lenient reading would let a word that equals an id turn
+into a document by accident. The schema advertises the handle object only. A parameter that always takes a document gets an
+error for any other value, an unknown id included, and the agent answers the call with it, without the tool running and without
+activating a process element. The error depends on the value: it tells the model to pass no document when the agent knows
+none, names an id that is not known, and otherwise names the expected shape, so that a model that invents an id learns that the
+conversation has no such document. Alternatives: *accept a bare id too* lets a text that equals an id become a document and makes
+the contract two-shaped; *accept an id found anywhere in the text* would replace a tool argument that happens to contain an id;
 *accept an object without a `type`* cannot tell a handle from another object in a union. The model reads handles, so asking
-for what it reads stays the contract, and the leniency only forgives the form.
+for what it reads stays the contract. A later step could validate the arguments against the schema per provider; the agent does not
+yet.
 
-Whether a call is carried out is decided once, when the agent admits the message of the model (ADR 016). A call of a
-tool of either kind with an invalid document parameter is rejected at admission: it keeps its kind, its rejection is the
-error text, and the rejection is persisted with the call, so a retried job and the job that composes a mixed batch give
-the same answer. Execution then only resolves the parameters of an admitted call. Alternatives: *validating a runtime
-call when it runs* checks the same rule in a second place and lets the outcome depend on the job that runs the call;
-*activating the call and letting the element fail* runs a process element with an argument it cannot read. Consequence
-accepted: a change of the definition of a runtime tool between the two jobs of a mixed batch that adds a document
-parameter makes an admitted call fail the job instead of giving the model an error.
-
-Parameters that take text or a document are unions of the handle schema and any other schema, declared in full: `anyOf`,
-`oneOf` and the type array shorthand. In a union a string is always text, also one that equals a known id or holds a handle as
-JSON, so a word that equals an id never turns into a document by accident; the leniency of a document-only parameter does not
-reach it. An object with the `type` of a handle is a document,
-and its id must be known. Any other object is not a document and is passed as it is to the tool, which may take it for another
-alternative of the union, such as a structured value. Documents are not searched for inside the alternatives of a union,
-because a value cannot be assigned to one alternative reliably.
+Parameters that take a document or something else are unions: an `anyOf` or `oneOf` with more than one alternative and a
+handle schema anywhere inside its alternatives, directly, in the properties of an object alternative, in the items of an array
+alternative or in a nested union. The type array shorthand is normalized in the same places. Typical unions are one document or
+a list of documents, and text or a file with a caption. The agent does not have to know which alternative the model matched: the handle
+identifies itself by its `type`, so it scans the value of a union, not the schema. Every handle at or below the value is a
+document, and its id must be known. Every other value, text (also a string that equals a known id), numbers, objects without the
+handle `type` and arrays, is passed as it is to the tool, which may take it for another alternative of the union, such as a
+structured value; this holds also for a union without a text alternative. The search for document parameters stops at a union. It does not
+reach the keywords `allOf`, `not`, `if`, `then`, `else`, `additionalProperties`, `patternProperties`, `prefixItems` or `$defs` and
+`$ref`, where a handle schema is not recognized and the shorthand stays as authored.
 
 A process tool receives the Camunda document reference of the agent document, a runtime tool the `AgentDocumentId`. Passing a
 handle to a tool never adds content. The agent resolves the parameters on the call the model made, before a gateway handler

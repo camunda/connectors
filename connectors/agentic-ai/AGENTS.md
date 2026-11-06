@@ -266,9 +266,9 @@ High-frequency traps (detail behind each link):
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
   documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order. A tool
   parameter of the type `document` of `fromAi` is the object schema of a handle (no format marker, no hint, sent to the
-  provider as it is) and holds the handle object the model passed, or a string with its JSON or the bare id of a known
-  document; a parameter that takes text or a document (an `anyOf` or `oneOf` with a handle alternative) holds a document
-  only for an object with the handle `type`, a string is always text; `DocumentParameterResolver` turns the handle into the Camunda document reference for a
+  provider as it is) and holds the handle object the model passed or a string with its JSON, never a bare id;
+  a union parameter (an `anyOf` or `oneOf` with more than one alternative and a handle schema inside an alternative, also in an object or
+  array alternative) holds a document for every handle at or below its value and passes every other value as it is; `DocumentParameterResolver` turns the handle into the Camunda document reference for a
   process tool (`AgentResponseHandlerImpl`) and into an `AgentDocumentId` for a runtime tool (`RuntimeTools`), and the
   stored messages and the history keep the handle. A tool call of either kind whose value is not the handle of a known
   document is rejected at admission (`ToolCallAdmission`).

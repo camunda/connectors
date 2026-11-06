@@ -64,6 +64,12 @@ class DocumentParameterResolverTest {
         .formatted(path, id);
   }
 
+  private static String holdsHandleButNoDocuments(String path) {
+    return ("Parameter '%s' holds a document handle, but the conversation has no documents. Do not"
+            + " pass a document handle.")
+        .formatted(path);
+  }
+
   private static String noDocuments(String path) {
     return ("Parameter '%s' takes a document, but the conversation has no documents. Do not pass a"
             + " document.")
@@ -124,24 +130,14 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void aDocumentParameterAcceptsTheBareIdOfAKnownDocument() {
+  void aDocumentParameterRejectsTheBareIdOfAKnownAndOfAnUnknownDocument() {
     assertThat(
             resolve(
                 Map.of("a", firstId.value(), "b", "\n " + secondId.value() + " \t"),
                 object("a", DOC, "b", DOC)))
-        .isEqualTo(
-            new Resolution.Resolved(Map.of("a", reference(firstId), "b", reference(secondId))));
-    assertThat(
-            resolveRuntime(
-                Map.of("a", firstId.value(), "b", List.of(secondId.value())),
-                object("a", DOC, "b", array(DOC))))
-        .isEqualTo(new Resolution.Resolved(Map.of("a", firstId, "b", List.of(secondId))));
-  }
-
-  @Test
-  void aDocumentParameterRejectsTheBareIdOfAnUnknownDocument() {
-    assertThat(resolve(Map.of("a", "doc_000000000000"), object("a", DOC)))
-        .isEqualTo(new Resolution.Invalid(List.of(unknownId("a", "doc_000000000000"))));
+        .isEqualTo(new Resolution.Invalid(List.of(notAHandle("a"), notAHandle("b"))));
+    assertThat(resolveRuntime(Map.of("a", "doc_000000000000"), object("a", DOC)))
+        .isEqualTo(new Resolution.Invalid(List.of(notAHandle("a"))));
   }
 
   @Test
@@ -215,14 +211,10 @@ class DocumentParameterResolverTest {
         Map.of(
             unknownHandle,
             "doc_000000000000",
-            "doc_000000000000",
-            "doc_000000000000",
-            "nope",
-            "nope",
             "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_000000000000\"}",
             "doc_000000000000",
-            "[" + json(firstHandle) + "]",
-            "[" + json(firstHandle) + "]");
+            "\n " + json(unknownHandle) + " \t",
+            "doc_000000000000");
     withUnknownId.forEach((invalid, id) ->
         assertThat(resolve(Map.of("doc", invalid), object("doc", DOC)))
             .as("%s", invalid)
@@ -237,6 +229,10 @@ class DocumentParameterResolverTest {
             noId,
             Map.of(),
             "  ",
+            "doc_000000000000",
+            firstId.value(),
+            "nope",
+            "[" + json(firstHandle) + "]",
             "{\"id\":\"" + firstId + "\"}",
             "{not json",
             json(firstHandle) + " and more",
@@ -278,15 +274,18 @@ class DocumentParameterResolverTest {
   void reportsTheArrayIndexAndNestedPathOfEveryInvalidValue() {
     final var arguments = new HashMap<String, Object>();
     arguments.put("docs", Arrays.asList(firstHandle, "nope", null));
-    arguments.put("req", Map.of("file", "gone"));
+    arguments.put("req", Map.of("file", "gone", "other", handle(AgentDocumentId.of("gone"))));
 
-    assertThat(resolve(arguments, object("docs", array(DOC), "req", object("file", DOC))))
+    assertThat(
+            resolve(
+                arguments, object("docs", array(DOC), "req", object("file", DOC, "other", DOC))))
         .isEqualTo(
             new Resolution.Invalid(
                 List.of(
-                    unknownId("docs[1]", "nope"),
+                    notAHandle("docs[1]"),
                     notAHandle("docs[2]"),
-                    unknownId("req.file", "gone"))));
+                    notAHandle("req.file"),
+                    unknownId("req.other", "gone"))));
   }
 
   @Test
@@ -325,16 +324,19 @@ class DocumentParameterResolverTest {
   void aRuntimeCallReportsTheSameProblemsAsAProcessCall() {
     final var arguments =
         Map.<String, Object>of(
-            "a", "nope", "b", json(firstHandle) + "x", "c", 42, "d", "doc_000000000000");
+            "a",
+            handle(AgentDocumentId.of("nope")),
+            "b",
+            json(firstHandle) + "x",
+            "c",
+            42,
+            "d",
+            "doc_000000000000");
     final var schema = object("a", DOC, "b", DOC, "c", DOC, "d", DOC);
 
     final var expected =
         new Resolution.Invalid(
-            List.of(
-                unknownId("a", "nope"),
-                notAHandle("b"),
-                notAHandle("c"),
-                unknownId("d", "doc_000000000000")));
+            List.of(unknownId("a", "nope"), notAHandle("b"), notAHandle("c"), notAHandle("d")));
     assertThat(resolveRuntime(arguments, schema)).isEqualTo(expected);
     assertThat(resolve(arguments, schema)).isEqualTo(expected);
   }
@@ -373,7 +375,8 @@ class DocumentParameterResolverTest {
 
   @Test
   void rejectsTheCallOfAToolOfTheProcessThatDoesNotNameAKnownDocument() {
-    final var call = new ToolCall("call", "upload", Map.of("doc", "nope"));
+    final var call =
+        new ToolCall("call", "upload", Map.of("doc", handle(AgentDocumentId.of("nope"))));
 
     final var result = resolver.resolveProcessCall(agentContext(), call);
 
@@ -385,7 +388,12 @@ class DocumentParameterResolverTest {
 
   @Test
   void joinsTheProblemsOfSeveralInvalidValuesIntoOneMessage() {
-    final var call = new ToolCall("call", "upload-many", Map.of("docs", List.of("a", "b")));
+    final var call =
+        new ToolCall(
+            "call",
+            "upload-many",
+            Map.of(
+                "docs", List.of(handle(AgentDocumentId.of("a")), handle(AgentDocumentId.of("b")))));
 
     final var result = resolver.resolveProcessCall(agentContext(), call);
 
@@ -471,7 +479,8 @@ class DocumentParameterResolverTest {
   void checksTheCallOfAToolOfEitherKindLikeTheCallOfARuntimeTool() {
     final var definition = definition("upload", object("doc", DOC));
     final var valid = new ToolCall("call", "upload", Map.of("doc", firstHandle));
-    final var invalid = new ToolCall("call", "upload", Map.of("doc", "nope"));
+    final var invalid =
+        new ToolCall("call", "upload", Map.of("doc", handle(AgentDocumentId.of("nope"))));
 
     assertThat(resolver.check(agentContext(), valid, definition))
         .isEqualTo(new Resolution.Resolved(Map.of("doc", firstId)));
@@ -482,7 +491,7 @@ class DocumentParameterResolverTest {
                 agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
                 invalid,
                 definition))
-        .isEqualTo(new Resolution.Resolved(Map.of("doc", "nope")));
+        .isEqualTo(new Resolution.Resolved(invalid.arguments()));
   }
 
   @Test
@@ -520,16 +529,16 @@ class DocumentParameterResolverTest {
   }
 
   @Test
-  void aUnionParameterKeepsEveryStringAsText() {
+  void aUnionParameterKeepsEveryStringThatIsNoHandleAsText() {
     final var arguments =
         Map.<String, Object>of(
             "plain", "hello",
             "empty", "",
             "padded", "  padded  ",
             "bareId", firstId.value(),
-            "handleJson", handleJson(firstId),
-            "unknownHandleJson",
-                "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_000000000000\"}");
+            "json", "{\"a\":1}",
+            "notJson", "{not json",
+            "handleAndMore", handleJson(firstId) + " and more");
 
     assertThat(
             resolve(
@@ -539,9 +548,112 @@ class DocumentParameterResolverTest {
                     "empty", UNION,
                     "padded", UNION,
                     "bareId", UNION,
-                    "handleJson", UNION,
-                    "unknownHandleJson", UNION)))
+                    "json", UNION,
+                    "notJson", UNION,
+                    "handleAndMore", UNION)))
         .isEqualTo(new Resolution.Resolved(arguments));
+  }
+
+  @Test
+  void aUnionParameterResolvesAStringThatHoldsAHandleAsJson() {
+    final var spaced = "\n " + json(secondHandle) + " \t";
+
+    assertThat(
+            resolve(Map.of("a", handleJson(firstId), "b", spaced), object("a", UNION, "b", UNION)))
+        .isEqualTo(
+            new Resolution.Resolved(Map.of("a", reference(firstId), "b", reference(secondId))));
+    assertThat(
+            resolve(Map.of("doc", json(handle(AgentDocumentId.of("none")))), object("doc", UNION)))
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", "none"))));
+  }
+
+  @Test
+  void aUnionOfOneDocumentOrAListOfDocumentsResolvesEitherShape() {
+    final var oneOrList = Map.<String, Object>of("anyOf", List.of(DOC, array(DOC)));
+    final var schema = object("files", oneOrList);
+
+    assertThat(resolve(Map.of("files", firstHandle), schema))
+        .isEqualTo(new Resolution.Resolved(Map.of("files", reference(firstId))));
+    assertThat(resolve(Map.of("files", List.of(firstHandle, handleJson(secondId))), schema))
+        .isEqualTo(
+            new Resolution.Resolved(
+                Map.of("files", List.of(reference(firstId), reference(secondId)))));
+    assertThat(
+            resolve(
+                Map.of("files", List.of(firstHandle, handle(AgentDocumentId.of("none")))), schema))
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("files[1]", "none"))));
+    assertThat(resolveRuntime(Map.of("files", List.of(secondHandle, firstHandle)), schema))
+        .isEqualTo(new Resolution.Resolved(Map.of("files", List.of(secondId, firstId))));
+  }
+
+  @Test
+  void aUnionOfTextOrAFileWithACaptionResolvesTheFileInTheObject() {
+    final var textOrFile =
+        Map.<String, Object>of(
+            "anyOf", List.of(string(), object("file", DOC, "caption", string())));
+    final var schema = object("message", textOrFile);
+
+    assertThat(resolve(Map.of("message", "hello"), schema))
+        .isEqualTo(new Resolution.Resolved(Map.of("message", "hello")));
+    assertThat(resolve(Map.of("message", Map.of("file", firstHandle, "caption", "c")), schema))
+        .isEqualTo(
+            new Resolution.Resolved(
+                Map.of("message", Map.of("file", reference(firstId), "caption", "c"))));
+    assertThat(
+            resolve(Map.of("message", Map.of("file", handle(AgentDocumentId.of("none")))), schema))
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("message.file", "none"))));
+    assertThat(
+            resolveRuntime(Map.of("message", Map.of("file", firstHandle, "caption", "c")), schema))
+        .isEqualTo(
+            new Resolution.Resolved(Map.of("message", Map.of("file", firstId, "caption", "c"))));
+  }
+
+  @Test
+  void aUnionParameterResolvesAHandleAsJsonInsideObjectsAndArrays() {
+    final var arguments =
+        Map.<String, Object>of(
+            "value",
+            Map.of(
+                "file", handleJson(firstId),
+                "more", List.of(Map.of("file", firstHandle), "text", 3),
+                "other", Map.of("type", "other")));
+
+    assertThat(resolve(arguments, object("value", UNION)))
+        .isEqualTo(
+            new Resolution.Resolved(
+                Map.of(
+                    "value",
+                    Map.of(
+                        "file", reference(firstId),
+                        "more", List.of(Map.of("file", reference(firstId)), "text", 3),
+                        "other", Map.of("type", "other")))));
+  }
+
+  @Test
+  void aUnionParameterTellsThatTheConversationHasNoDocumentsForAHandle() {
+    final var withoutDocuments =
+        AgentContext.empty().withFeatures(List.of(AgentFeatures.DOCUMENTS));
+    final var definition = definition("send", object("body", UNION));
+
+    for (final Object handle : List.of(firstHandle, handleJson(firstId))) {
+      assertThat(
+              resolver.check(
+                  withoutDocuments,
+                  new ToolCall("call", "send", Map.of("body", handle)),
+                  definition))
+          .as("%s", handle)
+          .isEqualTo(new Resolution.Invalid(List.of(holdsHandleButNoDocuments("body"))));
+    }
+    assertThat(
+            resolver.check(
+                withoutDocuments,
+                new ToolCall("call", "send", Map.of("body", List.of("text", firstHandle))),
+                definition))
+        .isEqualTo(new Resolution.Invalid(List.of(holdsHandleButNoDocuments("body[1]"))));
+    assertThat(
+            resolver.check(
+                withoutDocuments, new ToolCall("call", "send", Map.of("body", "text")), definition))
+        .isEqualTo(new Resolution.Resolved(Map.of("body", "text")));
   }
 
   @Test
@@ -680,10 +792,9 @@ class DocumentParameterResolverTest {
             resolve(
                 Map.of("doc", firstId.value(), "text", firstId.value()),
                 object("doc", DOC, "text", UNION)))
-        .isEqualTo(
-            new Resolution.Resolved(Map.of("doc", reference(firstId), "text", firstId.value())));
+        .isEqualTo(new Resolution.Invalid(List.of(notAHandle("doc"))));
     assertThat(resolve(Map.of("doc", "nope", "text", "nope"), object("doc", DOC, "text", UNION)))
-        .isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", "nope"))));
+        .isEqualTo(new Resolution.Invalid(List.of(notAHandle("doc"))));
   }
 
   @Test

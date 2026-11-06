@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiModelParameters;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -646,9 +647,26 @@ class GeminiContentRequestConverterTest {
   void passesTheSchemaOfDocumentParametersToGeminiUnchanged() {
     final var properties = new LinkedHashMap<String, Object>();
     properties.put("file", DocumentSchemas.document("The file"));
-    properties.put("body", DocumentSchemas.textOrDocument("The body"));
+    properties.put("body", TestDocuments.textOrDocument("The body"));
+    properties.put(
+        "message",
+        Map.of(
+            "anyOf",
+            List.of(
+                Map.of("type", "string"),
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of("file", DocumentSchemas.document(null))))));
     final Map<String, Object> schema =
-        Map.of("type", "object", "properties", properties, "required", List.of("file", "body"));
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            properties,
+            "required",
+            List.of("file", "body", "message"));
     final var snapshot =
         new ConversationSnapshot(
             List.of(), List.of(ToolDefinition.builder().name("send").inputSchema(schema).build()));

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.testutil;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
@@ -20,7 +21,10 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 public final class TestDocuments {
 
@@ -75,5 +79,15 @@ public final class TestDocuments {
     final var mapper = ConnectorsObjectMapperSupplier.getCopy();
     return mapper.convertValue(
         mapper.valueToTree(document).get("reference"), new TypeReference<>() {});
+  }
+
+  /** The schema of a parameter that is a plain string or a document: an {@code anyOf}. */
+  public static Map<String, Object> textOrDocument(@Nullable String description) {
+    final var schema = new LinkedHashMap<String, Object>();
+    if (description != null) {
+      schema.put("description", description);
+    }
+    schema.put("anyOf", List.of(Map.of("type", "string"), DocumentSchemas.document(null)));
+    return schema;
   }
 }

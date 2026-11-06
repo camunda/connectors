@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +70,7 @@ class OpenAiStrictJsonSchemasTest {
   @Test
   void closesTheHandleObjectInsideTheAnyOfOfAUnionParameter() throws Exception {
     final var properties = new LinkedHashMap<String, Object>();
-    properties.put("body", DocumentSchemas.textOrDocument("The body"));
+    properties.put("body", TestDocuments.textOrDocument("The body"));
     final Map<String, Object> schema =
         Map.of("type", "object", "properties", properties, "required", List.of("body"));
 
@@ -92,6 +93,32 @@ class OpenAiStrictJsonSchemasTest {
             .formatted(HANDLE),
         strict.toString(),
         true);
+  }
+
+  @Test
+  void closesTheHandleObjectInsideAnObjectAlternativeOfAUnionParameter() throws Exception {
+    final var alternative = new LinkedHashMap<String, Object>();
+    alternative.put("type", "object");
+    alternative.put(
+        "properties",
+        new LinkedHashMap<>(
+            Map.of("file", DocumentSchemas.document(null), "caption", Map.of("type", "string"))));
+    final Map<String, Object> schema =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of("message", Map.of("anyOf", List.of(Map.of("type", "string"), alternative))));
+
+    final var strict = OpenAiStrictJsonSchemas.forStrictMode(schema, objectMapper);
+
+    final var objectAlternative = strict.at("/properties/message/anyOf/1");
+    assertThat(objectAlternative.path("additionalProperties").asBoolean(true)).isFalse();
+    final var file = objectAlternative.at("/properties/file");
+    assertThat(file.path("additionalProperties").asBoolean(true)).isFalse();
+    assertThat(file.path("required").toString()).isEqualTo("[\"type\",\"id\"]");
+    assertThat(file.at("/properties/type/enum").toString())
+        .isEqualTo("[\"camunda.agenticai.document\"]");
   }
 
   @Test

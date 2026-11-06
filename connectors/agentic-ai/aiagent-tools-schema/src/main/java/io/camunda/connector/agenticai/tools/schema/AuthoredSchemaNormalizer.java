@@ -25,11 +25,13 @@ import java.util.Map;
  * a document into the object schema of a document handle (see {@link DocumentSchemas#document}),
  * the form of a {@link DocumentParameter document parameter}.
  *
- * <p>A node is normalized where a document parameter can be found: at the top level, in the object
- * {@code properties} and the array {@code items} (see {@link Step#mapChildren}), and among the
- * direct {@code anyOf} and {@code oneOf} alternatives of such a node. The shorthand anywhere else,
- * such as inside an object alternative, is left as authored: it is no document parameter, and the
- * handle schema must not appear where nothing resolves it.
+ * <p>A node is normalized where the agent resolves a document parameter: at the top level, in the
+ * object {@code properties} and the array {@code items} (see {@link Step#mapChildren}), and in the
+ * {@code anyOf} and {@code oneOf} alternatives of such a node at any depth, with the same rules
+ * inside an alternative. The shorthand anywhere else, such as under {@code allOf}, {@code not},
+ * {@code if}/{@code then}/{@code else}, {@code additionalProperties}, {@code patternProperties},
+ * {@code prefixItems}, {@code $defs} or behind {@code $ref}, is left as authored: no document
+ * parameter is found there, and the handle schema must not appear where nothing resolves it.
  */
 final class AuthoredSchemaNormalizer {
 
@@ -46,14 +48,14 @@ final class AuthoredSchemaNormalizer {
     return Step.mapChildren(node, (step, child) -> normalize(child));
   }
 
-  /** The node with its direct {@code anyOf} and {@code oneOf} alternatives normalized. */
+  /** The node with its {@code anyOf} and {@code oneOf} alternatives normalized. */
   private Map<String, Object> alternativesOf(Map<String, Object> node) {
     final var result = new LinkedHashMap<>(node);
     for (final var keyword : List.of(PROPERTY_ANYOF, PROPERTY_ONEOF)) {
       if (result.get(keyword) instanceof List<?> alternatives) {
         final var mapped = new ArrayList<Object>();
         for (final var alternative : alternatives) {
-          mapped.add(alternative instanceof Map<?, ?> map ? normalizeType(cast(map)) : alternative);
+          mapped.add(alternative instanceof Map<?, ?> map ? normalize(cast(map)) : alternative);
         }
         result.put(keyword, Collections.unmodifiableList(mapped));
       }

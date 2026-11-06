@@ -20,8 +20,8 @@ class DocumentParameterTest {
     return new DocumentParameter.Document(List.of(path));
   }
 
-  private static DocumentParameter textOrDocument(Step... path) {
-    return new DocumentParameter.TextOrDocument(List.of(path));
+  private static DocumentParameter union(Step... path) {
+    return new DocumentParameter.Union(List.of(path));
   }
 
   private static Step.Property property(String name) {
@@ -87,7 +87,7 @@ class DocumentParameterTest {
   }
 
   @Test
-  void findsParametersThatTakeTextOrADocumentAtAnyDepth() {
+  void findsUnionParametersAtAnyDepth() {
     final var schema =
         object(
             "text", Map.of("anyOf", List.of(string(), doc())),
@@ -104,40 +104,38 @@ class DocumentParameterTest {
 
     assertThat(DocumentParameter.in(schema))
         .containsExactly(
-            textOrDocument(property("text")),
-            textOrDocument(property("either")),
-            textOrDocument(property("items"), items()),
-            textOrDocument(property("req"), property("file")),
-            textOrDocument(property("rows"), items(), property("file")),
+            union(property("text")),
+            union(property("either")),
+            union(property("items"), items()),
+            union(property("req"), property("file")),
+            union(property("rows"), items(), property("file")),
             document(property("pure")));
   }
 
   @Test
-  void aNodeWithAlternativesTakesTextOrADocumentWithADocumentAlternativeAndAnotherOneOfAnyKind() {
-    assertThat(DocumentParameter.isTextOrDocumentSchema(Map.of("anyOf", List.of(string(), doc()))))
-        .isTrue();
+  void aNodeWithSeveralAlternativesAndADocumentSchemaAmongThemIsAUnion() {
+    assertThat(DocumentParameter.isUnionSchema(Map.of("anyOf", List.of(string(), doc())))).isTrue();
     assertThat(
-            DocumentParameter.isTextOrDocumentSchema(
+            DocumentParameter.isUnionSchema(
                 Map.of("oneOf", List.of(doc(), Map.of("type", "null")))))
         .isTrue();
     // the other alternatives may be objects or arrays
     assertThat(
-            DocumentParameter.isTextOrDocumentSchema(
-                Map.of("anyOf", List.of(object("a", string()), doc()))))
+            DocumentParameter.isUnionSchema(Map.of("anyOf", List.of(object("a", string()), doc()))))
         .isTrue();
     assertThat(
-            DocumentParameter.isTextOrDocumentSchema(
+            DocumentParameter.isUnionSchema(
                 Map.of("oneOf", List.of(Map.of("type", "array", "items", string()), doc()))))
         .isTrue();
     // no document alternative
     assertThat(
-            DocumentParameter.isTextOrDocumentSchema(
+            DocumentParameter.isUnionSchema(
                 Map.of("anyOf", List.of(string(), Map.of("type", "number")))))
         .isFalse();
     // no other alternative
-    assertThat(DocumentParameter.isTextOrDocumentSchema(Map.of("anyOf", List.of(doc())))).isFalse();
-    // a document node is not a text-or-document node
-    assertThat(DocumentParameter.isTextOrDocumentSchema(doc())).isFalse();
+    assertThat(DocumentParameter.isUnionSchema(Map.of("anyOf", List.of(doc())))).isFalse();
+    // a document node is not a union node
+    assertThat(DocumentParameter.isUnionSchema(doc())).isFalse();
     assertThat(DocumentParameter.in(object("doc", Map.of("anyOf", List.of(doc()))))).isEmpty();
   }
 
@@ -151,7 +149,47 @@ class DocumentParameterTest {
   }
 
   @Test
-  void doesNotLookIntoTheAlternativesOfAParameterThatTakesTextOrADocument() {
+  void aDocumentInAnObjectAlternativeMakesAUnion() {
+    final var schema =
+        object(
+            "message",
+            Map.of("anyOf", List.of(string(), object("file", doc(), "caption", string()))));
+
+    assertThat(DocumentParameter.in(schema)).containsExactly(union(property("message")));
+  }
+
+  @Test
+  void aDocumentInAnArrayAlternativeMakesAUnion() {
+    final var schema =
+        object(
+            "files",
+            Map.of("oneOf", List.of(doc(), Map.of("type", "array", "items", doc()))),
+            "texts",
+            Map.of("anyOf", List.of(string(), Map.of("type", "array", "items", doc()))));
+
+    assertThat(DocumentParameter.in(schema))
+        .containsExactly(union(property("files")), union(property("texts")));
+  }
+
+  @Test
+  void aDocumentInANestedUnionMakesTheOuterNodeAUnion() {
+    final var nested = Map.of("anyOf", List.of(string(), doc()));
+    final var schema = object("value", Map.of("oneOf", List.of(Map.of("type", "number"), nested)));
+
+    assertThat(DocumentParameter.in(schema)).containsExactly(union(property("value")));
+    assertThat(DocumentParameter.isUnionSchema(nested)).isTrue();
+  }
+
+  @Test
+  void aDocumentDeeperInAnAlternativeMakesAUnion() {
+    final var alternative = object("rows", Map.of("type", "array", "items", object("file", doc())));
+    final var schema = object("value", Map.of("anyOf", List.of(string(), alternative)));
+
+    assertThat(DocumentParameter.in(schema)).containsExactly(union(property("value")));
+  }
+
+  @Test
+  void theSearchStopsAtAUnionAndFindsNoParameterInsideItsAlternatives() {
     final var schema =
         object(
             "doc",
@@ -159,7 +197,45 @@ class DocumentParameterTest {
                 "anyOf",
                 List.of(string(), Map.of("type", "array", "items", doc()), object("file", doc()))));
 
+    assertThat(DocumentParameter.in(schema)).containsExactly(union(property("doc")));
+  }
+
+  @Test
+  void anAnyOfWithoutADocumentAnywhereIsNoUnionAndIsNotSearched() {
+    final var schema =
+        object(
+            "value",
+            Map.of("anyOf", List.of(string(), object("a", string()), Map.of("type", "number"))));
+
     assertThat(DocumentParameter.in(schema)).isEmpty();
+    assertThat(
+            DocumentParameter.isUnionSchema(Map.of("anyOf", List.of(string(), object("a", doc())))))
+        .isTrue();
+    assertThat(
+            DocumentParameter.isUnionSchema(
+                Map.of("anyOf", List.of(string(), object("a", string())))))
+        .isFalse();
+  }
+
+  @Test
+  void aSingleAlternativeIsNoUnionEvenWithADocumentInside() {
+    assertThat(DocumentParameter.isUnionSchema(Map.of("anyOf", List.of(object("file", doc())))))
+        .isFalse();
+    assertThat(
+            DocumentParameter.in(object("value", Map.of("oneOf", List.of(object("file", doc()))))))
+        .isEmpty();
+  }
+
+  @Test
+  void containsADocumentSchemaDirectlyInPropertiesInItemsAndInAlternatives() {
+    assertThat(DocumentParameter.containsDocumentSchema(doc())).isTrue();
+    assertThat(DocumentParameter.containsDocumentSchema(object("file", doc()))).isTrue();
+    assertThat(DocumentParameter.containsDocumentSchema(Map.of("type", "array", "items", doc())))
+        .isTrue();
+    assertThat(DocumentParameter.containsDocumentSchema(Map.of("oneOf", List.of(string(), doc()))))
+        .isTrue();
+    assertThat(DocumentParameter.containsDocumentSchema(object("a", string()))).isFalse();
+    assertThat(DocumentParameter.containsDocumentSchema(string())).isFalse();
   }
 
   @Test

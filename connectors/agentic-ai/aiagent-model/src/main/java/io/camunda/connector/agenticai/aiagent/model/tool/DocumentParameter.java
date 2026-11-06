@@ -29,19 +29,21 @@ import org.jspecify.annotations.Nullable;
  *
  * <ul>
  *   <li>a {@link Document}: the schema of a {@link DocumentHandle}, an object whose {@code
- *       properties.type.enum} is {@code ["camunda.agenticai.document"]}, or
- *   <li>a {@link TextOrDocument}: a node with {@code anyOf} or {@code oneOf} alternatives, one of
- *       which is such a handle schema and at least one other alternative exists (a string, an
- *       object, ...). A string value of it is text; an object value with the handle {@code type} is
- *       a document.
+ *       properties.type.enum} is {@code ["camunda.agenticai.document"]}; the value must be a
+ *       handle, or
+ *   <li>a {@link Union}: a node with {@code anyOf} or {@code oneOf} and more than one alternative,
+ *       a handle schema sitting anywhere inside its alternatives: directly, in the {@code
+ *       properties} of an object alternative, in the {@code items} of an array alternative or in a
+ *       nested {@code anyOf} or {@code oneOf}. Every handle at or below the value is a document,
+ *       every other value is no document.
  * </ul>
  *
  * Both are found at the top level of the schema of the tool arguments, as array {@code items} and
  * recursively through object {@code properties} and array {@code items} (see {@link
  * Step#mapChildren}). The search stops at a handle schema, so its {@code type} and {@code id}
- * properties are no parameters, and at a {@link TextOrDocument}: the alternatives of a union are
- * not searched further, because a value cannot be assigned to one of its alternatives reliably. A
- * handle schema behind {@code $ref} does not make a document parameter.
+ * properties are no parameters, and at a {@link Union}: inside a union the agent scans the value
+ * for handles, not the schema, because a handle identifies itself by its {@code type}. A handle
+ * schema behind {@code $ref} does not make a document parameter.
  */
 public sealed interface DocumentParameter {
 
@@ -51,16 +53,20 @@ public sealed interface DocumentParameter {
    */
   List<Step> path();
 
-  /** A parameter that is always a document. */
+  /** A parameter whose value must be the handle of a document. */
   record Document(List<Step> path) implements DocumentParameter {
     public Document {
       path = List.copyOf(path);
     }
   }
 
-  /** A parameter that takes text or a document. */
-  record TextOrDocument(List<Step> path) implements DocumentParameter {
-    public TextOrDocument {
+  /**
+   * A parameter whose value may hold documents next to other values: every handle at or below the
+   * value is a document; text, numbers, objects without the handle type and arrays are no documents
+   * and stay as they are.
+   */
+  record Union(List<Step> path) implements DocumentParameter {
+    public Union {
       path = List.copyOf(path);
     }
   }
@@ -126,16 +132,17 @@ public sealed interface DocumentParameter {
   }
 
   /**
-   * Whether the schema node has {@code anyOf} or {@code oneOf} alternatives, one of them a document
-   * schema and at least one other, of any kind.
+   * Whether the schema node is a union: it has {@code anyOf} or {@code oneOf} with more than one
+   * alternative, and a document schema sits inside its alternatives (see {@link
+   * #containsDocumentSchema}).
    */
-  static boolean isTextOrDocumentSchema(Map<?, ?> schema) {
+  static boolean isUnionSchema(Map<?, ?> schema) {
     return alternativesKeyword(schema) != null;
   }
 
   /**
    * The keyword ({@code anyOf} or {@code oneOf}) of the alternatives that make the node a {@link
-   * TextOrDocument}, or {@code null} when the node is none.
+   * Union}, or {@code null} when the node is none.
    */
   static @Nullable String alternativesKeyword(Map<?, ?> schema) {
     if (isDocumentSchema(schema)) {
@@ -145,8 +152,8 @@ public sealed interface DocumentParameter {
       if (schema.get(keyword) instanceof List<?> alternatives
           && alternatives.size() > 1
           && alternatives.stream()
-              .anyMatch(
-                  alternative -> alternative instanceof Map<?, ?> map && isDocumentSchema(map))) {
+              .anyMatch(alternative ->
+                  alternative instanceof Map<?, ?> map && containsDocumentSchema(map))) {
         return keyword;
       }
     }
@@ -154,15 +161,40 @@ public sealed interface DocumentParameter {
   }
 
   /**
+   * Whether the schema node is a document schema or has one below it: in the {@code properties} of
+   * an object, in the {@code items} of an array or in the alternatives of a nested {@code anyOf} or
+   * {@code oneOf}.
+   */
+  static boolean containsDocumentSchema(Map<?, ?> schema) {
+    if (isDocumentSchema(schema)) {
+      return true;
+    }
+    if (schema.get(PROPERTY_PROPERTIES) instanceof Map<?, ?> properties
+        && properties.values().stream()
+            .anyMatch(child -> child instanceof Map<?, ?> map && containsDocumentSchema(map))) {
+      return true;
+    }
+    if (schema.get(PROPERTY_ITEMS) instanceof Map<?, ?> items && containsDocumentSchema(items)) {
+      return true;
+    }
+    return List.of(PROPERTY_ANYOF, PROPERTY_ONEOF).stream()
+        .anyMatch(keyword ->
+            schema.get(keyword) instanceof List<?> alternatives
+                && alternatives.stream()
+                    .anyMatch(alternative ->
+                        alternative instanceof Map<?, ?> map && containsDocumentSchema(map)));
+  }
+
+  /**
    * Adds the document parameters found at or below {@code node} to {@code parameters}, in schema
-   * order. A document or text-or-document node is not searched further.
+   * order. A document or union node is not searched further.
    */
   private static void collect(
       Map<String, Object> node, List<Step> path, List<DocumentParameter> parameters) {
     if (isDocumentSchema(node)) {
       parameters.add(new Document(path));
-    } else if (isTextOrDocumentSchema(node)) {
-      parameters.add(new TextOrDocument(path));
+    } else if (isUnionSchema(node)) {
+      parameters.add(new Union(path));
     } else {
       Step.mapChildren(
           node,

@@ -21,6 +21,7 @@ import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -103,7 +104,7 @@ class ToolSpecificationConverterTest {
   void keepsTheHandleSchemaOfDocumentParametersThroughTheConversionAndBack() {
     final var properties = new LinkedHashMap<String, Object>();
     properties.put("file", DocumentSchemas.document("The file"));
-    properties.put("body", DocumentSchemas.textOrDocument("The body"));
+    properties.put("body", TestDocuments.textOrDocument("The body"));
     final var toolDefinition =
         ToolDefinition.builder()
             .name("send")
