@@ -275,8 +275,10 @@ a document. A parameter that always takes a document is lenient in two ways, bec
 accepts a string that holds the handle as JSON, since models and tool-calling APIs stringify nested objects often enough that
 rejecting the call would cost a round trip for no gain, and a string that is the bare id of a known document, since a model
 that copies only the id means the document. The schema still advertises the handle object only. Anything else is invalid, an
-unknown id included, and the agent answers the call with an error that names the expected shape, without the tool running and
-without activating a process element. Alternatives: *accept only a handle* is stricter and costs a round trip whenever the
+unknown id included, and the agent answers the call with an error, without the tool running and without activating a process
+element. The error depends on the value: it tells the model to pass no document when the agent knows none, names an id that is
+not known, and otherwise names the expected shape, so that a model that invents an id learns that the conversation has no such
+document. Alternatives: *accept only a handle* is stricter and costs a round trip whenever the
 model passes the id; *accept an id found anywhere in the text* would replace a tool argument that happens to contain an id;
 *accept an object without a `type`* cannot tell a handle from another object in a union. The model reads handles, so asking
 for what it reads stays the contract, and the leniency only forgives the form.

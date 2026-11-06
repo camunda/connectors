@@ -46,6 +46,9 @@ import org.jspecify.annotations.Nullable;
  * whitespace is ignored). Any other value is invalid: an object without the {@code type}, an
  * unknown id, other text.
  *
+ * <p>The problem of an invalid value tells the model what to do: that the agent knows no documents
+ * and none is to be passed, that the id of the value is unknown, or what a handle looks like.
+ *
  * <p>For a {@link DocumentParameter.TextOrDocument} a string is always text, also one that equals
  * the id of a known document or holds a handle. An object with the handle {@code type} is a
  * document, and invalid when its id is unknown. Any other value, such as an object without the
@@ -61,9 +64,8 @@ import org.jspecify.annotations.Nullable;
  */
 public class DocumentParameterResolver {
 
-  private static final String EXPECTED_HANDLE =
-      "a document handle such as {\"type\":\"%s\",\"id\":\"doc_…\"} of a known document."
-          .formatted(DocumentHandle.TYPE);
+  private static final String HANDLE_EXAMPLE =
+      "a JSON object such as {\"type\":\"%s\",\"id\":\"doc_…\"}.".formatted(DocumentHandle.TYPE);
 
   private final ObjectMapper referenceMapper = ConnectorsObjectMapperSupplier.getCopy();
 
@@ -276,14 +278,14 @@ public class DocumentParameterResolver {
       final var document =
           id.isEmpty() ? Optional.<AgentDocument>empty() : documents.find(AgentDocumentId.of(id));
       if (document.isEmpty()) {
-        problems.add(invalidProblem(path));
+        problems.add(invalidProblem(path, documents, id));
         return value;
       }
       return replacement.apply(document.get());
     }
     final var object = value instanceof String text ? parseObject(text) : value;
     if (!(object instanceof Map<?, ?> map)) {
-      problems.add(invalidProblem(path));
+      problems.add(invalidProblem(path, documents, null));
       return value;
     }
     return resolveHandle(map, path, documents, replacement, problems);
@@ -303,7 +305,9 @@ public class DocumentParameterResolver {
             ? documents.find(AgentDocumentId.of(text))
             : Optional.<AgentDocument>empty();
     if (document.isEmpty()) {
-      problems.add(invalidProblem(path));
+      final var unknownId =
+          DocumentHandle.TYPE.equals(handle.get("type")) && id instanceof String text ? text : null;
+      problems.add(invalidProblem(path, documents, unknownId));
       return handle;
     }
     return replacement.apply(document.get());
@@ -324,7 +328,22 @@ public class DocumentParameterResolver {
     }
   }
 
-  private static String invalidProblem(String path) {
-    return "Parameter '%s' must be %s".formatted(path, EXPECTED_HANDLE);
+  /**
+   * The problem of a value that is not the handle of a known document: the agent knows no
+   * documents, the id of the value is not known ({@code unknownId}), or the value is no handle.
+   */
+  private static String invalidProblem(
+      String path, AgentDocuments documents, @Nullable String unknownId) {
+    if (documents.all().isEmpty()) {
+      return "Parameter '%s' takes a document, but the conversation has no documents. Do not pass a document."
+          .formatted(path);
+    }
+    if (unknownId != null && !unknownId.isBlank()) {
+      return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
+              + " Pass the handle of a document from the conversation: %s")
+          .formatted(path, unknownId, HANDLE_EXAMPLE);
+    }
+    return "Parameter '%s' must be the handle of a document from the conversation: %s"
+        .formatted(path, HANDLE_EXAMPLE);
   }
 }

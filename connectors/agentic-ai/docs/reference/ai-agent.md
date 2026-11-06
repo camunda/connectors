@@ -775,8 +775,13 @@ a document is lenient in two ways: it also accepts a string that holds the handl
 API that stringified the argument) and a string that is the bare id of a known document, surrounding whitespace ignored;
 the schema advertises the handle object only. Anything else is invalid: an object without the `type`, an unknown id, other
 text, a number. A call with an invalid value is answered by the agent itself, with a tool result of one sentence per invalid
-value, joined by a space, and the tool does not run:
-`Parameter 'docs[1]' must be a document handle such as {"type":"camunda.agenticai.document","id":"doc_…"} of a known document.`
+value, joined by a space, and the tool does not run. The sentence depends on the value. When the agent knows no documents, it
+tells the model to pass none (it wins over the other two):
+`Parameter 'docs[1]' takes a document, but the conversation has no documents. Do not pass a document.`
+When the value is a handle or a bare id that is not known, it names the id:
+`Parameter 'docs[1]' has the id 'doc_000000000000', but the conversation has no document with this id. Pass the handle of a document from the conversation: a JSON object such as {"type":"camunda.agenticai.document","id":"doc_…"}.`
+For any other value it names the expected shape:
+`Parameter 'docs[1]' must be the handle of a document from the conversation: a JSON object such as {"type":"camunda.agenticai.document","id":"doc_…"}.`
 (`name`, `parent.name` and `name[i]` are the parameter paths; an array parameter that is not an array reads
 `Parameter 'p' must be an array.`). A missing or `null` argument is left alone.
 

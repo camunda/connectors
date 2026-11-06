@@ -516,14 +516,15 @@ class RuntimeToolsTest {
 
   // document parameters
 
-  private static final String BOGUS_FILE = rejection("file");
+  private static final String BOGUS_FILE = rejection("file", "bogus");
 
-  private static final String UNKNOWN_BODY = rejection("body");
+  private static final String UNKNOWN_BODY = rejection("body", "doc_000000000000");
 
-  private static String rejection(String path) {
-    return ("Parameter '%s' must be a document handle such as"
-            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"} of a known document.")
-        .formatted(path);
+  private static String rejection(String path, String id) {
+    return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
+            + " Pass the handle of a document from the conversation: a JSON object such as"
+            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.")
+        .formatted(path, id);
   }
 
   private static ToolDefinition definitionOf(String name, Map<String, Object> properties) {
@@ -626,8 +627,12 @@ class RuntimeToolsTest {
             });
     final var call = runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"));
 
-    assertThatThrownBy(
-            () -> toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(), List.of(call)))
+    assertThatThrownBy(() ->
+            toolsOf(tool)
+                .execute(
+                    WITH_MEMORY,
+                    knowingWithDocumentsFeature(createDocument("known", "known.txt")),
+                    List.of(call)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage(
             "The call 'r1' of the tool 'c8__read_file' is admitted, but its document parameters are invalid: "
@@ -675,8 +680,12 @@ class RuntimeToolsTest {
             "c8__send",
             Map.of("body", Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000")));
 
-    assertThatThrownBy(
-            () -> toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(), List.of(call)))
+    assertThatThrownBy(() ->
+            toolsOf(tool)
+                .execute(
+                    WITH_MEMORY,
+                    knowingWithDocumentsFeature(createDocument("known", "known.txt")),
+                    List.of(call)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage(
             "The call 'r1' of the tool 'c8__send' is admitted, but its document parameters are invalid: "
