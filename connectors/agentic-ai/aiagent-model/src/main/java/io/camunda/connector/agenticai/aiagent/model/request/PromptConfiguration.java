@@ -63,12 +63,10 @@ public interface PromptConfiguration {
       @TemplateProperty(
               group = "userPrompt",
               label = "Document delivery",
-              description =
-                  "How the documents of the user prompt reach the model: as references or with their content.",
+              description = "How the model receives the documents of the user prompt.",
               tooltip =
-                  "<code>Reference</code>: the model sees a reference to each document and loads the content it needs with a tool. "
-                      + "<code>Content</code>: the content of the documents is part of the conversation right away. "
-                      + "Large documents cost many tokens in every model call.",
+                  "<code>Reference</code> (recommended): the model loads the content of a document when it needs it. "
+                      + "<code>Content</code>: the content is part of every model call and costs more tokens.",
               type = TemplateProperty.PropertyType.Dropdown,
               choices = {
                 @TemplateProperty.DropdownPropertyChoice(value = "reference", label = "Reference"),
