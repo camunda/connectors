@@ -1186,10 +1186,11 @@ See: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-j
                 <regex>^4\.1\.2$</regex>
                 <regexMessage>
 version.spring-boot was changed! Check if the mariadb-java-client override can be removed.
-If the new spring-boot-dependencies BOM ships org.mariadb.jdbc:mariadb-java-client &gt;= 3.5.11 (confirm
-with `mvn dependency:tree -Dincludes=org.mariadb.jdbc:mariadb-java-client` on the bundle modules, not
-just the property), remove the version.mariadb-java-client property, the mariadb-java-client
-dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+To check whether the new spring-boot-dependencies BOM ships org.mariadb.jdbc:mariadb-java-client
+&gt;= 3.5.11, temporarily remove the mariadb-java-client dependencyManagement entry (the override masks
+the BOM-managed version), then run `mvn dependency:tree -Dincludes=org.mariadb.jdbc:mariadb-java-client`
+on both bundle modules. If both resolve &gt;= 3.5.11, remove the version.mariadb-java-client property,
+the dependencyManagement entry, and this enforcer rule from parent/pom.xml; otherwise restore the entry.
                 </regexMessage>
               </requireProperty>
             </rules>
