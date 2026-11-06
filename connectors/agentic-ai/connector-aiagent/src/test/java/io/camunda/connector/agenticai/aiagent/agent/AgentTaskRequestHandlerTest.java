@@ -299,7 +299,6 @@ class AgentTaskRequestHandlerTest {
   void throwsWhenModelCallLimitReachedAfterRehydration() {
     // a conversation rehydrated from history: reconstructed turns carry empty metrics, so the
     // limit must be enforced against the durable cumulative counter on the agent context.
-    mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentExecutionContext.configuration())
         .thenReturn(

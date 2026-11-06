@@ -566,7 +566,6 @@ class AgentSubProcessRequestHandlerTest {
   void throwsWhenModelCallLimitReachedAfterRehydration() {
     // a multi-turn conversation rehydrated from history: reconstructed turns carry empty metrics,
     // so the limit must be enforced against the durable cumulative counter on the agent context.
-    mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentExecutionContext.configuration())
         .thenReturn(
@@ -1281,6 +1280,51 @@ class AgentSubProcessRequestHandlerTest {
                   .containsExactly(TextContent.textContent(ToolCallResult.CONTENT_CANCELLED));
             });
     assertThat(response.cancelRemainingInstances()).isTrue();
+  }
+
+  @Test
+  void executesNoRuntimeToolOfAMixedBatchWhenTheModelCallLimitIsReached() {
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                new LimitsConfiguration(1),
+                null,
+                null));
+    composeWithTheRealComposer();
+    final var lookupCall =
+        new ToolCall("call-1", "acme_lookup", Map.of()).withKind(ToolKind.RUNTIME);
+    final var processCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
+    final var contextAtLimit =
+        INITIAL_AGENT_CONTEXT
+            .withMetrics(new AgentMetrics(1, TokenUsage.empty(), 2))
+            .withConversation(
+                InProcessConversationContext.builder("conv-1")
+                    .messages(
+                        List.of(
+                            USER_MESSAGE,
+                            AssistantMessage.builder()
+                                .toolCalls(List.of(lookupCall, processCall))
+                                .build()))
+                    .build());
+    final var processResult =
+        ToolCallResult.builder().id("call-2").name("getWeather").content("Sunny").build();
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(contextAtLimit, List.of(processResult)));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
+
+    // a retried job fails the same way, so the tool is not called again on every retry
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verifyNoInteractions(chatModelRegistry, chatModel);
   }
 
   @Test

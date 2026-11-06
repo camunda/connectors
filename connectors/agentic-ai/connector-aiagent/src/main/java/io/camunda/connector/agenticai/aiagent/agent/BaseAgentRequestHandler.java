@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -154,15 +155,18 @@ public abstract class BaseAgentRequestHandler<
           LOGGER.debug("No input could be composed for this turn");
           yield handleNoInput(executionContext);
         }
-        case CompositionResult.Ready ready ->
-            proceed(
-                executionContext,
-                agentContext,
-                configuration,
-                previousConversation,
-                answerLocalToolCalls(executionContext, agentContext, ready).messages(),
-                session,
-                store);
+        case CompositionResult.Ready ready -> {
+          // before the local tool calls are executed: a job at the limit executes no tool
+          throwIfLimitsReached(agentContext.metrics(), configuration);
+          yield proceed(
+              executionContext,
+              agentContext,
+              configuration,
+              previousConversation,
+              answerLocalToolCalls(executionContext, agentContext, ready).messages(),
+              session,
+              store);
+        }
       };
     }
   }
@@ -221,8 +225,6 @@ public abstract class BaseAgentRequestHandler<
     final var conversation =
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
-
-    throwIfLimitsReached(conversation, agentConfiguration);
 
     final var agentInstanceKey = conversation.agentInstanceKey();
     // called before ingest, so the current turn is still pending and lastTurn() is the turn
@@ -479,19 +481,18 @@ public abstract class BaseAgentRequestHandler<
 
   private void throwIfLimitsReached(
       AgentConversation conversation, AgentConfiguration configuration) {
+    throwIfLimitsReached(conversation.totalMetrics(), configuration);
+  }
+
+  private void throwIfLimitsReached(AgentMetrics metrics, AgentConfiguration configuration) {
+    LOGGER.trace("Validating configured limits for agent execution");
     var limit = configuration.maxModelCalls();
-    if (isModelCallLimitExceeded(conversation, limit)) {
+    if (metrics.modelCalls() >= limit) {
       throw new ConnectorException(
           AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED,
           "Maximum number of model calls reached (modelCalls: %d, limit: %d)"
-              .formatted(conversation.totalMetrics().modelCalls(), limit));
+              .formatted(metrics.modelCalls(), limit));
     }
-  }
-
-  private boolean isModelCallLimitExceeded(AgentConversation conversation, int maxModelCalls) {
-    LOGGER.trace("Validating configured limits for agent execution");
-    var currentModelCalls = conversation.totalMetrics().modelCalls();
-    return currentModelCalls >= maxModelCalls;
   }
 
   private @Nullable SystemMessage createSystemMessage(
