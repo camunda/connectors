@@ -31,7 +31,8 @@ import org.jspecify.annotations.Nullable;
  * <p>{@code documentDelivery} is the optional document delivery of the documents the tool returns
  * ({@link DocumentDelivery}); absent means {@code reference}. The agent reads it from the stored
  * definition when a result of the tool arrives. The model providers never see it: it is not part of
- * the tool as the model knows it, and the conversation drops it from the definitions they get. It is part of the configuration fingerprint.
+ * the tool as the model knows it, and the conversation drops it from the definitions they get. It
+ * is part of the configuration fingerprint.
  */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)

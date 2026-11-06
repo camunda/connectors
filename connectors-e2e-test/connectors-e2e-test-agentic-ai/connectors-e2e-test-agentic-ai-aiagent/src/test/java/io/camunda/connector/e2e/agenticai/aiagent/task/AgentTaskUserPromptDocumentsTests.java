@@ -19,10 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.task;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
-import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -186,7 +183,8 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
         .isEqualTo(initialUserPrompt);
     assertDocumentHandlePart(userMessage.contentParts().get(1));
     assertThat(
-            parseDocumentHandle(userMessage.contentParts().get(1).path("text").asText()).contentType())
+            parseDocumentHandle(userMessage.contentParts().get(1).path("text").asText())
+                .contentType())
         .isEqualTo(mimeType(filename));
     assertDocumentContentBlockJson(
         userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
