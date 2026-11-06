@@ -135,6 +135,18 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         .withDelivery(loaded ? DocumentDelivery.CONTENT : DocumentDelivery.REFERENCE);
   }
 
+  /** The file name and the id of a document as the sentences about its content name it. */
+  private static String refOf(Document document) {
+    final var fileName = AgentDocument.Descriptors.of(document.reference()).fileName();
+    final var id = AgentDocumentId.of(document).value();
+    return fileName == null ? id : "%s (%s)".formatted(fileName, id);
+  }
+
+  /** What the tool result says about a document whose content is added. */
+  private static Content followsSentence(Document document) {
+    return textContent("The content of " + refOf(document) + " follows in the next message.");
+  }
+
   // --- user prompt
 
   private CompositionResult composePrompt(
@@ -349,6 +361,13 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     assertThat(turn.documents())
         .extracting(AgentDocument::id)
         .contains(AgentDocumentId.of(doc), AgentDocumentId.of(nested));
+    // the result of the tool says that the content of both documents follows, the other result
+    // is as it was
+    final var results = ((ToolCallResultMessage) turn.messages().getFirst()).results();
+    assertThat(results.get(0).content()).hasSize(3);
+    assertThat(results.get(0).content().subList(1, 3))
+        .containsExactlyInAnyOrder(followsSentence(doc), followsSentence(nested));
+    assertThat(results.get(1).content()).containsExactly(textContent("15:00"));
   }
 
   @Test
@@ -413,6 +432,8 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         nextTurn(composer.resolve(CONFIG, contextWithTools(CONTENT_TOOL), history, input));
 
     assertThat(turn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    assertThat(((ToolCallResultMessage) turn.messages().getFirst()).results().getFirst().content())
+        .endsWith(textContent("The content of " + refOf(doc) + " is already in the conversation."));
   }
 
   @Test
