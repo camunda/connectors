@@ -32,14 +32,14 @@ public final class DocumentRestorer {
   public Optional<Document> restore(AgentDocuments documents, AgentDocumentId id) {
     final var agentDocument = documents.find(id);
     if (agentDocument.isEmpty()) {
-      LOGGER.debug("Document {} is not known to the agent, leaving its tag without content", id);
+      LOGGER.debug("Document {} is not known to the agent, leaving its handle without content", id);
       return Optional.empty();
     }
     try {
       return Optional.of(agentDocument.get().toDocument(documentFactory));
     } catch (RuntimeException e) {
       LOGGER.warn(
-          "Document {} could not be restored from its reference, leaving its tag without content",
+          "Document {} could not be restored from its reference, leaving its handle without content",
           id,
           e);
       return Optional.empty();

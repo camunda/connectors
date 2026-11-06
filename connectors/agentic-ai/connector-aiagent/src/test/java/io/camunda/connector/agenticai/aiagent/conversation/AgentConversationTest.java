@@ -11,7 +11,6 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -271,7 +270,8 @@ class AgentConversationTest {
                   .containsExactly(
                       textContent("see"),
                       textContent(
-                          DocumentTags.longTag(AgentDocuments.of(List.of(entry)), reference.id())));
+                          TestDocuments.handleText(
+                              AgentDocuments.of(List.of(entry)), reference.id())));
               assertThat(expanded.content().get(2))
                   .isInstanceOfSatisfying(
                       DocumentContent.class,
@@ -288,7 +288,7 @@ class AgentConversationTest {
   }
 
   @Test
-  void window_expandsABlockWithReferenceDeliveryToItsTagWithoutContent() {
+  void window_expandsABlockWithReferenceDeliveryToItsHandleWithoutContent() {
     var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -320,7 +320,8 @@ class AgentConversationTest {
                   .containsExactly(
                       textContent("see"),
                       textContent(
-                          DocumentTags.longTag(AgentDocuments.of(List.of(entry)), reference.id())));
+                          TestDocuments.handleText(
+                              AgentDocuments.of(List.of(entry)), reference.id())));
             });
     assertThat(storedMessage.content()).containsExactly(textContent("see"), reference);
   }

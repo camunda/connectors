@@ -26,9 +26,9 @@ import java.util.List;
 /**
  * Builds the input of the turn that follows a batch of tool calls from its results, in call order.
  *
- * <p>An agent instance that tracks its documents shows a document as its tag inside the tool result
- * and reports it to be registered in its documents. An agent instance that does not keeps the
- * document in a message of its own, next to its tag.
+ * <p>An agent instance that tracks its documents shows a document as its handle inside the tool
+ * result and reports it to be registered in its documents. An agent instance that does not keeps
+ * the document in a message of its own, next to its tag.
  */
 public class ToolCallResultsInputBuilder {
 
@@ -45,16 +45,17 @@ public class ToolCallResultsInputBuilder {
   public TurnInput build(AgentContext agentContext, ToolCallBatch batch) {
     final var entries = batch.entriesInCallOrder();
     return switch (agentContext.documentHandling()) {
-      case DocumentHandling.Tracked ignored -> buildWithDocumentTags(entries);
+      case DocumentHandling.Tracked ignored -> buildWithDocumentBlocks(entries);
       case DocumentHandling.Untracked ignored -> buildWithDocumentMessage(entries);
     };
   }
 
   /**
-   * A document that is a whole result is persisted as its tag, like the documents that are not a
-   * whole result. The documents of every result are registered with the tool call as their origin.
+   * A document that is a whole result is persisted as a document block, like the documents that are
+   * not a whole result. The documents of every result are registered with the tool call as their
+   * origin.
    */
-  private static TurnInput buildWithDocumentTags(List<ToolCallBatch.Entry> entries) {
+  private static TurnInput buildWithDocumentBlocks(List<ToolCallBatch.Entry> entries) {
     final var results =
         entries.stream()
             .map(ToolCallBatch.Entry::result)

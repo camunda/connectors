@@ -10,10 +10,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /** How a document reaches the model: as a reference, or with its content. */
 public enum DocumentDelivery {
-  /** The model sees the {@code <doc/>} tag only. */
+  /** The model sees the document handle only. */
   @JsonProperty("reference")
   REFERENCE,
-  /** The agent adds the content of the document next to the tag when it calls the model. */
+  /** The agent adds the content of the document next to the handle when it calls the model. */
   @JsonProperty("content")
   CONTENT
 }

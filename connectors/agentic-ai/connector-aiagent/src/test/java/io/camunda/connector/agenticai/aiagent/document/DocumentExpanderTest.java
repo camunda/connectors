@@ -27,10 +27,12 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectConten
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
@@ -45,7 +47,7 @@ class DocumentExpanderTest {
   private final DocumentExpander expander =
       new DocumentExpander(
           new DocumentRestorer(documentFactory),
-          new ObjectTagRenderer(TestObjectMapperSupplier.INSTANCE));
+          new ObjectHandleRenderer(TestObjectMapperSupplier.INSTANCE));
 
   private Document camundaDocument(String content) {
     return documentFactory.create(
@@ -68,13 +70,9 @@ class DocumentExpanderTest {
     return new AgentDocumentContent(agentDocuments.all().get(index).id(), delivery, null);
   }
 
-  private static TextContent tagOf(AgentDocuments agentDocuments, AgentDocumentContent reference) {
-    return textContent(DocumentTags.longTag(agentDocuments, reference.id()));
-  }
-
-  private static TextContent shortTagOf(
+  private static TextContent handleOf(
       AgentDocuments agentDocuments, AgentDocumentContent reference) {
-    return textContent(DocumentTags.shortTag(agentDocuments, reference.id()));
+    return textContent(TestDocuments.handleText(agentDocuments, reference.id()));
   }
 
   private static Map<?, ?> referenceOf(Document document) {
@@ -90,6 +88,25 @@ class DocumentExpanderTest {
                   .isEqualTo(AgentDocumentId.of(expected));
               assertThat(referenceOf(documentContent.document())).isEqualTo(referenceOf(expected));
             });
+  }
+
+  @Test
+  void rendersTheExactHandleTextInAUserMessageAndAToolResult() {
+    final var document = new ExternalDocument("https://example.com/r", "r \"1\".pdf", u -> null);
+    final var agentDocuments = agentDocumentsOf(document, DocumentOrigin.userMessage());
+    final var block =
+        new AgentDocumentContent(AgentDocumentId.of(document), DocumentDelivery.REFERENCE, null);
+    final var expectedText =
+        "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"r \\\"1\\\".pdf\"}"
+            .formatted(AgentDocumentId.of(document));
+
+    final var expanded =
+        expander.expandMessages(
+            List.of(userMessage(block), toolResultMessage(block)), agentDocuments);
+
+    assertThat(((UserMessage) expanded.get(0)).content())
+        .containsExactly(textContent(expectedText));
+    assertThat(resultContent(expanded.get(1))).containsExactly(textContent(expectedText));
   }
 
   @Test
@@ -110,13 +127,13 @@ class DocumentExpanderTest {
 
     final var content = ((UserMessage) expanded.getFirst()).content();
     assertThat(content).hasSize(3);
-    assertThat(content.get(0)).isEqualTo(tagOf(agentDocuments, withContent));
+    assertThat(content.get(0)).isEqualTo(handleOf(agentDocuments, withContent));
     assertRebuiltDocumentIs(content.get(1), documentWithContent);
-    assertThat(content.get(2)).isEqualTo(tagOf(agentDocuments, referenced));
+    assertThat(content.get(2)).isEqualTo(handleOf(agentDocuments, referenced));
   }
 
   @Test
-  void expandingForTheModelTurnsAReferenceWithDeliveryReferenceIntoItsTagOnly() {
+  void expandingForTheModelTurnsAReferenceWithDeliveryReferenceIntoItsHandleOnly() {
     final var document = camundaDocument("hello");
     final var agentDocuments = agentDocumentsOf(document, DocumentOrigin.userMessage());
     final var reference = reference(agentDocuments, 0, DocumentDelivery.REFERENCE);
@@ -125,7 +142,7 @@ class DocumentExpanderTest {
     final var expanded = expander.expandMessages(List.of(message), agentDocuments);
 
     assertThat(((UserMessage) expanded.getFirst()).content())
-        .containsExactly(tagOf(agentDocuments, reference));
+        .containsExactly(handleOf(agentDocuments, reference));
     assertThat(((UserMessage) expanded.getFirst()).id()).isEqualTo(message.id());
   }
 
@@ -138,7 +155,7 @@ class DocumentExpanderTest {
   }
 
   @Test
-  void expandingForTheModelKeepsTheTagWithoutContentWhenTheDocumentIsNotKnownToTheAgent() {
+  void expandingForTheModelKeepsTheHandleWithoutContentWhenTheDocumentIsNotKnownToTheAgent() {
     final var reference =
         new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
 
@@ -146,7 +163,7 @@ class DocumentExpanderTest {
         expander.expandMessages(List.of(userMessage(reference)), AgentDocuments.empty());
 
     assertThat(((UserMessage) expanded.getFirst()).content())
-        .containsExactly(tagOf(AgentDocuments.empty(), reference));
+        .containsExactly(handleOf(AgentDocuments.empty(), reference));
   }
 
   @Test
@@ -161,11 +178,11 @@ class DocumentExpanderTest {
                 .content())
         .hasSize(2)
         .containsExactly(
-            tagOf(agentDocuments, reference), DocumentContent.documentContent(document));
+            handleOf(agentDocuments, reference), DocumentContent.documentContent(document));
   }
 
   @Test
-  void expandsABlockToItsTagOnlyWhenTheAgentCannotSupplyTheDocument() {
+  void expandsABlockToItsHandleOnlyWhenTheAgentCannotSupplyTheDocument() {
     final var unknown =
         new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
     final var document = camundaDocument("hello");
@@ -181,7 +198,7 @@ class DocumentExpanderTest {
                     throw new IllegalStateException("store unavailable");
                   }
                 }),
-            new ObjectTagRenderer(TestObjectMapperSupplier.INSTANCE));
+            new ObjectHandleRenderer(TestObjectMapperSupplier.INSTANCE));
 
     assertThat(
             ((UserMessage)
@@ -191,28 +208,29 @@ class DocumentExpanderTest {
                             AgentDocuments.empty())
                         .getFirst())
                 .content())
-        .containsExactly(textContent("text"), tagOf(AgentDocuments.empty(), unknown));
+        .containsExactly(textContent("text"), handleOf(AgentDocuments.empty(), unknown));
     assertThat(
             ((UserMessage)
                     failingExpander
                         .expandMessages(List.of(userMessage(known)), documents)
                         .getFirst())
                 .content())
-        .containsExactly(tagOf(documents, known));
+        .containsExactly(handleOf(documents, known));
     assertThat(
             resultContent(
                 expander
                     .expandMessages(List.of(toolResultMessage(unknown)), AgentDocuments.empty())
                     .getFirst()))
-        .containsExactly(shortTagOf(AgentDocuments.empty(), unknown));
+        .containsExactly(handleOf(AgentDocuments.empty(), unknown));
   }
 
   @Test
-  void leavesTagsInPlainTextAlone() {
+  void leavesAHandleInPlainTextAlone() {
     final var document = camundaDocument("hello");
     final var agentDocuments = agentDocumentsOf(document, DocumentOrigin.userMessage());
     final var literal =
-        "<doc id=\"%s\" fileName=\"report.pdf\" />".formatted(AgentDocumentId.of(document));
+        "{\"type\":\"camunda.agent_document\",\"id\":\"%s\"}"
+            .formatted(AgentDocumentId.of(document));
     final var content = List.<Content>of(textContent("See " + literal), textContent(literal));
 
     assertThat(
@@ -277,7 +295,7 @@ class DocumentExpanderTest {
   }
 
   @Test
-  void expandsAReferenceInAToolResultToItsTagText() {
+  void expandsAReferenceInAToolResultToItsHandleText() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
         agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
@@ -292,11 +310,11 @@ class DocumentExpanderTest {
     final var content = resultContent(expanded.getFirst());
     assertThat(content).hasSize(2);
     assertThat(content.get(0)).isEqualTo(textContent("before"));
-    assertThat(content.get(1)).isEqualTo(shortTagOf(agentDocuments, reference));
+    assertThat(content.get(1)).isEqualTo(handleOf(agentDocuments, reference));
   }
 
   @Test
-  void aBlockInAToolResultBecomesTheShortTagOfTheDocumentOfTheAgentDocuments() {
+  void aBlockInAToolResultBecomesTheHandleOfTheDocumentOfTheAgentDocuments() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
         agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
@@ -313,16 +331,13 @@ class DocumentExpanderTest {
                 .expandMessages(List.of(toolResultMessage(reference)), AgentDocuments.empty())
                 .getFirst());
 
-    assertThat(DocumentTags.longTag(agentDocuments, reference.id()))
-        .contains("toolName")
-        .contains("toolCallId");
-    assertThat(expanded).containsExactly(textContent(DocumentTags.shortTag(document)));
+    assertThat(expanded).containsExactly(textContent(TestDocuments.handleText(document)));
     assertThat(withoutAgentDocuments)
-        .containsExactly(textContent(DocumentTags.idOnlyTag(reference.id())));
+        .containsExactly(textContent(TestDocuments.unknownHandleText(reference.id())));
   }
 
   @Test
-  void aBlockInAToolResultNeverGetsTheDocumentAfterItsTag() {
+  void aBlockInAToolResultNeverGetsTheDocumentAfterItsHandle() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
         agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
@@ -337,7 +352,7 @@ class DocumentExpanderTest {
 
     assertThat(resultContent(expanded.getFirst()))
         .containsExactly(
-            shortTagOf(agentDocuments, AgentDocumentContent.of(AgentDocumentId.of(document))));
+            handleOf(agentDocuments, AgentDocumentContent.of(AgentDocumentId.of(document))));
   }
 
   @Test
@@ -356,7 +371,7 @@ class DocumentExpanderTest {
   }
 
   @Test
-  void replacesADocumentNestedInAnObjectOfAToolResultByItsTag() {
+  void replacesADocumentNestedInAnObjectOfAToolResultByItsHandle() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
         agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
@@ -375,7 +390,7 @@ class DocumentExpanderTest {
                     "status",
                     200,
                     "files",
-                    List.of(Map.of("file", DocumentTags.shortTag(document)))),
+                    List.of(Map.of("file", TestDocuments.handleObject(document)))),
                 metadata));
     assertThat(resultContent(message).getFirst())
         .isInstanceOfSatisfying(
@@ -386,7 +401,7 @@ class DocumentExpanderTest {
   }
 
   @Test
-  void replacesADocumentNestedInAnObjectOfAUserMessageByItsTag() {
+  void replacesADocumentNestedInAnObjectOfAUserMessageByItsHandle() {
     final var document = camundaDocument("hello");
 
     final var expanded =
@@ -396,7 +411,7 @@ class DocumentExpanderTest {
 
     assertThat(((UserMessage) expanded.getFirst()).content())
         .containsExactly(
-            ObjectContent.objectContent(Map.of("file", DocumentTags.shortTag(document))));
+            ObjectContent.objectContent(Map.of("file", TestDocuments.handleObject(document))));
   }
 
   @Test
@@ -414,7 +429,7 @@ class DocumentExpanderTest {
     assertThat(expanded.toolDefinitions()).isEqualTo(snapshot.toolDefinitions());
     assertThat(((UserMessage) expanded.messages().getFirst()).content())
         .hasSize(2)
-        .startsWith(tagOf(agentDocuments, reference));
+        .startsWith(handleOf(agentDocuments, reference));
   }
 
   @Test

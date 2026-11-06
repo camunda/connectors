@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.api.document.Document;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -20,54 +21,52 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Renders an object with every document at any depth replaced by its short tag, the way the model
- * reads the object of a tool result and of a user message, and reports the documents it replaced.
+ * Renders an object with every document at any depth replaced by its {@link DocumentHandle}, the
+ * way the model reads the object of a tool result and of a user message, and reports the documents
+ * it replaced.
  */
-public final class ObjectTagRenderer {
+public final class ObjectHandleRenderer {
 
   private static final String COLLECTED_DOCUMENTS = "collectedDocuments";
 
-  private final ObjectMapper taggingMapper;
+  private final ObjectMapper handleMapper;
 
   /**
    * @param objectMapper the mapper that writes the object, the one that serializes the messages
    */
-  public ObjectTagRenderer(ObjectMapper objectMapper) {
-    this.taggingMapper =
-        objectMapper.copy().registerModule(new SimpleModule().addSerializer(new TagCollector()));
+  public ObjectHandleRenderer(ObjectMapper objectMapper) {
+    this.handleMapper =
+        objectMapper.copy().registerModule(new SimpleModule().addSerializer(new HandleCollector()));
   }
 
   /**
-   * An object with every document at any depth replaced by its tag, and the documents that were
+   * An object with every document at any depth replaced by its handle, and the documents that were
    * replaced, in order of appearance.
    *
    * @param tree the object as plain JSON values (maps, lists, strings, numbers)
-   * @param documents the documents the tags stand for, one entry per occurrence
+   * @param documents the documents the handles stand for, one entry per occurrence
    */
-  public record TaggedObject(Object tree, List<Document> documents) {}
+  public record RenderedObject(Object tree, List<Document> documents) {}
 
   /**
-   * Renders the object with a {@link Document} at any depth as its tag (see {@link
-   * DocumentTags#shortTag(Document)}), and returns the rendered tree with the documents it
+   * Renders the object with a {@link Document} at any depth as its handle object (see {@link
+   * DocumentHandles#tree(DocumentHandle)}), and returns the rendered tree with the documents it
    * replaced.
    */
-  public TaggedObject render(Object value) {
+  public RenderedObject render(Object value) {
     final var documents = new ArrayList<Document>();
-    try (var buffer = new TokenBuffer(taggingMapper, false)) {
-      taggingMapper
-          .writer()
-          .withAttribute(COLLECTED_DOCUMENTS, documents)
-          .writeValue(buffer, value);
-      final Object tree = taggingMapper.readValue(buffer.asParser(), Object.class);
-      return new TaggedObject(tree, List.copyOf(documents));
+    try (var buffer = new TokenBuffer(handleMapper, false)) {
+      handleMapper.writer().withAttribute(COLLECTED_DOCUMENTS, documents).writeValue(buffer, value);
+      final Object tree = handleMapper.readValue(buffer.asParser(), Object.class);
+      return new RenderedObject(tree, List.copyOf(documents));
     } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException("Failed to render the object with document tags", e);
+      throw new IllegalArgumentException("Failed to render the object with document handles", e);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
   }
 
-  private static final class TagCollector extends JsonSerializer<Document> {
+  private static final class HandleCollector extends JsonSerializer<Document> {
 
     @Override
     public Class<Document> handledType() {
@@ -82,7 +81,7 @@ public final class ObjectTagRenderer {
       if (collected != null) {
         collected.add(document);
       }
-      gen.writeString(DocumentTags.shortTag(document));
+      gen.writeTree(DocumentHandles.tree(DocumentHandles.of(document)));
     }
   }
 }

@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -981,7 +980,7 @@ class AwsAgentCoreConversationStoreTest {
                   .containsExactly(
                       TextContent.textContent("see"),
                       TextContent.textContent(
-                          DocumentTags.longTag(AgentDocuments.of(List.of(entry)), tag.id())));
+                          TestDocuments.handleText(AgentDocuments.of(List.of(entry)), tag.id())));
               assertThat(expanded.content().get(2)).isInstanceOf(DocumentContent.class);
             });
     // the loaded conversation keeps the document reference only

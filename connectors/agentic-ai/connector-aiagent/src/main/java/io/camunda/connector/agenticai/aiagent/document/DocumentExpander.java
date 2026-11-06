@@ -34,14 +34,14 @@ import org.jspecify.annotations.Nullable;
  * chat model providers see, so that no provider has document specific code.
  *
  * <p>The persisted form of a document is its block only; the document is restored from the agent
- * documents. In a user message the model gets the tag text of every block and the document content
- * of the blocks with {@link DocumentDelivery#CONTENT}. A document the agent does not know, or that
- * cannot be restored, leaves the tag text alone. A tag a user typed into a prompt is text and stays
- * text.
+ * documents. In a user message the model gets the handle text of every block and the document
+ * content of the blocks with {@link DocumentDelivery#CONTENT}. A document the agent does not know,
+ * or that cannot be restored, leaves the handle text alone. A handle a user typed into a prompt is
+ * text and stays text.
  *
- * <p>In a tool result a block becomes the tag text of the document, which for the model is the tag
- * only: the delivery of such a block is not read. A document nested in an object is replaced by its
- * tag in the object, in a tool result as well as in a user message.
+ * <p>In a tool result a block becomes the handle text of the document, which for the model is the
+ * handle only: the delivery of such a block is not read. A document nested in an object is replaced
+ * by its handle object in the object, in a tool result as well as in a user message.
  *
  * <p>The result depends only on the messages and the agent documents, never on time or call order,
  * so it is stable across requests (prompt caching). Nothing that is stored is changed.
@@ -49,11 +49,11 @@ import org.jspecify.annotations.Nullable;
 public final class DocumentExpander {
 
   private final DocumentRestorer restorer;
-  private final ObjectTagRenderer objectTagRenderer;
+  private final ObjectHandleRenderer objectHandleRenderer;
 
-  public DocumentExpander(DocumentRestorer restorer, ObjectTagRenderer objectTagRenderer) {
+  public DocumentExpander(DocumentRestorer restorer, ObjectHandleRenderer objectHandleRenderer) {
     this.restorer = restorer;
-    this.objectTagRenderer = objectTagRenderer;
+    this.objectHandleRenderer = objectHandleRenderer;
   }
 
   /**
@@ -70,9 +70,9 @@ public final class DocumentExpander {
   }
 
   /**
-   * The messages expanded for the model: in a user message the tag text of every document block,
+   * The messages expanded for the model: in a user message the handle text of every document block,
    * followed by the document for the blocks with the delivery {@code content}; in a tool result the
-   * tag text of every block. In both, a document nested in an object is replaced by its tag.
+   * handle text of every block. In both, a document nested in an object is replaced by its handle.
    */
   List<Message> expandMessages(List<Message> messages, AgentDocuments documents) {
     final var expanded = new ArrayList<Message>(messages.size());
@@ -94,8 +94,7 @@ public final class DocumentExpander {
     for (int i = 0; i < contents.size(); i++) {
       switch (contents.get(i)) {
         case AgentDocumentContent block -> {
-          expanded.add(
-              new TextContent(DocumentTags.longTag(documents, block.id()), block.metadata()));
+          expanded.add(new TextContent(handleText(documents, block.id()), block.metadata()));
           final var next = i + 1 < contents.size() ? contents.get(i + 1) : null;
           if (block.delivery() == DocumentDelivery.CONTENT
               && !isFollowedByDocument(next, block.id())) {
@@ -127,9 +126,8 @@ public final class DocumentExpander {
     for (final var content : contents) {
       expanded.add(
           switch (content) {
-            // the short tag of the document, without source, tool name and tool call id
             case AgentDocumentContent block ->
-                new TextContent(DocumentTags.shortTag(documents, block.id()), block.metadata());
+                new TextContent(handleText(documents, block.id()), block.metadata());
             case ObjectContent objectContent -> renderObject(objectContent);
             case TextContent textContent -> textContent;
             case DocumentContent documentContent -> documentContent;
@@ -140,22 +138,28 @@ public final class DocumentExpander {
     return List.copyOf(expanded);
   }
 
-  /** The object with its documents replaced by their tags, or the same object when it has none. */
+  private static String handleText(AgentDocuments documents, AgentDocumentId id) {
+    return DocumentHandles.text(DocumentHandles.of(documents, id));
+  }
+
+  /**
+   * The object with its documents replaced by their handles, or the same object when it has none.
+   */
   private ObjectContent renderObject(ObjectContent objectContent) {
-    final var tagged = objectTagRenderer.render(objectContent.content());
-    return tagged.documents().isEmpty()
+    final var rendered = objectHandleRenderer.render(objectContent.content());
+    return rendered.documents().isEmpty()
         ? objectContent
-        : new ObjectContent(tagged.tree(), objectContent.metadata());
+        : new ObjectContent(rendered.tree(), objectContent.metadata());
   }
 
   private static boolean isFollowedByDocument(@Nullable Content next, AgentDocumentId id) {
     return next instanceof DocumentContent following
-        && isTaggable(following.document())
+        && hasHandle(following.document())
         && id.equals(AgentDocumentId.of(following.document()));
   }
 
-  /** Only Camunda and external documents get a tag, inline documents are left as they are. */
-  private static boolean isTaggable(Document document) {
+  /** Only Camunda and external documents get a handle, inline documents are left as they are. */
+  private static boolean hasHandle(Document document) {
     return document.reference() instanceof CamundaDocumentReference
         || document.reference() instanceof ExternalDocumentReference;
   }

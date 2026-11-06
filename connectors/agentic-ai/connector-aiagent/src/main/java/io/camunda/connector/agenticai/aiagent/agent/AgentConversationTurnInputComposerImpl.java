@@ -56,7 +56,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       EVENT_CONTENT_EMPTY
           + " Execution waited for all in-flight tool executions to complete before proceeding.";
 
-  static final String EVENT_DOCUMENT_TAGS_PREAMBLE = "Documents attached to the event:";
+  static final String EVENT_DOCUMENT_HANDLES_PREAMBLE = "Documents attached to the event:";
 
   // the preamble of the tag and content pairs of an agent instance that does not track its
   // documents
@@ -280,7 +280,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     if (!eventDocuments.isEmpty()) {
       switch (documentHandling) {
         case DocumentHandling.Tracked ignored -> {
-          userMessageContent.add(textContent(EVENT_DOCUMENT_TAGS_PREAMBLE));
+          userMessageContent.add(textContent(EVENT_DOCUMENT_HANDLES_PREAMBLE));
           final var origin = DocumentOrigin.event();
           for (var group : eventDocuments) {
             for (var doc : group.documents()) {

@@ -16,11 +16,12 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
-import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
-import io.camunda.connector.agenticai.aiagent.document.ObjectTagRenderer;
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -63,15 +64,15 @@ public class AgentInstanceHistoryMapper {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final DocumentRestorer documentRestorer;
-  private final ObjectTagRenderer objectTagRenderer;
+  private final ObjectHandleRenderer objectHandleRenderer;
 
   public AgentInstanceHistoryMapper(
       GatewayToolHandlerRegistry gatewayToolHandlers,
       DocumentRestorer documentRestorer,
-      ObjectTagRenderer objectTagRenderer) {
+      ObjectHandleRenderer objectHandleRenderer) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.documentRestorer = documentRestorer;
-    this.objectTagRenderer = objectTagRenderer;
+    this.objectHandleRenderer = objectHandleRenderer;
   }
 
   /**
@@ -95,7 +96,7 @@ public class AgentInstanceHistoryMapper {
    * @param toolCallsById the tool calls of the previous turn by id; a result of a local tool call
    *     is reported without a BPMN element
    * @param documentHandling how the agent handles its documents, which decides how the documents of
-   *     the messages are shown; the documents it tracks are what the document tags are expanded
+   *     the messages are shown; the documents it tracks are what the document handles are expanded
    *     with
    */
   public List<InputHistoryItem> inputHistoryItems(
@@ -237,8 +238,8 @@ public class AgentInstanceHistoryMapper {
   }
 
   /**
-   * The content of a user message. A document block is its tag in inline code followed by the
-   * document, as the agent knows it; text is reported as it is, also when it holds a tag.
+   * The content of a user message. A document block is its handle as text followed by the document,
+   * as the agent knows it; text is reported as it is, also when it holds a handle.
    */
   private List<AgentInstanceHistoryContent> userContentBlocks(
       List<Content> contents, DocumentHandling documentHandling) {
@@ -252,7 +253,7 @@ public class AgentInstanceHistoryMapper {
             case AgentDocumentContent block -> {
               blocks.add(
                   AgentInstanceHistoryContent.text(
-                      inlineCode(DocumentTags.longTag(documents, block.id()))));
+                      DocumentHandles.text(DocumentHandles.of(documents, block.id()))));
               documentRestorer
                   .restore(documents, block.id())
                   .ifPresent(document ->
@@ -278,10 +279,11 @@ public class AgentInstanceHistoryMapper {
   }
 
   /**
-   * The content of a tool result as the model receives it. A document, as a block or as a live
-   * document, is its tag in inline code followed by the document; a document nested in an object is
-   * replaced by its tag, the same text the model gets, and the documents follow the object. A
-   * document that is not a Camunda or an external one has its tag only.
+   * The content of a tool result as the model receives it. A result that is exactly one document is
+   * the document only. Otherwise a document, as a block or as a live document, is its handle as
+   * text followed by the document; a document nested in an object is replaced by its handle object,
+   * as the model gets it, and the documents follow the object. A document that is not a Camunda or
+   * an external one has its handle text only.
    */
   private List<AgentInstanceHistoryContent> toolResultContent(
       List<Content> contents, DocumentHandling documentHandling) {
@@ -290,19 +292,22 @@ public class AgentInstanceHistoryMapper {
       case DocumentHandling.Tracked tracked -> {
         final var documents = tracked.documents();
         final var blocks = new ArrayList<AgentInstanceHistoryContent>();
+        final var wholeResult = contents.size() == 1;
         for (final var content : contents) {
           switch (content) {
             case DocumentContent documentContent ->
                 addDocument(
                     blocks,
-                    DocumentTags.shortTag(documentContent.document()),
+                    DocumentHandles.of(documentContent.document()),
                     documentContent.document(),
+                    wholeResult,
                     tracked);
             case AgentDocumentContent block ->
                 addDocument(
                     blocks,
-                    DocumentTags.shortTag(documents, block.id()),
+                    DocumentHandles.of(documents, block.id()),
                     documentRestorer.restore(documents, block.id()).orElse(null),
+                    wholeResult,
                     tracked);
             case ObjectContent objectContent -> addObject(blocks, objectContent, tracked);
             case TextContent textContent ->
@@ -320,14 +325,17 @@ public class AgentInstanceHistoryMapper {
 
   private void addDocument(
       List<AgentInstanceHistoryContent> blocks,
-      String shortTag,
+      DocumentHandle handle,
       @Nullable Document document,
+      boolean wholeResult,
       DocumentHandling documentHandling) {
-    // the tag the model reads for the document of a tool result, the short one
-    blocks.add(AgentInstanceHistoryContent.text(inlineCode(shortTag)));
-    if (document != null && hasHistoryDocument(document)) {
-      blocks.add(
-          documentHistoryContent(DocumentContent.documentContent(document), documentHandling));
+    final var chip = document != null && hasHistoryDocument(document) ? document : null;
+    // the document of a whole result is its chip; without a chip the handle text is all there is
+    if (!wholeResult || chip == null) {
+      blocks.add(AgentInstanceHistoryContent.text(DocumentHandles.text(handle)));
+    }
+    if (chip != null) {
+      blocks.add(documentHistoryContent(DocumentContent.documentContent(chip), documentHandling));
     }
   }
 
@@ -335,15 +343,15 @@ public class AgentInstanceHistoryMapper {
       List<AgentInstanceHistoryContent> blocks,
       ObjectContent objectContent,
       DocumentHandling documentHandling) {
-    final var tagged = objectTagRenderer.render(objectContent.content());
-    if (tagged.documents().isEmpty()) {
+    final var rendered = objectHandleRenderer.render(objectContent.content());
+    if (rendered.documents().isEmpty()) {
       blocks.add(objectHistoryContent(objectContent.content()));
       return;
     }
 
-    blocks.add(objectHistoryContent(tagged.tree()));
+    blocks.add(objectHistoryContent(rendered.tree()));
     final var reportedIds = new HashSet<AgentDocumentId>();
-    for (final var document : tagged.documents()) {
+    for (final var document : rendered.documents()) {
       if (hasHistoryDocument(document) && reportedIds.add(AgentDocumentId.of(document))) {
         blocks.add(
             documentHistoryContent(DocumentContent.documentContent(document), documentHandling));
@@ -351,7 +359,10 @@ public class AgentInstanceHistoryMapper {
     }
   }
 
-  /** The history shows the Camunda and the external documents; an inline one has its tag only. */
+  /**
+   * The history shows the Camunda and the external documents; an inline one has its handle text
+   * only.
+   */
   private static boolean hasHistoryDocument(Document document) {
     return document.reference() instanceof CamundaDocumentReference
         || document.reference() instanceof ExternalDocumentReference;
@@ -370,18 +381,11 @@ public class AgentInstanceHistoryMapper {
       case DocumentContent documentContent ->
           documentHistoryContent(documentContent, documentHandling);
       case AgentDocumentContent block ->
-          AgentInstanceHistoryContent.text(DocumentTags.idOnlyTag(block.id()));
+          AgentInstanceHistoryContent.text(
+              DocumentHandles.text(DocumentHandles.ofUnknown(block.id())));
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };
-  }
-
-  /**
-   * The tag in inline code backticks, so a markdown renderer shows it instead of treating it as
-   * markup.
-   */
-  private static String inlineCode(String tag) {
-    return "`" + tag + "`";
   }
 
   private AgentInstanceHistoryContent reasoningHistoryContent(ReasoningContent reasoningContent) {
