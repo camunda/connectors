@@ -108,12 +108,14 @@ public sealed interface RuntimeToolResult {
      * {@link RuntimeToolDocuments}, or of a document this result returns ({@link
      * AgentDocumentId#of(Document)}).
      *
-     * <p>The agent runs its content guard before it adds anything: when the document is not allowed
-     * as content, for example because of its type or its size, the result stays as it is, the
-     * document stays a reference, and the message that follows the tool results tells the model why
-     * the content is not loaded. A document whose content the model reads already (see {@link
-     * RuntimeToolDocuments#hasContentInConversation}), or that an earlier call of the same
-     * assistant message asked for, is not added again.
+     * <p>The agent writes into the tool result one sentence per document it is asked for, after the
+     * content of the result: the content follows in the next message, it is not loaded and why, or
+     * it is in the conversation already. A tool therefore needs no text of its own for the
+     * document. The agent runs its content guard before it adds anything: when the document is not
+     * allowed as content, for example because of its type or its size, the document stays a
+     * reference and the sentence tells the model why the content is not loaded. A document whose
+     * content the model reads already (see {@link RuntimeToolDocuments#hasContentInConversation}),
+     * or that an earlier call of the same assistant message asked for, is not added again.
      *
      * <p>An id of a document the agent does not know, neither from {@link RuntimeToolDocuments} nor
      * as a document this result returns, is a defect of the tool: the agent throws an {@link

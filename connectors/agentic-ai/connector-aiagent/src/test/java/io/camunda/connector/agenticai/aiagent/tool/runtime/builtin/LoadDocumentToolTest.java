@@ -111,24 +111,19 @@ class LoadDocumentToolTest {
     return AgentDocumentContent.of(entry.id());
   }
 
-  private static String handleText(AgentDocument entry) {
-    return AgentDocumentHandle.of(entry).text();
+  private static String refOf(AgentDocument entry) {
+    final var fileName = AgentDocumentHandle.of(entry).fileName();
+    return fileName == null ? entry.id().value() : fileName + " (" + entry.id().value() + ")";
   }
 
-  /**
-   * The answer of a request: the handle of the document and the sentence that the content follows,
-   * as two blocks.
-   */
-  private static List<Content> requestedAnswer(AgentDocument entry) {
-    return List.of(
-        textContent(handleText(entry)), textContent("The content follows in the next message."));
+  /** The sentence the agent writes into the tool result for a document that is loaded. */
+  private static Content follows(AgentDocument entry) {
+    return textContent("The content of " + refOf(entry) + " follows in the next message.");
   }
 
-  /**
-   * What the model reads in the message that follows the tool results for a document not loaded.
-   */
-  private static Content notLoaded(AgentDocument entry, String note) {
-    return textContent(AgentDocumentHandle.of(entry).withNote(note).text());
+  /** The sentence the agent writes into the tool result for a document that is not loaded. */
+  private static Content notLoaded(AgentDocument entry, String reason) {
+    return textContent("The content of " + refOf(entry) + " is not loaded. " + reason);
   }
 
   /** What the agent does with a load_document call: the entry and the input of the next turn. */
@@ -138,9 +133,7 @@ class LoadDocumentToolTest {
       return ((ToolCallResultMessage) input.messages().getFirst()).results().getFirst();
     }
 
-    /**
-     * What the agent adds after the tool results: the content of documents or handles with a note.
-     */
+    /** What the agent adds after the tool results: the content of the documents it loads. */
     List<Content> addedContent() {
       return input.messages().size() < 2
           ? List.of()
@@ -149,7 +142,7 @@ class LoadDocumentToolTest {
   }
 
   @Test
-  void definitionHasASingleRequiredDocumentParameterAndTellsAboutLargeDocuments() {
+  void definitionHasASingleRequiredDocumentParameterAndSaysTheResultTellsWhyADocumentIsNotLoaded() {
     final var definition = tool.definition();
 
     assertThat(LoadDocumentTool.NAME).isEqualTo("c8__load_document");
@@ -157,10 +150,9 @@ class LoadDocumentToolTest {
         .isEqualTo(
             "Loads a known document so that its content can be read in the conversation. Use it when"
                 + " you need the content of a document that you only see as a handle. Only text, PDF"
-                + " and image documents can be loaded, and not documents that are too large: a note"
-                + " in the handle tells you so, and you can pass the handle of such a document to a"
-                + " tool that processes it instead, for example a sandbox. A document that is already"
-                + " in the conversation is not loaded again.");
+                + " and image documents that are not too large can be loaded; the result tells you"
+                + " when a document is not loaded and why. A document that is already in the"
+                + " conversation is not loaded again.");
     // the stored schema is the schema of a document handle
     assertThat(definition.inputSchema())
         .isEqualTo(
@@ -195,7 +187,9 @@ class LoadDocumentToolTest {
 
     assertThat(run.entry().effects())
         .containsExactly(new ToolCallEffect.AddDocumentContent(AgentDocumentId.of("doc-1")));
-    assertThat(run.result().content()).isEqualTo(requestedAnswer(entry));
+    // the tool returns no text of its own, the agent writes the sentence
+    assertThat(run.entry().result().content()).isEmpty();
+    assertThat(run.result().content()).containsExactly(follows(entry));
     assertThat(run.result().properties()).isEmpty();
     assertThat(run.addedContent())
         .containsExactly(referenceTo(entry).withDelivery(DocumentDelivery.CONTENT));
@@ -219,7 +213,7 @@ class LoadDocumentToolTest {
   }
 
   @Test
-  void doesNotAddTheContentOfADocumentThatAlreadyHasContentInTheConversation() {
+  void asksForADocumentThatAlreadyHasContentInTheConversationAndTheAgentSaysSo() {
     final var entry = camundaEntry("doc-1", "text/plain", 10L);
     final var withContent = referenceTo(entry).withDelivery(DocumentDelivery.CONTENT);
     final var inConversation =
@@ -227,11 +221,10 @@ class LoadDocumentToolTest {
 
     final var run = run(List.of(entry), inConversation, call("1", "doc-1"));
 
+    assertThat(run.entry().effects())
+        .containsExactly(new ToolCallEffect.AddDocumentContent(AgentDocumentId.of("doc-1")));
     assertThat(run.result().content())
-        .containsExactly(
-            textContent(handleText(entry)),
-            textContent("The document is already in the conversation."));
-    assertThat(run.entry().effects()).isEmpty();
+        .containsExactly(textContent("The content of doc-1 is already in the conversation."));
     assertThat(run.addedContent()).isEmpty();
   }
 
@@ -250,29 +243,29 @@ class LoadDocumentToolTest {
   }
 
   @Test
-  void keepsTheResultAndAddsANoteForADocumentAboveTheTextLimitByItsKnownSize() {
+  void theResultSaysWhyADocumentAboveTheTextLimitIsNotLoaded() {
     final var entry = camundaEntry("doc-1", "text/csv", 300L * 1024);
 
     final var run = run(List.of(entry), Set.of(), call("1", "doc-1"));
 
-    assertThat(run.result().content()).isEqualTo(requestedAnswer(entry));
-    assertThat(run.addedContent())
+    assertThat(run.result().content())
         .containsExactly(
             notLoaded(
                 entry,
                 "The document is too large to load (300 KB, limit 256 KB). If one of your tools can process the document, pass the handle to it."));
+    assertThat(run.addedContent()).isEmpty();
   }
 
   @Test
-  void keepsTheResultAndAddsANoteForAnUnreadableDocumentOfUnknownSize() {
+  void theResultSaysAnUnreadableDocumentOfUnknownSizeIsNotLoaded() {
     // the store holds no content for the document
     final var entry = camundaEntry("doc-1", "text/plain", null);
 
     final var run = run(List.of(entry), Set.of(), call("1", "doc-1"));
 
-    assertThat(run.result().content()).isEqualTo(requestedAnswer(entry));
-    assertThat(run.addedContent())
+    assertThat(run.result().content())
         .containsExactly(notLoaded(entry, "The document could not be read."));
+    assertThat(run.addedContent()).isEmpty();
   }
 
   @Test

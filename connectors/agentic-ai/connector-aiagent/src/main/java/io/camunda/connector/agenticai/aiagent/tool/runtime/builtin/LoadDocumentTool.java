@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 
-import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_REQUIRED;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
@@ -18,7 +17,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
@@ -31,13 +29,10 @@ import org.jspecify.annotations.Nullable;
  * document, which it otherwise sees as a handle only. It is offered to every agent instance with
  * the documents feature.
  *
- * <p>A call answers with two text blocks, the handle of the document and the sentence {@code The
- * content follows in the next message.}, and asks the agent to add the content of the document
- * ({@link RuntimeToolResult.Success#withDocumentContent}). A document the model reads the content
- * of already is not asked for again. The agent keeps the result as it is when it does not add the
- * content, for example because of the content type or the size of the document: the message that
- * follows the tool results then holds the handle of the document with a note that says why the
- * content is not loaded.
+ * <p>A call for a known document returns no text of its own: it asks the agent to add the content
+ * of the document ({@link RuntimeToolResult.Success#withDocumentContent}), and the agent writes
+ * into the tool result what happens to the content: it follows in the next message, it is not
+ * loaded and why, or it is in the conversation already. The agent decides, the tool does not.
  */
 public final class LoadDocumentTool implements RuntimeTool {
 
@@ -52,10 +47,9 @@ public final class LoadDocumentTool implements RuntimeTool {
           NAME,
           "Loads a known document so that its content can be read in the conversation. Use it when"
               + " you need the content of a document that you only see as a handle. Only text, PDF"
-              + " and image documents can be loaded, and not documents that are too large: a note"
-              + " in the handle tells you so, and you can pass the handle of such a document to a"
-              + " tool that processes it instead, for example a sandbox. A document that is already"
-              + " in the conversation is not loaded again.",
+              + " and image documents that are not too large can be loaded; the result tells you"
+              + " when a document is not loaded and why. A document that is already in the"
+              + " conversation is not loaded again.",
           schema());
 
   /** The arguments of a call: the document to load. */
@@ -92,14 +86,6 @@ public final class LoadDocumentTool implements RuntimeTool {
           "Parameter '%s' must be the handle of a known document.".formatted(PARAMETER_ID));
     }
 
-    final var handle = textContent(AgentDocumentHandle.of(document).text());
-    if (documents.hasContentInConversation(document.id())) {
-      return RuntimeToolResult.success(
-          List.of(handle, textContent("The document is already in the conversation.")));
-    }
-
-    return RuntimeToolResult.success(
-            List.of(handle, textContent("The content follows in the next message.")))
-        .withDocumentContent(document.id());
+    return RuntimeToolResult.success(List.of()).withDocumentContent(document.id());
   }
 }
