@@ -100,7 +100,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -265,7 +265,7 @@ class AgentSubProcessRequestHandlerTest {
               UPLOAD_RUNTIME_TOOL,
               COUNT_DOCUMENTS_TOOL,
               LOAD_DOCUMENT_TOOL,
-              new GetDocumentTool()),
+              new LoadDocumentTool()),
           TestObjectMapperSupplier.INSTANCE,
           TestDocuments.documentFactory(),
           new DocumentParameterResolver());
@@ -1818,7 +1818,7 @@ class AgentSubProcessRequestHandlerTest {
             "acme_create_report",
             "acme_count_documents",
             "acme_load_document",
-            GetDocumentTool.NAME);
+            LoadDocumentTool.NAME);
     assertThat(offered)
         .filteredOn(tool -> tool.kind() == ToolKind.PROCESS)
         .containsExactlyElementsOf(TOOL_DEFINITIONS);
@@ -2480,7 +2480,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void carriesTheContentOfADocumentRequestedByAGetDocumentCallIntoTheNextRoundOfTheSameJob() {
+  void carriesTheContentOfADocumentRequestedByALoadDocumentCallIntoTheNextRoundOfTheSameJob() {
     final var document = createDocument("report data", "report.txt");
     final var documentId = AgentDocumentId.of(document);
     mockSystemPrompt();
@@ -2489,7 +2489,7 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_DOCUMENTS, List.of()));
 
     final var getCall =
-        new ToolCall("call-1", GetDocumentTool.NAME, Map.of("id", docHandle(documentId)));
+        new ToolCall("call-1", LoadDocumentTool.NAME, Map.of("id", docHandle(documentId)));
     final var firstMessage = AssistantMessage.builder().toolCalls(List.of(getCall)).build();
     final var secondMessage = assistantMessage("done");
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
@@ -2513,7 +2513,7 @@ class AgentSubProcessRequestHandlerTest {
                 && user.content().stream().anyMatch(DocumentContent.class::isInstance));
     assertThat(chatModelRequestCaptor.getAllValues().get(0).snapshot().toolDefinitions())
         .extracting(ToolDefinition::name)
-        .contains(GetDocumentTool.NAME);
+        .contains(LoadDocumentTool.NAME);
 
     // the second request has the tool result followed by the message with the loaded content
     final var secondRequestMessages =
@@ -2577,7 +2577,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void carriesTheContentOfADocumentRequestedByAGetDocumentCallOfAMixedBatchIntoTheNextTurn() {
+  void carriesTheContentOfADocumentRequestedByALoadDocumentCallOfAMixedBatchIntoTheNextTurn() {
     final var document = createDocument("report data", "report.txt");
     final var documentId = AgentDocumentId.of(document);
     final var knowing =
@@ -2586,7 +2586,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var run =
         runMixedBatchInTwoJobs(
-            GetDocumentTool.NAME, Map.of("id", docHandle(documentId)), knowing, "Sunny", () -> {});
+            LoadDocumentTool.NAME, Map.of("id", docHandle(documentId)), knowing, "Sunny", () -> {});
 
     // the model reads the results of both calls in call order and then the content, exactly as
     // for a message that calls runtime tools only

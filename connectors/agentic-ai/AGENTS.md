@@ -224,7 +224,7 @@ High-frequency traps (detail behind each link):
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
   `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
   keeps the previous document handling (bare content and the older XML tag format, no agent documents, no document
-  parameters, and no `c8__get_document`), a `Tracked` one holds its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
+  parameters, and no `c8__load_document`), a `Tracked` one holds its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
   `boolean` parameter. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
   and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
   behavior that changes the wire format or the persisted shape on a feature and keep the legacy
@@ -268,7 +268,7 @@ High-frequency traps (detail behind each link):
   documents of a turn input, also those a runtime tool returns; the documents a runtime tool returns are registered, and
   the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
   a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
-  and gets content only through `c8__get_document`: a tool asks for content with the sealed `ToolCallEffect`
+  and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
   `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` runs the content guard
   (`DocumentContentGuard`, limits in `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document
   whose content a tool asks for. A document that fails it (an external document, a type no provider renders, a size above
@@ -372,7 +372,7 @@ Before claiming a change is complete:
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
 tool (a tool the connector runtime executes itself, without activating a BPMN element; a built-in tool is a runtime tool
-the connector ships, such as `c8__get_document`; a process tool must not have its name)
+the connector ships, such as `c8__load_document`; a process tool must not have its name)
 by implementing the SPI and registering a Spring bean. A runtime tool is the three-method interface `RuntimeTool`
 (`definition`, `isEnabled`, `call`), an experimental SPI in 8.11; the built-in tools use only that public API. Where to start (SPI + reference implementation per
 type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and [ADR 016](docs/adr/016-runtime-tools.md)).

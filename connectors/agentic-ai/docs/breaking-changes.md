@@ -268,7 +268,7 @@ factory of the job.
 ### Runtime tools and tool names
 
 - Agent instances created from 8.11 on have the `runtimeTools` and the `documents` feature and are offered the built-in
-  runtime tool `c8__get_document`, which the agent runs itself. An agent job fails with the error code
+  runtime tool `c8__load_document`, which the agent runs itself. An agent job fails with the error code
   `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime tool that is
   not enabled reserves no name. Give the runtime tools of your own runtime a name with a prefix of your own. The prefix
   `c8__` is for the tools the connector ships; no prefix is checked or reserved, only the exact name. Agent instances
@@ -328,7 +328,7 @@ factory of the job.
 - For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
   document goes out as content, as before. A document in a tool result is text, its handle, instead of a `DocumentContent` or
   the reference JSON, and the content of a document follows in a user message only when the model loaded it with
-  `c8__get_document`. A custom `ChatModel` that handles `DocumentContent` in tool results
+  `c8__load_document`. A custom `ChatModel` that handles `DocumentContent` in tool results
   therefore sees text for these instances; instances without the feature keep the earlier form.
 - New in the model: `AgentDocumentId`, the value type of a document id (persisted as a plain string), used by the agent
   documents and `AgentDocumentContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the

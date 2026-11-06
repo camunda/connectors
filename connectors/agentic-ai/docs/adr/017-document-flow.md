@@ -260,9 +260,9 @@ content, without the guard, whatever the delivery: the provider reads them.
 
 Content enters the request in two ways, which share one guard and one persisted form:
 
-* **On request.** The model calls the built-in tool `c8__load_document` with the handle of a document. The model knows
-  whether it needs to read a document. The tool returns no text about the content: the agent writes into the result that
-  the content follows, or that it is not loaded and why. It loads the whole document. A range would be additive.
+* **On request.** The model calls the built-in tool `c8__load_document`. The model knows whether it needs to read a
+  document, and the tool answers with a result the model can act on when it cannot load it. It loads the whole document.
+  A range would be additive.
 * **By opt-in.** The process knows what a document is at two places, so only they can opt in: the user prompt, with a
   dropdown, and a tool activity, with an extension property. This removes one model round trip per document for a prompt
   that always comes with a short PDF or a tool that returns a text file. Events, MCP tools and A2A tools stay references;
@@ -358,11 +358,11 @@ tool SPI of ADR 016.
 
 ### Built-in tools use the public SPI
 
-The connector ships `c8__get_document` as a built-in runtime tool. It is an ordinary bean of the SPI, depends only on the
+The connector ships `c8__load_document` as a built-in runtime tool. It is an ordinary bean of the SPI, depends only on the
 API, the model and a few libraries (an architecture test enforces it), and is replaced by registering a bean with its
 bean name. A bean with another bean name but the name of a built-in tool fails the startup, because tool names are unique.
 The core names no built-in tool in its own code. A built-in tool is enabled for the agent instances that have the feature
-it needs, as a custom tool would be: `c8__get_document` works with the agent documents, so it needs the `documents` feature.
+it needs, as a custom tool would be: `c8__load_document` works with the agent documents, so it needs the `documents` feature.
 
 ### Where content comes from, and how tool results render
 

@@ -103,7 +103,7 @@ public final class DocumentFlowFixtures {
         "I will read the document.",
         10,
         20,
-        ToolCall.of(callId, "c8__get_document", "{\"id\": \"%s\"}".formatted(tag(documentId))));
+        ToolCall.of(callId, "c8__load_document", "{\"id\": \"%s\"}".formatted(tag(documentId))));
   }
 
   /** Uploads the first known document of the request. */

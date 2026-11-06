@@ -1615,7 +1615,7 @@ instance itself, so its key is invariant.
 - `AgentConversation.rehydrate()` / `ingest()` / `window()` / `nextContinuationRound()` / `nextRuntimeToolRound()` / `toAgentContext()` → Immutable turn aggregate lifecycle
 - `BaseAgentRequestHandler.throwIfLimitsReached()` → Model-call limit check (reads the model calls of the agent context before the local tool calls of a `Ready` are executed, and `totalMetrics().modelCalls()` before every further round of the job)
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting; hands the process tool calls of the last turn to the gateway handlers
-- `RuntimeTools.enabledDefinitions()` / `GetDocumentTool` → The enabled runtime tools of a job, registered as beans, and the built-in tool `c8__get_document` (§25.4)
+- `RuntimeTools.enabledDefinitions()` / `LoadDocumentTool` → The enabled runtime tools of a job, registered as beans, and the built-in tool `c8__load_document` (§25.4)
 
 ### Job Completion
 - `AgentSubProcessConnectorResponse.elementActivations()` → AHSP element activations from tool calls
@@ -2039,7 +2039,7 @@ absent part is hashed as such, never as the text `null`. Any other kind of refer
 content, fails with `UNSUPPORTED_DOCUMENT_REFERENCE`. The id never exposes
 a store id, the id of the document in its store or a URL.
 
-**Loading content: `c8__get_document`.** The model calls it with the tag of a document (`id`, a document parameter; the
+**Loading content: `c8__load_document`.** The model calls it with the tag of a document (`id`, a document parameter; the
 tool receives an `AgentDocumentId`). It loads the whole document, no ranges. The tool answers without asking for content when the
 document is already in the windowed conversation (a block with the delivery `content` in a windowed user message,
 `RuntimeToolDocuments.hasContentInConversation`): success, `Document <id> is already in the conversation.`; loadable again after
@@ -2068,7 +2068,7 @@ metadata `toolCallDocuments` makes it leave the context window together with its
 tag text and the content are added from the agent documents when the request is built (`DocumentExpander`). Passing the tag of a document to
 a tool parameter declared with `fromAi(..., "document")` never adds content: the tool receives the full Camunda document
 reference. The same holds for a parameter that takes text or a document, when the model passes a tag.
-`c8__get_document` is offered to every agent instance with the `documents` feature (every instance created from
+`c8__load_document` is offered to every agent instance with the `documents` feature (every instance created from
 this version on) and cannot be switched off; an instance created before the feature is not offered it. A switch for it is a
 follow-up of [ADR 017](../adr/017-document-flow.md).
 
@@ -2108,7 +2108,7 @@ file as a Camunda document instead.
   (`LegacyDocumentReferenceXmlTag`: `toolName`, `toolCallId`, `documentId`, `storeId`, `contentType`, `fileName`, or `url`
   and `name` for an external document) and the `DocumentContent`, as in ADR-004. Nothing is registered.
 - `documents` stays empty; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
-- Without the `runtimeTools` feature there are no runtime tools (`c8__get_document` included), no mixed-batch handling and
+- Without the `runtimeTools` feature there are no runtime tools (`c8__load_document` included), no mixed-batch handling and
   no tool name check (§25.4).
 - The document parameters of tool calls are not resolved or checked: a `fromAi(..., "document")` parameter reaches the
   process as the plain string the model sent.
@@ -2558,10 +2558,10 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
 definition next to the tools of the process and the agent executes the call, in process. A built-in tool is a runtime tool
-the connector ships. The built-in tool `GetDocumentTool` (`c8__get_document`) is in `aiagent/tool/runtime/builtin` of
+the connector ships. The built-in tool `LoadDocumentTool` (`c8__load_document`) is in `aiagent/tool/runtime/builtin` of
 `connector-aiagent`, uses only this SPI and gets no special handling anywhere: an architecture rule
 (`BuiltInRuntimeToolsArchTest`) lets it depend on the API, the model, the common library, the connector SDK, Jackson,
-jspecify and the JDK only. It is wired in `AgenticAiConnectorsAutoConfiguration` as the bean `aiAgentGetDocumentRuntimeTool`
+jspecify and the JDK only. It is wired in `AgenticAiConnectorsAutoConfiguration` as the bean `aiAgentLoadDocumentRuntimeTool`
 (`@ConditionalOnMissingBean(name = ...)`: a bean with the bean name of a built-in tool replaces it; a bean with another bean
 name that has the name of a built-in tool fails the startup, as tool names are unique). The rationale is in
 [ADR 016](../adr/016-runtime-tools.md) and [ADR 017](../adr/017-document-flow.md). The contract of every type is in its
@@ -2621,7 +2621,7 @@ whether the model reads the content of a document already.
 **Effects.** `RuntimeToolResult.success(...)` returns a `Success`, which has the effect `withDocumentContent(AgentDocumentId)`
 (or `withDocumentContent(Document)` for a document the result returns itself): the agent adds the content of a known
 document, or of one the result returns itself, to the request that follows the tool results. An effect is a variant of the
-sealed `ToolCallEffect` (`aiagent-model`); `Success.effects()` lists them, `with*` methods append. `GetDocumentTool` is the
+sealed `ToolCallEffect` (`aiagent-model`); `Success.effects()` lists them, `with*` methods append. `LoadDocumentTool` is the
 reference. The agent runs the content guard (`DocumentContentGuard`: the content type and the size limit of its kind) before
 it adds anything. A document that is not allowed leaves the result as it is, the document a reference, and the model reads
 a note in the message that follows the tool results; a document the model reads already, or that an earlier result of the
