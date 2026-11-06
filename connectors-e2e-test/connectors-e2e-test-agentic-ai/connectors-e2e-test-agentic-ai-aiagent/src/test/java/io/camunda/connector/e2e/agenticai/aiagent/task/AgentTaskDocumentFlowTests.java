@@ -33,7 +33,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.ro
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
@@ -82,11 +82,11 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
     assertThat(recorded.modelCallCount()).isEqualTo(4);
     assertThat(recorded.requests().getFirst().toolNames())
         .containsExactlyInAnyOrder(
-            "Download_A_File", "Upload_A_File", "Ping", "c8__return_document", "c8__get_document");
+            "Download_A_File", "Upload_A_File", "Ping", "c8__return_document", "c8__load_document");
 
     final var downloadResult = recorded.requests().get(1).messages().get(3);
     assertThat(downloadResult.toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
-    final var documentId = parseDocumentTag(downloadResult.content()).id().value();
+    final var documentId = parseDocumentHandle(downloadResult.content()).id().value();
 
     assertUploaded(servedFile(DOWNLOADED_FILE));
     assertThat(recorded.requests().get(2).messages().getLast().toolCallId())
@@ -116,7 +116,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     final var documentId =
-        parseDocumentTag(recorded.requests().get(1).messages().get(3).content()).id().value();
+        parseDocumentHandle(recorded.requests().get(1).messages().get(3).content()).id().value();
     final var messages = recorded.lastRequest().messages();
     final var results = messages.subList(messages.size() - 2, messages.size());
     assertThat(results)

@@ -51,7 +51,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.mimeType;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -61,6 +60,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.api.search.response.AgentInstanceHistory;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -199,7 +199,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   /**
    * The document is downloaded in one job, passed to a tool in a later one and returned in the last
    * one, so the agent documents have to survive the job boundaries in every memory store. The
-   * history of the agent instance shows the tag of the document in the arguments of both calls.
+   * history of the agent instance shows the handle of the document in the arguments of both calls.
    */
   @ParameterizedTest(name = "{0} memory")
   @MethodSource("memoryStores")
@@ -226,7 +226,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     // the id the model works with is the one shown with the downloaded document
     final var downloadResult = recorded.requests().get(1).messages().get(3);
     assertThat(downloadResult.toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
-    final var documentId = parseDocumentTag(downloadResult.content()).id().value();
+    final var documentId = parseDocumentHandle(downloadResult.content()).id().value();
 
     // the tool received the real bytes, the model only got the outcome
     assertUploaded(servedFile(DOWNLOADED_FILE));
@@ -258,18 +258,18 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         });
 
     // the history of the agent instance shows the arguments of a call as the model sent them: the
-    // tag of the document, for a tool of the process and for the runtime tool
+    // handle of the document, for a tool of the process and for the runtime tool
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasToolCallArguments(
             "Upload_A_File",
             arguments ->
                 assertThat(arguments.get("document"))
-                    .isEqualTo("<doc id=\"" + documentId + "\" />"))
+                    .isEqualTo(Map.of("type", AgentDocumentHandle.TYPE, "id", documentId)))
         .hasToolCallArguments(
             "c8__return_document",
             arguments ->
                 assertThat(arguments.get("document"))
-                    .isEqualTo("<doc id=\"" + documentId + "\" />"))
+                    .isEqualTo(Map.of("type", AgentDocumentHandle.TYPE, "id", documentId)))
         .verify();
 
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
@@ -358,7 +358,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     final var documentId =
-        parseDocumentTag(recorded.requests().get(1).messages().get(3).content()).id().value();
+        parseDocumentHandle(recorded.requests().get(1).messages().get(3).content()).id().value();
     final var messages = recorded.lastRequest().messages();
     final var results = messages.subList(messages.size() - 2, messages.size());
     assertThat(results).extracting(m -> m.role()).containsExactly("tool", "tool");
