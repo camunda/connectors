@@ -9,9 +9,10 @@ module does not depend on Spring.
 ## Key types
 
 - `ChatModel`, `ChatModelFactory`, `ChatRequest` and `ChatResult`: the chat model provider SPI.
+  `ConversationSnapshot` is the windowed conversation that a `ChatRequest` sends to the LLM.
 - `ChatModelRejectedException`: the sealed type for a rejected model call, with
   `ContentFilteredException`, `ContextWindowExceededException` and `GuardrailInterventionException`.
-- `ConversationStore`, `ConversationSession` and `ConversationSnapshot`: the conversation store SPI.
+- `ConversationStore` and `ConversationSession`: the conversation store SPI.
 - `SystemPromptContributor`: adds text to the system prompt.
 - `GatewayToolHandler`, `GatewayToolCallTransformer`, `GatewayToolDefinitionResolver` and
   `TypePropertyBasedGatewayToolDefinitionResolver`: the gateway tool SPI.

@@ -12,7 +12,8 @@ module depends on `agentic-ai-common` only.
 - `A2aClientOutboundConnectorFunction`: the outbound connector.
 - `A2aClientPollingExecutable` and `A2aClientWebhookExecutable`: the inbound connectors.
 - `A2aSdkClientFactory`: creates the A2A SDK client.
-- `A2aResult`: the sealed result type (`A2aAgentCard`, `A2aMessage`, `A2aTask`).
+- `A2aResult`: the result interface. Jackson maps its subtypes `A2aAgentCard`, `A2aMessage` and `A2aTask`
+  by the `kind` property.
 - `A2aClientAutoConfiguration`: the Spring configuration.
 
 ## Docs

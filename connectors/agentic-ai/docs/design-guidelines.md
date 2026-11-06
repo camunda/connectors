@@ -19,8 +19,8 @@ They are documented here as the single source of truth. The
 (I1 to I3), so violations fail the build; review checks the rest. I4 and I5 are behavioral contracts:
 review and the tests of the stores and SPIs enforce them.
 
-- **I1. Framework-agnostic core.** The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
-  framework-neutral. Only the LangChain4j adapter package may depend on LangChain4j.
+- **I1. Framework-agnostic core.** The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`,
+  `adhoctoolsschema/`, `tool/`) stays framework-neutral. Only the LangChain4j adapter package may depend on LangChain4j.
   - **Rule**: nothing outside `io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.**` may
     import `dev.langchain4j.*`.
   - **Why**: the LLM provider is an SPI (`ChatModel` / `ChatModelFactory`, see
