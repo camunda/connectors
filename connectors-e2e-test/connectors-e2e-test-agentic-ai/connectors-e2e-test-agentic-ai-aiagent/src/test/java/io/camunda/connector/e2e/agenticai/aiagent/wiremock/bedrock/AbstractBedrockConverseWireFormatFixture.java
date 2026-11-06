@@ -46,11 +46,6 @@ import java.util.List;
 abstract class AbstractBedrockConverseWireFormatFixture implements ProviderWireFormatFixture {
 
   @Override
-  public boolean supportsDocumentIdPlaceholders() {
-    return false;
-  }
-
-  @Override
   public String toString() {
     return apiName();
   }
