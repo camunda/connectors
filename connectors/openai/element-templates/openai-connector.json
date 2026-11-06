@@ -2,9 +2,9 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "OpenAI Outbound Connector",
   "id": "io.camunda.connectors.OpenAI.v1",
-  "version": 8,
+  "version": 9,
   "engines": {
-    "camunda": "^8.3"
+    "camunda": "^8.11"
   },
   "description": "Interact with ChatGPT or moderation API",
   "keywords": [
@@ -75,12 +75,30 @@
       }
     },
     {
+      "id": "serviceAuthenticationConfiguration",
+      "label": "Authentication credential",
+      "tooltip": "Choose a reusable OpenAI credential, or configure the one-time API key below.",
+      "optional": true,
+      "group": "authentication",
+      "binding": {
+        "name": "serviceAuthenticationConfiguration",
+        "type": "zeebe:input"
+      },
+      "type": "Configuration",
+      "configurationTemplate": "io.camunda.connectors:openai-authentication:1"
+    },
+    {
       "id": "authenticationType",
       "value": "bearer",
       "type": "Hidden",
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.type"
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -94,6 +112,11 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -436,7 +459,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "8",
+      "value": "9",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -531,6 +554,40 @@
       "properties": {
         "operation": "moderation"
       }
+    }
+  ],
+  "configurationTemplates": [
+    {
+      "id": "io.camunda.connectors:openai-authentication:1",
+      "kind": "CREDENTIAL",
+      "version": 1,
+      "name": "OpenAI Authentication",
+      "properties": [
+        {
+          "id": "authentication.type",
+          "value": "bearer",
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.type",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.token",
+          "label": "OpenAI API key",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.token",
+            "type": "property"
+          },
+          "type": "String",
+          "secret": true
+        }
+      ]
     }
   ]
 }

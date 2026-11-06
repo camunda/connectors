@@ -21,6 +21,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyT
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.auth.Authentication;
 import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
+import io.camunda.connector.http.base.model.auth.ServiceAuthenticationConfiguration;
 import jakarta.validation.Valid;
 
 public class HttpJsonRequest extends HttpCommonRequest {
@@ -48,6 +49,26 @@ public class HttpJsonRequest extends HttpCommonRequest {
   }
 
   /**
+   * The credential bound by the templates of connectors that wrap {@code http-json} for one known
+   * service. It is not offered by the generic REST template, so the generator must not emit a
+   * chooser for it; those connectors' own templates declare the chooser and the credential type.
+   * The explicit {@code type} makes the generator treat the field as a leaf, which is what lets
+   * {@code ignore} apply instead of the credential's fields being expanded.
+   */
+  @TemplateProperty(ignore = true, type = PropertyType.Hidden)
+  @Valid
+  private ServiceAuthenticationConfiguration serviceAuthenticationConfiguration;
+
+  public ServiceAuthenticationConfiguration getServiceAuthenticationConfiguration() {
+    return serviceAuthenticationConfiguration;
+  }
+
+  public void setServiceAuthenticationConfiguration(
+      ServiceAuthenticationConfiguration serviceAuthenticationConfiguration) {
+    this.serviceAuthenticationConfiguration = serviceAuthenticationConfiguration;
+  }
+
+  /**
    * Per-connector consumption of the bound authentication credential: when a credential
    * (configuration) is bound, its authentication takes precedence; the inline authentication is the
    * fallback. Per-field inline override is not modeled because authentication is a whole object.
@@ -56,6 +77,9 @@ public class HttpJsonRequest extends HttpCommonRequest {
   public Authentication getAuthentication() {
     if (authenticationConfiguration != null) {
       return authenticationConfiguration.authentication();
+    }
+    if (serviceAuthenticationConfiguration != null) {
+      return serviceAuthenticationConfiguration.authentication();
     }
     return super.getAuthentication();
   }
