@@ -170,8 +170,8 @@ always reports a distinct cache-write count in `TokenUsage`.
 A document inside a tool result always renders as the JSON reference the runtime's standard
 `DocumentSerializer` writes — the same shape an embedded document gets
 (`BedrockConverseContentConverter.toToolResultBlocks`, see `BedrockConverseDocuments`) and the same
-fields the composer's `<doc/>` tag carries, so the model can correlate the two 1:1 — never embedded
-as a native `DocumentBlock`, regardless of content type. The composer's `<doc/>` fallback message is
+fields the composer's `<doc/>` tag carries for an instance without the `documents` feature, so the model can correlate the two 1:1 — never embedded
+as a native `DocumentBlock`, regardless of content type. The composer's `<doc/>` fallback message of such an instance is
 the document's only bytes-delivery channel; embedding it here too would send the bytes twice and
 trip Converse's duplicate-document-name validation, since the same `DocumentBlock.name` is derived
 in both places. The nested Camunda document is serialized, never round-tripped

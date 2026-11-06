@@ -224,14 +224,14 @@ implement the response handler interface directly, hand only the process tool ca
 
 - `AgentInstanceClient.applyTurnStart` takes the `DocumentHandling` of the agent instance
   (`AgentContext.documentHandling()`) as a last parameter. It decides how the documents of the messages are shown, and
-  the agent documents of a `Tracked` instance are what document tags are expanded with.
+  the agent documents of a `Tracked` instance are what document handles are expanded with.
 - `AgentInstanceClient.applyToolCallResults` takes `List<ToolCallResultContent>` instead of `List<ToolCallResult>` and the
   `DocumentHandling` as a last parameter, which decides how the documents of the results are shown; convert with
   `ToolCallResultContent.from(result)`.
 - `AgentInstanceToolMapper` and `AgentInstanceHistoryMapper` keep their API. A runtime tool, decided by
   `ToolDefinition.kind()`, and a local tool call and its result, decided by `ToolCall.isLocal()` (a runtime tool call or
   a rejected call), are reported without an element id.
-- `AgentInstanceHistoryMapper`: the constructor takes a `DocumentRestorer` and an `ObjectTagRenderer`, and
+- `AgentInstanceHistoryMapper`: the constructor takes a `DocumentRestorer` and an `ObjectHandleRenderer`, and
   `inputHistoryItems` takes the `DocumentHandling`.
 
 Migration: if you implement or decorate `AgentInstanceClient.applyToolCallResults`, convert as described above. Most
@@ -290,7 +290,7 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
   `Content` must handle it. A custom chat model provider never receives it: the agent expands it before the request is
   built.
 - For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
-  document goes out as content, as before. A document in a tool result is text, its tag, instead of a `DocumentContent` or
+  document goes out as content, as before. A document in a tool result is text, its handle, instead of a `DocumentContent` or
   the reference JSON, and its content is not added. A custom `ChatModel` that handles `DocumentContent` in tool results
   therefore sees text for these instances; instances without the feature keep the earlier form.
 - New in the model: `AgentDocumentId`, the value type of a document id (persisted as a plain string), used by the agent
@@ -298,12 +298,18 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
   identity of the document (the store and the id in the store of a Camunda document, the URL of an external document, the
   content of an inline document), so it is no longer the id of the document in its store.
   `AgentDocumentContent` holds the `AgentDocumentId`, the `delivery` and the content `metadata`; the file name, content
-  type, size and origin the model reads are those of the agent document of the id, and `aiagent.document.DocumentTags`
-  renders the tag. `DocumentContent` stays the content of a new document; `AgentDocumentContent` is the persisted form of
-  a document the agent knows.
+  type and size the model reads are those of the agent document of the id, and `aiagent.document.DocumentHandles`
+  renders the `DocumentHandle` (JSON, see below). `DocumentContent` stays the content of a new document;
+  `AgentDocumentContent` is the persisted form of a document the agent knows.
 - Renamed: `DocumentReferenceXmlTag` (see the [module split](#module-split)) is `aiagent.document.LegacyDocumentReferenceXmlTag`,
   which only agent instances without the `documents` feature use.
-- Removed: `aiagent.document.DocumentHandle`. Derive the id of a document with `AgentDocumentId.of(Document)` or
+- New in the model: `aiagent.model.document.DocumentHandle`, the JSON object the model reads for a document of an agent
+  instance with the `documents` feature, `{"type":"camunda.agent_document","id":"doc_…","fileName":…,"contentType":…,"size":…}`
+  (the keys in this order, absent values omitted, no origin). It replaces the XML tag `<doc id="…" … />` for these
+  instances; instances without the feature keep the XML tag. A custom `ChatModel` sees the handle as the text of a
+  `TextContent`.
+- Removed: `aiagent.document.DocumentHandle` (the earlier class of the same name, see the
+  [module split](#module-split), which derived the id). Derive the id of a document with `AgentDocumentId.of(Document)` or
   `AgentDocumentId.of(DocumentReference)`; the id has the format described above.
 - New in the libraries: the persisted document state (`AgentDocuments`, `AgentDocument`, the sealed `DocumentOrigin`,
   persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`, and the sealed `DocumentHandling` of an
