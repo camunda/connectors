@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -21,7 +20,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
@@ -69,70 +67,44 @@ class LocalToolCallExecutorTest {
   }
 
   @Test
-  void executesTheRuntimeCallsOnceAndAnswersTheRejectedCallWithItsRejection() {
+  void executesTheRuntimeCallsOnce() {
     var runtimeCalls = List.of(RUNTIME_CALL, SECOND_RUNTIME_CALL);
     var executions =
         List.of(execution(RUNTIME_CALL, "Sunny"), execution(SECOND_RUNTIME_CALL, "15:00"));
     when(runtimeTools.execute(executionContext, AGENT_CONTEXT, runtimeCalls))
         .thenReturn(executions);
 
-    var entries =
-        executor.execute(
-            executionContext,
-            AGENT_CONTEXT,
-            List.of(RUNTIME_CALL, REJECTED_CALL, SECOND_RUNTIME_CALL));
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, runtimeCalls);
 
     verify(runtimeTools, times(1)).execute(executionContext, AGENT_CONTEXT, runtimeCalls);
     verifyNoMoreInteractions(runtimeTools);
-
-    assertThat(entries).hasSize(3);
-    // the rejection is stamped with the time of the execution
-    var rejected = entryOf(entries, REJECTED_CALL);
     assertThat(entries)
-        .containsExactlyInAnyOrder(
+        .containsExactly(
             ToolCallBatch.Entry.from(executions.get(0).toolCallResult()),
-            ToolCallBatch.Entry.from(executions.get(1).toolCallResult()),
-            rejected);
-    assertThat(rejected)
-        .isEqualTo(
-            ToolCallBatch.Entry.from(
-                ToolCallResultContent.forRejectedToolCall(
-                    REJECTED_CALL, rejected.result().completedAt())));
-    assertThat(rejected.result().content())
-        .containsExactly(textContent("The tool 'unknownTool' does not exist."));
+            ToolCallBatch.Entry.from(executions.get(1).toolCallResult()));
   }
 
   @Test
-  void aRejectedCallOnlyDoesNotCallTheRuntimeTools() {
-    var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of(REJECTED_CALL));
+  void aRejectedCallFailsBeforeAnyRuntimeToolRuns() {
+    var calls = List.of(RUNTIME_CALL, REJECTED_CALL);
+
+    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, calls))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("rejected-1")
+        .hasMessageContaining("REJECTED");
 
     verifyNoInteractions(runtimeTools);
-    var rejected = entryOf(entries, REJECTED_CALL);
-    assertThat(entries).containsExactly(rejected);
-    assertThat(rejected)
-        .isEqualTo(
-            ToolCallBatch.Entry.from(
-                ToolCallResultContent.forRejectedToolCall(
-                    REJECTED_CALL, rejected.result().completedAt())));
-    assertThat(rejected.result().content())
-        .containsExactly(textContent("The tool 'unknownTool' does not exist."));
-    assertThat(rejected.result().completedAt()).isNotNull();
   }
 
   @Test
-  void aRejectedCallIsNotExecutedAlthoughItNamesARuntimeTool() {
-    var rejectedRuntimeCall = RUNTIME_CALL.withRejection("The call is not allowed.");
+  void aRejectedCallOfARuntimeToolFailsBeforeAnyRuntimeToolRuns() {
+    var calls = List.of(RUNTIME_CALL.withRejection("The call is not allowed."));
 
-    var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of(rejectedRuntimeCall));
+    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, calls))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("runtime-1");
 
     verifyNoInteractions(runtimeTools);
-    assertThat(entries)
-        .singleElement()
-        .satisfies(entry -> {
-          assertThat(entry.result().id()).isEqualTo("runtime-1");
-          assertThat(entry.result().content())
-              .containsExactly(textContent("The call is not allowed."));
-        });
   }
 
   @Test

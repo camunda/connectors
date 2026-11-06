@@ -10,10 +10,13 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * The tool calls of one assistant message and their results as they arrive. The calls belong to one
@@ -40,9 +43,20 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
         });
   }
 
-  /** A batch without results. */
+  /**
+   * A batch of the calls of an assistant message. A rejected call has its result from the start:
+   * its rejection, decided when the call was admitted. Every other call is unanswered.
+   */
   public static ToolCallBatch of(List<ToolCall> toolCalls) {
-    return new ToolCallBatch(toolCalls, Map.of());
+    final var now = OffsetDateTime.now(ZoneId.systemDefault());
+    final var rejections =
+        toolCalls.stream()
+            .filter(call -> call.resultSource() == ToolCall.ResultSource.REJECTED)
+            .collect(
+                Collectors.toMap(
+                    ToolCall::id,
+                    call -> Entry.from(ToolCallResultContent.forRejectedToolCall(call, now))));
+    return new ToolCallBatch(toolCalls, rejections);
   }
 
   /** The calls without a result, in call order. */

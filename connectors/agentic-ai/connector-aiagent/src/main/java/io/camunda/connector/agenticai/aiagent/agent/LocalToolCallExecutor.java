@@ -9,16 +9,13 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Produces the tool call results of local tool calls: executes the calls of runtime tools and
- * answers rejected calls with their rejection.
+ * Produces the tool call results of the local tool calls that are executed: the calls of runtime
+ * tools. A rejected call is answered by its rejection when its batch is created (see {@link
+ * ToolCallBatch#of}), so it never reaches this step.
  */
 public class LocalToolCallExecutor {
 
@@ -31,30 +28,24 @@ public class LocalToolCallExecutor {
   /**
    * Returns one entry per call.
    *
-   * @throws IllegalStateException if a call is a process tool call
+   * @throws IllegalStateException if a call is not a call of a runtime tool
    */
   public List<ToolCallBatch.Entry> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
-    final var now = OffsetDateTime.now(ZoneId.systemDefault());
-    final var entries = new ArrayList<ToolCallBatch.Entry>();
-    final var runtimeCalls = new ArrayList<ToolCall>();
     for (final var call : calls) {
       switch (call.resultSource()) {
-        case RUNTIME -> runtimeCalls.add(call);
-        case REJECTED ->
-            entries.add(
-                ToolCallBatch.Entry.from(ToolCallResultContent.forRejectedToolCall(call, now)));
-        case PROCESS ->
+        case RUNTIME -> {}
+        case PROCESS, REJECTED ->
             throw new IllegalStateException(
-                "The call '%s' of the tool '%s' is a process tool call"
-                    .formatted(call.id(), call.name()));
+                "The call '%s' of the tool '%s' is not executed by the agent, its result source is %s"
+                    .formatted(call.id(), call.name(), call.resultSource()));
       }
     }
-    if (!runtimeCalls.isEmpty()) {
-      runtimeTools.execute(executionContext, agentContext, runtimeCalls).stream()
-          .map(execution -> ToolCallBatch.Entry.from(execution.toolCallResult()))
-          .forEach(entries::add);
+    if (calls.isEmpty()) {
+      return List.of();
     }
-    return List.copyOf(entries);
+    return runtimeTools.execute(executionContext, agentContext, calls).stream()
+        .map(execution -> ToolCallBatch.Entry.from(execution.toolCallResult()))
+        .toList();
   }
 }

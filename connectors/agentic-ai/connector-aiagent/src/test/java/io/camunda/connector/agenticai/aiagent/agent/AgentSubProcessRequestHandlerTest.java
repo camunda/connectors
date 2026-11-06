@@ -1229,7 +1229,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void anInterruptedMixedBatchCancelsOnlyTheCallsOfTheProcessAndStillExecutesTheRuntimeTools() {
+  void anInterruptedMixedBatchCancelsTheRuntimeCallsTooAndExecutesNoTool() {
     when(agentExecutionContext.configuration())
         .thenReturn(
             new AgentConfiguration(
@@ -1264,7 +1264,8 @@ class AgentSubProcessRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
+    // the runtime call was not executed yet when the event arrived: it is cancelled and never runs
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
         .filteredOn(ToolCallResultMessage.class::isInstance)
         .singleElement()
@@ -1274,10 +1275,11 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(message.results())
                   .extracting(ToolCallResultContent::id)
                   .containsExactly("call-1", "call-2");
-              assertThat(message.results().get(0).content())
-                  .containsExactly(TextContent.textContent("found the customer"));
-              assertThat(message.results().get(1).content())
-                  .containsExactly(TextContent.textContent(ToolCallResult.CONTENT_CANCELLED));
+              assertThat(message.results())
+                  .allSatisfy(result ->
+                      assertThat(result.content())
+                          .containsExactly(
+                              TextContent.textContent(ToolCallResult.CONTENT_CANCELLED)));
             });
     assertThat(response.cancelRemainingInstances()).isTrue();
   }

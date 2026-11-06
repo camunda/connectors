@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -77,6 +78,34 @@ class ToolCallBatchTest {
     assertThat(batch.toolCalls()).containsExactlyElementsOf(CALLS);
     assertThat(batch.entriesById()).isEmpty();
     assertThat(batch.unanswered()).containsExactlyElementsOf(CALLS);
+  }
+
+  @Test
+  void aRejectedCallHasItsRejectionAsResultFromTheStart() {
+    var rejectedCall =
+        new ToolCall("rejected", "unknownTool", Map.of())
+            .withRejection("The tool 'unknownTool' does not exist.");
+    var rejectedRuntimeCall =
+        new ToolCall("rejected-runtime", "acme_lookup", Map.of())
+            .withKind(ToolKind.RUNTIME)
+            .withRejection("The call is not allowed.");
+    var runtimeCall = new ToolCall("runtime", "acme_lookup", Map.of()).withKind(ToolKind.RUNTIME);
+
+    var batch =
+        ToolCallBatch.of(List.of(FIRST_CALL, rejectedCall, rejectedRuntimeCall, runtimeCall));
+
+    assertThat(batch.unanswered()).containsExactly(FIRST_CALL, runtimeCall);
+    assertThat(batch.entriesById()).containsOnlyKeys("rejected", "rejected-runtime");
+    var rejected = batch.entriesById().get("rejected");
+    assertThat(rejected)
+        .isEqualTo(
+            ToolCallBatch.Entry.from(
+                ToolCallResultContent.forRejectedToolCall(
+                    rejectedCall, rejected.result().completedAt())));
+    assertThat(rejected.result().content())
+        .containsExactly(textContent("The tool 'unknownTool' does not exist."));
+    assertThat(batch.entriesById().get("rejected-runtime").result().content())
+        .containsExactly(textContent("The call is not allowed."));
   }
 
   @Test

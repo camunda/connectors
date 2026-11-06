@@ -723,21 +723,22 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void localToolCalls_interruptCancelsOnlyTheMissingProcessCalls() {
+  void localToolCalls_interruptCancelsTheRuntimeCallsTooAsTheyWereNotExecutedYet() {
     var input = inputWith(ToolCallResult.builder().content("An event occurred").build());
 
-    var turnInput =
-        assembleWithLocalResults(
-            INTERRUPTING_CONFIG, historyWith(MIXED_CALLS), input, RUNTIME_RESULT);
+    var ready = resolveReady(INTERRUPTING_CONFIG, historyWith(MIXED_CALLS), input);
 
-    // the call of the runtime tool is answered although the turn is interrupted
+    // nothing is left to execute: the runtime call is cancelled like the missing process call
+    assertThat(ready.unansweredToolCalls()).isEmpty();
+    var turnInput = composer.assemble(ready);
     var results = resultsOf(turnInput);
     assertThat(results).extracting(ToolCallResultContent::id).containsExactly("abcdef", "fedcba");
-    assertThat(results.get(0)).isEqualTo(RUNTIME_RESULT);
-    assertThat(results.get(1).content())
-        .containsExactly(textContent(ToolCallResult.CONTENT_CANCELLED));
-    assertThat(results.get(1).properties())
-        .containsEntry(ToolCallResult.PROPERTY_INTERRUPTED, true);
+    assertThat(results)
+        .allSatisfy(result -> {
+          assertThat(result.content())
+              .containsExactly(textContent(ToolCallResult.CONTENT_CANCELLED));
+          assertThat(result.properties()).containsEntry(ToolCallResult.PROPERTY_INTERRUPTED, true);
+        });
     assertThat(turnInput.messages().getLast())
         .isInstanceOfSatisfying(
             UserMessage.class,
@@ -745,14 +746,31 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void localToolCalls_interruptWithoutAnyProcessCallLeavesAllCallsUnanswered() {
-    var input = inputWith(ToolCallResult.builder().content("An event occurred").build());
+  void localToolCalls_interruptKeepsTheArrivedProcessResultsAndTheRejections() {
+    var rejectedCall =
+        ToolCall.builder()
+            .id("rejected")
+            .name("unknownTool")
+            .build()
+            .withRejection("The tool 'unknownTool' does not exist.");
+    var calls = List.of(MIXED_CALLS.get(0), MIXED_CALLS.get(1), rejectedCall);
+    var input =
+        inputWith(
+            TOOL_CALL_RESULTS.get(1),
+            ToolCallResult.builder().content("An event occurred").build());
 
-    var ready = resolveReady(INTERRUPTING_CONFIG, historyWith(RUNTIME_CALLS), input);
+    var ready = resolveReady(INTERRUPTING_CONFIG, historyWith(calls), input);
 
-    assertThat(ready.toolCallBatch()).isEqualTo(ToolCallBatch.of(RUNTIME_CALLS));
-    assertThat(ready.unansweredToolCalls()).isEqualTo(RUNTIME_CALLS);
-    assertThat(ready.eventMessages()).hasSize(1);
+    assertThat(ready.unansweredToolCalls()).isEmpty();
+    var results = resultsOf(composer.assemble(ready));
+    assertThat(results)
+        .extracting(ToolCallResultContent::id)
+        .containsExactly("abcdef", "fedcba", "rejected");
+    assertThat(results.get(0).content())
+        .containsExactly(textContent(ToolCallResult.CONTENT_CANCELLED));
+    assertThat(results.get(1)).isEqualTo(ToolCallResultContent.from(TOOL_CALL_RESULTS.get(1)));
+    assertThat(results.get(2).content())
+        .containsExactly(textContent("The tool 'unknownTool' does not exist."));
   }
 
   @Test

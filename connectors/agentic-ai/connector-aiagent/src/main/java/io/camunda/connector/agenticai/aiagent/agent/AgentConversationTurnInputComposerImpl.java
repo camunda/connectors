@@ -108,12 +108,17 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         return new CompositionResult.Deferred(processResults.arrivedResults());
       }
 
-      final var batch =
+      var batch =
           ToolCallBatch.of(previousTurn.toolCalls())
               .withEntries(
-                  processResults.results().stream()
+                  processResults.arrivedResults().stream()
                       .map(result -> ToolCallBatch.Entry.from(result, documentExtractor))
                       .toList());
+      if (interruptMissingToolCalls) {
+        // every call without a result is cancelled: the missing process calls and the runtime
+        // calls that were not executed yet; a rejected call keeps its rejection
+        batch = batch.withEntries(batch.unanswered().stream().map(this::cancelled).toList());
+      }
       return new CompositionResult.Ready(batch, null, eventMessages);
     }
 
@@ -159,14 +164,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * @param results the results of the process tool calls when {@code complete}: the arrived ones
-   *     and, when interrupting, the cancelled ones
    * @param arrivedResults the process results that arrived (correlated and gateway-transformed), in
    *     tool-call order
-   * @param complete whether every process tool call has a result or was cancelled via interrupt
+   * @param complete whether every process tool call has a result, or the missing ones are cancelled
+   *     via interrupt
    */
-  private record ProcessToolCallResults(
-      List<ToolCallResult> results, List<ToolCallResult> arrivedResults, boolean complete) {}
+  private record ProcessToolCallResults(List<ToolCallResult> arrivedResults, boolean complete) {}
 
   private ProcessToolCallResults resolveProcessToolCallResults(
       AgentContext agentContext,
@@ -197,17 +200,17 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             "Not adding tool call result message as tool call IDs {} were missing in tool call results.",
             missingToolCalls.stream().map(ToolCall::id).toList());
       }
-      return new ProcessToolCallResults(List.of(), arrivedToolCallResults, false);
+      return new ProcessToolCallResults(arrivedToolCallResults, false);
     }
+    return new ProcessToolCallResults(arrivedToolCallResults, true);
+  }
 
-    final var results = new ArrayList<>(arrivedToolCallResults);
-    missingToolCalls.forEach(toolCall -> {
-      LOGGER.debug("Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
-      results.add(
-          ToolCallResult.forCancelledToolCall(
-              toolCall.id(), toolCall.name(), OffsetDateTime.now(ZoneId.systemDefault())));
-    });
-    return new ProcessToolCallResults(results, arrivedToolCallResults, true);
+  private ToolCallBatch.Entry cancelled(ToolCall toolCall) {
+    LOGGER.debug("Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
+    return ToolCallBatch.Entry.from(
+        ToolCallResult.forCancelledToolCall(
+            toolCall.id(), toolCall.name(), OffsetDateTime.now(ZoneId.systemDefault())),
+        documentExtractor);
   }
 
   private Message createEventMessage(

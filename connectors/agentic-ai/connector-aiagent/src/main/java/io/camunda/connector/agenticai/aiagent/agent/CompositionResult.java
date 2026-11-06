@@ -37,7 +37,8 @@ public sealed interface CompositionResult {
 
   /**
    * The next turn can be assembled once the calls of the batch that are still unanswered have their
-   * results: the local tool calls. The results of the process calls are in the batch.
+   * results: the calls of runtime tools. The results of the process calls and of the rejected calls
+   * are in the batch, and so are the cancelled results of an interrupted turn.
    *
    * @param toolCallBatch the calls of the previous turn, none when the next turn has no tool call
    *     results
