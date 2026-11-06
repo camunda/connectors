@@ -179,7 +179,10 @@ class AgentConversationTest {
 
   private static List<Message> windowedForTheModel(AgentConversation conv, int size) {
     return DOCUMENT_EXPANDER
-        .expand(conv.window(size), conv.persistedContext().documentHandling())
+        .expand(
+            conv.window(size),
+            conv.persistedContext().documentHandling(),
+            TestDocuments.documentFactory())
         .messages();
   }
 

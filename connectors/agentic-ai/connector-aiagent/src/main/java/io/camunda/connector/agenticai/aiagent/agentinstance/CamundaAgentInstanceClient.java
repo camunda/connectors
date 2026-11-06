@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.common.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -230,7 +231,12 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     }
     historyItems.addAll(
         inputHistoryItems(
-            turn, previousTurn, turnIngestionTimestamp, turn.iterationKey(), documentHandling));
+            turn,
+            previousTurn,
+            turnIngestionTimestamp,
+            turn.iterationKey(),
+            documentHandling,
+            executionContext.documentFactory()));
 
     applyBatchedUpdate(
         executionContext,
@@ -268,14 +274,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
       int iterationKey,
-      DocumentHandling documentHandling) {
+      DocumentHandling documentHandling,
+      DocumentFactory documentFactory) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
           historyMapper.inputHistoryItems(
-              message, toolCallsById, turnIngestionTimestamp, documentHandling)) {
+              message, toolCallsById, turnIngestionTimestamp, documentHandling, documentFactory)) {
         items.add(toHistoryItem(item, iterationKey));
       }
     }
@@ -354,7 +361,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             syntheticMessage,
             toolCallsById,
             OffsetDateTime.now(ZoneId.systemDefault()),
-            documentHandling)) {
+            documentHandling,
+            executionContext.documentFactory())) {
       items.add(toHistoryItem(item, iteration));
     }
 

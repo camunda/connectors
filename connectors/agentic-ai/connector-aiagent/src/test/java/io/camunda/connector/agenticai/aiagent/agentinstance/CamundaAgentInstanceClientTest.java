@@ -76,6 +76,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAut
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -149,10 +150,7 @@ class CamundaAgentInstanceClientTest {
   void setUp() {
     recordedSleeps = new ArrayList<>();
     var historyMapper =
-        new AgentInstanceHistoryMapper(
-            gatewayToolHandlers,
-            TestDocuments.documentRestorer(),
-            TestDocuments.objectHandleRenderer());
+        new AgentInstanceHistoryMapper(gatewayToolHandlers, TestDocuments.objectHandleRenderer());
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
@@ -184,9 +182,7 @@ class CamundaAgentInstanceClientTest {
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
                 new AgentInstanceHistoryMapper(
-                    gatewayToolHandlers,
-                    TestDocuments.documentRestorer(),
-                    TestDocuments.objectHandleRenderer()),
+                    gatewayToolHandlers, TestDocuments.objectHandleRenderer()),
                 new AgentInstanceToolMapper(gatewayToolHandlers))
             .create(executionContext);
 
@@ -1669,6 +1665,11 @@ class CamundaAgentInstanceClientTest {
     @Override
     public JobContext jobContext() {
       return jobContext;
+    }
+
+    @Override
+    public DocumentFactory documentFactory() {
+      return TestDocuments.documentFactory();
     }
 
     @Override

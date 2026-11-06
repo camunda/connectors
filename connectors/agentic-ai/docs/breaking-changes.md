@@ -231,8 +231,8 @@ implement the response handler interface directly, hand only the process tool ca
 - `AgentInstanceToolMapper` and `AgentInstanceHistoryMapper` keep their API. A runtime tool, decided by
   `ToolDefinition.kind()`, and a local tool call and its result, decided by `ToolCall.isLocal()` (a runtime tool call or
   a rejected call), are reported without an element id.
-- `AgentInstanceHistoryMapper`: the constructor takes a `DocumentRestorer` and an `ObjectHandleRenderer`, and
-  `inputHistoryItems` takes the `DocumentHandling`.
+- `AgentInstanceHistoryMapper`: the constructor takes an `ObjectHandleRenderer`, and `inputHistoryItems` takes the
+  `DocumentHandling` and the `DocumentFactory` of the job (`AgentExecutionContext.documentFactory()`).
 
 Migration: if you implement or decorate `AgentInstanceClient.applyToolCallResults`, convert as described above. Most
 extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate them instead.
@@ -247,7 +247,8 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
 ### Conversation window
 
 `AgentConversation.window(int size)` keeps its signature. The request handler hands the snapshot to
-`DocumentExpander.expand(snapshot, documentHandling)` before it calls the model.
+`DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before it calls the model, with the document
+factory of the job.
 `AgentConversation.nextRuntimeToolRound` takes the `AgentContext` the next round continues with as a second parameter.
 
 ### Runtime tools and tool names
@@ -277,6 +278,10 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
 
 ### Model classes
 
+- `AgentExecutionContext` has the method `documentFactory()`: the document factory of the job, which resolves and
+  creates documents in the document store of the physical tenant of the job. The constructors of
+  `AgentSubProcessExecutionContext` and `AgentTaskExecutionContext` take it after the `JobContext`. Migration: a custom
+  implementation returns the `OutboundConnectorContext` of the job, which is a `DocumentFactory`.
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builder, or for `ToolCall` the constructors with three or four arguments and for `ToolDefinition` the constructor with
   three arguments: `AgentContext` (`documents`, the `AgentDocuments`, and `features`, a list), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`

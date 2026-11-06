@@ -8,13 +8,13 @@ package io.camunda.connector.agenticai.testutil;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -24,9 +24,9 @@ public final class TestDocuments {
 
   private TestDocuments() {}
 
-  /** Restores the documents of the in-memory store. */
-  public static DocumentRestorer documentRestorer() {
-    return new DocumentRestorer(new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+  /** The document factory of the in-memory store, the document factory of a job in a test. */
+  public static DocumentFactory documentFactory() {
+    return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   }
 
   public static ObjectHandleRenderer objectHandleRenderer() {
@@ -34,7 +34,7 @@ public final class TestDocuments {
   }
 
   public static DocumentExpander documentExpander() {
-    return new DocumentExpander(documentRestorer(), objectHandleRenderer());
+    return new DocumentExpander(objectHandleRenderer());
   }
 
   /** The handle text the model reads for the document with the given id of the known documents. */

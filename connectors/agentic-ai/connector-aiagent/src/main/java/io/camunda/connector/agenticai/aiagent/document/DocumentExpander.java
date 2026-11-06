@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.util.ArrayList;
@@ -49,24 +50,27 @@ import org.jspecify.annotations.Nullable;
  */
 public final class DocumentExpander {
 
-  private final DocumentRestorer restorer;
   private final ObjectHandleRenderer objectHandleRenderer;
 
-  public DocumentExpander(DocumentRestorer restorer, ObjectHandleRenderer objectHandleRenderer) {
-    this.restorer = restorer;
+  public DocumentExpander(ObjectHandleRenderer objectHandleRenderer) {
     this.objectHandleRenderer = objectHandleRenderer;
   }
 
   /**
    * The snapshot the model is called with: for an agent instance that tracks its documents the
    * messages are expanded, for one that does not they are left as they are.
+   *
+   * @param documentFactory the document factory of the job, which restores the documents in the
+   *     document store of the physical tenant of the job
    */
-  public ConversationSnapshot expand(ConversationSnapshot snapshot, DocumentHandling handling) {
+  public ConversationSnapshot expand(
+      ConversationSnapshot snapshot, DocumentHandling handling, DocumentFactory documentFactory) {
     return switch (handling) {
       case DocumentHandling.Untracked ignored -> snapshot;
       case DocumentHandling.Tracked tracked ->
           new ConversationSnapshot(
-              expandMessages(snapshot.messages(), tracked.documents()), snapshot.toolDefinitions());
+              expandMessages(snapshot.messages(), tracked.documents(), documentFactory),
+              snapshot.toolDefinitions());
     };
   }
 
@@ -75,13 +79,16 @@ public final class DocumentExpander {
    * followed by the document for the blocks with the delivery {@code content}; in a tool result the
    * handle text of every block. In both, a document nested in an object is replaced by its handle.
    */
-  List<Message> expandMessages(List<Message> messages, AgentDocuments documents) {
+  List<Message> expandMessages(
+      List<Message> messages, AgentDocuments documents, DocumentFactory documentFactory) {
+    final var restorer = new DocumentRestorer(documentFactory);
     final var expanded = new ArrayList<Message>(messages.size());
     for (final var message : messages) {
       expanded.add(
           switch (message) {
             case UserMessage userMessage ->
-                userMessage.withContent(expandUserContent(userMessage.content(), documents));
+                userMessage.withContent(
+                    expandUserContent(userMessage.content(), documents, restorer));
             case ToolCallResultMessage resultMessage ->
                 resultMessage.withResults(expandResults(resultMessage.results(), documents));
             default -> message;
@@ -90,7 +97,8 @@ public final class DocumentExpander {
     return List.copyOf(expanded);
   }
 
-  private List<Content> expandUserContent(List<Content> contents, AgentDocuments documents) {
+  private List<Content> expandUserContent(
+      List<Content> contents, AgentDocuments documents, DocumentRestorer restorer) {
     final var expanded = new ArrayList<Content>(contents.size());
     for (int i = 0; i < contents.size(); i++) {
       switch (contents.get(i)) {

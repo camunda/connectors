@@ -341,7 +341,8 @@ variants exhaustively; none of them reads the feature or takes a `boolean`.
 ### AgentExecutionContext (the transient request context)
 
 The transient per-invocation request context, assembled fresh for each job activation and never
-persisted. It carries the job metadata, the inbound `AgentContext` and tool-call results, the LLM
+persisted. It carries the job metadata, the document factory of the job (the document store of the physical tenant of
+the job), the inbound `AgentContext` and tool-call results, the LLM
 provider configuration, the system- and user-prompt configurations, and the memory, limits, event, and
 response settings that shape the turn. Authoritative definition:
 [`AgentExecutionContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).
@@ -477,8 +478,10 @@ invocation and transformed through copy-on-write methods.
   (1 model call, the token usage, and the tool-call count).
 - `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
 - `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a read-only
-  `ConversationSnapshot`. The request handler hands the snapshot to `DocumentExpander.expand(snapshot, documentHandling)`
-  before the model is called.
+  `ConversationSnapshot`. The request handler hands the snapshot to
+  `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before the model is called. The document factory
+  is the one of the job (`AgentExecutionContext.documentFactory()`): it restores the documents from the document store of
+  the physical tenant of the job.
 - `persistedContext()`: the base `AgentContext` without the metrics and iteration bookkeeping that `toAgentContext()`
   adds; it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages, agentContext)` opens the next round of the
   job with the tool call results of the local tool calls, and the messages that follow them, as its input, and continues

@@ -31,11 +31,13 @@ import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -45,9 +47,7 @@ class DocumentExpanderTest {
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   private final DocumentExpander expander =
-      new DocumentExpander(
-          new DocumentRestorer(documentFactory),
-          new ObjectHandleRenderer(TestObjectMapperSupplier.INSTANCE));
+      new DocumentExpander(new ObjectHandleRenderer(TestObjectMapperSupplier.INSTANCE));
 
   private Document camundaDocument(String content) {
     return documentFactory.create(
@@ -102,7 +102,7 @@ class DocumentExpanderTest {
 
     final var expanded =
         expander.expandMessages(
-            List.of(userMessage(block), toolResultMessage(block)), agentDocuments);
+            List.of(userMessage(block), toolResultMessage(block)), agentDocuments, documentFactory);
 
     assertThat(((UserMessage) expanded.get(0)).content())
         .containsExactly(textContent(expectedText));
@@ -123,7 +123,7 @@ class DocumentExpanderTest {
     final var referenced = reference(agentDocuments, 1, DocumentDelivery.REFERENCE);
     final var message = userMessage(withContent, referenced);
 
-    final var expanded = expander.expandMessages(List.of(message), agentDocuments);
+    final var expanded = expander.expandMessages(List.of(message), agentDocuments, documentFactory);
 
     final var content = ((UserMessage) expanded.getFirst()).content();
     assertThat(content).hasSize(3);
@@ -133,13 +133,42 @@ class DocumentExpanderTest {
   }
 
   @Test
+  void restoresTheDocumentWithTheDocumentFactoryOfTheJob() {
+    final var document = camundaDocument("tenant");
+    final var agentDocuments = agentDocumentsOf(document, DocumentOrigin.userMessage());
+    final var block = reference(agentDocuments, 0, DocumentDelivery.CONTENT);
+    final var restored = new ArrayList<DocumentReference>();
+    final var jobDocumentFactory =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE) {
+          @Override
+          public Document resolve(DocumentReference reference) {
+            restored.add(reference);
+            return super.resolve(reference);
+          }
+        };
+
+    final var snapshot =
+        expander.expand(
+            new ConversationSnapshot(List.of(userMessage(block)), List.of()),
+            new DocumentHandling.Tracked(agentDocuments),
+            jobDocumentFactory);
+
+    assertThat(restored)
+        .singleElement()
+        .extracting(AgentDocumentId::of)
+        .isEqualTo(AgentDocumentId.of(document));
+    assertRebuiltDocumentIs(
+        ((UserMessage) snapshot.messages().getFirst()).content().get(1), document);
+  }
+
+  @Test
   void expandingForTheModelTurnsAReferenceWithDeliveryReferenceIntoItsHandleOnly() {
     final var document = camundaDocument("hello");
     final var agentDocuments = agentDocumentsOf(document, DocumentOrigin.userMessage());
     final var reference = reference(agentDocuments, 0, DocumentDelivery.REFERENCE);
     final var message = userMessage(reference);
 
-    final var expanded = expander.expandMessages(List.of(message), agentDocuments);
+    final var expanded = expander.expandMessages(List.of(message), agentDocuments, documentFactory);
 
     assertThat(((UserMessage) expanded.getFirst()).content())
         .containsExactly(handleOf(agentDocuments, reference));
@@ -151,7 +180,8 @@ class DocumentExpanderTest {
     final var messages =
         List.<Message>of(userMessage(textContent("hello")), assistantMessage("hi"));
 
-    assertThat(expander.expandMessages(messages, AgentDocuments.empty())).isEqualTo(messages);
+    assertThat(expander.expandMessages(messages, AgentDocuments.empty(), documentFactory))
+        .isEqualTo(messages);
   }
 
   @Test
@@ -160,7 +190,8 @@ class DocumentExpanderTest {
         new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
 
     final var expanded =
-        expander.expandMessages(List.of(userMessage(reference)), AgentDocuments.empty());
+        expander.expandMessages(
+            List.of(userMessage(reference)), AgentDocuments.empty(), documentFactory);
 
     assertThat(((UserMessage) expanded.getFirst()).content())
         .containsExactly(handleOf(AgentDocuments.empty(), reference));
@@ -174,7 +205,10 @@ class DocumentExpanderTest {
     final var message = userMessage(reference, DocumentContent.documentContent(document));
 
     assertThat(
-            ((UserMessage) expander.expandMessages(List.of(message), agentDocuments).getFirst())
+            ((UserMessage)
+                    expander
+                        .expandMessages(List.of(message), agentDocuments, documentFactory)
+                        .getFirst())
                 .content())
         .hasSize(2)
         .containsExactly(
@@ -188,38 +222,38 @@ class DocumentExpanderTest {
     final var document = camundaDocument("hello");
     final var documents = agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
     final var known = reference(documents, 0, DocumentDelivery.CONTENT);
-    final var failingExpander =
-        new DocumentExpander(
-            new DocumentRestorer(
-                new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE) {
-                  @Override
-                  public Document resolve(
-                      io.camunda.connector.api.document.DocumentReference reference) {
-                    throw new IllegalStateException("store unavailable");
-                  }
-                }),
-            new ObjectHandleRenderer(TestObjectMapperSupplier.INSTANCE));
+    final var failingFactory =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE) {
+          @Override
+          public Document resolve(io.camunda.connector.api.document.DocumentReference reference) {
+            throw new IllegalStateException("store unavailable");
+          }
+        };
 
     assertThat(
             ((UserMessage)
                     expander
                         .expandMessages(
                             List.of(userMessage(textContent("text"), unknown)),
-                            AgentDocuments.empty())
+                            AgentDocuments.empty(),
+                            documentFactory)
                         .getFirst())
                 .content())
         .containsExactly(textContent("text"), handleOf(AgentDocuments.empty(), unknown));
     assertThat(
             ((UserMessage)
-                    failingExpander
-                        .expandMessages(List.of(userMessage(known)), documents)
+                    expander
+                        .expandMessages(List.of(userMessage(known)), documents, failingFactory)
                         .getFirst())
                 .content())
         .containsExactly(handleOf(documents, known));
     assertThat(
             resultContent(
                 expander
-                    .expandMessages(List.of(toolResultMessage(unknown)), AgentDocuments.empty())
+                    .expandMessages(
+                        List.of(toolResultMessage(unknown)),
+                        AgentDocuments.empty(),
+                        documentFactory)
                     .getFirst()))
         .containsExactly(handleOf(AgentDocuments.empty(), unknown));
   }
@@ -237,7 +271,9 @@ class DocumentExpanderTest {
             ((UserMessage)
                     expander
                         .expandMessages(
-                            List.of(userMessage(content.toArray(Content[]::new))), agentDocuments)
+                            List.of(userMessage(content.toArray(Content[]::new))),
+                            agentDocuments,
+                            documentFactory)
                         .getFirst())
                 .content())
         .isEqualTo(content);
@@ -252,9 +288,9 @@ class DocumentExpanderTest {
             userMessage(reference(agentDocuments, 0, DocumentDelivery.CONTENT)),
             toolResultMessage(AgentDocumentContent.of(AgentDocumentId.of(document))));
 
-    final var once = expander.expandMessages(messages, agentDocuments);
+    final var once = expander.expandMessages(messages, agentDocuments, documentFactory);
 
-    assertThat(expander.expandMessages(once, agentDocuments)).isEqualTo(once);
+    assertThat(expander.expandMessages(once, agentDocuments, documentFactory)).isEqualTo(once);
   }
 
   @Test
@@ -266,14 +302,15 @@ class DocumentExpanderTest {
     final var documentUser = userMessage(reference(agentDocuments, 0, DocumentDelivery.CONTENT));
     final var messages = List.<Message>of(assistant, plainUser, documentUser);
 
-    final var expanded = expander.expandMessages(messages, agentDocuments);
+    final var expanded = expander.expandMessages(messages, agentDocuments, documentFactory);
 
     assertThat(expanded).hasSize(3);
     assertThat(expanded.get(0)).isSameAs(assistant);
     assertThat(expanded.get(1)).isEqualTo(plainUser);
     assertThat(expanded.get(2).id()).isEqualTo(documentUser.id());
     assertThat(((UserMessage) expanded.get(2)).content()).hasSize(2);
-    assertThat(expander.expandMessages(List.of(assistant, plainUser), agentDocuments))
+    assertThat(
+            expander.expandMessages(List.of(assistant, plainUser), agentDocuments, documentFactory))
         .containsExactly(assistant, plainUser);
   }
 
@@ -302,7 +339,7 @@ class DocumentExpanderTest {
     final var reference = AgentDocumentContent.of(AgentDocumentId.of(document));
     final var message = toolResultMessage(textContent("before"), reference);
 
-    final var expanded = expander.expandMessages(List.of(message), agentDocuments);
+    final var expanded = expander.expandMessages(List.of(message), agentDocuments, documentFactory);
 
     assertThat(expanded.getFirst().id()).isEqualTo(message.id());
     assertThat(((ToolCallResultMessage) expanded.getFirst()).results().getFirst().id())
@@ -323,12 +360,14 @@ class DocumentExpanderTest {
     final var expanded =
         resultContent(
             expander
-                .expandMessages(List.of(toolResultMessage(reference)), agentDocuments)
+                .expandMessages(
+                    List.of(toolResultMessage(reference)), agentDocuments, documentFactory)
                 .getFirst());
     final var withoutAgentDocuments =
         resultContent(
             expander
-                .expandMessages(List.of(toolResultMessage(reference)), AgentDocuments.empty())
+                .expandMessages(
+                    List.of(toolResultMessage(reference)), AgentDocuments.empty(), documentFactory)
                 .getFirst());
 
     assertThat(expanded).containsExactly(textContent(TestDocuments.handleText(document)));
@@ -348,7 +387,8 @@ class DocumentExpanderTest {
                 toolResultMessage(
                     AgentDocumentContent.of(AgentDocumentId.of(document))
                         .withDelivery(DocumentDelivery.CONTENT))),
-            agentDocuments);
+            agentDocuments,
+            documentFactory);
 
     assertThat(resultContent(expanded.getFirst()))
         .containsExactly(
@@ -367,7 +407,8 @@ class DocumentExpanderTest {
                 DocumentContent.documentContent(document),
                 ObjectContent.objectContent(Map.of("status", 200))));
 
-    assertThat(expander.expandMessages(messages, agentDocuments)).isEqualTo(messages);
+    assertThat(expander.expandMessages(messages, agentDocuments, documentFactory))
+        .isEqualTo(messages);
   }
 
   @Test
@@ -381,7 +422,7 @@ class DocumentExpanderTest {
             new ObjectContent(
                 Map.of("status", 200, "files", List.of(Map.of("file", document))), metadata));
 
-    final var expanded = expander.expandMessages(List.of(message), agentDocuments);
+    final var expanded = expander.expandMessages(List.of(message), agentDocuments, documentFactory);
 
     assertThat(resultContent(expanded.getFirst()))
         .containsExactly(
@@ -407,7 +448,8 @@ class DocumentExpanderTest {
     final var expanded =
         expander.expandMessages(
             List.of(userMessage(ObjectContent.objectContent(Map.of("file", document)))),
-            AgentDocuments.empty());
+            AgentDocuments.empty(),
+            documentFactory);
 
     assertThat(((UserMessage) expanded.getFirst()).content())
         .containsExactly(
@@ -424,7 +466,8 @@ class DocumentExpanderTest {
             List.of(userMessage(reference)),
             List.of(ToolDefinition.builder().name("tool").description("d").build()));
 
-    final var expanded = expander.expand(snapshot, new DocumentHandling.Tracked(agentDocuments));
+    final var expanded =
+        expander.expand(snapshot, new DocumentHandling.Tracked(agentDocuments), documentFactory);
 
     assertThat(expanded.toolDefinitions()).isEqualTo(snapshot.toolDefinitions());
     assertThat(((UserMessage) expanded.messages().getFirst()).content())
@@ -439,6 +482,7 @@ class DocumentExpanderTest {
             List.of(userMessage(DocumentContent.documentContent(camundaDocument("hello")))),
             List.of());
 
-    assertThat(expander.expand(snapshot, new DocumentHandling.Untracked())).isSameAs(snapshot);
+    assertThat(expander.expand(snapshot, new DocumentHandling.Untracked(), documentFactory))
+        .isSameAs(snapshot);
   }
 }

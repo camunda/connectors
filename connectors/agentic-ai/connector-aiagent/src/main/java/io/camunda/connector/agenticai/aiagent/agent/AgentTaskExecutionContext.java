@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +27,7 @@ import org.jspecify.annotations.Nullable;
 public class AgentTaskExecutionContext implements AgentExecutionContext {
 
   private final JobContext jobContext;
+  private final DocumentFactory documentFactory;
   private final AgentTaskRequestData data;
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentConfiguration configuration;
@@ -34,17 +36,20 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
 
   public AgentTaskExecutionContext(
       JobContext jobContext,
+      DocumentFactory documentFactory,
       AgentTaskV1Request request,
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
-    this(jobContext, request.data(), request.provider(), toolElementsResolver);
+    this(jobContext, documentFactory, request.data(), request.provider(), toolElementsResolver);
   }
 
   public AgentTaskExecutionContext(
       JobContext jobContext,
+      DocumentFactory documentFactory,
       AgentTaskRequestData data,
       ChatModelConfiguration chatModel,
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
     this.jobContext = jobContext;
+    this.documentFactory = documentFactory;
     this.data = data;
     this.toolElementsResolver = toolElementsResolver;
     this.configuration =
@@ -62,6 +67,11 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
   @Override
   public JobContext jobContext() {
     return jobContext;
+  }
+
+  @Override
+  public DocumentFactory documentFactory() {
+    return documentFactory;
   }
 
   @Override

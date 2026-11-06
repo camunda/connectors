@@ -123,7 +123,10 @@ class DocumentBlocksModelFacingTest {
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, List.of(answer));
     return TestDocuments.documentExpander()
-        .expand(conversation.window(100), conversation.persistedContext().documentHandling())
+        .expand(
+            conversation.window(100),
+            conversation.persistedContext().documentHandling(),
+            TestDocuments.documentFactory())
         .messages();
   }
 

@@ -254,8 +254,9 @@ High-frequency traps (detail behind each link):
   name, size or origin: the record `DocumentHandle` is what the model reads (JSON with the keys `type`, `id`,
   `fileName`, `contentType`, `size`, `note` in this order, no origin); `DocumentHandle.of(agentDocuments, id)` builds it
   from the agent document, `text()` is compact JSON and `tree()` an object node.
-  `DocumentExpander.expand(snapshot, documentHandling)`, a named step of the model call after
-  `AgentConversation.window(int)`, turns a block into its handle text and, with the delivery `content`, the document; in
+  `DocumentExpander.expand(snapshot, documentHandling, documentFactory)`, a named step of the model call after
+  `AgentConversation.window(int)` with the document factory of the job (`AgentExecutionContext.documentFactory()`, the
+  store of the physical tenant of the job), turns a block into its handle text and, with the delivery `content`, the document; in
   a tool result it renders the handle as text and a document nested in an object as the handle object
   (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
