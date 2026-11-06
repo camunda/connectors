@@ -48,12 +48,12 @@ class DocumentParameterResolverTest {
   private final Map<String, Object> secondHandle = handle(secondId);
 
   private static Map<String, Object> handle(AgentDocumentId id) {
-    return Map.of("type", "camunda.agent_document", "id", id.value());
+    return Map.of("type", "camunda.agenticai.document", "id", id.value());
   }
 
   private static String problem(String path) {
     return ("Parameter '%s' must be a document handle such as"
-            + " {\"type\":\"camunda.agent_document\",\"id\":\"doc_…\"} of a known document.")
+            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"} of a known document.")
         .formatted(path);
   }
 
@@ -192,10 +192,10 @@ class DocumentParameterResolverTest {
   void rejectsEveryValueThatIsNotTheHandleOfAKnownDocumentForADocumentParameter() {
     final var withoutType = Map.of("id", firstId.value());
     final var otherType = Map.of("type", "other", "id", firstId.value());
-    final var unknownId = Map.of("type", "camunda.agent_document", "id", "doc_000000000000");
-    final var blankId = Map.of("type", "camunda.agent_document", "id", " ");
-    final var numberId = Map.of("type", "camunda.agent_document", "id", 7);
-    final var noId = Map.of("type", "camunda.agent_document");
+    final var unknownId = Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000");
+    final var blankId = Map.of("type", "camunda.agenticai.document", "id", " ");
+    final var numberId = Map.of("type", "camunda.agenticai.document", "id", 7);
+    final var noId = Map.of("type", "camunda.agenticai.document");
 
     for (final Object invalid :
         List.of(
@@ -210,7 +210,7 @@ class DocumentParameterResolverTest {
             "nope",
             "  ",
             "{\"id\":\"" + firstId + "\"}",
-            "{\"type\":\"camunda.agent_document\",\"id\":\"doc_000000000000\"}",
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_000000000000\"}",
             "{not json",
             json(firstHandle) + " and more",
             json(firstHandle) + json(secondHandle),
@@ -471,7 +471,7 @@ class DocumentParameterResolverTest {
             "bareId", firstId.value(),
             "handleJson", handleJson(firstId),
             "unknownHandleJson",
-                "{\"type\":\"camunda.agent_document\",\"id\":\"doc_000000000000\"}");
+                "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_000000000000\"}");
 
     assertThat(
             resolve(
@@ -490,10 +490,10 @@ class DocumentParameterResolverTest {
   void aUnionParameterRejectsAnObjectWithTheHandleTypeAndAnUnknownIdOrNoId() {
     for (final Object invalid :
         List.of(
-            Map.of("type", "camunda.agent_document", "id", "doc_000000000000"),
-            Map.of("type", "camunda.agent_document"),
-            Map.of("type", "camunda.agent_document", "id", 5),
-            Map.of("type", "camunda.agent_document", "id", " "))) {
+            Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000"),
+            Map.of("type", "camunda.agenticai.document"),
+            Map.of("type", "camunda.agenticai.document", "id", 5),
+            Map.of("type", "camunda.agenticai.document", "id", " "))) {
       assertThat(resolve(Map.of("doc", invalid), object("doc", UNION)))
           .as("%s", invalid)
           .isEqualTo(new Resolution.Invalid(List.of(problem("doc"))));

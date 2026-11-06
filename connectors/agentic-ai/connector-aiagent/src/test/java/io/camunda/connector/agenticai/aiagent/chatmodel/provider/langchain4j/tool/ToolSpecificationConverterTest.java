@@ -125,7 +125,8 @@ class ToolSpecificationConverterTest {
     assertThat(file.required()).containsExactly("type", "id");
     assertThat(file.properties().get("type"))
         .asInstanceOf(InstanceOfAssertFactories.type(JsonEnumSchema.class))
-        .satisfies(type -> assertThat(type.enumValues()).containsExactly("camunda.agent_document"));
+        .satisfies(
+            type -> assertThat(type.enumValues()).containsExactly("camunda.agenticai.document"));
     final var body = (JsonAnyOfSchema) toolSpecification.parameters().properties().get("body");
     assertThat(body.description()).isEqualTo("The body");
     assertThat(body.anyOf()).hasSize(2);

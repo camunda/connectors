@@ -758,7 +758,7 @@ elements to another.
 
 A tool parameter that carries a document is declared with the type `document`:
 `fromAi(toolCall.report, "The report to upload.", "document")`. The generator stores the schema of a document handle
-(`DocumentSchemas.document`): an object with the properties `type`, whose one allowed value is `camunda.agent_document`, and
+(`DocumentSchemas.document`): an object with the properties `type`, whose one allowed value is `camunda.agenticai.document`, and
 `id`, both required, and the description as authored; it sets no `additionalProperties`.
 `AuthoredSchemaNormalizer` of the tools schema module normalizes the shorthand type also inside the `items` and
 `properties` of an authored schema and in the direct alternatives of such a node, and nowhere else. The schema goes to the
@@ -766,17 +766,17 @@ model provider as it is, so the stored definition, the configuration fingerprint
 nothing is appended to a description. Document parameters are found at the top level, as array `items` and through object
 `properties` at any depth (`ToolDefinition#documentParameters()`, the sealed `DocumentParameter` of `Document` and
 `TextOrDocument`). A node is a document parameter when it is an object whose `properties.type.enum` is exactly
-`["camunda.agent_document"]`; the search stops there, so its `type` and `id` properties are no parameters. A handle schema
+`["camunda.agenticai.document"]`; the search stops there, so its `type` and `id` properties are no parameters. A handle schema
 behind `$ref`, or inside an `anyOf` or `oneOf` alternative that is an object or array, is not a document parameter.
 
-The model passes the handle it read as the value: `{"type": "camunda.agent_document", "id": "doc_0123456789ab"}`. Further
+The model passes the handle it read as the value: `{"type": "camunda.agenticai.document", "id": "doc_0123456789ab"}`. Further
 fields of the object, such as `fileName` and `size`, are ignored, and the `type` is required. A parameter that always takes
 a document is lenient in two ways: it also accepts a string that holds the handle object as JSON (a model or a tool-calling
 API that stringified the argument) and a string that is the bare id of a known document, surrounding whitespace ignored;
 the schema advertises the handle object only. Anything else is invalid: an object without the `type`, an unknown id, other
 text, a number. A call with an invalid value is answered by the agent itself, with a tool result of one sentence per invalid
 value, joined by a space, and the tool does not run:
-`Parameter 'docs[1]' must be a document handle such as {"type":"camunda.agent_document","id":"doc_…"} of a known document.`
+`Parameter 'docs[1]' must be a document handle such as {"type":"camunda.agenticai.document","id":"doc_…"} of a known document.`
 (`name`, `parent.name` and `name[i]` are the parameter paths; an array parameter that is not an array reads
 `Parameter 'p' must be an array.`). A missing or `null` argument is left alone.
 

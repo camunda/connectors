@@ -262,7 +262,7 @@ matrix exist.
 ### Only the handle identifies a document; document parameters
 
 A tool declares a parameter that takes a document with the type `document` of `fromAi`. The stored schema is the schema of
-the handle, an object with the required properties `type` (the one value `camunda.agent_document`) and `id`, and it goes to
+the handle, an object with the required properties `type` (the one value `camunda.agenticai.document`) and `id`, and it goes to
 the model provider as it is. The model reads a handle in a message and writes the same object into the argument, so the
 schema asks for what the model has seen. The persisted definition needs no custom type and no marker, and nothing is derived
 or added where the provider tool definitions are built: the stored definition, the configuration fingerprint and the request

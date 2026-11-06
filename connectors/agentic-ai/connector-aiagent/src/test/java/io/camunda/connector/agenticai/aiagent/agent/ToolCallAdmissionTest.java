@@ -53,10 +53,10 @@ class ToolCallAdmissionTest {
 
   private static final Document REPORT = createDocument("report data", "report.txt");
   private static final Map<String, Object> REPORT_HANDLE =
-      Map.of("type", "camunda.agent_document", "id", AgentDocumentId.of(REPORT).value());
+      Map.of("type", "camunda.agenticai.document", "id", AgentDocumentId.of(REPORT).value());
 
   private static final Map<String, Object> UNKNOWN_HANDLE =
-      Map.of("type", "camunda.agent_document", "id", "doc_000000000000");
+      Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000");
 
   private static final AgentContext KNOWING_REPORT =
       AgentContext.empty()
@@ -269,7 +269,7 @@ class ToolCallAdmissionTest {
 
   private static String rejection(String path) {
     return ("Parameter '%s' must be a document handle such as"
-            + " {\"type\":\"camunda.agent_document\",\"id\":\"doc_…\"} of a known document.")
+            + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"} of a known document.")
         .formatted(path);
   }
 

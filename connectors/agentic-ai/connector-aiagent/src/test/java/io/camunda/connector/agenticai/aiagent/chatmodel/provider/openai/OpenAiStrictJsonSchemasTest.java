@@ -26,7 +26,7 @@ class OpenAiStrictJsonSchemasTest {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "type": {"type": "string", "enum": ["camunda.agent_document"]},
+          "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
           "id": {"type": "string", "description": "The id of the document."}
         },
         "required": ["type", "id"]
@@ -53,7 +53,7 @@ class OpenAiStrictJsonSchemasTest {
               "description": "The file",
               "additionalProperties": false,
               "properties": {
-                "type": {"type": "string", "enum": ["camunda.agent_document"]},
+                "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
                 "id": {"type": "string", "description": "The id of the document."}
               },
               "required": ["type", "id"]

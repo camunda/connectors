@@ -23,7 +23,7 @@ class ToolDefinitionTest {
           "object",
           "properties",
           Map.of(
-              "type", Map.of("type", "string", "enum", List.of("camunda.agent_document")),
+              "type", Map.of("type", "string", "enum", List.of("camunda.agenticai.document")),
               "id", Map.of("type", "string")),
           "required",
           List.of("type", "id"));
@@ -53,7 +53,7 @@ class ToolDefinitionTest {
         {
           "type": "object",
           "properties": {
-            "type": {"type": "string", "enum": ["camunda.agent_document"]},
+            "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
             "id": {"type": "string"}
           },
           "required": ["type", "id"]

@@ -93,7 +93,7 @@ class GatewayToolDocumentParametersTest {
             UPLOAD_TOOL,
             Map.of(
                 "document",
-                Map.of("type", "camunda.agent_document", "id", reportId.value()),
+                Map.of("type", "camunda.agenticai.document", "id", reportId.value()),
                 "folder",
                 "/inbox"));
 
