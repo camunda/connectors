@@ -318,7 +318,9 @@ applies it to its persisted context, and the next round continues with the conte
   executed gets an error result from `RuntimeTools`; neither goes to the process.
 - A tool activity can opt its documents into the delivery `content` with the extension property
   `io.camunda.agenticai.documents.delivery` = `content`. The agent then adds the content of the documents the tool returns
-  to the request that follows the tool results, without a check of the type or the size of the document. A custom `GatewayToolHandler` opts its tools in with
+  to the request that follows the tool results, without a check of the type or the size of the document, and ends the tool
+  result with one sentence per document that says whether the content follows or is in the conversation already. A custom
+  `GatewayToolHandler` opts its tools in with
   `ToolDefinition.documentDelivery`; the MCP and A2A handlers set none. The result of a runtime tool is never affected: it
   names the documents whose content it wants. The property takes `reference` or `content`; any other value fails the tool
   discovery of the agent with a message that names the element. A tool without the property has the delivery `reference`
