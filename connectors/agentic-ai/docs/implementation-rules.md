@@ -65,9 +65,10 @@ that caused it.
      (#5904, #7765)
    - Call an SDK overload that adds a field only when the field has a value.
    - A changed default value in a template is a behavior change for users who deploy with that
-     template. Deployed process instances keep the value they have. Keep the old default in the
-     template versions whose users expect it, and state the change in the PR. Example: v1 keeps the
-     old default system prompt through a per-template override. (#9036)
+     template. A changed placeholder value is not a behavior change. Deployed process instances keep
+     the value they have. Keep the old default in the template versions whose users expect it, and
+     state the change in the PR. Example: v1 keeps the old default system prompt through a
+     per-template override. (#9036)
    - Do not deprecate a template version that users must update from. Web Modeler shows no Update
      action for a deprecated template. (#8896)
    - Read the state that an earlier connector version stored. Example: messages without an ID load,
