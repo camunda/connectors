@@ -158,18 +158,22 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           agentContext, documentIdsWithContent, batch, TurnInput.empty(), events);
     }
 
-    final var promptDocuments = new ArrayList<NewDocument>();
-    final var userPrompt =
-        createUserPromptMessage(
-            agentInput.userPrompt(), documentHandling, documentIdsWithContent, promptDocuments);
-    if (userPrompt == null && eventMessages.isEmpty()) {
+    final boolean addsUserPromptMessage = addsUserPromptMessage(agentInput.userPrompt());
+    if (!addsUserPromptMessage && eventMessages.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
     }
     // the model call reads the user prompt message and the event messages as well
     final var documentIdsWithContent =
         previousConversation.documentIdsWithContent(
-            configuration.contextWindowSize(), (userPrompt == null ? 0 : 1) + eventMessages.size());
+            configuration.contextWindowSize(),
+            (addsUserPromptMessage ? 1 : 0) + eventMessages.size());
+    final var promptDocuments = new ArrayList<NewDocument>();
+    final var userPrompt =
+        addsUserPromptMessage
+            ? createUserPromptMessage(
+                agentInput.userPrompt(), documentHandling, documentIdsWithContent, promptDocuments)
+            : null;
     return new CompositionResult.Ready(
         agentContext,
         documentIdsWithContent,
@@ -208,7 +212,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     };
   }
 
-  private @Nullable UserMessage createUserPromptMessage(
+  /** Whether the user prompt has a text or a document, so that it makes a message. */
+  private static boolean addsUserPromptMessage(AgentInput.UserPrompt userPrompt) {
+    return StringUtils.isNotBlank(userPrompt.prompt()) || !userPrompt.documents().isEmpty();
+  }
+
+  private UserMessage createUserPromptMessage(
       AgentInput.UserPrompt userPrompt,
       DocumentHandling documentHandling,
       Set<AgentDocumentId> idsWithContent,
@@ -236,10 +245,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               .forEach(content::add);
     }
 
-    if (content.isEmpty()) {
-      LOGGER.debug("Not adding user message as no user content was found to add.");
-      return null;
-    }
     return UserMessage.builder().content(content).metadata(MessageMetadata.defaults()).build();
   }
 
