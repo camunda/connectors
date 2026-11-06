@@ -244,11 +244,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * The blocks of the documents of the user prompt. The content of a document is added when the
-   * model is called, for a block with the delivery content. A document that fails the content guard
-   * stays a block with the delivery reference and a note. The documents of an external URL always
-   * go out as content: the model provider reads them, so the content guard could neither check nor
-   * bound them.
+   * The blocks of the documents of the user prompt, by the delivery of the prompt, for every kind
+   * of document. With the delivery content the content of a document is added when the model is
+   * called, after the content guard; a document that fails the guard stays a block with the
+   * delivery reference and a note. Without a delivery the content of every document is added, with
+   * no guard.
    */
   private List<Content> trackedPromptDocuments(
       AgentInput.UserPrompt userPrompt, AgentDocuments known, Set<AgentDocumentId> idsWithContent) {
@@ -257,10 +257,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     for (final var doc : userPrompt.documents()) {
       final var reference = AgentDocumentContent.of(AgentDocumentId.of(doc));
       final var withContent = reference.withDelivery(DocumentDelivery.CONTENT);
-      if (doc.reference() instanceof ExternalDocumentReference) {
-        blocks.add(withContent);
-        continue;
-      }
       switch (userPrompt.documentDelivery()) {
         case UNSET -> blocks.add(withContent);
         case REFERENCE -> blocks.add(reference);

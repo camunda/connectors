@@ -14,6 +14,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMes
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -23,8 +24,10 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -50,6 +53,9 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -61,6 +67,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.AdditionalAnswers;
 
 /** The document delivery: the option of the user prompt and the delivery of a tool activity. */
 class AgentConversationTurnInputComposerDocumentDeliveryTest {
@@ -105,12 +112,37 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         TestDocuments.documentContentDelivery());
   }
 
+  /** A composer that restores the reference of the given external document as that document. */
+  private AgentConversationTurnInputComposerImpl composerServing(ExternalDocument external) {
+    final var factory =
+        mock(DocumentFactory.class, AdditionalAnswers.delegatesTo(TestDocuments.documentFactory()));
+    doReturn(external).when(factory).resolve(any(ExternalDocumentReference.class));
+    final var delivery =
+        new DocumentContentDelivery(
+            new DocumentContentGuard(DocumentContentLimits.defaults()),
+            new DocumentRestorer(factory));
+    return new AgentConversationTurnInputComposerImpl(
+        gatewayToolHandlers, new ToolCallResultsInputBuilder(delivery), delivery);
+  }
+
   private Document document(String content, String contentType, String fileName) {
     return documentFactory.create(
         DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
             .contentType(contentType)
             .fileName(fileName)
             .build());
+  }
+
+  /** An external document whose download answers with the given headers. */
+  private static ExternalDocument externalDocument(
+      Map<String, List<String>> headers, AtomicInteger downloads) {
+    return new ExternalDocument(
+        "https://files.example.com/report.pdf",
+        "report.pdf",
+        url -> {
+          downloads.incrementAndGet();
+          return new HttpResponse<>(200, "OK", headers, new byte[100]);
+        });
   }
 
   private static ExternalDocument externalDocument() {
@@ -214,13 +246,13 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void userPrompt_withReferenceDelivery_addsTheContentOfAnExternalDocument() {
+  void userPrompt_withReferenceDelivery_keepsAnExternalDocumentAsAReference() {
     final var external = externalDocument();
 
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.REFERENCE, List.of(), external));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), block(external, true));
+        .containsExactly(textContent("Hello?"), block(external, false));
   }
 
   @Test
@@ -260,22 +292,35 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void userPrompt_withTheDeliveryContent_addsTheContentOfAnExternalDocumentWithoutGuardingIt() {
+  void userPrompt_withTheDeliveryContent_addsTheContentOfAnExternalDocumentThatPassesTheGuard() {
     final var downloads = new AtomicInteger();
     final var external =
-        new ExternalDocument(
-            "https://files.example.com/report.pdf",
-            "report.pdf",
-            url -> {
-              downloads.incrementAndGet();
-              return null;
-            });
+        externalDocument(
+            Map.of("content-type", List.of("application/pdf"), "content-length", List.of("100")),
+            downloads);
+    composer = composerServing(external);
 
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), external));
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
         .containsExactly(textContent("Hello?"), block(external, true));
-    assertThat(downloads).hasValue(0);
+    // the guard reads the metadata of the document from its download
+    assertThat(downloads.get()).isPositive();
+  }
+
+  @Test
+  void
+      userPrompt_withTheDeliveryContent_keepsAnExternalDocumentThatFailsTheGuardAsABlockWithANote() {
+    final var external =
+        externalDocument(
+            Map.of("content-type", List.of("application/zip"), "content-length", List.of("100")),
+            new AtomicInteger());
+    composer = composerServing(external);
+
+    final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), external));
+
+    assertThat(((UserMessage) turn.messages().getFirst()).content())
+        .containsExactly(textContent("Hello?"), withheldBlock(external));
   }
 
   @Test
