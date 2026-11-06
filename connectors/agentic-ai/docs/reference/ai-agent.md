@@ -746,7 +746,7 @@ property names (`DocumentDelivery.fromExtension`: `reference` or `content`, igno
 absent property is `reference`). A value that is neither fails the tool discovery with a message that names the element
 and the allowed values. With `content` the agent adds the content of the documents the tool returns to the request instead
 of leaving them as references. The field is part of the stored tool definition and of the configuration fingerprint when
-set, and the model providers do not get it (`ProviderToolDefinitions` drops it). See [ADR 017](../adr/017-document-flow.md).
+set, and the model providers do not get it (`ToolDefinition.withoutDocumentDelivery()` drops it where the conversation is windowed for the model call). See [ADR 017](../adr/017-document-flow.md).
 
 ### Connector (Task) Flavor
 
@@ -2155,7 +2155,7 @@ What the model reads about a rejected document is a fixed sentence with the cont
 most. The message and the cause of a failure, such as one while reading the document, are only logged: a message can hold a
 URL with a token, and the text is part of the persisted conversation.
 
-**The delivery `content`.** It is the opt-in that adds content without a `c8__get_document` call, through the same
+**The delivery `content`.** It is the opt-in that adds content without a `c8__load_document` call, through the same
 guard (`DocumentContentDelivery`) and the same persisted form. It is set for the documents of the user prompt, with the
 dropdown *Document delivery* (`data.userPrompt.documentDelivery`, choices `reference` (default) and `content`; the v2
 templates have it, the frozen v1 templates leave it out), and for the documents a process tool returns, with the extension
@@ -2167,22 +2167,22 @@ every document of the result: the same effect a runtime tool adds to ask for con
 applies it in the order of the calls with the guard, the rule that a document whose content the model reads or that an
 earlier request of the turn handled is not added twice, and the note. A document that passes becomes a block with the
 delivery `content` in the follow-up user message of the tool results (same preamble and `toolCallDocuments` metadata as
-above, the documents and the notes in the order of the requests), and one that fails stays a tag, with a note as above; the
+above, the documents and the notes in the order of the requests), and one that fails stays its handle, with a note as above; the
 delivery `content` never fails the run and never turns a result into an error. An external document is rejected this way,
 but not in the user prompt, where the model provider reads it. The delivery of a tool concerns the results of process
 tools: a runtime tool asks for the content of a document by naming it, and its result is never delivered by the delivery of
 a tool definition. An instance without the `documents` feature ignores the delivery. The model providers never see the
-delivery of a tool: `ProviderToolDefinitions` drops it from the definitions they get.
+delivery of a tool: `AgentConversation.window(int)` drops it from the definitions they get.
 
 **The user prompt.** The delivery of the documents of the user prompt is one of three cases (`UserPromptDocumentDelivery`),
 translated from the optional property of the request at the edge (`AgentInput`). `UNSET`, a process modeled before the
 dropdown existed and every v1 template, behaves as before: the content of every document goes out with the prompt, with no
 guard (no size limit, no type check), and a document the provider cannot read fails the model call. `CONTENT` runs the
-guard through `DocumentContentDelivery` (a document that fails stays a reference and the model gets the note above), and
-`REFERENCE` gives the tags. The documents of an external URL in the user prompt always go out as content, unguarded,
+guard through `DocumentContentDelivery` (a document that fails is given as its handle with the note above), and
+`REFERENCE` gives the handles. The documents of an external URL in the user prompt always go out as content, unguarded,
 whatever the delivery. A document whose content is already in the conversation is not added twice. Documents of events
 stay references, and so do those of the MCP and A2A gateway tools (a gateway handler can opt its tools in through
-`ToolDefinition.documentDelivery`). See [ADR-004](../adr/004-document-handling-in-tool-call-results.md).
+`ToolDefinition.documentDelivery`). See [ADR 017](../adr/017-document-flow.md).
 
 A document with inline content (a reference that holds the content itself, as opposed to a Camunda or an external
 document) is registered only if its content fits into a job completion (`InlineSizeGuard.MAX_INLINE_BYTES`, 1.5 MB,

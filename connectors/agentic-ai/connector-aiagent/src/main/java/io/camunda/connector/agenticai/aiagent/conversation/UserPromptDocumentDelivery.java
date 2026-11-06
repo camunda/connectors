@@ -21,7 +21,7 @@ public enum UserPromptDocumentDelivery {
    * does: the content of every document goes to the model, without the content guard.
    */
   UNSET,
-  /** The model reads the tag of a document; a tool can load the content on request. */
+  /** The model reads the handle of a document; a tool can load the content on request. */
   REFERENCE,
   /** The model reads the content of every document that passes the content guard. */
   CONTENT;
