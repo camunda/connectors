@@ -19,7 +19,7 @@
         <zeebe:formDefinition formId="ai-agent-chat-user-feedback" />
         <zeebe:ioMapping>
           <zeebe:input source="=agent.responseText" target="responseText" />
-          <zeebe:input source="=if agent.responseDocuments != null then (for e in get entries(agent.responseDocuments) return e.value.document) else []" target="responseDocuments" />
+          <zeebe:input source="=if agent.responseDocuments = null then null else for e in get entries(agent.responseDocuments) return {key: e.key, description: e.value.description, document: e.value.document}" target="responseDocuments" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_0m7etfk</bpmn:incoming>

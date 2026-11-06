@@ -11,16 +11,6 @@
             "columns": null
           },
           "id": "Field_0e59eom"
-        },
-        {
-          "label": "Response Documents",
-          "type": "documentPreview",
-          "layout": {
-            "row": "Row_05vkio3",
-            "columns": null
-          },
-          "id": "Field_13n34q9",
-          "dataSource": "=responseDocuments"
         }
       ],
       "showOutline": true,
@@ -30,6 +20,44 @@
         "columns": null
       },
       "id": "Field_0cj02xb"
+    },
+    {
+      "label": "Response Documents",
+      "components": [
+        {
+          "text": "**{{this.key}}**{{#if this.description}}: {{this.description}}{{/if}}",
+          "type": "text",
+          "layout": {
+            "row": "Row_0r2kq7d",
+            "columns": null
+          },
+          "id": "Field_1rdt7kq"
+        },
+        {
+          "type": "documentPreview",
+          "layout": {
+            "row": "Row_1xg5w0n",
+            "columns": null
+          },
+          "id": "Field_13n34q9",
+          "dataSource": "=[this.document]"
+        }
+      ],
+      "showOutline": true,
+      "isRepeating": true,
+      "allowAddRemove": false,
+      "defaultRepetitions": 0,
+      "disableCollapse": true,
+      "type": "dynamiclist",
+      "layout": {
+        "row": "Row_0vv7o2w",
+        "columns": null
+      },
+      "id": "Field_0q8d3rs",
+      "path": "responseDocuments",
+      "conditional": {
+        "hide": "=responseDocuments = null or count(responseDocuments) = 0"
+      }
     },
     {
       "type": "separator",
