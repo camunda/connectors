@@ -968,7 +968,10 @@ class AwsAgentCoreConversationStoreTest {
             List.of(userMessage("next")));
     final var windowed =
         TestDocuments.documentExpander()
-            .expand(conversation.window(20), conversation.persistedContext().documentHandling())
+            .expand(
+                conversation.window(20),
+                conversation.persistedContext().documentHandling(),
+                TestDocuments.documentFactory())
             .messages();
 
     assertThat(windowed.get(0))

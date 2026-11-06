@@ -234,7 +234,10 @@ class LegacyDocumentConversationTest {
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());
     final var snapshot =
         TestDocuments.documentExpander()
-            .expand(conversation.window(100), conversation.persistedContext().documentHandling())
+            .expand(
+                conversation.window(100),
+                conversation.persistedContext().documentHandling(),
+                TestDocuments.documentFactory())
             .messages();
 
     // no tag is inserted or rewritten: the window holds the stored messages and the new input as
@@ -274,7 +277,10 @@ class LegacyDocumentConversationTest {
 
     final var snapshot =
         TestDocuments.documentExpander()
-            .expand(conversation.window(100), conversation.persistedContext().documentHandling())
+            .expand(
+                conversation.window(100),
+                conversation.persistedContext().documentHandling(),
+                TestDocuments.documentFactory())
             .messages();
 
     final var toolResult =

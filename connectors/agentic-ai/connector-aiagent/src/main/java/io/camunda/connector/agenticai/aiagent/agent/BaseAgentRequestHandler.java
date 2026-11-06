@@ -383,7 +383,8 @@ public abstract class BaseAgentRequestHandler<
     final var snapshot =
         documentExpander.expand(
             conversation.window(agentConfiguration.contextWindowSize()),
-            conversation.persistedContext().documentHandling());
+            conversation.persistedContext().documentHandling(),
+            executionContext.documentFactory());
     final var chatResult = executeChatModel(chatModel, executionContext, snapshot);
 
     final var assistantMessage =

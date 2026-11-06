@@ -139,7 +139,10 @@ class ToolResultDocumentRenderingTest {
             nextTurn.messages());
     final var windowed =
         expander
-            .expand(conversation.window(100), conversation.persistedContext().documentHandling())
+            .expand(
+                conversation.window(100),
+                conversation.persistedContext().documentHandling(),
+                TestDocuments.documentFactory())
             .messages()
             .stream()
             .filter(ToolCallResultMessage.class::isInstance)

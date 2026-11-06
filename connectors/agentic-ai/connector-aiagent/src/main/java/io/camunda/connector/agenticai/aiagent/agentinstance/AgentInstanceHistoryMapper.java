@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
@@ -63,15 +64,11 @@ import org.jspecify.annotations.Nullable;
 public class AgentInstanceHistoryMapper {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
-  private final DocumentRestorer documentRestorer;
   private final ObjectHandleRenderer objectHandleRenderer;
 
   public AgentInstanceHistoryMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers,
-      DocumentRestorer documentRestorer,
-      ObjectHandleRenderer objectHandleRenderer) {
+      GatewayToolHandlerRegistry gatewayToolHandlers, ObjectHandleRenderer objectHandleRenderer) {
     this.gatewayToolHandlers = gatewayToolHandlers;
-    this.documentRestorer = documentRestorer;
     this.objectHandleRenderer = objectHandleRenderer;
   }
 
@@ -98,24 +95,29 @@ public class AgentInstanceHistoryMapper {
    * @param documentHandling how the agent handles its documents, which decides how the documents of
    *     the messages are shown; the documents it tracks are what the document handles are expanded
    *     with
+   * @param documentFactory the document factory of the job, which restores the documents in the
+   *     document store of the physical tenant of the job
    */
   public List<InputHistoryItem> inputHistoryItems(
       Message message,
       Map<String, ToolCall> toolCallsById,
       OffsetDateTime turnIngestionTimestamp,
-      DocumentHandling documentHandling) {
+      DocumentHandling documentHandling,
+      DocumentFactory documentFactory) {
+    final var restorer = new DocumentRestorer(documentFactory);
     return switch (message) {
       case UserMessage userMessage ->
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  messageContent(userMessage.content(), documentHandling),
+                  messageContent(userMessage.content(), documentHandling, restorer),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
       case ToolCallResultMessage toolCallResultMessage ->
           toolCallResultMessage.results().stream()
-              .map(result -> toolResultHistoryItem(result, toolCallsById, documentHandling))
+              .map(result ->
+                  toolResultHistoryItem(result, toolCallsById, documentHandling, restorer))
               .toList();
       default ->
           throw new IllegalArgumentException(
@@ -127,12 +129,13 @@ public class AgentInstanceHistoryMapper {
   private InputHistoryItem toolResultHistoryItem(
       ToolCallResultContent result,
       Map<String, ToolCall> toolCallsById,
-      DocumentHandling documentHandling) {
+      DocumentHandling documentHandling,
+      DocumentRestorer restorer) {
     // tool-call result id/name are nullable on the model (and partial/malformed results may omit
     // them); default to empty strings, which the client model accepts
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
-        messageContent(result.content(), documentHandling),
+        messageContent(result.content(), documentHandling, restorer),
         List.of(
             new AgentInstanceHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
@@ -247,7 +250,7 @@ public class AgentInstanceHistoryMapper {
    * it holds a handle.
    */
   private List<AgentInstanceHistoryContent> messageContent(
-      List<Content> contents, DocumentHandling documentHandling) {
+      List<Content> contents, DocumentHandling documentHandling, DocumentRestorer restorer) {
     return switch (documentHandling) {
       case DocumentHandling.Untracked ignored -> contentBlocks(contents, documentHandling);
       case DocumentHandling.Tracked tracked -> {
@@ -265,7 +268,7 @@ public class AgentInstanceHistoryMapper {
                 addDocument(
                     blocks,
                     DocumentHandle.of(documents, block.id()),
-                    documentRestorer.restore(documents, block.id()).orElse(null),
+                    restorer.restore(documents, block.id()).orElse(null),
                     tracked);
             case ObjectContent objectContent -> addObject(blocks, objectContent, tracked);
             case TextContent textContent ->

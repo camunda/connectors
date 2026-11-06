@@ -74,9 +74,7 @@ class AgentInstanceHistoryMapperTest {
 
   private final AgentInstanceHistoryMapper mapper =
       new AgentInstanceHistoryMapper(
-          Mockito.mock(GatewayToolHandlerRegistry.class),
-          TestDocuments.documentRestorer(),
-          TestDocuments.objectHandleRenderer());
+          Mockito.mock(GatewayToolHandlerRegistry.class), TestDocuments.objectHandleRenderer());
 
   @Test
   void userMessageUsesThePassedInTurnIngestionTimestamp() {
@@ -85,7 +83,11 @@ class AgentInstanceHistoryMapperTest {
 
     final var items =
         mapper.inputHistoryItems(
-            userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NEW_INSTANCE.documentHandling());
+            userMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            NEW_INSTANCE.documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items).singleElement().extracting("producedAt").isEqualTo(TURN_INGESTION_TIMESTAMP);
   }
@@ -125,7 +127,8 @@ class AgentInstanceHistoryMapperTest {
             userMessage,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling());
+            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items)
         .singleElement()
@@ -153,7 +156,11 @@ class AgentInstanceHistoryMapperTest {
 
     final var items =
         mapper.inputHistoryItems(
-            userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, WITH_DOCUMENTS.documentHandling());
+            userMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            WITH_DOCUMENTS.documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items)
         .singleElement()
@@ -177,7 +184,11 @@ class AgentInstanceHistoryMapperTest {
 
     final var items =
         mapper.inputHistoryItems(
-            userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, WITH_DOCUMENTS.documentHandling());
+            userMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            WITH_DOCUMENTS.documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items)
         .singleElement()
@@ -204,7 +215,8 @@ class AgentInstanceHistoryMapperTest {
             ToolCallResultMessage.builder().results(List.of(result)).build(),
             Map.of("call-1", toolCall),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.documentHandling());
+            WITH_DOCUMENTS.documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items)
         .singleElement()
@@ -241,7 +253,11 @@ class AgentInstanceHistoryMapperTest {
     assertThat(texts(mapper.assistantContent(assistant))).containsExactly("I use " + tag);
     final var userItems =
         mapper.inputHistoryItems(
-            user, Map.of(), TURN_INGESTION_TIMESTAMP, withoutDocumentFlow.documentHandling());
+            user,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            withoutDocumentFlow.documentHandling(),
+            TestDocuments.documentFactory());
     assertThat(texts(userItems.getFirst().content())).containsExactly(tag, "see " + tag);
   }
 
@@ -263,7 +279,8 @@ class AgentInstanceHistoryMapperTest {
             message,
             Map.of("call-1", toolCall),
             TURN_INGESTION_TIMESTAMP,
-            NEW_INSTANCE.documentHandling());
+            NEW_INSTANCE.documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items)
         .singleElement()
@@ -303,7 +320,8 @@ class AgentInstanceHistoryMapperTest {
             message,
             Map.of("fast", fastToolCall, "slow", slowToolCall),
             TURN_INGESTION_TIMESTAMP,
-            NEW_INSTANCE.documentHandling());
+            NEW_INSTANCE.documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(items).hasSize(2);
     assertThat(items.get(0).producedAt()).isEqualTo(fastCompletedAt);
@@ -330,7 +348,8 @@ class AgentInstanceHistoryMapperTest {
                 message,
                 Map.of("call-1", toolCall),
                 TURN_INGESTION_TIMESTAMP,
-                NEW_INSTANCE.documentHandling()))
+                NEW_INSTANCE.documentHandling(),
+                TestDocuments.documentFactory()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("call-1")
         .hasMessageContaining("completedAt");
@@ -360,7 +379,8 @@ class AgentInstanceHistoryMapperTest {
             ToolCallResultMessage.builder().results(List.of(result)).build(),
             Map.of("call-1", toolCall),
             TURN_INGESTION_TIMESTAMP,
-            NEW_INSTANCE.documentHandling());
+            NEW_INSTANCE.documentHandling(),
+            TestDocuments.documentFactory());
 
     assertThat(assistantCalls)
         .singleElement()
@@ -643,7 +663,8 @@ class AgentInstanceHistoryMapperTest {
               message,
               Map.of("call-1", call),
               TURN_INGESTION_TIMESTAMP,
-              agentContext.documentHandling());
+              agentContext.documentHandling(),
+              TestDocuments.documentFactory());
       assertThat(items).hasSize(1);
       return items.getFirst();
     }
@@ -744,7 +765,11 @@ class AgentInstanceHistoryMapperTest {
 
       final var items =
           mapper.inputHistoryItems(
-              event, Map.of(), TURN_INGESTION_TIMESTAMP, agentContext.documentHandling());
+              event,
+              Map.of(),
+              TURN_INGESTION_TIMESTAMP,
+              agentContext.documentHandling(),
+              TestDocuments.documentFactory());
 
       assertThat(items)
           .singleElement()
@@ -907,7 +932,8 @@ class AgentInstanceHistoryMapperTest {
               TestDocuments.documentExpander()
                   .expand(
                       new ConversationSnapshot(List.of(message), List.of()),
-                      new DocumentHandling.Tracked(AgentDocuments.empty()))
+                      new DocumentHandling.Tracked(AgentDocuments.empty()),
+                      TestDocuments.documentFactory())
                   .messages()
                   .getFirst();
       assertThat(modelFacing.results().getFirst().content())

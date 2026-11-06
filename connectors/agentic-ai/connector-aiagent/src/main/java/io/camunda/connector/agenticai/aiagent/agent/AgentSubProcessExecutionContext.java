@@ -16,12 +16,14 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessRequestData;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   private final JobContext jobContext;
+  private final DocumentFactory documentFactory;
   private final AgentSubProcessRequestData data;
   private final AgentContext initialAgentContext;
   private final List<ToolCallResult> initialToolCallResults;
@@ -29,9 +31,12 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   private final AgentConfiguration configuration;
 
   public AgentSubProcessExecutionContext(
-      final JobContext jobContext, final AgentSubProcessV1Request request) {
+      final JobContext jobContext,
+      final DocumentFactory documentFactory,
+      final AgentSubProcessV1Request request) {
     this(
         jobContext,
+        documentFactory,
         request.data(),
         request.agentContext(),
         request.toolCallResults(),
@@ -41,12 +46,14 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
 
   public AgentSubProcessExecutionContext(
       JobContext jobContext,
+      DocumentFactory documentFactory,
       AgentSubProcessRequestData data,
       AgentContext initialAgentContext,
       List<ToolCallResult> initialToolCallResults,
       List<AdHocToolElement> toolElements,
       ChatModelConfiguration chatModel) {
     this.jobContext = jobContext;
+    this.documentFactory = documentFactory;
     this.data = data;
     this.initialAgentContext = initialAgentContext;
     this.initialToolCallResults = initialToolCallResults;
@@ -65,6 +72,11 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   @Override
   public JobContext jobContext() {
     return jobContext;
+  }
+
+  @Override
+  public DocumentFactory documentFactory() {
+    return documentFactory;
   }
 
   @Override

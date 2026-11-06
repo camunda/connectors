@@ -42,6 +42,7 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
     var executionContext =
         new AgentSubProcessExecutionContext(
             context.getJobContext(),
+            context,
             request.data(),
             request.agentContext(),
             request.toolCallResults(),
