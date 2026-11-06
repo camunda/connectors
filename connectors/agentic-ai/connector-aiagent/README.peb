@@ -49,9 +49,11 @@ connector behavior, element template properties, or data model shapes, update th
 
 ### AI Agent Examples
 
-- **`ai-agent/ad-hoc-sub-process/`**: Recommended approach — AI Agent as job worker on AHSP
+The paths are under [`connectors/agentic-ai/examples/`](../examples/).
+
+- **[`ai-agent/ad-hoc-sub-process/`](../examples/ai-agent/ad-hoc-sub-process/)**: Recommended approach — AI Agent as job worker on AHSP
   - Shows tool elements inside AHSP, event handling, and the implicit feedback loop
-- **`ai-agent/service-task/`**: AI Agent as connector on service task
+- **[`ai-agent/service-task/`](../examples/ai-agent/service-task/)**: AI Agent as connector on service task
   - Shows explicit BPMN loop with gateway checking for tool calls
   - Multi-instance AHSP for parallel tool execution
 

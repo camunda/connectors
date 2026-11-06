@@ -25,10 +25,12 @@ module depends on `agentic-ai-common` only.
 
 ## A2A Examples
 
-- **`a2a/a2a-agent-integration/`**: A2A Client integrated as AI Agent gateway tool
+The paths are under [`connectors/agentic-ai/examples/`](../examples/).
+
+- **[`a2a/a2a-agent-integration/`](../examples/a2a/a2a-agent-integration/)**: A2A Client integrated as AI Agent gateway tool
   - Shows A2A Client element inside AHSP alongside regular tools
   - Demonstrates multi-turn interaction with remote agents
-- **`a2a/a2a-polling/`**: A2A Client with polling for async tasks
+- **[`a2a/a2a-polling/`](../examples/a2a/a2a-polling/)**: A2A Client with polling for async tasks
   - Shows outbound → intermediate catch event pattern for async task completion
-- **`a2a/a2a-push-notification/`**: A2A Client with webhook push notifications
+- **[`a2a/a2a-push-notification/`](../examples/a2a/a2a-push-notification/)**: A2A Client with webhook push notifications
   - Shows outbound → webhook intermediate catch event pattern

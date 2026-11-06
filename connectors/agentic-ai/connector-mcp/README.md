@@ -24,5 +24,7 @@ read resources, and list and get prompts. They run standalone or as a gateway to
 
 ## MCP Examples
 
-- **`mcp/standalone/`**: MCP Client used independently (not as AI Agent tool)
+The paths are under [`connectors/agentic-ai/examples/`](../examples/).
+
+- **[`mcp/standalone/`](../examples/mcp/standalone/)**: MCP Client used independently (not as AI Agent tool)
   - Shows direct tool listing, tool calling, resource and prompt operations

@@ -18,5 +18,7 @@ a custom LLM connector can use them without the AI Agent.
 
 ## Ad-Hoc Tools Schema Example
 
-- **`ad-hoc-tools-schema/`**: Direct use of the Ad-Hoc Tools Schema Resolver
+The paths are under [`connectors/agentic-ai/examples/`](../examples/).
+
+- **[`ad-hoc-tools-schema/`](../examples/ad-hoc-tools-schema/)**: Direct use of the Ad-Hoc Tools Schema Resolver
   - For custom LLM connectors that want to leverage AHSP tool metadata without the full AI Agent
