@@ -2506,7 +2506,7 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_DOCUMENTS, List.of()));
 
     final var getCall =
-        new ToolCall("call-1", GetDocumentTool.NAME, Map.of("id", docTag(documentId)));
+        new ToolCall("call-1", GetDocumentTool.NAME, Map.of("id", docHandle(documentId)));
     final var firstMessage = AssistantMessage.builder().toolCalls(List.of(getCall)).build();
     final var secondMessage = assistantMessage("done");
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
@@ -2548,13 +2548,13 @@ class AgentSubProcessRequestHandlerTest {
                           .isEqualTo(
                               TextContent.textContent("Requested the content of the document."));
                       assertThat(result.content().get(1))
-                          .isEqualTo(TextContent.textContent(DocumentTags.shortTag(document)));
+                          .isEqualTo(TextContent.textContent(TestDocuments.handleText(document)));
                       assertThat(result.content().get(2))
                           .isEqualTo(
                               TextContent.textContent(
                                   "It follows in the next message, or a note says why it cannot be loaded."));
                     }));
-    assertContentMessageOf(secondRequestMessages.getLast(), documentId);
+    assertContentMessageOf(secondRequestMessages.getLast(), document);
 
     // the stored conversation keeps the follow-up message as the document reference with the
     // delivery content only
@@ -2604,7 +2604,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var run =
         runMixedBatchInTwoJobs(
-            GetDocumentTool.NAME, Map.of("id", docTag(documentId)), knowing, "Sunny", () -> {});
+            GetDocumentTool.NAME, Map.of("id", docHandle(documentId)), knowing, "Sunny", () -> {});
 
     // the model reads the results of both calls in call order and then the content, exactly as
     // for a message that calls runtime tools only
@@ -2616,10 +2616,10 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results())
                     .extracting(ToolCallResultContent::id)
                     .containsExactly("call-1", "call-2"));
-    assertContentMessageOf(messages.getLast(), documentId);
+    assertContentMessageOf(messages.getLast(), document);
   }
 
-  private static void assertContentMessageOf(Message message, AgentDocumentId documentId) {
+  private static void assertContentMessageOf(Message message, Document document) {
     assertThat(message)
         .isInstanceOfSatisfying(
             UserMessage.class,
@@ -2634,13 +2634,14 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(userMessage.content().get(1))
                   .isInstanceOfSatisfying(
                       TextContent.class,
-                      tag ->
-                          assertThat(DocumentTags.idOfSingleTag(tag.text())).isEqualTo(documentId));
+                      handle ->
+                          assertThat(handle.text()).isEqualTo(TestDocuments.handleText(document)));
               assertThat(userMessage.content().get(2))
                   .isInstanceOfSatisfying(
                       DocumentContent.class,
                       content ->
-                          assertThat(AgentDocumentId.of(content.document())).isEqualTo(documentId));
+                          assertThat(AgentDocumentId.of(content.document()))
+                              .isEqualTo(AgentDocumentId.of(document)));
             });
   }
 
