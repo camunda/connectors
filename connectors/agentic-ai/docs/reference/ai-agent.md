@@ -847,9 +847,10 @@ becomes the handle schema wherever the shorthand sits in an alternative, and the
 does not assign the value to an alternative: a handle identifies itself by its `type`, so the agent scans the value of a union
 and every handle at or below it is a document. The tool receives the Camunda document reference for it, a runtime tool an
 `AgentDocumentId`, and a handle with an unknown id is answered with the sentence above, with the path of the handle (for
-example `files[1]` or `message.file`), and the tool does not run. Every other value is passed as it is: text (also a string that
-equals the id of a known document, or a string that is not a handle as JSON), a number, a boolean, an object without the handle
-`type` (for another alternative, such as a structured value), and an array; a runtime tool receives a `String` for text. This
+example `files[1]` or `message.file`), and the tool does not run. Everything else is passed as it is: text (also a string that
+equals the id of a known document, or a string that is not a handle as JSON), a number, a boolean, `null`, and the rest of an
+object (for another alternative, such as a structured value) or an array around its handles; a runtime tool receives a `String`
+for text. This
 holds also for a union without a text alternative. A union parameter is resolved by the same `DocumentParameterResolver`, at the
 same three places as a document parameter: a call of a tool of either kind with an unknown handle is rejected at admission,
 keeps its kind, carries the sentence as its `ToolCall.rejection` and is answered by `LocalToolCallExecutor`. A union is stored as

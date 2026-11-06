@@ -290,8 +290,8 @@ handle schema anywhere inside its alternatives, directly, in the properties of a
 alternative or in a nested union. The type array shorthand is normalized in the same places. Typical unions are one document or
 a list of documents, and text or a file with a caption. The agent does not have to know which alternative the model matched: the handle
 identifies itself by its `type`, so it scans the value of a union, not the schema. Every handle at or below the value is a
-document, and its id must be known. Every other value, text (also a string that equals a known id), numbers, objects without the
-handle `type` and arrays, is passed as it is to the tool, which may take it for another alternative of the union, such as a
+document, and its id must be known. Everything else, text (also a string that equals a known id), numbers, and the rest of an object
+or an array around its handles, is passed as it is to the tool, which may take it for another alternative of the union, such as a
 structured value; this holds also for a union without a text alternative. The search for document parameters stops at a union. It does not
 reach the keywords `allOf`, `not`, `if`, `then`, `else`, `additionalProperties`, `patternProperties`, `prefixItems` or `$defs` and
 `$ref`, where a handle schema is not recognized and the shorthand stays as authored.
