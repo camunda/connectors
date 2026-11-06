@@ -325,8 +325,9 @@ Alternatives: *render the handle in every provider converter* means six converte
 marker interface and a global serialization mode* is hidden state that is easy to get wrong for instances that must not
 change.
 
-A provider that is handed an `AgentDocumentContent` fails loudly, so a block that was not expanded never produces a
-request that silently drops a document.
+The expansion is the one place that guarantees that no `AgentDocumentContent` reaches a provider, and the chat model SPI
+states it: a provider never has to handle the block. A provider that switches over every content type still needs a
+branch for it, and that branch fails loudly; it is never reached, and no provider needs a test of its own for it.
 
 Consequence accepted: no provider receives a document inside a tool result, so the content reaches the model only in a
 user message after the tool results. Providers and models that accept documents in tool results would make this an
@@ -403,9 +404,11 @@ history back after a document flow and requires it.
 
 ## Follow-up
 
-* **A typed provider input.** The chat model providers read the messages of the conversation, so the type system cannot
-  say that an `AgentDocumentContent` never reaches them. A content hierarchy for the model without that block, handed over
-  together with the next change of the chat model SPI, replaces the failure of each provider.
+* **A dedicated content hierarchy for the providers.** The chat model providers read the messages of the conversation,
+  so only the SPI contract, not the type system, says that an `AgentDocumentContent` never reaches them. A class
+  hierarchy of messages and content for the model without that block, which the expansion produces and the providers
+  consume, would make the guarantee a compile-time one and remove the unreachable branch from each provider. It changes
+  every provider converter and the chat model SPI, so it belongs with the next change of that SPI.
 * **`c8__list_documents` built-in.** A runtime tool that lists the known documents when the model needs them. It
   replaces the note about documents that left the window, which cost a handle per document in every request.
 * **A switch for the built-in document tools.** A setting frozen at instance creation as part of the agent configuration
