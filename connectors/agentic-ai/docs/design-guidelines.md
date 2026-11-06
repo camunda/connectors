@@ -23,8 +23,8 @@ cannot be interpreted safely in the same way. Follow `AgentContextSchemaMigratio
 of the old shape for each migration. Preserve rejection of unsupported schema versions without
 overwriting the state.
 
-Use the independently persisted payloads defined in
-[the persisted-state contract](reference/ai-agent.md#5-data-model), not a version per field or tool call.
+When versioning is needed, apply it to independently persisted payloads defined in
+[the persisted-state contract](reference/ai-agent.md#5-data-model), not individual fields or tool calls.
 Record breaking impacts and required migration steps in [`breaking-changes.md`](breaking-changes.md).
 Rollback support is not required.
 

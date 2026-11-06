@@ -51,12 +51,12 @@ keys are available.
 
 WireMock tests can establish connector behavior and BPMN wiring, but do not prove interoperability
 with a real integration. When credentials or other prerequisites are unavailable, state in the PR
-description what was tested and what remains unverified; do not report a stubbed run as a successful
-real-integration test.
+description what was tested and what remains unverified.
+Do not report a stubbed run as a successful real-integration test.
 
 ## Real-provider coverage
 
 Real-provider changes update the `RealProviderApiSmokeSupport` provider/capability matrix and
-`RealProviderSelectionTest` where applicable, plus the corresponding `ci: true` registry row or an
+`RealProviderSelectionTest` where applicable. Update the corresponding `ci: true` registry row or record an
 explicit manual-only decision in `requiredCiCapabilities` (see
 [Real-LLM CPT coverage](../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#real-llm-cpt-coverage)).
