@@ -2059,8 +2059,7 @@ and the documents the result returns are registered. The note is a standalone se
 | the size cannot be read | `The document could not be read.` (the cause is logged); the model can retry |
 
 Every note is plain text with no incident; the model retries or goes another way. The builder follows the tool result
-message with a user message that starts with the preamble `Document content requested by the tool calls above (added by the
-system):` and has, in the order the documents were asked for, per document its handle followed by the document (a block with
+message with a user message that starts with the preamble `Document content from tool calls (added by the system):` and has, in the order the documents were asked for, per document its handle followed by the document (a block with
 the delivery `content`), or the handle with the note. Its
 metadata `toolCallDocuments` makes it leave the context window together with its tool results (`MessageWindowFilter`). The
 handle text and the content are added from the agent documents when the request is built (`DocumentExpander`); the handle

@@ -263,7 +263,7 @@ Content enters the request in two ways, which share one guard and one persisted 
 * **On request.** The model calls the built-in tool `c8__load_document`. The model knows whether it needs to read a
   document, and the message that follows the tool results shows the handle with a note when it cannot load it. The tool
   answers with the handle and the sentence that the content follows in the next message; the message with the content
-  starts with a preamble that says it was requested by the tool calls above and holds the handle and the document of
+  starts with the preamble `Document content from tool calls (added by the system):` and holds the handle and the document of
   each document, or the handle with the note. It loads the whole document. A range would be additive.
 * **By opt-in.** The process knows what a document is at two places, so only they can opt in: the user prompt, with a
   dropdown, and a tool activity, with an extension property. This removes one model round trip per document for a prompt
