@@ -188,10 +188,11 @@ a job share that place, so both give the same input. A call neither sees nor dep
 follows the contract of ADR 016. Whether an effect is applied depends on the agent context, the results and the documents
 whose content the model reads as of the start of the batch only, so a job that runs again computes the same input. A
 result can name a document it returns itself. A document that nobody knows is a defect of the tool and fails the job. The
-content guard checks every document: when it rejects one, the result stays as the tool returned it, the document stays a
-reference, and the message that follows the tool results shows its handle with a note that tells the model why the content is not loaded. A
-document whose content the model reads already, or that an earlier result of the same
-message asked for, is not added again.
+content guard checks every document: when it rejects one, the document stays a reference and the agent says so in the
+tool result. For every document a result asks content for, the agent writes one sentence at the end of that result, after
+the content the tool returned: the content follows in the next message, the content is not loaded and why, or it is in the
+conversation already. The tool writes none of it, because the agent decides where the content goes. A document whose
+content the model reads already, or that an earlier result of the same message asked for, is not added again.
 
 Alternatives:
 
@@ -218,8 +219,7 @@ The model sees a document as a small JSON object, its handle:
 
 The keys come in this order: `type`, `id`, `fileName`, `contentType`, `size` and `note`. Everything but `type` and `id` is
 omitted when it is not known, and `size` is a number. The handle is read-only information apart from `type` and `id`,
-which are what the model passes to a tool. `note` is used only where the agent withholds the content of a document, with a
-sentence that says why. Nothing else about a document reaches the model, a tool argument or an error text. The handle
+which are what the model passes to a tool. `note` is a sentence about the document that only the agent writes. Nothing else about a document reaches the model, a tool argument or an error text. The handle
 sits in the message it belongs to: in a user message as a text block before the document, in a tool result as text, and in
 the object of a tool result in place of the document, as a nested JSON object. It is written by Jackson from a record with
 a fixed key order, so the bytes are the same in every request, which keeps the prompt cache valid.
@@ -261,10 +261,10 @@ content, without the guard, whatever the delivery: the provider reads them.
 Content enters the request in two ways, which share one guard and one persisted form:
 
 * **On request.** The model calls the built-in tool `c8__load_document`. The model knows whether it needs to read a
-  document, and the message that follows the tool results shows the handle with a note when it cannot load it. The tool
-  answers with the handle and the sentence that the content follows in the next message; the message with the content
-  starts with the preamble `Document content from tool calls (added by the system):` and holds the handle and the document of
-  each document, or the handle with the note. It loads the whole document. A range would be additive.
+  document, and the tool result tells it when a document cannot be loaded. The tool returns no text of its own: the agent
+  writes into the result that the content follows in the next message, or that it is not loaded and why. The message with
+  the content starts with the preamble `Document content from tool calls (added by the system):` and holds the handle and
+  the document of each document that is loaded. It loads the whole document. A range would be additive.
 * **By opt-in.** The process knows what a document is at two places, so only they can opt in: the user prompt, with a
   dropdown, and a tool activity, with an extension property. This removes one model round trip per document for a prompt
   that always comes with a short PDF or a tool that returns a text file. Events, MCP tools and A2A tools stay references;
@@ -287,9 +287,9 @@ One guard decides every addition of content, whoever asks:
   of the response. The user prompt keeps its behavior: the model provider reads the content of an external document in
   a user prompt whatever the delivery, as it reads every document of a user prompt.
 * What the model reads about a rejection is a standalone sentence with the content type, the size and the limit at most,
-  in the `note` of the handle of the document, so the sentence holds no id. The text is persisted and a failure message
+  so that it holds no id; the agent puts it behind the name of the document in the tool result. The text is persisted and a failure message
   can hold a URL with a token, so the cause goes to the log only.
-* A rejection leaves the document a reference and shows its handle with the note, whoever asked, and is no incident: the result of the tool
+* A rejection leaves the document a reference and says so in the tool result, whoever asked, and is no incident: the content of the result of the tool
   and the documents it returns stay as they are, and the model could not have read the document anyway.
 
 Bytes are a poor proxy for tokens (a small PDF can cost many input tokens), and limits that are the same for every
@@ -435,8 +435,8 @@ a consumer can recognise a block that is exactly one handle by its `type`. Where
 an event, a tool result) a Camunda or external document is followed by the document itself, which a consumer shows as a
 chip; the chip of a document without a file name, and of an external document without a name, carries the agent document id, the same id the handle shows. A document
 nested in the object of a tool result is shown as the handle object inside the object, followed by the documents. In the message
-that follows the tool results a document that is delivered is its handle object and a chip, and a document whose content is
-not loaded is its handle object with the note and no chip. The arguments of a call are shown as the model sent them. It never shows the Camunda
+that follows the tool results a document that is delivered is its handle object and a chip. The sentences the agent writes
+into a tool result about the content of a document are text. The arguments of a call are shown as the model sent them. It never shows the Camunda
 document reference a tool received. Each message of a model request is covered by a history item, and a test reads the
 history back after a document flow and requires it.
 
@@ -472,6 +472,10 @@ history back after a document flow and requires it.
   can change tool selection for agents that never use documents. ADR 016 lists the general allow and deny list.
 * **Per-tool document scoping.** Allowed document sources per tool. Any agent document can be passed to any tool by
   handle, so text a tool returned can name another document.
+* **Where the content goes.** The agent decides it when it composes the turn, and the decision is stored with the turn.
+  A model that takes documents in tool results gets them there from the builder, in place of the message that follows.
+  Replaying stored turns to another model would need the rendering step to move them, which belongs to the replay across
+  providers.
 * **Per-provider limits and native tool-result documents.** A capability matrix of the providers would
   reject a type before the load and replace the global limits, and would let the window place content in the tool
   result for models that accept it, derived from persisted data, with the handle and a note otherwise. A provider needs a

@@ -2038,18 +2038,27 @@ content, fails with `UNSUPPORTED_DOCUMENT_REFERENCE`. The id never exposes
 a store id, the id of the document in its store or a URL.
 
 **Loading content: `c8__load_document`.** The model calls it with the handle of a document (`id`, a document parameter; the
-tool receives an `AgentDocumentId`). It loads the whole document, no ranges. The tool answers without asking for content when the
-document is already in the windowed conversation (a block with the delivery `content` in a windowed user message,
-`RuntimeToolDocuments.hasContentInConversation`): success with two text blocks, the handle and the sentence `The document is already in the conversation.`; loadable
-again after that message left the window. Otherwise the result has two text blocks, the handle of the document and the sentence
-`The content follows in the next message.`, so that the history shows the handle as a block of its own, and it asks the agent to add the content
-(`RuntimeToolResult.Success.withDocumentContent`, the effect `ToolCallEffect.AddDocumentContent`). The agent, not the tool,
+tool receives an `AgentDocumentId`). It loads the whole document, no ranges. For a known document the tool returns
+no text of its own: the result has no content and asks the agent to add the content
+(`RuntimeToolResult.Success.withDocumentContent`, the effect `ToolCallEffect.AddDocumentContent`), also when the document is
+already in the windowed conversation (a block with the delivery `content` in a windowed user message,
+`RuntimeToolDocuments.hasContentInConversation`); it is loadable again after that message left the window. An unknown
+document is an error result. The agent, not the tool,
 applies the effect after all calls of the message ran,
 in the order of the calls, in `ToolCallResultsInputBuilder`: `DocumentContentDelivery` decides for every document a result
 names, with the content guard, whether the content is added, and adds nothing for a document the model reads already or an
-earlier result of the same message dealt with. The result stays as the tool returned it, whatever the decision; the
-document stays a reference. A document the guard rejects is shown in the message that follows as its handle with a `note`,
-and the documents the result returns are registered. The note is a standalone sentence without the id (the handle carries it):
+earlier result of the same message dealt with. For every document a result names the builder appends one text block to
+that result, after the content the tool returned, in the order of the requests, with `{ref}` the file name and the id
+(`document1.pdf (doc_3a1d3166fe56)`), or the id alone for a document without a file name:
+
+| Decision | Sentence |
+|----------|----------|
+| the content is added | `The content of {ref} follows in the next message.` |
+| the guard rejects the document | `The content of {ref} is not loaded. ` and the note below |
+| the model reads the content already, or an earlier result of the message asked for it | `The content of {ref} is already in the conversation.` (a document an earlier result asked for that is not loaded gets the not-loaded sentence again) |
+
+The document stays a reference when it is not loaded, and the documents the result returns are registered. The note is a
+standalone sentence without the id:
 
 | Check | Note |
 |-------|------|
@@ -2057,12 +2066,12 @@ and the documents the result returns are registered. The note is a standalone se
 | the size exceeds the limit of the kind of content | `The document is too large to load (S, limit L). If one of your tools can process the document, pass the handle to it.` (`S` is left out when the size is not known and the document was read up to the limit only) |
 | the size cannot be read | `The document could not be read.` (the cause is logged); the model can retry |
 
-Every note is plain text with no incident; the model retries or goes another way. The builder follows the tool result
-message with a user message that starts with the preamble `Document content from tool calls (added by the system):` and has, in the order the documents were asked for, per document its handle followed by the document (a block with
-the delivery `content`), or the handle with the note. Its
+Every note is plain text with no incident; the model retries or goes another way. When at least one document is loaded, the
+builder follows the tool result message with a user message that starts with the preamble `Document content from tool calls
+(added by the system):` and has, in the order the documents were asked for, per loaded document its handle followed by the
+document (a block with the delivery `content`); there is no such message when nothing is loaded. Its
 metadata `toolCallDocuments` makes it leave the context window together with its tool results (`MessageWindowFilter`). The
-handle text and the content are added from the agent documents when the request is built (`DocumentExpander`); the handle
-with a note is persisted as text. Passing the handle of a document to
+handle text and the content are added from the agent documents when the request is built (`DocumentExpander`). Passing the handle of a document to
 a tool parameter declared with `fromAi(..., "document")` never adds content: the tool receives the full Camunda document
 reference. The same holds for a parameter that takes text or a document, when the model passes a handle.
 `c8__load_document` is offered to every agent instance with the `documents` feature (every instance created from
@@ -2290,11 +2299,9 @@ lease-fenced `update()` mechanism).
   object with the handle objects nested, followed by the chips. An inline document has its handle only. When a
   document reported as a `DOCUMENT` block has no file name, the reported metadata carries the agent document id (`doc_…`)
   as the file name, and an external document without a name is reported under that id as its name, so the chip shows the id the handle shows; the document and its stored reference are not changed. A
-  text is reported as it is, also when it holds a handle, except a text that is exactly the handle of a known document in a
-  tool result (the answer of `c8__load_document` has the handle and its sentence as two text blocks) and in the message that
-  follows the tool results: it is reported as the handle object. The message that follows the tool results is reported as
-  its preamble text, per delivered document the handle object and its chip, and per document whose content is not loaded the
-  handle object with its `note` and no chip, because the document has its chip where it entered the conversation.
+  text is reported as it is, also when it holds a handle. The answer of `c8__load_document` is the one text block the agent
+  writes, which a consumer shows as the first block of the result. The message that follows the tool results is reported as
+  its preamble text and, per delivered document, the handle object and its chip.
   `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `DocumentHandling` of the agent instance: it
   decides what the history shows, and the agent documents of a `Tracked` instance are what the handles are expanded with. An
   `Untracked` agent instance reports texts as they are.
@@ -2626,8 +2633,8 @@ whether the model reads the content of a document already.
 document, or of one the result returns itself, to the request that follows the tool results. An effect is a variant of the
 sealed `ToolCallEffect` (`aiagent-model`); `Success.effects()` lists them, `with*` methods append. `LoadDocumentTool` is the
 reference. The agent runs the content guard (`DocumentContentGuard`: the content type and the size limit of its kind) before
-it adds anything. A document that is not allowed leaves the result as it is, the document a reference, and the model reads
-its handle with a note in the message that follows the tool results; a document the model reads already, or that an earlier result of the
+it adds anything. A document that is not allowed stays a reference, and the agent writes into the result that the content is not loaded and why;
+the agent writes one sentence per document whose content a result asks for, so a tool needs no text of its own for it; a document the model reads already, or that an earlier result of the
 message asked for, is not added again. The rule for the documents in a result: a new document is a `DocumentContent`, a
 known one an `AgentDocumentContent` reference, and content comes only through the effect. A reference block with the
 delivery `content`, and a reference block or an effect that names a document that neither the agent knew when the batch

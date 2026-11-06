@@ -272,8 +272,9 @@ High-frequency traps (detail behind each link):
   `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` runs the content guard
   (`DocumentContentGuard`, limits in `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document
   whose content a tool asks for. A document that fails it (a type no provider renders, a size above
-  the limit, a document that cannot be read) stays a reference: the result stays as the tool returned it and the message that follows the tool results
-  shows the handle of the document with a note, no incident. A new document in a tool result is a `DocumentContent`, a known one an
+  the limit, a document that cannot be read) stays a reference, no incident: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
+  asks for content with one sentence per document (the content follows in the next message, it is not loaded and why, or it is in
+  the conversation already), and the message that follows the tool results holds the loaded documents only; a tool writes none of it. A new document in a tool result is a `DocumentContent`, a known one an
   `AgentDocumentContent`, and content comes only through the effect; `LocalToolCallExecutor` fails the job when a result
   breaks this. Passing a handle to a tool never adds content. A tool
   parameter of the type `document` of `fromAi` is the object schema of a handle (no format marker, no hint, sent to the
