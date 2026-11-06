@@ -435,7 +435,7 @@ class AgentResponseHandlerTest {
                     "type",
                     "object",
                     "properties",
-                    Map.of("body", DocumentSchemas.textOrDocument(null))))
+                    Map.of("body", TestDocuments.textOrDocument(null))))
             .build();
     private static final ToolDefinition WEATHER =
         ToolDefinition.builder().name("getWeather").inputSchema(Map.of("type", "object")).build();

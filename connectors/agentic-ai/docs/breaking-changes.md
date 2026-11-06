@@ -353,12 +353,13 @@ applies it to its persisted context, and the next round continues with the conte
   `camunda-document-id` is no document parameter. A gateway handler that defines its tools itself can declare document
   parameters in them and receives the Camunda document references in the arguments of a call.
 - The value of a document parameter is the handle object the model read, `{"type":"camunda.agenticai.document","id":"doc_…"}`;
-  other fields are ignored and the `type` is required. A parameter that always takes a document also accepts a string that
-  holds the handle as JSON and the bare id of a known document.
-- A parameter that takes text or a document is a union schema (`anyOf` or `oneOf`, one alternative a document schema, the
-  others of any kind, created with `DocumentSchemas.textOrDocument`). A string is always text, an object with the handle
-  `type` is a document and an object without it is passed as it is. `RuntimeToolCall.argumentsAs` binds such a parameter to
-  a property of the type `Object`, which receives a `AgentDocumentId` or the value the model sent.
+  other fields are ignored and the `type` is required. A string that holds the handle as JSON is a handle too; the bare id of
+  a document is not.
+- A parameter that takes a document or something else is a union schema: an `anyOf` or `oneOf` with more than one
+  alternative and a document schema (`DocumentSchemas.document(...)`) in an alternative, directly or inside the properties of an
+  object alternative or the items of an array alternative. Every handle at or below the value is a document; every other value,
+  text included, is passed as it is. `RuntimeToolCall.argumentsAs` binds such a parameter to a property of the type `Object`,
+  which receives a `AgentDocumentId` in the place of each handle or the value the model sent.
 
 <a id="persisted-data-8-11"></a>
 

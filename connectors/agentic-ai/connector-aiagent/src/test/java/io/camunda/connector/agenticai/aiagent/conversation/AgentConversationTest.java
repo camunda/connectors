@@ -213,7 +213,7 @@ class AgentConversationTest {
                         "file",
                         DocumentSchemas.document("The file"),
                         "body",
-                        DocumentSchemas.textOrDocument("The body"))))
+                        TestDocuments.textOrDocument("The body"))))
             .build();
     var conv =
         AgentConversation.rehydrate(

@@ -32,10 +32,11 @@ public interface RuntimeToolCall {
    *
    * <ul>
    *   <li>A document parameter holds a {@link AgentDocumentId}.
-   *   <li>A union parameter (text or a document, see {@link DocumentSchemas#textOrDocument}) holds
-   *       a {@link AgentDocumentId} when the model passed a document handle object, and the value
-   *       the model passed, usually a {@link String}, otherwise. A string is always text, also one
-   *       that equals the id of a document or holds a handle.
+   *   <li>A union parameter (an {@code anyOf} or {@code oneOf} with {@link
+   *       DocumentSchemas#document} as one alternative, directly or inside an object or array
+   *       alternative) holds a {@link AgentDocumentId} for every document handle in the value the
+   *       model passed, and every other value as the model passed it. A string that is not a handle
+   *       as JSON is text, also one that equals the id of a document.
    * </ul>
    */
   Map<String, Object> arguments();

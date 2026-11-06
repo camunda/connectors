@@ -65,33 +65,18 @@ class DocumentSchemasTest {
   }
 
   @Test
-  void textOrADocumentIsAnAnyOfOfAPlainStringAndTheDocumentSchema() {
-    final var schema = DocumentSchemas.textOrDocument("The body");
-
-    assertThat(schema)
-        .isEqualTo(
-            Map.of(
-                "description",
-                "The body",
-                "anyOf",
-                List.of(Map.of("type", "string"), handleSchema(null))));
-    assertThat(List.copyOf(schema.keySet())).containsExactly("description", "anyOf");
-    assertThat(DocumentSchemas.textOrDocument(null))
-        .isEqualTo(Map.of("anyOf", List.of(Map.of("type", "string"), handleSchema(null))));
-  }
-
-  @Test
   void theSchemasAreTheDocumentParametersOfAToolDefinition() {
     final var properties = new LinkedHashMap<String, Object>();
     properties.put("file", DocumentSchemas.document("The file"));
-    properties.put("body", DocumentSchemas.textOrDocument("The body"));
+    properties.put(
+        "body",
+        Map.of("anyOf", List.of(Map.of("type", "string"), DocumentSchemas.document("The body"))));
     final var definition =
         ToolDefinition.runtime("upload", null, Map.of("type", "object", "properties", properties));
 
     assertThat(definition.documentParameters())
         .containsExactly(
             new DocumentParameter.Document(List.of(new DocumentParameter.Step.Property("file"))),
-            new DocumentParameter.TextOrDocument(
-                List.of(new DocumentParameter.Step.Property("body"))));
+            new DocumentParameter.Union(List.of(new DocumentParameter.Step.Property("body"))));
   }
 }

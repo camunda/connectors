@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ANYOF;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_DESCRIPTION;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ENUM;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
@@ -39,6 +38,11 @@ import org.jspecify.annotations.Nullable;
  * What the tool receives instead of the handle depends on its kind: a runtime tool gets the {@link
  * io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId} (see {@link
  * RuntimeToolCall}), the process or a gateway tool the Camunda document reference.
+ *
+ * <p>A parameter that takes a document or something else is a plain {@code anyOf} or {@code oneOf}
+ * with more than one alternative, one of them {@link #document document(...)}, directly or inside
+ * the properties of an object alternative or the items of an array alternative. Every handle in the
+ * value of such a parameter is replaced; all other values reach the tool as they are.
  */
 @Experimental
 public final class DocumentSchemas {
@@ -72,25 +76,6 @@ public final class DocumentSchemas {
     }
     schema.put(PROPERTY_PROPERTIES, properties);
     schema.put(PROPERTY_REQUIRED, List.of("type", "id"));
-    return schema;
-  }
-
-  /**
-   * The schema of a parameter that is text or a document: an {@code anyOf} of a plain string and
-   * the {@link #document document schema}. A string is always text; the tool receives a document
-   * when the model passed a handle object.
-   *
-   * @param description what the parameter is for, shown to the model, or {@code null}
-   * @return an insertion-ordered map
-   */
-  public static Map<String, Object> textOrDocument(@Nullable String description) {
-    final var text = new LinkedHashMap<String, Object>();
-    text.put(PROPERTY_TYPE, TYPE_STRING);
-    final var schema = new LinkedHashMap<String, Object>();
-    if (StringUtils.isNotBlank(description)) {
-      schema.put(PROPERTY_DESCRIPTION, description);
-    }
-    schema.put(PROPERTY_ANYOF, List.of(text, document(null)));
     return schema;
   }
 }
