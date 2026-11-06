@@ -19,6 +19,7 @@ import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum
 import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
@@ -108,7 +109,7 @@ public class AgentInstanceHistoryMapper {
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  userContentBlocks(userMessage.content(), documentHandling),
+                  messageContent(userMessage.content(), documentHandling),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
@@ -131,7 +132,7 @@ public class AgentInstanceHistoryMapper {
     // them); default to empty strings, which the client model accepts
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
-        toolResultContent(result.content(), documentHandling),
+        messageContent(result.content(), documentHandling),
         List.of(
             new AgentInstanceHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
@@ -237,61 +238,21 @@ public class AgentInstanceHistoryMapper {
   }
 
   /**
-   * The content of a user message. A document block is its handle as text followed by the document,
-   * as the agent knows it; text is reported as it is, also when it holds a handle.
+   * The content of a message as the model reads it. For an agent instance that tracks its
+   * documents, a document is its handle as a text block of its own, the same text the model gets,
+   * in a user message, an event and a tool result. Where the document enters the conversation a
+   * Camunda or an external document is followed by the document itself (the chip); a document
+   * nested in an object is replaced by its handle object, as the model gets it, and the documents
+   * follow the object. An inline document has its handle text only. Text is reported as it is, also
+   * when it holds a handle.
    */
-  private List<AgentInstanceHistoryContent> userContentBlocks(
+  private List<AgentInstanceHistoryContent> messageContent(
       List<Content> contents, DocumentHandling documentHandling) {
     return switch (documentHandling) {
       case DocumentHandling.Untracked ignored -> contentBlocks(contents, documentHandling);
       case DocumentHandling.Tracked tracked -> {
         final var documents = tracked.documents();
         final var blocks = new ArrayList<AgentInstanceHistoryContent>();
-        for (final var content : contents) {
-          switch (content) {
-            case AgentDocumentContent block -> {
-              blocks.add(
-                  AgentInstanceHistoryContent.text(
-                      DocumentHandle.of(documents, block.id()).text()));
-              documentRestorer
-                  .restore(documents, block.id())
-                  .ifPresent(document ->
-                      blocks.add(
-                          documentHistoryContent(
-                              DocumentContent.documentContent(document), documentHandling)));
-            }
-            case TextContent textContent ->
-                blocks.add(toHistoryContent(textContent, documentHandling));
-            case ObjectContent objectContent ->
-                blocks.add(toHistoryContent(objectContent, documentHandling));
-            case DocumentContent documentContent ->
-                blocks.add(documentHistoryContent(documentContent, documentHandling));
-            case ReasoningContent reasoningContent ->
-                blocks.add(toHistoryContent(reasoningContent, documentHandling));
-            case ProviderContent providerContent ->
-                blocks.add(toHistoryContent(providerContent, documentHandling));
-          }
-        }
-        yield List.copyOf(blocks);
-      }
-    };
-  }
-
-  /**
-   * The content of a tool result as the model receives it. A result that is exactly one document is
-   * the document only. Otherwise a document, as a block or as a live document, is its handle as
-   * text followed by the document; a document nested in an object is replaced by its handle object,
-   * as the model gets it, and the documents follow the object. A document that is not a Camunda or
-   * an external one has its handle text only.
-   */
-  private List<AgentInstanceHistoryContent> toolResultContent(
-      List<Content> contents, DocumentHandling documentHandling) {
-    return switch (documentHandling) {
-      case DocumentHandling.Untracked ignored -> contentBlocks(contents, documentHandling);
-      case DocumentHandling.Tracked tracked -> {
-        final var documents = tracked.documents();
-        final var blocks = new ArrayList<AgentInstanceHistoryContent>();
-        final var wholeResult = contents.size() == 1;
         for (final var content : contents) {
           switch (content) {
             case DocumentContent documentContent ->
@@ -299,14 +260,12 @@ public class AgentInstanceHistoryMapper {
                     blocks,
                     DocumentHandle.of(documentContent.document()),
                     documentContent.document(),
-                    wholeResult,
                     tracked);
             case AgentDocumentContent block ->
                 addDocument(
                     blocks,
                     DocumentHandle.of(documents, block.id()),
                     documentRestorer.restore(documents, block.id()).orElse(null),
-                    wholeResult,
                     tracked);
             case ObjectContent objectContent -> addObject(blocks, objectContent, tracked);
             case TextContent textContent ->
@@ -326,15 +285,11 @@ public class AgentInstanceHistoryMapper {
       List<AgentInstanceHistoryContent> blocks,
       DocumentHandle handle,
       @Nullable Document document,
-      boolean wholeResult,
       DocumentHandling documentHandling) {
-    final var chip = document != null && hasHistoryDocument(document) ? document : null;
-    // the document of a whole result is its chip; without a chip the handle text is all there is
-    if (!wholeResult || chip == null) {
-      blocks.add(AgentInstanceHistoryContent.text(handle.text()));
-    }
-    if (chip != null) {
-      blocks.add(documentHistoryContent(DocumentContent.documentContent(chip), documentHandling));
+    blocks.add(AgentInstanceHistoryContent.text(handle.text()));
+    if (document != null && hasHistoryDocument(document)) {
+      blocks.add(
+          documentHistoryContent(DocumentContent.documentContent(document), documentHandling));
     }
   }
 
@@ -447,17 +402,38 @@ public class AgentInstanceHistoryMapper {
     if (ref.getContentHash() != null) {
       protocolRef.contentHash(ref.getContentHash());
     }
-    if (metadata != null) {
-      protocolRef.metadata(toProtocolDocumentMetadata(metadata, documentHandling));
+    final var idAsFileName = fileNameOfTheHandle(ref, documentHandling);
+    if (metadata != null || idAsFileName != null) {
+      protocolRef.metadata(toProtocolDocumentMetadata(metadata, idAsFileName, documentHandling));
     }
     return new DocumentReferenceResponseImpl(protocolRef);
   }
 
+  /**
+   * The file name of a document whose handle shows the agent document id in place of a file name,
+   * so that the chip shows what the handle shows; {@code null} when the document has a file name or
+   * the agent does not track its documents.
+   */
+  private static @Nullable String fileNameOfTheHandle(
+      CamundaDocumentReference ref, DocumentHandling documentHandling) {
+    return documentHandling instanceof DocumentHandling.Tracked
+            && AgentDocument.Descriptors.of(ref).fileName() == null
+        ? AgentDocumentId.of(ref).value()
+        : null;
+  }
+
   private DocumentMetadataResponse toProtocolDocumentMetadata(
-      DocumentMetadata metadata, DocumentHandling documentHandling) {
+      @Nullable DocumentMetadata metadata,
+      @Nullable String idAsFileName,
+      DocumentHandling documentHandling) {
     final DocumentMetadataResponse protocolMetadata = new DocumentMetadataResponse();
-    if (metadata.getFileName() != null) {
+    if (idAsFileName != null) {
+      protocolMetadata.fileName(idAsFileName);
+    } else if (metadata != null && metadata.getFileName() != null) {
       protocolMetadata.fileName(metadata.getFileName());
+    }
+    if (metadata == null) {
+      return protocolMetadata;
     }
     if (metadata.getContentType() != null) {
       protocolMetadata.contentType(metadata.getContentType());

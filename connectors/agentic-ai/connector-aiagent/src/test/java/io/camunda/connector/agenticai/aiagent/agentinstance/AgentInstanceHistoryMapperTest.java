@@ -98,7 +98,7 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void aUserMessageWithADocumentTagIsReportedWithTheTagAndTheDocumentFromTheAgentDocuments() {
+  void aUserMessageWithADocumentBlockIsReportedWithTheHandleAndTheDocumentFromTheAgentDocuments() {
     final var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -109,9 +109,9 @@ class AgentInstanceHistoryMapperTest {
     final var agentDocuments =
         AgentDocuments.empty()
             .register(List.of(new NewDocument(document, DocumentOrigin.userMessage())));
-    final var tag = AgentDocumentContent.of(AgentDocumentId.of(document));
+    final var block = AgentDocumentContent.of(AgentDocumentId.of(document));
     final var userMessage =
-        UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
+        UserMessage.builder().content(List.of(TextContent.textContent("see"), block)).build();
 
     final var items =
         mapper.inputHistoryItems(
@@ -125,9 +125,16 @@ class AgentInstanceHistoryMapperTest {
         .satisfies(item -> {
           assertThat(item.content()).hasSize(3);
           assertThat(texts(item.content()))
-              .containsExactly("see", TestDocuments.handleText(agentDocuments, tag.id()));
+              .containsExactly(
+                  "see",
+                  "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"report.txt\",\"contentType\":\"text/plain\"}"
+                      .formatted(block.id().value()));
           assertThat(item.content().get(2))
-              .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+              .isInstanceOfSatisfying(
+                  AgentInstanceHistoryContent.DocumentContent.class,
+                  chip ->
+                      assertThat(chip.getDocumentReference().getMetadata().getFileName())
+                          .isEqualTo("report.txt"));
         });
   }
 
@@ -702,13 +709,85 @@ class AgentInstanceHistoryMapperTest {
     }
 
     @Test
-    void aToolResultThatIsOneLiveDocumentIsTheDocumentOnly() {
+    void aToolResultThatIsOneLiveDocumentIsTheHandleTextAndTheChip() {
       final var item = item(message(DocumentContent.documentContent(document)), agentContext);
 
       assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
-      assertThat(item.content())
-          .singleElement()
+      assertThat(item.content()).hasSize(2);
+      assertThat(described(item).get(0)).isEqualTo("TEXT " + handle);
+      assertThat(item.content().get(1))
           .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+    }
+
+    @Test
+    void aDocumentOfAnEventIsTheHandleTextAndTheChip() {
+      final var event =
+          ToolCallResultMessage.builder()
+              .results(
+                  List.of(
+                      ToolCallResultContent.builder()
+                          .name("event")
+                          .elementId("event")
+                          .content(List.of(DocumentContent.documentContent(document)))
+                          .completedAt(TOOL_RESULT_COMPLETED_AT)
+                          .build()))
+              .build();
+
+      final var items =
+          mapper.inputHistoryItems(
+              event, Map.of(), TURN_INGESTION_TIMESTAMP, agentContext.documentHandling());
+
+      assertThat(items)
+          .singleElement()
+          .satisfies(item -> {
+            assertThat(item.content()).hasSize(2);
+            assertThat(described(item).get(0)).isEqualTo("TEXT " + handle);
+            assertThat(item.content().get(1))
+                .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+          });
+    }
+
+    @Test
+    void theChipOfADocumentWithoutAFileNameShowsTheAgentDocumentId() {
+      final var unnamed =
+          documentFactory.create(
+              DocumentCreationRequest.from("unnamed".getBytes(StandardCharsets.UTF_8))
+                  .contentType("text/plain")
+                  .build());
+      final var id = AgentDocumentId.of(unnamed).value();
+      final var tracked =
+          WITH_DOCUMENTS.withDocuments(
+              AgentDocuments.empty()
+                  .register(
+                      List.of(
+                          new NewDocument(unnamed, DocumentOrigin.toolCall("fetch", "call-1")))));
+
+      final var item = item(message(DocumentContent.documentContent(unnamed)), tracked);
+
+      assertThat(described(item).get(0))
+          .isEqualTo(
+              "TEXT {\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"contentType\":\"text/plain\"}"
+                  .formatted(id));
+      assertThat(item.content().get(1))
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.DocumentContent.class,
+              chip -> {
+                assertThat(chip.getDocumentReference().getMetadata().getFileName()).isEqualTo(id);
+                assertThat(chip.getDocumentReference().getMetadata().getContentType())
+                    .isEqualTo("text/plain");
+              });
+      // the document and its reference are left as they are
+      assertThat(unnamed.metadata().getFileName()).isNotEqualTo(id);
+      // without tracking there is no handle, so the chip keeps the stored file name
+      final var untracked =
+          item(message(DocumentContent.documentContent(unnamed)), AgentContext.empty());
+      assertThat(untracked.content())
+          .singleElement()
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.DocumentContent.class,
+              chip ->
+                  assertThat(chip.getDocumentReference().getMetadata().getFileName())
+                      .isEqualTo(unnamed.metadata().getFileName()));
     }
 
     @Test
@@ -727,7 +806,7 @@ class AgentInstanceHistoryMapperTest {
               agentContext);
 
       assertThat(described(stored)).isEqualTo(described(live));
-      assertThat(described(later)).isEqualTo(described(early)).hasSize(1);
+      assertThat(described(later)).isEqualTo(described(early)).hasSize(2);
     }
 
     @Test
@@ -921,13 +1000,14 @@ class AgentInstanceHistoryMapperTest {
     }
 
     @Test
-    void aToolResultThatIsOneExternalDocumentIsTheExternalReferenceOnly() {
+    void aToolResultThatIsOneExternalDocumentIsTheHandleTextAndTheExternalReference() {
       final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
 
       final var item = item(message(DocumentContent.documentContent(external)), agentContext);
 
-      assertThat(item.content())
-          .singleElement()
+      assertThat(item.content()).hasSize(2);
+      assertThat(described(item).get(0)).isEqualTo("TEXT " + TestDocuments.handleText(external));
+      assertThat(item.content().get(1))
           .isInstanceOf(AgentInstanceHistoryContent.ObjectContent.class);
       assertThat(TestDocuments.handleText(external)).doesNotContain("example.com");
     }
