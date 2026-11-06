@@ -11,7 +11,7 @@
 
 Coding agents write a large part of the changes in the agentic AI module. The changes arrive fast,
 and each change solves a local problem. Without a shared end state, each change makes its own
-structural choices. Policies get more than one owner, interfaces appear without a second adapter,
+structural choices. Policies get more than one owner, abstractions appear without a need,
 and the core reads binding records that the boundary must translate. The architecture erodes.
 
 The reference docs describe the current state of the module. They do not say where the structure
