@@ -24,10 +24,8 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -96,6 +94,9 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   private GatewayToolHandlerRegistry gatewayToolHandlers;
   private AgentConversationTurnInputComposerImpl composer;
 
+  /** The document factory of the job, the one the composer restores documents with. */
+  private DocumentFactory jobDocumentFactory = TestDocuments.documentFactory();
+
   @BeforeEach
   void setUp() {
     gatewayToolHandlers = mock(GatewayToolHandlerRegistry.class);
@@ -113,17 +114,16 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         TestDocuments.documentContentDelivery());
   }
 
-  /** A composer that restores the reference of the given external document as that document. */
+  /**
+   * A composer for a job whose document factory restores the reference of the given external
+   * document as that document.
+   */
   private AgentConversationTurnInputComposerImpl composerServing(ExternalDocument external) {
     final var factory =
         mock(DocumentFactory.class, AdditionalAnswers.delegatesTo(TestDocuments.documentFactory()));
     doReturn(external).when(factory).resolve(any(ExternalDocumentReference.class));
-    final var delivery =
-        new DocumentContentDelivery(
-            new DocumentContentGuard(DocumentContentLimits.defaults()),
-            new DocumentRestorer(factory));
-    return new AgentConversationTurnInputComposerImpl(
-        gatewayToolHandlers, new ToolCallResultsInputBuilder(delivery), delivery);
+    jobDocumentFactory = factory;
+    return composerWith(gatewayToolHandlers);
   }
 
   private Document document(String content, String contentType, String fileName) {
@@ -150,10 +150,10 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     return new ExternalDocument("https://files.example.com/report.pdf", "report.pdf", url -> null);
   }
 
-  private static TurnInput nextTurn(
+  private TurnInput nextTurn(
       AgentConversationTurnInputComposerImpl composer, CompositionResult result) {
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
-    return composer.assemble((CompositionResult.Ready) result);
+    return composer.assemble((CompositionResult.Ready) result, jobDocumentFactory);
   }
 
   private TurnInput nextTurn(CompositionResult result) {
@@ -210,7 +210,11 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var input =
         AgentInput.from(new UserPromptConfiguration("Hello?", List.of(docs), delivery), List.of());
     return composer.resolve(
-        CONFIG, context, TurnReconstructor.reconstruct(previousMessages), input);
+        CONFIG,
+        context,
+        TurnReconstructor.reconstruct(previousMessages),
+        input,
+        jobDocumentFactory);
   }
 
   @Test
@@ -386,7 +390,8 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         configuration,
         CTX_WITH_CONVERSATION,
         TurnReconstructor.reconstruct(previousMessages),
-        input);
+        input,
+        jobDocumentFactory);
   }
 
   @Test
@@ -478,13 +483,13 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     return composeToolResults(composer, context, results);
   }
 
-  private static CompositionResult composeToolResults(
+  private CompositionResult composeToolResults(
       AgentConversationTurnInputComposerImpl composer,
       AgentContext context,
       ToolCallResult... results) {
     final var input =
         AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of(results));
-    return composer.resolve(CONFIG, context, processToolCallsHistory(), input);
+    return composer.resolve(CONFIG, context, processToolCallsHistory(), input, jobDocumentFactory);
   }
 
   private static PreviousConversation processToolCallsHistory() {
@@ -639,7 +644,9 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         TurnReconstructor.reconstruct(List.of(earlier, assistantMessage("thinking", TOOL_CALLS)));
 
     final var turn =
-        nextTurn(composer.resolve(CONFIG, contextWithTools(CONTENT_TOOL), history, input));
+        nextTurn(
+            composer.resolve(
+                CONFIG, contextWithTools(CONTENT_TOOL), history, input, jobDocumentFactory));
 
     assertThat(turn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(((ToolCallResultMessage) turn.messages().getFirst()).results().getFirst().content())
@@ -670,7 +677,9 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
             RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
             now,
             now);
-    final var ready = (CompositionResult.Ready) composer.resolve(CONFIG, context, history, input);
+    final var ready =
+        (CompositionResult.Ready)
+            composer.resolve(CONFIG, context, history, input, jobDocumentFactory);
 
     final var turn =
         composer.assemble(
@@ -678,7 +687,8 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                 List.of(
                     ToolCallBatch.Entry.from(
                         execution.toolCallResult(),
-                        ((RuntimeToolResult.Success) execution.result()).effects()))));
+                        ((RuntimeToolResult.Success) execution.result()).effects()))),
+            jobDocumentFactory);
 
     assertThat(((UserMessage) turn.messages().get(1)).content())
         .containsExactly(

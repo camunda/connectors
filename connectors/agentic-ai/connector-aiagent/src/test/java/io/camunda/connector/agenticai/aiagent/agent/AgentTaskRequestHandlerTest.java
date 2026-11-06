@@ -291,7 +291,7 @@ class AgentTaskRequestHandlerTest {
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.resolve(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.NoInput());
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
@@ -450,7 +450,7 @@ class AgentTaskRequestHandlerTest {
    * composer does.
    */
   private void mockProceed(Message... inputMessages) {
-    when(agentInputComposer.resolve(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any(), any()))
         .thenAnswer(invocation ->
             CompositionResult.Ready.of(
                 invocation.getArgument(1, AgentContext.class),

@@ -172,7 +172,11 @@ public abstract class BaseAgentRequestHandler<
 
       LOGGER.trace("Composing turn input from history and invocation state");
       return switch (agentInputComposer.resolve(
-          configuration, agentContext, previousConversation, agentInput)) {
+          configuration,
+          agentContext,
+          previousConversation,
+          agentInput,
+          executionContext.documentFactory())) {
         case CompositionResult.Deferred(var arrivedResults) -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
           reportArrivedToolCallResults(

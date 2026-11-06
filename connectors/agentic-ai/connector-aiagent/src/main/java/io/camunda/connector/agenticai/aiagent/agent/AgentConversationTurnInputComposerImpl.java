@@ -31,7 +31,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -89,7 +88,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       AgentConfiguration configuration,
       AgentContext agentContext,
       PreviousConversation previousConversation,
-      AgentInput agentInput) {
+      AgentInput agentInput,
+      DocumentFactory documentFactory) {
     // tool call results arriving without a previous conversation is most likely a modeling error
     if (agentContext.conversation() == null && !agentInput.toolCallResults().isEmpty()) {
       throw new ConnectorException(
@@ -172,7 +172,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     final var userPrompt =
         addsUserPromptMessage
             ? createUserPromptMessage(
-                agentInput.userPrompt(), documentHandling, documentIdsWithContent, promptDocuments)
+                agentInput.userPrompt(),
+                documentHandling,
+                documentIdsWithContent,
+                promptDocuments,
+                documentFactory)
             : null;
     return new CompositionResult.Ready(
         agentContext,
@@ -221,7 +225,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       AgentInput.UserPrompt userPrompt,
       DocumentHandling documentHandling,
       Set<AgentDocumentId> idsWithContent,
-      List<NewDocument> newDocuments) {
+      List<NewDocument> newDocuments,
+      DocumentFactory documentFactory) {
 
     final var content = new ArrayList<Content>();
 
@@ -237,7 +242,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         userPrompt.documents().forEach(doc -> newDocuments.add(new NewDocument(doc, origin)));
         content.addAll(
             trackedPromptDocuments(
-                userPrompt, tracked.documents().register(newDocuments), idsWithContent));
+                userPrompt,
+                tracked.documents().register(newDocuments),
+                idsWithContent,
+                documentFactory));
       }
       case DocumentHandling.Untracked ignored ->
           userPrompt.documents().stream()
@@ -256,7 +264,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
    * no guard.
    */
   private List<Content> trackedPromptDocuments(
-      AgentInput.UserPrompt userPrompt, AgentDocuments known, Set<AgentDocumentId> idsWithContent) {
+      AgentInput.UserPrompt userPrompt,
+      AgentDocuments known,
+      Set<AgentDocumentId> idsWithContent,
+      DocumentFactory documentFactory) {
     final var handled = new HashSet<>(idsWithContent);
     final var blocks = new ArrayList<Content>();
     for (final var doc : userPrompt.documents()) {
@@ -266,7 +277,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         case UNSET -> blocks.add(withContent);
         case REFERENCE -> blocks.add(reference);
         case CONTENT -> {
-          final var outcomes = contentDelivery.deliver(known, List.of(reference.id()), handled);
+          final var outcomes =
+              contentDelivery.deliver(known, List.of(reference.id()), handled, documentFactory);
           handled.add(reference.id());
           for (final var outcome : outcomes) {
             switch (outcome) {

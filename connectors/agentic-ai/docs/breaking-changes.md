@@ -201,9 +201,10 @@ client in its properties does not start.
 `AgentConversationTurnInputComposer`:
 
 - `compose(configuration, agentContext, previousConversation, agentInput)` is replaced by two steps. `resolve` with the
-  same parameters resolves only the results of the process tool calls of the previous turn and returns a
-  `CompositionResult`. `assemble(CompositionResult.Ready, DocumentFactory)` builds the input of the next turn and returns
-  a `TurnInput`; the document factory is the one of the job (`AgentExecutionContext.documentFactory()`).
+  same parameters and the `DocumentFactory` of the job resolves only the results of the process tool calls of the
+  previous turn and returns a `CompositionResult`. `assemble(CompositionResult.Ready, DocumentFactory)` builds the input
+  of the next turn and returns a `TurnInput`. The document factory is the one of the job
+  (`AgentExecutionContext.documentFactory()`).
   Between the two, the request handler produces the tool call results of the local tool calls (calls of runtime tools and
   rejected calls) and adds them to the `Ready`. The composer executes no tool.
 - `CompositionResult` has the variants `Deferred`, `NoInput` and `Ready`. `NextTurn` is removed; its messages are in
