@@ -1,13 +1,14 @@
 # Design guidelines
 
-Follow existing patterns and use existing checks. If neither a pattern nor an agreed requirement
-resolves a contract choice, ask before choosing. State new contract decisions and their rationale
+Follow existing patterns and use existing checks. Ask before you choose a stored shape, a
+customer-facing name, a default or a limit, unless an existing check covers the change (for example
+`api-changes.json` or the schema migration tests). State new contract decisions and their rationale
 in the PR description.
 
 ## Architectural invariants
 
-Do not break these (full statement and rationale in
-[§24](reference/ai-agent.md#24-architectural-invariants)). The
+Do not break the invariants in [§24](reference/ai-agent.md#24-architectural-invariants). This list
+is a summary. §24 has the full list and the rationale. The
 [architecture tests](../AGENTS.md#architecture-tests) enforce framework isolation and interface naming;
 review checks the rest.
 
@@ -16,7 +17,7 @@ review checks the rest.
 - **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
   (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
   `*Impl`. Wire impls as Spring beans, depend on the interface. The architecture tests check that a class
-  named `FooImpl` implements the interface `Foo`; review checks the rest.
+  named `FooImpl` implements the interface `Foo`; review checks the rest. #9539 changes this rule.
 - **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
   gateway tool by implementing the SPI and registering a bean. See
   [§25](reference/ai-agent.md#25-extension-playbooks).
@@ -25,8 +26,8 @@ review checks the rest.
 
 Version each stored root; migrate supported older shapes on read and reject unsupported newer shapes
 without overwriting them. Follow `AgentContextSchemaMigration`. For each schema change, add an
-old-shape migration fixture and record compatibility and recovery in
-[`breaking-changes.md`](breaking-changes.md).
+old-shape migration fixture. In [`breaking-changes.md`](breaking-changes.md), record the change and
+whether a rollback stays possible.
 
 ## Follow existing naming patterns
 
@@ -37,8 +38,8 @@ names: configuration keys, template IDs, job types, error codes or tool names.
 ## Choose defaults and limits that can evolve
 
 Start restrictions as tight as justified by throughput, latency, compatibility or resource usage,
-then relax as needed. Tightening a default later can break existing workloads; assess whether
-upgrading installations must retain their previous value. In the PR, state the value, reason, how to
+then relax as needed. Tightening a default later can break existing workloads. If you must tighten a
+default, record the change in [`breaking-changes.md`](breaking-changes.md). In the PR, state the value, reason, how to
 observe a hit and how to configure it. Limit errors name every configuration option that must change
 to recover.
 

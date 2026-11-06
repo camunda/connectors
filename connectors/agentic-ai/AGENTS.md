@@ -280,7 +280,8 @@ Before claiming a change is complete:
 - [ ] Module builds (`mvn clean install -f connectors/agentic-ai/pom.xml`).
    - [ ] If deviating from the `mvn install` command, ensure `mvn spotless:apply` and `mvn license:format` run clean (pre-commit hooks enforce these).
 - [ ] Unit tests added/updated and passing.
-- [ ] E2E test decision and feature acceptance meet the [testing rules](docs/acceptance-testing.md).
+- [ ] E2E test decision made per the [testing rules](docs/acceptance-testing.md#choosing-e2e-vs-unit-tests-mandatory-decision): test added, reason stated, or question asked.
+- [ ] User-facing features meet the [acceptance rules](docs/acceptance-testing.md).
 - [ ] Real-provider changes meet the [coverage requirements](docs/acceptance-testing.md#real-provider-coverage).
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.

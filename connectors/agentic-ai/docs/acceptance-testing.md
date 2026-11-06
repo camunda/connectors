@@ -4,11 +4,10 @@ Follow TDD (red, green, refactor) wherever possible. E2e tests can be written im
 first: express the behavior, watch it fail, implement, then confirm it passes. Test use cases and
 observable behavior, not per-class coverage gaps.
 
-Accept a complete user-facing feature only with end-to-end evidence through customer-available
-interfaces and real integrations relevant to that feature. Use CPT with BPMN, templates and process
-variables, or the exposed API. Assert customer-visible results, including required observability.
-WireMock is fine for internal tests and incremental development; mock-based tests alone do not
-satisfy feature acceptance criteria.
+Accept a complete user-facing feature only with an e2e test through customer-available interfaces.
+Use CPT with BPMN, templates and process variables, or the exposed API. Assert customer-visible
+results, including required observability. When the feature depends on provider behavior, add a
+real-provider test if API keys are available. If not, state this in the PR description.
 
 ## Choosing e2e vs unit tests (mandatory decision)
 
