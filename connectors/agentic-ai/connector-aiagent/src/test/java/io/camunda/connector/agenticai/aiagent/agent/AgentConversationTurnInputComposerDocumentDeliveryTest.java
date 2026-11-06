@@ -25,7 +25,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -35,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -144,8 +144,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var note = ((DocumentContentGuard.Verdict.Rejected) verdict).rejection().modelText();
     final var known = AgentDocuments.empty().register(document, DocumentOrigin.userMessage());
     return textContent(
-        DocumentHandles.text(
-            DocumentHandles.of(known, AgentDocumentId.of(document)).withNote(note)));
+        DocumentHandle.of(known, AgentDocumentId.of(document)).withNote(note).text());
   }
 
   // --- user prompt

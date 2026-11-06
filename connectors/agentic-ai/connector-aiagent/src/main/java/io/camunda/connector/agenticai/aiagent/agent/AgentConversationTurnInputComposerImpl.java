@@ -13,13 +13,13 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandles;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -278,8 +278,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               case DocumentContentDelivery.Outcome.Withheld withheld ->
                   blocks.add(
                       textContent(
-                          DocumentHandles.text(
-                              DocumentHandles.of(known, withheld.id()).withNote(withheld.note()))));
+                          DocumentHandle.of(known, withheld.id())
+                              .withNote(withheld.note())
+                              .text()));
             }
           }
         }
