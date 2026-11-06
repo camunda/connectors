@@ -178,7 +178,7 @@ Full flavor comparison (tool source, config-per-iteration, completion) and the l
 
 These terms are overloaded; the three `*Context` types are the usual confusion. Full definitions:
 [`data-model.md`](aiagent-model/docs/data-model.md) for the data-model types (`AgentContext`,
-`AgentExecutionContext`) and [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md) for the
+`AgentExecutionContext`) and [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter) for the
 conversation and turn types (everything else below).
 
 | Term                                  | One-line meaning                                                                                                         |

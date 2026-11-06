@@ -185,7 +185,7 @@ reference implementation and its wiring for the current exact procedure, and res
 **The SPI.** Implement `ChatModelFactory` (`supports(ChatModelConfiguration)` /
 `create(ChatModelConfiguration)`) and register it as a Spring bean; `ChatModelRegistryImpl`
 auto-collects every `ChatModelFactory` bean and routes each request to the one whose `supports`
-returns true ([`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md)).
+returns true ([`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)).
 
 **v1: LangChain4j-backed.** Extend the abstract `LangChain4JChatModelFactory<T extends
 ProviderConfiguration>` (v1's `ProviderConfiguration`) — supply `providerType()` and
@@ -223,7 +223,7 @@ Every new v2 provider backend must follow three conventions, regardless of provi
   record, and reference it from the `@TemplateSubType` id, `@JsonSubTypes.Type` name, `type()`, and the
   discriminator's `defaultValue`.
 - **Provider-namespaced metadata.** Provider-specific data a converter attaches outside a domain
-  object's mapped fields — on a content block's `metadata` ([`data-model.md`](../../aiagent-model/docs/data-model.md)) or on
+  object's mapped fields — on a content block's `metadata` ([`data-model.md`](../../aiagent-model/docs/data-model.md#toolcallresultcontent-persisted-tool-call-result-content)) or on
   `AssistantMessage#metadata()` — must nest under a single provider key, never as top-level entries.
 - **Stamping `AssistantMessage#metadata()`.** Build it through
   `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent/util`), passing only your own
