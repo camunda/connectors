@@ -97,18 +97,18 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
-    <version.amqp-client>5.37.0</version.amqp-client>
+    <version.amqp-client>5.37.1</version.amqp-client>
     <version.spring-cloud-gcp-starter-logging>7.5.2</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
     <version.log4j>2.26.1</version.log4j>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.57.9</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.57.10</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.57.9</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.57.10</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.57.9</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.57.10</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -118,11 +118,11 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-services-drive>v3-rev20261023-2.9.2</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.55.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.57.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.91.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.93.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
-    <version.google-cloud-storage>2.76.0</version.google-cloud-storage>
+    <version.google-cloud-storage>2.78.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
     <version.google-genai>1.80.0</version.google-genai>
     <version.gson-extras>3.3.0</version.gson-extras>
@@ -202,7 +202,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-exec-plugin>3.6.4</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.2.0</plugin.version.maven-install-plugin>
     <plugin.version.license>5.1.2</plugin.version.license>
-    <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
+    <plugin.version.license.codehaus>2.8.0</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.2</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
@@ -1405,7 +1405,7 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-49844
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>flatten-maven-plugin</artifactId>
-            <version>1.8.0</version>
+            <version>1.9.0</version>
             <configuration>
               <flattenMode>ossrh</flattenMode>
               <updatePomFile>true</updatePomFile>
