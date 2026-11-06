@@ -221,7 +221,7 @@ High-frequency traps (detail behind each link):
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
   `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
-  keeps the previous document handling (bare content and the older tag format, no agent documents), a `Tracked` one holds
+  keeps the previous document handling (bare content and the older XML tag format, no agent documents), a `Tracked` one holds
   its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
   `boolean` parameter. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
   and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
@@ -251,11 +251,13 @@ High-frequency traps (detail behind each link):
   one an `AgentDocumentContent` (it never reaches a provider, which fails loudly on it). The id is `doc_` and 12 hex
   characters of a SHA-256 over the identity of the document (`AgentDocumentId.of`), never the id in the store; registering
   a different document under a known id, also within one batch, fails with `DOCUMENT_ID_COLLISION`. A block holds no file
-  name, size or origin: `DocumentTags` renders the tag from the agent document, the long one with the origin for user
-  messages and events, the short one for tool results. `DocumentExpander.expand(snapshot, documentHandling)`, a named
-  step of the model call after `AgentConversation.window(int)`, turns a block into its tag text and, with the delivery
-  `content`, the document; in a tool result it renders the short tag as text, so the providers have no document specific
-  code. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
+  name, size or origin: `DocumentHandles` renders the `DocumentHandle` the model reads (JSON with the keys `type`, `id`,
+  `fileName`, `contentType`, `size`, `note` in this order, no origin) from the agent document, as compact text or as an
+  object node. `DocumentExpander.expand(snapshot, documentHandling)`, a named step of the model call after
+  `AgentConversation.window(int)`, turns a block into its handle text and, with the delivery `content`, the document; in
+  a tool result it renders the handle as text and a document nested in an object as the handle object
+  (`ObjectHandleRenderer`), so the providers have no document specific code. The word "handle" is this JSON, never the
+  SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
   documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order.
   [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built

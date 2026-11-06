@@ -300,7 +300,7 @@ facility) and `documents` (`AgentFeatures.DOCUMENTS`, the agent documents); a fe
 features and never gets features added later, so its behavior stays as it was created. The reasons are in
 [ADR 016](../adr/016-runtime-tools.md) and [ADR 017](../adr/017-document-flow.md); in short, an instance without
 `runtimeTools` has no runtime tool and no tool element checked against runtime tool names, and an instance without
-`documents` keeps documents as stored content with the older tag format and has no agent documents. The kind and the
+`documents` keeps documents as stored content with the older XML tag format and has no agent documents. The kind and the
 rejection of a tool call (§9) are set for every instance: the process never activates an element for the call of an
 unknown tool, so an instance that handed it to the process would wait for a result that never comes, and the engine
 raises no incident. This is a deliberate exception to gating a persisted shape on a feature.
@@ -313,7 +313,7 @@ replaced through `AgentContext.documents()` and `withDocuments(...)`. `origin` i
 (`UserMessage`, `Event`, `ToolCall`), persisted with the discriminator `type`: `{"type": "USER_MESSAGE"}`,
 `{"type": "EVENT"}` or `{"type": "TOOL_CALL", "toolName": ..., "toolCallId": ...}`. `reference` is the document reference of the
 connector SDK (`DocumentReferenceModel`), in the JSON the standard `DocumentSerializer` emits; the model module depends
-on the SDK for it. The file name, content type and size shown in tags are read from it (`AgentDocument.fileName()`,
+on the SDK for it. The file name, content type and size shown in handles are read from it (`AgentDocument.fileName()`,
 `contentType()`, `size()`), never stored. `AgentDocument.toDocument(DocumentFactory)` restores the live document.
 `AgentDocuments` is immutable and insertion-ordered, the first registration of an id wins and a known id is never
 replaced; `register(Document, DocumentOrigin)` and `register(List<NewDocument>)` return the collection that holds the
@@ -329,7 +329,7 @@ Camunda document is about 400 bytes; the bound is the broker message size of the
 together with the in-process store or inline documents (see "Document Extraction from Tool Call Results" in §19). The id
 of a document is an `AgentDocumentId` (`aiagent.model.document`, persisted as a plain string) derived from the document:
 `doc_` followed by the first 12 lowercase hex characters of the SHA-256 of its identity key (`AgentDocumentId.of`, see
-"The tag" in §19). An 8.10 connector runtime ignores `features` and `documents` and
+"The handle" in §19). An 8.10 connector runtime ignores `features` and `documents` and
 drops them on its next write, and cannot read a conversation that holds a document block (the content type is
 unknown to it); a rollback after the new fields were written is not supported.
 
@@ -399,11 +399,11 @@ ready for chat model implementations that need them.
 
 `AgentDocumentContent` (content type `agentDocument`) is the persisted form of a known document for an agent instance
 that tracks its documents: the `AgentDocumentId` and a `delivery`, `reference` or `content` (and the content
-`metadata`). The file name, content type, size and origin the model reads are those of the agent document of the
-id: `DocumentTags` renders the tag the model sees from the agent documents. A document that is a whole tool result is
-persisted as such a block, which is rendered as the short tag (`ToolCallResultContent.withDocumentsAsReferences`).
-`DocumentExpander.expand` expands it before a request is built (see §6): in a user message to the tag text and, with the
-delivery `content`, the document content; in a tool result to the tag text of the document. Only the agent sets the block.
+`metadata`). The file name, content type and size the model reads are those of the agent document of the
+id: `DocumentHandles` renders the handle the model sees from the agent documents. A document that is a whole tool result is
+persisted as such a block, which is rendered as its handle (`ToolCallResultContent.withDocumentsAsReferences`).
+`DocumentExpander.expand` expands it before a request is built (see §6): in a user message to the handle text and, with the
+delivery `content`, the document content; in a tool result to the handle text of the document. Only the agent sets the block.
 
 `DocumentContent` and `AgentDocumentContent` follow one rule: a new document is a `DocumentContent` (the live document of
 the connector SDK), at the input boundaries (the user prompt, events, the results of process tools, a runtime tool that
@@ -518,11 +518,11 @@ to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. Fo
 `documents` feature `DocumentExpander.expand` expands the document blocks
 (`AgentDocumentContent`, a typed content block with the delivery `reference` or `content`) with the agent documents
 (see "Document Extraction from Tool Call Results" in §19).
-The stored messages hold the document block only. In a user message a block becomes its tag text as a
+The stored messages hold the document block only. In a user message a block becomes its handle text as a
 `TextContent` and, for the delivery `content`, the `DocumentContent` restored from the agent document after it. In a tool
-result a top-level block becomes the short tag as a `TextContent`, and a document nested in an object becomes its tag
-string inside the object, so the model providers have no document specific code for tool results. A block whose document
-the agent does not know stays its tag text, and the expansion never fails the request. The result depends only on the
+result a top-level block becomes the handle text as a `TextContent`, and a document nested in an object becomes its handle
+object inside the object, so the model providers have no document specific code for tool results. A block whose document
+the agent does not know stays its handle text (the id only), and the expansion never fails the request. The result depends only on the
 messages and the agent documents, so the request bytes are stable across requests (prompt caching). For an agent instance
 that does not track its documents (`Untracked`) the expander returns the snapshot as it is: the messages are left as they
 are and a `Document` in a tool result is serialized as its Camunda reference JSON. No provider receives a document inside a
@@ -1677,7 +1677,7 @@ The e2e modules, their test base classes and how to run them are described in th
 [e2e tests `AGENTS.md`](../../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md).
 
 The agent documents are covered by unit tests, each rule where it lives: `AgentDocumentId`, `AgentDocument` and `AgentDocuments`, the
-document block and the tags rendered from the agent documents, the composer and `ToolCallResultsInputBuilder` (document blocks, origins, the merge of runtime and
+document block and the handles rendered from the agent documents, the composer and `ToolCallResultsInputBuilder` (document blocks, origins, the merge of runtime and
 process results in call order), the expander and the window, the runtime tool executor and the request handler
 with a test-only tool that returns a document, the history mapper, and the persistence round trips. A conversation persisted by Camunda
 8.10 pins the behavior of instances without the `documents` feature.
@@ -1829,7 +1829,7 @@ Tool call results may contain Camunda `Document` instances — at the root, nest
 embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent extracts those documents, and
 what it does with them depends on the agent instance. For an instance with the `documents` feature the documents are
 references in the conversation: the agent registers them in the agent documents of the `agentContext`, and the tool
-result shows each document as its tag, a `<doc .../>` tag, not its content. An instance without the feature keeps the
+result shows each document as its handle, a small JSON object, not its content. An instance without the feature keeps the
 behavior of [ADR-004](../adr/004-document-handling-in-tool-call-results.md): the documents go into a synthetic follow-up
 `UserMessage` with native `DocumentContent` blocks so LLMs can interpret them. Design rationale:
 [ADR 017](../adr/017-document-flow.md), which extends [ADR 004](../adr/004-document-handling-in-tool-call-results.md).
@@ -1839,20 +1839,21 @@ of the message ran, in the order of the calls and together with the documents of
 `ToolCallResultsInputBuilder`, which the composer and the runtime tool round of the request handler share; the result of a
 call that failed has none.
 
-**The tag.** `<doc id="..." fileName="..." contentType="..." size="..." source="..." toolName="..." toolCallId="..." />`,
-attributes in that order, XML-escaped, blank or unknown attributes omitted. `DocumentTags` renders it from the agent
-document of the id: the file name, content type and size are read from its reference, never by reading the
-document, and an id the agent does not know is rendered as `<doc id="..." />`. `fileName` is the Camunda metadata file
-name, the external reference `name` or the inline `name`; it is omitted when it equals the Camunda document id of the
-reference (what a document stored without a name gets). `contentType` comes from
+**The handle.** `{"type":"camunda.agent_document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}`,
+the keys in the order `type`, `id`, `fileName`, `contentType`, `size`, `note`, written as compact JSON by Jackson from the
+record `DocumentHandle` (`aiagent.model.document`, `DocumentHandle.TYPE` is the `type`). `fileName`, `contentType`, `size`
+and `note` are omitted when null or blank; `size` is a JSON number. `DocumentHandles` renders it from the agent document of
+the id as text or as an object node: the file name, content type and size are read from its reference, never by reading
+the document, and an id the agent does not know is rendered as `{"type":"camunda.agent_document","id":"doc_…"}`.
+`fileName` is the Camunda metadata file name, the external reference `name` or the inline `name`; it is omitted when it
+equals the Camunda document id of the reference (what a document stored without a name gets). `contentType` comes from
 the Camunda metadata or the `contentType` of an inline reference and is omitted for external documents (their metadata is
 available only after a download). `size` is the number of bytes, present for a Camunda document whose reference
-metadata carries one. The long tag, for a user message and the documents of an event, adds the origin of the agent
-document: `toolName` and `toolCallId` for a document of a tool result, `source="user_message"` or `source="event"` for
-the others. A store id, a content hash and a URL
-are never part of the tag. A document that is a whole tool
-result, and a document nested in the object of a result, shows the short tag without `source`, `toolName` and
-`toolCallId`.
+metadata carries one. A store id, a content hash, a URL and the origin of the document are never part of the handle; the
+message it sits in shows where the document came from. The model never needs to write `fileName`, `contentType`, `size` or
+`note`; they are information for the model. In a user message the handle is a text block before the document, in a tool
+result that is a document it is a text block, and a document nested in the object of a result is the handle object at the
+place of the document.
 
 The id is `doc_` followed by the first 12 lowercase hex characters of the SHA-256 of the identity key of the document
 (`AgentDocumentId.of`). The identity key is, per kind of reference, `camunda`, the store id and the document id; `external`
@@ -1887,7 +1888,7 @@ file as a Camunda document instead.
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
 
 **Limits.** A document that expires in its store is not noticed by the agent. Documents named only in the content of an
-evicted assistant message are not tracked, and `<doc/>` tags the model writes in the final text are not interpreted. A
+evicted assistant message are not tracked, and handles the model writes in the final text are not interpreted. A
 content type is not sniffed from the bytes for documents of unknown type. The follow-ups that close these limits are
 listed in [ADR 017](../adr/017-document-flow.md).
 
@@ -2039,7 +2040,7 @@ lease-fenced `update()` mechanism).
 ### Conversation history items
 
 - A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
-  document messages). The document blocks of a user message are reported as their tag in backticks and the
+  document messages). The document blocks of a user message are reported as their handle text and the
   document restored from the agent documents as a `DOCUMENT` block (an `OBJECT` block for an external reference), so
   the history shows at least what the model receives. A message of an agent instance without the `documents` feature is
   reported as stored.
@@ -2052,12 +2053,14 @@ lease-fenced `update()` mechanism).
   paginated history API and need not be joined back to the `ASSISTANT` item. Event results
   (`id == null`) have no originating call and carry `{}`; a result with a non-null id and no matching
   tool call is an invariant violation and fails the turn.
-- The tag of a document block or of a document of a tool result is shown in backticks, and a text is reported as it
-  is, also when it holds a tag; the persisted messages and the text the model reads are not changed. A tool result that is
-  a document, or an object with documents in it (replaced by their tags, the documents follow it), is reported block by
-  block; an inline document of a tool result has its tag only, and an inline document of a user message cannot be mapped.
+- The handle of a document block of a user message is shown as text, without inline code, and a text is reported as it
+  is, also when it holds a handle; the persisted messages and the text the model reads are not changed. A tool result that
+  is exactly one document is reported as the document only (a `DOCUMENT` block, an `OBJECT` block for an external
+  reference). A tool result with more content reports the handle text before each document, and an object with documents in
+  it as the object with the handle objects nested, followed by the documents. An inline document of a tool result has its
+  handle text only, and an inline document of a user message cannot be mapped.
   `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `DocumentHandling` of the agent instance: it
-  decides what the history shows, and the agent documents of a `Tracked` instance are what the tags are expanded with. An
+  decides what the history shows, and the agent documents of a `Tracked` instance are what the handles are expanded with. An
   `Untracked` agent instance reports texts as they are.
 - An `ASSISTANT` item's content blocks preserve the order the model produced them in because
   `AgentInstanceHistoryMapper.assistantContent` maps the source list directly. An assistant message
@@ -2081,7 +2084,7 @@ items by `historyItemId`, so results that more than one job writes appear once.
 history; process data stays in the tool element variables. Each message of a model request is covered by a history item:
 the system prompt by the `CONFIGURATION` item, user messages by `USER` items, assistant messages by `ASSISTANT` items and
 tool results by `TOOL_RESULT` items. The representations may differ: a document with content is a `DOCUMENT` block next to
-its tag in the history and the tag plus the native block in the request, so the history is a superset of what the model
+its handle in the history and the handle plus the native block in the request, so the history is a superset of what the model
 receives. The history API has no tool kind and no result status, so a runtime tool is recognizable only by its missing
 element id and an error result is plain text; tool input schemas are not reported.
 
@@ -2122,7 +2125,7 @@ The tool list of a `CONFIGURATION` item holds the process tools plus the enabled
 (`AgentConfiguration.toolDefinitions()`); the configuration fingerprint covers them.
 
 Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text),
-`AgentDocumentContent` → the text of its tag, and
+`AgentDocumentContent` → the text of its handle, and
 `DocumentContent` → a Camunda document reference block. External document references currently fall
 back to an object/text block (see follow-ups). `ReasoningContent` maps to a tagged object containing
 `camunda.agenticai.content.type`, optional `text`, and `payload`; `provider` and `metadata` are not
@@ -2359,7 +2362,7 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   result the model reads.
 
 **Documents.** A `DocumentContent` block in the result is a new document: after the calls of the message ran, the agent
-registers it with the tool call as its origin, and the model reads its tag only (§19). An error result registers nothing.
+registers it with the tool call as its origin, and the model reads its handle only (§19). An error result registers nothing.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the

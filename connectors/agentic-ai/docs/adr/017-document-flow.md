@@ -1,4 +1,4 @@
-# Document flow: agent documents, short tags and content on demand
+# Document flow: agent documents, document handles and content on demand
 
 * Deciders: Agentic AI Team
 * Date: Oct 19, 2026
@@ -27,7 +27,7 @@ That does not scale, and it does not cover what agents do with documents:
 The goal is that a document is usable by the model without the conversation growing with its content, and usable by
 tools without the model handling bytes or store details. Four capabilities follow:
 
-1. The model sees every document of the conversation as a short tag and can pass a document to a tool.
+1. The model sees every document of the conversation as a short handle and can pass a document to a tool.
 2. The model can ask for the content of a document, within limits, and a process can opt in to adding content without
    the model asking.
 3. The model can return documents with the final response.
@@ -66,7 +66,7 @@ Option 2 has several decisions of its own, each with alternatives, in the decisi
 
 ## Decision Outcome
 
-Chosen option: **Option 2**, because a tag costs a few dozen tokens, so a conversation can carry any number of
+Chosen option: **Option 2**, because a handle costs a few dozen tokens, so a conversation can carry any number of
 documents, and the cases in which the model needs the content are rare and known: it asks for it, or the process
 designer knows it up front.
 
@@ -77,10 +77,10 @@ designer knows it up front.
 | **Agent documents**        | The documents an agent instance knows, a field of the agent context (`AgentDocuments`).                |
 | **Agent document**         | One of them: the document id, its origin and its Camunda document reference (`AgentDocument`).         |
 | **Document origin**        | Where a document entered the conversation: the user prompt, an event, or a tool call.                  |
-| **Document id**            | The stable handle of an agent document, derived from the document (`AgentDocumentId`).                 |
+| **Document id**            | The stable identity of an agent document, derived from the document (`AgentDocumentId`).               |
 | **Document block**         | The content of a message that names an agent document by id and holds its delivery (`AgentDocumentContent`). |
 | **New document block**     | The content of a message that holds a live document of the connector SDK (`DocumentContent`).          |
-| **Tag**                    | The `<doc/>` text the model reads for a document block.                                                |
+| **Handle**                 | The JSON object the model reads for a document: its type, id and what is known about it (`DocumentHandle`). |
 | **Document handling**      | How an agent instance treats its documents: `Untracked` or `Tracked`, derived from the `documents` feature. |
 
 ### New and known documents
@@ -92,7 +92,7 @@ A document is new or known to the agent, and the two have different content type
   returns a new document. It is the content of every document of an instance that does not track its documents. It is
   also the only document block a chat model provider sees, after the expansion.
 * A **known document** is an `AgentDocumentContent`, the persisted form of a document for an instance that tracks its
-  documents. It never reaches a provider: the expansion turns it into its tag text and, when it is delivered as content,
+  documents. It never reaches a provider: the expansion turns it into its handle text and, when it is delivered as content,
   a `DocumentContent`.
 
 The content for the model comes only from the agent, through the delivery, never from a block that a tool authors.
@@ -106,8 +106,8 @@ append-only and has no paths and no listing. An agent document is not changed af
 as the selection for the final response, could become part of it later.
 
 A document is persisted in the conversation as a typed content block, `AgentDocumentContent`, that holds the id and the
-delivery. What the model is told about the document (file name, content type, size and origin) is read from the agent
-document when the tag is rendered, so the conversation and the agent documents never hold the same fact twice.
+delivery. What the model is told about the document (file name, content type and size) is read from the agent
+document when the handle is rendered, so the conversation and the agent documents never hold the same fact twice.
 
 Alternatives:
 
@@ -119,21 +119,21 @@ Alternatives:
   that wins. Documents nested in tool results or extracted by gateway handlers are hard to find again.
 * *Agent documents next to the messages in each conversation store.* Three stores would need an implementation, and the
   documents would not commit atomically with the job.
-* *A tag as text.* The id and the delivery would have to be parsed back, and a tag a user typed would look like one the
-  agent wrote.
+* *A handle as text.* The id and the delivery would have to be parsed back, and a handle a user typed would look like
+  one the agent wrote.
 
 Consequences accepted:
 
 * The agent context grows with every document of the conversation, and the agent documents are never pruned. The bound is the
   message size of the broker for a job completion.
-* The persisted conversation is not self-contained: a block holds the id and the delivery only, and the tag and the
+* The persisted conversation is not self-contained: a block holds the id and the delivery only, and the handle and the
   content come from the agent documents when the conversation is windowed, so replaying needs the agent documents of the same
   agent context. Both are written by the same job completion.
 * There is no schema version bump: a missing field binds to no agent documents, so earlier state loads.
 
 ### Document ids
 
-A document has a stable id, the value type `AgentDocumentId`. It is the handle of the document in the tag, in the arguments
+A document has a stable id, the value type `AgentDocumentId`. It is the identity of the document in its handle, in the arguments
 of a tool call and in the agent documents. The id is derived from the document: `doc_` followed by 12 hexadecimal characters of
 a SHA-256 over the identity of the document. The identity is, by kind of reference, the store and the id in the store of a
 Camunda document, the URL of an external document, and the content of an inline document. The same document gets the same
@@ -142,7 +142,7 @@ document whose id belongs to a different document, one the agent knows or one re
 and never merges the two; with 48 bits this is not expected to happen.
 
 The model never reads a store id, the id of a document in its store or a URL; the id is opaque, and short because it is
-repeated in every tag.
+repeated in every handle.
 
 Alternatives:
 
@@ -150,7 +150,7 @@ Alternatives:
 * *An id assigned when the document is registered, random or sequential.* It is independent of the document, but needs
   persisted state, and an index from the identity of a document to its id to recognize a document that comes again. A
   document nested in a tool result has to be matched by identity anyway.
-* *A longer id, such as a UUID.* It costs tokens in every tag, and 48 bits are enough for the documents of one agent
+* *A longer id, such as a UUID.* It costs tokens in every handle, and 48 bits are enough for the documents of one agent
   instance.
 
 Consequences accepted: the identity of an external document is its URL, so a presigned URL that changes gives the same
@@ -160,7 +160,7 @@ file a new id; two inline documents with the same content are one document.
 
 A runtime tool can return a document in its result, also nested in an object. The agent registers the documents of the
 results of one assistant message after all its calls ran, in the order of the calls, with the call as their origin, and
-shows the model the tags of the documents in place of the documents. This happens in one place that the composer of a
+shows the model the handles of the documents in place of the documents. This happens in one place that the composer of a
 mixed batch and the runtime tool round of a job share, so both give the same result. A result that is an error registers
 nothing.
 
@@ -174,23 +174,47 @@ Alternatives: *register the documents while the calls run* lets a call see the d
 contract to a sequential execution; *a method of the tool context that registers a document* gives a tool write access
 to the state of the agent, which ADR 016 avoids.
 
-### The model reads short tags only
+### The model reads document handles only
 
-The model sees a self-closing `<doc/>` tag with the id and a few attributes (file name, content type and size when
-known, and where the document came from). Nothing else about a document reaches the model, a tool argument or an
-error text.
+The model sees a document as a small JSON object, its handle:
 
-Alternatives: *the Camunda document reference as JSON* leaks internals and is long to copy; *index numbers per
-conversation* are not stable across windows, stores and instances, and a nested document has no natural number.
+```json
+{"type":"camunda.agent_document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}
+```
 
-Consequence accepted: the tag is the only identity the model has, so a document without a name of its own is told apart
-by type and origin only. The type of an external document is not in its tag, because its metadata is known only after a
-download.
+The keys come in this order: `type`, `id`, `fileName`, `contentType`, `size` and `note`. Everything but `type` and `id` is
+omitted when it is not known, and `size` is a number. The handle is read-only information apart from `type` and `id`,
+which are what the model passes to a tool. `note` is used only where the agent withholds the content of a document, with a
+sentence that says why. Nothing else about a document reaches the model, a tool argument or an error text. The handle
+sits in the message it belongs to: in a user message as a text block before the document, in a tool result as text, and in
+the object of a tool result in place of the document, as a nested JSON object. It is written by Jackson from a record with
+a fixed key order, so the bytes are the same in every request, which keeps the prompt cache valid.
+
+The handle holds no origin. The message it sits in tells where the document came from: the user prompt, an event or the
+result of a tool call.
+
+Why JSON and a namespaced `type`:
+
+* The model writes JSON in tool arguments, so the form it reads is the form it writes back to pass a document. A handle it
+  copies into an argument needs no parsing of attributes or XML escaping.
+* The `type` marks the object as a document for the agent and for the schema of a document parameter, so a tool argument
+  that merely has an `id` field is never taken for a document, and a namespaced value is not a word another object of a
+  tool result uses as its own type.
+
+Alternatives: *an XML tag* (`<doc id="..."/>`) needs escaping, a parser that tells it from text a user typed, and is not what
+the model writes in an argument; *the Camunda document reference as JSON* (the format of the connector SDK) leaks the store,
+the document id in the store and, for an external document, a URL that can carry a token, and is long to copy; *index
+numbers per conversation* are not stable across windows, stores and instances, and a nested document has no natural number;
+*an origin in the handle* repeats what the surrounding message shows and makes the same document read differently in every
+message, which costs tokens and cache hits.
+
+Consequence accepted: the handle is the only identity the model has, so a document without a name of its own is told apart
+by type only. The type of an external document is not in its handle, because its metadata is known only after a download.
 
 ### Delivery: `reference` by default, `content` as an opt-in
 
-Every document reference carries a delivery. With `reference` the model sees the tag only. With `content` it also
-reads the content after the tag. The delivery is stored on each block, so an earlier block keeps its bytes when the same
+Every document reference carries a delivery. With `reference` the model sees the handle only. With `content` it also
+reads the content after the handle. The delivery is stored on each block, so an earlier block keeps its bytes when the same
 document gets another delivery later; the cost is that the history can show one document with two deliveries.
 
 The default is `reference` for the documents of a tool result and for the documents of the user prompt when the process
@@ -224,7 +248,7 @@ One guard decides every addition of content, whoever asks:
   the limits of the most restrictive supported provider and apply to every provider.
 * **External documents are reference-only for content that a tool or a tool activity triggers.** The runtime downloads
   the whole body of an external document to learn its type and size, so no guard can bound the work. The model passes the
-  tag to a tool that processes it. The user prompt keeps its behavior: the model provider reads the content of an
+  handle to a tool that processes it. The user prompt keeps its behavior: the model provider reads the content of an
   external document in a user prompt whatever the delivery, as it reads every document of a user prompt.
 * What the model reads about a rejection is a fixed sentence with the content type, the size and the limit at most. The
   text is persisted and a failure message can hold a URL with a token, so the cause goes to the log only.
@@ -235,25 +259,25 @@ Bytes are a poor proxy for tokens (a small PDF can cost many input tokens), and 
 provider are as strict as the strictest one. Both are accepted until a token-based guard and a provider capability
 matrix exist.
 
-### Only the tag identifies a document; document parameters
+### Only the handle identifies a document; document parameters
 
 A tool declares a parameter that takes a document with the type `document` of `fromAi`. The stored schema is a plain
 string schema with a format marker, so the persisted definition needs no custom type. The model providers get a derived
 schema without the marker and with a hint appended to the description, derived where the provider tool definitions are
 built. The stored definition and the configuration fingerprint therefore hold no hint wording.
 
-A value resolves only when it is exactly one tag. A bare id is invalid for a plain document parameter, and the agent
-answers the call with an error the model can act on, without the tool running. Alternatives: *accept an id or a tag* is
+A value resolves only when it is exactly one handle. A bare id is invalid for a plain document parameter, and the agent
+answers the call with an error the model can act on, without the tool running. Alternatives: *accept an id or a handle* is
 friendlier to a model that copies only the id; *accept an id found anywhere in the text* would replace a tool argument
-that happens to contain an id. The model reads tags, so asking for what it reads is the least surprising contract.
+that happens to contain an id. The model reads handles, so asking for what it reads is the least surprising contract.
 
 Parameters that take text or a document are unions, declared in full: `anyOf`, `oneOf` and the type array shorthand.
-Only a value that is exactly one tag is a document. A plain string stays text even when it equals a known id, so a word
+Only a value that is exactly one handle is a document. A plain string stays text even when it equals a known id, so a word
 that equals an id never turns into a document by accident. Documents are not searched for in the alternatives of a union
 that are objects or arrays, because a value cannot be assigned to one alternative reliably.
 
 A process tool receives the Camunda document reference of the agent document, a runtime tool the `AgentDocumentId`. Passing a
-tag to a tool never adds content. The agent resolves the parameters once, when it receives the message of the model, on
+handle to a tool never adds content. The agent resolves the parameters once, when it receives the message of the model, on
 the call the model made, before a gateway handler transforms it. A gateway handler that defines its tools itself can declare document
 parameters and receives the references. The MCP and A2A handlers declare none: the schema of an MCP tool comes from the
 remote server and has no document type, so passing documents needs a mapping into the format the remote side expects.
@@ -268,8 +292,8 @@ final response carries all selected documents as `responseDocuments`. The select
 the tool can run in an earlier job than the final response, and stay for the lifetime of the instance, so a later final
 response carries them too. A key used again replaces its entry. There is no retract.
 
-Alternatives for returning: *interpret tags in the final text* returns documents nobody selected, because the model
-writes tags in prose for other reasons; *an opt-in response option* is not needed while the field is omitted when empty.
+Alternatives for returning: *interpret handles in the final text* returns documents nobody selected, because the model
+writes handles in prose for other reasons; *an opt-in response option* is not needed while the field is omitted when empty.
 
 Both tools are offered to every new instance and cannot be switched off yet (see Follow-up). They use only the runtime
 tool SPI of ADR 016.
@@ -277,12 +301,12 @@ tool SPI of ADR 016.
 ### Where content comes from, and how tool results render
 
 The content of a document is never persisted in the conversation. One component expands the persisted blocks into what
-the providers see, when the conversation is windowed: in a user message the tag and, for the delivery `content`, the
-content after it; in a tool result the tag as text. Providers have no code for documents in tool results. The component
+the providers see, when the conversation is windowed: in a user message the handle and, for the delivery `content`, the
+content after it; in a tool result the handle as text. Providers have no code for documents in tool results. The component
 is a named step of the model call that follows the window, and for an instance that does not track its documents it
 leaves the messages as they are.
 
-Alternatives: *render the tag in every provider converter* means six converters with the same rule to keep in sync; *a
+Alternatives: *render the handle in every provider converter* means six converters with the same rule to keep in sync; *a
 marker interface and a global serialization mode* is hidden state that is easy to get wrong for instances that must not
 change.
 
@@ -295,10 +319,10 @@ optimization, and the persisted form needs no change for it (see Follow-up).
 
 ### Documents outside the window
 
-The window never announces a document whose message it hides. The agent documents still resolve the tag of such a document, so
-a tag that is still in the model's context can be passed to a tool or loaded again within the guard.
+The window never announces a document whose message it hides. The agent documents still resolve the handle of such a document, so
+a handle that is still in the model's context can be passed to a tool or loaded again within the guard.
 
-A note that lists the hidden documents was considered and dropped. It costs one tag per document in every request for the
+A note that lists the hidden documents was considered and dropped. It costs one handle per document in every request for the
 life of the instance, and it is not part of the history, which is the audit record of what the model reads. A tool the
 model calls to list the known documents costs tokens only when needed, and is a follow-up.
 
@@ -317,7 +341,7 @@ assigned when the instance is created and never added later. The `documents` fea
 instance, the sealed `DocumentHandling` of the model: `Untracked` without the feature, `Tracked` with the agent documents
 with it. Every place that treats documents differently for the two matches both variants, so a third kind of handling
 cannot be forgotten anywhere. An instance without `documents` keeps the handling it was
-created with: documents are content in the conversation with the earlier tag format, there are no agent documents, no response
+created with: documents are content in the conversation with the earlier XML tag format, there are no agent documents, no response
 documents and no document parameters, and a document in a tool result renders as its reference JSON.
 
 Alternatives: *migrate running instances* is not possible for an append-only store, and a conversation with messages in
@@ -326,7 +350,7 @@ two forms is hard to reason about; *a global switch* would change every running 
 Consequences accepted:
 
 * A running instance cannot use document parameters. It has to be started anew, and the tool schema it gets after a
-  process migration still carries the hint that asks for a document it has no tag for.
+  process migration still carries the hint that asks for a document it has no handle for.
 * The legacy path is a second code path in the composer, the window, the history mapper and the response handler, gated
   on the feature and pinned by a conversation persisted by Camunda 8.10. A separate legacy composer was considered and
   rejected; the document handling stays in one composer.
@@ -336,8 +360,9 @@ Consequences accepted:
 ### History
 
 The agent instance history records what the model sent and received, in a form suited to the history; process data
-stays in the variables of the tool elements. It shows tags in backticks, so a markdown renderer shows them, with the
-documents of the references next to them, and the arguments of a call as the model sent them. It never shows the Camunda
+stays in the variables of the tool elements. It shows the handle of a document as text, with the document next to it, and a tool result that is exactly one document
+as the document only. A document nested in the object of a tool result is shown as the handle object inside the object,
+followed by the documents. The arguments of a call are shown as the model sent them. It never shows the Camunda
 document reference a tool received. Each message of a model request is covered by a history item, and a test reads the
 history back after a document flow and requires it.
 
@@ -365,21 +390,21 @@ history back after a document flow and requires it.
   say that an `AgentDocumentContent` never reaches them. A content hierarchy for the model without that block, handed over
   together with the next change of the chat model SPI, replaces the failure of each provider.
 * **`c8__list_documents` built-in.** A runtime tool that lists the known documents when the model needs them. It
-  replaces the note about documents that left the window, which cost a tag per document in every request.
+  replaces the note about documents that left the window, which cost a handle per document in every request.
 * **A switch for the built-in document tools.** A setting frozen at instance creation as part of the agent configuration
   (not a FEEL expression evaluated per job). Every new instance is offered both tools, which costs tokens and
   can change tool selection for agents that never use documents. ADR 016 lists the general allow and deny list.
 * **Per-tool document scoping.** Allowed document sources per tool. Any agent document can be passed to any tool by
-  tag, so text a tool returned can name another document.
+  handle, so text a tool returned can name another document.
 * **Per-provider limits and native tool-result documents.** A capability matrix of the providers would
   reject a type before the load and replace the global limits, and would let the window place content in the tool
-  result for models that accept it, derived from persisted data, with the tag and a note otherwise. A provider needs a
+  result for models that accept it, derived from persisted data, with the handle and a note otherwise. A provider needs a
   wire format test for documents in tool results first.
 * **A token-based guard, a per-turn budget or a removal mechanism.** Content is sticky and the limits are bytes.
 * **Bounded download and content delivery for external documents.** The runtime downloads the whole body, so no guard
   can bound the work; external documents are reference-only on request of a tool.
 * **History reporting of documents.** External document URLs are reported to the history and can expose a URL with a
-  token, and an inline document in a user message makes the history mapper fail. Both should be reported as tags.
+  token, and an inline document in a user message makes the history mapper fail. Both should be reported as handles.
 * **Response documents in the agent documents.** The selections of `c8__return_document` could become a marker on the
   agent documents, which removes a selection that points to no document. A document may be selected under several
   keys, and the order of selection differs from the order of registration.
@@ -394,7 +419,7 @@ history back after a document flow and requires it.
 * **Content type sniffing** for documents of unknown type.
 * **Expiry of a document in its store.** The agent does not notice it; whether it drops the document and tells the model, or
   leaves it to the tool that dereferences the document, is open.
-* **Documents named only in the content of an evicted assistant message,** and tags the model writes in the final text,
+* **Documents named only in the content of an evicted assistant message,** and handles the model writes in the final text,
   are not tracked or interpreted.
 * **Modeler and template support.** The extension property of the delivery is set by hand, and the type `document` of
   `fromAi` has no Modeler or linting support.
