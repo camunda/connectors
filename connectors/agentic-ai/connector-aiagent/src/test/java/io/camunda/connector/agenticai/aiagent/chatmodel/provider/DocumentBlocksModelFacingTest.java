@@ -83,7 +83,10 @@ class DocumentBlocksModelFacingTest {
             Map.of(
                 "document",
                 Map.of(
-                    "type", "camunda.agent_document", "id", AgentDocumentId.of(report).value())));
+                    "type",
+                    "camunda.agenticai.document",
+                    "id",
+                    AgentDocumentId.of(report).value())));
     final var previous =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("loading", List.of(call))));
@@ -140,7 +143,7 @@ class DocumentBlocksModelFacingTest {
   }
 
   private String loadedHandle() {
-    return "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"report.txt\",\"contentType\":\"text/plain\"}"
+    return "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"report.txt\",\"contentType\":\"text/plain\"}"
         .formatted(AgentDocumentId.of(report));
   }
 

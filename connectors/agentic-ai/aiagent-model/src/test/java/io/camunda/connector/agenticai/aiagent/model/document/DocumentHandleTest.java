@@ -56,7 +56,7 @@ class DocumentHandleTest {
 
     assertThat(json(handle))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"doc_0123456789ab\","
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\","
                 + "\"fileName\":\"a.pdf\",\"contentType\":\"application/pdf\",\"size\":123,"
                 + "\"note\":\"The content is not loaded.\"}");
   }
@@ -64,7 +64,7 @@ class DocumentHandleTest {
   @Test
   void writesTheIdOnly() throws Exception {
     assertThat(json(DocumentHandle.of(AgentDocumentId.of(ID))))
-        .isEqualTo("{\"type\":\"camunda.agent_document\",\"id\":\"doc_0123456789ab\"}");
+        .isEqualTo("{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\"}");
   }
 
   @Test
@@ -74,7 +74,7 @@ class DocumentHandleTest {
 
     assertThat(json(handle))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"doc_0123456789ab\","
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\","
                 + "\"fileName\":\"a \\\"b\\\" <c> \\\\ ä.txt\"}");
   }
 
@@ -83,7 +83,8 @@ class DocumentHandleTest {
     final var handle = new DocumentHandle(DocumentHandle.TYPE, ID, " ", "", 0L, "  ");
 
     assertThat(json(handle))
-        .isEqualTo("{\"type\":\"camunda.agent_document\",\"id\":\"doc_0123456789ab\",\"size\":0}");
+        .isEqualTo(
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\",\"size\":0}");
   }
 
   @Test
@@ -96,7 +97,7 @@ class DocumentHandleTest {
 
     assertThat(json(DocumentHandle.of(document)))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"doc_0123456789ab\","
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\","
                 + "\"fileName\":\"a.txt\",\"contentType\":\"text/plain\"}");
   }
 
@@ -152,7 +153,7 @@ class DocumentHandleTest {
 
     assertThat(text)
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"report.pdf\",\"contentType\":\"application/pdf\"}"
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"report.pdf\",\"contentType\":\"application/pdf\"}"
                 .formatted(AgentDocumentId.of(doc)));
     assertThat(text).doesNotContain("storeId", "contentHash", "documentId", "metadata", "url");
   }
@@ -163,7 +164,7 @@ class DocumentHandleTest {
 
     assertThat(text(doc))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\"}"
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\"}"
                 .formatted(AgentDocumentId.of(doc)));
   }
 
@@ -178,7 +179,7 @@ class DocumentHandleTest {
 
     assertThat(text)
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"Quarterly Report\"}"
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"Quarterly Report\"}"
                 .formatted(AgentDocumentId.of(doc)));
     assertThat(text).doesNotContain("example.com", "secret", "url");
   }
@@ -191,7 +192,7 @@ class DocumentHandleTest {
 
     assertThat(text(doc))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\"}"
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\"}"
                 .formatted(AgentDocumentId.of(doc)));
     assertThat(text(new ExternalDocument("https://example.com/x", "", u -> null)))
         .doesNotContain("fileName");
@@ -203,7 +204,7 @@ class DocumentHandleTest {
 
     assertThat(text(doc))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"data.json\"}"
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"data.json\"}"
                 .formatted(AgentDocumentId.of(doc)));
   }
 
@@ -213,7 +214,7 @@ class DocumentHandleTest {
 
     assertThat(text(doc))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"data.json\",\"contentType\":\"application/json\"}"
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"data.json\",\"contentType\":\"application/json\"}"
                 .formatted(AgentDocumentId.of(doc)));
   }
 
@@ -229,7 +230,7 @@ class DocumentHandleTest {
 
     assertThat(text(doc))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"contentType\":\"text/plain\"}"
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"contentType\":\"text/plain\"}"
                 .formatted(AgentDocumentId.of(doc)));
   }
 
@@ -244,7 +245,7 @@ class DocumentHandleTest {
 
     assertThat(text(doc))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"doc-1.txt\"}"
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"doc-1.txt\"}"
                 .formatted(AgentDocumentId.of(doc)));
   }
 
@@ -261,7 +262,7 @@ class DocumentHandleTest {
 
     assertThat(text(doc))
         .isEqualTo(
-            "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"report.pdf\",\"contentType\":\"application/pdf\",\"size\":48213}"
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"report.pdf\",\"contentType\":\"application/pdf\",\"size\":48213}"
                 .formatted(AgentDocumentId.of(doc)));
   }
 
@@ -320,7 +321,7 @@ class DocumentHandleTest {
   @Test
   void aDocumentTheAgentDoesNotKnowIsRenderedWithItsIdOnly() {
     final var id = AgentDocumentId.of("doc_000000000000");
-    final var expected = "{\"type\":\"camunda.agent_document\",\"id\":\"doc_000000000000\"}";
+    final var expected = "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_000000000000\"}";
 
     assertThat(DocumentHandle.of(AgentDocuments.empty(), id).text()).isEqualTo(expected);
     assertThat(DocumentHandle.of(id).text()).isEqualTo(expected);

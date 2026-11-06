@@ -90,6 +90,12 @@ class AgentInstanceHistoryMapperTest {
     assertThat(items).singleElement().extracting("producedAt").isEqualTo(TURN_INGESTION_TIMESTAMP);
   }
 
+  private static String objectJson(AgentInstanceHistoryContent content) {
+    return TestObjectMapperSupplier.INSTANCE
+        .valueToTree(((AgentInstanceHistoryContent.ObjectContent) content).getObject())
+        .toString();
+  }
+
   private static List<String> texts(List<AgentInstanceHistoryContent> content) {
     return content.stream()
         .filter(AgentInstanceHistoryContent.TextContent.class::isInstance)
@@ -98,7 +104,8 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void aUserMessageWithADocumentBlockIsReportedWithTheHandleAndTheDocumentFromTheAgentDocuments() {
+  void
+      aUserMessageWithADocumentBlockIsReportedWithTheHandleObjectAndTheDocumentFromTheAgentDocuments() {
     final var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -124,10 +131,10 @@ class AgentInstanceHistoryMapperTest {
         .singleElement()
         .satisfies(item -> {
           assertThat(item.content()).hasSize(3);
-          assertThat(texts(item.content()))
-              .containsExactly(
-                  "see",
-                  "{\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"report.txt\",\"contentType\":\"text/plain\"}"
+          assertThat(texts(item.content())).containsExactly("see");
+          assertThat(objectJson(item.content().get(1)))
+              .isEqualTo(
+                  "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"report.txt\",\"contentType\":\"text/plain\"}"
                       .formatted(block.id().value()));
           assertThat(item.content().get(2))
               .isInstanceOfSatisfying(
@@ -139,7 +146,7 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void aDocumentBlockOfAnUnknownDocumentIsReportedAsTextOnly() {
+  void aDocumentBlockOfAnUnknownDocumentIsReportedAsTheHandleObjectOnly() {
     final var tag =
         new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);
     final var userMessage = UserMessage.builder().content(List.of(tag)).build();
@@ -150,9 +157,11 @@ class AgentInstanceHistoryMapperTest {
 
     assertThat(items)
         .singleElement()
-        .satisfies(item ->
-            assertThat(texts(item.content()))
-                .containsExactly(TestDocuments.unknownHandleText(tag.id())));
+        .satisfies(item -> {
+          assertThat(item.content()).hasSize(1);
+          assertThat(objectJson(item.content().getFirst()))
+              .isEqualTo(TestDocuments.unknownHandleText(tag.id()));
+        });
   }
 
   @ParameterizedTest
@@ -709,18 +718,18 @@ class AgentInstanceHistoryMapperTest {
     }
 
     @Test
-    void aToolResultThatIsOneLiveDocumentIsTheHandleTextAndTheChip() {
+    void aToolResultThatIsOneLiveDocumentIsTheHandleObjectAndTheChip() {
       final var item = item(message(DocumentContent.documentContent(document)), agentContext);
 
       assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
       assertThat(item.content()).hasSize(2);
-      assertThat(described(item).get(0)).isEqualTo("TEXT " + handle);
+      assertThat(described(item).get(0)).isEqualTo("OBJECT " + handle);
       assertThat(item.content().get(1))
           .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
     }
 
     @Test
-    void aDocumentOfAnEventIsTheHandleTextAndTheChip() {
+    void aDocumentOfAnEventIsTheHandleObjectAndTheChip() {
       final var event =
           ToolCallResultMessage.builder()
               .results(
@@ -741,7 +750,7 @@ class AgentInstanceHistoryMapperTest {
           .singleElement()
           .satisfies(item -> {
             assertThat(item.content()).hasSize(2);
-            assertThat(described(item).get(0)).isEqualTo("TEXT " + handle);
+            assertThat(described(item).get(0)).isEqualTo("OBJECT " + handle);
             assertThat(item.content().get(1))
                 .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
           });
@@ -766,7 +775,7 @@ class AgentInstanceHistoryMapperTest {
 
       assertThat(described(item).get(0))
           .isEqualTo(
-              "TEXT {\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"contentType\":\"text/plain\"}"
+              "OBJECT {\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"contentType\":\"text/plain\"}"
                   .formatted(id));
       assertThat(item.content().get(1))
           .isInstanceOfSatisfying(
@@ -810,7 +819,7 @@ class AgentInstanceHistoryMapperTest {
     }
 
     @Test
-    void aReferenceBlockBetweenTextsIsTheHandleTextAndTheDocumentInTheOrderOfTheBlocks() {
+    void aReferenceBlockBetweenTextsIsTheHandleObjectAndTheDocumentInTheOrderOfTheBlocks() {
       final var block = AgentDocumentContent.of(AgentDocumentId.of(document));
 
       final var item =
@@ -825,7 +834,7 @@ class AgentInstanceHistoryMapperTest {
       assertThat(described(item).get(0)).isEqualTo("TEXT Loaded the document.");
       assertThat(described(item).get(1))
           .isEqualTo(
-              "TEXT {\"type\":\"camunda.agent_document\",\"id\":\"%s\",\"fileName\":\"report.pdf\",\"contentType\":\"application/pdf\"}"
+              "OBJECT {\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"report.pdf\",\"contentType\":\"application/pdf\"}"
                   .formatted(block.id().value()));
       assertThat(item.content().get(2))
           .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
@@ -841,8 +850,8 @@ class AgentInstanceHistoryMapperTest {
                   AgentDocumentContent.of(AgentDocumentId.of(otherDocument))),
               agentContext);
 
-      assertThat(texts(item.content()).getFirst()).isEqualTo("The tool wrote " + handle);
-      assertThat(texts(item.content()).get(1)).isEqualTo(otherHandle);
+      assertThat(texts(item.content())).containsExactly("The tool wrote " + handle);
+      assertThat(described(item).get(1)).isEqualTo("OBJECT " + otherHandle);
     }
 
     @Test
@@ -853,8 +862,8 @@ class AgentInstanceHistoryMapperTest {
       final var item = item(message(unknown), WITH_DOCUMENTS);
 
       assertThat(item.content()).hasSize(1);
-      assertThat(texts(item.content()))
-          .containsExactly(TestDocuments.unknownHandleText(unknown.id()));
+      assertThat(described(item))
+          .containsExactly("OBJECT " + TestDocuments.unknownHandleText(unknown.id()));
     }
 
     @Test
@@ -977,7 +986,8 @@ class AgentInstanceHistoryMapperTest {
               agentContext);
 
       assertThat(item.content()).hasSize(5);
-      assertThat(texts(item.content())).containsExactly("done", otherHandle);
+      assertThat(texts(item.content())).containsExactly("done");
+      assertThat(described(item).get(1)).isEqualTo("OBJECT " + otherHandle);
       assertThat(item.content().get(2))
           .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
       assertThat(item.content().get(3))
@@ -1000,16 +1010,29 @@ class AgentInstanceHistoryMapperTest {
     }
 
     @Test
-    void aToolResultThatIsOneExternalDocumentIsTheHandleTextAndTheExternalReference() {
+    void aToolResultThatIsOneExternalDocumentIsTheHandleObjectAndTheExternalReference() {
       final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
 
       final var item = item(message(DocumentContent.documentContent(external)), agentContext);
 
       assertThat(item.content()).hasSize(2);
-      assertThat(described(item).get(0)).isEqualTo("TEXT " + TestDocuments.handleText(external));
+      assertThat(described(item).get(0)).isEqualTo("OBJECT " + TestDocuments.handleText(external));
       assertThat(item.content().get(1))
           .isInstanceOf(AgentInstanceHistoryContent.ObjectContent.class);
       assertThat(TestDocuments.handleText(external)).doesNotContain("example.com");
+    }
+
+    @Test
+    void anExternalDocumentWithoutANameIsReportedWithTheHandleIdAsItsName() {
+      final var nameless = new ExternalDocument("https://example.com/a.pdf", null, u -> null);
+
+      final var item = item(message(DocumentContent.documentContent(nameless)), agentContext);
+
+      assertThat(item.content()).hasSize(2);
+      assertThat(objectJson(item.content().get(1)))
+          .isEqualTo(
+              "{\"url\":\"https://example.com/a.pdf\",\"name\":\"%s\",\"camunda.document.type\":\"external\"}"
+                  .formatted(AgentDocumentId.of(nameless).value()));
     }
 
     @Test
@@ -1021,8 +1044,7 @@ class AgentInstanceHistoryMapperTest {
       final var nested =
           item(message(ObjectContent.objectContent(Map.of("file", inline))), agentContext);
 
-      assertThat(texts(bare.content())).containsExactly(inlineHandle);
-      assertThat(bare.content()).hasSize(1);
+      assertThat(described(bare)).containsExactly("OBJECT " + inlineHandle);
       assertThat(nested.content()).hasSize(1);
       assertThat(
               ((AgentInstanceHistoryContent.ObjectContent) nested.content().getFirst()).getObject())
