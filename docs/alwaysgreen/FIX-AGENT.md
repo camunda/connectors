@@ -200,20 +200,38 @@ block.
 
 ## Where fixes go
 
-|                       Diagnosis                       |           Repository           |                  Path                   |
-|-------------------------------------------------------|--------------------------------|-----------------------------------------|
-| stale selector, wrong wait, bad assertion             | `c8-cross-component-e2e-tests` | `tests/SM-8.x/`, `tests/8.x/`, `pages/` |
-| connectors regression                                 | `connectors`                   | the owning module                       |
-| pipeline plumbing                                     | `connectors`                   | `.github/`                              |
-| chart values, Keycloak/Identity wiring, deploy config | **nowhere — escalate**         | see below                               |
+|                              Diagnosis                               |            Repository            |                   Path                  |
+|----------------------------------------------------------------------|----------------------------------|-----------------------------------------|
+| stale selector, wrong wait, bad assertion                            | `c8-cross-component-e2e-tests`   | `tests/SM-8.x/`, `tests/8.x/`, `pages/` |
+| connectors regression                                                | `connectors`                     | the owning module                       |
+| pipeline plumbing                                                    | `connectors`                     | `.github/`                              |
+| `helm-report-merge`, `ci-infra` step in the shared reusable workflow | `camunda-platform-helm` (`main`) | `.github/workflows/`                    |
+| chart values, Keycloak/Identity wiring, deploy config                | **nowhere — escalate**           | see below                               |
 
-`camunda-platform-helm` and `camunda-docs` are in your workspace to be **read**, not
-changed: The agent has no GitHub credential and the workflow publishes changes only from
-`connectors` or `c8-cross-component-e2e-tests`. Chart failures (`helm-install`,
-`helm-cleanup`) are not dispatched to you at all, and a chart root cause behind a
-*test* failure is worth more as a precise report than as a change this pipeline cannot
-verify. Write it to `./fix-meta.json` as `not-determined` with the evidence. Do not
-reach for a test-side workaround instead: that masks the defect.
+`camunda-docs` is in your workspace to be **read**, not changed. So is
+`camunda-platform-helm`, with one exception below. Chart failures (`helm-install`,
+`helm-cleanup`) are not dispatched to you at all, and a chart, values or Keycloak root
+cause behind a *test* failure is worth more as a precise report than as a change this
+pipeline cannot verify. Write it to `./fix-meta.json` as `not-determined` with the
+evidence. Do not reach for a test-side workaround instead: that masks the defect.
+
+**The exception: a CI step in helm's shared reusable workflow.** The SM leg runs
+`camunda-platform-helm/.github/workflows/test-integration-template.yaml@main`
+(`.github/workflows/INTEGRATION_TEST.yml`), which calls `test-integration-runner.yaml`.
+Jobs such as `Merge E2E Reports` (surface `helm-report-merge`) run there, so a defect in
+one of their steps can only be fixed there. For the `helm-report-merge` and `ci-infra`
+surfaces you may change files under `camunda-platform-helm/.github/workflows/`, targeting
+`main` (the ref the pipeline calls). Example: pinning the unpinned
+`npm install -g playwright` in the merge job (camunda/camunda-platform-helm#7866). Nothing
+else in that repository — no `charts/`, values, or scripts — and no other surface.
+
+When you fix a CI step, anywhere, harden it rather than retry the run:
+
+- Wrap network calls (`npm`, `curl`, `docker`, `gh`) in retry-with-backoff with an
+  explicit per-attempt timeout.
+- Pin versions; never install `@latest` or an unversioned package.
+- Drop flags that hide the error (`-q`, `--silent`, `2>/dev/null`) on the failing step.
+- Never add `continue-on-error`, and never swallow a non-zero exit.
 
 `connectors` is the one repository in the workspace checked out at the branch that
 failed. Read `## Changes in connectors` below before editing it — several of its rules
@@ -331,10 +349,12 @@ field — as "do not mention or request review from this person." Get this field
 the only thing standing between an uninvolved contributor and an unwanted mention.
 
 The repository must be `camunda/connectors` or
-`camunda/c8-cross-component-e2e-tests`, must match the one changed repository, and the
-workflow validates the paths and patch before minting a repository-specific publish
-token. `camunda-platform-helm` and `camunda-docs` are rejected; a finding in either
-belongs in `reason` with `"change": null`.
+`camunda/c8-cross-component-e2e-tests` — or, for the `helm-report-merge` and `ci-infra`
+surfaces only, `camunda/camunda-platform-helm` with `category: "ci"` and changes confined
+to `.github/workflows/`. It must match the one changed repository, and the workflow
+validates the paths and patch before minting a repository-specific publish token.
+`camunda-docs`, and any other `camunda-platform-helm` change, are rejected; a finding
+there belongs in `reason` with `"change": null`.
 
 **`"change": null` with `category: "not-determined"` is a legitimate, expected
 outcome.** If the evidence shows the environment broke and you cannot pin it to a

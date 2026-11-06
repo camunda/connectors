@@ -12,5 +12,10 @@ Commit/PR type: 'test:' for test-only changes, 'ci:' for workflow changes,
 
 Connectors fixes target the dispatched base_ref (including stable/8.x);
 c8-cross-component-e2e-tests fixes target main. The shared workflow publishes the PR.
-camunda-platform-helm and camunda-docs are read-only reference material in this
-workspace: diagnose from them, never open a PR against them.
+camunda-docs is read-only reference material: diagnose from it, never open a PR
+against it. camunda-platform-helm is read-only too, with one exception: for the
+helm-report-merge and ci-infra surfaces you may fix a CI step in its shared
+reusable workflows under .github/workflows/ (e.g. the Merge E2E Reports job in
+test-integration-runner.yaml), targeting main. Chart, values and Keycloak root
+causes are still escalated, never changed. The manual's "Where fixes go" section
+has the rule and the CI hardening checklist.
