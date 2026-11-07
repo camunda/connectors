@@ -30,7 +30,7 @@ jobs:
     #########################################################################
     # Sanitize the branch name to remove dependabot/,renovate/ and transform the name
     - id: sanitize
-      uses: camunda/infra-global-github-actions/sanitize-branch-name@9965a08067900e11c602a050b8821ec92f49544b # main
+      uses: camunda/infra-global-github-actions/sanitize-branch-name@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
       with:
         branch: ${{ env.BRANCH_NAME }}
         max_length: '15'
@@ -50,7 +50,7 @@ jobs:
     # Setup: generate github app token
     - name: Generate a GitHub token
       id: github-token
-      uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@9965a08067900e11c602a050b8821ec92f49544b # main
+      uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
       with:
         github-app-id-vault-key: GITHUB_PREVIEW_ENVIRONMENTS_APP_ID
         github-app-id-vault-path: secret/data/products/connectors/ci/common
@@ -69,7 +69,7 @@ jobs:
     #########################################################################
     # Tear down preview environment
     - name: Tear down Preview Environment for ${{ matrix.product_context }}
-      uses: camunda/infra-global-github-actions/preview-env/destroy@9965a08067900e11c602a050b8821ec92f49544b # main
+      uses: camunda/infra-global-github-actions/preview-env/destroy@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
       with:
         revision: ${{ env.BRANCH_NAME }}
         argocd_token: ${{ steps.secrets.outputs.ARGOCD_TOKEN }}
@@ -113,4 +113,4 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [teardown-preview]
     steps:
-      - uses: camunda/infra-global-github-actions/preview-env/comment@9965a08067900e11c602a050b8821ec92f49544b # main
+      - uses: camunda/infra-global-github-actions/preview-env/comment@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main

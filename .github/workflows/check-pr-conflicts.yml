@@ -12,4 +12,4 @@ jobs:
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Check all PRs for conflict
-      uses: camunda/infra-global-github-actions/preview-env/conflicts@9965a08067900e11c602a050b8821ec92f49544b # main
+      uses: camunda/infra-global-github-actions/preview-env/conflicts@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
