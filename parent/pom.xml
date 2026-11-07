@@ -836,7 +836,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>io.swagger.core.v3</groupId>
         <artifactId>swagger-annotations</artifactId>
-        <version>2.2.55</version>
+        <version>3.0.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.errorprone</groupId>
