@@ -167,7 +167,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.19.0</version.azure-identity>
     <version.azure-core>1.61.0</version.azure-core>
-    <version.msal4j>1.26.0</version.msal4j>
+    <version.msal4j>1.26.1</version.msal4j>
     <version.azure-cosmos>4.83.0</version.azure-cosmos>
 
     <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
@@ -216,7 +216,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.7.0</plugin.version.maven-enforcer-plugin>
-    <plugin.version.maven-exec-plugin>3.6.4</plugin.version.maven-exec-plugin>
+    <plugin.version.maven-exec-plugin>3.7.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.2.0</plugin.version.maven-install-plugin>
     <plugin.version.license>5.1.2</plugin.version.license>
     <plugin.version.license.codehaus>2.8.0</plugin.version.license.codehaus>
