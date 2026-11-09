@@ -451,7 +451,7 @@ A lease token is required for every agent-instance write, and the connector fail
 **Problem**: After a process instance migration, the `agentContext` may reference tools from the old process definition.
 
 **Mitigation**:
-- `AgentInitializerImpl.handleReadyState()` checks if `processDefinitionKey` in the agent metadata matches the current execution's key
+- `AgentInitializerImpl#resumeReadyAgent` checks if `processDefinitionKey` in the agent metadata matches the current execution's key
 - If different: calls `toolsResolver.updateToolDefinitions()` which re-resolves from the new process definition
 - Validates that no gateway tools were added/removed (not supported)
 - Validates that no tools were removed (not supported)

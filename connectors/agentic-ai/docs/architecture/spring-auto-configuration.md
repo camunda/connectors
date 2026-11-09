@@ -20,15 +20,15 @@ and `SystemPromptContributor` bean through list injection, so the order of the i
 auto-configurations does not matter.
 
 `AgenticAiConnectorsAutoConfiguration` imports:
-- `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain and per-provider `ChatModelFactory` beans
-- `AgenticAiNativeProvidersConfiguration` — native provider `ChatModelFactory` beans
+- `AgenticAiLangChain4JFrameworkConfiguration`: LangChain4j converter chain, imports `AgenticAiLangChain4JChatModelConfiguration` for the `ChatModelFactory` beans of the v1 provider configurations
+- `AgenticAiNativeProvidersConfiguration`: `ChatModelFactory` beans of the native providers (v2 provider configurations)
 
-Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatModelFactory` bean) directly, outside of the imported LangChain4j configuration.
+Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatModelFactory` bean) directly, outside of the imported configurations.
 
 ## Key Differences from Standard Connectors
 
 1. **Dual activation modes**: Both an outbound connector (`AgentTaskV1Function`) and a job worker (`AgentSubProcessV1Function`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
-2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)) allows the LangChain4j stack to be replaced or extended per provider. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry; the LangChain4j configuration loads unconditionally.
+2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)) is implemented by the native providers and by the LangChain4j chat models for v1 provider configurations, and any `ChatModelFactory` bean extends it. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry, which needs exactly one match. Both imported configurations load unconditionally; v1 requests run on the native providers unless `camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is `false`.
 3. **Pluggable system prompt contributors**: All `SystemPromptContributor` beans are auto-collected into `SystemPromptComposerImpl`.
 4. **Pluggable gateway tool handlers**: All `GatewayToolHandler` beans are auto-collected into `GatewayToolHandlerRegistryImpl`.
 5. **Caffeine caching of BPMN resolution**: Process definition fetch (API + XML parse + FEEL extraction) is cached with configurable TTL and max size.

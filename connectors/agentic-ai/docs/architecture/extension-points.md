@@ -189,28 +189,27 @@ reference implementation and its wiring for the current exact procedure, and res
 auto-collects every `ChatModelFactory` bean and routes each request to the one whose `supports`
 returns true ([`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)).
 
-**v1: LangChain4j-backed.** Extend the abstract `LangChain4JChatModelFactory<T extends
-ProviderConfiguration>` (v1's `ProviderConfiguration`) — supply `providerType()` and
-`createChatModel(T)` plus a matching `ProviderConfiguration` subtype; `supports`/`create` are already
-implemented by the base class. Reference: `AnthropicChatModelFactory`
-(`aiagent/chatmodel/provider/langchain4j/factory`) with `AnthropicProviderConfiguration`. Only
-`aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*` (invariant I1).
-
-**v2: fully native.** Implement `ChatModel`/`ChatModelFactory` directly with your own
-`ChatModelConfiguration`, staying out of the `langchain4j` package. Reference implementation:
+**Native providers (v2).** A provider is a `ChatModelFactory` bean plus a `ChatModel`. Implement both
+with your own `ChatModelConfiguration` type from `request/v2`. Reference implementation:
 `AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
-`AnthropicChatModelConfiguration` (`request/v2`); the other native providers under
-`aiagent/chatmodel/provider/**` follow the same shape. A v2 provider without a built-in factory falls
-through to `CustomProviderConfiguration` (`request/v2`, discriminator `custom`, Self-Managed/Hybrid
-only): it carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
+`AnthropicChatModelConfiguration`; the other native providers under `aiagent/chatmodel/provider/**`
+follow the same shape and are registered by `AgenticAiNativeProvidersConfiguration`. See
+[`chat-model.md`](../../connector-aiagent/docs/chat-model.md) and
+[`native-providers.md`](../../connector-aiagent/docs/native-providers.md).
+
+**Custom providers.** A v2 provider without a built-in factory falls through to
+`CustomProviderConfiguration` (`request/v2`, discriminator `custom`, Self-Managed/Hybrid only): it
+carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
 agent-instance reporting works without digging it out of opaque config), and an opaque `parameters` map
-understood only by your factory. `LangChain4JChatModelFactory` cannot be extended for it — it's bound
-to v1's `ProviderConfiguration`, a different sealed hierarchy — but its building block,
-`LangChain4JChatModel`, is a public, framework-agnostic `ChatModel` wrapper: build your own
-`dev.langchain4j.model.chat.ChatModel`, wrap it in a `CloseableChatModel`, and construct a
-`LangChain4JChatModel` directly if you want to reuse LangChain4j from a v2-native factory. No built-in
-factory ever matches `CustomProviderConfiguration`, so the registry fails with the ordinary "no factory
-registered" error until you register one.
+understood only by your factory. No built-in factory ever matches `CustomProviderConfiguration`, so the
+registry fails with the ordinary "no factory registered" error until you register one.
+
+**LangChain4j (v1 only).** The `LangChain4JChatModelFactory` subclasses serve the v1
+`ProviderConfiguration` and are used only when
+`camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is `false`. They are not an
+extension point for new providers, see
+[`langchain4j-chat-model.md`](../../connector-aiagent/docs/langchain4j-chat-model.md). Only
+`aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*` (invariant I1).
 
 Every new v2 provider backend must follow three conventions, regardless of provider:
 

@@ -31,8 +31,11 @@ review and the tests of the stores and SPIs enforce them.
 - **I2. Domain types never leak framework types.** The module owns a framework-agnostic domain model in
   `io.camunda.connector.agenticai.aiagent.model.*` (the `Message`, `Content`, `ToolCall`, and `ToolDefinition` sealed types).
   - **Rule**: these types must not expose LangChain4j types in their API. Conversion to/from
-    `dev.langchain4j` types happens **only** in the converter chain (see
-    [`langchain4j-chat-model.md`](../connector-aiagent/docs/langchain4j-chat-model.md#converter-chain-architecture) for the converters).
+    vendor SDK and `dev.langchain4j` types happens **only** in the converters of the chat model providers
+    (`aiagent/chatmodel/provider/**`): the request and response converters of each native provider (see
+    [`native-providers.md`](../connector-aiagent/docs/native-providers.md)) and the converter chain of the
+    LangChain4j chat models (see
+    [`langchain4j-chat-model.md`](../connector-aiagent/docs/langchain4j-chat-model.md#converter-chain-architecture)).
   - **Why**: a leak here re-couples the whole codebase to the framework and defeats I1.
 - **I3. Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
   (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
