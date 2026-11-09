@@ -25,7 +25,7 @@ class ModuleInventoryTest {
 
   /** The aggregator modules that are not Agentic AI modules with production classes. */
   private static final Set<String> NON_ANALYZED_MODULES =
-      Set.of("agentic-ai-bundle", "agentic-ai-archunit-tests");
+      Set.of("agentic-ai-bundle", "agentic-ai-archunit-tests", "agentic-ai-docs-lint");
 
   @Test
   void everyMavenModuleIsRegisteredAndEveryRegisteredModuleIsAMavenModule() throws Exception {
