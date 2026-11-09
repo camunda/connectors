@@ -5,10 +5,12 @@ LLM providers, MCP servers and A2A agents, plus acceptance tests against real LL
 
 This file covers how the e2e modules are structured, how to run them and where new tests go. When a
 change in `connectors/agentic-ai` needs an e2e test, and what a change must update before it is done,
-is decided by the rules in the [agentic AI `AGENTS.md`](../../connectors/agentic-ai/AGENTS.md):
-the [e2e vs unit decision](../../connectors/agentic-ai/AGENTS.md#choosing-e2e-vs-unit-tests-mandatory-decision)
-and the [Definition of Done](../../connectors/agentic-ai/AGENTS.md#definition-of-done). For repo-wide
+is decided by the [testing rules](../../connectors/agentic-ai/docs/acceptance-testing.md) and the
+[Definition of Done](../../connectors/agentic-ai/AGENTS.md#definition-of-done). For repo-wide
 build, commit, PR and CI rules, see the repo-root [`AGENTS.md`](../../AGENTS.md).
+
+Read the [implementation rules](../../connectors/agentic-ai/docs/implementation-rules.md) before you plan,
+implement or review a change. They also apply to the e2e modules.
 
 See the [E2E runbook](README.md) for test ownership, local commands, paid-provider authorization, and
 how to verify that tests ran.
@@ -19,7 +21,7 @@ how to verify that tests ran.
 it tests, so it runs a runtime with only these connectors:
 
 | E2E module                                    | Tests                                                                                                 |
-|-----------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `connectors-e2e-test-agentic-ai-base`         | None. Shared test support in `src/main` (`BaseAgenticAiTest`, `BpmnUtil`, `TestUtil`, document store) |
 | `connectors-e2e-test-agentic-ai-aiagent-base` | None. Shared AI Agent test support in `src/main` (`aiagent.fixtures`, `assertj`)                      |
 | `connectors-e2e-test-agentic-ai-aiagent`      | AI Agent (both flavors), ad-hoc tools schema, MCP and A2A gateway tools                               |
