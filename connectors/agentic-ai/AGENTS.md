@@ -200,9 +200,10 @@ High-frequency traps (detail behind each link):
   The AI Agent connectors (v1 and v2, both flavors) opt into job leasing (`@OutboundConnector(withLease = true)`), so
   completion is fenced against a superseded activation; `CamundaAgentInstanceClient` forwards the lease token via
   `jobLeaseToken(...)` on each batched turn update
-  (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart`), so a
-  stale activation's writes are rejected (`404`) too — mapped to a non-retryable `AGENT_INSTANCE_SUPERSEDED` failure,
-  not the ordinary retry path (ADR 013). Gateway/MCP/A2A connectors are not leased. [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions),
+  (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart`). The engine rejects
+  such an update (`404`) when its job is no longer active; that maps to a non-retryable `AGENT_INSTANCE_SUPERSEDED`
+  failure, not the ordinary retry path (ADR 013). An update with a stale lease on a job that is still active is
+  accepted, and the engine skips its status change. Gateway/MCP/A2A connectors are not leased. [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions),
   [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Partial tool results → no-op (but not silent)**: incomplete results make the composer return `Deferred` and the
   worker completes without an LLM call — expected, not a bug — but it now also reports whichever results have

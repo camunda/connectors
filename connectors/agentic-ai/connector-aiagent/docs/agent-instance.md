@@ -9,8 +9,8 @@ retry transient failures via `CamundaApiRetry`. A `404` from `create` is treated
 retried): its write endpoint is `x-eventually-consistent: false` and validated against primary
 processing state, with Zeebe's key-based partition routing guaranteeing the create is visible to the
 same partition before the key is ever returned to the caller. A `404` from any `update()` call
-(`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart` — each fenced
-via `jobKey`/`jobLeaseToken` on a `history(...)` batch, empty for `applyToolDiscoveryStart`) is instead
+(`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart` — each sending
+`jobKey`/`jobLeaseToken` on a `history(...)` batch, empty for `applyToolDiscoveryStart`) is instead
 treated as job supersession — see below.
 
 ## The two-call-per-turn design (ADR 013)
@@ -44,7 +44,7 @@ There is no more deferred, completion-listener-driven agent instance update: `ap
 simply leaves the agent instance at its last-written status — the next activation overwrites it, the
 engine never rolls it back. The `TOOL_DISCOVERY` status patch (`dispatchToolDiscovery`) is sent the
 same way, synchronously, via `applyToolDiscoveryStart` (an empty-history batch through the same
-lease-fenced `update()` mechanism).
+batched `update()` mechanism).
 
 ## Conversation history items
 
@@ -103,14 +103,15 @@ its lossless payload stays in conversation memory.
 
 **Supersession as a non-retryable failure (ADR 013).** A `404` from a batched `update()` means the job
 activation that issued it has been superseded by a later one (the engine rejects it because the job
-wasn't active, or its lease didn't match). `CamundaAgentInstanceClient` maps that specifically to a
+is no longer active). `CamundaAgentInstanceClient` maps that specifically to a
 `ConnectorRetryException` with `.retries(0)` and error code `AGENT_INSTANCE_SUPERSEDED`, so no retry
 is provoked at any level — this applies uniformly to `applyTurnStart`/`applyTurnCompletion`/
 `applyToolCallResults`/`applyToolDiscoveryStart`, the only writers of a batched `update()`.
-`applyTurnStart`'s batch acts as the fence probe for the whole turn: a superseded activation is
-rejected there, before spending any model tokens.
-See [`agentic-loop.md`](../../docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions) for the job-lease mechanism that produces the
-mismatch.
+`applyTurnStart`'s batch is the first write of the turn: an update for a job that is no longer active
+is rejected there, before spending any model tokens. An update with a stale lease on a job that is
+still active is accepted, and the engine skips its status change. Only `create` is rejected on a stale
+lease.
+See [`agentic-loop.md`](../../docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions) for the job-lease mechanism.
 
 **Streamed early (ADR 011).** `applyToolCallResults` fires from `BaseAgentRequestHandler.converse`'s
 `Deferred` branch — before the turn's tool-call batch is complete — reporting whichever results have
