@@ -283,9 +283,10 @@ class ReturnDocumentToolTest {
     final var input = inputBuilder.build(agentContext, batch.withEntries(entries), Set.of());
 
     assertThat(admitted.getFirst().rejection())
-        .startsWith(
+        .isEqualTo(
             "Parameter 'document' has the id 'unknown', but the conversation has no document"
-                + " with this id.");
+                + " with this id. Pass the handle of a document from the conversation: a JSON"
+                + " object such as {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.");
     assertThat(entries).isEmpty();
     assertThat(batch.entriesInCallOrder())
         .singleElement()
