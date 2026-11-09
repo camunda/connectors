@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -119,12 +120,13 @@ class ToolCallResultsInputBuilderTest {
               assertThat(message.metadata())
                   .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
               assertThat(message.content())
-                  .first()
-                  .isEqualTo(textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE));
-              assertThat(message.content())
-                  .contains(
+                  .containsExactly(
+                      textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE),
+                      textContent(DocumentReferenceXmlTag.from(first, "c1", "alpha").toXml()),
                       DocumentContent.documentContent(first),
+                      textContent(DocumentReferenceXmlTag.from(nested, "c3", "gamma").toXml()),
                       DocumentContent.documentContent(nested),
+                      textContent(DocumentReferenceXmlTag.from(third, "c3", "gamma").toXml()),
                       DocumentContent.documentContent(third));
             });
     final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();

@@ -483,24 +483,20 @@ class RuntimeToolsTest {
 
   @Test
   void returnsTheDocumentsOfAResultAsTheyAreAndRegistersNone() {
+    final List<Content> content =
+        List.of(
+            TextContent.textContent("Saved the note"),
+            DocumentContent.documentContent(new InlineDocument("a", "note-1.txt", "text/plain")));
     final var notes =
-        StubRuntimeTool.of(
-            "acme_notes",
-            (context, call) ->
-                RuntimeToolResult.success(
-                    List.of(
-                        TextContent.textContent("Saved the note"),
-                        DocumentContent.documentContent(
-                            new InlineDocument("a", "note-1.txt", "text/plain")))));
+        StubRuntimeTool.of("acme_notes", (context, call) -> RuntimeToolResult.success(content));
 
     final var executions =
         toolsOf(notes)
             .execute(WITH_MEMORY, NEW_INSTANCE, List.of(runtimeCall("n1", "acme_notes", Map.of())));
 
-    assertThat(executions.getFirst().result().content())
-        .hasSize(2)
-        .last()
-        .isInstanceOf(DocumentContent.class);
+    assertThat(executions)
+        .singleElement()
+        .satisfies(execution -> assertThat(execution.result().content()).isEqualTo(content));
     // the agent context is the one the tools were given
     assertThat(NEW_INSTANCE.documents().all()).isEmpty();
   }
