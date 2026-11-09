@@ -384,10 +384,18 @@ class NodeExecutorWrapperTest {
   }
 
   @Test
-  void givesTheScriptAMinimumHeapOnASmallExecutor() throws Exception {
+  void givesTheScriptASmallHeapOnTheSmallestExecutor() throws Exception {
     executorMemoryMb = "128";
 
-    assertThat(oldSpaceMb()).isEqualTo(64);
+    // 80% of 128, less 64.
+    assertThat(oldSpaceMb()).isEqualTo(38);
+  }
+
+  @Test
+  void givesTheScriptAMinimumHeapHoweverSmallTheExecutor() throws Exception {
+    executorMemoryMb = "64";
+
+    assertThat(oldSpaceMb()).isEqualTo(16);
   }
 
   /** The old-space limit the child was started with, in MB. */

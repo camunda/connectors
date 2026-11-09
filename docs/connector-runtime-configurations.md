@@ -378,16 +378,15 @@ the platform would stop the whole instance for its memory, and the job would fai
 On AWS and GCP, the limit comes from the memory of the executor (`aws.memory-mb`, `gcp.memory-mb`),
 less what the wrapper and the interpreter need besides the script:
 
-| Language | Limit | At 512 MB | At 1024 MB |
-|---|---|---|---|
-| Python | `memory-mb` − 128 MB of address space (`RLIMIT_AS`) | 384 MB | 896 MB |
-| JavaScript | 80% of `memory-mb` − 64 MB of V8 heap (`--max-old-space-size`) | 345 MB | 755 MB |
+| Language | Limit | At 128 MB | At 512 MB | At 1024 MB |
+|---|---|---|---|---|
+| Python | `memory-mb` − 128 MB of address space (`RLIMIT_AS`), at least 64 MB | 64 MB | 384 MB | 896 MB |
+| JavaScript | 80% of `memory-mb` − 64 MB of V8 heap (`--max-old-space-size`) | 38 MB | 345 MB | 755 MB |
 
 The V8 heap leaves out the young generation and the memory the collector needs, which grow with the
 heap: the share keeps them within the function. Memory a JavaScript script holds outside the heap,
-such as large `Buffer`s, is not limited. Either way, a script gets at least 64 MB, so a function of
-128 MB leaves little room for anything but a small script. Raise `memory-mb` for a script that needs
-more.
+such as large `Buffer`s, is not limited. A function of 128 MB leaves room for small scripts only.
+Raise `memory-mb` for a script that needs more.
 
 The `local` provider gives a script 256 MB, whatever the host has.
 

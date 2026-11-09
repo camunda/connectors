@@ -34,8 +34,9 @@ const LOCAL_CHILD_HEAP_MB = 256;
 const HEAP_SHARE = 0.8;
 // ...less what the wrapper and the child need whatever the heap.
 const MEMORY_MARGIN_MB = 64;
-// What the child's heap gets at least, however small the instance.
-const MIN_CHILD_HEAP_MB = 64;
+// What the child's heap gets at least, however small the instance. On Cloud Run, the wrapper and an
+// idle child already take most of 128 MB: a function of that size fits a heap of 38 MB, not 64.
+const MIN_CHILD_HEAP_MB = 16;
 const DEFAULT_TIMEOUT_MS = 10_000;
 const SWEEP_ROUNDS = 5;
 // The only failures the child may report: the others are the platform's.
