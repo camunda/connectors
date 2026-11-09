@@ -59,10 +59,6 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-document</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-object-mapper</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>io.soabase.record-builder</groupId>

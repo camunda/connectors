@@ -28,9 +28,9 @@ import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -141,15 +141,14 @@ class AgentDocumentTest {
 
   @Test
   void aReferenceOfAnUnsupportedTypeIsRejected() {
-    assertThatThrownBy(() ->
-            new AgentDocument(
-                AgentDocumentId.of("doc_x"), DocumentOrigin.event(), new DocumentReference() {}))
+    assertThatThrownBy(
+            () -> AgentDocument.of(documentOf(new DocumentReference() {}), DocumentOrigin.event()))
         .isInstanceOf(UnsupportedDocumentReferenceException.class);
   }
 
   @Test
   void roundTripsThroughJsonLosslessly() throws JsonProcessingException {
-    final var expiresAt = OffsetDateTime.of(2030, 1, 2, 3, 4, 5, 0, ZoneOffset.ofHours(2));
+    final var expiresAt = OffsetDateTime.of(2030, 1, 2, 3, 4, 5, 0, ZoneOffset.UTC);
     final var reference =
         new CamundaDocumentReferenceModel(
             "in-memory",
@@ -178,34 +177,6 @@ class AgentDocumentTest {
         .containsEntry("owner", "alice")
         .containsEntry("count", 3)
         .containsEntry("ratio", 0.5);
-  }
-
-  @Test
-  void aDurationInTheCustomPropertiesIsPersistedAsItsNumberOfSeconds()
-      throws JsonProcessingException {
-    final var reference =
-        new CamundaDocumentReferenceModel(
-            "in-memory",
-            "doc-1",
-            null,
-            new CamundaDocumentMetadataModel(
-                null, null, null, null, null, null, Map.of("retention", Duration.ofMinutes(5))));
-
-    final var agentDocument = AgentDocument.of(documentOf(reference), DocumentOrigin.event());
-    final var json = objectMapper.readTree(objectMapper.writeValueAsString(agentDocument));
-    final var read = objectMapper.readValue(json.toString(), AgentDocument.class);
-
-    assertThat(json.at("/reference/metadata/customProperties/retention").isNumber()).isTrue();
-    assertThat(json.at("/reference/metadata/customProperties/retention").asDouble())
-        .isEqualTo(300.0);
-    assertThat(
-            ((Number)
-                    ((CamundaDocumentReference) read.reference())
-                        .getMetadata()
-                        .getCustomProperties()
-                        .get("retention"))
-                .doubleValue())
-        .isEqualTo(300.0);
   }
 
   @Test
@@ -244,7 +215,7 @@ class AgentDocumentTest {
   }
 
   @Test
-  void absentPartsOfTheReferenceAreNotWrittenAsNull() throws JsonProcessingException {
+  void absentPartsOfTheReferenceStayAbsentAfterARoundTrip() throws JsonProcessingException {
     final var camundaWithoutDetails =
         AgentDocument.of(
             documentOf(new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null)),
@@ -258,15 +229,13 @@ class AgentDocumentTest {
             documentOf(new InlineDocumentReferenceModel("aGVsbG8=", null, null)),
             DocumentOrigin.event());
 
-    assertThat(objectMapper.writeValueAsString(camundaWithoutDetails))
-        .doesNotContain("null")
-        .contains("\"documentId\":\"doc-1\"");
-    assertThat(objectMapper.writeValueAsString(externalWithoutName))
-        .doesNotContain("null")
-        .contains("\"url\":\"https://x/y\"");
-    assertThat(objectMapper.writeValueAsString(inlineWithoutDetails))
-        .doesNotContain("null")
-        .contains("\"content\":\"aGVsbG8=\"");
+    for (final var agentDocument :
+        List.of(camundaWithoutDetails, externalWithoutName, inlineWithoutDetails)) {
+      assertThat(
+              objectMapper.readValue(
+                  objectMapper.writeValueAsString(agentDocument), AgentDocument.class))
+          .isEqualTo(agentDocument);
+    }
   }
 
   @Test

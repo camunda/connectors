@@ -8,13 +8,6 @@ package io.camunda.connector.agenticai.aiagent.model.document;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -27,8 +20,6 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocum
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import java.io.IOException;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -37,11 +28,9 @@ import org.jspecify.annotations.Nullable;
  * A document known to the agent, as persisted in the agent context: its stable id, where it entered
  * the conversation and its document reference.
  *
- * <p>The reference is persisted in the format of the document reference of the connector SDK:
- * {@code camunda.document.type}, {@code storeId}, {@code documentId}, {@code contentHash} and
- * {@code metadata} for a Camunda document, {@code url} and {@code name} for an external one, {@code
- * content}, {@code name} and {@code contentType} for an inline one. It holds the URL of an external
- * document and the full content of an inline one, so it must never be rendered to the model.
+ * <p>The reference is the document reference model of the connector SDK. It holds the URL of an
+ * external document and the full content of an inline one, so it must never be rendered to the
+ * model.
  *
  * <p>Reading a document costs memory and can reach other systems. The file name, content type and
  * size come from the reference only; they are never read from the {@link Document} of the connector
@@ -58,25 +47,12 @@ import org.jspecify.annotations.Nullable;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record AgentDocument(
-    AgentDocumentId id,
-    DocumentOrigin origin,
-    @JsonSerialize(using = ReferenceSerializer.class)
-        @JsonDeserialize(as = DocumentReferenceModel.class)
-        DocumentReference reference) {
-
-  // the persisted reference keeps the numeric form of the durations in the custom properties
-  private static final ObjectMapper REFERENCE_MAPPER =
-      ConnectorsObjectMapperSupplier.getCopy()
-          .enable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
-          .setDefaultPropertyInclusion(
-              JsonInclude.Value.construct(
-                  JsonInclude.Include.NON_NULL, JsonInclude.Include.USE_DEFAULTS));
+    AgentDocumentId id, DocumentOrigin origin, DocumentReferenceModel reference) {
 
   public AgentDocument {
     Objects.requireNonNull(id, "id must not be null");
     Objects.requireNonNull(origin, "origin must not be null");
     Objects.requireNonNull(reference, "reference must not be null");
-    reference = toModel(reference);
   }
 
   /**
@@ -89,10 +65,7 @@ public record AgentDocument(
   public static AgentDocument of(Document document, DocumentOrigin origin) {
     final var reference = document.reference();
     final var id = AgentDocumentId.of(reference);
-    return new AgentDocument(
-        id,
-        origin,
-        REFERENCE_MAPPER.convertValue(toModel(reference), DocumentReferenceModel.class));
+    return new AgentDocument(id, origin, toModel(reference));
   }
 
   /** The document the reference points to, restored with the given factory. */
@@ -175,16 +148,6 @@ public record AgentDocument(
           fileName != null && fileName.equals(reference.getDocumentId()) ? null : fileName,
           StringUtils.trimToNull(metadata.getContentType()),
           metadata.getSize());
-    }
-  }
-
-  /** Writes the reference without its absent parts, whatever the mapper that writes the context. */
-  private static final class ReferenceSerializer extends JsonSerializer<DocumentReference> {
-    @Override
-    public void serialize(
-        DocumentReference reference, JsonGenerator generator, SerializerProvider provider)
-        throws IOException {
-      generator.writeTree(REFERENCE_MAPPER.valueToTree(toModel(reference)));
     }
   }
 
