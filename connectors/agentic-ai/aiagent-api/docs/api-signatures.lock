@@ -1,0 +1,122 @@
+ChatModel#close(): void
+ChatModel#execute(ChatRequest): ChatResult
+ChatModelFactory#create(ChatModelConfiguration): ChatModel
+ChatModelFactory#supports(ChatModelConfiguration): boolean
+ChatModelRejectedException#partialResult(): ChatModelRejectedException.PartialResult
+ChatModelRejectedException.PartialResult#<init>(AssistantMessage, AgentMetrics)
+ChatModelRejectedException.PartialResult#assistantMessage(): AssistantMessage
+ChatModelRejectedException.PartialResult#metrics(): AgentMetrics
+ChatRequest#<init>(AgentExecutionContext, ConversationSnapshot)
+ChatRequest#executionContext(): AgentExecutionContext
+ChatRequest#snapshot(): ConversationSnapshot
+ChatResult#assistantMessage(): AssistantMessage
+ChatResult#metrics(): AgentMetrics
+ChatResult.Completed#<init>(AssistantMessage, AgentMetrics)
+ChatResult.Completed#assistantMessage(): AssistantMessage
+ChatResult.Completed#metrics(): AgentMetrics
+ChatResult.Continuation#<init>(AssistantMessage, AgentMetrics)
+ChatResult.Continuation#assistantMessage(): AssistantMessage
+ChatResult.Continuation#metrics(): AgentMetrics
+ContentFilteredException#<init>(String, ChatModelRejectedException.PartialResult)
+ContentTreeDocumentWalker#static extractDocumentsFromContent(Object): List<Document>
+ContextWindowExceededException#<init>(String, ChatModelRejectedException.PartialResult)
+ContextWindowExceededException#<init>(String, Throwable, ChatModelRejectedException.PartialResult)
+ConversationLoadResult#<init>(List<Message>)
+ConversationLoadResult#messages(): List<Message>
+ConversationLoadResult#static empty(): ConversationLoadResult
+ConversationLoadResult#static of(List<Message>): ConversationLoadResult
+ConversationSession#default close(): void
+ConversationSession#loadMessages(AgentContext): ConversationLoadResult
+ConversationSession#storeMessages(AgentContext, ConversationStoreRequest): ConversationContext
+ConversationSnapshot#<init>(List<Message>, List<ToolDefinition>)
+ConversationSnapshot#messages(): List<Message>
+ConversationSnapshot#toolDefinitions(): List<ToolDefinition>
+ConversationStore#createSession(AgentExecutionContext, AgentContext): ConversationSession
+ConversationStore#default onJobCompleted(AgentExecutionContext, AgentContext): void
+ConversationStore#default onJobCompletionFailed(AgentExecutionContext, AgentContext, JobCompletionFailure): void
+ConversationStore#type(): String
+ConversationStoreRequest#<init>(List<Message>)
+ConversationStoreRequest#messages(): List<Message>
+ConversationStoreRequest#static of(List<Message>): ConversationStoreRequest
+GatewayToolCallTransformer#transformToolCallResults(AgentContext, List<ToolCallResult>): List<ToolCallResult>
+GatewayToolCallTransformer#transformToolCalls(AgentContext, List<ToolCall>): List<ToolCall>
+GatewayToolDefinitionResolver#GATEWAY_TYPE_EXTENSION: String
+GatewayToolDefinitionResolver#resolveGatewayToolDefinitions(List<AdHocToolElement>): List<GatewayToolDefinition>
+GatewayToolDefinitionUpdates#<init>(List<String>, List<String>)
+GatewayToolDefinitionUpdates#added(): List<String>
+GatewayToolDefinitionUpdates#isEmpty(): boolean
+GatewayToolDefinitionUpdates#removed(): List<String>
+GatewayToolDefinitionUpdates#static empty(): GatewayToolDefinitionUpdates
+GatewayToolDiscoveryInitiationResult#<init>(AgentContext, List<ToolCall>)
+GatewayToolDiscoveryInitiationResult#agentContext(): AgentContext
+GatewayToolDiscoveryInitiationResult#toolDiscoveryToolCalls(): List<ToolCall>
+GatewayToolDiscoveryResult#<init>(AgentContext, List<ToolCallResult>)
+GatewayToolDiscoveryResult#agentContext(): AgentContext
+GatewayToolDiscoveryResult#remainingToolCallResults(): List<ToolCallResult>
+GatewayToolHandler#allToolDiscoveryResultsPresent(AgentContext, List<ToolCallResult>): boolean
+GatewayToolHandler#default extractDocuments(ToolCallResult): List<Document>
+GatewayToolHandler#handleToolDiscoveryResults(AgentContext, List<ToolCallResult>): List<ToolDefinition>
+GatewayToolHandler#handlesToolDiscoveryResult(ToolCallResult): boolean
+GatewayToolHandler#initiateToolDiscovery(AgentContext, List<GatewayToolDefinition>): GatewayToolDiscoveryInitiationResult
+GatewayToolHandler#isGatewayManaged(String): boolean
+GatewayToolHandler#resolveElementId(String): String
+GatewayToolHandler#resolveUpdatedGatewayToolDefinitions(AgentContext, List<GatewayToolDefinition>): GatewayToolDefinitionUpdates
+GatewayToolHandler#type(): String
+GuardrailInterventionException#<init>(String, ChatModelRejectedException.PartialResult)
+RuntimeTool#call(RuntimeToolContext, RuntimeToolCall): RuntimeToolResult
+RuntimeTool#default isEnabled(RuntimeToolContext): boolean
+RuntimeTool#definition(): ToolDefinition
+RuntimeToolCall#<A> argumentsAs(Class<A>): A
+RuntimeToolCall#arguments(): Map<String, Object>
+RuntimeToolCall#id(): String
+RuntimeToolCall#name(): String
+RuntimeToolContext#agentContext(): AgentContext
+RuntimeToolContext#executionContext(): AgentExecutionContext
+RuntimeToolException#<init>(String)
+RuntimeToolException#<init>(String, Throwable)
+RuntimeToolException#getMessage(): String
+RuntimeToolResult#content(): List<Content>
+RuntimeToolResult#static error(String): RuntimeToolResult
+RuntimeToolResult#static success(List<Content>): RuntimeToolResult
+RuntimeToolResult#static success(String): RuntimeToolResult
+RuntimeToolResult.Error#<init>(String)
+RuntimeToolResult.Error#content(): List<Content>
+RuntimeToolResult.Error#message(): String
+RuntimeToolResult.Success#<init>(List<Content>)
+RuntimeToolResult.Success#content(): List<Content>
+SystemPromptContributor#contribute(AgentExecutionContext, AgentContext): String
+SystemPromptContributor#default getOrder(): int
+TypePropertyBasedGatewayToolDefinitionResolver#<init>(String)
+TypePropertyBasedGatewayToolDefinitionResolver#resolveGatewayToolDefinitions(List<AdHocToolElement>): List<GatewayToolDefinition>
+io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel: interface extends AutoCloseable
+io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory: interface
+io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException.PartialResult: record
+io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException: class sealed abstract extends RuntimeException permits ContentFilteredException, ContextWindowExceededException, GuardrailInterventionException
+io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest: record
+io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult.Completed: record implements ChatResult
+io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult.Continuation: record implements ChatResult
+io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult: interface sealed permits ChatResult.Completed, ChatResult.Continuation
+io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException: class final extends ChatModelRejectedException
+io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException: class final extends ChatModelRejectedException
+io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventionException: class final extends ChatModelRejectedException
+io.camunda.connector.agenticai.aiagent.api.conversation.ConversationLoadResult: record
+io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSession: interface extends AutoCloseable
+io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot: record
+io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore: interface
+io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest: record
+io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker: class final
+io.camunda.connector.agenticai.aiagent.api.systemprompt.SystemPromptContributor: interface
+io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolCallTransformer: interface
+io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver: interface
+io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionUpdates: record
+io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult: record
+io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryResult: record
+io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler: interface extends GatewayToolCallTransformer
+io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool: interface
+io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall: interface
+io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext: interface
+io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException: class extends RuntimeException
+io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult.Error: record implements RuntimeToolResult
+io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult.Success: record implements RuntimeToolResult
+io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult: interface sealed permits RuntimeToolResult.Error, RuntimeToolResult.Success
+io.camunda.connector.agenticai.aiagent.api.tool.TypePropertyBasedGatewayToolDefinitionResolver: class implements GatewayToolDefinitionResolver
