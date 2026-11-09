@@ -13,12 +13,18 @@ module does not depend on Spring.
 - `ChatModelRejectedException`: the sealed type for a rejected model call, with
   `ContentFilteredException`, `ContextWindowExceededException` and `GuardrailInterventionException`.
 - `ConversationStore` and `ConversationSession`: the conversation store SPI.
+- `ConversationStoreRequest`: the messages that `ConversationSession#storeMessages` writes.
 - `SystemPromptContributor`: adds text to the system prompt.
 - `GatewayToolHandler`, `GatewayToolCallTransformer`, `GatewayToolDefinitionResolver` and
   `TypePropertyBasedGatewayToolDefinitionResolver`: the gateway tool SPI.
+- `GatewayToolDefinitionUpdates`: the names of the added and removed gateway tool definitions, from
+  `GatewayToolHandler#resolveUpdatedGatewayToolDefinitions`.
+- `GatewayToolDiscoveryResult`: the agent context with the discovered tool definitions, and the tool
+  call results that are not tool discovery results.
 - `ContentTreeDocumentWalker`: finds the documents in a tool call result.
 - `RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult` and `RuntimeToolException`: the
   runtime tool SPI, for a tool that the connector runtime executes itself. The SPI is experimental.
+  `RuntimeToolResult` is sealed, with `RuntimeToolResult.Success` and `RuntimeToolResult.Error`.
 
 ## Docs
 
