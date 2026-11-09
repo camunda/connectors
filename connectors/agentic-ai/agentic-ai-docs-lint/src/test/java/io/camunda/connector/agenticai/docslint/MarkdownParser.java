@@ -8,8 +8,10 @@ package io.camunda.connector.agenticai.docslint;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -65,7 +67,7 @@ final class MarkdownParser {
 
   private static final class Collector extends AbstractVisitor {
 
-    private final IdGenerator ids = IdGenerator.builder().build();
+    private final Map<String, Integer> headingIds = new HashMap<>();
     private final List<Ref> headings = new ArrayList<>();
     private final List<Ref> links = new ArrayList<>();
     private final List<Ref> definitions = new ArrayList<>();
@@ -95,7 +97,7 @@ final class MarkdownParser {
           });
       headings.add(
           new Ref(line(heading), "#".repeat(heading.getLevel()) + " " + text.toString().strip()));
-      anchors.add(ids.generateId(text.toString()));
+      anchors.add(headingId(text.toString()));
       visitChildren(heading);
     }
 
@@ -137,6 +139,16 @@ final class MarkdownParser {
     @Override
     public void visit(final HtmlInline html) {
       addHtmlAnchors(html.getLiteral());
+    }
+
+    private String headingId(final String text) {
+      final String base = IdGenerator.builder().build().generateId(text);
+      String id = base;
+      while (headingIds.containsKey(id)) {
+        id = base + "-" + headingIds.merge(base, 1, Integer::sum);
+      }
+      headingIds.put(id, 0);
+      return id;
     }
 
     private void addLink(final List<Ref> target, final Node node, final String destination) {
