@@ -16,9 +16,9 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -72,10 +72,13 @@ public final class LoadDocumentTool implements RuntimeTool {
     return DEFINITION;
   }
 
-  /** The tool works with the agent documents: only an agent with the documents feature has it. */
+  /** The tool works with the agent documents: only an agent that tracks its documents has it. */
   @Override
   public boolean isEnabled(RuntimeToolContext context) {
-    return context.agentContext().supports(AgentFeatures.DOCUMENTS);
+    return switch (context.agentContext().documentHandling()) {
+      case DocumentHandling.Tracked ignored -> true;
+      case DocumentHandling.Untracked ignored -> false;
+    };
   }
 
   @Override
