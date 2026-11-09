@@ -28,10 +28,11 @@ jobs:
     runs-on: gcp-core-2-default
     timeout-minutes: 60
     # Same group as the push-triggered DEPLOY_SNAPSHOTS.yaml run of that branch, so uploads to one
-    # X.Y.0-SNAPSHOT never overlap (concurrent uploads can overwrite each other's snapshot metadata).
-    # queue: max keeps every waiting run, as there.
+    # X.Y.0-SNAPSHOT do not overlap (concurrent uploads can overwrite each other's snapshot metadata).
+    # stable/8.7 is the exception: its push workflow uses cancel-in-progress: true, which would cancel
+    # a nightly upload sharing the group, so it gets its own group and accepts the small overlap risk.
     concurrency:
-      group: deploy-snapshots-refs/heads/${{ matrix.ref }}
+      group: ${{ matrix.ref == 'stable/8.7' && format('fatjar-nightly-{0}', matrix.ref) || format('deploy-snapshots-refs/heads/{0}', matrix.ref) }}
       cancel-in-progress: false
       queue: max
     permissions:
@@ -185,7 +186,7 @@ jobs:
     name: Notify on failure
     runs-on: ubuntu-latest
     needs: deploy-fatjar
-    if: failure() && github.repository == 'camunda/connectors' && needs.deploy-fatjar.result == 'failure'
+    if: always() && github.repository == 'camunda/connectors' && (needs.deploy-fatjar.result == 'failure' || needs.deploy-fatjar.result == 'cancelled')
     steps:
       - name: Send Slack notification on failure
         uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
@@ -195,5 +196,5 @@ jobs:
           payload: |
             {
               "channel": "${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}",
-              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} Nightly runtime fat jar deploy failed for at least one branch.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} Nightly runtime fat jar deploy failed or was cancelled for at least one branch.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
