@@ -305,14 +305,15 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   @Test
   void
       userPrompt_withTheDeliveryContent_doesNotAddTheContentOfADocumentInTheOldestMessageOfTheWindow() {
-    // 2 previous messages + the user prompt message fill the window of 3
+    // 2 previous messages, the user prompt message and the place of the system message fill the
+    // window of 4
     final var doc = document("prompt data", "text/plain", "prompt.txt");
     final var earlier = UserMessage.builder().content(List.of(block(doc, true))).build();
 
     final var turn =
         nextTurn(
             composePromptWithin(
-                configWithContextWindow(3),
+                configWithContextWindow(4),
                 List.of(earlier, assistantMessage("done")),
                 List.of(),
                 doc));
@@ -330,7 +331,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn =
         nextTurn(
             composePromptWithin(
-                configWithContextWindow(2),
+                configWithContextWindow(3),
                 List.of(earlier, assistantMessage("done")),
                 List.of(),
                 doc));
@@ -342,14 +343,15 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   @Test
   void
       userPrompt_withTheDeliveryContent_addsTheContentOfADocumentThatAnEventMessageSqueezesOutOfTheWindow() {
-    // 2 previous messages + the user prompt message + the event message exceed the window of 3
+    // 2 previous messages, the user prompt message, the event message and the place of the system
+    // message exceed the window of 4
     final var doc = document("prompt data", "text/plain", "prompt.txt");
     final var earlier = UserMessage.builder().content(List.of(block(doc, true))).build();
 
     final var turn =
         nextTurn(
             composePromptWithin(
-                configWithContextWindow(3),
+                configWithContextWindow(4),
                 List.of(earlier, assistantMessage("done")),
                 List.of(ToolCallResult.builder().content("event").build()),
                 doc));
