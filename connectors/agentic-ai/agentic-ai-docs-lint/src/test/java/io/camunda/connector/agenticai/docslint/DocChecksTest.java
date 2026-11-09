@@ -40,6 +40,20 @@ class DocChecksTest {
               "b/Dup.java",
               "package b; class Dup { void second() {} }"));
 
+  private static final JavaSourceIndex INHERITANCE =
+      JavaSourceIndex.of(
+          Map.of(
+              "c/Failure.java",
+              "package c; class Failure extends RuntimeException { void run() {} }",
+              "c/Plain.java",
+              "package c; class Plain { void run() {} }",
+              "c/Point.java",
+              "package c; record Point(int x) {}",
+              "c/Mode.java",
+              "package c; enum Mode { FIRST }",
+              "c/Client.java",
+              "package c; import lib.Vendor; class Client extends Vendor { void own() {} }"));
+
   @TempDir Path root;
 
   @Test
@@ -513,6 +527,63 @@ class DocChecksTest {
             connectors/agentic-ai/one/docs/a.md:2: no such member `gone` on `a.Service`
                 why: the member was renamed or removed, or is spelled differently
                 fix: check the member against the code. Members, including those of supertypes of the repo: Service, api, field, inherited, run\
+            """);
+  }
+
+  @Test
+  void aMemberInheritedFromAJdkTypeResolves() {
+    final Doc doc =
+        doc(
+            "one/docs/a.md",
+            "`Failure#getCause` `Failure#getMessage()` `Failure#run` `Plain#toString`",
+            "`Plain#equals` `Plain#hashCode` `Plain#getClass` `Client#own` `Client#toString`");
+
+    assertThat(DocChecks.members(doc, INHERITANCE)).isEmpty();
+  }
+
+  @Test
+  void theGeneratedMembersOfARecordResolve() {
+    final Doc doc =
+        doc("one/docs/a.md", "`Point#toString` `Point#equals` `Point#hashCode` `Point#x`");
+
+    assertThat(DocChecks.members(doc, INHERITANCE)).isEmpty();
+  }
+
+  @Test
+  void theGeneratedMembersOfAnEnumResolve() {
+    final Doc doc =
+        doc(
+            "one/docs/a.md",
+            "`Mode#values` `Mode#valueOf` `Mode#name` `Mode#ordinal` `Mode#FIRST`");
+
+    assertThat(DocChecks.members(doc, INHERITANCE)).isEmpty();
+  }
+
+  @Test
+  void aMissingMemberOfATypeWithAnExternalSupertypeIsOnlyWarnedAbout() {
+    final Doc doc = doc("one/docs/a.md", "`Client#missing`");
+
+    assertThat(DocChecks.members(doc, INHERITANCE))
+        .containsExactly(
+            new Warning(
+                Path.of("connectors/agentic-ai/one/docs/a.md"),
+                1,
+                "member of `Client#missing` not verified",
+                "c.Client extends Vendor, an external dependency type that is not loaded, so the"
+                    + " member may be inherited",
+                "name the declaring type or check the member in the library"));
+  }
+
+  @Test
+  void aMissingMemberOfATypeWithOnlyRepoAndJdkSupertypesIsReported() {
+    final Doc doc = doc("one/docs/a.md", "# A", "`Failure#gone`");
+
+    assertThat(messages(DocChecks.members(doc, INHERITANCE)))
+        .containsExactly(
+            """
+            connectors/agentic-ai/one/docs/a.md:2: no such member `gone` on `c.Failure`
+                why: the member was renamed or removed, or is spelled differently
+                fix: check the member against the code. Members, including those of supertypes of the repo: run\
             """);
   }
 
