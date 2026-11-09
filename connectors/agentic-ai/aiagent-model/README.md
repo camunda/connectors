@@ -25,5 +25,6 @@ does not depend on Spring.
 ## Docs
 
 - [Data model and agent context](docs/data-model.md)
+- [Agent state machine](../connector-aiagent/docs/agent-state-machine.md): the transitions of the agent state
 - [Agentic loop](../docs/architecture/agentic-loop.md)
 - [Extension points](../docs/architecture/extension-points.md)
