@@ -26,6 +26,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
@@ -53,6 +54,15 @@ public final class DocumentFlowAssertions {
           .as("LLM request %d", i + 1)
           .doesNotContain("storeId", "contentHash", "camunda.document.type");
       assertNoDocumentTypeInToolSchemas(bodies.get(i), i + 1);
+    }
+  }
+
+  /** Asserts that the text is the JSON of the expected value, compared as a whole. */
+  public static void assertJson(String actual, String expected) {
+    try {
+      assertThat(OBJECT_MAPPER.readTree(actual)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+    } catch (JsonProcessingException e) {
+      throw new AssertionError("Not JSON: " + actual, e);
     }
   }
 
@@ -140,7 +150,7 @@ public final class DocumentFlowAssertions {
     // the tool received the id and the content is in the conversation once
     final var afterUpload = requests.get(4).messages();
     assertThat(afterUpload.get(10).toolCallId()).isEqualTo(UPLOAD_CALL_ID);
-    assertThat(afterUpload.get(10).content()).contains("200");
+    assertJson(afterUpload.get(10).content(), "{\"status\":200}");
     assertThat(afterUpload)
         .extracting(m -> m.role())
         .containsExactly(

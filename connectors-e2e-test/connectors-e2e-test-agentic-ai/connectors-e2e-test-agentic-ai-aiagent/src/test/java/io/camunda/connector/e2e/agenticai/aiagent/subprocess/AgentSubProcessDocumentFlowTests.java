@@ -183,7 +183,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
             "Parameter 'document' has the id 'doc_000000000000', but the conversation has no document"
                 + " with this id. Pass the handle of a document from the conversation: a JSON object"
                 + " such as {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.");
-    assertThat(results.get(1).content()).contains("pong");
+    assertThat(results.get(1).content()).isEqualTo("pong");
 
     // only the retry with the handle of the downloaded document uploads
     assertThat(uploadCount()).isEqualTo(1);
