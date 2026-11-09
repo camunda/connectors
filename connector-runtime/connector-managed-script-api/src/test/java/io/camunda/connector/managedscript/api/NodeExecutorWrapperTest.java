@@ -367,6 +367,40 @@ class NodeExecutorWrapperTest {
     }
   }
 
+  /** The memory of the executor instance the wrapper is told, or null for a shared host. */
+  private String executorMemoryMb;
+
+  @Test
+  void givesTheScriptAHeapOf256MbOnASharedHost() throws Exception {
+    assertThat(oldSpaceMb()).isEqualTo(256);
+  }
+
+  @Test
+  void givesTheScriptAShareOfTheMemoryOfTheExecutor() throws Exception {
+    executorMemoryMb = "1024";
+
+    // 80% of 1024, less 64.
+    assertThat(oldSpaceMb()).isEqualTo(755);
+  }
+
+  @Test
+  void givesTheScriptAMinimumHeapOnASmallExecutor() throws Exception {
+    executorMemoryMb = "128";
+
+    assertThat(oldSpaceMb()).isEqualTo(64);
+  }
+
+  /** The old-space limit the child was started with, in MB. */
+  private int oldSpaceMb() throws Exception {
+    final var response =
+        call(
+            "export function execute() { return { flags: process.execArgv"
+                + ".filter((flag) => flag.startsWith('--max-old-space-size=')) }; }");
+    final var flags = response.get("variables").get("flags");
+    assertThat(flags).hasSize(1);
+    return Integer.parseInt(flags.get(0).asText().substring("--max-old-space-size=".length()));
+  }
+
   private JsonNode call(String script) throws Exception {
     return call(request(script, Map.of()));
   }
@@ -399,6 +433,9 @@ class NodeExecutorWrapperTest {
             .redirectOutput(stdout.toFile());
     builder.environment().put("EXECUTOR_TMP", executorTmp.toString());
     builder.environment().put("AWS_SECRET_ACCESS_KEY", "not-for-scripts");
+    if (executorMemoryMb != null) {
+      builder.environment().put("EXECUTOR_MEMORY_MB", executorMemoryMb);
+    }
     final var process = builder.start();
     try (var stdin = process.getOutputStream()) {
       stdin.write(JSON.writeValueAsBytes(request));

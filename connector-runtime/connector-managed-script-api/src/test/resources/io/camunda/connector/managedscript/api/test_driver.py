@@ -20,7 +20,12 @@ import executor_core  # noqa: E402
 # No platform deadline on a local host: the request's timeoutMs alone bounds the script.
 DEADLINE_MS = float(os.environ.get("EXECUTOR_DEADLINE_MS") or "inf")
 
-executor = executor_core.create_executor(local=True, tmp=os.environ.get("EXECUTOR_TMP") or tempfile.gettempdir())
+# The memory of a cloud executor instance, to size the child as there; unset, the child gets 256 MB.
+MEMORY_MB = int(os.environ["EXECUTOR_MEMORY_MB"]) if os.environ.get("EXECUTOR_MEMORY_MB") else None
+
+executor = executor_core.create_executor(
+    local=True, tmp=os.environ.get("EXECUTOR_TMP") or tempfile.gettempdir(), memory_mb=MEMORY_MB
+)
 
 try:
     event = json.loads(sys.stdin.buffer.read().decode("utf-8"))

@@ -83,6 +83,9 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
   /** Cloud Run gives the wrapper no remaining time: it reads the function timeout from here. */
   static final String FUNCTION_TIMEOUT_VARIABLE = "EXECUTOR_FUNCTION_TIMEOUT_MS";
 
+  /** The wrapper sizes the memory of a script from the memory of the function, read from here. */
+  static final String MEMORY_VARIABLE = "EXECUTOR_MEMORY_MB";
+
   /** The request size limit of Cloud Run for an HTTP/1 server, as the Functions Framework is. */
   static final int MAX_REQUEST_BYTES = 32 * 1024 * 1024;
 
@@ -604,7 +607,8 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
         // Over any traffic split of an adopted function, so that every call gets these settings.
         .setAllTrafficOnLatestRevision(true)
         .putAllEnvironmentVariables(environment)
-        .putEnvironmentVariables(FUNCTION_TIMEOUT_VARIABLE, functionTimeoutMillis());
+        .putEnvironmentVariables(FUNCTION_TIMEOUT_VARIABLE, functionTimeoutMillis())
+        .putEnvironmentVariables(MEMORY_VARIABLE, Integer.toString(memoryMb));
   }
 
   private boolean matches(ServiceConfig settings) {
@@ -615,7 +619,9 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
         && functionServiceAccount.equals(settings.getServiceAccountEmail())
         && settings.getAllTrafficOnLatestRevision()
         && functionTimeoutMillis()
-            .equals(settings.getEnvironmentVariablesOrDefault(FUNCTION_TIMEOUT_VARIABLE, null));
+            .equals(settings.getEnvironmentVariablesOrDefault(FUNCTION_TIMEOUT_VARIABLE, null))
+        && Integer.toString(memoryMb)
+            .equals(settings.getEnvironmentVariablesOrDefault(MEMORY_VARIABLE, null));
   }
 
   private String functionTimeoutMillis() {

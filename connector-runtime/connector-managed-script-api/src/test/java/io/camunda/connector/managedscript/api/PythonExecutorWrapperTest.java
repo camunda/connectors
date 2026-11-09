@@ -574,6 +574,40 @@ class PythonExecutorWrapperTest {
     }
   }
 
+  /** The memory of the executor instance the wrapper is told, or null for a shared host. */
+  private String executorMemoryMb;
+
+  // RLIMIT_AS is not enforced on macOS.
+  @Test
+  @EnabledOnOs(OS.LINUX)
+  void givesTheScriptTheMemoryOfTheExecutorButAMargin() throws Exception {
+    executorMemoryMb = "1024";
+
+    final var response =
+        call(
+            "def execute(variables, context):\n"
+                + "    import resource\n"
+                + "    return {'limit': resource.getrlimit(resource.RLIMIT_AS)[0],"
+                + " 'size': len(bytearray(512 * 1024 * 1024))}\n");
+
+    assertThat(response.get("variables").get("limit").asLong()).isEqualTo(896L * 1024 * 1024);
+    assertThat(response.get("variables").get("size").asLong()).isEqualTo(512L * 1024 * 1024);
+  }
+
+  @Test
+  @EnabledOnOs(OS.LINUX)
+  void givesTheScriptAMinimumMemoryOnASmallExecutor() throws Exception {
+    executorMemoryMb = "128";
+
+    final var response =
+        call(
+            "def execute(variables, context):\n"
+                + "    import resource\n"
+                + "    return {'limit': resource.getrlimit(resource.RLIMIT_AS)[0]}\n");
+
+    assertThat(response.get("variables").get("limit").asLong()).isEqualTo(64L * 1024 * 1024);
+  }
+
   private JsonNode call(String script) throws Exception {
     return call(request(script, Map.of()));
   }
@@ -604,6 +638,9 @@ class PythonExecutorWrapperTest {
             .redirectError(ProcessBuilder.Redirect.DISCARD);
     builder.environment().put("EXECUTOR_TMP", tmp.toString());
     builder.environment().put("AWS_SECRET_ACCESS_KEY", "not-for-scripts");
+    if (executorMemoryMb != null) {
+      builder.environment().put("EXECUTOR_MEMORY_MB", executorMemoryMb);
+    }
     // To a file, so that the deadline applies before anything is read: reading the pipe to its end
     // would wait for a hung wrapper as long as the wrapper does.
     final var output = Files.createTempFile(wrapper, "response", ".json");

@@ -33,6 +33,10 @@ import org.junit.jupiter.params.provider.EnumSource;
 @DisabledOnOs(OS.WINDOWS)
 class CloudRunEntryPointTest {
 
+  /** The variables the provider sets on every function. */
+  private static final Map<String, String> SETTINGS =
+      Map.of("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000", "EXECUTOR_MEMORY_MB", "512");
+
   @TempDir Path source;
   @TempDir Path stubs;
   @TempDir Path tmp;
@@ -52,7 +56,7 @@ class CloudRunEntryPointTest {
     Files.setPosixFilePermissions(
         tmp.resolve("run-1"), PosixFilePermissions.fromString("r-x------"));
 
-    final var result = run(command, Map.of("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000"));
+    final var result = run(command, SETTINGS);
 
     assertThat(result.exitValue()).as(result.output()).isZero();
     assertThat(result.output()).contains("registered handler");
@@ -69,7 +73,7 @@ class CloudRunEntryPointTest {
     Files.writeString(tmp.resolve("run"), "of the platform");
     Files.setPosixFilePermissions(tmp, PosixFilePermissions.fromString("r-x------"));
     try {
-      final var result = run(command, Map.of("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000"));
+      final var result = run(command, SETTINGS);
 
       assertThat(result.exitValue()).as(result.output()).isZero();
       assertThat(result.output())
@@ -86,12 +90,23 @@ class CloudRunEntryPointTest {
   void refusesToStartWithoutTheFunctionTimeout(ScriptLanguage language) throws Exception {
     final var command = load(language);
 
-    final var result = run(command, Map.of());
+    final var result = run(command, Map.of("EXECUTOR_MEMORY_MB", "512"));
 
     assertThat(result.exitValue()).as(result.output()).isNotZero();
     assertThat(result.output())
         .contains("EXECUTOR_FUNCTION_TIMEOUT_MS")
         .doesNotContain("registered handler");
+  }
+
+  @ParameterizedTest
+  @EnumSource(ScriptLanguage.class)
+  void refusesToStartWithoutTheMemory(ScriptLanguage language) throws Exception {
+    final var command = load(language);
+
+    final var result = run(command, Map.of("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000"));
+
+    assertThat(result.exitValue()).as(result.output()).isNotZero();
+    assertThat(result.output()).contains("EXECUTOR_MEMORY_MB").doesNotContain("registered handler");
   }
 
   /** Writes the package and the stub of the Functions Framework; returns the loading command. */
@@ -129,6 +144,7 @@ class CloudRunEntryPointTest {
     final var builder =
         new ProcessBuilder(command).directory(source.toFile()).redirectErrorStream(true);
     builder.environment().remove("EXECUTOR_FUNCTION_TIMEOUT_MS");
+    builder.environment().remove("EXECUTOR_MEMORY_MB");
     builder.environment().put("EXECUTOR_TMP", tmp.toString());
     builder.environment().put("PYTHONPATH", stubs.toString());
     builder.environment().putAll(environment);
