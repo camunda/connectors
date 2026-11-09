@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.model.document;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -25,5 +27,7 @@ public record ReturnedDocument(Map<String, Object> document, @Nullable String de
 
   public ReturnedDocument {
     Objects.requireNonNull(document, "document must not be null");
+    // a copy that keeps the order of the keys and allows null values, which Map.copyOf rejects
+    document = Collections.unmodifiableMap(new LinkedHashMap<>(document));
   }
 }
