@@ -64,6 +64,24 @@ public record AgentConversationTurn(
     return assistantMessage.toolCalls();
   }
 
+  /** The calls of the tools of the process, activated as BPMN elements. */
+  public List<ToolCall> processToolCalls() {
+    return toolCalls().stream().filter(toolCall -> !toolCall.isLocal()).toList();
+  }
+
+  /** The local tool calls: calls of runtime tools and rejected calls. */
+  public List<ToolCall> localToolCalls() {
+    return toolCalls().stream().filter(ToolCall::isLocal).toList();
+  }
+
+  public boolean hasProcessToolCalls() {
+    return toolCalls().stream().anyMatch(toolCall -> !toolCall.isLocal());
+  }
+
+  public boolean hasLocalToolCalls() {
+    return toolCalls().stream().anyMatch(ToolCall::isLocal);
+  }
+
   /**
    * Returns this turn's assistant {@link #toolCalls()} keyed by tool-call id. A tool-call result in
    * the following turn correlates to one of these by id.

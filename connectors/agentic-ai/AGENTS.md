@@ -221,6 +221,25 @@ High-frequency traps (detail behind each link):
 - **Gateway `transformToolCallResults` must carry `completedAt` forward**: MCP/A2A handlers rebuild a
   new `ToolCallResult` when unwrapping the gateway envelope; unlike `elementId`, `completedAt` has no
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
+- **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
+  instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
+  instance without the `runtimeTools` feature (created before it) is offered no runtime tools and no tool element is
+  checked against runtime tool names; the feature gates only what is offered. Gate new behavior that changes the wire
+  format or the persisted shape on `AgentContext.supports(...)`. The one deliberate exception is the tagging and the
+  rejection of tool calls (next item), which applies to every agent instance: handing the call of an unknown tool to
+  the process made the agent wait for a result that never came, without an incident. [ADR 016](docs/adr/016-runtime-tools.md).
+- **Tool calls are admitted once, and the agent produces the tool call results of local tool calls itself**: before an
+  assistant message enters the conversation, `ToolCallAdmission` sets `ToolCall.kind` to the kind of the tool of the call's name among the
+  tools offered in the job, and `ToolCall.rejection` (the error text) when the call must not be carried out, such as a name that is not offered, and never computes either
+  again, for every agent instance, with or without the `runtimeTools` feature. Both are persisted (`kind` written only
+  for `RUNTIME`, `rejection` only when set), so every conversation store must keep them. A call with a rejection
+  (a rejected call) gets its rejection as its tool call result and is never executed, also when a runtime tool of that
+  name is enabled later; the calls of runtime tools go to `RuntimeTools`. Both are local tool calls
+  (`ToolCall.isLocal()`), the calls whose tool call result the agent produces itself: the rejection when the
+  `ToolCallBatch` is created, the calls of runtime tools in `LocalToolCallExecutor` only. An interrupting event cancels
+  every call without a result, also the calls of runtime tools that were not executed yet. When the model issues local tool calls and process tool calls together, only
+  the process tool calls are activated, and the agent adds the tool call results of the local tool calls when the next
+  turn is composed, merged with the process results in call order. `ai-agent.md` §9, [ADR 016](docs/adr/016-runtime-tools.md).
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
@@ -312,9 +331,11 @@ Before claiming a change is complete:
 
 ## Extension points
 
-Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, or a gateway tool by
-implementing the SPI and registering a Spring bean. Where to start (SPI + reference implementation per
-type): `ai-agent.md` §25 (gateway tools: §19).
+Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
+tool (a tool the connector runtime executes itself, without activating a BPMN element; a process tool must not have its name)
+by implementing the SPI and registering a Spring bean. A runtime tool is the three-method interface `RuntimeTool`
+(`definition`, `isEnabled`, `call`), an experimental SPI in 8.11. Where to start (SPI + reference implementation per
+type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and [ADR 016](docs/adr/016-runtime-tools.md)).
 
 ## Element templates
 
