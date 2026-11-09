@@ -2,11 +2,9 @@
 
 ## SystemPromptContributor Interface
 
-```java
-public interface SystemPromptContributor {
-    String contribute(AgentExecutionContext executionContext, AgentContext agentContext);
-    default int getOrder() { return 0; }  // lower values sort earlier
-}
-```
+`SystemPromptContributor#contribute` returns the text to append to the system prompt for the current
+`AgentExecutionContext` and `AgentContext`, or `null` or an empty string to add nothing.
+`SystemPromptContributor#getOrder` sets the position of the contribution: lower values are appended
+first, and the default is `0`.
 
 Spring auto-wires all `SystemPromptContributor` beans into the composer.
