@@ -31,9 +31,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -893,7 +893,7 @@ class AwsAgentCoreConversationStoreTest {
                     .fileName("report.pdf")
                     .build());
     final var entry =
-        AgentDocument.of(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+        AgentDocument.of(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var tag =
         AgentDocumentContent.of(AgentDocumentId.of(document))
             .withDelivery(DocumentDelivery.CONTENT);

@@ -16,7 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
@@ -78,9 +78,9 @@ class ToolCallResultsInputBuilderTest {
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(input.documents())
         .containsExactly(
-            AgentDocument.of(first, DocumentOrigin.toolCall("alpha", "c1")),
-            AgentDocument.of(nested, DocumentOrigin.toolCall("gamma", "c3")),
-            AgentDocument.of(third, DocumentOrigin.toolCall("gamma", "c3")));
+            AgentDocument.of(first, AgentDocumentOrigin.toolCall("alpha", "c1")),
+            AgentDocument.of(nested, AgentDocumentOrigin.toolCall("gamma", "c3")),
+            AgentDocument.of(third, AgentDocumentOrigin.toolCall("gamma", "c3")));
   }
 
   @Test

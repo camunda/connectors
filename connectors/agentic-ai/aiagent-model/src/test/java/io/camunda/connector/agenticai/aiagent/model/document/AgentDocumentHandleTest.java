@@ -94,7 +94,7 @@ class AgentDocumentHandleTest {
     final var document =
         new AgentDocument(
             AgentDocumentId.of(ID),
-            DocumentOrigin.userMessage(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
+            AgentDocumentOrigin.userMessage(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
             new InlineDocumentReferenceModel("hello", "a.txt", "text/plain"));
 
     assertThat(json(AgentDocumentHandle.of(document)))
@@ -109,7 +109,7 @@ class AgentDocumentHandleTest {
         .isInstanceOf(IllegalArgumentException.class);
   }
 
-  private static AgentDocuments agentDocumentsOf(Document document, DocumentOrigin origin) {
+  private static AgentDocuments agentDocumentsOf(Document document, AgentDocumentOrigin origin) {
     return AgentDocuments.empty().register(document, origin);
   }
 
@@ -118,7 +118,8 @@ class AgentDocumentHandleTest {
     return AgentDocumentHandle.of(
             agentDocumentsOf(
                 document,
-                DocumentOrigin.userMessage(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"))),
+                AgentDocumentOrigin.userMessage(
+                    MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"))),
             AgentDocumentId.of(document))
         .text();
   }
@@ -278,9 +279,9 @@ class AgentDocumentHandleTest {
 
     for (final var origin :
         List.of(
-            DocumentOrigin.userMessage(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
-            DocumentOrigin.event(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
-            DocumentOrigin.toolCall("search", "call_1"))) {
+            AgentDocumentOrigin.userMessage(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
+            AgentDocumentOrigin.event(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
+            AgentDocumentOrigin.toolCall("search", "call_1"))) {
       assertThat(
               AgentDocumentHandle.of(agentDocumentsOf(doc, origin), AgentDocumentId.of(doc)).text())
           .isEqualTo(expected);

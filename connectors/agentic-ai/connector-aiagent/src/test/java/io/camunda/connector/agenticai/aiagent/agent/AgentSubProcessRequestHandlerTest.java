@@ -71,9 +71,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -1766,7 +1766,8 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(
             new TurnInput(
                 List.of(USER_MESSAGE),
-                List.of(AgentDocument.of(document, DocumentOrigin.toolCall("search", "call-1")))));
+                List.of(
+                    AgentDocument.of(document, AgentDocumentOrigin.toolCall("search", "call-1")))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_DOCUMENTS, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -1779,7 +1780,7 @@ class AgentSubProcessRequestHandlerTest {
         .singleElement()
         .satisfies(entry -> {
           assertThat(entry.id()).isEqualTo(AgentDocumentId.of(document));
-          assertThat(entry.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
+          assertThat(entry.origin()).isEqualTo(AgentDocumentOrigin.toolCall("search", "call-1"));
           assertThat(entry.reference()).isInstanceOf(CamundaDocumentReference.class);
         });
     assertThat(response.variables().get("agentContext")).isEqualTo(context);
@@ -1804,9 +1805,10 @@ class AgentSubProcessRequestHandlerTest {
                 List.of(
                     new AgentDocument(
                         AgentDocumentId.of(other),
-                        DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
+                        AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
                         AgentDocument.of(
-                                registered, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
+                                registered,
+                                AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
                             .reference()))));
     final var tooLarge = mock(Document.class);
     when(tooLarge.reference())
@@ -1835,7 +1837,7 @@ class AgentSubProcessRequestHandlerTest {
                 List.of(USER_MESSAGE),
                 List.of(
                     AgentDocument.of(
-                        document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))));
+                        document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
 
@@ -1874,7 +1876,7 @@ class AgentSubProcessRequestHandlerTest {
         .satisfies(entry -> {
           assertThat(entry.id()).isEqualTo(AgentDocumentId.of(NEW_REPORT));
           assertThat(entry.origin())
-              .isEqualTo(DocumentOrigin.toolCall("acme_create_report", "call-1"));
+              .isEqualTo(AgentDocumentOrigin.toolCall("acme_create_report", "call-1"));
         });
 
     // the model reads the handle of the document in the tool result, never the document
@@ -1909,10 +1911,10 @@ class AgentSubProcessRequestHandlerTest {
         .containsExactly(
             tuple(
                 AgentDocumentId.of(NEW_REPORT),
-                DocumentOrigin.toolCall("acme_create_report", "call-1")),
+                AgentDocumentOrigin.toolCall("acme_create_report", "call-1")),
             tuple(
                 AgentDocumentId.of(processDocument),
-                DocumentOrigin.toolCall("getWeather", "call-2")));
+                AgentDocumentOrigin.toolCall("getWeather", "call-2")));
     // the document of the runtime tool is shown as its handle in the tool result of the next
     // request
     assertThat(run.chatRequests().get(1).snapshot().messages().getLast())

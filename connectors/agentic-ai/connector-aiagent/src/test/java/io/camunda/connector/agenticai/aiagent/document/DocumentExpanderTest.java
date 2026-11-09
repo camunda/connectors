@@ -13,10 +13,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -57,7 +57,7 @@ class DocumentExpanderTest {
             .build());
   }
 
-  private static AgentDocuments agentDocumentsOf(Document document, DocumentOrigin origin) {
+  private static AgentDocuments agentDocumentsOf(Document document, AgentDocumentOrigin origin) {
     return AgentDocuments.empty().register(document, origin);
   }
 
@@ -94,7 +94,7 @@ class DocumentExpanderTest {
   void rendersTheExactHandleTextInAUserMessageAndAToolResult() {
     final var document = new ExternalDocument("https://example.com/r", "r \"1\".pdf", u -> null);
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+        agentDocumentsOf(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var block =
         new AgentDocumentContent(AgentDocumentId.of(document), DocumentDelivery.REFERENCE, null);
     final var expectedText =
@@ -119,9 +119,11 @@ class DocumentExpanderTest {
             .register(
                 List.of(
                     AgentDocument.of(
-                        documentWithContent, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
+                        documentWithContent,
+                        AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
                     AgentDocument.of(
-                        referencedDocument, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
+                        referencedDocument,
+                        AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
     final var withContent = reference(agentDocuments, 0, DocumentDelivery.CONTENT);
     final var referenced = reference(agentDocuments, 1, DocumentDelivery.REFERENCE);
     final var message = userMessage(withContent, referenced);
@@ -139,7 +141,7 @@ class DocumentExpanderTest {
   void restoresTheDocumentWithTheDocumentFactoryOfTheJob() {
     final var document = camundaDocument("tenant");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+        agentDocumentsOf(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var block = reference(agentDocuments, 0, DocumentDelivery.CONTENT);
     final var restored = new ArrayList<DocumentReference>();
     final var jobDocumentFactory =
@@ -169,7 +171,7 @@ class DocumentExpanderTest {
   void expandingForTheModelTurnsAReferenceWithDeliveryReferenceIntoItsHandleOnly() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+        agentDocumentsOf(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var reference = reference(agentDocuments, 0, DocumentDelivery.REFERENCE);
     final var message = userMessage(reference);
 
@@ -206,7 +208,7 @@ class DocumentExpanderTest {
   void doesNotAddTheDocumentAgainWhenItAlreadyFollowsTheReference() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+        agentDocumentsOf(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var reference = reference(agentDocuments, 0, DocumentDelivery.CONTENT);
     final var message = userMessage(reference, DocumentContent.documentContent(document));
 
@@ -226,7 +228,8 @@ class DocumentExpanderTest {
     final var unknown =
         new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
     final var document = camundaDocument("hello");
-    final var documents = agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
+    final var documents =
+        agentDocumentsOf(document, AgentDocumentOrigin.toolCall("fetch", "call-1"));
     final var known = reference(documents, 0, DocumentDelivery.CONTENT);
     final var failingFactory =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE) {
@@ -268,7 +271,7 @@ class DocumentExpanderTest {
   void leavesAHandleInPlainTextAlone() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+        agentDocumentsOf(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var literal =
         "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\"}"
             .formatted(AgentDocumentId.of(document));
@@ -290,7 +293,7 @@ class DocumentExpanderTest {
   void expandingTheResultOfAnExpansionChangesNothing() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.event(TestDocuments.MESSAGE_ID));
+        agentDocumentsOf(document, AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
     final var messages =
         List.<Message>of(
             userMessage(reference(agentDocuments, 0, DocumentDelivery.CONTENT)),
@@ -305,7 +308,7 @@ class DocumentExpanderTest {
   void expandsTheContentOfUserMessagesOnly() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+        agentDocumentsOf(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var assistant = assistantMessage("hi");
     final var plainUser = userMessage(textContent("hello"));
     final var documentUser = userMessage(reference(agentDocuments, 0, DocumentDelivery.CONTENT));
@@ -344,7 +347,7 @@ class DocumentExpanderTest {
   void expandsAReferenceInAToolResultToItsHandleText() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
+        agentDocumentsOf(document, AgentDocumentOrigin.toolCall("fetch", "call-1"));
     final var reference = AgentDocumentContent.of(AgentDocumentId.of(document));
     final var message = toolResultMessage(textContent("before"), reference);
 
@@ -363,7 +366,7 @@ class DocumentExpanderTest {
   void aBlockInAToolResultBecomesTheHandleOfTheDocumentOfTheAgentDocuments() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
+        agentDocumentsOf(document, AgentDocumentOrigin.toolCall("fetch", "call-1"));
     final var reference = AgentDocumentContent.of(AgentDocumentId.of(document));
 
     final var expanded =
@@ -388,7 +391,7 @@ class DocumentExpanderTest {
   void aBlockInAToolResultNeverGetsTheDocumentAfterItsHandle() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
+        agentDocumentsOf(document, AgentDocumentOrigin.toolCall("fetch", "call-1"));
 
     final var expanded =
         expander.expandMessages(
@@ -408,7 +411,7 @@ class DocumentExpanderTest {
   void leavesToolResultsWithoutReferencesAlone() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
+        agentDocumentsOf(document, AgentDocumentOrigin.toolCall("fetch", "call-1"));
     final var messages =
         List.<Message>of(
             toolResultMessage(
@@ -424,7 +427,7 @@ class DocumentExpanderTest {
   void replacesADocumentNestedInAnObjectOfAToolResultByItsHandle() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.toolCall("fetch", "call-1"));
+        agentDocumentsOf(document, AgentDocumentOrigin.toolCall("fetch", "call-1"));
     final var metadata = Map.<String, Object>of("key", "value");
     final var message =
         toolResultMessage(
@@ -469,7 +472,7 @@ class DocumentExpanderTest {
   void expandsTheSnapshotOfAnAgentThatTracksItsDocumentsAndKeepsItsToolDefinitions() {
     final var document = camundaDocument("hello");
     final var agentDocuments =
-        agentDocumentsOf(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+        agentDocumentsOf(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var reference = reference(agentDocuments, 0, DocumentDelivery.CONTENT);
     final var snapshot =
         new ConversationSnapshot(

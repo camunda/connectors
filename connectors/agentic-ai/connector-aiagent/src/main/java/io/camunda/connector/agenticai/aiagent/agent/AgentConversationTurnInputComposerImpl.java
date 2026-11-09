@@ -16,9 +16,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
@@ -167,7 +167,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       case DocumentHandling.Tracked ignored -> {
         // add the documents as blocks with the delivery content: the content is added when the
         // model is called
-        final var origin = DocumentOrigin.userMessage(messageId);
+        final var origin = AgentDocumentOrigin.userMessage(messageId);
         for (var doc : userPrompt.documents()) {
           content.add(
               AgentDocumentContent.of(AgentDocumentId.of(doc))
@@ -275,7 +275,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       switch (documentHandling) {
         case DocumentHandling.Tracked ignored -> {
           userMessageContent.add(textContent(TRACKED_EVENT_DOCUMENTS_PREAMBLE));
-          final var origin = DocumentOrigin.event(messageId);
+          final var origin = AgentDocumentOrigin.event(messageId);
           for (var group : eventDocuments) {
             for (var doc : group.documents()) {
               newDocuments.add(AgentDocument.of(doc, origin));

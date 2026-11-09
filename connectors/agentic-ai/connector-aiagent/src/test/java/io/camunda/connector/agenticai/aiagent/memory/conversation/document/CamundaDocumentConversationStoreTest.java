@@ -32,9 +32,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
@@ -591,7 +591,7 @@ class CamundaDocumentConversationStoreTest {
       throws Exception {
     mockJobContext();
     final var document = createDocument("report", "report.txt");
-    final var entry = AgentDocument.of(document, DocumentOrigin.toolCall("fetch", "call-1"));
+    final var entry = AgentDocument.of(document, AgentDocumentOrigin.toolCall("fetch", "call-1"));
     final var reference =
         AgentDocumentContent.of(AgentDocumentId.of(document))
             .withDelivery(DocumentDelivery.CONTENT);

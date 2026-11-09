@@ -7,9 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.model.document;
 
 /** Two different documents get the same {@link AgentDocumentId}. */
-public class DocumentIdCollisionException extends RuntimeException {
+public class AgentDocumentIdCollisionException extends RuntimeException {
 
-  public DocumentIdCollisionException(AgentDocumentId id) {
+  public AgentDocumentIdCollisionException(AgentDocumentId id) {
     super(
         "The document id '%s' is shared by two different documents, so the document cannot be told apart from the one the agent already knows."
             .formatted(id));

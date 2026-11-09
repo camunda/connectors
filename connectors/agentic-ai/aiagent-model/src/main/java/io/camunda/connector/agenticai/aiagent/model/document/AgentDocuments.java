@@ -67,11 +67,11 @@ public final class AgentDocuments {
    *
    * @throws InlineDocumentTooLargeException if the document is new and an inline document with more
    *     than {@link InlineSizeGuard#MAX_INLINE_BYTES} bytes of content
-   * @throws DocumentIdCollisionException if the document gets the id of a different document
+   * @throws AgentDocumentIdCollisionException if the document gets the id of a different document
    * @throws UnsupportedDocumentReferenceException if the reference type of the document is not
    *     supported
    */
-  public AgentDocuments register(Document document, DocumentOrigin origin) {
+  public AgentDocuments register(Document document, AgentDocumentOrigin origin) {
     return register(List.of(AgentDocument.of(document, origin)));
   }
 
@@ -81,8 +81,8 @@ public final class AgentDocuments {
    *
    * @throws InlineDocumentTooLargeException if a new document is an inline document with more than
    *     {@link InlineSizeGuard#MAX_INLINE_BYTES} bytes of content
-   * @throws DocumentIdCollisionException if a document gets the id of a different document, one the
-   *     collection holds or one of the batch
+   * @throws AgentDocumentIdCollisionException if a document gets the id of a different document,
+   *     one the collection holds or one of the batch
    */
   public AgentDocuments register(List<AgentDocument> documents) {
     if (documents.isEmpty()) {
@@ -95,7 +95,7 @@ public final class AgentDocuments {
         rejectLargeInlineContent(document);
         byId.put(document.id(), document);
       } else if (!known.isSameDocumentAs(document)) {
-        throw new DocumentIdCollisionException(document.id());
+        throw new AgentDocumentIdCollisionException(document.id());
       }
     }
     return byId.size() == documentsById.size()

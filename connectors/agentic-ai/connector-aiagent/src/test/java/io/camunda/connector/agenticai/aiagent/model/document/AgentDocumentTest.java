@@ -54,10 +54,10 @@ class AgentDocumentTest {
     final var document = camundaDocument("hello");
 
     final var agentDocument =
-        AgentDocument.of(document, DocumentOrigin.toolCall("search", "call-1"));
+        AgentDocument.of(document, AgentDocumentOrigin.toolCall("search", "call-1"));
 
     assertThat(agentDocument.id()).isEqualTo(AgentDocumentId.of(document));
-    assertThat(agentDocument.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
+    assertThat(agentDocument.origin()).isEqualTo(AgentDocumentOrigin.toolCall("search", "call-1"));
     assertThat(agentDocument.reference())
         .isInstanceOfSatisfying(
             CamundaDocumentReference.class,
@@ -75,7 +75,7 @@ class AgentDocumentTest {
     final var document = camundaDocument("hello");
 
     final var restored =
-        AgentDocument.of(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
+        AgentDocument.of(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
             .toDocument(documentFactory);
 
     assertThat(restored.asByteArray()).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
@@ -96,7 +96,7 @@ class AgentDocumentTest {
     final var agentDocument =
         new AgentDocument(
             AgentDocumentId.of(reference),
-            DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
+            AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
             reference);
 
     assertThat(agentDocument.fileName()).isEqualTo("report.pdf");
@@ -116,7 +116,7 @@ class AgentDocumentTest {
     final var agentDocument =
         new AgentDocument(
             AgentDocumentId.of(reference),
-            DocumentOrigin.event(TestDocuments.MESSAGE_ID),
+            AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID),
             reference);
 
     assertThat(agentDocument.fileName()).isNull();
@@ -129,7 +129,7 @@ class AgentDocumentTest {
     final var agentDocument =
         AgentDocument.of(
             new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null),
-            DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+            AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
 
     assertThat(agentDocument.fileName()).isEqualTo("a.pdf");
     assertThat(agentDocument.contentType()).isNull();
@@ -141,7 +141,7 @@ class AgentDocumentTest {
     final var agentDocument =
         AgentDocument.of(
             new InlineDocument("hello", "a.txt", "text/plain"),
-            DocumentOrigin.event(TestDocuments.MESSAGE_ID));
+            AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
     assertThat(agentDocument.fileName()).isEqualTo("a.txt");
     assertThat(agentDocument.contentType()).isEqualTo("text/plain");
@@ -153,7 +153,7 @@ class AgentDocumentTest {
     assertThatThrownBy(() ->
             AgentDocument.of(
                 documentOf(new DocumentReference() {}),
-                DocumentOrigin.event(TestDocuments.MESSAGE_ID)))
+                AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID)))
         .isInstanceOf(UnsupportedDocumentReferenceException.class);
   }
 
@@ -175,7 +175,7 @@ class AgentDocumentTest {
                 Map.of("count", 3, "ratio", 0.5, "owner", "alice")));
 
     final var agentDocument =
-        AgentDocument.of(documentOf(reference), DocumentOrigin.toolCall("search", "call-1"));
+        AgentDocument.of(documentOf(reference), AgentDocumentOrigin.toolCall("search", "call-1"));
     final var read =
         objectMapper.readValue(objectMapper.writeValueAsString(agentDocument), AgentDocument.class);
 
@@ -207,7 +207,7 @@ class AgentDocumentTest {
                         null,
                         null,
                         null))),
-            DocumentOrigin.toolCall("search", "call-1"));
+            AgentDocumentOrigin.toolCall("search", "call-1"));
 
     final var json = objectMapper.readTree(objectMapper.writeValueAsString(agentDocument));
 
@@ -230,15 +230,15 @@ class AgentDocumentTest {
     final var camundaWithoutDetails =
         AgentDocument.of(
             documentOf(new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null)),
-            DocumentOrigin.event(TestDocuments.MESSAGE_ID));
+            AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
     final var externalWithoutName =
         AgentDocument.of(
             documentOf(new ExternalDocumentReferenceModel("https://x/y", null)),
-            DocumentOrigin.event(TestDocuments.MESSAGE_ID));
+            AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
     final var inlineWithoutDetails =
         AgentDocument.of(
             documentOf(new InlineDocumentReferenceModel("aGVsbG8=", null, null)),
-            DocumentOrigin.event(TestDocuments.MESSAGE_ID));
+            AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
     for (final var agentDocument :
         List.of(camundaWithoutDetails, externalWithoutName, inlineWithoutDetails)) {
@@ -291,7 +291,8 @@ class AgentDocumentTest {
   @Test
   void originOfAnEventHasOnlyTheType() throws JsonProcessingException {
     final var agentDocument =
-        AgentDocument.of(camundaDocument("hello"), DocumentOrigin.event(TestDocuments.MESSAGE_ID));
+        AgentDocument.of(
+            camundaDocument("hello"), AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
     final JsonNode json = objectMapper.readTree(objectMapper.writeValueAsString(agentDocument));
 
@@ -310,13 +311,13 @@ class AgentDocumentTest {
     final var agentDocument = objectMapper.readValue(json, AgentDocument.class);
 
     assertThat(agentDocument.id()).isEqualTo(AgentDocumentId.of("d1"));
-    assertThat(agentDocument.origin()).isEqualTo(DocumentOrigin.toolCall("t", "c"));
+    assertThat(agentDocument.origin()).isEqualTo(AgentDocumentOrigin.toolCall("t", "c"));
     assertThat(agentDocument.fileName()).isEqualTo("y.txt");
   }
 
   @Test
   void serializedDocumentsStayWithinTheirSizeBudget() throws JsonProcessingException {
-    final var origin = DocumentOrigin.toolCall("Search_Tool", "call_0123456789abcdef");
+    final var origin = AgentDocumentOrigin.toolCall("Search_Tool", "call_0123456789abcdef");
     final var camunda = AgentDocument.of(camundaDocument("hello"), origin);
     final var external =
         AgentDocument.of(

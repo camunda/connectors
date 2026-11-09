@@ -14,7 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -32,8 +32,8 @@ class TurnInputTest {
         new TurnInput(
             List.of(userMessage("hi")),
             List.of(
-                AgentDocument.of(first, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
-                AgentDocument.of(second, DocumentOrigin.toolCall("search", "call-1"))));
+                AgentDocument.of(first, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
+                AgentDocument.of(second, AgentDocumentOrigin.toolCall("search", "call-1"))));
 
     final var applied = input.applyTo(CONTEXT);
 
@@ -59,12 +59,14 @@ class TurnInputTest {
         new TurnInput(
                 List.of(userMessage("a")),
                 List.of(
-                    AgentDocument.of(first, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))))
+                    AgentDocument.of(
+                        first, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))))
             .followedBy(
                 new TurnInput(
                     List.of(userMessage("b")),
                     List.of(
-                        AgentDocument.of(second, DocumentOrigin.event(TestDocuments.MESSAGE_ID)))));
+                        AgentDocument.of(
+                            second, AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID)))));
 
     assertThat(input.messages()).hasSize(2);
     assertThat(input.documents())

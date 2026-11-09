@@ -67,8 +67,9 @@ class AgentDocumentsTest {
         AgentDocuments.empty()
             .register(
                 List.of(
-                    AgentDocument.of(first, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
-                    AgentDocument.of(second, DocumentOrigin.toolCall("search", "call-1"))));
+                    AgentDocument.of(
+                        first, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
+                    AgentDocument.of(second, AgentDocumentOrigin.toolCall("search", "call-1"))));
 
     assertThat(documents.all())
         .extracting(AgentDocument::id)
@@ -77,7 +78,7 @@ class AgentDocumentsTest {
         .hasValueSatisfying(found -> {
           assertThat(found.fileName()).isEqualTo("two.txt");
           assertThat(found.contentType()).isEqualTo("text/plain");
-          assertThat(found.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
+          assertThat(found.origin()).isEqualTo(AgentDocumentOrigin.toolCall("search", "call-1"));
         });
   }
 
@@ -88,8 +89,8 @@ class AgentDocumentsTest {
 
     final var documents =
         AgentDocuments.empty()
-            .register(first, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
-            .register(second, DocumentOrigin.event(TestDocuments.MESSAGE_ID));
+            .register(first, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
+            .register(second, AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
     assertThat(documents.all())
         .extracting(AgentDocument::id)
@@ -101,10 +102,11 @@ class AgentDocumentsTest {
     final var batch =
         List.of(
             AgentDocument.of(
-                document("one", "one.txt"), DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
+                document("one", "one.txt"),
+                AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
             AgentDocument.of(
                 inline("x".repeat((int) MAX_INLINE_BYTES + 1), "big.png"),
-                DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
+                AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
 
     assertThatThrownBy(() -> AgentDocuments.empty().register(batch))
         .isInstanceOf(InlineDocumentTooLargeException.class)
@@ -121,7 +123,8 @@ class AgentDocumentsTest {
     final var documents =
         AgentDocuments.empty()
             .register(
-                inline(content, "limit.txt"), DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+                inline(content, "limit.txt"),
+                AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
 
     assertThat(documents.all()).hasSize(1);
   }
@@ -132,7 +135,7 @@ class AgentDocumentsTest {
 
     assertThatThrownBy(() ->
             AgentDocuments.empty()
-                .register(tooLarge, DocumentOrigin.event(TestDocuments.MESSAGE_ID)))
+                .register(tooLarge, AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID)))
         .isInstanceOf(InlineDocumentTooLargeException.class)
         .hasMessageContaining("'" + AgentDocumentId.of(tooLarge) + "'");
   }
@@ -153,8 +156,8 @@ class AgentDocumentsTest {
 
     final var documents =
         AgentDocuments.empty()
-            .register(camunda, DocumentOrigin.event(TestDocuments.MESSAGE_ID))
-            .register(external, DocumentOrigin.event(TestDocuments.MESSAGE_ID));
+            .register(camunda, AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID))
+            .register(external, AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
     assertThat(documents.all())
         .extracting(AgentDocument::id)
@@ -167,25 +170,27 @@ class AgentDocumentsTest {
 
     final var documents =
         AgentDocuments.empty()
-            .register(doc, DocumentOrigin.toolCall("search", "call-1"))
+            .register(doc, AgentDocumentOrigin.toolCall("search", "call-1"))
             .register(
                 List.of(
-                    AgentDocument.of(doc, DocumentOrigin.toolCall("other", "call-2")),
-                    AgentDocument.of(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
+                    AgentDocument.of(doc, AgentDocumentOrigin.toolCall("other", "call-2")),
+                    AgentDocument.of(
+                        doc, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
 
     assertThat(documents.all()).hasSize(1);
     assertThat(documents.find(AgentDocumentId.of(doc)))
         .hasValueSatisfying(found ->
-            assertThat(found.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1")));
+            assertThat(found.origin()).isEqualTo(AgentDocumentOrigin.toolCall("search", "call-1")));
   }
 
   @Test
   void registeringKnownDocumentsReturnsTheSameInstance() {
     final var doc = document("one", "one.txt");
     final var documents =
-        AgentDocuments.empty().register(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+        AgentDocuments.empty()
+            .register(doc, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
 
-    assertThat(documents.register(doc, DocumentOrigin.toolCall("t", "c"))).isSameAs(documents);
+    assertThat(documents.register(doc, AgentDocumentOrigin.toolCall("t", "c"))).isSameAs(documents);
     assertThat(documents.register(List.of())).isSameAs(documents);
   }
 
@@ -199,13 +204,13 @@ class AgentDocumentsTest {
             List.of(
                 new AgentDocument(
                     AgentDocumentId.of(other),
-                    DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
+                    AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
                     AgentDocument.of(
-                            registered, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
+                            registered, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
                         .reference())));
 
-    assertThatThrownBy(() -> documents.register(other, DocumentOrigin.toolCall("t", "c")))
-        .isInstanceOf(DocumentIdCollisionException.class)
+    assertThatThrownBy(() -> documents.register(other, AgentDocumentOrigin.toolCall("t", "c")))
+        .isInstanceOf(AgentDocumentIdCollisionException.class)
         .hasMessageContaining("'" + AgentDocumentId.of(other) + "'")
         .hasMessageContaining("two different documents");
   }
@@ -216,14 +221,14 @@ class AgentDocumentsTest {
     final var second = document("two", "two.txt");
 
     // a real id collision needs a hash collision, so the second document gets the id of the first
-    final var origin = DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID);
+    final var origin = AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID);
     final var firstDocument = AgentDocument.of(first, origin);
     final var secondWithTheFirstId =
         new AgentDocument(firstDocument.id(), origin, AgentDocument.of(second, origin).reference());
 
     assertThatThrownBy(
             () -> AgentDocuments.empty().register(List.of(firstDocument, secondWithTheFirstId)))
-        .isInstanceOf(DocumentIdCollisionException.class)
+        .isInstanceOf(AgentDocumentIdCollisionException.class)
         .hasMessageContaining("'" + firstDocument.id() + "'");
   }
 
@@ -231,17 +236,18 @@ class AgentDocumentsTest {
   void ofKeepsTheFirstDocumentOfAnId() {
     final var one =
         AgentDocument.of(
-            document("one", "one.txt"), DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+            document("one", "one.txt"), AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var duplicate =
         new AgentDocument(
             one.id(),
-            DocumentOrigin.event(TestDocuments.MESSAGE_ID),
+            AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID),
             AgentDocument.of(
-                    document("two", "two.txt"), DocumentOrigin.event(TestDocuments.MESSAGE_ID))
+                    document("two", "two.txt"), AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID))
                 .reference());
     final var other =
         AgentDocument.of(
-            document("three", "three.txt"), DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+            document("three", "three.txt"),
+            AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
 
     assertThat(AgentDocuments.of(List.of(one, duplicate, other)).all()).containsExactly(one, other);
   }
@@ -252,16 +258,16 @@ class AgentDocumentsTest {
 
     assertThat(
             AgentDocuments.empty()
-                .register(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
+                .register(doc, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
         .isEqualTo(
             AgentDocuments.empty()
-                .register(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
+                .register(doc, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
         .hasSameHashCodeAs(
             AgentDocuments.empty()
-                .register(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
+                .register(doc, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
     assertThat(
             AgentDocuments.empty()
-                .register(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
+                .register(doc, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
         .isNotEqualTo(AgentDocuments.empty());
   }
 
@@ -270,8 +276,10 @@ class AgentDocumentsTest {
     final var documents =
         AgentDocuments.empty()
             .register(
-                document("one", "one.txt"), DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
-            .register(inline("aGVsbG8=", "a.txt"), DocumentOrigin.toolCall("search", "call-1"));
+                document("one", "one.txt"),
+                AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
+            .register(
+                inline("aGVsbG8=", "a.txt"), AgentDocumentOrigin.toolCall("search", "call-1"));
 
     final var json = objectMapper.writeValueAsString(documents);
 

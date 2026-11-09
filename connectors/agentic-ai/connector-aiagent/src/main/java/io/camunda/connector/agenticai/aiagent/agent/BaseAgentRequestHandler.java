@@ -36,7 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentIdCollisionException;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentIdCollisionException;
 import io.camunda.connector.agenticai.aiagent.model.document.InlineDocumentTooLargeException;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -177,7 +177,7 @@ public abstract class BaseAgentRequestHandler<
               store);
         }
       };
-    } catch (DocumentIdCollisionException e) {
+    } catch (AgentDocumentIdCollisionException e) {
       throw new ConnectorException(
           AgentErrorCodes.ERROR_CODE_DOCUMENT_ID_COLLISION, e.getMessage(), e);
     } catch (InlineDocumentTooLargeException e) {

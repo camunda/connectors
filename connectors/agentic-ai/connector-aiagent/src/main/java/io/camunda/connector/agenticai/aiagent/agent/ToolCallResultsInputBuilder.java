@@ -11,8 +11,8 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -63,7 +63,7 @@ public class ToolCallResultsInputBuilder {
             .toList();
     final var documents = new ArrayList<AgentDocument>();
     for (final var entry : entries) {
-      final var origin = DocumentOrigin.toolCall(entry.result().name(), entry.result().id());
+      final var origin = AgentDocumentOrigin.toolCall(entry.result().name(), entry.result().id());
       entry.documents().forEach(document -> documents.add(AgentDocument.of(document, origin)));
     }
     return new TurnInput(

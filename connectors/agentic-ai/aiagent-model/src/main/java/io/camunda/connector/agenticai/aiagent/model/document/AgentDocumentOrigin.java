@@ -20,20 +20,20 @@ import org.jspecify.annotations.Nullable;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-  @JsonSubTypes.Type(value = DocumentOrigin.UserMessage.class, name = "user_message"),
-  @JsonSubTypes.Type(value = DocumentOrigin.Event.class, name = "event"),
-  @JsonSubTypes.Type(value = DocumentOrigin.ToolCall.class, name = "tool_call")
+  @JsonSubTypes.Type(value = AgentDocumentOrigin.UserMessage.class, name = "user_message"),
+  @JsonSubTypes.Type(value = AgentDocumentOrigin.Event.class, name = "event"),
+  @JsonSubTypes.Type(value = AgentDocumentOrigin.ToolCall.class, name = "tool_call")
 })
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public sealed interface DocumentOrigin {
+public sealed interface AgentDocumentOrigin {
 
   /**
    * The document is part of the user prompt.
    *
    * @param messageId the id of the user message that holds the document
    */
-  record UserMessage(MessageId messageId) implements DocumentOrigin {
+  record UserMessage(MessageId messageId) implements AgentDocumentOrigin {
     public UserMessage {
       Objects.requireNonNull(messageId, "messageId must not be null");
     }
@@ -44,7 +44,7 @@ public sealed interface DocumentOrigin {
    *
    * @param messageId the id of the user message of the event that holds the document
    */
-  record Event(MessageId messageId) implements DocumentOrigin {
+  record Event(MessageId messageId) implements AgentDocumentOrigin {
     public Event {
       Objects.requireNonNull(messageId, "messageId must not be null");
     }
@@ -57,17 +57,17 @@ public sealed interface DocumentOrigin {
    * @param toolCallId the id of the tool call that returned the document
    */
   record ToolCall(@Nullable String toolName, @Nullable String toolCallId)
-      implements DocumentOrigin {}
+      implements AgentDocumentOrigin {}
 
-  static DocumentOrigin userMessage(MessageId messageId) {
+  static AgentDocumentOrigin userMessage(MessageId messageId) {
     return new UserMessage(messageId);
   }
 
-  static DocumentOrigin event(MessageId messageId) {
+  static AgentDocumentOrigin event(MessageId messageId) {
     return new Event(messageId);
   }
 
-  static DocumentOrigin toolCall(@Nullable String toolName, @Nullable String toolCallId) {
+  static AgentDocumentOrigin toolCall(@Nullable String toolName, @Nullable String toolCallId) {
     return new ToolCall(toolName, toolCallId);
   }
 }

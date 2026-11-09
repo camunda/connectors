@@ -47,7 +47,7 @@ import org.jspecify.annotations.Nullable;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record AgentDocument(
-    AgentDocumentId id, DocumentOrigin origin, DocumentReferenceModel reference) {
+    AgentDocumentId id, AgentDocumentOrigin origin, DocumentReferenceModel reference) {
 
   public AgentDocument {
     Objects.requireNonNull(id, "id must not be null");
@@ -62,7 +62,7 @@ public record AgentDocument(
    * @throws UnsupportedDocumentReferenceException if the reference type of the document is not
    *     supported
    */
-  public static AgentDocument of(Document document, DocumentOrigin origin) {
+  public static AgentDocument of(Document document, AgentDocumentOrigin origin) {
     final var reference = document.reference();
     final var id = AgentDocumentId.of(reference);
     return new AgentDocument(id, origin, toModel(reference));

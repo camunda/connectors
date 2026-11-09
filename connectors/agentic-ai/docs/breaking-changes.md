@@ -315,7 +315,7 @@ factory of the job.
 - Removed: `aiagent.document.AgentDocumentHandle` (the earlier class of the same name, see the
   [module split](#module-split), which derived the id). Derive the id of a document with `AgentDocumentId.of(Document)` or
   `AgentDocumentId.of(DocumentReference)`; the id has the format described above.
-- New in the libraries: the persisted document state (`AgentDocuments`, `AgentDocument`, the sealed `DocumentOrigin`,
+- New in the libraries: the persisted document state (`AgentDocuments`, `AgentDocument`, the sealed `AgentDocumentOrigin`,
   persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
