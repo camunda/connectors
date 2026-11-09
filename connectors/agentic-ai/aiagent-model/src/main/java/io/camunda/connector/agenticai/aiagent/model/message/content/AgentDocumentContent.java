@@ -8,9 +8,9 @@ package io.camunda.connector.agenticai.aiagent.model.message.content;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
  * The content for the model comes from the agent and its delivery, never from a block a tool
  * authors. A document the agent has not seen before is a {@link DocumentContent}.
  *
- * <p>The model sees the block as the {@link DocumentHandle} of the document, e.g.:
+ * <p>The model sees the block as the {@link AgentDocumentHandle} of the document, e.g.:
  *
  * <pre>{@code
  * {"type":"camunda.agenticai.document","id":"doc_3f9a1c0b27de","fileName":"report.pdf","contentType":"application/pdf","size":48213}

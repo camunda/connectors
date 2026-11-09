@@ -96,7 +96,7 @@ dependencies. A custom runtime that runs all agentic AI connectors, like the pre
 | `aiagent.model.request.v2.*`                                                 | `aiagent.request.v2.*`                         |
 | `aiagent.model`: `AgentConversation`, `AgentConversationTurn`, `TurnReconstructor`, `PreviousConversation`, `AgentInput` | `aiagent.conversation.*` |
 | `aiagent.model`: `AgentResponse`, `AgentSubProcessResponse`, `AgentTaskExecutionContext`, `AgentSubProcessExecutionContext` | `aiagent.agent.*` |
-| `aiagent.model.document.DocumentHandle`, `aiagent.model.message.DocumentReferenceXmlTag` | `aiagent.document.*`               |
+| `aiagent.model.document.AgentDocumentHandle`, `aiagent.model.message.DocumentReferenceXmlTag` | `aiagent.document.*`               |
 | `aiagent.model.tool.ToolCallProcessVariable`                                 | `aiagent.tool.ToolCallProcessVariable`         |
 | `aiagent.model.versioning.*`                                                 | `aiagent.memory.versioning.*`                  |
 | `aiagent.util.JacksonExceptionMessageExtractor`                              | `common.json.JacksonExceptionMessageExtractor` |
@@ -291,7 +291,7 @@ factory of the job.
   rejection of the tool calls of an assistant message once, when it receives the message. `ToolCall.resultSource()`
   (`PROCESS`, `RUNTIME` or `REJECTED`) and `ToolCall.isLocal()` derive who produces the tool call result; neither is
   written to JSON.
-- The sealed `Content` interface permits `AgentDocumentContent` (content type `agentDocument`). A `switch` over
+- The sealed `Content` interface permits `AgentDocumentContent` (content type `agent_document`). A `switch` over
   `Content` must handle it. A custom chat model provider never receives it: the agent expands it before the request is
   built.
 - For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
@@ -303,19 +303,19 @@ factory of the job.
   identity of the document (the store and the id in the store of a Camunda document, the URL of an external document, the
   content of an inline document), so it is no longer the id of the document in its store.
   `AgentDocumentContent` holds the `AgentDocumentId`, the `delivery` and the content `metadata`; the file name, content
-  type and size the model reads are those of the agent document of the id, and the `DocumentHandle` (JSON, see below) is built from it.
+  type and size the model reads are those of the agent document of the id, and the `AgentDocumentHandle` (JSON, see below) is built from it.
   `DocumentContent` stays the content of a new document;
   `AgentDocumentContent` is the persisted form of a document the agent knows.
-- New in the model: `aiagent.model.document.DocumentHandle`, the JSON object the model reads for a document of an agent
+- New in the model: `aiagent.model.document.AgentDocumentHandle`, the JSON object the model reads for a document of an agent
   instance with the `documents` feature, `{"type":"camunda.agenticai.document","id":"doc_…","fileName":…,"contentType":…,"size":…}`
   (the keys in this order, absent values omitted, no origin). It replaces the XML tag `<doc id="…" … />` for these
   instances; instances without the feature keep the XML tag. A custom `ChatModel` sees the handle as the text of a
   `TextContent`.
-- Removed: `aiagent.document.DocumentHandle` (the earlier class of the same name, see the
+- Removed: `aiagent.document.AgentDocumentHandle` (the earlier class of the same name, see the
   [module split](#module-split), which derived the id). Derive the id of a document with `AgentDocumentId.of(Document)` or
   `AgentDocumentId.of(DocumentReference)`; the id has the format described above.
 - New in the libraries: the persisted document state (`AgentDocuments`, `AgentDocument`, the sealed `DocumentOrigin`,
-  persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`, and the sealed `DocumentHandling` of an
+  persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
   `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
@@ -328,7 +328,7 @@ factory of the job.
   SHA-256 over a JSON serialization of the configuration. Every running agent instance, also one created before 8.11, writes
   one additional `CONFIGURATION` history item on its first job after the upgrade.
 - `AgentContext` gains `features` and `documents` (the agent documents), and the conversation of an agent instance with
-  the `documents` feature can contain `agentDocument` content blocks. There is no schema version bump, and a missing
+  the `documents` feature can contain `agent_document` content blocks. There is no schema version bump, and a missing
   field binds to its empty value, so state written by 8.10 loads unchanged. An 8.10 connector runtime ignores the new
   fields and drops them on its next write.
 - A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
@@ -342,7 +342,7 @@ factory of the job.
   content block (serializing `Content` with Jackson keeps it). What a block stands for is in the agent documents of the agent
   context, not in the store, so code that rewrites the agent context must keep `documents`.
 - Rolling back to 8.10 after 8.11 wrote the conversation of an agent instance with the `documents` feature is not
-  supported: an 8.10 runtime fails to read a conversation that contains an `agentDocument` block (an unknown content
+  supported: an 8.10 runtime fails to read a conversation that contains an `agent_document` block (an unknown content
   type).
 - **Mixed worker versions affect only a call of a runtime tool and a rejected call.** The JSON of every other tool call
   is unchanged, so an agent instance that calls only tools of the process runs on any worker. A connector runtime that

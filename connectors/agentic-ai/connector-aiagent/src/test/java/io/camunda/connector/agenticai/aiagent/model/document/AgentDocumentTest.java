@@ -205,7 +205,7 @@ class AgentDocumentTest {
             objectMapper.readTree(
                 """
                 {"id":"doc_6d97d0f7b602",
-                 "origin":{"type":"TOOL_CALL","toolName":"search","toolCallId":"call-1"},
+                 "origin":{"type":"tool_call","toolName":"search","toolCallId":"call-1"},
                  "reference":{"camunda.document.type":"camunda","storeId":"in-memory",
                    "documentId":"doc-1","contentHash":"hash-1",
                    "metadata":{"contentType":"application/pdf","expiresAt":"2030-01-02T03:04:05Z",
@@ -243,7 +243,7 @@ class AgentDocumentTest {
     final var camunda =
         objectMapper.readValue(
             """
-            {"id":"doc_6d97d0f7b602","origin":{"type":"USER_MESSAGE"},
+            {"id":"doc_6d97d0f7b602","origin":{"type":"user_message"},
              "reference":{"camunda.document.type":"camunda","storeId":"in-memory",
                "documentId":"doc-1","contentHash":"hash-1",
                "metadata":{"contentType":"application/pdf","size":5,"fileName":"report.pdf"}}}\
@@ -252,7 +252,7 @@ class AgentDocumentTest {
     final var external =
         objectMapper.readValue(
             """
-            {"id":"doc_54f786b4cd7b","origin":{"type":"EVENT"},
+            {"id":"doc_54f786b4cd7b","origin":{"type":"event"},
              "reference":{"camunda.document.type":"external",
                "url":"https://example.com/a.pdf?token=secret","name":"a.pdf"}}\
             """,
@@ -260,7 +260,7 @@ class AgentDocumentTest {
     final var inline =
         objectMapper.readValue(
             """
-            {"id":"doc_5cb567bbb1c9","origin":{"type":"TOOL_CALL","toolName":"t","toolCallId":"c"},
+            {"id":"doc_5cb567bbb1c9","origin":{"type":"tool_call","toolName":"t","toolCallId":"c"},
              "reference":{"camunda.document.type":"inline","content":"aGVsbG8=",
                "name":"a.txt","contentType":"text/plain"}}\
             """,
@@ -283,14 +283,14 @@ class AgentDocumentTest {
 
     final JsonNode json = objectMapper.readTree(objectMapper.writeValueAsString(agentDocument));
 
-    assertThat(json.get("origin").toString()).isEqualTo("{\"type\":\"EVENT\"}");
+    assertThat(json.get("origin").toString()).isEqualTo("{\"type\":\"event\"}");
   }
 
   @Test
   void unknownPropertiesAreIgnoredWhenReading() throws JsonProcessingException {
     final var json =
         """
-        {"id":"d1","future":true,"origin":{"type":"TOOL_CALL","toolName":"t","toolCallId":"c","future":1},
+        {"id":"d1","future":true,"origin":{"type":"tool_call","toolName":"t","toolCallId":"c","future":1},
          "reference":{"camunda.document.type":"external","url":"https://x/y","name":"y.txt"}}\
         """;
 

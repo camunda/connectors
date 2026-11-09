@@ -81,7 +81,7 @@ designer knows it up front.
 | **Document id**            | The stable identity of an agent document, derived from the document (`AgentDocumentId`).               |
 | **Document block**         | The content of a message that names an agent document by id and holds its delivery (`AgentDocumentContent`). |
 | **New document block**     | The content of a message that holds a live document of the connector SDK (`DocumentContent`).          |
-| **Handle**                 | The JSON object the model reads for a document: its type, id and what is known about it (`DocumentHandle`). |
+| **Handle**                 | The JSON object the model reads for a document: its type, id and what is known about it (`AgentDocumentHandle`). |
 | **Document handling**      | How an agent instance treats its documents: `Untracked` or `Tracked`, derived from the `documents` feature. |
 
 ### New and known documents

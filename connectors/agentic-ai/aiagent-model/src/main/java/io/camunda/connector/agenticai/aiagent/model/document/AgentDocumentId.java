@@ -25,7 +25,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The stable id of a document the agent knows. The id is the handle a document is addressed by in
- * the {@link DocumentHandle} the model reads, in the documents of the agent context and in the
+ * the {@link AgentDocumentHandle} the model reads, in the documents of the agent context and in the
  * arguments of a tool call. It is derived from the identity of the document, never the id the
  * document has in its store.
  *

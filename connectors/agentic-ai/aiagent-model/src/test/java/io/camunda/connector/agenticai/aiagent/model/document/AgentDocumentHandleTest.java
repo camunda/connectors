@@ -30,7 +30,7 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
-class DocumentHandleTest {
+class AgentDocumentHandleTest {
 
   private static final String ID = "doc_0123456789ab";
 
@@ -39,15 +39,15 @@ class DocumentHandleTest {
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
-  private String json(DocumentHandle handle) throws Exception {
+  private String json(AgentDocumentHandle handle) throws Exception {
     return objectMapper.writeValueAsString(handle);
   }
 
   @Test
   void writesAllFieldsInKeyOrderWithTheSizeAsANumber() throws Exception {
     final var handle =
-        new DocumentHandle(
-            DocumentHandle.TYPE,
+        new AgentDocumentHandle(
+            AgentDocumentHandle.TYPE,
             ID,
             "a.pdf",
             "application/pdf",
@@ -63,14 +63,15 @@ class DocumentHandleTest {
 
   @Test
   void writesTheIdOnly() throws Exception {
-    assertThat(json(DocumentHandle.of(AgentDocumentId.of(ID))))
+    assertThat(json(AgentDocumentHandle.of(AgentDocumentId.of(ID))))
         .isEqualTo("{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\"}");
   }
 
   @Test
   void escapesTheFileName() throws Exception {
     final var handle =
-        new DocumentHandle(DocumentHandle.TYPE, ID, "a \"b\" <c> \\ ä.txt", null, null, null);
+        new AgentDocumentHandle(
+            AgentDocumentHandle.TYPE, ID, "a \"b\" <c> \\ ä.txt", null, null, null);
 
     assertThat(json(handle))
         .isEqualTo(
@@ -80,7 +81,7 @@ class DocumentHandleTest {
 
   @Test
   void omitsBlankValuesAndKeepsASizeOfZero() throws Exception {
-    final var handle = new DocumentHandle(DocumentHandle.TYPE, ID, " ", "", 0L, "  ");
+    final var handle = new AgentDocumentHandle(AgentDocumentHandle.TYPE, ID, " ", "", 0L, "  ");
 
     assertThat(json(handle))
         .isEqualTo(
@@ -95,7 +96,7 @@ class DocumentHandleTest {
             DocumentOrigin.userMessage(),
             new InlineDocumentReferenceModel("hello", "a.txt", "text/plain"));
 
-    assertThat(json(DocumentHandle.of(document)))
+    assertThat(json(AgentDocumentHandle.of(document)))
         .isEqualTo(
             "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\","
                 + "\"fileName\":\"a.txt\",\"contentType\":\"text/plain\"}");
@@ -103,7 +104,7 @@ class DocumentHandleTest {
 
   @Test
   void rejectsAnotherType() {
-    assertThatThrownBy(() -> new DocumentHandle("other", ID, null, null, null, null))
+    assertThatThrownBy(() -> new AgentDocumentHandle("other", ID, null, null, null, null))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -113,7 +114,7 @@ class DocumentHandleTest {
 
   /** The text of the handle of the known document. */
   private static String text(Document document) {
-    return DocumentHandle.of(
+    return AgentDocumentHandle.of(
             agentDocumentsOf(document, DocumentOrigin.userMessage()), AgentDocumentId.of(document))
         .text();
   }
@@ -269,14 +270,15 @@ class DocumentHandleTest {
   @Test
   void theHandleHasNoOriginWhateverTheOriginOfTheDocument() {
     final var doc = camundaDocument("a.txt", "text/plain");
-    final var expected = DocumentHandle.of(doc).text();
+    final var expected = AgentDocumentHandle.of(doc).text();
 
     for (final var origin :
         List.of(
             DocumentOrigin.userMessage(),
             DocumentOrigin.event(),
             DocumentOrigin.toolCall("search", "call_1"))) {
-      assertThat(DocumentHandle.of(agentDocumentsOf(doc, origin), AgentDocumentId.of(doc)).text())
+      assertThat(
+              AgentDocumentHandle.of(agentDocumentsOf(doc, origin), AgentDocumentId.of(doc)).text())
           .isEqualTo(expected);
     }
   }
@@ -285,7 +287,7 @@ class DocumentHandleTest {
   void theSizeIsReadFromTheMetadataWithoutReadingTheDocument() {
     final var document = camundaDocumentWithSize(10L);
 
-    assertThat(DocumentHandle.of(document).text()).contains("\"size\":10");
+    assertThat(AgentDocumentHandle.of(document).text()).contains("\"size\":10");
 
     verify(document, atLeastOnce()).reference();
     verifyNoMoreInteractions(document);
@@ -314,7 +316,7 @@ class DocumentHandleTest {
             new InlineDocument("{\"a\":1}", "data.json", null));
 
     for (final var doc : documents) {
-      assertThat(text(doc)).as("%s", doc.reference()).isEqualTo(DocumentHandle.of(doc).text());
+      assertThat(text(doc)).as("%s", doc.reference()).isEqualTo(AgentDocumentHandle.of(doc).text());
     }
   }
 
@@ -323,14 +325,14 @@ class DocumentHandleTest {
     final var id = AgentDocumentId.of("doc_000000000000");
     final var expected = "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_000000000000\"}";
 
-    assertThat(DocumentHandle.of(AgentDocuments.empty(), id).text()).isEqualTo(expected);
-    assertThat(DocumentHandle.of(id).text()).isEqualTo(expected);
+    assertThat(AgentDocumentHandle.of(AgentDocuments.empty(), id).text()).isEqualTo(expected);
+    assertThat(AgentDocumentHandle.of(id).text()).isEqualTo(expected);
   }
 
   @Test
   void theTreeHasTheKeysOfTheTextInOrder() {
     final var doc = camundaDocumentWithSize(48213L);
-    final var tree = DocumentHandle.of(doc).tree();
+    final var tree = AgentDocumentHandle.of(doc).tree();
 
     assertThat(tree.isObject()).isTrue();
     assertThat(tree.fieldNames())

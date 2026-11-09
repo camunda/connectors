@@ -14,13 +14,13 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Where a document entered the conversation, as persisted in the agent documents. It is serialized
- * with the discriminator {@code type}: {@code USER_MESSAGE}, {@code EVENT} or {@code TOOL_CALL}.
+ * with the discriminator {@code type}: {@code user_message}, {@code event} or {@code tool_call}.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-  @JsonSubTypes.Type(value = DocumentOrigin.UserMessage.class, name = "USER_MESSAGE"),
-  @JsonSubTypes.Type(value = DocumentOrigin.Event.class, name = "EVENT"),
-  @JsonSubTypes.Type(value = DocumentOrigin.ToolCall.class, name = "TOOL_CALL")
+  @JsonSubTypes.Type(value = DocumentOrigin.UserMessage.class, name = "user_message"),
+  @JsonSubTypes.Type(value = DocumentOrigin.Event.class, name = "event"),
+  @JsonSubTypes.Type(value = DocumentOrigin.ToolCall.class, name = "tool_call")
 })
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)

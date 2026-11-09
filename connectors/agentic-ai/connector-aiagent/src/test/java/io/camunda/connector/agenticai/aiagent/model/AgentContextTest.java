@@ -247,12 +247,12 @@ class AgentContextTest {
             TestObjectMapperSupplier.INSTANCE.readTree(
                 """
                 [{"id":"doc_6d97d0f7b602",
-                  "origin":{"type":"TOOL_CALL","toolName":"search","toolCallId":"call-1"},
+                  "origin":{"type":"tool_call","toolName":"search","toolCallId":"call-1"},
                   "reference":{"camunda.document.type":"camunda","storeId":"in-memory",
                     "documentId":"doc-1","contentHash":"hash-1",
                     "metadata":{"contentType":"application/pdf","expiresAt":"2030-01-02T03:04:05Z",
                       "size":48213,"fileName":"report.pdf"}}},
-                 {"id":"doc_54f786b4cd7b","origin":{"type":"EVENT"},
+                 {"id":"doc_54f786b4cd7b","origin":{"type":"event"},
                   "reference":{"camunda.document.type":"external",
                     "url":"https://example.com/a.pdf?token=secret","name":"a.pdf"}}]\
                 """));

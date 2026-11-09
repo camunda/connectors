@@ -7,10 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.document;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -147,7 +147,7 @@ public final class DocumentExpander {
   }
 
   private static String handleText(AgentDocuments documents, AgentDocumentId id) {
-    return DocumentHandle.of(documents, id).text();
+    return AgentDocumentHandle.of(documents, id).text();
   }
 
   /**

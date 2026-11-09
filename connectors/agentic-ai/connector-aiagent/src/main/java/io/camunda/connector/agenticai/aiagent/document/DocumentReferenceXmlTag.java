@@ -28,7 +28,7 @@ import org.jspecify.annotations.Nullable;
  * so the model can correlate references in the tool result JSON with the actual document content
  * blocks 1:1 without inferring partial-id matches. Blank/null attributes are omitted. An agent
  * instance with the documents feature shows a document as its handle instead (see {@link
- * io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle}).
+ * io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle}).
  *
  * <p>Only {@link CamundaDocumentReferenceXmlTag} carries {@code contentType} and {@code fileName}:
  * Camunda references read their metadata in-memory from the document store on resolve, so surfacing

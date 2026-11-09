@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
@@ -414,7 +414,7 @@ public class AwsAgentCoreConversationMapper {
       case TextContent text -> text.text();
       case ObjectContent object -> contentToString(object.content());
       case DocumentContent document -> contentToString(document.document());
-      case AgentDocumentContent block -> DocumentHandle.of(block.id()).text();
+      case AgentDocumentContent block -> AgentDocumentHandle.of(block.id()).text();
       // preserve the opaque provider payload as its (best-effort) JSON representation; the
       // blob envelope carries the lossless structure regardless.
       case ReasoningContent reasoning ->

@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.api.document.Document;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -22,9 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Renders an object with every document at any depth replaced by its {@link DocumentHandle}, the
- * way the model reads the object of a tool result and of a user message, and reports the documents
- * it replaced.
+ * Renders an object with every document at any depth replaced by its {@link AgentDocumentHandle},
+ * the way the model reads the object of a tool result and of a user message, and reports the
+ * documents it replaced.
  */
 public final class ObjectHandleRenderer {
 
@@ -58,7 +58,7 @@ public final class ObjectHandleRenderer {
 
   /**
    * Renders the object with a {@link Document} at any depth as its handle object (see {@link
-   * DocumentHandle#tree()}), and returns the rendered tree with the documents it replaced.
+   * AgentDocumentHandle#tree()}), and returns the rendered tree with the documents it replaced.
    */
   public RenderedObject render(Object value) {
     final var documents = new ArrayList<Document>();
@@ -88,7 +88,7 @@ public final class ObjectHandleRenderer {
       if (collected != null) {
         collected.add(document);
       }
-      gen.writeTree(DocumentHandle.of(document).tree());
+      gen.writeTree(AgentDocumentHandle.of(document).tree());
     }
   }
 }

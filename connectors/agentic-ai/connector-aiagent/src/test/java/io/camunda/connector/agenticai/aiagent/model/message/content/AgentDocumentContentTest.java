@@ -60,7 +60,7 @@ class AgentDocumentContentTest {
 
     assertThat(serialized)
         .isEqualTo(
-            "{\"type\":\"agentDocument\",\"id\":\"doc-1\",\"delivery\":\"content\",\"metadata\":{\"k\":\"v\"}}");
+            "{\"type\":\"agent_document\",\"id\":\"doc-1\",\"delivery\":\"content\",\"metadata\":{\"k\":\"v\"}}");
     assertThat(objectMapper.readValue(serialized, Content.class)).isEqualTo(reference);
   }
 
@@ -73,9 +73,9 @@ class AgentDocumentContentTest {
     final var serialized = objectMapper.writeValueAsString(reference);
 
     assertThat(serialized)
-        .isEqualTo("{\"type\":\"agentDocument\",\"id\":\"doc-1\",\"delivery\":\"reference\"}");
+        .isEqualTo("{\"type\":\"agent_document\",\"id\":\"doc-1\",\"delivery\":\"reference\"}");
     assertThat(
-            objectMapper.readValue("{\"type\":\"agentDocument\",\"id\":\"doc-1\"}", Content.class))
+            objectMapper.readValue("{\"type\":\"agent_document\",\"id\":\"doc-1\"}", Content.class))
         .isEqualTo(reference);
   }
 

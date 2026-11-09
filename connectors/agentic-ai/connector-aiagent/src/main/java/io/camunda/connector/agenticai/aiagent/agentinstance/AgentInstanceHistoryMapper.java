@@ -20,8 +20,8 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -263,13 +263,13 @@ public class AgentInstanceHistoryMapper {
             case DocumentContent documentContent ->
                 addDocument(
                     blocks,
-                    DocumentHandle.of(documentContent.document()),
+                    AgentDocumentHandle.of(documentContent.document()),
                     documentContent.document(),
                     tracked);
             case AgentDocumentContent block ->
                 addDocument(
                     blocks,
-                    DocumentHandle.of(documents, block.id()),
+                    AgentDocumentHandle.of(documents, block.id()),
                     restorer.restore(documents, block.id()).orElse(null),
                     tracked);
             case ObjectContent objectContent -> addObject(blocks, objectContent, tracked);
@@ -286,7 +286,7 @@ public class AgentInstanceHistoryMapper {
 
   private void addDocument(
       List<AgentInstanceHistoryContent> blocks,
-      DocumentHandle handle,
+      AgentDocumentHandle handle,
       @Nullable Document document,
       DocumentHandling documentHandling) {
     blocks.add(objectHistoryContent(handle.tree()));
@@ -335,7 +335,8 @@ public class AgentInstanceHistoryMapper {
       case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
       case DocumentContent documentContent ->
           documentHistoryContent(documentContent, documentHandling);
-      case AgentDocumentContent block -> objectHistoryContent(DocumentHandle.of(block.id()).tree());
+      case AgentDocumentContent block ->
+          objectHistoryContent(AgentDocumentHandle.of(block.id()).tree());
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);

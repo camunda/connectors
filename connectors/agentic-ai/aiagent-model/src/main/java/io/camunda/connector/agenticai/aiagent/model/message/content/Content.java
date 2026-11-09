@@ -14,7 +14,7 @@ import java.util.Map;
 @JsonSubTypes({
   @JsonSubTypes.Type(value = TextContent.class, name = "text"),
   @JsonSubTypes.Type(value = DocumentContent.class, name = "document"),
-  @JsonSubTypes.Type(value = AgentDocumentContent.class, name = "agentDocument"),
+  @JsonSubTypes.Type(value = AgentDocumentContent.class, name = "agent_document"),
   @JsonSubTypes.Type(value = ObjectContent.class, name = "object"),
   @JsonSubTypes.Type(value = ReasoningContent.class, name = "reasoning"),
   @JsonSubTypes.Type(value = ProviderContent.class, name = "provider")

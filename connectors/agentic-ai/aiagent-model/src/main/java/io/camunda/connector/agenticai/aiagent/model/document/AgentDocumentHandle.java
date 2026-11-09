@@ -43,7 +43,7 @@ import org.jspecify.annotations.Nullable;
  */
 @JsonPropertyOrder({"type", "id", "fileName", "contentType", "size", "note"})
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public record DocumentHandle(
+public record AgentDocumentHandle(
     String type,
     String id,
     @Nullable String fileName,
@@ -56,7 +56,7 @@ public record DocumentHandle(
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  public DocumentHandle {
+  public AgentDocumentHandle {
     if (!TYPE.equals(type)) {
       throw new IllegalArgumentException("A document handle has the type '" + TYPE + "'");
     }
@@ -70,17 +70,17 @@ public record DocumentHandle(
    * The handle of the document with the given id, read from the known documents; the id only for a
    * document the agent does not know.
    */
-  public static DocumentHandle of(AgentDocuments documents, AgentDocumentId id) {
-    return documents.find(id).map(DocumentHandle::of).orElseGet(() -> of(id));
+  public static AgentDocumentHandle of(AgentDocuments documents, AgentDocumentId id) {
+    return documents.find(id).map(AgentDocumentHandle::of).orElseGet(() -> of(id));
   }
 
   /** The handle of a document the agent does not know: the id only. */
-  public static DocumentHandle of(AgentDocumentId id) {
-    return new DocumentHandle(TYPE, id.value(), null, null, null, null);
+  public static AgentDocumentHandle of(AgentDocumentId id) {
+    return new AgentDocumentHandle(TYPE, id.value(), null, null, null, null);
   }
 
   /** The handle of a document known to the agent. */
-  public static DocumentHandle of(AgentDocument document) {
+  public static AgentDocumentHandle of(AgentDocument document) {
     return of(document.id(), AgentDocument.Descriptors.of(document.reference()));
   }
 
@@ -90,7 +90,7 @@ public record DocumentHandle(
    * @throws UnsupportedDocumentReferenceException if the reference type of the document is not
    *     supported
    */
-  public static DocumentHandle of(Document document) {
+  public static AgentDocumentHandle of(Document document) {
     return of(AgentDocumentId.of(document), AgentDocument.Descriptors.of(document.reference()));
   }
 
@@ -109,12 +109,12 @@ public record DocumentHandle(
   }
 
   /** This handle with the given note. */
-  public DocumentHandle withNote(@Nullable String note) {
-    return new DocumentHandle(type, id, fileName, contentType, size, note);
+  public AgentDocumentHandle withNote(@Nullable String note) {
+    return new AgentDocumentHandle(type, id, fileName, contentType, size, note);
   }
 
-  private static DocumentHandle of(AgentDocumentId id, AgentDocument.Descriptors descriptors) {
-    return new DocumentHandle(
+  private static AgentDocumentHandle of(AgentDocumentId id, AgentDocument.Descriptors descriptors) {
+    return new AgentDocumentHandle(
         TYPE,
         id.value(),
         descriptors.fileName(),
