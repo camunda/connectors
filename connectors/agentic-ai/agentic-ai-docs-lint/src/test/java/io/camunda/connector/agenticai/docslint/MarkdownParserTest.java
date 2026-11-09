@@ -122,6 +122,14 @@ class MarkdownParserTest {
   }
 
   @Test
+  void aGeneratedAnchorThatIsTakenGetsTheNextFreeSuffix() {
+    assertThat(doc("# Title", "# Title", "# Title-1").anchors())
+        .containsExactly("title", "title-1", "title-1-1");
+    assertThat(doc("# A", "# A", "# A", "# A-1").anchors())
+        .containsExactly("a", "a-1", "a-2", "a-1-1");
+  }
+
+  @Test
   void anchorsDropOnlyEmphasisUnderscoresOutsideCodeSpans() {
     final Doc doc =
         doc(
