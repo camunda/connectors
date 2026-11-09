@@ -258,6 +258,8 @@ public class AgentInstanceHistoryMapper {
         final var blocks = new ArrayList<AgentInstanceHistoryContent>();
         for (final var content : contents) {
           switch (content) {
+            case TextContent textContent ->
+                blocks.add(toHistoryContent(textContent, documentHandling));
             case DocumentContent documentContent ->
                 addDocument(
                     blocks,
@@ -271,8 +273,6 @@ public class AgentInstanceHistoryMapper {
                     restorer.restore(documents, block.id()).orElse(null),
                     tracked);
             case ObjectContent objectContent -> addObject(blocks, objectContent, tracked);
-            case TextContent textContent ->
-                blocks.add(toHistoryContent(textContent, documentHandling));
             case ReasoningContent reasoningContent ->
                 blocks.add(toHistoryContent(reasoningContent, documentHandling));
             case ProviderContent providerContent ->
@@ -333,10 +333,10 @@ public class AgentInstanceHistoryMapper {
       Content content, DocumentHandling documentHandling) {
     return switch (content) {
       case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
-      case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent ->
           documentHistoryContent(documentContent, documentHandling);
       case AgentDocumentContent block -> objectHistoryContent(DocumentHandle.of(block.id()).tree());
+      case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };
