@@ -309,8 +309,6 @@ the SDK reference that a tool received.
 
 ## Follow-up
 
-* **A content hierarchy for the providers.** Make the type system, not only the SPI contract, keep document blocks away
-  from the providers.
 * **`c8__list_documents`.** A built-in tool that lists the known documents when the model needs them.
 * **A switch for the built-in document tools.** A setting of the agent configuration, frozen when the instance starts.
 * **Per-tool document scoping.** The documents that each tool can receive.
@@ -323,9 +321,3 @@ the SDK reference that a tool received.
 * **Removal of agent documents and a size budget.**
 * **Compaction.** It must keep the agent documents and decide what happens to delivered content.
 * **Ranges for `c8__load_document`.** Pages, lines or bytes.
-* **MCP and A2A tools that take documents.** This needs a mapping to the format of the remote side.
-* **A reference-only agent document for inline documents.**
-* **Content type detection** for documents without a content type.
-* **Expiry of a document in its store.** The agent must send an expired document as its handle with a note.
-* **Modeler and template support** for the delivery of a tool activity and for the `fromAi` type `document`.
-* **Other LLM connectors.** They receive the handle schema but have no agent documents to resolve a handle.
