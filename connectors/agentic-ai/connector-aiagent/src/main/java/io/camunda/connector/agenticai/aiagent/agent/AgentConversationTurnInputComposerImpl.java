@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.Objec
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
+import io.camunda.connector.agenticai.aiagent.conversation.AgentInput.UserPrompt;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -150,8 +151,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /** The user message of the user prompt and its documents, empty without user content. */
-  private TurnInput userPromptInput(
-      AgentInput.UserPrompt userPrompt, DocumentHandling documentHandling) {
+  private TurnInput userPromptInput(UserPrompt userPrompt, DocumentHandling documentHandling) {
 
     final var messageId = MessageUtil.generateId();
     final var content = new ArrayList<Content>();
