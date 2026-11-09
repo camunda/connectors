@@ -22,9 +22,11 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
+import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.BeforeEach;
@@ -523,6 +525,36 @@ class JsonSchemaElementModuleTest {
           assertThat(schema.additionalProperties()).isFalse();
         },
         false);
+  }
+
+  @Test
+  void readsAOneOfAsAnAnyOfOfTheSameAlternatives() throws Exception {
+    final var oneOf = documentUnion("oneOf");
+    final var anyOf = documentUnion("anyOf");
+
+    final var fromOneOf = objectMapper.convertValue(oneOf, JsonSchemaElement.class);
+    final var fromAnyOf = objectMapper.convertValue(anyOf, JsonSchemaElement.class);
+
+    assertThat(fromOneOf).isEqualTo(fromAnyOf);
+    JSONAssert.assertEquals(
+        objectMapper.writeValueAsString(fromAnyOf),
+        objectMapper.writeValueAsString(fromOneOf),
+        true);
+  }
+
+  /** An object schema with a union of text and a document under the given keyword. */
+  private static Map<String, Object> documentUnion(String keyword) {
+    return Map.of(
+        "type",
+        "object",
+        "properties",
+        Map.of(
+            "body",
+            Map.of(
+                "description",
+                "The body",
+                keyword,
+                List.of(Map.of("type", "string"), DocumentSchemas.document(null)))));
   }
 
   @Test

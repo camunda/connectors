@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstan
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_DESCRIPTION;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ENUM;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ITEMS;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ONEOF;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_REF;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_REQUIRED;
@@ -61,7 +62,9 @@ public class JsonSchemaElementDeserializer extends JsonDeserializer<JsonSchemaEl
       return createEnumSchema(node);
     }
 
-    if (node.has(PROPERTY_ANYOF)) {
+    // LangChain4j has no oneOf schema: a oneOf goes to the model as an anyOf of the same
+    // alternatives
+    if (node.has(PROPERTY_ANYOF) || node.has(PROPERTY_ONEOF)) {
       return createAnyOfSchema(node, objectMapper);
     }
 
@@ -196,16 +199,14 @@ public class JsonSchemaElementDeserializer extends JsonDeserializer<JsonSchemaEl
       builder.description(node.get(PROPERTY_DESCRIPTION).asText());
     }
 
-    if (node.has(PROPERTY_ANYOF)) {
-      ArrayNode itemsArray = (ArrayNode) node.get(PROPERTY_ANYOF);
-
-      List<JsonSchemaElement> items = new ArrayList<>();
-      for (JsonNode item : itemsArray) {
-        items.add(objectMapper.treeToValue(item, JsonSchemaElement.class));
-      }
-
-      builder.anyOf(items);
+    final var alternatives =
+        (ArrayNode)
+            (node.has(PROPERTY_ANYOF) ? node.get(PROPERTY_ANYOF) : node.get(PROPERTY_ONEOF));
+    List<JsonSchemaElement> items = new ArrayList<>();
+    for (JsonNode item : alternatives) {
+      items.add(objectMapper.treeToValue(item, JsonSchemaElement.class));
     }
+    builder.anyOf(items);
 
     return builder.build();
   }
