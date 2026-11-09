@@ -197,6 +197,11 @@ final class DocChecks {
     return base.resolve(path.replaceFirst("^/", "")).normalize();
   }
 
+  /** The GitHub source view, whose fragment is a line anchor such as {@code #L5}. */
+  private static boolean plainView(final URI uri) {
+    return uri.getRawQuery() != null && List.of(uri.getRawQuery().split("&")).contains("plain=1");
+  }
+
   private static Optional<Violation> link(final Doc doc, final Ref link, final DocTree tree) {
     final String text = link.text();
     final URI uri;
@@ -212,8 +217,7 @@ final class DocChecks {
               "percent-encode the character (a literal % is written %25)"));
     }
     final String path = uri.getPath();
-    final String anchor =
-        uri.getRawQuery() == null && uri.getFragment() != null ? uri.getFragment() : "";
+    final String anchor = uri.getFragment() == null || plainView(uri) ? "" : uri.getFragment();
     final Path target = path.isEmpty() ? doc.path() : resolve(doc.path(), path);
     if (target.startsWith("..")) {
       return Optional.of(
