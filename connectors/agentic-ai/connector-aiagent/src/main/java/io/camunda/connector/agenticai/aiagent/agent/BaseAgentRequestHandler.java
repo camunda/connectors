@@ -422,7 +422,8 @@ public abstract class BaseAgentRequestHandler<
             executionContext,
             CompositionResult.Ready.of(
                 conversation.persistedContext(),
-                conversation.documentIdsWithContent(),
+                // the model call reads the tool call result message of the batch as well
+                conversation.documentIdsWithContent(1),
                 ToolCallBatch.of(currentTurn.toolCalls())));
     final var nextConversation =
         conversation.nextRuntimeToolRound(input.messages(), input::applyTo);

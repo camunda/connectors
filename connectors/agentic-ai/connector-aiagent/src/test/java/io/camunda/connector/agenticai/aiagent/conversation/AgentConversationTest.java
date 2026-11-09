@@ -42,8 +42,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class AgentConversationTest {
 
@@ -757,8 +760,10 @@ class AgentConversationTest {
     assertThat(next.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());
   }
 
-  @Test
-  void documentIdsWithContent_followTheContextWindow() {
+  @ParameterizedTest
+  @CsvSource({"3, 0, true", "2, 0, false", "3, 1, false", "4, 1, true"})
+  void documentIdsWithContent_followTheContextWindowWithTheAddedMessages(
+      int windowSize, int addedMessages, boolean withContent) {
     var document = TestDocuments.createDocument("content", "a.txt");
     var userMessage =
         UserMessage.builder()
@@ -768,26 +773,25 @@ class AgentConversationTest {
                         .withDelivery(DocumentDelivery.CONTENT)))
             .build();
 
-    for (var windowSize : List.of(3, 2)) {
-      var conv =
-          AgentConversation.rehydrate(
-                  new AgentConfiguration(
-                      TEST_CHAT_MODEL,
-                      TEST_SYSTEM_PROMPT,
-                      null,
-                      new MemoryTemplateConfiguration(null, windowSize),
-                      null,
-                      null,
-                      null),
-                  BASE_CONTEXT,
-                  TurnReconstructor.reconstruct(List.of()),
-                  SYSTEM_MESSAGE,
-                  List.of(userMessage))
-              .ingest(assistantMessage("one"), AgentMetrics.empty());
+    var conv =
+        AgentConversation.rehydrate(
+                new AgentConfiguration(
+                    TEST_CHAT_MODEL,
+                    TEST_SYSTEM_PROMPT,
+                    null,
+                    new MemoryTemplateConfiguration(null, windowSize),
+                    null,
+                    null,
+                    null),
+                BASE_CONTEXT,
+                TurnReconstructor.reconstruct(List.of()),
+                SYSTEM_MESSAGE,
+                List.of(userMessage))
+            .ingest(assistantMessage("one"), AgentMetrics.empty());
 
-      // a window of 3 holds the system message, the user message and the assistant message
-      assertThat(conv.documentIdsWithContent().contains(AgentDocumentId.of(document)))
-          .isEqualTo(windowSize == 3);
-    }
+    // the system message, the user message, the assistant message and the added messages must fit
+    // into the window for the content of the user message to stay
+    assertThat(conv.documentIdsWithContent(addedMessages))
+        .isEqualTo(withContent ? Set.of(AgentDocumentId.of(document)) : Set.of());
   }
 }
