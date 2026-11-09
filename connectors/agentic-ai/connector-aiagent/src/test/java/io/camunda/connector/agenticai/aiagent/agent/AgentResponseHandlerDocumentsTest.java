@@ -39,6 +39,13 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -203,6 +210,54 @@ class AgentResponseHandlerDocumentsTest {
     assertThatThrownBy(() -> createResponse(conversation))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("'gone'");
+  }
+
+  @Test
+  void keepsTheCustomPropertiesOfAResponseDocumentAsDataWithTheMapperOfTheRuntime() {
+    // the mapper of the runtime reads documents and intrinsic functions in any object it converts
+    final var runtimeMapper =
+        new ObjectMapper()
+            .registerModule(
+                new JacksonModuleDocumentDeserializer(
+                    mock(DocumentFactory.class), new DisabledIntrinsicFunctionExecutor()));
+    final var handler =
+        new AgentResponseHandlerImpl(
+            runtimeMapper, gatewayToolHandlers, new DocumentParameterResolver());
+    final var withFunctionLikeProperty =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("data.txt")
+                    .customProperties(
+                        Map.of(
+                            "transform",
+                            Map.of("camunda.function.type", "base64", "params", List.of("x"))))
+                    .build());
+    final var agentDocument =
+        AgentDocument.of(
+            withFunctionLikeProperty, AgentDocumentOrigin.toolCall("search", "call-1"));
+    final var config =
+        new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
+    final var context =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .features(AgentFeatures.ofNewInstance())
+            .documents(AgentDocuments.empty().register(List.of(agentDocument)))
+            .responseDocuments(
+                List.of(new ResponseDocumentSelection("data", agentDocument.id(), null)))
+            .build();
+    final var conversation =
+        AgentConversation.rehydrate(
+                config, context, TurnReconstructor.reconstruct(List.of()), null, List.of())
+            .ingest(assistantMessage("done"), AgentMetrics.empty());
+
+    final var response = handler.createResponse(conversation);
+
+    assertThat(response.responseDocuments())
+        .containsExactly(
+            Map.entry(
+                "data", new ReturnedDocument(TestDocuments.referenceJson(agentDocument), null)));
   }
 
   /** The document reference in the JSON format it is persisted in. */
