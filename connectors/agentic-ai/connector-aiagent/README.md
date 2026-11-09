@@ -298,7 +298,7 @@ leading to the following result
 
 | Connector Info            |                                                                       |
 | ---                       | ---                                                                   |
-| Type                      | io.camunda.agenticai:aiagent:1                                                            |
-| Version                   | 13                                                         |
+| Type                      | io.camunda.agenticai:aiagent:task:2                                                            |
+| Version                   | 1                                                         |
 | Supported element types   |     |
 
