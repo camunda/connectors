@@ -124,11 +124,18 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               previousTurn.processToolCalls(),
               agentInput.toolCallResults(),
               interruptMissingToolCalls);
+      // the delivery is the one of the tool the model called: a result is correlated by its id and
+      // can come without a name
+      final var toolNamesByCallId =
+          previousTurn.processToolCalls().stream()
+              .collect(Collectors.toMap(ToolCall::id, ToolCall::name, (first, second) -> first));
       final var processEntries =
           processResults.arrivedResults().stream()
               .map(result ->
                   processEntry(
-                      result, documentHandling, documentDeliveryOf(agentContext, result.name())))
+                      result,
+                      documentHandling,
+                      documentDeliveryOf(agentContext, toolNamesByCallId.get(result.id()))))
               .toList();
       switch (documentHandling) {
         case DocumentHandling.Tracked ignored ->

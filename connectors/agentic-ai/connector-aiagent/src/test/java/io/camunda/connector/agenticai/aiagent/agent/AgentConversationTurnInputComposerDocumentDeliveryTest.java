@@ -251,9 +251,9 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
 
     final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), doc, doc));
 
+    // the second occurrence of the document is its block without content
     assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .filteredOn(AgentConversationTurnInputComposerDocumentDeliveryTest::isBlockWithContent)
-        .hasSize(1);
+        .containsExactly(textContent("Hello?"), block(doc, true), block(doc, false));
   }
 
   @Test
@@ -498,6 +498,23 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     assertThat(turn.documents())
         .extracting(AgentDocument::id)
         .containsExactly(AgentDocumentId.of(doc));
+  }
+
+  @Test
+  void toolResults_withoutAName_takeTheDeliveryOfTheToolThatTheModelCalled() {
+    final var doc = document("weather data", "text/plain", "weather.txt");
+
+    final var turn =
+        nextTurn(
+            composeToolResults(
+                contextWithTools(CONTENT_TOOL, REFERENCE_TOOL),
+                ToolCallResult.builder().id("abcdef").content(Map.of("file", doc)).build(),
+                dateTimeResult()));
+
+    assertThat(turn.messages()).hasSize(2);
+    assertThat(((UserMessage) turn.messages().get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE), block(doc, true));
   }
 
   @Test
