@@ -171,6 +171,20 @@ class DocChecksTest {
   }
 
   @Test
+  void aSchemeRelativeLinkIsExternalAndARootRelativeLinkIsNot() {
+    final Doc doc =
+        doc("one/docs/source.md", "# Source", "[a](//example.com/guide.md) [b](/guide.md)");
+
+    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+        .containsExactly(
+            """
+            connectors/agentic-ai/one/docs/source.md:2: link `/guide.md` points to a file that does not exist (resolved to `guide.md`)
+                why: the file was renamed, moved or deleted, or the path is wrong
+                fix: check the path against the file tree\
+            """);
+  }
+
+  @Test
   void relativeLinksThatResolveHaveNoFindings() throws IOException {
     write("one/docs/target.md", "# Target\n## Section\n");
     write("one/docs/a b+c.md", "# Spaced");

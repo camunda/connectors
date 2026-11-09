@@ -68,11 +68,16 @@ class MarkdownParserTest {
     final Doc doc =
         doc(
             "[a](a.md 'T') [b](b.md (T)) [c](<c d.md>) [![e](e.png)](f.md) [g](g(h).md)",
-            "[i](https://camunda.com) [m](mailto:a@b.c) `[j](j.md)`");
+            "[i](https://camunda.com) [m](mailto:a@b.c) `[j](j.md)`",
+            "[k](//example.com/k.md) ![l](//example.com/l.png) [n](/n.md) [o](#o)",
+            "",
+            "[p]: //example.com/p.md",
+            "[q]: /q.md");
 
     assertThat(texts(doc.links()))
-        .containsExactly("a.md", "b.md", "c d.md", "f.md", "e.png", "g(h).md");
-    assertThat(doc.links()).extracting(Ref::line).containsExactly(1, 1, 1, 1, 1, 1);
+        .containsExactly("a.md", "b.md", "c d.md", "f.md", "e.png", "g(h).md", "/n.md", "#o");
+    assertThat(doc.links()).extracting(Ref::line).containsExactly(1, 1, 1, 1, 1, 1, 3, 3);
+    assertThat(texts(doc.definitions())).containsExactly("/q.md");
   }
 
   @Test
