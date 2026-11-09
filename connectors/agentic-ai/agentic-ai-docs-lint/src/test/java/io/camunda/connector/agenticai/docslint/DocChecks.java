@@ -63,9 +63,13 @@ final class DocChecks {
                 .map(name -> unknownType(doc, span, name, index)));
   }
 
-  /** Each {@code Type#member} in a code span must name a member of a type of the code. */
+  /**
+   * Each {@code Type#member} in a code span must name a member of a type of the code. Whitespace
+   * around the {@code #}, such as a line break inside the span, is ignored.
+   */
   static Stream<Finding> members(final Doc doc, final JavaSourceIndex index) {
     return doc.codeSpans().stream()
+        .map(span -> new Ref(span.line(), span.text().replaceAll("\\s*#\\s*", "#")))
         .flatMap(span -> {
           final Matcher matcher = MEMBER_REFERENCE.matcher(span.text());
           return matcher.matches()

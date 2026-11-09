@@ -405,6 +405,42 @@ class DocChecksTest {
   }
 
   @Test
+  void aWrappedReferenceToAnExistingMemberHasNoFindings() {
+    final Doc doc = doc("one/docs/a.md", "`Service", "#run` `Service#", "run()` `Service  #  run`");
+
+    assertThat(DocChecks.members(doc, SOURCES)).isEmpty();
+  }
+
+  @Test
+  void aWrappedReferenceHasItsTypeNameChecked() {
+    final Doc doc = doc("one/docs/a.md", "`Service", "#run`", "`Missing", "#run`");
+
+    assertThat(messages(DocChecks.types(doc, SOURCES, Set.of())))
+        .containsExactly(
+            """
+            connectors/agentic-ai/one/docs/a.md:3: unknown type `Missing` in `Missing #run`
+                why: the code declares, imports or nests no type of this name, so the doc may name a type that was renamed or removed
+                fix: check the name against the code\
+            """);
+  }
+
+  @Test
+  void aWrappedReferenceToAMissingMemberIsReportedLikeTheUnwrappedForm() {
+    final Doc wrapped = doc("one/docs/a.md", "# A", "`Service", "#gone()`");
+    final Doc unwrapped = doc("one/docs/a.md", "# A", "`Service#gone()`");
+
+    assertThat(messages(DocChecks.members(wrapped, SOURCES)))
+        .containsExactly(
+            """
+            connectors/agentic-ai/one/docs/a.md:2: no such member `gone` on `a.Service`
+                why: the member was renamed or removed, or is spelled differently
+                fix: check the member against the code. Members, including those of supertypes of the repo: Service, api, field, inherited, run\
+            """);
+    assertThat(messages(DocChecks.members(wrapped, SOURCES)))
+        .isEqualTo(messages(DocChecks.members(unwrapped, SOURCES)));
+  }
+
+  @Test
   void aConstructorOfAnInterfaceIsReported() {
     final Doc doc = doc("one/docs/a.md", "`Api#Api`");
 
