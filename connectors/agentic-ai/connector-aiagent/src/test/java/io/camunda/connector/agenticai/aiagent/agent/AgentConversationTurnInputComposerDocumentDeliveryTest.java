@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.PROCESS
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -449,6 +450,8 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     // is as it was
     final var results = ((ToolCallResultMessage) turn.messages().getFirst()).results();
     assertThat(results.get(0).content()).hasSize(3);
+    assertThat(results.get(0).content().getFirst())
+        .isEqualTo(objectContent(Map.of("file", doc, "more", List.of(nested))));
     assertThat(results.get(0).content().subList(1, 3))
         .containsExactlyInAnyOrder(followsSentence(doc), followsSentence(nested));
     assertThat(results.get(1).content()).containsExactly(textContent("15:00"));
