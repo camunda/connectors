@@ -86,7 +86,8 @@ class MarkdownParserTest {
   void findsReferenceLinkTargetsAndSkipsFootnotes() {
     final Doc doc = doc("[a]: <a b.md>", "[b]: b.md \"T\"", "[^1]: a footnote");
 
-    assertThat(texts(doc.links())).containsExactly("a b.md", "b.md");
+    assertThat(texts(doc.definitions())).containsExactly("a b.md", "b.md");
+    assertThat(doc.links()).isEmpty();
   }
 
   @Test
@@ -179,11 +180,13 @@ class MarkdownParserTest {
 
   @Test
   void theCollectionsOfADocCannotBeChanged() {
-    final Doc doc = doc("# A", "[a](a.md)", "`Foo`", "```java", "```");
+    final Doc doc = doc("# A", "[a](a.md)", "[b]: b.md", "`Foo`", "```java", "```");
 
     assertThatThrownBy(() -> doc.headings().add(new Ref(9, "# B")))
         .isInstanceOf(UnsupportedOperationException.class);
     assertThatThrownBy(() -> doc.links().add(new Ref(9, "b.md")))
+        .isInstanceOf(UnsupportedOperationException.class);
+    assertThatThrownBy(() -> doc.definitions().add(new Ref(9, "c.md")))
         .isInstanceOf(UnsupportedOperationException.class);
     assertThatThrownBy(() -> doc.codeSpans().add(new Ref(9, "Bar")))
         .isInstanceOf(UnsupportedOperationException.class);
@@ -196,7 +199,8 @@ class MarkdownParserTest {
   @Test
   void aDocKeepsTheAnchorsInOrderAndIgnoresLaterChangesOfTheSource() {
     final Set<String> source = new LinkedHashSet<>(List.of("b", "a"));
-    final Doc doc = new Doc(Path.of("a.md"), List.of(), List.of(), List.of(), List.of(), source);
+    final Doc doc =
+        new Doc(Path.of("a.md"), List.of(), List.of(), List.of(), List.of(), List.of(), source);
     source.add("c");
 
     assertThat(doc.anchors()).containsExactly("b", "a");

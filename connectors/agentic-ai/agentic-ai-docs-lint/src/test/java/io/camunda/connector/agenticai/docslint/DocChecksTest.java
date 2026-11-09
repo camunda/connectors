@@ -117,6 +117,60 @@ class DocChecksTest {
   }
 
   @Test
+  void aDefinitionUnderDocsWithoutALinkDoesNotCountAsALink() throws IOException {
+    write(
+        "one/README.md", "# one\n\n## Purpose\n\n## Key types\n\n## Docs\n\n[topic]: docs/a.md\n");
+    write("one/docs/a.md", "# a");
+
+    assertThat(messages(DocChecks.readme(MODULE, new DocTree(root))))
+        .containsExactly(
+            """
+            connectors/agentic-ai/one/README.md:7: `## Docs` does not link `connectors/agentic-ai/one/docs/a.md`
+                why: the README lists every doc of the module, so a reader can find it
+                fix: add a link to the doc under `## Docs`\
+            """);
+  }
+
+  @Test
+  void aReferenceLinkUnderDocsCountsWhereverItsDefinitionIs() throws IOException {
+    write(
+        "one/README.md",
+        "# one\n\n## Purpose\n\n## Key types\n\n## Docs\n\n- [A][topic]\n\n## More\n\n[topic]: docs/a.md\n");
+    write("one/docs/a.md", "# a");
+
+    assertThat(DocChecks.readme(MODULE, new DocTree(root))).isEmpty();
+  }
+
+  @Test
+  void aReferenceLinkOutsideDocsDoesNotCountEvenWithItsDefinitionUnderDocs() throws IOException {
+    write(
+        "one/README.md",
+        "# one\n\n## Purpose\n\n[A][topic]\n\n## Key types\n\n## Docs\n\n[topic]: docs/a.md\n");
+    write("one/docs/a.md", "# a");
+
+    assertThat(messages(DocChecks.readme(MODULE, new DocTree(root))))
+        .containsExactly(
+            """
+            connectors/agentic-ai/one/README.md:9: `## Docs` does not link `connectors/agentic-ai/one/docs/a.md`
+                why: the README lists every doc of the module, so a reader can find it
+                fix: add a link to the doc under `## Docs`\
+            """);
+  }
+
+  @Test
+  void aBrokenDefinitionIsReported() throws IOException {
+    final Doc doc = doc("one/docs/source.md", "# Source", "[a]: gone.md");
+
+    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+        .containsExactly(
+            """
+            connectors/agentic-ai/one/docs/source.md:2: link `gone.md` points to a file that does not exist (resolved to `connectors/agentic-ai/one/docs/gone.md`)
+                why: the file was renamed, moved or deleted, or the path is wrong
+                fix: check the path against the file tree\
+            """);
+  }
+
+  @Test
   void relativeLinksThatResolveHaveNoFindings() throws IOException {
     write("one/docs/target.md", "# Target\n## Section\n");
     write("one/docs/a b+c.md", "# Spaced");

@@ -51,6 +51,7 @@ final class MarkdownParser {
         path,
         collector.headings,
         collector.links,
+        collector.definitions,
         collector.codeSpans,
         collector.fences,
         collector.anchors);
@@ -67,6 +68,7 @@ final class MarkdownParser {
     private final IdGenerator ids = IdGenerator.builder().build();
     private final List<Ref> headings = new ArrayList<>();
     private final List<Ref> links = new ArrayList<>();
+    private final List<Ref> definitions = new ArrayList<>();
     private final List<Ref> codeSpans = new ArrayList<>();
     private final List<Ref> fences = new ArrayList<>();
     private final Set<String> anchors = new LinkedHashSet<>();
@@ -99,20 +101,20 @@ final class MarkdownParser {
 
     @Override
     public void visit(final Link link) {
-      addLink(link, link.getDestination());
+      addLink(links, link, link.getDestination());
       visitChildren(link);
     }
 
     @Override
     public void visit(final Image image) {
-      addLink(image, image.getDestination());
+      addLink(links, image, image.getDestination());
       visitChildren(image);
     }
 
     @Override
     public void visit(final LinkReferenceDefinition definition) {
       if (!definition.getLabel().startsWith("^")) {
-        addLink(definition, definition.getDestination());
+        addLink(definitions, definition, definition.getDestination());
       }
     }
 
@@ -137,9 +139,9 @@ final class MarkdownParser {
       addHtmlAnchors(html.getLiteral());
     }
 
-    private void addLink(final Node node, final String destination) {
+    private void addLink(final List<Ref> target, final Node node, final String destination) {
       if (!EXTERNAL.matcher(destination).matches()) {
-        links.add(new Ref(line(node), destination));
+        target.add(new Ref(line(node), destination));
       }
     }
 
