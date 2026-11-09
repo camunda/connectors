@@ -32,7 +32,7 @@ review and the tests of the stores and SPIs enforce them.
   `io.camunda.connector.agenticai.aiagent.model.*` (the `Message`, `Content`, `ToolCall`, and `ToolDefinition` sealed types).
   - **Rule**: these types must not expose LangChain4j types in their API. Conversion to/from
     `dev.langchain4j` types happens **only** in the converter chain (see
-    [`chat-model.md`](../connector-aiagent/docs/chat-model.md#converter-chain-architecture) for the converters).
+    [`langchain4j-chat-model.md`](../connector-aiagent/docs/langchain4j-chat-model.md#converter-chain-architecture) for the converters).
   - **Why**: a leak here re-couples the whole codebase to the framework and defeats I1.
 - **I3. Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
   (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one

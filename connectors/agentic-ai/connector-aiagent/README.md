@@ -32,6 +32,7 @@ the agent instance client.
 - [Conversation memory](docs/conversation-memory.md)
 - [AWS AgentCore memory storage](docs/aws-agentcore-memory.md)
 - [Chat model implementation](docs/chat-model.md)
+- [LangChain4j chat models](docs/langchain4j-chat-model.md)
 - [Native providers](docs/native-providers.md)
 - [System prompt composition](docs/system-prompt.md)
 - [Response handling](docs/response-handling.md)

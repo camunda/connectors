@@ -2,66 +2,46 @@
 
 ## Turn-based continuation loop
 
-`BaseAgentRequestHandler.proceed` drives the SPI in a `do { … } while (anotherRound)` loop
-(`driveContinuationLoop`): each iteration calls `chatModel.execute(request)`, catches
-`ChatModelRejectedException` (below), tags the tool calls of the assistant message with their kind or a rejection, ingests the
-assistant message into the turn, and — if the result was a `Continuation` — checks the
-model-call limit and starts the next continuation round on a fresh turn before looping. A `Completed`
-result ends the loop, unless every call of the message is a local tool call: then the round of the local tool call
-results described in [`agentic-loop.md`](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete) is the next round. LangChain4j always returns `Completed`, so the loop runs exactly once for it —
-behavior-identical to the pre-SPI single call.
+`BaseAgentRequestHandler#driveContinuationLoop` drives the SPI in a loop. Each round calls
+`ChatModel#execute`, turns a `ChatModelRejectedException` into a coded connector error, tags the tool
+calls of the assistant message with their kind or a rejection, ingests the assistant message into the
+turn and reports the round to the agent instance.
 
-Agent-instance metrics are reported **once per continuation round**, not once per job: each round's
-`applyTurnCompletion` call carries that round's own `AgentConversationTurn.metrics()` on its
-`ASSISTANT` history item, and the engine derives its cumulative counters from the item itself
-(`modelCalls += 1` per `ASSISTANT` item, `toolCalls` from that item's own tool-call count) rather than
-from a request-level delta. See [`agent-instance.md`](agent-instance.md) and
+A `ChatResult.Continuation` starts the next round on a fresh turn, after the model-call limit check. A
+`ChatResult.Completed` ends the loop, unless the message has local tool calls and no process tool calls:
+then the round of the local tool call results described in
+[`agentic-loop.md`](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete) is the next
+round.
+
+Only `AnthropicMessageResponseConverter` returns a `ChatResult.Continuation`, for the `pause_turn` stop
+reason. All other providers, including `LangChain4JChatModel`, always return `ChatResult.Completed`, so the
+loop runs once for them unless local tool calls add a round.
+
+Agent-instance metrics are reported **once per round**, not once per job: each round's
+`AgentInstanceClient#applyTurnCompletion` call carries that round's own `AgentConversationTurn#metrics`
+on its assistant history item. The handler never sums metrics across rounds. See [`agent-instance.md`](agent-instance.md) and
 [ADR 013](../../docs/adr/013-unified-agent-instance-turn-updates.md).
 
-## LangChain4j Implementation
+## Implementations
 
-LangChain4j is the first (and currently only) implementation behind the SPI, reshaped into per-provider
-factories:
-- `AgenticAiLangChain4JFrameworkConfiguration` wires the converter beans;
-  `AgenticAiLangChain4JChatModelConfiguration` wires one `ChatModelFactory` bean per provider. Provider
-  selection is by `ChatModelFactory.supports(...)` via the SPI registry, so the configuration loads
-  unconditionally rather than behind a global framework toggle.
-- `LangChain4JChatModelFactory<T extends ProviderConfiguration>` (the v1 `ProviderConfiguration`) is the
-  abstract base: `supports` matches a `ProviderConfiguration` whose `provider()` equals the factory's
-  `providerType()`, and
-  `create` builds the underlying LangChain4j model once via the abstract `createChatModel` and wraps it
-  in a `LangChain4JChatModel`. Concrete subclasses: `AnthropicChatModelFactory`,
-  `BedrockChatModelFactory`, `OpenAiChatModelFactory`, `OpenAiCompatibleChatModelFactory`,
-  `AzureOpenAiChatModelFactory`, `GoogleVertexAiChatModelFactory` (the OpenAI-family factories share a
-  common `LangChain4JOpenAiBaseChatModelFactory`).
-- `LangChain4JChatModel` is the `ChatModel` implementation: converts the domain conversation and tool
-  definitions to LangChain4j types, drives one `chat()` call while timing it (`System.nanoTime()`, fed
-  into `AgentMetrics.executionTime`), and converts the response back. LangChain4j has no
-  pause/continuation semantics, so it always returns `ChatResult.Completed`.
-- **Does NOT use LangChain4j's built-in tool execution** — tool calls are returned as data, execution happens via BPMN.
+The `ChatModelRegistry` collects every `ChatModelFactory` bean. `ChatModelRegistryImpl#resolve` asks each
+factory whether it supports the `ChatModelConfiguration` and uses the one that does. It fails with an
+IllegalArgumentException when no factory supports the configuration and with an IllegalStateException
+when more than one does.
 
-## Converter Chain Architecture
+Two kinds of implementation exist:
 
-The module maintains its own domain model (framework-agnostic `Message`, `ToolCall`, `Content` types) separate from LangChain4j types. The converter chain translates between them:
+- **Native providers** call the vendor SDK directly: Anthropic, Bedrock Converse, OpenAI (including the
+  Azure and Microsoft Foundry backends), Mistral and Gemini (including the Vertex AI backend).
+  `AgenticAiNativeProvidersConfiguration` registers their factories. Each factory supports the matching
+  `request.v2` configuration type. See [`native-providers.md`](native-providers.md).
+- **LangChain4j** has one factory per v1 provider. Each factory supports the v1 `ProviderConfiguration` of its
+  provider. See [`langchain4j-chat-model.md`](langchain4j-chat-model.md).
 
-```
-LangChain4JChatModel
-  ├── ChatMessageConverter         # Message ↔ LangChain4j ChatMessage
-  │     ├── ContentConverter       # Content → LangChain4j Content (for user messages)
-  │     │     └── DocumentToContentConverter  # Camunda Document → LangChain4j Content
-  │     └── ToolCallConverter      # ToolCall ↔ ToolExecutionRequest, ToolCallResult → ToolExecutionResultMessage
-  ├── ToolSpecificationConverter   # ToolDefinition ↔ LangChain4j ToolSpecification
-  │     └── JsonSchemaConverter    # Map<String,Object> ↔ LangChain4j JsonSchemaElement
-  │           └── JsonSchemaElementModule  # Jackson module for JsonSchemaElement round-trip
-  └── LangChain4j*ChatModelFactory # creates the LangChain4j ChatModel per provider config
-```
-
-**Key converters:**
-
-- **`ChatMessageConverter`**: Top-level converter. `map(Message)` dispatches on sealed type (System/User/Assistant/ToolCallResult). `toAssistantMessage(ChatResponse)` converts back, attaching metadata (timestamp, finishReason, tokenUsage).
-- **`ContentConverter`**: Converts `TextContent` → text, `DocumentContent` → delegates to `DocumentToContentConverter`, `ObjectContent` → JSON string. Uses the injected `@ConnectorsObjectMapper`, which `ConnectorsAutoConfiguration` registers with `JacksonModuleDocumentSerializer` for nested document serialization.
-- **`DocumentToContentConverter`**: Dispatches on MIME type: `text/*` → `TextContent`; `application/pdf` → `PdfFileContent`; images → `ImageContent`; throws `DocumentConversionException` for unsupported types.
-- **`ToolSpecificationConverter`**: Uses `JsonSchemaConverter` to convert between `Map<String,Object>` (domain) and `JsonObjectSchema` (LangChain4j). Throws `ParseSchemaException` if schema is not an object.
-- **`JsonSchemaElementModule`**: Custom Jackson module needed because LangChain4j doesn't expose standard polymorphic annotations on `JsonSchemaElement`. Serializer/deserializer handle all concrete types (`JsonObjectSchema`, `JsonEnumSchema`, `JsonStringSchema`, `JsonArraySchema`, `JsonAnyOfSchema`, `JsonReferenceSchema`, etc.).
-
-All converter beans are `@ConditionalOnMissingBean`, so an application can override any of them by declaring its own bean of the same type.
+A configuration is either a v1 or a v2 type, so only one kind of factory can match it. By default,
+`AgentTaskV1Function` and `AgentSubProcessV1Function` rewrite the v1 provider configuration to its v2
+equivalent with `V1ToV2ProviderConfigurationMapper`, so v1 requests run on the native providers. The
+LangChain4j factories are used only when
+`camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is `false`. A
+`CustomProviderConfiguration` is served by a user-supplied factory, see
+[`extension-points.md`](../../docs/architecture/extension-points.md#add-an-llm-provider).
