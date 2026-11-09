@@ -410,7 +410,7 @@ public class AgentInstanceHistoryMapper {
     }
     final var idAsFileName = fileNameOfTheHandle(ref, documentHandling);
     if (metadata != null || idAsFileName != null) {
-      protocolRef.metadata(toProtocolDocumentMetadata(metadata, idAsFileName, documentHandling));
+      protocolRef.metadata(toProtocolDocumentMetadata(metadata, idAsFileName));
     }
     return new DocumentReferenceResponseImpl(protocolRef);
   }
@@ -429,9 +429,7 @@ public class AgentInstanceHistoryMapper {
   }
 
   private DocumentMetadataResponse toProtocolDocumentMetadata(
-      @Nullable DocumentMetadata metadata,
-      @Nullable String idAsFileName,
-      DocumentHandling documentHandling) {
+      @Nullable DocumentMetadata metadata, @Nullable String idAsFileName) {
     final DocumentMetadataResponse protocolMetadata = new DocumentMetadataResponse();
     if (idAsFileName != null) {
       protocolMetadata.fileName(idAsFileName);
@@ -448,7 +446,8 @@ public class AgentInstanceHistoryMapper {
       protocolMetadata.size(metadata.getSize());
     }
     if (metadata.getExpiresAt() != null) {
-      protocolMetadata.expiresAt(expiresAt(metadata.getExpiresAt(), documentHandling));
+      protocolMetadata.expiresAt(
+          metadata.getExpiresAt().withOffsetSameInstant(ZoneOffset.UTC).toString());
     }
     if (metadata.getProcessDefinitionId() != null) {
       protocolMetadata.processDefinitionId(metadata.getProcessDefinitionId());
@@ -460,18 +459,5 @@ public class AgentInstanceHistoryMapper {
       protocolMetadata.customProperties(metadata.getCustomProperties());
     }
     return protocolMetadata;
-  }
-
-  /**
-   * The expiry as text. A tracked document read back from the agent documents keeps the instant,
-   * not its offset, so a tracked document is reported in UTC, live or read back, with the same
-   * text.
-   */
-  private static String expiresAt(OffsetDateTime expiresAt, DocumentHandling documentHandling) {
-    return switch (documentHandling) {
-      case DocumentHandling.Untracked ignored -> expiresAt.toString();
-      case DocumentHandling.Tracked ignored ->
-          expiresAt.withOffsetSameInstant(ZoneOffset.UTC).toString();
-    };
   }
 }

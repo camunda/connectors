@@ -708,7 +708,7 @@ class AgentInstanceHistoryMapperTest {
     }
 
     @Test
-    void theExpiryOfADocumentKeepsItsOffsetWithoutTrackingAndIsInUtcWithTracking() {
+    void theExpiryOfADocumentIsInUtcWithAndWithoutTracking() {
       final var metadata = Mockito.mock(DocumentMetadata.class);
       Mockito.when(metadata.getExpiresAt())
           .thenReturn(OffsetDateTime.parse("2026-07-02T12:00:00+02:00"));
@@ -724,7 +724,7 @@ class AgentInstanceHistoryMapperTest {
       Mockito.when(expiring.metadata()).thenReturn(metadata);
       final var message = message(DocumentContent.documentContent(expiring));
 
-      assertThat(expiresAtOf(item(message, NEW_INSTANCE))).isEqualTo("2026-07-02T12:00+02:00");
+      assertThat(expiresAtOf(item(message, NEW_INSTANCE))).isEqualTo("2026-07-02T10:00Z");
       assertThat(expiresAtOf(item(message, agentContext))).isEqualTo("2026-07-02T10:00Z");
     }
 
