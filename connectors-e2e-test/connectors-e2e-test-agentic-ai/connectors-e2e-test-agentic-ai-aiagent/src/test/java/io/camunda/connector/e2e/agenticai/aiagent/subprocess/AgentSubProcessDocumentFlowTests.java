@@ -331,6 +331,12 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .containsExactly("system", "user", "assistant", "tool", "user");
     assertThat(afterDownload.get(3).toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
     final var handle = parseDocumentHandle(afterDownload.get(3).content());
+    assertThat(afterDownload.get(3).content())
+        .isEqualTo(
+            "{\"status\":200,\"document\":"
+                + handle.text()
+                + "}\n"
+                + contentFollowsSentence(handle));
     assertDocumentContentUserMessage(
         afterDownload.get(4),
         DocumentWithContent.of(
