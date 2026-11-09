@@ -696,7 +696,7 @@ class AgentInstanceHistoryMapperTest {
               .id("call-3")
               .name("upload")
               .arguments(Map.of("file", "bogus"))
-              .kind(ToolKind.RUNTIME)
+              .rejection("Parameter 'file' must be a tag.")
               .build();
       final var result =
           ToolCallResultContent.builder()

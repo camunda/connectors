@@ -584,7 +584,8 @@ class AgentResponseHandlerTest {
     @Test
     void doesNotHandOutTheCallOfAToolOfTheProcessThatWasRejectedForItsDocumentParameters() {
       final var rejected =
-          new ToolCall("u1", "upload", Map.of("doc", "bogus")).withKind(ToolKind.RUNTIME);
+          new ToolCall("u1", "upload", Map.of("doc", "bogus"))
+              .withRejection("Parameter 'doc' must be the handle of a document.");
       final var weather = new ToolCall("w1", "getWeather", Map.of());
 
       final var response = responseHandler.createResponse(conversation(rejected, weather));
