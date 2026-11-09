@@ -55,7 +55,8 @@ public final class TestDocuments {
   }
 
   public static DocumentExpander documentExpander() {
-    return new DocumentExpander(objectHandleRenderer());
+    return new DocumentExpander(
+        objectHandleRenderer(), new DocumentContentGuard(DocumentContentLimits.defaults()));
   }
 
   /** The handle text the model reads for the document with the given id of the known documents. */
