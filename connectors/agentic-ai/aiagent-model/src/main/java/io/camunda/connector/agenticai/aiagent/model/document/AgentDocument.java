@@ -43,6 +43,14 @@ import org.jspecify.annotations.Nullable;
  * content}, {@code name} and {@code contentType} for an inline one. It holds the URL of an external
  * document and the full content of an inline one, so it must never be rendered to the model.
  *
+ * <p>Reading a document costs memory and can reach other systems. The file name, content type and
+ * size come from the reference only; they are never read from the {@link Document} of the connector
+ * SDK. For an external document, the SDK downloads the whole file into memory to answer {@code
+ * metadata().getContentType()} or {@code metadata().getSize()}, from a URL that the process or a
+ * tool supplied. A Camunda document loads its content from the document store. Load the content of
+ * a document, or the metadata of an external one, only where the content is needed, such as when
+ * the agent adds it to a model call, and check its size against a limit first where one is known.
+ *
  * @param id the stable id the document is known by
  * @param origin where the document entered the conversation
  * @param reference the document reference
