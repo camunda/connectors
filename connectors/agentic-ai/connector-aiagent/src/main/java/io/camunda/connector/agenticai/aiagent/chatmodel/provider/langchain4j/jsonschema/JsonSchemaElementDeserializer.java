@@ -62,9 +62,12 @@ public class JsonSchemaElementDeserializer extends JsonDeserializer<JsonSchemaEl
       return createEnumSchema(node);
     }
 
-    // LangChain4j has no oneOf schema: a oneOf goes to the model as an anyOf of the same
-    // alternatives
-    if (node.has(PROPERTY_ANYOF) || node.has(PROPERTY_ONEOF)) {
+    // LangChain4j has no oneOf schema: a oneOf without a type or a reference of its own, such as a
+    // union of text and a document, goes to the model as an anyOf of the same alternatives. A typed
+    // node keeps its type and a reference node its reference, and the alternatives of their oneOf
+    // (such as required-only constraints of an object) are not sent.
+    if (node.has(PROPERTY_ANYOF)
+        || (node.has(PROPERTY_ONEOF) && !node.has(PROPERTY_TYPE) && !node.has(PROPERTY_REF))) {
       return createAnyOfSchema(node, objectMapper);
     }
 

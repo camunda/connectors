@@ -25,6 +25,7 @@ import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -540,6 +541,73 @@ class JsonSchemaElementModuleTest {
         objectMapper.writeValueAsString(fromAnyOf),
         objectMapper.writeValueAsString(fromOneOf),
         true);
+  }
+
+  @Test
+  void readsAnObjectWithAOneOfOfRequiredPropertiesAsTheObject() throws Exception {
+    final var withOneOf =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of("filter", exclusiveProperties(true)),
+            "required",
+            List.of("filter"));
+    final var withoutOneOf =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of("filter", exclusiveProperties(false)),
+            "required",
+            List.of("filter"));
+
+    final var root = exclusiveProperties(true);
+    assertThat(objectMapper.convertValue(root, JsonSchemaElement.class))
+        .isEqualTo(objectMapper.convertValue(exclusiveProperties(false), JsonSchemaElement.class));
+
+    final var fromOneOf = objectMapper.convertValue(withOneOf, JsonSchemaElement.class);
+    final var expected = objectMapper.convertValue(withoutOneOf, JsonSchemaElement.class);
+    assertThat(fromOneOf).isEqualTo(expected);
+    JSONAssert.assertEquals(
+        objectMapper.writeValueAsString(expected),
+        objectMapper.writeValueAsString(fromOneOf),
+        true);
+  }
+
+  @Test
+  void readsAReferenceWithAOneOfOfRequiredPropertiesAsTheReference() throws Exception {
+    final var withOneOf =
+        Map.of(
+            "$ref",
+            "#/$defs/Filter",
+            "oneOf",
+            List.of(Map.of("required", List.of("id")), Map.of("required", List.of("name"))));
+
+    final var fromOneOf = objectMapper.convertValue(withOneOf, JsonSchemaElement.class);
+
+    final var expected = JsonReferenceSchema.builder().reference("#/$defs/Filter").build();
+    assertThat(fromOneOf).isEqualTo(expected);
+    JSONAssert.assertEquals(
+        objectMapper.writeValueAsString(expected),
+        objectMapper.writeValueAsString(fromOneOf),
+        true);
+  }
+
+  /**
+   * An object schema with two properties of which exactly one must be set, expressed as a {@code
+   * oneOf} of required-only alternatives, or the same object without the {@code oneOf}.
+   */
+  private static Map<String, Object> exclusiveProperties(boolean withOneOf) {
+    final var schema = new LinkedHashMap<String, Object>();
+    schema.put("type", "object");
+    schema.put(
+        "properties", Map.of("id", Map.of("type", "string"), "name", Map.of("type", "string")));
+    if (withOneOf) {
+      schema.put(
+          "oneOf", List.of(Map.of("required", List.of("id")), Map.of("required", List.of("name"))));
+    }
+    return schema;
   }
 
   /** An object schema with a union of text and a document under the given keyword. */
