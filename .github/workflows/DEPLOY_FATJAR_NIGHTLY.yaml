@@ -138,7 +138,7 @@ jobs:
           echo "::notice::Maven version set to: ${FINAL_VERSION}"
 
       # Builds the bundle and what it depends on, without tests. The with-dependencies jar is written
-      # to target/ regardless of connectors.fatjar.attach (8.7 and 8.8 always attach it via shade).
+      # to target/ with the default settings on every branch, so no attach or output flag is passed here.
       - name: Build runtime bundle
         run: ./mvnw -B -U package -DskipTests -pl "${{ matrix.bundle }}" -am
 
