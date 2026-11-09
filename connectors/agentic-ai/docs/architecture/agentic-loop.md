@@ -99,11 +99,7 @@ The loop operates as a distributed state machine between the connector runtime a
 
 2. **Job activation**: The `AgentSubProcessV1Function` picks up the job with `fetchVariables = [adHocSubProcessElements, agentContext, toolCallResults, provider, data]`.
 
-3. **Agent initialization** (`AgentInitializerImpl`):
-   - First invocation: `agentContext` is null → state = `INITIALIZING`
-   - Resolves tool definitions from `adHocSubProcessElements`
-   - If no gateway tools → state transitions to `READY`
-   - If gateway tools (MCP) → state = `TOOL_DISCOVERY`, returns discovery tool calls
+3. **Agent initialization** (`AgentInitializerImpl`): the agent is initialized with state `INITIALIZING` on the first job, `TOOL_DISCOVERY` while gateway tool discovery results are missing and `READY` afterwards. Tool definitions are resolved from `adHocSubProcessElements`. See the [agent state machine](../../connector-aiagent/docs/agent-state-machine.md) for the transitions and the per-state behavior.
 
 4. **LLM interaction** (when state = `READY`, handled by `BaseAgentRequestHandler`):
    - Load the stored flat message list (via `ConversationSession`) and reconstruct it into turns (`TurnReconstructor.reconstruct`)
