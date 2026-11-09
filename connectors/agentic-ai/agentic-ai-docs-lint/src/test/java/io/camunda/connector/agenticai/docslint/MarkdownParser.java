@@ -40,7 +40,7 @@ final class MarkdownParser {
           .build();
 
   private static final Pattern HTML_ANCHOR = Pattern.compile("<a\\s+(?:id|name)=([\"'])(.+?)\\1");
-  private static final Pattern EXTERNAL = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.-]*:.*");
+  private static final Pattern EXTERNAL = Pattern.compile("^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|//).*");
 
   private MarkdownParser() {}
 
