@@ -278,9 +278,11 @@ There is no Java per connector. Instead:
 - One credential type per connector, never a shared one: the credential picker is filtered by the
   credential type's id only, so a shared type would offer every connector's credentials to every
   other connector.
-- The credential type fixes the authentication mechanism with hidden constants
-  (`authentication.type = bearer`; for Google Maps also `apiKeyLocation = query` and `name = key`;
-  for EasyPost the empty-password marker). Hub saves hidden defaults with the credential.
+- The credential type fixes the authentication mechanism with hidden constants:
+  `authentication.type = bearer` for the token-based services;
+  `authentication.type = basic` and `authentication.password = SPEC_PASSWORD_EMPTY_PATTERN` for EasyPost;
+  `authentication.type = apiKey`, `authentication.apiKeyLocation = query` and
+  `authentication.name = key` for Google Maps. Hub saves hidden defaults with the credential.
 - The template `engines` must be `^8.11` or newer: an older runtime ignores the new input and
   sends no authentication.
 - `HttpJsonRequest#serviceAuthenticationConfiguration` is `@TemplateProperty(ignore = true,
