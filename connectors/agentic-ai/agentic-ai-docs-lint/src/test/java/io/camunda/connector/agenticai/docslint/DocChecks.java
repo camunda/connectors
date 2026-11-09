@@ -50,7 +50,8 @@ final class DocChecks {
    * The relative links of the doc: the file exists and, for a Markdown file, so does the anchor.
    */
   static Stream<Finding> links(final Doc doc, final DocTree tree) {
-    return doc.links().stream().flatMap(link -> link(doc, link, tree).stream());
+    return Stream.concat(doc.links().stream(), doc.definitions().stream())
+        .flatMap(link -> link(doc, link, tree).stream());
   }
 
   /** The names of code spans that read as types must be known to the code or allowed. */
