@@ -64,6 +64,11 @@ class DocumentToContentConverterTest {
     "application/xml",
     "application/json",
     "application/yaml",
+    "application/x-yaml",
+
+    // structured syntax suffixes
+    "application/problem+json",
+    "application/atom+xml",
 
     // compatible types
     "application/json;charset=UTF-8"
