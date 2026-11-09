@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.lang.model.util.Elements;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
@@ -67,12 +66,6 @@ final class JavaSourceIndex {
   private final Set<String> imported = new HashSet<>();
   private final Set<String> nested = new HashSet<>();
 
-  private final Elements elements;
-
-  private JavaSourceIndex(final Elements elements) {
-    this.elements = elements;
-  }
-
   /**
    * Parses the sources, given by file name and content. A syntax error fails with the file and the
    * line.
@@ -102,7 +95,7 @@ final class JavaSourceIndex {
                     List.of("-proc:none"),
                     null,
                     files);
-    final JavaSourceIndex index = new JavaSourceIndex(task.getElements());
+    final JavaSourceIndex index = new JavaSourceIndex();
     try {
       for (final CompilationUnitTree unit : task.parse()) {
         index.add(unit);
@@ -131,7 +124,7 @@ final class JavaSourceIndex {
     return declared.containsKey(simpleName)
         || imported.contains(simpleName)
         || nested.contains(simpleName)
-        || elements.getTypeElement("java.lang." + simpleName) != null;
+        || Class.forName(Object.class.getModule(), "java.lang." + simpleName) != null;
   }
 
   /**
