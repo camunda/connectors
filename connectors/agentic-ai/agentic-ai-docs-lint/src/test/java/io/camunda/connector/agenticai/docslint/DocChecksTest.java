@@ -212,7 +212,7 @@ class DocChecksTest {
   }
 
   @Test
-  void aLinkWithAQueryHasNoAnchorCheck() throws IOException {
+  void aPlainViewLinkHasNoAnchorCheck() throws IOException {
     write("one/docs/target.md", "# Target");
     final Doc doc =
         doc("one/docs/source.md", "# Source", "[a](target.md?plain=1#L5) [b](target.md#L5)");
@@ -221,6 +221,50 @@ class DocChecksTest {
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `target.md#L5` points to an anchor that does not exist in `connectors/agentic-ai/one/docs/target.md`
+                why: the heading was renamed or removed, or GitHub derives a different anchor from it
+                fix: check the headings of the target. Its anchors are: target\
+            """);
+  }
+
+  @Test
+  void aQueryOtherThanPlainViewKeepsTheAnchorCheck() throws IOException {
+    write("one/docs/target.md", "# Target\n## Existing\n");
+    final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md?foo=bar#missing)");
+
+    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+        .containsExactly(
+            """
+            connectors/agentic-ai/one/docs/source.md:2: link `target.md?foo=bar#missing` points to an anchor that does not exist in `connectors/agentic-ai/one/docs/target.md`
+                why: the heading was renamed or removed, or GitHub derives a different anchor from it
+                fix: check the headings of the target. Its anchors are: target, existing\
+            """);
+  }
+
+  @Test
+  void aQueryOtherThanPlainViewPassesWithAnExistingAnchor() throws IOException {
+    write("one/docs/target.md", "# Target\n## Existing\n");
+    final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md?foo=bar#existing)");
+
+    assertThat(DocChecks.links(doc, new DocTree(root))).isEmpty();
+  }
+
+  @Test
+  void aPlainViewAmongOtherParametersHasNoAnchorCheck() throws IOException {
+    write("one/docs/target.md", "# Target");
+    final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md?plain=1&foo=bar#L5)");
+
+    assertThat(DocChecks.links(doc, new DocTree(root))).isEmpty();
+  }
+
+  @Test
+  void aPlainParameterThatIsNotOneKeepsTheAnchorCheck() throws IOException {
+    write("one/docs/target.md", "# Target");
+    final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md?plain=0#missing)");
+
+    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+        .containsExactly(
+            """
+            connectors/agentic-ai/one/docs/source.md:2: link `target.md?plain=0#missing` points to an anchor that does not exist in `connectors/agentic-ai/one/docs/target.md`
                 why: the heading was renamed or removed, or GitHub derives a different anchor from it
                 fix: check the headings of the target. Its anchors are: target\
             """);
@@ -249,11 +293,11 @@ class DocChecksTest {
   }
 
   @Test
-  void aLinkWithAQueryAndAFragmentHasNoFindings() throws IOException {
+  void aPlainViewLineAnchorHasNoFindings() throws IOException {
     write("one/docs/target.md", "# Target");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md?plain=1#L5)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root)))).isEmpty();
+    assertThat(DocChecks.links(doc, new DocTree(root))).isEmpty();
   }
 
   @Test
