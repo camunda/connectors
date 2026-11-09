@@ -165,7 +165,7 @@ below make this style specific.
   `switch` in `BaseAgentRequestHandler.handleRequest`.
 - **Outcomes as types.** When a step has more than one expected outcome, return a sealed outcome type.
   Do not use a flag, `null` or an exception for an expected outcome. Use an exception only for an
-  error. Example: `CompositionResult` with `NextTurn`, `NoInput` and `Deferred`.
+  error. Example: `CompositionResult` with `Ready`, `NoInput` and `Deferred`.
 - **Null-marked code.** All code is `@NullMarked`. Mark each value that can be absent with `@Nullable`.
   See [Null safety in `connectors/agentic-ai/AGENTS.md`](../AGENTS.md#null-safety).
 - **`Optional` only as a return type.** Use `@Nullable` for fields and parameters.

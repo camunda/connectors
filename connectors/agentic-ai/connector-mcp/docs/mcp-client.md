@@ -98,7 +98,7 @@ Each operation is implemented by a package-private request class in the `rpc` su
 
 The `meta` parameter is forwarded unmodified into the corresponding MCP SDK request object for every operation:
 `CallToolRequest.builder(...).meta(meta)`, `ReadResourceRequest(uri, meta)`, `GetPromptRequest(name, arguments, meta)`,
-and `PaginatedRequest(cursor, meta)` for the four list operations (via the SDK's `(cursor, meta)` client overloads).
+and the SDK's `(cursor, meta)` client overloads for the four list operations.
 
 ## Request Data Model
 
@@ -146,13 +146,9 @@ map when unconfigured.
 
 ### McpClientOperation (sealed interface)
 
-```java
-McpMethod method();             // enum: LIST_TOOLS, CALL_TOOL, LIST_RESOURCES,
-                                //       LIST_RESOURCE_TEMPLATES, READ_RESOURCE,
-                                //       LIST_PROMPTS, GET_PROMPT
-Map<String, Object> params();   // method-specific parameters
-Map<String, Object> meta();     // forwarded unmodified as the MCP request's `_meta` field
-```
+`McpClientOperation#method` is the `McpMethod` to call (`LIST_TOOLS`, `CALL_TOOL`, `LIST_RESOURCES`,
+`LIST_RESOURCE_TEMPLATES`, `READ_RESOURCE`, `LIST_PROMPTS` or `GET_PROMPT`). `McpClientOperation#params` holds the
+method-specific parameters, and `McpClientOperation#meta` is forwarded unmodified as the `_meta` field of the MCP request.
 
 `McpMethod` enum maps to MCP JSON-RPC method strings: `"tools/list"`, `"tools/call"`, `"resources/list"`, etc.
 
@@ -198,17 +194,14 @@ Jackson polymorphic on `type` property:
 
 ### McpToolDefinition
 
-```java
-record McpToolDefinition(String name, @Nullable String title, @Nullable String description, Map<String, Object> inputSchema)
-```
+`McpToolDefinition` is a record with the tool `name`, an optional `title` and `description`, and the JSON
+`inputSchema` of the tool arguments.
 
 ## Client Lifecycle
 
 ### McpClientFactory (interface)
 
-```java
-McpClientDelegate createClient(String clientId, McpClientConfiguration config);
-```
+`McpClientFactory#createClient` creates an `McpClientDelegate` for a client id and an `McpClientConfiguration`.
 
 `McpSdkClientFactory` implements this using the `io.modelcontextprotocol:mcp` SDK:
 - Client info: `Camunda 8 MCP Connector` / `1.0.0`
@@ -268,17 +261,13 @@ headers (uses `OAuthService` + `CustomApacheHttpClient` for OAuth).
 
 ### AllowDenyList
 
-```java
-record AllowDenyList(List<String> allowed, List<String> denied)
-boolean isPassing(String toolName)
-// passes if: (allowed is empty OR name in allowed) AND name not in denied
-```
+`AllowDenyList#isPassing` accepts a name when the `allowed` list is empty or contains it, and the `denied` list
+does not contain it. `AllowDenyList#allowingEverything` returns the list with both lists empty.
 
 ### FilterOptions
 
-```java
-record FilterOptions(AllowDenyList toolFilters, AllowDenyList resourceFilters, AllowDenyList promptFilters)
-```
+`FilterOptions` holds one `AllowDenyList` each for tools, resources and prompts. `FilterOptions#defaultOptions`
+allows everything.
 
 Filters are configured per connector instance via the element template. Both MCP Client types support allow/deny
 filtering for tools, resources, and prompts.
