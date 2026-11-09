@@ -17,8 +17,8 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -82,10 +82,15 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             .orElse(DEFAULT_RESPONSE_CONFIGURATION);
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
-    if (toolCalls.isEmpty() && agentContext.supports(AgentFeatures.DOCUMENTS)) {
-      // every final response carries all response documents, which stay in the context for the
-      // lifetime of the agent instance
-      builder.responseDocuments(responseDocuments(agentContext));
+    if (toolCalls.isEmpty()) {
+      switch (agentContext.documentHandling()) {
+        // every final response carries all response documents, which stay in the context for the
+        // lifetime of the agent instance
+        case DocumentHandling.Tracked ignored ->
+            builder.responseDocuments(responseDocuments(agentContext));
+        // an instance that does not track its documents has no response documents
+        case DocumentHandling.Untracked ignored -> {}
+      }
     }
     if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {
       builder.responseMessage(assistantMessage);
