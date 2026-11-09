@@ -308,12 +308,18 @@ public final class AgentConversation {
   }
 
   /**
-   * Returns the ids of the documents whose content the model reads as of now: {@link
-   * #allMessages()} within the context window of the {@link #configuration()}.
+   * Returns the ids of the documents whose content the model reads in the next model call: {@link
+   * #allMessages()} within the context window of the {@link #configuration()} once the messages
+   * this invocation adds before that call are counted.
+   *
+   * @param addedMessages the number of messages added before the next model call that the window
+   *     counts
    */
-  public Set<AgentDocumentId> documentIdsWithContent() {
+  public Set<AgentDocumentId> documentIdsWithContent(int addedMessages) {
+    final int windowOfMessages =
+        Math.max(systemMessage != null ? 1 : 0, configuration.contextWindowSize() - addedMessages);
     return PreviousConversation.documentIdsWithContentIn(
-        MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize()));
+        MessageWindowFilter.apply(allMessages(), windowOfMessages));
   }
 
   /**
