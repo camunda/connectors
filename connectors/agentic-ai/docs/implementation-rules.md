@@ -10,8 +10,8 @@ a rule. Give the name of the rule.
 
 Follow the repo-wide connectors conventions in the repo-root [`AGENTS.md`](../../../AGENTS.md) where
 they do not conflict with these rules. If they conflict, these rules apply, and the PR states the
-divergence. Module operating rules (testing, the Definition of Done, ADRs, architectural invariants)
-are in [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md).
+divergence. [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md) links the module operating rules (test
+levels, the Definition of Done, ADRs, architectural invariants).
 
 In a review, flag a problem that a build check can find, and name the check. In a review, flag a rule
 that conflicts with the change or that a build check in the change now enforces. A maintainer decides
@@ -51,6 +51,17 @@ Change only what the task needs. Clean up only your own changes.
 - Remove the variables and functions that your change made unused.
 - When the change leaves related code redundant or inconsistent, name it in the plan with the risk of
   keeping it and the risk of changing it, and ask.
+
+## Code comments and Javadoc
+
+- Write a comment only when it makes a contract or a constraint clear that the code does not show.
+  Do not describe what the code does.
+- A Javadoc states the contract of its own code: what the method does, the requirements for its
+  parameters, and the exact triggers that a caller can see. Link to a type in the same package when it
+  helps. Example: `handleNoInput` links to `CompositionResult.NoInput`.
+- Do not use the internals or the decision history of a different package or module to justify a
+  precondition. When a reader must read a caller across that boundary to understand a precondition,
+  document the coupling in an ADR or a reference doc, not in the Javadoc.
 
 ## Domain rules
 
