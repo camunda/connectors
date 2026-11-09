@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewD
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -56,11 +55,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       EVENT_CONTENT_EMPTY
           + " Execution waited for all in-flight tool executions to complete before proceeding.";
 
-  static final String EVENT_DOCUMENT_HANDLES_PREAMBLE = "Documents attached to the event:";
+  static final String TRACKED_EVENT_DOCUMENTS_PREAMBLE = "Documents attached to the event:";
 
-  // the preamble of the tag and content pairs of an agent instance that does not track its
-  // documents
-  static final String EVENT_DOCUMENTS_PREAMBLE =
+  static final String UNTRACKED_EVENT_DOCUMENTS_PREAMBLE =
       "Documents extracted from event data (<doc /> tag + content pair):";
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -91,25 +88,18 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
     final var documentHandling = agentContext.documentHandling();
 
-    final var eventDocuments = new ArrayList<NewDocument>();
-    final List<Message> eventMessages =
+    final var events =
         agentInput.eventMessages().stream()
             .map(eventResult ->
-                createEventMessage(
-                    eventResult,
-                    interruptToolCallsOnEventResults,
-                    documentHandling,
-                    eventDocuments))
-            .toList();
-    final var events = new TurnInput(eventMessages, eventDocuments);
+                eventInput(eventResult, interruptToolCallsOnEventResults, documentHandling))
+            .reduce(TurnInput.empty(), TurnInput::followedBy);
 
     boolean expectingToolCallResults =
         !previousConversation.turns().isEmpty()
             && previousConversation.turns().getLast().hasToolCalls();
 
     if (expectingToolCallResults) {
-      boolean interruptMissingToolCalls =
-          interruptToolCallsOnEventResults && !eventMessages.isEmpty();
+      boolean interruptMissingToolCalls = interruptToolCallsOnEventResults && !events.isEmpty();
 
       final var previousTurn = previousConversation.turns().getLast();
 
@@ -140,20 +130,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return new CompositionResult.Ready(agentContext, batch, TurnInput.empty(), events);
     }
 
-    final var promptDocuments = new ArrayList<NewDocument>();
-    final var userPrompt =
-        createUserPromptMessage(agentInput.userPrompt(), documentHandling, promptDocuments);
-    if (userPrompt == null && eventMessages.isEmpty()) {
+    final var userPrompt = userPromptInput(agentInput.userPrompt(), documentHandling);
+    if (userPrompt.isEmpty() && events.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
     }
     return new CompositionResult.Ready(
-        agentContext,
-        ToolCallBatch.of(List.of()),
-        userPrompt == null
-            ? TurnInput.empty()
-            : new TurnInput(List.of(userPrompt), promptDocuments),
-        events);
+        agentContext, ToolCallBatch.of(List.of()), userPrompt, events);
   }
 
   @Override
@@ -165,12 +148,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return input.followedBy(ready.events());
   }
 
-  private @Nullable UserMessage createUserPromptMessage(
-      AgentInput.UserPrompt userPrompt,
-      DocumentHandling documentHandling,
-      List<NewDocument> newDocuments) {
+  /** The user message of the user prompt and its documents, empty without user content. */
+  private TurnInput userPromptInput(
+      AgentInput.UserPrompt userPrompt, DocumentHandling documentHandling) {
 
     final var content = new ArrayList<Content>();
+    final var newDocuments = new ArrayList<NewDocument>();
 
     // add user prompt text
     final var userPromptText = userPrompt.prompt();
@@ -198,9 +181,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     if (content.isEmpty()) {
       LOGGER.debug("Not adding user message as no user content was found to add.");
-      return null;
+      return TurnInput.empty();
     }
-    return UserMessage.builder().content(content).metadata(MessageMetadata.defaults()).build();
+    return new TurnInput(
+        List.of(
+            UserMessage.builder().content(content).metadata(MessageMetadata.defaults()).build()),
+        newDocuments);
   }
 
   /**
@@ -253,12 +239,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         documentExtractor);
   }
 
-  private Message createEventMessage(
+  /** The user message of an event and the documents of the event. */
+  private TurnInput eventInput(
       ToolCallResult eventResult,
       boolean interruptToolCallsOnEventResults,
-      DocumentHandling documentHandling,
-      List<NewDocument> newDocuments) {
+      DocumentHandling documentHandling) {
     Object eventContent = eventResult.content();
+    final var newDocuments = new ArrayList<NewDocument>();
 
     List<Content> userMessageContent = new ArrayList<>();
     if (eventContent == null || isEventContentEmpty(eventContent)) {
@@ -280,7 +267,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     if (!eventDocuments.isEmpty()) {
       switch (documentHandling) {
         case DocumentHandling.Tracked ignored -> {
-          userMessageContent.add(textContent(EVENT_DOCUMENT_HANDLES_PREAMBLE));
+          userMessageContent.add(textContent(TRACKED_EVENT_DOCUMENTS_PREAMBLE));
           final var origin = DocumentOrigin.event();
           for (var group : eventDocuments) {
             for (var doc : group.documents()) {
@@ -290,16 +277,19 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           }
         }
         case DocumentHandling.Untracked ignored -> {
-          userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
+          userMessageContent.add(textContent(UNTRACKED_EVENT_DOCUMENTS_PREAMBLE));
           userMessageContent.addAll(ToolCallResultsInputBuilder.documentPairs(eventDocuments));
         }
       }
     }
 
-    return UserMessage.builder()
-        .content(userMessageContent)
-        .metadata(MessageMetadata.defaults())
-        .build();
+    return new TurnInput(
+        List.of(
+            UserMessage.builder()
+                .content(userMessageContent)
+                .metadata(MessageMetadata.defaults())
+                .build()),
+        newDocuments);
   }
 
   private boolean isEventContentEmpty(@Nullable Object eventContent) {

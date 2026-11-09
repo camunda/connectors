@@ -165,7 +165,7 @@ class LegacyDocumentConversationTest {
     assertThat(event.content())
         .containsExactly(
             ObjectContent.objectContent(Map.of("attachment", eventDocument)),
-            textContent(AgentConversationTurnInputComposerImpl.EVENT_DOCUMENTS_PREAMBLE),
+            textContent(AgentConversationTurnInputComposerImpl.UNTRACKED_EVENT_DOCUMENTS_PREAMBLE),
             textContent(legacyTag("", eventDocument)),
             DocumentContent.documentContent(eventDocument));
     assertThat(event.content())

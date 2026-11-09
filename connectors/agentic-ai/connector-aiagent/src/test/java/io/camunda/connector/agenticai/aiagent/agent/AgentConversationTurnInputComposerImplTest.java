@@ -589,7 +589,7 @@ class AgentConversationTurnInputComposerImplTest {
               assertThat(eventMessage.content())
                   .contains(
                       textContent(
-                          AgentConversationTurnInputComposerImpl.EVENT_DOCUMENT_HANDLES_PREAMBLE))
+                          AgentConversationTurnInputComposerImpl.TRACKED_EVENT_DOCUMENTS_PREAMBLE))
                   .contains(documentReference(eventDoc, DocumentDelivery.REFERENCE))
                   .noneMatch(DocumentContent.class::isInstance);
               assertThat(eventMessage.metadata())
