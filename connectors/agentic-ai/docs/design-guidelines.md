@@ -6,6 +6,10 @@ requirements before choosing. State new contract decisions and their rationale i
 including the pattern or requirement they follow. A passing API compatibility check alone does not
 justify a product name or a default.
 
+This file covers contract and system design. For code structure, follow the
+[code design rules](implementation-rules.md#code-design). For the target state of the module, read the
+[target architecture](target-architecture.md).
+
 ## Architectural invariants
 
 Before changing architecture or extension points, read and preserve the
@@ -45,7 +49,8 @@ Tightening a default later can break existing workloads. Record breaking changes
 [`breaking-changes.md`](breaking-changes.md); do not introduce a per-installation default-preservation
 mechanism without an agreed requirement. In the PR, state new or changed values, their reasons, how
 to observe a limit hit and how to configure it. Limit errors name every configuration option that
-must change to recover.
+must change to recover. A new field or capability does not change behavior when nobody sets it
+([domain rule 1](implementation-rules.md#domain-rules)).
 
 ## Design observable automated behavior
 
