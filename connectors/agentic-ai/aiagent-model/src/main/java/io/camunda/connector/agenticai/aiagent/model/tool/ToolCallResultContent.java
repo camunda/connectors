@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -139,7 +140,10 @@ public record ToolCallResultContent(
                 switch (block) {
                   case DocumentContent documentContent ->
                       (Content)
-                          AgentDocumentContent.of(AgentDocumentId.of(documentContent.document()));
+                          new AgentDocumentContent(
+                              AgentDocumentId.of(documentContent.document()),
+                              DocumentDelivery.REFERENCE,
+                              documentContent.metadata());
                   case TextContent ignored -> block;
                   case AgentDocumentContent ignored -> block;
                   case ObjectContent ignored -> block;

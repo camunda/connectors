@@ -12,6 +12,8 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -231,8 +233,25 @@ class ToolCallResultContentTest {
       final var converted =
           result(DocumentContent.documentContent(document)).withDocumentsAsReferences();
 
-      assertThat(converted.content()).singleElement().isInstanceOf(AgentDocumentContent.class);
+      assertThat(converted.content())
+          .containsExactly(
+              new AgentDocumentContent(
+                  AgentDocumentId.of(document), DocumentDelivery.REFERENCE, null));
       assertThat(converted.id()).isEqualTo("call-1");
+    }
+
+    @Test
+    void aTopLevelDocumentKeepsTheMetadataOfItsContentBlock() {
+      final var converted =
+          result(new DocumentContent(document, Map.of("source", "crm")))
+              .withDocumentsAsReferences();
+
+      assertThat(converted.content())
+          .containsExactly(
+              new AgentDocumentContent(
+                  AgentDocumentId.of(document),
+                  DocumentDelivery.REFERENCE,
+                  Map.of("source", "crm")));
     }
 
     @Test
