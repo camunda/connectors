@@ -985,7 +985,21 @@ class AwsAgentCoreConversationStoreTest {
                       TextContent.textContent("see"),
                       TextContent.textContent(
                           TestDocuments.handleText(AgentDocuments.of(List.of(entry)), tag.id())));
-              assertThat(expanded.content().get(2)).isInstanceOf(DocumentContent.class);
+              // the document block holds the document restored from the stored reference
+              assertThat(expanded.content().get(2))
+                  .isInstanceOfSatisfying(
+                      DocumentContent.class,
+                      restored -> {
+                        assertThat(
+                                TestObjectMapperSupplier.INSTANCE.convertValue(
+                                    restored.document(), Map.class))
+                            .isEqualTo(
+                                TestObjectMapperSupplier.INSTANCE.convertValue(
+                                    document, Map.class));
+                        assertThat(restored.document().asByteArray())
+                            .isEqualTo("data".getBytes(StandardCharsets.UTF_8));
+                        assertThat(restored.metadata()).isNull();
+                      });
             });
     // the loaded conversation keeps the document reference only
     assertThat(conversation.allMessages().get(0)).isEqualTo(loaded.get(0));
