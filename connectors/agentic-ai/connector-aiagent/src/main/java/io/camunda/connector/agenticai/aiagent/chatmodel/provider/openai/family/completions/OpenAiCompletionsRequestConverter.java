@@ -278,8 +278,9 @@ public class OpenAiCompletionsRequestConverter {
    * never leaks onto the wire. A document's bytes are already delivered to the model elsewhere, so
    * this reference is never accompanied by a native embed, matching the tool-result document
    * handling on the Responses and Anthropic siblings. Anything else falls back to serializing the
-   * whole content value. An {@link AgentDocumentContent} block fails: the agent expands it before a
-   * request is built. Tool results are always text-only on this family.
+   * whole content value: a {@link ReasoningContent} or a {@link ProviderContent}. An {@link
+   * AgentDocumentContent} block fails: the agent expands it before a request is built. Tool results
+   * are always text-only on this family.
    */
   private String toTextOutput(List<Content> content) {
     return content.stream()
@@ -289,7 +290,8 @@ public class OpenAiCompletionsRequestConverter {
               case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
               case ObjectContent obj -> contentConverter.writeAsJson(obj.content());
               case DocumentContent doc -> contentConverter.writeAsJson(doc.document());
-              default -> contentConverter.writeAsJson(c);
+              case ReasoningContent reasoning -> contentConverter.writeAsJson(reasoning);
+              case ProviderContent provider -> contentConverter.writeAsJson(provider);
             })
         .collect(Collectors.joining("\n"));
   }
