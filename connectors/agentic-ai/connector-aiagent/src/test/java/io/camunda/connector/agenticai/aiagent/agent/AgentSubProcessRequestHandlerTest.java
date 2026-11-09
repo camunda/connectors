@@ -2744,7 +2744,18 @@ class AgentSubProcessRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
+    verify(chatModel, times(2)).execute(any());
     assertThat(response.responseValue().context().responseDocuments()).isEmpty();
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results().getFirst().content())
+                    .containsExactly(
+                        TextContent.textContent(
+                            "Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*: it starts with a"
+                                + " letter or an underscore and continues with letters, digits,"
+                                + " underscores or hyphens.")));
   }
 
   @Test

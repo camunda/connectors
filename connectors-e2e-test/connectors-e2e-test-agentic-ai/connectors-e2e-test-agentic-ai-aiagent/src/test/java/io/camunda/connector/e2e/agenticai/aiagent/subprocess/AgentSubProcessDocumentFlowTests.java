@@ -233,11 +233,11 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var uploadResult = recorded.requests().get(2).messages().getLast();
     assertThat(uploadResult.role()).isEqualTo("tool");
     assertThat(uploadResult.toolCallId()).isEqualTo(UPLOAD_CALL_ID);
-    assertThat(uploadResult.content()).contains("200");
+    JSONAssert.assertEquals("{\"status\":200}", uploadResult.content(), JSONCompareMode.STRICT);
 
     final var returnResult = recorded.lastRequest().messages().getLast();
     assertThat(returnResult.toolCallId()).isEqualTo(RETURN_CALL_ID);
-    assertThat(returnResult.content()).contains("under the key 'report'");
+    assertThat(returnResult.content()).isEqualTo("Returned the document under the key 'report'.");
 
     final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
