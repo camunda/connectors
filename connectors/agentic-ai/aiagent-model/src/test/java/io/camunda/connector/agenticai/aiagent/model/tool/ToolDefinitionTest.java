@@ -100,11 +100,17 @@ class ToolDefinitionTest {
     final var contentJson = objectMapper.writeValueAsString(content);
     final var referenceJson = objectMapper.writeValueAsString(byReference);
 
-    assertThat(contentJson).contains("\"documentDelivery\":\"content\"");
+    assertThat(objectMapper.readTree(contentJson))
+        .isEqualTo(
+            objectMapper.readTree(
+                """
+                {"name": "tool", "inputSchema": {"type": "object"}, "documentDelivery": "content"}
+                """));
     assertThat(objectMapper.readValue(contentJson, ToolDefinition.class)).isEqualTo(content);
-    assertThat(referenceJson).doesNotContain("documentDelivery");
-    assertThat(objectMapper.readValue(referenceJson, ToolDefinition.class).documentDelivery())
-        .isNull();
+    assertThat(objectMapper.readTree(referenceJson))
+        .isEqualTo(
+            objectMapper.readTree("{\"name\": \"tool\", \"inputSchema\": {\"type\": \"object\"}}"));
+    assertThat(objectMapper.readValue(referenceJson, ToolDefinition.class)).isEqualTo(byReference);
   }
 
   @Test

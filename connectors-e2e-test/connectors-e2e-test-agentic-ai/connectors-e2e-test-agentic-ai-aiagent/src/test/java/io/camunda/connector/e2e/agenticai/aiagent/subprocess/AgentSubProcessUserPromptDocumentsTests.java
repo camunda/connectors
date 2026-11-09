@@ -176,6 +176,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                         wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
