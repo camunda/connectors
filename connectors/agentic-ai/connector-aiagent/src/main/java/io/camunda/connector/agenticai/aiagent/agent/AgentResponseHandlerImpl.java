@@ -11,13 +11,11 @@ import static io.camunda.connector.agenticai.aiagent.util.ResponseTextUtil.strip
 import static io.camunda.connector.agenticai.common.json.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -154,15 +152,11 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
                       "The response document '%s' is the document '%s', which the agent does not know"
                           .formatted(selected.key(), selected.document())));
       returned.put(
-          selected.key(), new ReturnedDocument(referenceJson(document), selected.description()));
+          selected.key(),
+          new ReturnedDocument(
+              documentParameterResolver.referenceJson(document), selected.description()));
     }
     return returned;
-  }
-
-  /** The document reference in the JSON format it is persisted in. */
-  private Map<String, Object> referenceJson(AgentDocument document) {
-    return objectMapper.convertValue(
-        objectMapper.valueToTree(document).path("reference"), new TypeReference<>() {});
   }
 
   private Optional<String> deriveResponseText(AssistantMessage assistantMessage) {
