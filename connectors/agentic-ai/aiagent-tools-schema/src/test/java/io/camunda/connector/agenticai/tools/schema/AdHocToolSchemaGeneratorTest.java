@@ -193,6 +193,24 @@ class AdHocToolSchemaGeneratorTest {
   }
 
   @Test
+  void throwsExceptionWhenATypeArrayListsTheDocumentType() {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.body",
+                    "The body",
+                    null,
+                    Map.of("type", List.of("string", "document")),
+                    Map.of())));
+
+    assertThatThrownBy(() -> generator.generateToolSchema(element))
+        .isInstanceOf(AdHocToolSchemaGenerationException.class)
+        .hasMessage(
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter 'toolCall.body': The type 'document' cannot be part of a type array. Use \"type\": \"document\" for a document, or \"anyOf\" with {\"type\": \"document\"} as one alternative for a document or another value.");
+  }
+
+  @Test
   void throwsExceptionWhenParameterNameDoesNotStartWithExpectedNamespace() {
     final var element =
         createToolElement(List.of(new AdHocToolElementParameter("param1", "string")));

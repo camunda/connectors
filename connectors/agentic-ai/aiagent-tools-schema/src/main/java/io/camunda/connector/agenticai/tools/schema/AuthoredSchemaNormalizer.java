@@ -32,17 +32,22 @@ import java.util.Map;
  * {@code if}/{@code then}/{@code else}, {@code additionalProperties}, {@code patternProperties},
  * {@code prefixItems}, {@code $defs} or behind {@code $ref}, is left as authored: no document
  * parameter is found there, and the handle schema must not appear where nothing resolves it.
+ *
+ * <p>A {@code type} array that lists {@value #TYPE_DOCUMENT} is rejected where a node is
+ * normalized: a union that can hold a document is an explicit {@code anyOf} or {@code oneOf} with
+ * {@code {"type": "document"}} as one alternative.
  */
 final class AuthoredSchemaNormalizer {
 
-  /**
-   * Type that an authored schema uses as a shorthand for a document parameter. A node whose {@code
-   * type} is an array that lists it next to other types and that has no {@code anyOf} or {@code
-   * oneOf} becomes a node with an {@code anyOf} of one alternative per type, in the place of the
-   * {@code type} entry. The other entries of a node keep their order and values.
-   */
+  /** Type that an authored schema uses as a shorthand for a document parameter. */
   static final String TYPE_DOCUMENT = "document";
 
+  /**
+   * The schema with the shorthand turned into the handle schema.
+   *
+   * @throws IllegalArgumentException if a normalized node has a {@code type} array that lists
+   *     {@value #TYPE_DOCUMENT}
+   */
   Map<String, Object> normalize(Map<String, Object> schema) {
     final var node = alternativesOf(normalizeType(schema));
     return Step.mapChildren(node, (step, child) -> normalize(child));
@@ -67,11 +72,11 @@ final class AuthoredSchemaNormalizer {
     if (TYPE_DOCUMENT.equals(node.get(PROPERTY_TYPE))) {
       return documentNode(node);
     }
-    if (node.get(PROPERTY_TYPE) instanceof List<?> types
-        && types.contains(TYPE_DOCUMENT)
-        && !node.containsKey(PROPERTY_ANYOF)
-        && !node.containsKey(PROPERTY_ONEOF)) {
-      return typeArrayToAlternatives(node, types);
+    if (node.get(PROPERTY_TYPE) instanceof List<?> types && types.contains(TYPE_DOCUMENT)) {
+      throw new IllegalArgumentException(
+          "The type 'document' cannot be part of a type array. Use \"type\": \"document\" for a"
+              + " document, or \"anyOf\" with {\"type\": \"document\"} as one alternative for a"
+              + " document or another value.");
     }
     return new LinkedHashMap<>(node);
   }
@@ -86,31 +91,6 @@ final class AuthoredSchemaNormalizer {
             DocumentSchemas.document(
                 node.get(PROPERTY_DESCRIPTION) instanceof String description ? description : null));
     node.forEach(result::putIfAbsent);
-    return result;
-  }
-
-  private Map<String, Object> typeArrayToAlternatives(Map<String, Object> node, List<?> types) {
-    final var alternatives = new ArrayList<Map<String, Object>>();
-    for (final var type : types) {
-      final var alternative = new LinkedHashMap<String, Object>();
-      if (TYPE_DOCUMENT.equals(type)) {
-        alternatives.add(DocumentSchemas.document(null));
-      } else {
-        alternative.put(PROPERTY_TYPE, type);
-        alternatives.add(alternative);
-      }
-    }
-
-    final var result = new LinkedHashMap<String, Object>();
-    node.forEach((key, value) -> {
-      if (!PROPERTY_TYPE.equals(key)) {
-        result.put(key, value);
-      } else if (alternatives.size() == 1) {
-        result.putAll(alternatives.getFirst());
-      } else {
-        result.put(PROPERTY_ANYOF, alternatives);
-      }
-    });
     return result;
   }
 

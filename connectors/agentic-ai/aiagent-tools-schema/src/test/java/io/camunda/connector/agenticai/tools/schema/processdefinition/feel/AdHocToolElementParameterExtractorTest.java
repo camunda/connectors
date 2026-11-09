@@ -75,8 +75,7 @@ class AdHocToolElementParameterExtractorTest {
           }),
           positional: fromAi(toolCall.note, "The note", "string", {
             "oneOf": [{"type": "string"}, {"type": "document"}]
-          }),
-          typeArray: fromAi(value: toolCall.text, schema: {"type": ["string", "document"]})
+          })
         }
         """;
 
@@ -93,12 +92,6 @@ class AdHocToolElementParameterExtractorTest {
                 "The note",
                 "string",
                 Map.of("oneOf", List.of(Map.of("type", "string"), Map.of("type", "document"))),
-                Map.of()),
-            new AdHocToolElementParameter(
-                "toolCall.text",
-                null,
-                null,
-                Map.of("type", List.of("string", "document")),
                 Map.of()));
   }
 

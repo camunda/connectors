@@ -75,7 +75,8 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
           }
 
           // the shorthand type "document" becomes the object schema of a document handle
-          final var propertySchema = new LinkedHashMap<>(normalizer.normalize(authoredSchema));
+          final var propertySchema =
+              new LinkedHashMap<>(normalize(element, parameter, authoredSchema));
 
           // default to string if no type is set (not on parameter, not in schema directly); a
           // union keeps the type of its alternatives
@@ -101,6 +102,20 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
     inputSchema.put(PROPERTY_REQUIRED, required);
 
     return inputSchema;
+  }
+
+  /** The authored schema with the shorthand type {@code document} turned into the handle schema. */
+  private Map<String, Object> normalize(
+      AdHocToolElement element,
+      AdHocToolElementParameter parameter,
+      Map<String, Object> authoredSchema) {
+    try {
+      return normalizer.normalize(authoredSchema);
+    } catch (IllegalArgumentException e) {
+      throw new AdHocToolSchemaGenerationException(
+          "Failed to generate ad-hoc tool schema for element '%s'. Parameter '%s': %s"
+              .formatted(element.elementId(), parameter.name(), e.getMessage()));
+    }
   }
 
   private String parameterName(AdHocToolElement element, AdHocToolElementParameter parameter) {

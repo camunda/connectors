@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.tools.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
@@ -14,7 +15,10 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter.Step;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class AuthoredSchemaNormalizerTest {
 
@@ -78,56 +82,36 @@ class AuthoredSchemaNormalizerTest {
   }
 
   @Test
-  void normalizesATypeArrayThatListsTheDocumentTypeToAlternativesInThePlaceOfTheType() {
-    final var node = new LinkedHashMap<String, Object>();
-    node.put("title", "Body");
-    node.put("type", List.of("string", "document"));
-    node.put("description", "The body");
+  void leavesATypeArrayWithoutTheDocumentTypeAsItIs() {
+    final var schema = object("value", Map.of("type", List.of("string", "null")));
 
-    final var normalized = normalizer.normalize(object("body", node));
-
-    assertThat(normalized)
-        .isEqualTo(
-            object(
-                "body",
-                Map.of(
-                    "title",
-                    "Body",
-                    "anyOf",
-                    List.of(string(), doc()),
-                    "description",
-                    "The body")));
-    assertThat(List.copyOf(valueOf(normalized, "body").keySet()))
-        .containsExactly("title", "anyOf", "description");
-    assertThat(DocumentParameter.isUnionSchema(valueOf(normalized, "body"))).isTrue();
+    assertThat(normalizer.normalize(schema)).isEqualTo(schema);
   }
 
-  @Test
-  void normalizesATypeArrayWithOtherTypesAndNestedOnesAndAloneAsADocument() {
-    final var schema =
+  static Stream<Map<String, Object>> schemasWithTheDocumentTypeInATypeArray() {
+    return Stream.of(
+        object("value", Map.of("type", List.of("string", "document"))),
+        object("value", Map.of("type", List.of("document"))),
+        object("value", Map.of("type", List.of("string", "document"), "anyOf", List.of(string()))),
         object(
-            "value", Map.of("type", List.of("number", "document", "null")),
-            "docs", Map.of("type", "array", "items", Map.of("type", List.of("string", "document"))),
-            "alone", Map.of("type", List.of("document")));
-
-    assertThat(normalizer.normalize(schema))
-        .isEqualTo(
-            object(
-                "value",
-                    Map.of(
-                        "anyOf", List.of(Map.of("type", "number"), doc(), Map.of("type", "null"))),
-                "docs", Map.of("type", "array", "items", Map.of("anyOf", List.of(string(), doc()))),
-                "alone", doc()));
+            "docs",
+            Map.of("type", "array", "items", Map.of("type", List.of("string", "document")))),
+        object(
+            "value",
+            Map.of(
+                "anyOf",
+                List.of(string(), object("file", Map.of("type", List.of("string", "document")))))));
   }
 
-  @Test
-  void leavesTypeArraysWithoutTheDocumentTypeAndNextToAlternativesAsTheyAre() {
-    final var plain = object("value", Map.of("type", List.of("string", "null")));
-    final var withAlternatives =
-        object("value", Map.of("type", List.of("string", "document"), "anyOf", List.of(string())));
-
-    assertThat(normalizer.normalize(plain)).isEqualTo(plain);
-    assertThat(normalizer.normalize(withAlternatives)).isEqualTo(withAlternatives);
+  @ParameterizedTest
+  @MethodSource("schemasWithTheDocumentTypeInATypeArray")
+  void rejectsATypeArrayThatListsTheDocumentType(Map<String, Object> schema) {
+    assertThatThrownBy(() -> normalizer.normalize(schema))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The type 'document' cannot be part of a type array. Use \"type\": \"document\" for a"
+                + " document, or \"anyOf\" with {\"type\": \"document\"} as one alternative for a"
+                + " document or another value.");
   }
 
   @Test
@@ -181,24 +165,6 @@ class AuthoredSchemaNormalizerTest {
   }
 
   @Test
-  void normalizesATypeArrayInsideAnAlternative() {
-    final var schema =
-        object(
-            "value",
-            Map.of(
-                "anyOf",
-                List.of(string(), object("file", Map.of("type", List.of("string", "document"))))));
-
-    assertThat(normalizer.normalize(schema))
-        .isEqualTo(
-            object(
-                "value",
-                Map.of(
-                    "anyOf",
-                    List.of(string(), object("file", Map.of("anyOf", List.of(string(), doc())))))));
-  }
-
-  @Test
   void leavesTheShorthandWhereTheAgentResolvesNoDocumentAsAuthored() {
     final var shorthand = Map.<String, Object>of("type", "document");
     final var itemsNextToProperties = new LinkedHashMap<String, Object>();
@@ -212,6 +178,7 @@ class AuthoredSchemaNormalizerTest {
             "additional", Map.of("type", "object", "additionalProperties", shorthand),
             "prefix", Map.of("type", "array", "prefixItems", List.of(shorthand)),
             "defs", Map.of("$defs", Map.of("file", shorthand)),
+            "allTypeArray", Map.of("allOf", List.of(Map.of("type", List.of("string", "document")))),
             "both", itemsNextToProperties);
 
     final var normalized = normalizer.normalize(schema);
@@ -224,6 +191,8 @@ class AuthoredSchemaNormalizerTest {
                 "additional", Map.of("type", "object", "additionalProperties", shorthand),
                 "prefix", Map.of("type", "array", "prefixItems", List.of(shorthand)),
                 "defs", Map.of("$defs", Map.of("file", shorthand)),
+                "allTypeArray",
+                    Map.of("allOf", List.of(Map.of("type", List.of("string", "document")))),
                 "both",
                     Map.of(
                         "type",
