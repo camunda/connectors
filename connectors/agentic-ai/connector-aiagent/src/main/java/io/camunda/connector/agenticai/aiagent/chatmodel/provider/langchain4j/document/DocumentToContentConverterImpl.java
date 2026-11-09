@@ -12,10 +12,10 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.pdf.PdfFile;
+import io.camunda.connector.agenticai.aiagent.document.DocumentMimeTypes;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -30,33 +30,19 @@ import org.apache.hc.core5.http.ContentType;
  */
 public class DocumentToContentConverterImpl implements DocumentToContentConverter {
 
-  private static final List<ContentType> ADDITIONAL_TEXT_FILE_CONTENT_TYPES =
-      List.of(
-          ContentType.APPLICATION_XML,
-          ContentType.APPLICATION_JSON,
-          ContentType.create("application/yaml"));
-
-  private static final List<ContentType> IMAGE_CONTENT_TYPES =
-      List.of(
-          ContentType.IMAGE_JPEG,
-          ContentType.IMAGE_PNG,
-          ContentType.IMAGE_GIF,
-          ContentType.IMAGE_WEBP);
-
   @Override
   public Content convert(Document camundaDocument) {
     final var contentType = getContentType(camundaDocument);
 
-    if (contentType.getMimeType().startsWith("text/")
-        || isCompatibleWithAnyOf(contentType, ADDITIONAL_TEXT_FILE_CONTENT_TYPES)) {
+    if (DocumentMimeTypes.isTextIsh(contentType)) {
       return new TextContent(new String(camundaDocument.asByteArray(), StandardCharsets.UTF_8));
     }
 
-    if (contentType.isSameMimeType(ContentType.APPLICATION_PDF)) {
+    if (DocumentMimeTypes.isPdf(contentType)) {
       return PdfFileContent.from(PdfFile.builder().base64Data(camundaDocument.asBase64()).build());
     }
 
-    if (isCompatibleWithAnyOf(contentType, IMAGE_CONTENT_TYPES)) {
+    if (DocumentMimeTypes.isImage(contentType)) {
       return ImageContent.from(
           Image.builder()
               .mimeType(contentType.getMimeType())
@@ -80,9 +66,5 @@ public class DocumentToContentConverterImpl implements DocumentToContentConverte
             new DocumentConversionException(
                 "Content type is unset for document with reference '%s'"
                     .formatted(camundaDocument.reference())));
-  }
-
-  private boolean isCompatibleWithAnyOf(ContentType contentType, List<ContentType> contentTypes) {
-    return contentTypes.stream().anyMatch(contentType::isSameMimeType);
   }
 }
