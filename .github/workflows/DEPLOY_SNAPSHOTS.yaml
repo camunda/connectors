@@ -127,7 +127,7 @@ jobs:
 
       # Match Maven deployment credentials by server id rather than repository origin.
       - name: Build Artifacts
-        run: mvn -B compile generate-sources source:jar javadoc:jar deploy -Dmaven.repository.credentialScope=id -DskipTests
+        run: mvn -B compile generate-sources source:jar javadoc:jar deploy -Dmaven.repository.credentialScope=id -DskipTests '-Dconnectors.fatjar.outputFile=${project.build.directory}/${project.build.finalName}-with-dependencies.jar'
         env:
           MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
