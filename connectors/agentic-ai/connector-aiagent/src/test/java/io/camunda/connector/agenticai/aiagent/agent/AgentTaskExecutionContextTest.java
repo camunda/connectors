@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,6 +19,9 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 import java.util.stream.Stream;
@@ -53,6 +57,21 @@ class AgentTaskExecutionContextTest {
     executionContext =
         new AgentTaskExecutionContext(
             jobContext, TestDocuments.documentFactory(), agentRequest, toolElementsResolver);
+  }
+
+  @Test
+  void resolvesADocumentReferenceOnceForTheJob() {
+    final var runtimeFactory = mock(DocumentFactory.class);
+    final var reference = mock(DocumentReference.class);
+    when(runtimeFactory.resolve(reference)).thenAnswer(invocation -> mock(Document.class));
+    final var context =
+        new AgentTaskExecutionContext(
+            jobContext, runtimeFactory, agentRequest, toolElementsResolver);
+
+    final var first = context.documentFactory().resolve(reference);
+
+    assertThat(context.documentFactory().resolve(reference)).isSameAs(first);
+    verify(runtimeFactory, times(1)).resolve(reference);
   }
 
   @ParameterizedTest
