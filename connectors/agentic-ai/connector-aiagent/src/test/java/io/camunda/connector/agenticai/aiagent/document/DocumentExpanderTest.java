@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.aiagent.document;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
@@ -31,6 +33,8 @@ import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -46,7 +50,27 @@ class DocumentExpanderTest {
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   private final DocumentExpander expander =
-      new DocumentExpander(new ObjectHandleRenderer(TestObjectMapperSupplier.INSTANCE));
+      new DocumentExpander(
+          new ObjectHandleRenderer(TestObjectMapperSupplier.INSTANCE),
+          new DocumentContentGuard(DocumentContentLimits.defaults()));
+
+  /** A document factory that resolves every reference to a document with the given content. */
+  private static DocumentFactory servingContent(String contentType, String content) {
+    return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE) {
+      @Override
+      public Document resolve(DocumentReference reference) {
+        final var bytes = content.getBytes(StandardCharsets.UTF_8);
+        final var metadata = mock(DocumentMetadata.class);
+        when(metadata.getContentType()).thenReturn(contentType);
+        when(metadata.getSize()).thenReturn((long) bytes.length);
+        final var document = mock(Document.class);
+        when(document.reference()).thenReturn(reference);
+        when(document.metadata()).thenReturn(metadata);
+        when(document.asByteArray()).thenReturn(bytes);
+        return document;
+      }
+    };
+  }
 
   private Document camundaDocument(String content) {
     return documentFactory.create(
@@ -134,6 +158,86 @@ class DocumentExpanderTest {
     assertThat(content.get(0)).isEqualTo(handleOf(agentDocuments, withContent));
     assertRebuiltDocumentIs(content.get(1), documentWithContent);
     assertThat(content.get(2)).isEqualTo(handleOf(agentDocuments, referenced));
+  }
+
+  @Test
+  void checksTheContentOfAnExternalDocumentThatAToolLoadedEachTimeItIsDownloaded() {
+    final var document = new ExternalDocument("https://example.com/data", "data", u -> null);
+    final var agentDocuments =
+        agentDocumentsOf(document, AgentDocumentOrigin.toolCall("download", "call-1"));
+    final var block = reference(agentDocuments, 0, DocumentDelivery.CONTENT);
+    final var messages =
+        List.<Message>of(
+            UserMessage.builder()
+                .content(List.of(block))
+                .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
+                .build());
+
+    // the job that loads the document gets text
+    final var inFirstJob =
+        expander.expandMessages(messages, agentDocuments, servingContent("text/plain", "data"));
+    // a later job downloads the URL again and gets an archive
+    final var inLaterJob =
+        expander.expandMessages(
+            messages, agentDocuments, servingContent("application/zip", "archive"));
+
+    final var firstContent = ((UserMessage) inFirstJob.getFirst()).content();
+    assertThat(firstContent).hasSize(2);
+    assertThat(firstContent.get(0)).isEqualTo(handleOf(agentDocuments, block));
+    assertThat(firstContent.get(1)).isInstanceOf(DocumentContent.class);
+    assertThat(((UserMessage) inLaterJob.getFirst()).content())
+        .containsExactly(
+            handleOf(agentDocuments, block),
+            textContent(
+                "Documents of type application/zip cannot be loaded. If one of your tools can"
+                    + " process the document, pass the handle to it."));
+  }
+
+  @Test
+  void doesNotCheckTheContentOfAnExternalDocumentOfAUserPrompt() {
+    final var document = new ExternalDocument("https://example.com/data", "data", u -> null);
+    final var agentDocuments =
+        agentDocumentsOf(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+    final var block = reference(agentDocuments, 0, DocumentDelivery.CONTENT);
+
+    final var expanded =
+        expander.expandMessages(
+            List.of(userMessage(block)),
+            agentDocuments,
+            servingContent("application/zip", "archive"));
+
+    final var content = ((UserMessage) expanded.getFirst()).content();
+    assertThat(content).hasSize(2);
+    assertThat(content.get(0)).isEqualTo(handleOf(agentDocuments, block));
+    assertThat(content.get(1)).isInstanceOf(DocumentContent.class);
+  }
+
+  @Test
+  void doesNotCheckTheContentOfACamundaDocumentAgain() {
+    final var document =
+        documentFactory.create(
+            DocumentCreationRequest.from("archive".getBytes(StandardCharsets.UTF_8))
+                .contentType("application/zip")
+                .fileName("archive.zip")
+                .build());
+    final var agentDocuments =
+        agentDocumentsOf(document, AgentDocumentOrigin.toolCall("download", "call-1"));
+    final var block = reference(agentDocuments, 0, DocumentDelivery.CONTENT);
+
+    final var expanded =
+        expander.expandMessages(
+            List.of(
+                UserMessage.builder()
+                    .content(List.of(block))
+                    .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
+                    .build()),
+            agentDocuments,
+            documentFactory);
+
+    final var content = ((UserMessage) expanded.getFirst()).content();
+    assertThat(content).hasSize(2);
+    assertThat(content.get(0)).isEqualTo(handleOf(agentDocuments, block));
+    assertRebuiltDocumentIs(content.get(1), document);
   }
 
   @Test

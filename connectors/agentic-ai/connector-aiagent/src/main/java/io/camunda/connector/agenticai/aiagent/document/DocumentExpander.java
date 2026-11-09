@@ -26,6 +26,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.DocumentFactory;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Expands the {@link AgentDocumentContent document blocks} of the conversation into the form the
@@ -36,19 +38,33 @@ import java.util.List;
  * content of the blocks with {@link DocumentDelivery#CONTENT}. A document the agent does not know
  * leaves the handle text alone. A handle a user typed into a prompt is text and stays text.
  *
+ * <p>The content of an external document is downloaded again in every job, and the URL can serve
+ * other content than when the {@link DocumentContentGuard} checked it. In the message with the
+ * documents whose content a tool asked for ({@link UserMessage#METADATA_TOOL_CALL_DOCUMENTS}),
+ * which holds only content that passed the guard, the content of an external document is therefore
+ * checked again before every model call; a document that fails the check gets the note of the guard
+ * after its handle text instead of its content. The documents of a user prompt are not checked
+ * here. A Camunda document cannot change, so it is not checked again.
+ *
  * <p>In a tool result a block becomes the handle text of the document, which for the model is the
  * handle only: the delivery of such a block is not read. A document nested in an object is replaced
  * by its handle object in the object, in a tool result as well as in a user message.
  *
- * <p>The result depends only on the messages and the agent documents, never on time or call order,
- * so it is stable across requests (prompt caching). Nothing that is stored is changed.
+ * <p>The result depends only on the messages, the agent documents and the content of the external
+ * documents, never on time or call order, so it is stable across requests (prompt caching) as long
+ * as an external document serves the same content. Nothing that is stored is changed.
  */
 public class DocumentExpander {
 
-  private final ObjectHandleRenderer objectHandleRenderer;
+  private static final Logger LOGGER = LoggerFactory.getLogger(DocumentExpander.class);
 
-  public DocumentExpander(ObjectHandleRenderer objectHandleRenderer) {
+  private final ObjectHandleRenderer objectHandleRenderer;
+  private final DocumentContentGuard contentGuard;
+
+  public DocumentExpander(
+      ObjectHandleRenderer objectHandleRenderer, DocumentContentGuard contentGuard) {
     this.objectHandleRenderer = objectHandleRenderer;
+    this.contentGuard = contentGuard;
   }
 
   /**
@@ -82,7 +98,8 @@ public class DocumentExpander {
           switch (message) {
             case UserMessage userMessage ->
                 userMessage.withContent(
-                    expandUserContent(userMessage.content(), documents, restorer));
+                    expandUserContent(
+                        userMessage.content(), documents, restorer, isChecked(userMessage)));
             case ToolCallResultMessage resultMessage ->
                 resultMessage.withResults(expandResults(resultMessage.results(), documents));
             default -> message;
@@ -92,7 +109,10 @@ public class DocumentExpander {
   }
 
   private List<Content> expandUserContent(
-      List<Content> contents, AgentDocuments documents, DocumentRestorer restorer) {
+      List<Content> contents,
+      AgentDocuments documents,
+      DocumentRestorer restorer,
+      boolean checkedContent) {
     final var expanded = new ArrayList<Content>(contents.size());
     for (int i = 0; i < contents.size(); i++) {
       switch (contents.get(i)) {
@@ -101,7 +121,10 @@ public class DocumentExpander {
           if (block.delivery() == DocumentDelivery.CONTENT) {
             restorer
                 .restore(documents, block.id())
-                .map(DocumentContent::documentContent)
+                .map(document ->
+                    checkedContent
+                        ? documentContentOrNote(document, block.id())
+                        : DocumentContent.documentContent(document))
                 .ifPresent(expanded::add);
           }
         }
@@ -137,6 +160,27 @@ public class DocumentExpander {
           });
     }
     return List.copyOf(expanded);
+  }
+
+  private static boolean isChecked(UserMessage message) {
+    return Boolean.TRUE.equals(message.metadata().get(UserMessage.METADATA_TOOL_CALL_DOCUMENTS));
+  }
+
+  /**
+   * The document, or the note of the guard when the content of an external document fails the check
+   * again.
+   */
+  private Content documentContentOrNote(Document document, AgentDocumentId id) {
+    if (document.reference() instanceof ExternalDocumentReference
+        && contentGuard.check(document) instanceof DocumentContentGuard.Verdict.Rejected rejected) {
+      LOGGER.debug(
+          "Not adding the content of the external document {}: {}",
+          id.value(),
+          rejected.rejection().modelText(),
+          rejected.rejection().cause());
+      return TextContent.textContent(rejected.rejection().modelText());
+    }
+    return DocumentContent.documentContent(document);
   }
 
   private String handleText(AgentDocuments documents, AgentDocumentId id) {
