@@ -144,6 +144,7 @@ jobs:
 
       # deploy-file uploads only this jar (plus the bundle pom), so none of the other modules
       # are re-deployed and the attach flag is irrelevant.
+      # -N keeps it to the root project: the goal is not bound to a module, and the paths below are relative to the repo root.
       - name: Deploy fat jar
         env:
           BUNDLE_DIR: ${{ matrix.bundle }}
@@ -156,7 +157,7 @@ jobs:
             exit 1
           fi
           ls -lh "${jar}"
-          ./mvnw -B deploy:deploy-file \
+          ./mvnw -B -N deploy:deploy-file \
             -Dmaven.repository.credentialScope=id \
             -DrepositoryId=camunda-nexus \
             -Durl=https://artifacts.camunda.com/artifactory/connectors-snapshots/ \
@@ -181,7 +182,7 @@ jobs:
     name: Notify on failure
     runs-on: ubuntu-latest
     needs: deploy-fatjar
-    if: github.repository == 'camunda/connectors' && needs.deploy-fatjar.result == 'failure'
+    if: failure() && github.repository == 'camunda/connectors' && needs.deploy-fatjar.result == 'failure'
     steps:
       - name: Send Slack notification on failure
         uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
