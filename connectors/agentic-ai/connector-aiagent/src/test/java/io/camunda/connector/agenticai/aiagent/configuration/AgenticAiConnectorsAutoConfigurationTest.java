@@ -21,6 +21,9 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
+import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallExecutor;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallAdmission;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
@@ -90,6 +93,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
@@ -124,6 +128,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AdHocToolsSchemaResolver.class,
           ProcessDefinitionAdHocToolElementsResolver.class,
           GatewayToolHandlerRegistry.class,
+          RuntimeTools.class,
+          LocalToolCallExecutor.class,
+          ToolCallAdmission.class,
           AgentToolsResolver.class,
           AgentInitializer.class,
           InProcessConversationStore.class,
@@ -132,6 +139,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AwsAgentCoreConversationStore.class,
           ConversationStoreRegistry.class,
           AgentConversationTurnInputComposer.class,
+          ToolCallResultsInputBuilder.class,
           AgentResponseHandler.class,
           AgentTaskRequestHandler.class,
           AgentTaskV1Function.class,

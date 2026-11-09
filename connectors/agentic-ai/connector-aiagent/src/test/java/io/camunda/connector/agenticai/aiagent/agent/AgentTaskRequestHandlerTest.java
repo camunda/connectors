@@ -20,7 +20,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -42,34 +45,44 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class AgentTaskRequestHandlerTest {
 
   private static final AgentContext INITIAL_AGENT_CONTEXT =
-      AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
+      AgentContext.builder()
+          .features(AgentFeatures.ofNewInstance())
+          .state(AgentState.READY)
+          .toolDefinitions(TOOL_DEFINITIONS)
+          .build();
 
   private static final String SYSTEM_PROMPT = "You are a helpful assistant. Be nice.";
   private static final Message SYSTEM_MESSAGE = systemMessage(SYSTEM_PROMPT);
@@ -86,14 +99,33 @@ class AgentTaskRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
+
+  @Spy
+  private RuntimeTools runtimeTools =
+      new RuntimeTools(
+          List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
+          TestObjectMapperSupplier.INSTANCE);
+
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 
   @Captor private ArgumentCaptor<ChatRequest> chatModelRequestCaptor;
 
-  @InjectMocks private AgentTaskRequestHandler requestHandler;
+  private AgentTaskRequestHandler requestHandler;
 
   @BeforeEach
   void setUp() {
+    requestHandler =
+        new AgentTaskRequestHandler(
+            agentInitializer,
+            conversationStoreRegistry,
+            agentInputComposer,
+            chatModelRegistry,
+            systemPromptComposer,
+            responseHandler,
+            agentInstanceClient,
+            runtimeTools,
+            new ToolCallAdmission(),
+            new LocalToolCallExecutor(runtimeTools));
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
@@ -106,7 +138,10 @@ class AgentTaskRequestHandlerTest {
     final var toolDiscoveryToolCalls =
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
-        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+        AgentContext.builder()
+            .features(AgentFeatures.ofNewInstance())
+            .state(AgentState.TOOL_DISCOVERY)
+            .build();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
@@ -126,7 +161,10 @@ class AgentTaskRequestHandlerTest {
     final var toolDiscoveryToolCalls =
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
-        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+        AgentContext.builder()
+            .features(AgentFeatures.ofNewInstance())
+            .state(AgentState.TOOL_DISCOVERY)
+            .build();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
@@ -241,7 +279,7 @@ class AgentTaskRequestHandlerTest {
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(new CompositionResult.NoInput());
 
     assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
@@ -261,7 +299,6 @@ class AgentTaskRequestHandlerTest {
   void throwsWhenModelCallLimitReachedAfterRehydration() {
     // a conversation rehydrated from history: reconstructed turns carry empty metrics, so the
     // limit must be enforced against the durable cumulative counter on the agent context.
-    mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentExecutionContext.configuration())
         .thenReturn(
@@ -276,6 +313,7 @@ class AgentTaskRequestHandlerTest {
 
     final var contextAtLimit =
         AgentContext.builder()
+            .features(AgentFeatures.ofNewInstance())
             .state(AgentState.READY)
             .toolDefinitions(TOOL_DEFINITIONS)
             .metrics(new AgentMetrics(2, TokenUsage.empty(), 0))
@@ -344,6 +382,45 @@ class AgentTaskRequestHandlerTest {
     verifyNoMoreInteractions(agentInstanceClient);
   }
 
+  @Test
+  void answersACallOfAToolThatIsNotOfferedWithAnErrorResultInTheSameJobAndCallsTheModelAgain() {
+    mockConfiguration();
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder()
+                    .toolCalls(List.of(new ToolCall("call-1", "acme_unknown", Map.of())))
+                    .build(),
+                metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+    verify(runtimeTools, never()).execute(any(), any(), any());
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .singleElement()
+                    .satisfies(result -> {
+                      assertThat(result.id()).isEqualTo("call-1");
+                      assertThat(result.content())
+                          .containsExactly(
+                              TextContent.textContent("The tool 'acme_unknown' does not exist."));
+                    }));
+    assertThat(response.agentResponse().toolCalls()).isEmpty();
+  }
+
   private void mockConfiguration() {
     when(agentExecutionContext.configuration())
         .thenReturn(
@@ -355,22 +432,32 @@ class AgentTaskRequestHandlerTest {
     when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
   }
 
+  /**
+   * The composer resolves the turn to the given input messages. The input of a round within the
+   * job, which answers the tool calls of the previous turn, is built from its batch like the real
+   * composer does.
+   */
   private void mockProceed(Message... inputMessages) {
-    when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.NextTurn(List.of(inputMessages)));
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
+        .thenReturn(CompositionResult.Ready.of(ToolCallBatch.of(List.of())));
+    lenient()
+        .when(agentInputComposer.assemble(any()))
+        .thenAnswer(invocation -> {
+          final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
+          return ready.toolCallBatch().toolCalls().isEmpty()
+              ? new TurnInput(List.of(inputMessages))
+              : new TurnInput(new ToolCallResultsInputBuilder().build(ready.toolCallBatch()));
+        });
   }
 
   private void mockResponseHandler() {
     when(responseHandler.createResponse(any(AgentConversation.class)))
         .thenAnswer(i -> {
           final var conversation = i.getArgument(0, AgentConversation.class);
-          final var assistantMessage = conversation.lastTurn().orElseThrow().assistantMessage();
+          final var lastTurn = conversation.lastTurn().orElseThrow();
+          final var assistantMessage = lastTurn.assistantMessage();
           final var toolCalls =
-              assistantMessage.toolCalls() == null
-                  ? List.<ToolCallProcessVariable>of()
-                  : assistantMessage.toolCalls().stream()
-                      .map(ToolCallProcessVariable::from)
-                      .toList();
+              lastTurn.processToolCalls().stream().map(ToolCallProcessVariable::from).toList();
           return AgentResponse.builder()
               .context(conversation.toAgentContext())
               .responseMessage(assistantMessage)
