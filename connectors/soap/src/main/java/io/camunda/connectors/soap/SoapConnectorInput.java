@@ -310,6 +310,7 @@ public record SoapConnectorInput(
             @TemplateProperty(
                     label = "Certificate",
                     group = "authentication",
+                    secret = true,
                     tooltip = "The X.509 certificate to use to sign the request")
                 @NotNull
                 String certificate,

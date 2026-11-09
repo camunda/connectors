@@ -238,7 +238,8 @@
       } ]
     },
     "tooltip" : "The X.509 certificate to use to sign the request",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.certificate.privateKey",
     "label" : "Private key",
