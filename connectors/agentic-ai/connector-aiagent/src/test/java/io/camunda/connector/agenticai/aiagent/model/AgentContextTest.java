@@ -34,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 class AgentContextTest {
   private static final AgentContext EMPTY_CONTEXT = AgentContext.empty();
@@ -333,8 +335,7 @@ class AgentContextTest {
   }
 
   @Test
-  void responseDocumentsAreSerializedAndDeserializedInInsertionOrder()
-      throws JsonProcessingException {
+  void responseDocumentsAreSerializedAndDeserializedInInsertionOrder() throws Exception {
     var context = AgentContext.empty();
     for (final var key : List.of("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta")) {
       context =
@@ -348,10 +349,20 @@ class AgentContextTest {
     final var serialized = objectMapper.writeValueAsString(context);
     final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
 
-    assertThat(serialized)
-        .contains(
-            "\"responseDocuments\":[{\"key\":\"zeta\",\"document\":\"doc-zeta\"},"
-                + "{\"key\":\"alpha\",\"document\":\"doc-alpha-2\",\"description\":\"Replaced\"},");
+    JSONAssert.assertEquals(
+        """
+        [
+          {"key": "zeta", "document": "doc-zeta"},
+          {"key": "alpha", "document": "doc-alpha-2", "description": "Replaced"},
+          {"key": "mid", "document": "doc-mid"},
+          {"key": "beta", "document": "doc-beta"},
+          {"key": "omega", "document": "doc-omega"},
+          {"key": "gamma", "document": "doc-gamma"},
+          {"key": "delta", "document": "doc-delta"}
+        ]
+        """,
+        objectMapper.readTree(serialized).get("responseDocuments").toString(),
+        JSONCompareMode.STRICT);
     assertThat(deserialized.responseDocuments())
         .extracting(ResponseDocumentSelection::key)
         .containsExactly("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta");

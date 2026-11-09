@@ -150,9 +150,17 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
               .hasResponseText(secondAnswer);
           assertThat(agentResponse.responseDocuments()).containsOnlyKeys(RETURN_KEY, NOTES_KEY);
           assertResponseDocumentEntry(
-              agentResponse.responseDocuments(), RETURN_KEY, reportId, RETURN_DESCRIPTION);
+              agentResponse.context(),
+              agentResponse.responseDocuments(),
+              RETURN_KEY,
+              reportId,
+              RETURN_DESCRIPTION);
           assertResponseDocumentEntry(
-              agentResponse.responseDocuments(), NOTES_KEY, notesId, NOTES_DESCRIPTION);
+              agentResponse.context(),
+              agentResponse.responseDocuments(),
+              NOTES_KEY,
+              notesId,
+              NOTES_DESCRIPTION);
           assertThat(agentResponse.context().responseDocuments())
               .extracting(ResponseDocumentSelection::key)
               .containsExactly(RETURN_KEY, NOTES_KEY);
