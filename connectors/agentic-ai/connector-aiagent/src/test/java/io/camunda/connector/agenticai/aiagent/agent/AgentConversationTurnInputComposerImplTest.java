@@ -1236,11 +1236,12 @@ class AgentConversationTurnInputComposerImplTest {
 
   @Test
   void runtimeToolCalls_aDocumentInTheOldestMessageOfTheWindowIsInTheConversationOfTheModelCall() {
-    // 4 previous messages + the tool call result message fill the window of 5
+    // 4 previous messages, the tool call result message and the place of the system message fill
+    // the window of 6
     var document = createDocument("first", "text/plain", "first.txt");
     var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
 
-    assertThat(contentOfTheLoadingResult(configWithContextWindow(5), document))
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(6), document))
         .containsExactly(
             textContent("Loaded the document."),
             textContent("The content of " + ref + " is already in the conversation."));
@@ -1251,7 +1252,7 @@ class AgentConversationTurnInputComposerImplTest {
     var document = createDocument("first", "text/plain", "first.txt");
     var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
 
-    assertThat(contentOfTheLoadingResult(configWithContextWindow(4), document))
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(5), document))
         .containsExactly(
             textContent("Loaded the document."),
             textContent("The content of " + ref + " follows in the next message."));
@@ -1263,7 +1264,7 @@ class AgentConversationTurnInputComposerImplTest {
     var document = createDocument("first", "text/plain", "first.txt");
     var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
 
-    assertThat(contentOfTheLoadingResult(configWithContextWindow(5), document, eventResult()))
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(6), document, eventResult()))
         .containsExactly(
             textContent("Loaded the document."),
             textContent("The content of " + ref + " follows in the next message."));
@@ -1276,7 +1277,7 @@ class AgentConversationTurnInputComposerImplTest {
     var id = AgentDocumentId.of(document);
     var ready =
         resolveReady(
-            configWithContextWindow(4),
+            configWithContextWindow(5),
             contextKnowing(document),
             historyWithTheContentFirstAndTheToolCallsLast(document),
             inputWith(TOOL_CALL_RESULTS.get(1)));
@@ -1310,12 +1311,13 @@ class AgentConversationTurnInputComposerImplTest {
 
   @Test
   void userPrompt_aDocumentInTheOldestMessageOfTheWindowIsInTheConversationOfTheModelCall() {
-    // 4 previous messages + the user prompt message fill the window of 5
+    // 4 previous messages, the user prompt message and the place of the system message fill the
+    // window of 6
     var document = createDocument("first", "text/plain", "first.txt");
 
     var ready =
         resolveReady(
-            configWithContextWindow(5),
+            configWithContextWindow(6),
             contextKnowing(document),
             historyWithTheContentFirst(document),
             AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of()));
@@ -1329,7 +1331,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     var ready =
         resolveReady(
-            configWithContextWindow(4),
+            configWithContextWindow(5),
             contextKnowing(document),
             historyWithTheContentFirst(document),
             AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of()));
@@ -1343,7 +1345,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     var ready =
         resolveReady(
-            configWithContextWindow(5),
+            configWithContextWindow(6),
             contextKnowing(document),
             historyWithTheContentFirst(document),
             AgentInput.from(
@@ -1358,7 +1360,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     var ready =
         resolveReady(
-            configWithContextWindow(5),
+            configWithContextWindow(6),
             contextKnowing(document),
             historyWithTheContentFirst(document),
             AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(eventResult())));
