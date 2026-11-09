@@ -93,6 +93,8 @@
           </dependencies>
           <configuration>
             <shadedArtifactAttached>true</shadedArtifactAttached>
+            <!-- see connectors.fatjar.outputFile in parent/pom.xml; when set, the jar is not attached -->
+            <outputFile>${connectors.fatjar.outputFile}</outputFile>
             <shadedClassifierName>with-dependencies</shadedClassifierName>
             <!-- no need for this since we are not consuming this artifact downstream -->
             <createDependencyReducedPom>false</createDependencyReducedPom>
