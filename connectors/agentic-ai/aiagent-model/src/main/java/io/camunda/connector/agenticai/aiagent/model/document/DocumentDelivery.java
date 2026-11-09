@@ -13,6 +13,7 @@ public enum DocumentDelivery {
   /** The model sees the document handle only. */
   @JsonProperty("reference")
   REFERENCE,
+
   /** The agent adds the content of the document next to the handle when it calls the model. */
   @JsonProperty("content")
   CONTENT
