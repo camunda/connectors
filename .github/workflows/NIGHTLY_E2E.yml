@@ -1,0 +1,59 @@
+name: E2E test run
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [ labeled, synchronize ]
+
+permissions:
+  actions: read
+  contents: read
+  checks: write
+
+jobs:
+
+  setup:
+    runs-on: ubuntu-latest
+    # The nightly schedule lives on main and already covers stable/8.6; on this branch the
+    # workflow runs for PRs labeled 'e2e-tests' (required by E2E_RENOVATE_GATE.yml) and manually.
+    # Only run if scheduled/manual OR if the 'e2e-tests' label exists on a non-fork PR
+    if: |
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.fork == false &&
+       ((github.event.action == 'labeled' && github.event.label.name == 'e2e-tests') ||
+        (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'e2e-tests'))))
+    outputs:
+      branches: ${{ steps.set-branches.outputs.branches }}
+    steps:
+      - name: Fetch stable branches
+        id: set-branches
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PR, only test the PR's head ref
+            echo "branches=[\"${{ github.head_ref }}\"]" >> $GITHUB_OUTPUT
+          else
+            # For scheduled/manual runs, test main and all stable branches
+            git ls-remote --heads https://github.com/${{ github.repository }}.git | \
+            awk '{print $2}' | sed 's|refs/heads/||' | grep '^stable/' > stables.txt || true
+            all_branches=$( (echo "main"; cat stables.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
+            echo "branches=$all_branches" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  run-e2e-tests:
+    name: (${{ matrix.branch }})
+    needs: setup
+    permissions:
+      actions: read
+      contents: read
+      checks: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ${{ fromJson(needs.setup.outputs.branches) }}
+    uses: ./.github/workflows/E2E_BRANCH_RUN.yml
+    with:
+      branch: ${{ matrix.branch }}
+    secrets: inherit
