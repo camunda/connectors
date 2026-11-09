@@ -260,6 +260,14 @@ class DocumentParameterTest {
   }
 
   @Test
+  void findsThePropertiesOfASchemaWithAlternativesNextToItsProperties() {
+    final var schema = new LinkedHashMap<>(object("file", doc(), "text", string()));
+    schema.put("anyOf", List.of(object("file", doc()), object("text", string())));
+
+    assertThat(DocumentParameter.in(schema)).containsExactly(document(property("file")));
+  }
+
+  @Test
   void aToolDefinitionLooksUpItsDocumentParametersInTheInputSchema() {
     final var definition =
         new ToolDefinition("upload", null, object("doc", doc(), "text", string()));

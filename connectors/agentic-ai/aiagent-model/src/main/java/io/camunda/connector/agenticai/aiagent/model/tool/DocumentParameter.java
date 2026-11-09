@@ -110,13 +110,18 @@ public sealed interface DocumentParameter {
   }
 
   /**
-   * The document parameters of the object schema of the tool arguments, in schema order. A schema
-   * that is itself a document is not a parameter of the arguments.
+   * The document parameters of the object schema of the tool arguments, in schema order. The search
+   * starts at the children of the schema: the schema itself is no parameter, also when it is a
+   * document or has {@code anyOf} or {@code oneOf} alternatives next to its properties.
    */
   static List<DocumentParameter> in(Map<String, Object> inputSchema) {
     final var parameters = new ArrayList<DocumentParameter>();
-    collect(inputSchema, List.of(), parameters);
-    parameters.removeIf(parameter -> parameter.path().isEmpty());
+    Step.mapChildren(
+        inputSchema,
+        (step, child) -> {
+          collect(child, List.of(step), parameters);
+          return child;
+        });
     return List.copyOf(parameters);
   }
 
