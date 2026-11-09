@@ -145,7 +145,6 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 | Error codes                                                              | [`error-codes.md`](connector-aiagent/docs/error-codes.md)                                                                                            |
 | Spring auto-configuration, feature toggles, config defaults              | [`spring-auto-configuration.md`](docs/architecture/spring-auto-configuration.md)                                                                     |
 | Process instance migration (what's allowed / blocked)                    | [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md)                                                              |
-| Code paths & class diagram                                               | [`code-paths.md`](connector-aiagent/docs/code-paths.md)                                                                                              |
 | Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern)                                                                  |
 | MCP integration                                                          | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md)                       |
 | A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
@@ -434,8 +433,6 @@ carried an unrelated legacy `"deprecated": true` boolean flag and were left unto
 | `AgentSubProcessV1Function.java`            | Job worker (Sub-process) entry point       |
 | `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
 | `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                         |
-
-Full code-path reference and class diagram: [`code-paths.md`](connector-aiagent/docs/code-paths.md).
 
 ## Architecture decision records
 

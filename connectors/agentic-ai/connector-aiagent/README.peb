@@ -39,7 +39,6 @@ the agent instance client.
 - [Error codes](docs/error-codes.md)
 - [Process instance migration](docs/process-instance-migration.md)
 - [Agent instance integration](docs/agent-instance.md)
-- [Key code paths](docs/code-paths.md)
 - [Agentic loop](../docs/architecture/agentic-loop.md)
 - [Extension points](../docs/architecture/extension-points.md)
 - [Spring auto-configuration](../docs/architecture/spring-auto-configuration.md)
