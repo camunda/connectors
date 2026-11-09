@@ -49,8 +49,9 @@ MCP and A2A tools, whose schemas come from the remote side, Modeler support and 
   conversation store needs its own implementation.
 * **Running instances keep running**: persisted state and agent instances of earlier versions keep loading and
   behaving as before.
-* **No opaque failures**: a limit the broker enforces is checked up front, with an error the operator can act on.
-* **Operator control**: the limits for content are configuration, not code.
+* **No opaque failures**: a limit of the broker, such as the message size of a job completion, is checked up front, with
+  an error the operator can act on. This does not apply to a limit of an LLM provider, such as the supported file types:
+  the provider call fails at runtime.
 * **No privileged built-ins**: the document tools use the public runtime tool SPI like any custom tool.
 
 ## Considered Options
@@ -66,8 +67,8 @@ Option 2 has several decisions of its own, each with alternatives, in the decisi
 
 ## Decision Outcome
 
-Chosen option: **Option 2**, because a handle costs a few dozen tokens, so a conversation can carry any number of
-documents, and the cases in which the model needs the content are rare and known: it asks for it, or the process
+Chosen option: **Option 2**, because a handle costs a few dozen tokens, so a conversation can carry a large number of
+documents. The model needs the content only sometimes, and these cases are known: it asks for it, or the process
 designer knows it up front.
 
 ### Vocabulary
@@ -201,8 +202,11 @@ Why JSON and a namespaced `type`:
   that merely has an `id` field is never taken for a document, and a namespaced value is not a word another object of a
   tool result uses as its own type.
 
-Alternatives: *an XML tag* (`<doc id="..."/>`) needs escaping, a parser that tells it from text a user typed, and is not what
-the model writes in an argument; *the Camunda document reference as JSON* (the format of the connector SDK) leaks the store,
+Alternatives: *an XML tag*, the form an agent instance without the `documents` feature uses (`<doc documentId="..."
+storeId="..." .../>` before the content of each document). That tag labels content that follows it; it is not made to be
+passed back. A tracked document is passed to a tool, and a tool argument is JSON, so the model would have to turn the tag
+into JSON. The tag also needs escaping and a parser that tells it from text a user typed, and it shows the store and the
+id in the store, which the model must not see; *the Camunda document reference as JSON* (the format of the connector SDK) leaks the store,
 the document id in the store and, for an external document, a URL that can carry a token, and is long to copy; *index
 numbers per conversation* are not stable across windows, stores and instances, and a nested document has no natural number;
 *an origin in the handle* repeats what the surrounding message shows and makes the same document read differently in every
@@ -386,7 +390,7 @@ history back after a document flow and requires it.
 
 ### Positive Consequences
 
-* A conversation carries any number of documents at a few dozen tokens each, and documents survive the window and every
+* A conversation carries a large number of documents at a few dozen tokens each, and documents survive the window and every
   conversation store.
 * The model can hand a document to a tool and return one with the response, without handling bytes or store details.
 * Content enters the request only through one guard, so a document that a provider cannot render never fails a model
