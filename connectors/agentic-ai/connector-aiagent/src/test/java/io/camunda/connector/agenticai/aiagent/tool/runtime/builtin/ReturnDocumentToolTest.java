@@ -51,6 +51,13 @@ import org.junit.jupiter.api.Test;
  */
 class ReturnDocumentToolTest {
 
+  private static final String INVALID_KEY_ERROR =
+      "Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*: it starts with a letter or an"
+          + " underscore and continues with letters, digits, underscores or hyphens.";
+  private static final String INVALID_DOCUMENT_ERROR =
+      "Parameter 'document' must be the handle of a document from the conversation: a JSON object"
+          + " such as {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.";
+
   private static final AgentConfiguration CONFIGURATION =
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
 
@@ -225,9 +232,7 @@ class ReturnDocumentToolTest {
 
       assertThat(run.results())
           .singleElement()
-          .satisfies(result ->
-              assertThat(text(result))
-                  .startsWith("Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*"));
+          .satisfies(result -> assertThat(text(result)).isEqualTo(INVALID_KEY_ERROR));
       assertThat(run.entries().getFirst().effects()).isEmpty();
       assertThat(run.responseDocuments()).isEmpty();
     }
@@ -239,13 +244,17 @@ class ReturnDocumentToolTest {
     nullKey.put("key", null);
     nullKey.put("document", reportHandle);
 
-    for (final var arguments :
-        List.<Map<String, Object>>of(
-            Map.of("document", reportHandle), nullKey, Map.of("key", "k"))) {
-      final var run = run(call("1", arguments));
+    final var cases =
+        List.of(
+            Map.entry(Map.<String, Object>of("document", reportHandle), INVALID_KEY_ERROR),
+            Map.entry((Map<String, Object>) nullKey, INVALID_KEY_ERROR),
+            Map.entry(Map.<String, Object>of("key", "k"), INVALID_DOCUMENT_ERROR));
+    for (final var testCase : cases) {
+      final var run = run(call("1", testCase.getKey()));
 
-      assertThat(run.results()).singleElement();
-      assertThat(text(run.results().getFirst())).contains("Parameter");
+      assertThat(run.results())
+          .singleElement()
+          .satisfies(result -> assertThat(text(result)).isEqualTo(testCase.getValue()));
       assertThat(run.responseDocuments()).isEmpty();
     }
   }
