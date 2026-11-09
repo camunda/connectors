@@ -222,19 +222,20 @@ implement the response handler interface directly, hand only the process tool ca
 
 ### Agent instance client and mappers
 
-- `AgentInstanceClient.applyTurnStart` takes the `DocumentHandling` of the agent instance
-  (`AgentContext.documentHandling()`) as a last parameter. It decides how the documents of the messages are shown, and
-  the agent documents of a `Tracked` instance are what document handles are expanded with.
-- `AgentInstanceClient.applyToolCallResults` takes `List<ToolCallResultContent>` instead of `List<ToolCallResult>` and the
-  `DocumentHandling` as a last parameter, which decides how the documents of the results are shown; convert with
-  `ToolCallResultContent.from(result)`.
+- `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `HistoryDocuments` of the job right after the
+  agent instance key. Build it with `HistoryDocuments.of(executionContext, agentContext)`: it holds the document handling
+  of the agent instance, which decides how the documents of the messages are shown, and the document factory of the job.
+  The agent documents of a `Tracked` instance are what document handles are expanded with.
+- `AgentInstanceClient.applyToolCallResults` takes `List<ToolCallResultContent>` instead of `List<ToolCallResult>`;
+  convert with `ToolCallResultContent.from(result)`.
 - `AgentInstanceToolMapper` and `AgentInstanceHistoryMapper` keep their API. A runtime tool, decided by
   `ToolDefinition.kind()`, and a local tool call and its result, decided by `ToolCall.isLocal()` (a runtime tool call or
   a rejected call), are reported without an element id.
 - `AgentInstanceHistoryMapper`: the constructor takes an `ObjectHandleRenderer`, and `inputHistoryItems` takes the
-  `DocumentHandling` and the `DocumentFactory` of the job (`AgentExecutionContext.documentFactory()`).
+  `HistoryDocuments` of the job.
 
-Migration: if you implement or decorate `AgentInstanceClient.applyToolCallResults`, convert as described above. Most
+Migration: if you implement or decorate `AgentInstanceClient.applyTurnStart` or `applyToolCallResults`, take the
+`HistoryDocuments` and convert the tool call results as described above. Most
 extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate them instead.
 
 ### Replaceable bean constructors

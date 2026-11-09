@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -76,6 +77,10 @@ class AgentInstanceHistoryMapperTest {
       new AgentInstanceHistoryMapper(
           Mockito.mock(GatewayToolHandlerRegistry.class), TestDocuments.objectHandleRenderer());
 
+  private static HistoryDocuments historyDocuments(DocumentHandling handling) {
+    return new HistoryDocuments(handling, new DocumentRestorer(TestDocuments.documentFactory()));
+  }
+
   @Test
   void userMessageUsesThePassedInTurnIngestionTimestamp() {
     final var userMessage =
@@ -86,8 +91,7 @@ class AgentInstanceHistoryMapperTest {
             userMessage,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            NEW_INSTANCE.documentHandling(),
-            TestDocuments.documentFactory());
+            historyDocuments(NEW_INSTANCE.documentHandling()));
 
     assertThat(items).singleElement().extracting("producedAt").isEqualTo(TURN_INGESTION_TIMESTAMP);
   }
@@ -130,8 +134,7 @@ class AgentInstanceHistoryMapperTest {
             userMessage,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(),
-            TestDocuments.documentFactory());
+            historyDocuments(WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling()));
 
     assertThat(items)
         .singleElement()
@@ -162,8 +165,7 @@ class AgentInstanceHistoryMapperTest {
             userMessage,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.documentHandling(),
-            TestDocuments.documentFactory());
+            historyDocuments(WITH_DOCUMENTS.documentHandling()));
 
     assertThat(items)
         .singleElement()
@@ -190,8 +192,7 @@ class AgentInstanceHistoryMapperTest {
             userMessage,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.documentHandling(),
-            TestDocuments.documentFactory());
+            historyDocuments(WITH_DOCUMENTS.documentHandling()));
 
     assertThat(items)
         .singleElement()
@@ -218,8 +219,7 @@ class AgentInstanceHistoryMapperTest {
             ToolCallResultMessage.builder().results(List.of(result)).build(),
             Map.of("call-1", toolCall),
             TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.documentHandling(),
-            TestDocuments.documentFactory());
+            historyDocuments(WITH_DOCUMENTS.documentHandling()));
 
     assertThat(items)
         .singleElement()
@@ -259,8 +259,7 @@ class AgentInstanceHistoryMapperTest {
             user,
             Map.of(),
             TURN_INGESTION_TIMESTAMP,
-            withoutDocumentFlow.documentHandling(),
-            TestDocuments.documentFactory());
+            historyDocuments(withoutDocumentFlow.documentHandling()));
     assertThat(texts(userItems.getFirst().content())).containsExactly(tag, "see " + tag);
   }
 
@@ -282,8 +281,7 @@ class AgentInstanceHistoryMapperTest {
             message,
             Map.of("call-1", toolCall),
             TURN_INGESTION_TIMESTAMP,
-            NEW_INSTANCE.documentHandling(),
-            TestDocuments.documentFactory());
+            historyDocuments(NEW_INSTANCE.documentHandling()));
 
     assertThat(items)
         .singleElement()
@@ -323,8 +321,7 @@ class AgentInstanceHistoryMapperTest {
             message,
             Map.of("fast", fastToolCall, "slow", slowToolCall),
             TURN_INGESTION_TIMESTAMP,
-            NEW_INSTANCE.documentHandling(),
-            TestDocuments.documentFactory());
+            historyDocuments(NEW_INSTANCE.documentHandling()));
 
     assertThat(items).hasSize(2);
     assertThat(items.get(0).producedAt()).isEqualTo(fastCompletedAt);
@@ -351,8 +348,7 @@ class AgentInstanceHistoryMapperTest {
                 message,
                 Map.of("call-1", toolCall),
                 TURN_INGESTION_TIMESTAMP,
-                NEW_INSTANCE.documentHandling(),
-                TestDocuments.documentFactory()))
+                historyDocuments(NEW_INSTANCE.documentHandling())))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("call-1")
         .hasMessageContaining("completedAt");
@@ -382,8 +378,7 @@ class AgentInstanceHistoryMapperTest {
             ToolCallResultMessage.builder().results(List.of(result)).build(),
             Map.of("call-1", toolCall),
             TURN_INGESTION_TIMESTAMP,
-            NEW_INSTANCE.documentHandling(),
-            TestDocuments.documentFactory());
+            historyDocuments(NEW_INSTANCE.documentHandling()));
 
     assertThat(assistantCalls)
         .singleElement()
@@ -666,8 +661,7 @@ class AgentInstanceHistoryMapperTest {
               message,
               Map.of("call-1", call),
               TURN_INGESTION_TIMESTAMP,
-              agentContext.documentHandling(),
-              TestDocuments.documentFactory());
+              historyDocuments(agentContext.documentHandling()));
       assertThat(items).hasSize(1);
       return items.getFirst();
     }
@@ -771,8 +765,7 @@ class AgentInstanceHistoryMapperTest {
               event,
               Map.of(),
               TURN_INGESTION_TIMESTAMP,
-              agentContext.documentHandling(),
-              TestDocuments.documentFactory());
+              historyDocuments(agentContext.documentHandling()));
 
       assertThat(items)
           .singleElement()

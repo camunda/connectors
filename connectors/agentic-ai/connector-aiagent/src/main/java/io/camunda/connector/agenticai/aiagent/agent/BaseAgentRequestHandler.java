@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
@@ -226,9 +227,9 @@ public abstract class BaseAgentRequestHandler<
     agentInstanceClient.applyToolCallResults(
         executionContext,
         agentContext.agentInstanceKey(),
+        HistoryDocuments.of(executionContext, agentContext),
         arrivedResults.stream().map(ToolCallResultContent::from).toList(),
-        previousConversation.turns().getLast(),
-        agentContext.documentHandling());
+        previousConversation.turns().getLast());
   }
 
   private R proceed(
@@ -253,10 +254,10 @@ public abstract class BaseAgentRequestHandler<
         executionContext,
         agentConfiguration,
         agentInstanceKey,
+        HistoryDocuments.of(executionContext, conversation.persistedContext()),
         conversation.currentTurn(),
         conversation.lastTurn(),
-        OffsetDateTime.now(ZoneId.systemDefault()),
-        conversation.persistedContext().documentHandling());
+        OffsetDateTime.now(ZoneId.systemDefault()));
 
     final AgentConversation updatedConversation;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
@@ -431,10 +432,10 @@ public abstract class BaseAgentRequestHandler<
         executionContext,
         agentConfiguration,
         agentInstanceKey,
+        HistoryDocuments.of(executionContext, nextConversation.persistedContext()),
         nextConversation.currentTurn(),
         nextConversation.lastTurn(),
-        OffsetDateTime.now(ZoneId.systemDefault()),
-        nextConversation.persistedContext().documentHandling());
+        OffsetDateTime.now(ZoneId.systemDefault()));
     return nextConversation;
   }
 

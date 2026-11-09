@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
@@ -55,8 +54,7 @@ public interface AgentInstanceClient {
    * {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the agent-instance
    * feature).
    *
-   * @param documentHandling how the agent handles its documents, which decides how the documents of
-   *     the messages are shown
+   * @param documents how the history shows the documents of the agent
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -66,10 +64,10 @@ public interface AgentInstanceClient {
       AgentExecutionContext executionContext,
       AgentConfiguration configuration,
       @Nullable AgentInstanceKey agentInstanceKey,
+      HistoryDocuments documents,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
-      OffsetDateTime turnIngestionTimestamp,
-      DocumentHandling documentHandling);
+      OffsetDateTime turnIngestionTimestamp);
 
   /**
    * Records the completion of a turn: sets the agent instance's status to {@code status} and
@@ -95,8 +93,7 @@ public interface AgentInstanceClient {
    * without changing the agent instance's status. Silently skips when {@code agentInstanceKey} is
    * {@code null}.
    *
-   * @param documentHandling how the agent handles its documents, which decides how the documents of
-   *     the results are shown
+   * @param documents how the history shows the documents of the agent
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -105,7 +102,7 @@ public interface AgentInstanceClient {
   void applyToolCallResults(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
+      HistoryDocuments documents,
       List<ToolCallResultContent> toolCallResults,
-      AgentConversationTurn previousTurn,
-      DocumentHandling documentHandling);
+      AgentConversationTurn previousTurn);
 }

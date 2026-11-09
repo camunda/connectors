@@ -45,6 +45,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
@@ -506,7 +507,7 @@ class AgentSubProcessRequestHandlerTest {
         ArgumentCaptor.forClass(List.class);
     verify(agentInstanceClient)
         .applyToolCallResults(
-            eq(agentExecutionContext), any(), resultsCaptor.capture(), any(), any());
+            eq(agentExecutionContext), any(), any(), resultsCaptor.capture(), any());
     assertThat(resultsCaptor.getValue()).containsExactly(ToolCallResultContent.from(arrivedResult));
   }
 
@@ -940,7 +941,7 @@ class AgentSubProcessRequestHandlerTest {
     inOrder
         .verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
+            eq(agentExecutionContext), any(), any(), any(), turnCaptor.capture(), any(), any());
     inOrder
         .verify(agentInstanceClient)
         .applyTurnCompletion(
@@ -956,9 +957,9 @@ class AgentSubProcessRequestHandlerTest {
             eq(agentExecutionContext),
             any(),
             any(),
+            any(),
             turnCaptor.capture(),
             previousTurnCaptor.capture(),
-            any(),
             any());
     inOrder
         .verify(agentInstanceClient)
@@ -1784,11 +1785,11 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.variables().get("agentContext")).isEqualTo(context);
 
     // the agent instance history is written with the agent documents of the turn
-    final var startHandling = ArgumentCaptor.forClass(DocumentHandling.class);
+    final var startDocuments = ArgumentCaptor.forClass(HistoryDocuments.class);
     verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), any(), any(), any(), startHandling.capture());
-    assertThat(trackedDocuments(startHandling.getValue()).find(AgentDocumentId.of(document)))
+            eq(agentExecutionContext), any(), any(), startDocuments.capture(), any(), any(), any());
+    assertThat(trackedDocuments(startDocuments.getValue()).find(AgentDocumentId.of(document)))
         .isPresent();
   }
 
@@ -1887,12 +1888,12 @@ class AgentSubProcessRequestHandlerTest {
                         TextContent.textContent(TestDocuments.handleText(NEW_REPORT))));
 
     // the history of the second round is written with the agent documents that holds the document
-    final var startHandlings = ArgumentCaptor.forClass(DocumentHandling.class);
+    final var startDocuments = ArgumentCaptor.forClass(HistoryDocuments.class);
     verify(agentInstanceClient, times(2))
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), any(), any(), any(), startHandlings.capture());
-    assertThat(trackedDocuments(startHandlings.getAllValues().get(0)).all()).isEmpty();
-    assertThat(trackedDocuments(startHandlings.getAllValues().get(1)).all()).hasSize(1);
+            eq(agentExecutionContext), any(), any(), startDocuments.capture(), any(), any(), any());
+    assertThat(trackedDocuments(startDocuments.getAllValues().get(0)).all()).isEmpty();
+    assertThat(trackedDocuments(startDocuments.getAllValues().get(1)).all()).hasSize(1);
   }
 
   @Test
@@ -1984,8 +1985,8 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(runs.get(1).documents()).isEqualTo(runs.get(0).documents());
   }
 
-  private static AgentDocuments trackedDocuments(DocumentHandling handling) {
-    return ((DocumentHandling.Tracked) handling).documents();
+  private static AgentDocuments trackedDocuments(HistoryDocuments documents) {
+    return ((DocumentHandling.Tracked) documents.handling()).documents();
   }
 
   private List<ToolDefinition> toolDefinitionsOfTheAgentInstanceHistory() {
@@ -2247,7 +2248,7 @@ class AgentSubProcessRequestHandlerTest {
       AgentMetrics expectedMetrics) {
     verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
+            eq(agentExecutionContext), any(), any(), any(), turnCaptor.capture(), any(), any());
     assertThat(turnCaptor.getValue().inputMessages()).containsExactly(USER_MESSAGE);
 
     verify(agentInstanceClient)
@@ -2349,7 +2350,7 @@ class AgentSubProcessRequestHandlerTest {
     inOrder
         .verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
+            eq(agentExecutionContext), any(), any(), any(), turnCaptor.capture(), any(), any());
     inOrder
         .verify(agentInstanceClient)
         .applyTurnCompletion(
@@ -2365,9 +2366,9 @@ class AgentSubProcessRequestHandlerTest {
             eq(agentExecutionContext),
             any(),
             any(),
+            any(),
             turnCaptor.capture(),
             previousTurnCaptor.capture(),
-            any(),
             any());
     inOrder
         .verify(agentInstanceClient)
