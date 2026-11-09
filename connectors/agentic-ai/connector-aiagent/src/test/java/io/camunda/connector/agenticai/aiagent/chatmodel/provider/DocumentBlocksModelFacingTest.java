@@ -32,9 +32,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -75,7 +75,10 @@ class DocumentBlocksModelFacingTest {
   private List<Message> windowed() {
     final var agentDocuments =
         AgentDocuments.empty()
-            .register(List.of(new NewDocument(report, DocumentOrigin.userMessage())));
+            .register(
+                List.of(
+                    AgentDocument.of(
+                        report, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
     final var call =
         new ToolCall(
             "call-1",

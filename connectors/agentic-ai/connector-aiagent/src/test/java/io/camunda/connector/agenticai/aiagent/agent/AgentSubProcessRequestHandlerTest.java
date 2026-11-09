@@ -71,7 +71,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -1766,7 +1765,7 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(
             new TurnInput(
                 List.of(USER_MESSAGE),
-                List.of(new NewDocument(document, DocumentOrigin.toolCall("search", "call-1")))));
+                List.of(AgentDocument.of(document, DocumentOrigin.toolCall("search", "call-1")))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_DOCUMENTS, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -1804,8 +1803,10 @@ class AgentSubProcessRequestHandlerTest {
                 List.of(
                     new AgentDocument(
                         AgentDocumentId.of(other),
-                        DocumentOrigin.userMessage(),
-                        AgentDocument.of(registered, DocumentOrigin.userMessage()).reference()))));
+                        DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
+                        AgentDocument.of(
+                                registered, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
+                            .reference()))));
     final var tooLarge = mock(Document.class);
     when(tooLarge.reference())
         .thenReturn(
@@ -1826,11 +1827,14 @@ class AgentSubProcessRequestHandlerTest {
     reset(agentInitializer, agentInputComposer);
     when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(CompositionResult.Ready.of(context, ToolCallBatch.of(List.of())));
+    // the agent document of a reference of an unsupported type cannot be created
     when(agentInputComposer.assemble(any()))
-        .thenReturn(
+        .thenAnswer(invocation ->
             new TurnInput(
                 List.of(USER_MESSAGE),
-                List.of(new NewDocument(document, DocumentOrigin.userMessage()))));
+                List.of(
+                    AgentDocument.of(
+                        document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
 

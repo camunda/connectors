@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference;
@@ -93,7 +94,7 @@ class AgentDocumentHandleTest {
     final var document =
         new AgentDocument(
             AgentDocumentId.of(ID),
-            DocumentOrigin.userMessage(),
+            DocumentOrigin.userMessage(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
             new InlineDocumentReferenceModel("hello", "a.txt", "text/plain"));
 
     assertThat(json(AgentDocumentHandle.of(document)))
@@ -115,7 +116,10 @@ class AgentDocumentHandleTest {
   /** The text of the handle of the known document. */
   private static String text(Document document) {
     return AgentDocumentHandle.of(
-            agentDocumentsOf(document, DocumentOrigin.userMessage()), AgentDocumentId.of(document))
+            agentDocumentsOf(
+                document,
+                DocumentOrigin.userMessage(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"))),
+            AgentDocumentId.of(document))
         .text();
   }
 
@@ -274,8 +278,8 @@ class AgentDocumentHandleTest {
 
     for (final var origin :
         List.of(
-            DocumentOrigin.userMessage(),
-            DocumentOrigin.event(),
+            DocumentOrigin.userMessage(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
+            DocumentOrigin.event(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
             DocumentOrigin.toolCall("search", "call_1"))) {
       assertThat(
               AgentDocumentHandle.of(agentDocumentsOf(doc, origin), AgentDocumentId.of(doc)).text())

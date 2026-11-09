@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -21,6 +22,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public final class TestDocuments {
+
+  /** The id of the message that a document of a test entered the conversation with. */
+  public static final MessageId MESSAGE_ID = MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b");
 
   private TestDocuments() {}
 

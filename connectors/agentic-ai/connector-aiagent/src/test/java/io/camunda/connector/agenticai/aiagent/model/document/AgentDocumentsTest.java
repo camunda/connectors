@@ -9,14 +9,12 @@ package io.camunda.connector.agenticai.aiagent.model.document;
 import static io.camunda.connector.api.document.InlineSizeGuard.MAX_INLINE_BYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -69,8 +67,8 @@ class AgentDocumentsTest {
         AgentDocuments.empty()
             .register(
                 List.of(
-                    new NewDocument(first, DocumentOrigin.userMessage()),
-                    new NewDocument(second, DocumentOrigin.toolCall("search", "call-1"))));
+                    AgentDocument.of(first, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
+                    AgentDocument.of(second, DocumentOrigin.toolCall("search", "call-1"))));
 
     assertThat(documents.all())
         .extracting(AgentDocument::id)
@@ -90,8 +88,8 @@ class AgentDocumentsTest {
 
     final var documents =
         AgentDocuments.empty()
-            .register(first, DocumentOrigin.userMessage())
-            .register(second, DocumentOrigin.event());
+            .register(first, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
+            .register(second, DocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
     assertThat(documents.all())
         .extracting(AgentDocument::id)
@@ -102,10 +100,11 @@ class AgentDocumentsTest {
   void rejectsABatchWithAnInlineDocumentAboveTheLimit() {
     final var batch =
         List.of(
-            new NewDocument(document("one", "one.txt"), DocumentOrigin.userMessage()),
-            new NewDocument(
+            AgentDocument.of(
+                document("one", "one.txt"), DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
+            AgentDocument.of(
                 inline("x".repeat((int) MAX_INLINE_BYTES + 1), "big.png"),
-                DocumentOrigin.userMessage()));
+                DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
 
     assertThatThrownBy(() -> AgentDocuments.empty().register(batch))
         .isInstanceOf(InlineDocumentTooLargeException.class)
@@ -120,7 +119,9 @@ class AgentDocumentsTest {
     final var content = "x".repeat((int) MAX_INLINE_BYTES);
 
     final var documents =
-        AgentDocuments.empty().register(inline(content, "limit.txt"), DocumentOrigin.userMessage());
+        AgentDocuments.empty()
+            .register(
+                inline(content, "limit.txt"), DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
 
     assertThat(documents.all()).hasSize(1);
   }
@@ -129,7 +130,9 @@ class AgentDocumentsTest {
   void anInlineDocumentAboveTheLimitWithoutANameIsRejectedWithItsId() {
     final var tooLarge = inline("x".repeat((int) MAX_INLINE_BYTES + 1), null);
 
-    assertThatThrownBy(() -> AgentDocuments.empty().register(tooLarge, DocumentOrigin.event()))
+    assertThatThrownBy(() ->
+            AgentDocuments.empty()
+                .register(tooLarge, DocumentOrigin.event(TestDocuments.MESSAGE_ID)))
         .isInstanceOf(InlineDocumentTooLargeException.class)
         .hasMessageContaining("'" + AgentDocumentId.of(tooLarge) + "'");
   }
@@ -150,8 +153,8 @@ class AgentDocumentsTest {
 
     final var documents =
         AgentDocuments.empty()
-            .register(camunda, DocumentOrigin.event())
-            .register(external, DocumentOrigin.event());
+            .register(camunda, DocumentOrigin.event(TestDocuments.MESSAGE_ID))
+            .register(external, DocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
     assertThat(documents.all())
         .extracting(AgentDocument::id)
@@ -167,8 +170,8 @@ class AgentDocumentsTest {
             .register(doc, DocumentOrigin.toolCall("search", "call-1"))
             .register(
                 List.of(
-                    new NewDocument(doc, DocumentOrigin.toolCall("other", "call-2")),
-                    new NewDocument(doc, DocumentOrigin.userMessage())));
+                    AgentDocument.of(doc, DocumentOrigin.toolCall("other", "call-2")),
+                    AgentDocument.of(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
 
     assertThat(documents.all()).hasSize(1);
     assertThat(documents.find(AgentDocumentId.of(doc)))
@@ -179,7 +182,8 @@ class AgentDocumentsTest {
   @Test
   void registeringKnownDocumentsReturnsTheSameInstance() {
     final var doc = document("one", "one.txt");
-    final var documents = AgentDocuments.empty().register(doc, DocumentOrigin.userMessage());
+    final var documents =
+        AgentDocuments.empty().register(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
 
     assertThat(documents.register(doc, DocumentOrigin.toolCall("t", "c"))).isSameAs(documents);
     assertThat(documents.register(List.of())).isSameAs(documents);
@@ -195,8 +199,10 @@ class AgentDocumentsTest {
             List.of(
                 new AgentDocument(
                     AgentDocumentId.of(other),
-                    DocumentOrigin.userMessage(),
-                    AgentDocument.of(registered, DocumentOrigin.userMessage()).reference())));
+                    DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
+                    AgentDocument.of(
+                            registered, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
+                        .reference())));
 
     assertThatThrownBy(() -> documents.register(other, DocumentOrigin.toolCall("t", "c")))
         .isInstanceOf(DocumentIdCollisionException.class)
@@ -209,32 +215,33 @@ class AgentDocumentsTest {
     final var first = document("one", "one.txt");
     final var second = document("two", "two.txt");
 
-    // a real id collision needs a hash collision, so the id of the second document is forced
-    try (var ids = mockStatic(AgentDocumentId.class, CALLS_REAL_METHODS)) {
-      final var firstId = AgentDocumentId.of(first);
-      ids.when(() -> AgentDocumentId.of(second)).thenReturn(firstId);
+    // a real id collision needs a hash collision, so the second document gets the id of the first
+    final var origin = DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID);
+    final var firstDocument = AgentDocument.of(first, origin);
+    final var secondWithTheFirstId =
+        new AgentDocument(firstDocument.id(), origin, AgentDocument.of(second, origin).reference());
 
-      assertThatThrownBy(() ->
-              AgentDocuments.empty()
-                  .register(
-                      List.of(
-                          new NewDocument(first, DocumentOrigin.userMessage()),
-                          new NewDocument(second, DocumentOrigin.userMessage()))))
-          .isInstanceOf(DocumentIdCollisionException.class)
-          .hasMessageContaining("'" + firstId + "'");
-    }
+    assertThatThrownBy(
+            () -> AgentDocuments.empty().register(List.of(firstDocument, secondWithTheFirstId)))
+        .isInstanceOf(DocumentIdCollisionException.class)
+        .hasMessageContaining("'" + firstDocument.id() + "'");
   }
 
   @Test
   void ofKeepsTheFirstDocumentOfAnId() {
-    final var one = AgentDocument.of(document("one", "one.txt"), DocumentOrigin.userMessage());
+    final var one =
+        AgentDocument.of(
+            document("one", "one.txt"), DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var duplicate =
         new AgentDocument(
             one.id(),
-            DocumentOrigin.event(),
-            AgentDocument.of(document("two", "two.txt"), DocumentOrigin.event()).reference());
+            DocumentOrigin.event(TestDocuments.MESSAGE_ID),
+            AgentDocument.of(
+                    document("two", "two.txt"), DocumentOrigin.event(TestDocuments.MESSAGE_ID))
+                .reference());
     final var other =
-        AgentDocument.of(document("three", "three.txt"), DocumentOrigin.userMessage());
+        AgentDocument.of(
+            document("three", "three.txt"), DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
 
     assertThat(AgentDocuments.of(List.of(one, duplicate, other)).all()).containsExactly(one, other);
   }
@@ -243,10 +250,18 @@ class AgentDocumentsTest {
   void hasValueEquality() {
     final var doc = document("one", "one.txt");
 
-    assertThat(AgentDocuments.empty().register(doc, DocumentOrigin.userMessage()))
-        .isEqualTo(AgentDocuments.empty().register(doc, DocumentOrigin.userMessage()))
-        .hasSameHashCodeAs(AgentDocuments.empty().register(doc, DocumentOrigin.userMessage()));
-    assertThat(AgentDocuments.empty().register(doc, DocumentOrigin.userMessage()))
+    assertThat(
+            AgentDocuments.empty()
+                .register(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
+        .isEqualTo(
+            AgentDocuments.empty()
+                .register(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
+        .hasSameHashCodeAs(
+            AgentDocuments.empty()
+                .register(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
+    assertThat(
+            AgentDocuments.empty()
+                .register(doc, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))
         .isNotEqualTo(AgentDocuments.empty());
   }
 
@@ -254,7 +269,8 @@ class AgentDocumentsTest {
   void roundTripsThroughJsonAsTheListOfItsDocuments() throws JsonProcessingException {
     final var documents =
         AgentDocuments.empty()
-            .register(document("one", "one.txt"), DocumentOrigin.userMessage())
+            .register(
+                document("one", "one.txt"), DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
             .register(inline("aGVsbG8=", "a.txt"), DocumentOrigin.toolCall("search", "call-1"));
 
     final var json = objectMapper.writeValueAsString(documents);

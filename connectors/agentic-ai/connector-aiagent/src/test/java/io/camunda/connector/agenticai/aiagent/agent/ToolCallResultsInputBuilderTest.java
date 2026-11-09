@@ -14,8 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -78,9 +78,9 @@ class ToolCallResultsInputBuilderTest {
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(input.documents())
         .containsExactly(
-            new NewDocument(first, DocumentOrigin.toolCall("alpha", "c1")),
-            new NewDocument(nested, DocumentOrigin.toolCall("gamma", "c3")),
-            new NewDocument(third, DocumentOrigin.toolCall("gamma", "c3")));
+            AgentDocument.of(first, DocumentOrigin.toolCall("alpha", "c1")),
+            AgentDocument.of(nested, DocumentOrigin.toolCall("gamma", "c3")),
+            AgentDocument.of(third, DocumentOrigin.toolCall("gamma", "c3")));
   }
 
   @Test

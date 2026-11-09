@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
@@ -232,7 +233,7 @@ class AgentContextTest {
                                     null))),
                         new AgentDocument(
                             AgentDocumentId.of("doc_54f786b4cd7b"),
-                            DocumentOrigin.event(),
+                            DocumentOrigin.event(TestDocuments.MESSAGE_ID),
                             new ExternalDocumentReferenceModel(
                                 "https://example.com/a.pdf?token=secret", "a.pdf")))))
             .build();
@@ -252,7 +253,7 @@ class AgentContextTest {
                     "documentId":"doc-1","contentHash":"hash-1",
                     "metadata":{"contentType":"application/pdf","expiresAt":"2030-01-02T03:04:05Z",
                       "size":48213,"fileName":"report.pdf"}}},
-                 {"id":"doc_54f786b4cd7b","origin":{"type":"event"},
+                 {"id":"doc_54f786b4cd7b","origin":{"type":"event","messageId":"0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"},
                   "reference":{"camunda.document.type":"external",
                     "url":"https://example.com/a.pdf?token=secret","name":"a.pdf"}}]\
                 """));
@@ -267,7 +268,7 @@ class AgentContextTest {
     final var entry =
         new AgentDocument(
             AgentDocumentId.of("doc-1"),
-            DocumentOrigin.userMessage(),
+            DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
             new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null));
 
     final var context = AgentContext.empty().withDocuments(AgentDocuments.of(List.of(entry)));
@@ -284,7 +285,7 @@ class AgentContextTest {
             List.of(
                 new AgentDocument(
                     AgentDocumentId.of("doc-1"),
-                    DocumentOrigin.userMessage(),
+                    DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
                     new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null))));
     final var tracking =
         AgentContext.builder()

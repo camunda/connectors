@@ -14,11 +14,12 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -152,8 +153,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private TurnInput userPromptInput(
       AgentInput.UserPrompt userPrompt, DocumentHandling documentHandling) {
 
+    final var messageId = MessageUtil.generateId();
     final var content = new ArrayList<Content>();
-    final var newDocuments = new ArrayList<NewDocument>();
+    final var newDocuments = new ArrayList<AgentDocument>();
 
     // add user prompt text
     final var userPromptText = userPrompt.prompt();
@@ -165,12 +167,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       case DocumentHandling.Tracked ignored -> {
         // add the documents as blocks with the delivery content: the content is added when the
         // model is called
-        final var origin = DocumentOrigin.userMessage();
+        final var origin = DocumentOrigin.userMessage(messageId);
         for (var doc : userPrompt.documents()) {
           content.add(
               AgentDocumentContent.of(AgentDocumentId.of(doc))
                   .withDelivery(DocumentDelivery.CONTENT));
-          newDocuments.add(new NewDocument(doc, origin));
+          newDocuments.add(AgentDocument.of(doc, origin));
         }
       }
       case DocumentHandling.Untracked ignored ->
@@ -185,7 +187,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
     return new TurnInput(
         List.of(
-            UserMessage.builder().content(content).metadata(MessageMetadata.defaults()).build()),
+            UserMessage.builder()
+                .id(messageId)
+                .content(content)
+                .metadata(MessageMetadata.defaults())
+                .build()),
         newDocuments);
   }
 
@@ -245,7 +251,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       boolean interruptToolCallsOnEventResults,
       DocumentHandling documentHandling) {
     Object eventContent = eventResult.content();
-    final var newDocuments = new ArrayList<NewDocument>();
+    final var messageId = MessageUtil.generateId();
+    final var newDocuments = new ArrayList<AgentDocument>();
 
     List<Content> userMessageContent = new ArrayList<>();
     if (eventContent == null || isEventContentEmpty(eventContent)) {
@@ -268,10 +275,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       switch (documentHandling) {
         case DocumentHandling.Tracked ignored -> {
           userMessageContent.add(textContent(TRACKED_EVENT_DOCUMENTS_PREAMBLE));
-          final var origin = DocumentOrigin.event();
+          final var origin = DocumentOrigin.event(messageId);
           for (var group : eventDocuments) {
             for (var doc : group.documents()) {
-              newDocuments.add(new NewDocument(doc, origin));
+              newDocuments.add(AgentDocument.of(doc, origin));
               userMessageContent.add(AgentDocumentContent.of(AgentDocumentId.of(doc)));
             }
           }
@@ -286,6 +293,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return new TurnInput(
         List.of(
             UserMessage.builder()
+                .id(messageId)
                 .content(userMessageContent)
                 .metadata(MessageMetadata.defaults())
                 .build()),

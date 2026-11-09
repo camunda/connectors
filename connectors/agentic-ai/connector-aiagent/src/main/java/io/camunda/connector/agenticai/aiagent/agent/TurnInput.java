@@ -7,10 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentIdCollisionException;
 import io.camunda.connector.agenticai.aiagent.model.document.InlineDocumentTooLargeException;
-import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +21,7 @@ import java.util.List;
  *     registered in the documents of the agent context; empty for an agent instance that does not
  *     track its documents
  */
-public record TurnInput(List<Message> messages, List<AgentDocuments.NewDocument> documents) {
+public record TurnInput(List<Message> messages, List<AgentDocument> documents) {
 
   public TurnInput {
     messages = List.copyOf(messages);
@@ -45,8 +44,6 @@ public record TurnInput(List<Message> messages, List<AgentDocuments.NewDocument>
    *     content
    * @throws DocumentIdCollisionException if a document gets the id of a different document the
    *     context already holds, or of another document of this input
-   * @throws UnsupportedDocumentReferenceException if the reference type of a document is not
-   *     supported
    */
   public AgentContext applyTo(AgentContext agentContext) {
     if (documents.isEmpty()) {

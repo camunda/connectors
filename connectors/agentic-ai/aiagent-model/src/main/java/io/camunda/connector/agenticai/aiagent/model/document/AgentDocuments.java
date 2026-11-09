@@ -51,9 +51,6 @@ public final class AgentDocuments {
     return byId.isEmpty() ? EMPTY : new AgentDocuments(Collections.unmodifiableMap(byId));
   }
 
-  /** A document that enters the conversation, with where it comes from. */
-  public record NewDocument(Document document, DocumentOrigin origin) {}
-
   public Optional<AgentDocument> find(AgentDocumentId id) {
     return Optional.ofNullable(documentsById.get(id));
   }
@@ -75,7 +72,7 @@ public final class AgentDocuments {
    *     supported
    */
   public AgentDocuments register(Document document, DocumentOrigin origin) {
-    return register(List.of(new NewDocument(document, origin)));
+    return register(List.of(AgentDocument.of(document, origin)));
   }
 
   /**
@@ -86,24 +83,19 @@ public final class AgentDocuments {
    *     {@link InlineSizeGuard#MAX_INLINE_BYTES} bytes of content
    * @throws DocumentIdCollisionException if a document gets the id of a different document, one the
    *     collection holds or one of the batch
-   * @throws UnsupportedDocumentReferenceException if the reference type of a document is not
-   *     supported
    */
-  public AgentDocuments register(List<NewDocument> newDocuments) {
-    if (newDocuments.isEmpty()) {
+  public AgentDocuments register(List<AgentDocument> documents) {
+    if (documents.isEmpty()) {
       return this;
     }
     final var byId = new LinkedHashMap<>(documentsById);
-    for (final var newDocument : newDocuments) {
-      final var document = newDocument.document();
-      final var id = AgentDocumentId.of(document);
-      final var known = byId.get(id);
+    for (final var document : documents) {
+      final var known = byId.get(document.id());
       if (known == null) {
-        final var added = AgentDocument.of(document, newDocument.origin());
-        rejectLargeInlineContent(added);
-        byId.put(id, added);
+        rejectLargeInlineContent(document);
+        byId.put(document.id(), document);
       } else if (!known.isSameDocumentAs(document)) {
-        throw new DocumentIdCollisionException(id);
+        throw new DocumentIdCollisionException(document.id());
       }
     }
     return byId.size() == documentsById.size()

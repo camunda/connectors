@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -74,7 +75,8 @@ class AgentDocumentTest {
     final var document = camundaDocument("hello");
 
     final var restored =
-        AgentDocument.of(document, DocumentOrigin.userMessage()).toDocument(documentFactory);
+        AgentDocument.of(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
+            .toDocument(documentFactory);
 
     assertThat(restored.asByteArray()).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
     assertThat(restored.metadata().getFileName()).isEqualTo("report.pdf");
@@ -92,7 +94,10 @@ class AgentDocumentTest {
                 "application/pdf", null, 5L, "report.pdf", null, null, null));
 
     final var agentDocument =
-        new AgentDocument(AgentDocumentId.of(reference), DocumentOrigin.userMessage(), reference);
+        new AgentDocument(
+            AgentDocumentId.of(reference),
+            DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
+            reference);
 
     assertThat(agentDocument.fileName()).isEqualTo("report.pdf");
     assertThat(agentDocument.contentType()).isEqualTo("application/pdf");
@@ -109,7 +114,10 @@ class AgentDocumentTest {
             new CamundaDocumentMetadataModel("text/plain", null, 4L, "doc-1", null, null, null));
 
     final var agentDocument =
-        new AgentDocument(AgentDocumentId.of(reference), DocumentOrigin.event(), reference);
+        new AgentDocument(
+            AgentDocumentId.of(reference),
+            DocumentOrigin.event(TestDocuments.MESSAGE_ID),
+            reference);
 
     assertThat(agentDocument.fileName()).isNull();
     assertThat(agentDocument.contentType()).isEqualTo("text/plain");
@@ -121,7 +129,7 @@ class AgentDocumentTest {
     final var agentDocument =
         AgentDocument.of(
             new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null),
-            DocumentOrigin.userMessage());
+            DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
 
     assertThat(agentDocument.fileName()).isEqualTo("a.pdf");
     assertThat(agentDocument.contentType()).isNull();
@@ -132,7 +140,8 @@ class AgentDocumentTest {
   void inlineAccessorsHaveTheNameAndTheContentType() {
     final var agentDocument =
         AgentDocument.of(
-            new InlineDocument("hello", "a.txt", "text/plain"), DocumentOrigin.event());
+            new InlineDocument("hello", "a.txt", "text/plain"),
+            DocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
     assertThat(agentDocument.fileName()).isEqualTo("a.txt");
     assertThat(agentDocument.contentType()).isEqualTo("text/plain");
@@ -141,8 +150,10 @@ class AgentDocumentTest {
 
   @Test
   void aReferenceOfAnUnsupportedTypeIsRejected() {
-    assertThatThrownBy(
-            () -> AgentDocument.of(documentOf(new DocumentReference() {}), DocumentOrigin.event()))
+    assertThatThrownBy(() ->
+            AgentDocument.of(
+                documentOf(new DocumentReference() {}),
+                DocumentOrigin.event(TestDocuments.MESSAGE_ID)))
         .isInstanceOf(UnsupportedDocumentReferenceException.class);
   }
 
@@ -219,15 +230,15 @@ class AgentDocumentTest {
     final var camundaWithoutDetails =
         AgentDocument.of(
             documentOf(new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null)),
-            DocumentOrigin.event());
+            DocumentOrigin.event(TestDocuments.MESSAGE_ID));
     final var externalWithoutName =
         AgentDocument.of(
             documentOf(new ExternalDocumentReferenceModel("https://x/y", null)),
-            DocumentOrigin.event());
+            DocumentOrigin.event(TestDocuments.MESSAGE_ID));
     final var inlineWithoutDetails =
         AgentDocument.of(
             documentOf(new InlineDocumentReferenceModel("aGVsbG8=", null, null)),
-            DocumentOrigin.event());
+            DocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
     for (final var agentDocument :
         List.of(camundaWithoutDetails, externalWithoutName, inlineWithoutDetails)) {
@@ -243,7 +254,7 @@ class AgentDocumentTest {
     final var camunda =
         objectMapper.readValue(
             """
-            {"id":"doc_6d97d0f7b602","origin":{"type":"user_message"},
+            {"id":"doc_6d97d0f7b602","origin":{"type":"user_message","messageId":"0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"},
              "reference":{"camunda.document.type":"camunda","storeId":"in-memory",
                "documentId":"doc-1","contentHash":"hash-1",
                "metadata":{"contentType":"application/pdf","size":5,"fileName":"report.pdf"}}}\
@@ -252,7 +263,7 @@ class AgentDocumentTest {
     final var external =
         objectMapper.readValue(
             """
-            {"id":"doc_54f786b4cd7b","origin":{"type":"event"},
+            {"id":"doc_54f786b4cd7b","origin":{"type":"event","messageId":"0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"},
              "reference":{"camunda.document.type":"external",
                "url":"https://example.com/a.pdf?token=secret","name":"a.pdf"}}\
             """,
@@ -279,11 +290,13 @@ class AgentDocumentTest {
 
   @Test
   void originOfAnEventHasOnlyTheType() throws JsonProcessingException {
-    final var agentDocument = AgentDocument.of(camundaDocument("hello"), DocumentOrigin.event());
+    final var agentDocument =
+        AgentDocument.of(camundaDocument("hello"), DocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
     final JsonNode json = objectMapper.readTree(objectMapper.writeValueAsString(agentDocument));
 
-    assertThat(json.get("origin").toString()).isEqualTo("{\"type\":\"event\"}");
+    assertThat(json.get("origin").toString())
+        .isEqualTo("{\"type\":\"event\",\"messageId\":\"0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b\"}");
   }
 
   @Test

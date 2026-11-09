@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -26,11 +28,27 @@ import org.jspecify.annotations.Nullable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public sealed interface DocumentOrigin {
 
-  /** The document is part of the user prompt. */
-  record UserMessage() implements DocumentOrigin {}
+  /**
+   * The document is part of the user prompt.
+   *
+   * @param messageId the id of the user message that holds the document
+   */
+  record UserMessage(MessageId messageId) implements DocumentOrigin {
+    public UserMessage {
+      Objects.requireNonNull(messageId, "messageId must not be null");
+    }
+  }
 
-  /** The document is part of event data. */
-  record Event() implements DocumentOrigin {}
+  /**
+   * The document is part of event data.
+   *
+   * @param messageId the id of the user message of the event that holds the document
+   */
+  record Event(MessageId messageId) implements DocumentOrigin {
+    public Event {
+      Objects.requireNonNull(messageId, "messageId must not be null");
+    }
+  }
 
   /**
    * The document was returned by a tool call.
@@ -41,12 +59,12 @@ public sealed interface DocumentOrigin {
   record ToolCall(@Nullable String toolName, @Nullable String toolCallId)
       implements DocumentOrigin {}
 
-  static DocumentOrigin userMessage() {
-    return new UserMessage();
+  static DocumentOrigin userMessage(MessageId messageId) {
+    return new UserMessage(messageId);
   }
 
-  static DocumentOrigin event() {
-    return new Event();
+  static DocumentOrigin event(MessageId messageId) {
+    return new Event(messageId);
   }
 
   static DocumentOrigin toolCall(@Nullable String toolName, @Nullable String toolCallId) {

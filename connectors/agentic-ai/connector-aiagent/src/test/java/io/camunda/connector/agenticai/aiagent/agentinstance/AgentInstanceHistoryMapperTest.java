@@ -17,9 +17,9 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnaps
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
@@ -117,7 +117,10 @@ class AgentInstanceHistoryMapperTest {
                     .build());
     final var agentDocuments =
         AgentDocuments.empty()
-            .register(List.of(new NewDocument(document, DocumentOrigin.userMessage())));
+            .register(
+                List.of(
+                    AgentDocument.of(
+                        document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
     final var block = AgentDocumentContent.of(AgentDocumentId.of(document));
     final var userMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), block)).build();
@@ -631,8 +634,8 @@ class AgentInstanceHistoryMapperTest {
         AgentDocuments.empty()
             .register(
                 List.of(
-                    new NewDocument(document, DocumentOrigin.toolCall("fetch", "call-1")),
-                    new NewDocument(otherDocument, DocumentOrigin.toolCall("fetch", "call-1"))));
+                    AgentDocument.of(document, DocumentOrigin.toolCall("fetch", "call-1")),
+                    AgentDocument.of(otherDocument, DocumentOrigin.toolCall("fetch", "call-1"))));
     private final AgentContext agentContext = WITH_DOCUMENTS.withDocuments(agentDocuments);
 
     private final ToolCall call =
@@ -794,7 +797,7 @@ class AgentInstanceHistoryMapperTest {
               AgentDocuments.empty()
                   .register(
                       List.of(
-                          new NewDocument(unnamed, DocumentOrigin.toolCall("fetch", "call-1")))));
+                          AgentDocument.of(unnamed, DocumentOrigin.toolCall("fetch", "call-1")))));
 
       final var item = item(message(DocumentContent.documentContent(unnamed)), tracked);
 

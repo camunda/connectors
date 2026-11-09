@@ -208,7 +208,7 @@ class AgentConversationTest {
         UserMessage.builder()
             .content(List.of(textContent("see"), DocumentContent.documentContent(document)))
             .build();
-    var entry = AgentDocument.of(document, DocumentOrigin.userMessage());
+    var entry = AgentDocument.of(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     var context = BASE_CONTEXT.withDocuments(AgentDocuments.of(List.of(entry)));
     var conv =
         AgentConversation.rehydrate(
@@ -246,7 +246,7 @@ class AgentConversationTest {
                     .contentType("application/pdf")
                     .fileName("report.pdf")
                     .build());
-    var entry = AgentDocument.of(document, DocumentOrigin.userMessage());
+    var entry = AgentDocument.of(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     var reference =
         AgentDocumentContent.of(AgentDocumentId.of(document))
             .withDelivery(DocumentDelivery.CONTENT);
@@ -299,7 +299,7 @@ class AgentConversationTest {
                     .contentType("application/pdf")
                     .fileName("report.pdf")
                     .build());
-    var entry = AgentDocument.of(document, DocumentOrigin.userMessage());
+    var entry = AgentDocument.of(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     var reference = AgentDocumentContent.of(AgentDocumentId.of(document));
     var storedMessage =
         UserMessage.builder().content(List.of(textContent("see"), reference)).build();
@@ -339,7 +339,7 @@ class AgentConversationTest {
                     .fileName("report.pdf")
                     .build());
     var withContent = UserMessage.builder().content(List.of(textContent("see"))).build();
-    var entry = AgentDocument.of(document, DocumentOrigin.userMessage());
+    var entry = AgentDocument.of(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     var evictedMessage =
         withContent.withContent(
             List.of(
@@ -374,7 +374,7 @@ class AgentConversationTest {
     var entry =
         new AgentDocument(
             AgentDocumentId.of("doc-1"),
-            DocumentOrigin.userMessage(),
+            DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
             new CamundaDocumentReferenceModel("store", "doc-1", null, null));
     var context = BASE_CONTEXT.withDocuments(AgentDocuments.of(List.of(entry)));
     var conv =
@@ -669,7 +669,7 @@ class AgentConversationTest {
     final var entry =
         new AgentDocument(
             AgentDocumentId.of("doc-a"),
-            DocumentOrigin.userMessage(),
+            DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
             new CamundaDocumentReferenceModel("store", "doc-a", null, null));
     final var context =
         conv.persistedContext()

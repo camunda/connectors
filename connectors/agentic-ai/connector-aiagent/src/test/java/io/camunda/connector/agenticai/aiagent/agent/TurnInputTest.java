@@ -14,8 +14,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -32,8 +32,8 @@ class TurnInputTest {
         new TurnInput(
             List.of(userMessage("hi")),
             List.of(
-                new NewDocument(first, DocumentOrigin.userMessage()),
-                new NewDocument(second, DocumentOrigin.toolCall("search", "call-1"))));
+                AgentDocument.of(first, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
+                AgentDocument.of(second, DocumentOrigin.toolCall("search", "call-1"))));
 
     final var applied = input.applyTo(CONTEXT);
 
@@ -58,13 +58,17 @@ class TurnInputTest {
     final var input =
         new TurnInput(
                 List.of(userMessage("a")),
-                List.of(new NewDocument(first, DocumentOrigin.userMessage())))
+                List.of(
+                    AgentDocument.of(first, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))))
             .followedBy(
                 new TurnInput(
                     List.of(userMessage("b")),
-                    List.of(new NewDocument(second, DocumentOrigin.event()))));
+                    List.of(
+                        AgentDocument.of(second, DocumentOrigin.event(TestDocuments.MESSAGE_ID)))));
 
     assertThat(input.messages()).hasSize(2);
-    assertThat(input.documents()).extracting(NewDocument::document).containsExactly(first, second);
+    assertThat(input.documents())
+        .extracting(AgentDocument::id)
+        .containsExactly(AgentDocumentId.of(first), AgentDocumentId.of(second));
   }
 }

@@ -892,7 +892,8 @@ class AwsAgentCoreConversationStoreTest {
                     .contentType("application/pdf")
                     .fileName("report.pdf")
                     .build());
-    final var entry = AgentDocument.of(document, DocumentOrigin.userMessage());
+    final var entry =
+        AgentDocument.of(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var tag =
         AgentDocumentContent.of(AgentDocumentId.of(document))
             .withDelivery(DocumentDelivery.CONTENT);

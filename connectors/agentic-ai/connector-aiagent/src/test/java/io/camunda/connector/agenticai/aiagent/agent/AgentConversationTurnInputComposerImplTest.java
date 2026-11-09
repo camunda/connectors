@@ -28,9 +28,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -261,7 +261,8 @@ class AgentConversationTurnInputComposerImplTest {
         .containsExactly(
             textContent("Tell me a story"), documentReference(document, DocumentDelivery.CONTENT));
     final var ingested = inputOf(result).documents();
-    assertThat(ingested).containsExactly(new NewDocument(document, DocumentOrigin.userMessage()));
+    assertThat(ingested)
+        .containsExactly(AgentDocument.of(document, DocumentOrigin.userMessage(userMessage.id())));
     assertThat(
             TestDocuments.handleText(
                 AgentDocuments.empty().register(ingested), AgentDocumentId.of(document)))
@@ -465,7 +466,7 @@ class AgentConversationTurnInputComposerImplTest {
                         Map.of("result", "Sunny", "attachment", weatherDoc))));
     assertThat(nextTurn.documents())
         .containsExactly(
-            new NewDocument(weatherDoc, DocumentOrigin.toolCall("getWeather", "abcdef")));
+            AgentDocument.of(weatherDoc, DocumentOrigin.toolCall("getWeather", "abcdef")));
   }
 
   @Test
@@ -505,7 +506,7 @@ class AgentConversationTurnInputComposerImplTest {
                 .containsExactly(AgentDocumentContent.of(AgentDocumentId.of(weatherDoc))));
     assertThat(nextTurn.documents())
         .containsExactly(
-            new NewDocument(weatherDoc, DocumentOrigin.toolCall("getWeather", "abcdef")));
+            AgentDocument.of(weatherDoc, DocumentOrigin.toolCall("getWeather", "abcdef")));
   }
 
   @Test
@@ -630,13 +631,15 @@ class AgentConversationTurnInputComposerImplTest {
 
     final var nextTurn = inputOf(result);
     assertThat(nextTurn.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
+    // the event document comes with the message of the event, the last one of the turn
+    final var eventOrigin = DocumentOrigin.event(nextTurn.messages().getLast().id());
     assertThat(nextTurn.documents())
         .containsExactlyInAnyOrder(
-            new NewDocument(toolDoc, DocumentOrigin.toolCall("getWeather", "abcdef")),
-            new NewDocument(nestedToolDoc, DocumentOrigin.toolCall("getWeather", "abcdef")),
-            new NewDocument(eventDoc, DocumentOrigin.event()))
+            AgentDocument.of(toolDoc, DocumentOrigin.toolCall("getWeather", "abcdef")),
+            AgentDocument.of(nestedToolDoc, DocumentOrigin.toolCall("getWeather", "abcdef")),
+            AgentDocument.of(eventDoc, eventOrigin))
         .last()
-        .isEqualTo(new NewDocument(eventDoc, DocumentOrigin.event()));
+        .isEqualTo(AgentDocument.of(eventDoc, eventOrigin));
   }
 
   private static final ToolCallResultContent RUNTIME_RESULT =
@@ -746,7 +749,7 @@ class AgentConversationTurnInputComposerImplTest {
     // the document of the result of a runtime tool is registered with the call that returned it
     assertThat(turnInput.documents())
         .containsExactly(
-            new NewDocument(document, DocumentOrigin.toolCall("getWeather", "abcdef")));
+            AgentDocument.of(document, DocumentOrigin.toolCall("getWeather", "abcdef")));
   }
 
   @Test
@@ -774,9 +777,10 @@ class AgentConversationTurnInputComposerImplTest {
     // the first call is the runtime tool call, the second one belongs to the process
     assertThat(turnInput.documents())
         .containsExactly(
-            new NewDocument(runtimeDocument, DocumentOrigin.toolCall("getWeather", "abcdef")),
-            new NewDocument(nestedRuntimeDocument, DocumentOrigin.toolCall("getWeather", "abcdef")),
-            new NewDocument(processDocument, DocumentOrigin.toolCall("getDateTime", "fedcba")));
+            AgentDocument.of(runtimeDocument, DocumentOrigin.toolCall("getWeather", "abcdef")),
+            AgentDocument.of(
+                nestedRuntimeDocument, DocumentOrigin.toolCall("getWeather", "abcdef")),
+            AgentDocument.of(processDocument, DocumentOrigin.toolCall("getDateTime", "fedcba")));
   }
 
   @Test

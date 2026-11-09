@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -35,7 +36,9 @@ class DocumentRestorerTest {
             DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
                 .fileName("a.txt")
                 .build());
-    final var documents = AgentDocuments.empty().register(document, DocumentOrigin.userMessage());
+    final var documents =
+        AgentDocuments.empty()
+            .register(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
 
     final var restored = restorer.restore(documents, AgentDocumentId.of(document));
 
@@ -52,8 +55,8 @@ class DocumentRestorerTest {
     final var inline = new InlineDocument("{\"a\":1}", "data.json", "application/json");
     final var documents =
         AgentDocuments.empty()
-            .register(external, DocumentOrigin.userMessage())
-            .register(inline, DocumentOrigin.userMessage());
+            .register(external, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
+            .register(inline, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
 
     assertThat(restorer.restore(documents, AgentDocumentId.of(external)))
         .hasValueSatisfying(
@@ -71,7 +74,9 @@ class DocumentRestorerTest {
   @Test
   void isEmptyWhenTheFactoryCannotRestoreTheDocument() {
     final var document = new InlineDocument("hello", "a.txt", "text/plain");
-    final var documents = AgentDocuments.empty().register(document, DocumentOrigin.userMessage());
+    final var documents =
+        AgentDocuments.empty()
+            .register(document, DocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final DocumentFactory failing =
         new DocumentFactory() {
           @Override

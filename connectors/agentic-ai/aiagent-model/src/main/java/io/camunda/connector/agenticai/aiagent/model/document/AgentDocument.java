@@ -108,9 +108,9 @@ public record AgentDocument(
   /**
    * Whether the document is the one this agent document stands for: the identity keys are equal.
    */
-  boolean isSameDocumentAs(Document document) {
+  boolean isSameDocumentAs(AgentDocument other) {
     return Objects.equals(
-        AgentDocumentId.identityKey(reference), AgentDocumentId.identityKey(document.reference()));
+        AgentDocumentId.identityKey(reference), AgentDocumentId.identityKey(other.reference()));
   }
 
   /**
