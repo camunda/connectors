@@ -26,9 +26,9 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Attribute names mirror the JSON field names emitted by the standard {@code DocumentSerializer}
  * so the model can correlate references in the tool result JSON with the actual document content
- * blocks 1:1 without inferring partial-id matches. Blank/null attributes are omitted. The tag has
- * no stable document id and is not the tag of the documents feature (see {@link
- * io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent}).
+ * blocks 1:1 without inferring partial-id matches. Blank/null attributes are omitted. An agent
+ * instance with the documents feature shows a document as its handle instead (see {@link
+ * io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle}).
  *
  * <p>Only {@link CamundaDocumentReferenceXmlTag} carries {@code contentType} and {@code fileName}:
  * Camunda references read their metadata in-memory from the document store on resolve, so surfacing
@@ -36,7 +36,7 @@ import org.jspecify.annotations.Nullable;
  * learn their content type or filename — the tag deliberately omits the metadata block for those to
  * avoid a download just to render a label.
  */
-public sealed interface LegacyDocumentReferenceXmlTag {
+public sealed interface DocumentReferenceXmlTag {
 
   @Nullable String toolCallId();
 
@@ -54,7 +54,7 @@ public sealed interface LegacyDocumentReferenceXmlTag {
    *   <li>any other reference type (including inline) → {@link GenericDocumentReferenceXmlTag}
    * </ul>
    */
-  static LegacyDocumentReferenceXmlTag from(
+  static DocumentReferenceXmlTag from(
       Document document, @Nullable String toolCallId, @Nullable String toolName) {
     return switch (document.reference()) {
       case CamundaDocumentReference ref -> {
@@ -75,7 +75,7 @@ public sealed interface LegacyDocumentReferenceXmlTag {
   }
 
   /** Creates a tag from a document without tool call context (e.g. for event documents). */
-  static LegacyDocumentReferenceXmlTag from(Document document) {
+  static DocumentReferenceXmlTag from(Document document) {
     return from(document, null, null);
   }
 
@@ -86,7 +86,7 @@ public sealed interface LegacyDocumentReferenceXmlTag {
       @Nullable String storeId,
       @Nullable String contentType,
       @Nullable String fileName)
-      implements LegacyDocumentReferenceXmlTag {
+      implements DocumentReferenceXmlTag {
 
     @Override
     public String toXml() {
@@ -103,7 +103,7 @@ public sealed interface LegacyDocumentReferenceXmlTag {
 
   record ExternalDocumentReferenceXmlTag(
       @Nullable String toolCallId, @Nullable String toolName, String url, @Nullable String name)
-      implements LegacyDocumentReferenceXmlTag {
+      implements DocumentReferenceXmlTag {
 
     @Override
     public String toXml() {
@@ -117,7 +117,7 @@ public sealed interface LegacyDocumentReferenceXmlTag {
   }
 
   record GenericDocumentReferenceXmlTag(@Nullable String toolCallId, @Nullable String toolName)
-      implements LegacyDocumentReferenceXmlTag {
+      implements DocumentReferenceXmlTag {
 
     @Override
     public String toXml() {

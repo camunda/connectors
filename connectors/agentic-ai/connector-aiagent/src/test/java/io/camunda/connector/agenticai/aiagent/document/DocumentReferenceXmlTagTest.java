@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.aiagent.document;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag.GenericDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.GenericDocumentReferenceXmlTag;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
@@ -26,7 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class LegacyDocumentReferenceXmlTagTest {
+class DocumentReferenceXmlTagTest {
 
   private static final String DOCUMENT_ID = "25ece9fa-aeea-423d-98ed-67c1f08b137b";
 
@@ -52,7 +52,7 @@ class LegacyDocumentReferenceXmlTagTest {
       when(metadata.getContentType()).thenReturn("application/pdf");
       when(metadata.getFileName()).thenReturn("report.pdf");
 
-      var tag = LegacyDocumentReferenceXmlTag.from(doc, "call_abc", "search");
+      var tag = DocumentReferenceXmlTag.from(doc, "call_abc", "search");
       assertThat(tag).isInstanceOf(CamundaDocumentReferenceXmlTag.class);
       assertThat(tag.toXml())
           .isEqualTo(
@@ -64,13 +64,13 @@ class LegacyDocumentReferenceXmlTagTest {
     void omitsBlankAttributes() {
       when(ref.getDocumentId()).thenReturn(DOCUMENT_ID);
 
-      assertThat(LegacyDocumentReferenceXmlTag.from(doc).toXml())
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
           .isEqualTo("<doc documentId=\"%s\" />".formatted(DOCUMENT_ID));
     }
 
     @Test
     void escapesSpecialCharactersInToolName() {
-      assertThat(LegacyDocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
+      assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>").toXml())
           .isEqualTo("<doc toolName=\"tool&lt;with&quot;quotes&gt;\" toolCallId=\"call_1\" />");
     }
   }
@@ -90,7 +90,7 @@ class LegacyDocumentReferenceXmlTagTest {
       when(ref.url()).thenReturn("https://example.com/report.pdf");
       when(ref.name()).thenReturn("Quarterly Report");
 
-      var tag = LegacyDocumentReferenceXmlTag.from(doc, "call_abc", "search");
+      var tag = DocumentReferenceXmlTag.from(doc, "call_abc", "search");
       assertThat(tag).isInstanceOf(ExternalDocumentReferenceXmlTag.class);
       assertThat(tag.toXml())
           .isEqualTo(
@@ -101,7 +101,7 @@ class LegacyDocumentReferenceXmlTagTest {
     void omitsBlankNameAndToolContext() {
       when(ref.url()).thenReturn("https://example.com/report.pdf");
 
-      assertThat(LegacyDocumentReferenceXmlTag.from(doc).toXml())
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
           .isEqualTo("<doc url=\"https://example.com/report.pdf\" />");
     }
 
@@ -109,7 +109,7 @@ class LegacyDocumentReferenceXmlTagTest {
     void escapesSpecialCharactersInUrl() {
       when(ref.url()).thenReturn("https://example.com/path?q=a&b=\"c\"");
 
-      assertThat(LegacyDocumentReferenceXmlTag.from(doc).toXml())
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml())
           .isEqualTo("<doc url=\"https://example.com/path?q=a&amp;b=&quot;c&quot;\" />");
     }
   }
@@ -124,7 +124,7 @@ class LegacyDocumentReferenceXmlTagTest {
     void emitsToolContextForUnrecognizedReference() {
       when(doc.reference()).thenReturn(new CustomDocumentReference("custom-1"));
 
-      var tag = LegacyDocumentReferenceXmlTag.from(doc, "call_1", "search");
+      var tag = DocumentReferenceXmlTag.from(doc, "call_1", "search");
       assertThat(tag).isInstanceOf(GenericDocumentReferenceXmlTag.class);
       assertThat(tag.toXml()).isEqualTo("<doc toolName=\"search\" toolCallId=\"call_1\" />");
     }
@@ -133,17 +133,17 @@ class LegacyDocumentReferenceXmlTagTest {
     void emitsMinimalTagForUnrecognizedReferenceWithoutToolContext() {
       when(doc.reference()).thenReturn(new CustomDocumentReference("custom-1"));
 
-      assertThat(LegacyDocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
     }
 
     @Test
     void emitsMinimalTagForNullReference() {
-      assertThat(LegacyDocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
+      assertThat(DocumentReferenceXmlTag.from(doc).toXml()).isEqualTo("<doc />");
     }
 
     @Test
     void escapesSpecialCharactersInToolName() {
-      assertThat(LegacyDocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>&'").toXml())
+      assertThat(DocumentReferenceXmlTag.from(doc, "call_1", "tool<with\"quotes>&'").toXml())
           .isEqualTo(
               "<doc toolName=\"tool&lt;with&quot;quotes&gt;&amp;&apos;\" toolCallId=\"call_1\" />");
     }

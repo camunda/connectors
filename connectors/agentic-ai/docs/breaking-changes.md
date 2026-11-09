@@ -306,8 +306,6 @@ factory of the job.
   type and size the model reads are those of the agent document of the id, and the `DocumentHandle` (JSON, see below) is built from it.
   `DocumentContent` stays the content of a new document;
   `AgentDocumentContent` is the persisted form of a document the agent knows.
-- Renamed: `DocumentReferenceXmlTag` (see the [module split](#module-split)) is `aiagent.document.LegacyDocumentReferenceXmlTag`,
-  which only agent instances without the `documents` feature use.
 - New in the model: `aiagent.model.document.DocumentHandle`, the JSON object the model reads for a document of an agent
   instance with the `documents` feature, `{"type":"camunda.agenticai.document","id":"doc_…","fileName":…,"contentType":…,"size":…}`
   (the keys in this order, absent values omitted, no origin). It replaces the XML tag `<doc id="…" … />` for these
