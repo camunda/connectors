@@ -21,16 +21,19 @@ defaults:
     # use bash shell by default to ensure pipefail behavior is the default
     shell: bash
 
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: false
-
 jobs:
   deploy-fatjar:
     name: deploy-fatjar (${{ matrix.ref }})
     if: github.repository == 'camunda/connectors'
     runs-on: gcp-core-2-default
     timeout-minutes: 60
+    # Same group as the push-triggered DEPLOY_SNAPSHOTS.yaml run of that branch, so uploads to one
+    # X.Y.0-SNAPSHOT never overlap (concurrent uploads can overwrite each other's snapshot metadata).
+    # queue: max keeps every waiting run, as there.
+    concurrency:
+      group: deploy-snapshots-refs/heads/${{ matrix.ref }}
+      cancel-in-progress: false
+      queue: max
     permissions:
       contents: read
       id-token: write
