@@ -68,9 +68,8 @@ public final class DocumentExpander {
     return switch (handling) {
       case DocumentHandling.Untracked ignored -> snapshot;
       case DocumentHandling.Tracked tracked ->
-          new ConversationSnapshot(
-              expandMessages(snapshot.messages(), tracked.documents(), documentFactory),
-              snapshot.toolDefinitions());
+          snapshot.withMessages(
+              expandMessages(snapshot.messages(), tracked.documents(), documentFactory));
     };
   }
 
