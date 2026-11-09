@@ -20,8 +20,9 @@ The docs in scope are the Markdown files under these two directories. The scope 
   the extension points and the Spring auto-configuration.
 - **Central docs in `docs/`:** the [design guidelines](design-guidelines.md) with the architectural
   invariants, the [implementation rules](implementation-rules.md), these rules, the
-  [acceptance testing rules](acceptance-testing.md), the [target architecture](target-architecture.md)
-  and the [breaking changes](breaking-changes.md). [`AGENTS.md`](../AGENTS.md) gives the orientation:
+  [acceptance testing rules](acceptance-testing.md), the [target architecture](target-architecture.md),
+  the [template text guidelines](template-text-guidelines.md) and the [breaking changes](breaking-changes.md).
+  The [ADR authoring rules](adr/README.md) are in `docs/adr/`. [`AGENTS.md`](../AGENTS.md) gives the orientation:
   the mental model, the navigation, the glossary, the gotchas and the build commands.
 - **`<connector module>/element-templates/README.md`:** template versions of the connector. The index
   is `connector-agentic-ai/element-templates/README.md`.
