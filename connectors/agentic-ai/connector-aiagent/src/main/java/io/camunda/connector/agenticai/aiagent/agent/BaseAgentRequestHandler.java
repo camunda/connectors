@@ -122,30 +122,9 @@ public abstract class BaseAgentRequestHandler<
       }
       case ReadyToConverse(var agentContext, var toolCallResults) -> {
         LOGGER.debug("Handling agent request with {} tool call results", toolCallResults.size());
-        yield converseWithDocuments(executionContext, agentContext, toolCallResults);
+        yield converse(executionContext, agentContext, toolCallResults);
       }
     };
-  }
-
-  /**
-   * The failures of the documents of the conversation are failures of the agent with an error code.
-   */
-  private R converseWithDocuments(
-      final C executionContext,
-      final AgentContext agentContext,
-      final List<ToolCallResult> toolCallResults) {
-    try {
-      return converse(executionContext, agentContext, toolCallResults);
-    } catch (DocumentIdCollisionException e) {
-      throw new ConnectorException(
-          AgentErrorCodes.ERROR_CODE_DOCUMENT_ID_COLLISION, e.getMessage(), e);
-    } catch (InlineDocumentTooLargeException e) {
-      throw new ConnectorException(
-          AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE, e.getMessage(), e);
-    } catch (UnsupportedDocumentReferenceException e) {
-      throw new ConnectorException(
-          AgentErrorCodes.ERROR_CODE_UNSUPPORTED_DOCUMENT_REFERENCE, e.getMessage(), e);
-    }
   }
 
   private R converse(
@@ -197,6 +176,15 @@ public abstract class BaseAgentRequestHandler<
               store);
         }
       };
+    } catch (DocumentIdCollisionException e) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_DOCUMENT_ID_COLLISION, e.getMessage(), e);
+    } catch (InlineDocumentTooLargeException e) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE, e.getMessage(), e);
+    } catch (UnsupportedDocumentReferenceException e) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_UNSUPPORTED_DOCUMENT_REFERENCE, e.getMessage(), e);
     }
   }
 
