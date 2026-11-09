@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -319,7 +320,8 @@ final class DocChecks {
                   + " are: "
                   + names));
     }
-    if (candidates.stream().anyMatch(type -> hasMember(type, member, index))) {
+    if (candidates.stream().anyMatch(type -> hasMember(type, member, index))
+        || candidates.stream().anyMatch(type -> inheritsMember(type, member, index))) {
       return candidates.size() > 1
           ? Stream.of(
               new Warning(
@@ -341,6 +343,29 @@ final class DocChecks {
               "no matching constructor for `" + span.text() + "`",
               "the type of this name is an interface, and an interface has no constructor",
               "check the kind of the type in the code: " + names));
+    }
+    final Map<String, String> unloaded = new TreeMap<>();
+    candidates.forEach(type ->
+        index
+            .undeclaredSupertypes(type)
+            .forEach((supertype, extending) -> {
+              if (index.jdkMembers(supertype).isEmpty()) {
+                unloaded.putIfAbsent(supertype, extending);
+              }
+            }));
+    if (!unloaded.isEmpty()) {
+      final Map.Entry<String, String> external = unloaded.entrySet().iterator().next();
+      return Stream.of(
+          new Warning(
+              doc.path(),
+              span.line(),
+              "member of `" + span.text() + "` not verified",
+              external.getValue()
+                  + " extends "
+                  + external.getKey()
+                  + ", an external dependency type that is not loaded, so the member may be"
+                  + " inherited",
+              "name the declaring type or check the member in the library"));
     }
     final Set<String> members = new TreeSet<>();
     candidates.forEach(type -> members.addAll(index.members(type)));
@@ -375,6 +400,14 @@ final class DocChecks {
     return member.equals(type.simpleName())
         ? !type.isInterface()
         : index.members(type).contains(member);
+  }
+
+  private static boolean inheritsMember(
+      final JavaSourceIndex.Type type, final String member, final JavaSourceIndex index) {
+    return (type.isEnum() && member.equals("values"))
+        || index.undeclaredSupertypes(type).keySet().stream()
+            .anyMatch(
+                name -> index.jdkMembers(name).map(names -> names.contains(member)).orElse(false));
   }
 
   private static String qualifiedNames(final List<JavaSourceIndex.Type> types) {

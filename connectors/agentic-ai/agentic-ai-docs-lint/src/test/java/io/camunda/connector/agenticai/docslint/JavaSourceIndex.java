@@ -17,17 +17,23 @@ import com.sun.source.util.JavacTask;
 import com.sun.source.util.TreeScanner;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Stream;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
@@ -44,12 +50,19 @@ final class JavaSourceIndex {
    * A declared type. The binary name has the form {@code package.Outer$Inner}. The supertypes are
    * simple names.
    */
-  record Type(
-      String binaryName, boolean isInterface, Set<String> members, List<String> supertypes) {
+  record Type(String binaryName, Tree.Kind kind, Set<String> members, List<String> supertypes) {
 
     Type {
       members = Set.copyOf(members);
       supertypes = List.copyOf(supertypes);
+    }
+
+    boolean isInterface() {
+      return kind == Tree.Kind.INTERFACE || kind == Tree.Kind.ANNOTATION_TYPE;
+    }
+
+    boolean isEnum() {
+      return kind == Tree.Kind.ENUM;
     }
 
     String simpleName() {
@@ -64,6 +77,7 @@ final class JavaSourceIndex {
 
   private final Map<String, List<Type>> declared = new HashMap<>();
   private final Set<String> imported = new HashSet<>();
+  private final Set<String> importedNames = new HashSet<>();
   private final Set<String> nested = new HashSet<>();
 
   /**
@@ -134,21 +148,92 @@ final class JavaSourceIndex {
    */
   Set<String> members(final Type type) {
     final Set<String> members = new LinkedHashSet<>();
-    final Set<Type> visited = new HashSet<>();
+    hierarchy(type).forEach(current -> members.addAll(current.members()));
+    return members;
+  }
+
+  /**
+   * The supertypes in the hierarchy of the type that the sources do not declare, by simple name,
+   * each with the qualified name of the type that extends it. {@code Object} counts for every type,
+   * {@code Record} for a record and {@code Enum} for an enum.
+   */
+  Map<String, String> undeclaredSupertypes(final Type type) {
+    final Map<String, String> undeclared = new TreeMap<>();
+    for (final Type current : hierarchy(type)) {
+      Stream.concat(current.supertypes().stream(), implicitSupertypes(current))
+          .filter(name -> types(name).isEmpty())
+          .forEach(name -> undeclared.putIfAbsent(name, current.qualifiedName()));
+    }
+    return undeclared;
+  }
+
+  /**
+   * The names of the public and declared methods and fields of the JDK type with the simple name,
+   * including inherited ones. The type is found in {@code java.lang} or by the imports of the
+   * sources and loaded by the platform class loader. Empty if the type is no JDK type.
+   */
+  Optional<Set<String>> jdkMembers(final String simpleName) {
+    return Stream.concat(
+            Stream.of("java.lang." + simpleName),
+            importedNames.stream().flatMap(name -> importCandidate(name, simpleName).stream()))
+        .filter(name -> name.startsWith("java.") || name.startsWith("javax."))
+        .flatMap(name -> load(name).stream())
+        .findFirst()
+        .map(JavaSourceIndex::memberNames);
+  }
+
+  private Set<Type> hierarchy(final Type type) {
+    final Set<Type> visited = new LinkedHashSet<>();
     final Deque<Type> pending = new ArrayDeque<>(List.of(type));
     while (!pending.isEmpty()) {
       final Type current = pending.pop();
       if (visited.add(current)) {
-        members.addAll(current.members());
         current.supertypes().forEach(name -> pending.addAll(types(name)));
       }
     }
-    return members;
+    return visited;
+  }
+
+  private static Stream<String> implicitSupertypes(final Type type) {
+    return switch (type.kind()) {
+      case RECORD -> Stream.of("Object", "Record");
+      case ENUM -> Stream.of("Object", "Enum");
+      default -> Stream.of("Object");
+    };
+  }
+
+  private static Optional<String> importCandidate(final String imported, final String simpleName) {
+    if (imported.endsWith("." + simpleName)) {
+      return Optional.of(imported);
+    }
+    return imported.endsWith(".*")
+        ? Optional.of(imported.substring(0, imported.length() - 1) + simpleName)
+        : Optional.empty();
+  }
+
+  private static Optional<Class<?>> load(final String name) {
+    try {
+      return Optional.of(Class.forName(name, false, ClassLoader.getPlatformClassLoader()));
+    } catch (final ClassNotFoundException | LinkageError e) {
+      return Optional.empty();
+    }
+  }
+
+  private static Set<String> memberNames(final Class<?> type) {
+    final Set<String> names = new TreeSet<>();
+    Stream.concat(Arrays.stream(type.getMethods()), Arrays.stream(type.getDeclaredMethods()))
+        .map(Method::getName)
+        .forEach(names::add);
+    Stream.concat(Arrays.stream(type.getFields()), Arrays.stream(type.getDeclaredFields()))
+        .map(Field::getName)
+        .forEach(names::add);
+    return names;
   }
 
   private void add(final CompilationUnitTree unit) {
     final String packagePrefix = unit.getPackageName() == null ? "" : unit.getPackageName() + ".";
     for (final ImportTree anImport : unit.getImports()) {
+      importedNames.add(anImport.getQualifiedIdentifier().toString());
       for (final String segment : anImport.getQualifiedIdentifier().toString().split("\\.")) {
         if (Character.isUpperCase(segment.charAt(0))) {
           imported.add(segment);
@@ -198,11 +283,9 @@ final class JavaSourceIndex {
       supertypes.add(simpleName(tree.getExtendsClause()));
     }
     tree.getImplementsClause().forEach(supertype -> supertypes.add(simpleName(supertype)));
-    final boolean isInterface =
-        tree.getKind() == Tree.Kind.INTERFACE || tree.getKind() == Tree.Kind.ANNOTATION_TYPE;
     declared
         .computeIfAbsent(simpleName, name -> new ArrayList<>())
-        .add(new Type(binaryName, isInterface, members, supertypes));
+        .add(new Type(binaryName, tree.getKind(), members, supertypes));
   }
 
   private static String simpleName(final Tree typeTree) {
