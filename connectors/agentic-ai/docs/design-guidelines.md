@@ -76,7 +76,7 @@ of the old shape for each migration. Preserve rejection of unsupported schema ve
 overwriting the state.
 
 When versioning is needed, apply it to independently persisted payloads defined in
-[the persisted-state contract](reference/ai-agent.md#5-data-model), not individual fields or tool calls.
+[the persisted-state contract](../aiagent-model/docs/data-model.md), not individual fields or tool calls.
 Record breaking impacts and required migration steps in [`breaking-changes.md`](breaking-changes.md).
 Rollback support is not required.
 
