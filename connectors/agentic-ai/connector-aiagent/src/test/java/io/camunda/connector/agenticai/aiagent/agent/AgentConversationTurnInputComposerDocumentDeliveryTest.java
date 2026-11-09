@@ -480,7 +480,9 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                 dateTimeResult()));
 
     assertThat(turn.messages()).hasSize(2);
-    assertThat(((UserMessage) turn.messages().get(1)).content()).contains(block(doc, true));
+    assertThat(((UserMessage) turn.messages().get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE), block(doc, true));
   }
 
   @Test
