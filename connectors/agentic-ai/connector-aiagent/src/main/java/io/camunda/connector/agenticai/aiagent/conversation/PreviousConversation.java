@@ -32,27 +32,28 @@ public record PreviousConversation(
 
   /**
    * Returns the ids of the documents whose content the model reads in the conversation of the next
-   * model call: the system message and the messages of the turns that stay within the context
-   * window once the messages this invocation adds are counted.
+   * model call: the messages of the turns that stay within the context window once the messages
+   * this invocation adds are counted.
    *
    * <p>Windowing the previous messages together with {@code addedMessages} counted messages at the
    * end evicts the same previous messages as windowing the previous messages alone with {@code
-   * contextWindowSize - addedMessages}; the system message always stays.
+   * contextWindowSize - addedMessages}. The window always keeps one place for a system message: the
+   * system message of the next model call is composed in this invocation, and the stored one tells
+   * only whether the previous call had one. Without a system message the result can miss a document
+   * whose content the model still reads, which only adds that content again.
    *
    * @param contextWindowSize the maximum number of messages the model call reads
    * @param addedMessages the number of messages this invocation adds that the window counts
    */
   public Set<AgentDocumentId> documentIdsWithContent(int contextWindowSize, int addedMessages) {
     final var messages = new ArrayList<Message>();
-    systemMessage.ifPresent(messages::add);
     for (final var turn : turns) {
       messages.addAll(turn.inputMessages());
       if (turn.assistantMessage() != null) {
         messages.add(turn.assistantMessage());
       }
     }
-    final int windowOfPreviousMessages =
-        Math.max(systemMessage.isPresent() ? 1 : 0, contextWindowSize - addedMessages);
+    final int windowOfPreviousMessages = Math.max(0, contextWindowSize - addedMessages - 1);
     return documentIdsWithContentIn(MessageWindowFilter.apply(messages, windowOfPreviousMessages));
   }
 
