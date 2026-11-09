@@ -13,6 +13,7 @@ other agentic AI module.
 - `AgenticAiRecord`: marks a record that gets a generated builder.
 - `CamundaApiRetry`: runs an operation and retries retryable failures with exponential backoff
   (`ExponentialBackoffRetry`).
+- `Experimental`: marks an API that may change in an incompatible way in a minor release.
 - `GatewayToolConstants`: the name of the BPMN extension property that marks a gateway tool element.
 - `HttpUrl`: validation annotation for an absolute HTTP or HTTPS URL.
 

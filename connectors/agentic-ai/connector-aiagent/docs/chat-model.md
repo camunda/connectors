@@ -2,11 +2,13 @@
 
 ## Turn-based continuation loop
 
-`BaseAgentRequestHandler.proceed` drives the SPI in a `do { … } while (continued)` loop: each
-iteration calls `chatModel.execute(request)`, catches `ChatModelRejectedException` (below), ingests the
-assistant message into the turn, and — only if the result was a `Continuation` — checks the
+`BaseAgentRequestHandler.proceed` drives the SPI in a `do { … } while (anotherRound)` loop
+(`driveContinuationLoop`): each iteration calls `chatModel.execute(request)`, catches
+`ChatModelRejectedException` (below), tags the tool calls of the assistant message with their kind or a rejection, ingests the
+assistant message into the turn, and — if the result was a `Continuation` — checks the
 model-call limit and starts the next continuation round on a fresh turn before looping. A `Completed`
-result ends the loop. LangChain4j always returns `Completed`, so the loop runs exactly once for it —
+result ends the loop, unless every call of the message is a local tool call: then the round of the local tool call
+results described in [`agentic-loop.md`](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete) is the next round. LangChain4j always returns `Completed`, so the loop runs exactly once for it —
 behavior-identical to the pre-SPI single call.
 
 Agent-instance metrics are reported **once per continuation round**, not once per job: each round's

@@ -17,6 +17,7 @@ does not depend on Spring.
   `Content` with `TextContent`, `DocumentContent`, `ObjectContent`, `ReasoningContent` and
   `ProviderContent`.
 - `ToolDefinition`, `GatewayToolDefinition`, `ToolCall`, `ToolCallResult` and `ToolCallResultContent`.
+  `ToolKind` tells whether a tool is a BPMN element of the process or a runtime tool.
 - `ConversationContext`: the pointer to the stored conversation. `ConversationContextSubtypes` registers
   custom subtypes.
 - `ChatModelConfiguration`: the provider and model that a chat model factory selects on.

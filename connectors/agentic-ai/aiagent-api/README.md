@@ -3,7 +3,7 @@
 ## Purpose
 
 The extension points (SPIs) of the AI Agent: chat model providers, conversation stores, system prompt
-contributors and gateway tools. To extend the agent, implement an SPI and register a Spring bean. The
+contributors, gateway tools and runtime tools. To extend the agent, implement an SPI and register a Spring bean. The
 module does not depend on Spring.
 
 ## Key types
@@ -17,6 +17,8 @@ module does not depend on Spring.
 - `GatewayToolHandler`, `GatewayToolCallTransformer`, `GatewayToolDefinitionResolver` and
   `TypePropertyBasedGatewayToolDefinitionResolver`: the gateway tool SPI.
 - `ContentTreeDocumentWalker`: finds the documents in a tool call result.
+- `RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult` and `RuntimeToolException`: the
+  runtime tool SPI, for a tool that the connector runtime executes itself. The SPI is experimental.
 
 ## Docs
 

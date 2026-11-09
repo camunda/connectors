@@ -23,6 +23,7 @@ on).
 | `ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED` | `MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED`   | gateway tools were added or removed after a process migration           |
 | `ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`             | `AGENT_INSTANCE_CREATION_FAILED`               | agent instance creation failed (retries exhausted or non-retryable)     |
 | `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED`               | `AGENT_INSTANCE_UPDATE_FAILED`                 | agent instance update failed (retries exhausted or non-retryable)       |
+| `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`                 | `RUNTIME_TOOL_NAME_CONFLICT`                   | a tool of the process of an agent instance with the `runtimeTools` feature has the name of an enabled runtime tool |
 | `ERROR_CODE_AGENT_INSTANCE_SUPERSEDED`                  | `AGENT_INSTANCE_SUPERSEDED`                    | a batched agent instance update was rejected because the job activation was superseded (zero retries) |
 
 Additional errors from `CamundaClientProcessDefinitionAdHocToolElementsResolver`:

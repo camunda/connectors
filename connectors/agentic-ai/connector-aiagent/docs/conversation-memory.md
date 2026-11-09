@@ -18,6 +18,9 @@ invocation and transformed through copy-on-write methods.
 - `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
 - `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a
   read-only `ConversationSnapshot`.
+- `persistedContext()`: the base `AgentContext` without the metrics and iteration bookkeeping that `toAgentContext()`
+  adds; it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages)` opens the next round of the job with the
+  tool call results of the local tool calls, and the messages that follow them, as its input.
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
   `AgentContext.metrics` by the current turn's delta and, once the current turn has been `ingest`ed,
   stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).
@@ -33,7 +36,9 @@ invocation and transformed through copy-on-write methods.
 `AgentConversationTurn` (record, `...aiagent.conversation`) is one LLM call:
 `(int iterationKey, List<Message> inputMessages, @Nullable AssistantMessage assistantMessage,
 AgentMetrics metrics)`. `iterationKey` is 1-based across the agent lifetime; the turn is pending
-while `assistantMessage == null`.
+while `assistantMessage == null`. `processToolCalls()` and `localToolCalls()` return the tool calls of the assistant
+message that are process tool calls and that are local tool calls (`ToolCall.isLocal()`, see
+[`agentic-loop.md`](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete)), in call order.
 
 The next turn's `iterationKey` is determined by `AgentConversation.rehydrate()`:
 `AgentMetadata.lastIterationKey` (persisted by `toAgentContext()`, see above) is authoritative when

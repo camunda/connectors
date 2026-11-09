@@ -58,6 +58,7 @@ review and the tests of the stores and SPIs enforce them.
   | `SystemPromptContributor` | system-prompt contribution      | [Add a `SystemPromptContributor`](architecture/extension-points.md#add-a-systempromptcontributor) |
   | `ConversationStore`       | conversation memory backend     | [Add a `ConversationStore`](architecture/extension-points.md#add-a-conversationstore) |
   | `GatewayToolHandler`      | multi-tool gateway (MCP/A2A)    | [Gateway Tool Pattern](architecture/extension-points.md#gateway-tool-pattern) |
+  | `RuntimeTool`             | tool the agent executes itself  | [Add a runtime tool](architecture/extension-points.md#add-a-runtime-tool) |
 - **I5. Conversation stores follow the write-ahead, pointer-based contract.** Any `ConversationStore` must
   write each turn to a **new** location and load **only** what the `AgentContext` pointer references; never
   overwrite data the current pointer resolves to. This is the correctness foundation for

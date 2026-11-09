@@ -7,6 +7,19 @@ detect process migration. Serialized as JSON, it is passed into every job activa
 on every completion. Authoritative definition:
 [`AgentContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentContext.java).
 
+**Features.** `AgentContext.features` is the set of features (an insertion-ordered JSON array of strings, omitted
+when empty, no schema version bump) the agent instance was created with. A new agent instance gets the
+current features when its context is created at its first job (`AgentInitializerImpl`, both flavors): today
+`runtimeTools` (`AgentFeatures.RUNTIME_TOOLS`, the runtime tool facility, `AgentContext.supports(String)`).
+A context that exists without `features` belongs to an instance created before the features and never gets features
+added later, so its behavior stays as it was created. The reasons are in [ADR 016](../../docs/adr/016-runtime-tools.md); in
+short, `runtimeTools` decides only whether runtime tools are offered: an instance without it has no runtime tool and no
+tool element checked against runtime tool names. The kind and the rejection of a tool call ([`agentic-loop.md`](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete)) are set for every
+instance: the process never activates an element for the call of an unknown tool, so an instance that handed it to the
+process would wait for a result that never comes, and the engine raises no incident. This is a deliberate exception to
+gating a persisted shape on a feature.
+`RuntimeTools` reads the features from the `AgentContext`; they are not part of the configuration fingerprint.
+
 ## AgentExecutionContext (the transient request context)
 
 The transient per-invocation request context, assembled fresh for each job activation and never
@@ -23,8 +36,12 @@ turn's input messages. Unlike `ToolCallResult`, it carries a structured `List<Co
 untyped payload, so later stages can inspect the shape of a tool result (documents, images,
 reasoning, provider-native blocks) without stringifying it. The lift (`ToolCallResultContent.from`)
 maps a `String` to `TextContent`, a `Document` to `DocumentContent`, and anything else to
-`ObjectContent`; it currently only ever produces a singleton list — a multi-element list is reserved
-for future provider-specific chat models that emit structured content directly.
+`ObjectContent`; for a result of a process tool it produces a singleton list. A runtime tool ([Add a runtime tool](../../docs/architecture/extension-points.md#add-a-runtime-tool)) returns a
+`RuntimeToolResult` whose content is a list of typed blocks (`RuntimeToolResult.success(String)` is the one text block of
+`contentFromObject`), so such a result is typed from the start. `RuntimeTools` turns the object of an `ObjectContent` block
+into plain JSON values (maps, lists, strings, numbers, booleans) when the tool returns it and keeps the documents in it,
+also those in a record, as they are. The documents of the result are found in plain JSON values, and the object is the
+one a later job reads from the conversation.
 
 The sealed `Content` model gained two additive members alongside the existing `TextContent` /
 `DocumentContent` / `ObjectContent`:

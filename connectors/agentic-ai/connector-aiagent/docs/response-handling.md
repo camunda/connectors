@@ -35,6 +35,10 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
 
 3. **Full message**: If `includeAssistantMessage` is true, the raw `AssistantMessage` is included in the response.
 
+4. **Tool calls**: The process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`), transformed by the
+   gateway handlers, become `AgentResponse.toolCalls`. The local tool calls of the message stay in the
+   stored assistant message and are not handed to the process ([`agentic-loop.md`](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete)).
+
 ## Job Worker Response Variables
 
 On final completion (no tool calls):

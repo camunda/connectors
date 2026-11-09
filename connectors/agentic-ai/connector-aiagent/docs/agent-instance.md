@@ -65,14 +65,28 @@ batched `update()` mechanism).
   content nor tool calls fails the turn (`IllegalArgumentException`) rather than falling back to a
   placeholder block.
 
+**Local tool calls.** Calls of runtime tools (see [ADR 016](../../docs/adr/016-runtime-tools.md)) and rejected calls appear
+in history like any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count every
+one of them in `toolCalls`, whatever its kind. Their `TOOL_RESULT` items are written with the `applyTurnStart` that
+carries them: the one of the round of the local tool call results of the same job when every call of the message is a local tool
+call, or, in a mixed batch, the one of the job that composes the next turn from the process results and the local tool
+call results. Both rounds of a
+job are reported. They use the tool-call id as `historyItemId`, no `elementId` (there is no BPMN element, also not for a
+rejected call), the completion time of the execution as `completedAt` and the originating arguments, like every other
+result; an error result is plain text content, the history has no result status. A mixed batch completes its job with
+`TOOL_CALLING`, a batch of local tool calls only with `THINKING` followed by the next round. The engine deduplicates
+items by `historyItemId`, so results that more than one job writes appear once. The history API has no tool kind and no
+result status, so a runtime tool is recognizable only by its missing element id and an error result is plain text.
+
 **`historyItemId` (`AgentInstanceHistoryItemIds`).** Every history item carries a `historyItemId` so a
-retried batch write dedups against the previous attempt: `USER`/`ASSISTANT` items key off the domain
+retried batch write, and the same result written by two jobs, dedup against the previous write (the engine keeps the first): `USER`/`ASSISTANT` items key off the domain
 `Message.id()` (ADR 012); `TOOL_RESULT` items key off the originating tool-call id (so a streamed
 early report and the later batch write for the same result dedup for free), falling back to a
 deterministic hash of `elementId` + `completedAt` for id-less event results; `CONFIGURATION` items key
 off `AgentConfiguration.fingerprint()` itself, so an unchanged configuration resent verbatim dedups
 too. The fingerprint is a SHA-256 over a JSON serialization of the model, provider, system prompt,
-model-call limit and tool definitions. The entries of every map are sorted by key, because the iteration order of a
+model-call limit and tool definitions. The tool definitions are those the agent offers: the process tools and the
+enabled runtime tools. The entries of every map are sorted by key, because the iteration order of a
 tool's input schema is unspecified after a record builder copied it. The order of the parameters, of the tools and of
 list values is significant, so the parameter order enters the hash as a list. The serialization is written and read
 once before hashing, so a number hashes the same for a fresh tool definition and for one loaded from the process
@@ -92,7 +106,13 @@ namespaced) `toolName`. For tool results it is resolved once on the model in
 `AgentConversationTurnInputComposerImpl` (`ToolCallResult.elementId`) and read directly; for assistant
 tool calls the mapper resolves it from the namespaced name via `GatewayToolHandlerRegistry.resolveElementId`.
 For ad-hoc tools the element id equals the tool name; for gateway tools (MCP/A2A) it is the BPMN
-gateway element id parsed from the namespaced name.
+gateway element id parsed from the namespaced name; for runtime tools (calls, results and the tool entry
+of the `CONFIGURATION` item) and for rejected calls it is `null`, because the engine field is nullable and neither has a
+BPMN element. For calls and results the mapper reads `ToolCall.isLocal()` of the originating tool call; for
+the tool list it reads the `kind` of the `ToolDefinition`, which is `RUNTIME` for the runtime tools the agent offers
+(agent instances with the `runtimeTools` feature only).
+The tool list of a `CONFIGURATION` item holds the process tools plus the enabled runtime tools
+(`AgentConfiguration.toolDefinitions()`); the configuration fingerprint covers them.
 
 Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text), and
 `DocumentContent` → a Camunda document reference block. External document references currently fall
@@ -123,7 +143,7 @@ See [`agentic-loop.md`](../../docs/architecture/agentic-loop.md#concurrency-chal
 `Deferred` branch — before the turn's tool-call batch is complete — reporting whichever results have
 arrived so far as a batched, status-less `update()`, one `TOOL_RESULT` item per result, same mapping
 as above. Its iteration key (`previousTurn.iterationKey() + 1`) is best-effort, not authoritative — the
-batch-complete write's key is. These items duplicate what `applyTurnStart` writes again once the batch
-completes; the duplicate row persists until `historyItemId`-based dedup lands (camunda/camunda#58792). See
+batch-complete write's key is. `applyTurnStart` writes these items again once the batch
+completes; the engine deduplicates them by `historyItemId` (camunda/camunda#58792), so no duplicate row remains. See
 [`agentic-loop.md`](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete) and
 [ADR 011](../../docs/adr/011-stream-tool-call-results-to-agent-instance-history.md).

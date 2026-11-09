@@ -7,14 +7,20 @@
 
 ## Core Agent Logic
 - `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → load + reconstruct → compose → rehydrate → LLM (continuation loop) → ingest → persist → complete
-- `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → ChatModelRejectedException handling → ingest → … } while (continued)` — the turn-based continuation loop ([`chat-model.md`](chat-model.md#turn-based-continuation-loop))
+- `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → ChatModelRejectedException handling → ingest → … } while (continued)` — the turn-based continuation loop ([`chat-model.md`](chat-model.md#turn-based-continuation-loop)); a message that has local tool calls only opens another round (`nextRuntimeToolRound`) after `LocalToolCallExecutor` answered them
 - `AgentInitializerImpl.initializeAgent()` → State machine / initialization
 - `TurnReconstructor.reconstruct()` → Rebuilds turns + system message from the stored flat message list
-- `AgentConversationTurnInputComposerImpl.compose()` → Turn input assembly (tool results, events, user prompt) → `AgentInput`
-- `AgentConversationTurnInputComposerImpl.resolveOrderedToolCallResults()` → Tool result matching & missing detection
-- `AgentConversation.rehydrate()` / `ingest()` / `window()` / `nextContinuationRound()` / `toAgentContext()` → Immutable turn aggregate lifecycle
-- `BaseAgentRequestHandler.throwIfLimitsReached()` → Model-call limit check (reads `totalMetrics().modelCalls()`)
-- `AgentResponseHandlerImpl.createResponse()` → Response formatting
+- `AgentConversationTurnInputComposerImpl.resolve()` / `assemble()` → Resolves the next turn (`Deferred` / `NoInput` / `Ready` with the `ToolCallBatch`), then assembles its input (tool results in call order, or the user prompt, then events) → `TurnInput`; executes no tool
+- `AgentConversationTurnInputComposerImpl.resolveProcessToolCallResults()` → Process tool result matching & missing detection
+- `ToolCallBatch` → The tool calls of one assistant message and their results; `of()` gives a rejected call its rejection as its result, `entriesInCallOrder()` fails when a call has no result
+- `BaseAgentRequestHandler.callModel()` → Calls `ToolCallAdmission.admit`, the one place the tool calls of an assistant message get the kind of their tool (`PROCESS` / `RUNTIME`) or a `rejection`, before `ingest`
+- `LocalToolCallExecutor.execute()` → Executes the unanswered local tool calls, the calls of runtime tools, through `RuntimeTools.execute`; it fails for a process call or a rejected call, which has its result from its `ToolCallBatch`. The handler calls it for the unanswered calls of a `Ready`, in the job that composes the next turn and in a round of local tool calls only (`addLocalToolCallResults`, after the model-call limit check)
+- `RuntimeTools.execute()` → Executes calls of runtime tools, the one place a `RuntimeTool` is called; a call of a tool that is not enabled gets the error result "is not available"
+- `ToolCallResultsInputBuilder.build()` → Builds the tool call result message (and the document message) from a `ToolCallBatch`, in call order
+- `AgentConversation.rehydrate()` / `ingest()` / `window()` / `nextContinuationRound()` / `nextRuntimeToolRound()` / `toAgentContext()` → Immutable turn aggregate lifecycle
+- `BaseAgentRequestHandler.throwIfLimitsReached()` → Model-call limit check (reads the model calls of the agent context before the local tool calls of a `Ready` are executed, and `totalMetrics().modelCalls()` before every further round of the job)
+- `AgentResponseHandlerImpl.createResponse()` → Response formatting; hands the process tool calls of the last turn to the gateway handlers
+- `RuntimeTools.enabledDefinitions()` → The enabled runtime tools of a job, registered as beans ([Add a runtime tool](../../docs/architecture/extension-points.md#add-a-runtime-tool))
 
 ## Job Completion
 - `AgentSubProcessConnectorResponse.elementActivations()` → AHSP element activations from tool calls
@@ -99,11 +105,22 @@ classDiagram
     class AgentResponseHandler {
         <<interface>>
     }
+    class RuntimeTools
+    class ToolCallAdmission
+    class LocalToolCallExecutor
+    class RuntimeTool {
+        <<interface>>
+    }
 
     BaseAgentRequestHandler --> AgentInitializer
     BaseAgentRequestHandler --> AgentConversationTurnInputComposer
     BaseAgentRequestHandler --> ChatModelRegistry
     BaseAgentRequestHandler --> AgentResponseHandler
+    BaseAgentRequestHandler --> RuntimeTools
+    BaseAgentRequestHandler --> ToolCallAdmission
+    BaseAgentRequestHandler --> LocalToolCallExecutor
+    LocalToolCallExecutor --> RuntimeTools
+    RuntimeTools o-- RuntimeTool : collects *
     BaseAgentRequestHandler --> ConversationStoreRegistry
     BaseAgentRequestHandler --> SystemPromptComposer
     BaseAgentRequestHandler ..> AgentConversation : builds

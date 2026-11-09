@@ -39,5 +39,7 @@ If job completion fails (e.g., the job was superseded), Zeebe retries with the *
 
 4. **`ConversationContext` must be serializable and self-contained.** It is persisted as part of the `agentContext` process variable in Zeebe. It must contain everything needed to locate the conversation data (e.g., a document reference, a version number, a branch pointer) — without relying on external state that could change between turns.
 
+5. **The `kind` and the `rejection` of a tool call must round-trip.** The assistant message of a stored turn carries the `kind` and the `rejection` of its tool calls ([`agentic-loop.md`](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete)), of every agent instance; the agent never computes them again. A store that drops them turns a runtime tool call or a rejected call into a process tool call that never gets a result. A `ToolCall` serializes `kind` only for `RUNTIME` and `rejection` only when set, and a missing `kind` reads as `PROCESS` and a missing `rejection` as none.
+
 For how each built-in store satisfies this contract, the `ConversationSession` lifecycle and the completion
 callbacks, see [`conversation-memory.md`](../../connector-aiagent/docs/conversation-memory.md#how-each-built-in-store-satisfies-this-contract).

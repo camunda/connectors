@@ -21,6 +21,7 @@ the agent instance client.
   are in the packages below `aiagent.chatmodel.provider`.
 - `ConversationStoreRegistry`: selects the conversation store. The built-in stores are
   `InProcessConversationStore`, `CamundaDocumentConversationStore` and `AwsAgentCoreConversationStore`.
+- `RuntimeTools`: offers the enabled runtime tools to the model and executes their calls.
 - `CamundaAgentInstanceClient`: reports status, metrics and history to the agent instance API.
 - `AgenticAiConnectorsAutoConfiguration`: the Spring configuration.
 

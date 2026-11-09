@@ -145,10 +145,12 @@ These are used during discovery checking and tool call result transformation.
 Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
 embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent
 extracts those documents into a synthetic follow-up `UserMessage` with native `DocumentContent`
-blocks so LLMs can interpret them; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md).
+blocks so LLMs can interpret them; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md). The documents
+of the result of a runtime tool ([Add a runtime tool](#add-a-runtime-tool)), in a batch of local tool calls only or in a mixed one, are extracted from its typed content
+(`ToolCallResultDocumentExtractor.documentsOf`) and delivered the same way.
 
-`ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` after
-the `ToolCallResultMessage` is built. For each result it asks the registry which handler manages
+`ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` for each
+process tool call result, before `ToolCallResultsInputBuilder` builds the `ToolCallResultMessage`. For each result it asks the registry which handler manages
 the tool name (`GatewayToolHandlerRegistry.handlerForToolDefinition`) and either:
 
 - delegates to that handler's `extractDocuments(ToolCallResult)` — handlers walk their own typed
@@ -249,3 +251,50 @@ store (`InProcessConversationStore` and its session/context). Context subtypes a
 implementation (see `BuiltInConversationContextSubtypes`). A broken provider entry is logged at ERROR
 level and skipped; it never disables the other subtypes. For a custom store outside this module,
 see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations).
+
+### Add a runtime tool
+
+> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult` and
+> `RuntimeToolException`, package `aiagent.api.tool` of `aiagent-api`) is experimental since 8.11 and may change in an
+> incompatible way in a minor release.
+
+A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
+definition next to the tools of the process and the agent executes the call, in process. The connector registers no
+runtime tool of its own; `RuntimeTools` has no tool until a runtime registers a bean. The rationale is in
+[ADR 016](../adr/016-runtime-tools.md). The contract of every type is in its javadoc; `RuntimeTool` is the entry point,
+and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small example.
+
+**To add a tool**
+
+1. Pick a name with a vendor prefix such as `acme_`; `c8__` is meant for the tools the connector ships. A tool of the
+   process must not have the name while the tool is enabled: the agent job fails with
+   `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`. No prefix is checked or reserved, only the exact name.
+2. Build the definition with `ToolDefinition.runtime(...)` and `LinkedHashMap`s for the schema: the order of a map such
+   as `Map.of` differs between JVMs, and the order of the parameters is part of the configuration fingerprint.
+3. Implement `call`. Return `RuntimeToolResult.error(...)` or throw a `RuntimeToolException` for a failure the model can
+   act on; any other exception fails the job. Keep no state in the tool: an agent runs one job after the other, possibly
+   on different workers.
+4. Override `isEnabled` if the tool is offered only to some agents. It reads the invocation and the agent context from the
+   `RuntimeToolContext`, and is called when the tools of a job are assembled and again when a call is executed.
+   Keep its answer stable while an agent instance runs: the tools are part of every model request, so a change
+   invalidates the prompt cache of the provider and shows the model a different set of tools.
+5. Register the tool as a Spring bean of type `RuntimeTool`. `RuntimeTools` rejects blank and duplicate names and
+   definitions that do not declare the kind `RUNTIME` at startup. The `runtimeTools` feature only decides whether the tools are
+   offered: an agent instance without it is offered no runtime tool.
+
+**Execution contract**
+
+- *At least once.* A retried job executes the call again, so make side effects outside the agent idempotent.
+- *Bounded execution time.* A call is executed in the thread of the job, without a timeout: stay well below the job timeout.
+- *Order and concurrency.* The results of a batch are applied in call order. `call` and `isEnabled` may be called from different
+  threads, and a `RuntimeToolContext` is safe to read concurrently.
+- *Mixed batches.* Runtime calls of a message that also calls process tools are executed in the job that composes the next turn
+  ([What Happens When Tools Complete](agentic-loop.md#what-happens-when-tools-complete)); a message that calls runtime tools only has them executed in the same job and calls the model again.
+- *Failures.* A call of a tool that is not offered in the job is rejected and gets the error result "does not exist" from the
+  agent; it never reaches the tool, also when a tool of that name is enabled later. A call of a tool that is no longer
+  enabled when it is executed ("is not available"), a `RuntimeToolException` and `RuntimeToolResult.error` give an error
+  result the model reads.
+
+The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
+of `AgentContext.toolDefinitions`), turns the content into a tool result, and reports the tool and its calls to agent
+instance history without an element id.
