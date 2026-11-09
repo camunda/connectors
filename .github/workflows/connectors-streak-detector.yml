@@ -88,8 +88,13 @@ jobs:
     # Only protected-branch push runs accumulate streaks; success runs can
     # resolve an existing live message. A SaaS result run is let through here and
     # filtered by the step below, which looks up the pipeline run it reports on.
+    #
+    # Identify the triggering workflow by `github.event.workflow.path`, never by
+    # `github.event.workflow_run.name`: that field carries the RUN name, so a workflow
+    # with a `run-name:` -- which SAAS_E2E_RESULT.yaml has -- never matches its own
+    # workflow name. A job-level `if` cannot read `env`, hence the literal path.
     if: >-
-      github.event.workflow_run.name == 'SaaS E2E result' ||
+      github.event.workflow.path == '.github/workflows/SAAS_E2E_RESULT.yaml' ||
       (github.event.workflow_run.event == 'push' &&
       (github.event.workflow_run.head_branch == 'main' ||
       startsWith(github.event.workflow_run.head_branch, 'stable/')))
@@ -105,14 +110,14 @@ jobs:
         id: ctx
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUN_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_PATH: ${{ github.event.workflow.path }}
           RUN_TITLE: ${{ github.event.workflow_run.display_title }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
           relevant=true
           base_ref="${HEAD_BRANCH}"
-          if [ "$RUN_NAME" = "SaaS E2E result" ]; then
+          if [ "$WORKFLOW_PATH" = ".github/workflows/${SAAS_RESULT_WORKFLOW_FILE}" ]; then
             # Run name: `saas-e2e-result <repo>:<run_id>:<attempt>:<sha>`.
             if [[ "$RUN_TITLE" =~ ^saas-e2e-result\ ${GITHUB_REPOSITORY}:([0-9]+):[0-9]+:[0-9a-f]{40}$ ]]; then
               meta=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BASH_REMATCH[1]}")
@@ -445,7 +450,10 @@ jobs:
     name: Scan the finished run
     # A SaaS result run triages itself (SAAS_E2E_RESULT.yaml); only the streak job above
     # looks at it.
-    if: github.event.workflow_run.name != 'SaaS E2E result'
+    # Path, not `workflow_run.name` -- see the note on streak-context's gate above.
+    # `github.event.workflow` is null on a workflow_dispatch replay, so this stays true
+    # there, which is what the replay path wants.
+    if: github.event.workflow.path != '.github/workflows/SAAS_E2E_RESULT.yaml'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -485,9 +493,11 @@ jobs:
 
           # A replay of the wrong workflow would classify jobs the AlwaysGreen surfaces
           # know nothing about, and report a clean triage for a pipeline that never ran.
-          name=$(jq -r '.name // ""' <<<"$meta")
-          if [ "$name" != "Merge queue Helm test" ]; then
-            echo "::error::run ${run_id} is '${name}', not a Merge queue Helm test run"
+          # `.name` is the run name whenever the workflow sets `run-name:`, so match on
+          # `.path`, which is always the workflow file.
+          path=$(jq -r '.path // ""' <<<"$meta")
+          if [ "$path" != ".github/workflows/${PARENT_WORKFLOW_FILE}" ]; then
+            echo "::error::run ${run_id} is from '${path}', not ${PARENT_WORKFLOW_FILE}"
             exit 1
           fi
 
