@@ -739,6 +739,37 @@ class DocChecksTest {
   }
 
   @Test
+  void everyTypeOfTheLockMustBeNamedInTheDocs() {
+    final List<String> lock =
+        List.of(
+            "ChatModel#close(): void",
+            "a.b.Named<T extends Comparable<T>>: interface",
+            "a.b.Outer.Inner: record",
+            "a.b.Outer: class sealed abstract extends RuntimeException permits Outer.Inner",
+            "a.b.Unnamed: record",
+            "a.b.Missing: enum",
+            "Missing#VALUE: Missing");
+    final Path lockFile = Path.of("connectors/agentic-ai/one/docs/api.lock");
+
+    assertThat(messages(DocChecks.apiTypesNamed(lock, lockFile, Set.of("Named", "Inner", "Outer"))))
+        .containsExactly(
+            """
+            connectors/agentic-ai/one/docs/api.lock:5: public type `Unnamed` is named in no doc
+                why: the docs of a module name each public type of its API, so a reader finds the extension points
+                fix: name `Unnamed` in backticks in the docs of one, the module that owns it, for example under `## Key types` of its README\
+            """,
+            """
+            connectors/agentic-ai/one/docs/api.lock:6: public type `Missing` is named in no doc
+                why: the docs of a module name each public type of its API, so a reader finds the extension points
+                fix: name `Missing` in backticks in the docs of one, the module that owns it, for example under `## Key types` of its README\
+            """);
+    assertThat(
+            DocChecks.apiTypesNamed(
+                lock, lockFile, Set.of("Named", "Inner", "Outer", "Unnamed", "Missing")))
+        .isEmpty();
+  }
+
+  @Test
   void collectsTheTypesNamedInTheDocs() {
     assertThat(
             DocChecks.namedTypes(

@@ -20,6 +20,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -40,6 +41,9 @@ final class DocChecks {
 
   private static final Pattern TYPE_REFERENCE =
       Pattern.compile("^(?:[a-z][a-z0-9_]*\\.)*([A-Z][A-Za-z0-9]*(?:\\.[A-Za-z][A-Za-z0-9]*)*)$");
+
+  private static final Pattern LOCKED_TYPE =
+      Pattern.compile("^(?:[a-z][a-z0-9_]*\\.)+([A-Z]\\w*(?:\\.[A-Z]\\w*)*)(?:<.*>)?: .*$");
 
   private static final Pattern ILLEGAL_CHARACTER = Pattern.compile("[ \"<>\\[\\\\\\]^`{|}]");
 
@@ -135,6 +139,39 @@ final class DocChecks {
                           "delete the entry of the allowed names"))
                   : Stream.empty();
             });
+  }
+
+  /**
+   * Each type that the lock file declares is named in a doc. A declaration line of the lock reads
+   * {@code pkg.Type<...>: kind ...}, and a member line reads {@code Type#member...}.
+   */
+  static Stream<Finding> apiTypesNamed(
+      final List<String> lock, final Path lockFile, final Set<String> namedInDocs) {
+    final String module = lockFile.getParent().getParent().getFileName().toString();
+    return IntStream.range(0, lock.size())
+        .boxed()
+        .flatMap(index -> {
+          final Matcher matcher = LOCKED_TYPE.matcher(lock.get(index));
+          if (!matcher.matches()) {
+            return Stream.empty();
+          }
+          final String type = matcher.group(1);
+          return namedInDocs.contains(type.substring(type.lastIndexOf('.') + 1))
+              ? Stream.empty()
+              : Stream.<Finding>of(
+                  new Violation(
+                      lockFile,
+                      index + 1,
+                      "public type `" + type + "` is named in no doc",
+                      "the docs of a module name each public type of its API, so a reader finds"
+                          + " the extension points",
+                      "name `"
+                          + type
+                          + "` in backticks in the docs of "
+                          + module
+                          + ", the module that owns it, for example under `## Key types` of its"
+                          + " README"));
+        });
   }
 
   /** The type names of the code spans of the docs. */
