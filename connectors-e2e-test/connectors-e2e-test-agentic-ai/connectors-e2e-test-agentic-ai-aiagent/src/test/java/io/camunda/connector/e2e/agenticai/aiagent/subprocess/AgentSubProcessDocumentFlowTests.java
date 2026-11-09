@@ -246,7 +246,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(FINAL_TEXT);
-          assertResponseDocument(agentResponse.responseDocuments(), documentId);
+          assertResponseDocument(
+              agentResponse.context(), agentResponse.responseDocuments(), documentId);
           // the agent documents and the response documents are part of the agent context
           assertThat(agentResponse.context().documents().all())
               .extracting(entry -> entry.id().value())
@@ -365,8 +366,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(results)
         .extracting(m -> m.toolCallId())
         .containsExactly(RETURN_CALL_ID, PING_CALL_ID);
-    assertThat(results.get(0).content()).contains("under the key 'report'");
-    assertThat(results.get(1).content()).contains("pong");
+    assertThat(results.get(0).content()).isEqualTo("Returned the document under the key 'report'.");
+    assertThat(results.get(1).content()).isEqualTo("pong");
 
     final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
@@ -375,7 +376,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(FINAL_TEXT);
-          assertResponseDocument(agentResponse.responseDocuments(), documentId);
+          assertResponseDocument(
+              agentResponse.context(), agentResponse.responseDocuments(), documentId);
           assertThat(agentResponse.context().responseDocuments())
               .extracting(ResponseDocumentSelection::key)
               .containsExactly(RETURN_KEY);

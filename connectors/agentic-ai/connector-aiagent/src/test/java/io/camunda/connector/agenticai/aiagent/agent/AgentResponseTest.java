@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.ReturnedDocument;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 class AgentResponseTest {
 
@@ -48,8 +49,12 @@ class AgentResponseTest {
             .build();
 
     assertThat(response.responseDocuments()).containsExactly(Map.entry("report", RETURNED));
-    assertThat(json(response).at("/responseDocuments/report/description").asText())
-        .isEqualTo("Report");
+    JSONAssert.assertEquals(
+        """
+        {"report": {"document": {"camunda.document.type": "camunda"}, "description": "Report"}}
+        """,
+        json(response).get("responseDocuments").toString(),
+        true);
   }
 
   @Test

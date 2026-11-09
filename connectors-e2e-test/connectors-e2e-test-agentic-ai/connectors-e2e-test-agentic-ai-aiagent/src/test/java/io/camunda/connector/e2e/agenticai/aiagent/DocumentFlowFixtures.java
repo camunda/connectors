@@ -25,9 +25,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.ReturnedDocument;
-import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
@@ -36,6 +37,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
+import org.json.JSONException;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.core.io.ClassPathResource;
 
 /**
@@ -278,22 +281,29 @@ public final class DocumentFlowFixtures {
   }
 
   /**
-   * Asserts that a response document reference is the Camunda document reference of the document
-   * with the given id, the id the model reads in the handle of the document.
+   * Asserts that a response document reference is the whole Camunda document reference of the agent
+   * document with the given id, the id the model reads in the handle of the document.
    */
   public static void assertCamundaDocumentReference(
-      Map<String, Object> reference, String expectedDocumentId) {
-    assertThat(
-            AgentDocumentId.of(
-                ConnectorsObjectMapperSupplier.getCopy()
-                    .convertValue(reference, DocumentReferenceModel.class)))
-        .as("id derived from the document reference")
-        .isEqualTo(AgentDocumentId.of(expectedDocumentId));
-    assertThat(reference)
-        .containsEntry("camunda.document.type", "camunda")
-        .hasEntrySatisfying("documentId", v -> assertThat(v).asString().isNotBlank())
-        .hasEntrySatisfying("storeId", v -> assertThat(v).asString().isNotBlank())
-        .hasEntrySatisfying("contentHash", v -> assertThat(v).asString().isNotBlank());
+      AgentContext context, Map<String, Object> reference, String expectedDocumentId) {
+    final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    final var registered =
+        context
+            .documents()
+            .find(AgentDocumentId.of(expectedDocumentId))
+            .orElseThrow(() ->
+                new AssertionError("The agent does not know the document " + expectedDocumentId));
+    assertThat(reference).containsEntry("camunda.document.type", "camunda");
+    try {
+      JSONAssert.assertEquals(
+          objectMapper.writeValueAsString(registered.reference()),
+          objectMapper.writeValueAsString(reference),
+          true);
+    } catch (JsonProcessingException e) {
+      throw new UncheckedIOException(e);
+    } catch (JSONException e) {
+      throw new AssertionError(e);
+    }
   }
 
   /**
@@ -301,10 +311,12 @@ public final class DocumentFlowFixtures {
    * id, under the key and with the description the model sent.
    */
   public static void assertResponseDocument(
-      Map<String, ? extends ReturnedDocument> documents, String expectedDocumentId) {
+      AgentContext context,
+      Map<String, ? extends ReturnedDocument> documents,
+      String expectedDocumentId) {
     assertThat(documents).containsOnlyKeys(RETURN_KEY);
     final var returned = documents.get(RETURN_KEY);
-    assertCamundaDocumentReference(returned.document(), expectedDocumentId);
+    assertCamundaDocumentReference(context, returned.document(), expectedDocumentId);
     assertThat(returned.description()).isEqualTo(RETURN_DESCRIPTION);
   }
 
@@ -313,13 +325,14 @@ public final class DocumentFlowFixtures {
    * reference of the document with the given id, with the given description.
    */
   public static void assertResponseDocumentEntry(
+      AgentContext context,
       Map<String, ? extends ReturnedDocument> documents,
       String key,
       String expectedDocumentId,
       String expectedDescription) {
     assertThat(documents).containsKey(key);
     final var returned = documents.get(key);
-    assertCamundaDocumentReference(returned.document(), expectedDocumentId);
+    assertCamundaDocumentReference(context, returned.document(), expectedDocumentId);
     assertThat(returned.description()).isEqualTo(expectedDescription);
   }
 
