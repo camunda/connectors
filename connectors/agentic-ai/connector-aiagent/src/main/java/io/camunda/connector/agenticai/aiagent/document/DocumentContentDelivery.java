@@ -11,7 +11,9 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -70,7 +72,10 @@ public final class DocumentContentDelivery {
   /**
    * Decides for each document that was asked for, in the order of the first request, whether its
    * content is added. A document in {@code handled} is {@link Outcome.AlreadyInConversation}: the
-   * model reads its content already, or an earlier request of the same batch dealt with it.
+   * model reads its content already, or an earlier request of the same batch dealt with it. An
+   * external document in {@code handled} is checked by the guard first, because the expansion
+   * checks its downloaded content again before the model call: when the check fails, the model gets
+   * the note and not the content, so the document is {@link Outcome.Withheld}.
    *
    * @param known the documents the agent knows
    * @param requested the ids of the documents whose content is asked for
@@ -95,19 +100,38 @@ public final class DocumentContentDelivery {
       }
       outcomes.add(
           handled.contains(id)
-              ? new Outcome.AlreadyInConversation(id)
+              ? handledOutcomeOf(known, id, restorer)
               : outcomeOf(known, id, restorer));
     }
     return List.copyOf(outcomes);
   }
 
+  private Outcome handledOutcomeOf(
+      AgentDocuments known, AgentDocumentId id, DocumentRestorer restorer) {
+    final var document = restore(known, id, restorer);
+    if (!(document.reference() instanceof ExternalDocumentReference)) {
+      return new Outcome.AlreadyInConversation(id);
+    }
+    return switch (check(id, document)) {
+      case Outcome.Delivered ignored -> new Outcome.AlreadyInConversation(id);
+      case Outcome outcome -> outcome;
+    };
+  }
+
   private Outcome outcomeOf(AgentDocuments known, AgentDocumentId id, DocumentRestorer restorer) {
-    final var document =
-        restorer
-            .restore(known, id)
-            .orElseThrow(() ->
-                new IllegalStateException(
-                    "The document %s cannot be restored from its reference".formatted(id)));
+    return check(id, restore(known, id, restorer));
+  }
+
+  private static Document restore(
+      AgentDocuments known, AgentDocumentId id, DocumentRestorer restorer) {
+    return restorer
+        .restore(known, id)
+        .orElseThrow(() ->
+            new IllegalStateException(
+                "The document %s cannot be restored from its reference".formatted(id)));
+  }
+
+  private Outcome check(AgentDocumentId id, Document document) {
     return switch (contentGuard.check(document)) {
       case Verdict.Allowed ignored ->
           new Outcome.Delivered(AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT));
