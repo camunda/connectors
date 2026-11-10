@@ -649,6 +649,25 @@ class McpClientGatewayToolHandlerTest {
     }
 
     @Test
+    void extractsDocumentsNestedInMcpObjectContent() {
+      var document1 = createDocument("mcp-object-doc-1");
+      var document2 = createDocument("mcp-object-doc-2");
+      var toolCallResult =
+          createToolCallResultWithContent(
+              "call1",
+              "MCP_mcp1___tool1",
+              List.of(
+                  new McpObjectContent(
+                      Map.of(
+                          "report", document1, "attachments", List.of(Map.of("file", document2))),
+                      Map.of())));
+
+      var documents = handler.extractDocuments(toolCallResult);
+
+      assertThat(documents).containsExactlyInAnyOrder(document1, document2);
+    }
+
+    @Test
     void doesNotExtractFromTextResource() {
       var toolCallResult =
           createToolCallResultWithContent(
@@ -676,7 +695,7 @@ class McpClientGatewayToolHandlerTest {
     }
 
     @Test
-    void doesNotExtractFromTextOrObjectOrBlobOrResourceLinkVariants() {
+    void doesNotExtractFromVariantsWithoutDocuments() {
       var toolCallResult =
           createToolCallResultWithContent(
               "call1",

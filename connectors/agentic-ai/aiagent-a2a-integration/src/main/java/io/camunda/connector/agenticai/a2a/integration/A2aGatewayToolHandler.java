@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.common.json.ObjectMapperConstants.S
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aDataPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aDocumentPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
@@ -20,6 +21,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMess
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
+import io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
@@ -291,8 +293,15 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
       return;
     }
     for (A2aPart part : contents) {
-      if (part instanceof A2aDocumentPart documentPart && documentPart.document() != null) {
-        documents.add(documentPart.document());
+      switch (part) {
+        case A2aDocumentPart documentPart when documentPart.document() != null ->
+            documents.add(documentPart.document());
+        case A2aDataPart dataPart ->
+            documents.addAll(
+                ContentTreeDocumentWalker.extractDocumentsFromContent(dataPart.content()));
+        default -> {
+          // text parts have no documents
+        }
       }
     }
   }
