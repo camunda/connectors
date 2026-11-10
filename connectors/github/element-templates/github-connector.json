@@ -2,9 +2,9 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHub Outbound Connector",
   "id": "io.camunda.connectors.GitHub.v1",
-  "version": 15,
+  "version": 16,
   "engines": {
-    "camunda": "^8.7"
+    "camunda": "^8.11"
   },
   "description": "Manage GitHub issues, branches, releases, and more",
   "keywords": [
@@ -478,6 +478,19 @@
       }
     },
     {
+      "id": "serviceAuthenticationConfiguration",
+      "label": "Authentication credential",
+      "tooltip": "Choose a reusable GitHub credential, or configure the one-time authentication below. A credential holds a personal access token; GitHub App authentication is only available below.",
+      "optional": true,
+      "group": "authentication",
+      "binding": {
+        "name": "serviceAuthenticationConfiguration",
+        "type": "zeebe:input"
+      },
+      "type": "Configuration",
+      "configurationTemplate": "io.camunda.connectors:github-authentication:1"
+    },
+    {
       "label": "Authentication type",
       "id": "authentication.authType",
       "group": "authentication",
@@ -496,6 +509,11 @@
       "binding": {
         "type": "zeebe:input",
         "name": "githubAuthType"
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -515,8 +533,17 @@
         "notEmpty": false
       },
       "condition": {
-        "property": "authentication.authType",
-        "equals": "pat"
+        "allMatch": [
+          {
+            "property": "authentication.authType",
+            "equals": "pat"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -536,8 +563,17 @@
         "notEmpty": false
       },
       "condition": {
-        "property": "authentication.authType",
-        "equals": "github_app"
+        "allMatch": [
+          {
+            "property": "authentication.authType",
+            "equals": "github_app"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -557,8 +593,17 @@
         "notEmpty": false
       },
       "condition": {
-        "property": "authentication.authType",
-        "equals": "github_app"
+        "allMatch": [
+          {
+            "property": "authentication.authType",
+            "equals": "github_app"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -578,8 +623,17 @@
         "notEmpty": false
       },
       "condition": {
-        "property": "authentication.authType",
-        "equals": "github_app"
+        "allMatch": [
+          {
+            "property": "authentication.authType",
+            "equals": "github_app"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -591,6 +645,11 @@
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.type"
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -602,8 +661,17 @@
         "name": "authentication.token"
       },
       "condition": {
-        "property": "authentication.authType",
-        "equals": "github_app"
+        "allMatch": [
+          {
+            "property": "authentication.authType",
+            "equals": "github_app"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -615,8 +683,17 @@
         "name": "authentication.token"
       },
       "condition": {
-        "property": "authentication.authType",
-        "equals": "pat"
+        "allMatch": [
+          {
+            "property": "authentication.authType",
+            "equals": "pat"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -3979,7 +4056,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "15",
+      "value": "16",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -4689,6 +4766,40 @@
         "operationGroup": "repositories",
         "reposOperationType": "updateRepo"
       }
+    }
+  ],
+  "configurationTemplates": [
+    {
+      "id": "io.camunda.connectors:github-authentication:1",
+      "kind": "CREDENTIAL",
+      "version": 1,
+      "name": "GitHub Authentication",
+      "properties": [
+        {
+          "id": "authentication.type",
+          "value": "bearer",
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.type",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.token",
+          "label": "Personal access token",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.token",
+            "type": "property"
+          },
+          "type": "String",
+          "secret": true
+        }
+      ]
     }
   ]
 }

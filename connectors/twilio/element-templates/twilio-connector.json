@@ -2,9 +2,9 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Twilio Outbound Connector",
   "id": "io.camunda.connectors.Twilio.v1",
-  "version": 8,
+  "version": 9,
   "engines": {
-    "camunda": "^8.9"
+    "camunda": "^8.11"
   },
   "description": "Send SMS and WhatsApp messages or retrieve message information using the Twilio API",
   "keywords": [
@@ -129,6 +129,19 @@
       }
     },
     {
+      "id": "serviceAuthenticationConfiguration",
+      "label": "Authentication credential",
+      "tooltip": "Choose a reusable Twilio credential, or configure the one-time authentication below.",
+      "optional": true,
+      "group": "authentication",
+      "binding": {
+        "name": "serviceAuthenticationConfiguration",
+        "type": "zeebe:input"
+      },
+      "type": "Configuration",
+      "configurationTemplate": "io.camunda.connectors:twilio-authentication:1"
+    },
+    {
       "id": "authType",
       "label": "Authentication type",
       "group": "authentication",
@@ -146,6 +159,11 @@
       "binding": {
         "type": "zeebe:input",
         "name": "authType"
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -162,10 +180,19 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "authType",
-        "oneOf": [
-          "apiKeySecret",
-          "accountSidAuthToken"
+        "allMatch": [
+          {
+            "property": "authType",
+            "oneOf": [
+              "apiKeySecret",
+              "accountSidAuthToken"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -175,6 +202,11 @@
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.type"
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -237,8 +269,17 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "authType",
-        "equals": "apiKeySecret"
+        "allMatch": [
+          {
+            "property": "authType",
+            "equals": "apiKeySecret"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -255,8 +296,17 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "authType",
-        "equals": "apiKeySecret"
+        "allMatch": [
+          {
+            "property": "authType",
+            "equals": "apiKeySecret"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -270,9 +320,18 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "authType",
-        "oneOf": [
-          "accountSidAuthToken"
+        "allMatch": [
+          {
+            "property": "authType",
+            "oneOf": [
+              "accountSidAuthToken"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -290,8 +349,17 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "authType",
-        "equals": "accountSidAuthToken"
+        "allMatch": [
+          {
+            "property": "authType",
+            "equals": "accountSidAuthToken"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -683,11 +751,45 @@
         "name": "url"
       },
       "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "sendSms",
-          "sendWhatsApp",
-          "listMessages"
+        "allMatch": [
+          {
+            "property": "operationType",
+            "oneOf": [
+              "sendSms",
+              "sendWhatsApp",
+              "listMessages"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/Messages.json\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationType",
+            "oneOf": [
+              "sendSms",
+              "sendWhatsApp",
+              "listMessages"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -699,9 +801,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "getMessage"
+        "allMatch": [
+          {
+            "property": "operationType",
+            "oneOf": [
+              "getMessage"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/Messages/\"+messageSid+\".json\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationType",
+            "oneOf": [
+              "getMessage"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -761,7 +895,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "8",
+      "value": "9",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -892,6 +1026,144 @@
       "properties": {
         "operationType": "listMessages"
       }
+    }
+  ],
+  "configurationTemplates": [
+    {
+      "id": "io.camunda.connectors:twilio-authentication:1",
+      "kind": "CREDENTIAL",
+      "version": 1,
+      "name": "Twilio Authentication",
+      "properties": [
+        {
+          "id": "authentication.type",
+          "value": "basic",
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.type",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "twilioAuthType",
+          "label": "Authentication",
+          "value": "accountSidAuthToken",
+          "choices": [
+            {
+              "name": "Account SID and auth token",
+              "value": "accountSidAuthToken"
+            },
+            {
+              "name": "API key and secret",
+              "value": "apiKeySecret"
+            }
+          ],
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "parameters.authType",
+            "type": "property"
+          },
+          "type": "Dropdown"
+        },
+        {
+          "id": "accountSid",
+          "label": "Account SID",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "parameters.accountSid",
+            "type": "property"
+          },
+          "type": "String"
+        },
+        {
+          "id": "baseUrl",
+          "value": "https://api.twilio.com/2010-04-01/Accounts/${accountSid}",
+          "group": "authentication",
+          "binding": {
+            "name": "baseUrl",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.usernameKey",
+          "label": "API key SID",
+          "constraints": {
+            "notEmpty": true
+          },
+          "condition": {
+            "property": "twilioAuthType",
+            "equals": "apiKeySecret",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.username",
+            "type": "property"
+          },
+          "type": "String"
+        },
+        {
+          "id": "authentication.usernameSid",
+          "value": "${accountSid}",
+          "condition": {
+            "property": "twilioAuthType",
+            "equals": "accountSidAuthToken",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.username",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.passwordKey",
+          "label": "API key secret",
+          "constraints": {
+            "notEmpty": true
+          },
+          "condition": {
+            "property": "twilioAuthType",
+            "equals": "apiKeySecret",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.password",
+            "type": "property"
+          },
+          "type": "String",
+          "secret": true
+        },
+        {
+          "id": "authentication.passwordSid",
+          "label": "Auth token",
+          "constraints": {
+            "notEmpty": true
+          },
+          "condition": {
+            "property": "twilioAuthType",
+            "equals": "accountSidAuthToken",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.password",
+            "type": "property"
+          },
+          "type": "String",
+          "secret": true
+        }
+      ]
     }
   ]
 }
