@@ -149,6 +149,11 @@ they are. `transformToolCalls()` receives the Camunda document references in pla
 document value gets an error result and never reaches the handler. The MCP and A2A handlers declare no document
 parameters: the remote side defines their schemas.
 
+The document delivery of the documents a tool returns (`ToolDefinition.documentDelivery`) is set by the extension property
+`io.camunda.agenticai.documents.delivery` on ad-hoc tool elements only. A handler that sets `documentDelivery` on the definitions
+it returns opts its tools in, matched by the name of the (transformed) tool call result. The MCP and A2A handlers set none, so
+their documents keep the delivery `reference`. See [ADR 018](../adr/018-document-flow.md).
+
 ### Document Extraction from Tool Call Results
 
 Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
@@ -222,11 +227,32 @@ shows them as `agent.responseDocuments.<key>.document`.
 Every agent instance with the `documents` feature offers `c8__load_document` and `c8__return_document`. They cannot be
 switched off. A switch is a follow-up of [ADR 018](../adr/018-document-flow.md).
 
-**The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
-document goes out with the prompt, with no size limit and no type check, and a document the provider
-cannot read fails the model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
-In an instance without the `documents` feature every document, also those of the user prompt, events and tool results,
-is added as content.
+**The delivery `content`.** It is the opt-in that adds content without a `c8__load_document` call, in the
+same persisted form. It is set for the documents of the user prompt, with the
+dropdown *Document delivery* (`data.userPrompt.documentDelivery`, choices `reference` (default) and `content`; the v2
+templates have it, the frozen v1 templates leave it out), and for the documents a process tool returns, with the extension
+property `io.camunda.agenticai.documents.delivery` on the tool activity ([Tool Resolution](../../aiagent-tools-schema/docs/tool-resolution.md#job-worker-flavor)), which takes `reference` or `content`
+(`DocumentDelivery.fromExtension`; another value fails the tool discovery with a message that names the element). The
+composer reads the delivery of a tool from the stored tool definitions (`AgentContext.documentDeliveryOf`, `reference` for a
+tool without one) and gives the entry of the result of a tool with the delivery `content` an `AddDocumentContent` effect for
+every document of the result: the same effect a runtime tool adds to ask for content, so `ToolCallResultsInputBuilder`
+applies it in the order of the calls, with the rule that a document whose content the model reads or that an
+earlier request of the turn handled is not added twice, and the sentences about the content that the builder writes at
+the end of the tool result of every request (the same sentences as for `c8__load_document`, above). A document becomes a block with the
+delivery `content` in the follow-up user message of the tool results (same preamble and `toolCallDocuments` metadata as
+above, the documents in the order of the requests). The delivery `content` never turns a result into an error. The delivery of a tool concerns the results of process
+tools: a runtime tool asks for the content of a document by naming it, and its result is never delivered by the delivery of
+a tool definition. An instance without the `documents` feature ignores the delivery. The model providers never see the
+delivery of a tool: `AgentConversation.window(int)` drops it from the definitions they get.
+
+**The user prompt.** The delivery of the documents of the user prompt is one of three cases (`UserPromptDocumentDelivery`),
+translated from the optional property of the request at the edge (`AgentInput`). `UNSET`, a process modeled before the
+dropdown existed and every v1 template, behaves as before: the content of every document goes out with the prompt, and a
+document the provider cannot read fails the model call. `CONTENT` adds the content of every document through
+`DocumentContentDelivery`, and `REFERENCE` gives the handles. A document whose content is already in the conversation is not
+added twice. Documents of events stay references, and so do those of the MCP and A2A gateway tools (a gateway handler can
+opt its tools in through `ToolDefinition.documentDelivery`). In an instance without the `documents` feature every document,
+also those of the user prompt, events and tool results, is added as content. See [ADR 018](../adr/018-document-flow.md).
 
 **Only Camunda documents.** An instance with the `documents` feature accepts only Camunda documents
 (`AgentDocument.isSupported`). A document with an external reference (a URL) or an inline reference (the content is in the
@@ -261,10 +287,11 @@ instance no feature) keeps the document handling of Camunda 8.10:
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
 
-**Limits.** A document that expires in its store is not noticed by the agent. Documents named only in the content of an
-evicted assistant message are not tracked, and handles the model writes in the final text are not interpreted. A
-content type is not sniffed from the bytes for documents of unknown type. The follow-ups that close these limits are
-listed in [ADR 018](../adr/018-document-flow.md).
+**Limits.** The delivery is stored on each block, so the history can show the same document with different deliveries. A
+document that expires in its store is not noticed by the agent. Documents named only in the content of an evicted
+assistant message are not tracked, and handles the model writes in the final text are not interpreted. A content type is
+not sniffed from the bytes for documents of unknown type. The extension property of the delivery is set by hand in the
+properties panel. The follow-ups that close these limits are listed in [ADR 018](../adr/018-document-flow.md).
 
 Only for an instance without the `documents` feature, `ToolCallResultDocumentExtractor` is the entrypoint, called from
 `AgentConversationTurnInputComposerImpl` for each process tool call result, before `ToolCallResultsInputBuilder` builds the `ToolCallResultMessage`. For each result it asks the registry which handler manages

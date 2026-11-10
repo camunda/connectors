@@ -152,6 +152,7 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 | Document parameters of tools (`fromAi` type `document`, resolution, rejection) | [`document-parameters.md`](connector-aiagent/docs/document-parameters.md), [`extension-points.md`](docs/architecture/extension-points.md#documents-and-gateway-tools), [ADR 018](docs/adr/018-document-flow.md) |
 | Returning documents in the final response (`c8__return_document`, `responseDocuments`, response documents of the agent context) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`response-handling.md`](connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl), [`data-model.md`](aiagent-model/docs/data-model.md), [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 018](docs/adr/018-document-flow.md) |
 | Loading document content (`c8__load_document`) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 018](docs/adr/018-document-flow.md) |
+| Document delivery (`reference` or `content` for the documents of the user prompt and of a tool result, `data.userPrompt.documentDelivery`, the extension property `io.camunda.agenticai.documents.delivery`) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`tool-resolution.md`](aiagent-tools-schema/docs/tool-resolution.md#job-worker-flavor), [ADR 018](docs/adr/018-document-flow.md) |
 | MCP integration                                                          | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md)                       |
 | A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
 | Example BPMN processes & configurations                                  | the `Examples` section of the connector module READMEs, [`examples/`](examples/)                                                                     |
@@ -286,11 +287,17 @@ High-frequency traps (detail behind each link):
   a tool result it renders the handle as text and a document nested in an object as the handle object
   (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
-  SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
-  documents of a turn input, also those a runtime tool returns. After the calls of a message ran, `ToolCallResultsInputBuilder`
-  returns the documents of the results in the `TurnInput`, in call order, and applies the effects of the results; a tool
-  reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
-  and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
+  SDK `DocumentReference`. A user prompt document is a block whose delivery the process chooses with the dropdown
+  `data.userPrompt.documentDelivery` (`reference` by default, or `content`; the v2 templates have it, the frozen v1
+  templates leave it out through `v1OmittedPropertyIds` in the pom): `UserPromptDocumentDelivery`, `UNSET` for a process
+  without a value, adds the content of every document, `REFERENCE` gives handles, `CONTENT` adds the content of every
+  document the model does not read yet. `TurnInput.applyTo(agentContext)` registers the
+  documents of a turn input, also those a runtime tool returns; the documents a runtime tool returns are registered, and
+  the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
+  a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
+  and gets content only through `c8__load_document` or the delivery `content` of the tool (the extension property
+  `io.camunda.agenticai.documents.delivery` on the tool activity, `ToolDefinition.documentDelivery`, which providers never
+  see; the composer turns it into an `AddDocumentContent` effect for every document of the result): a tool asks for content with the sealed `ToolCallEffect`
   `AddDocumentContent` of its `RuntimeToolResult.Success`, and selects a document for the final response with
   `SelectResponseDocument` (`AgentContext.responseDocuments`, which every final response carries as `responseDocuments`;
   `ToolCallResultsInputBuilder` returns the selections in `TurnInput.responseDocuments()`, and `TurnInput.applyTo(agentContext)` adds them to the agent context), and the value `DocumentContentDelivery` (the documents the model reads or receives) decides for every document whose content a tool asks for, without a check of its type or size, only whether the model reads the content already or an earlier request of the batch asked for it: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
@@ -479,6 +486,13 @@ hidden `zeebe:agentDefinition` property so the engine detects a native agent at 
 Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
 execution order does not matter — the sub-process transformer cannot carry the task marker into the
 derived template regardless of when the task-marker script runs.
+
+### Properties the v1 templates leave out
+
+The v1 and v2 templates are generated from shared data classes, so a property added for v2 only would reach the
+frozen v1 templates. List its template property id in the pom property `v1OmittedPropertyIds`
+(comma-separated); the transform scripts get it as `omittedPropertyIds` in the four v1 executions and drop those
+properties. Check that the diff of the v1 template files against the base branch stays empty.
 
 ### Deprecation marker (v1 only)
 

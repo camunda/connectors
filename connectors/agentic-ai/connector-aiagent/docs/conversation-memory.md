@@ -69,7 +69,8 @@ to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. Fo
 `documents` feature `DocumentExpander.expand` expands the document blocks
 (`AgentDocumentContent`, a typed content block with the delivery `reference` or `content`) with the agent documents
 (see [Document Extraction from Tool Call Results](../../docs/architecture/extension-points.md#document-extraction-from-tool-call-results)).
-The stored messages hold the document block only. In a user message a block becomes its handle text as a
+The stored messages hold the document block only. In a user message a block becomes its handle text, with the `note` of the
+block when it has one, as a
 `TextContent` and, for the delivery `content`, the `DocumentContent` restored from the agent document after it. In a tool
 result a top-level block becomes the handle text as a `TextContent`, and a document nested in an object becomes its handle
 object inside the object, so the model providers have no document specific code for tool results. A block whose document
