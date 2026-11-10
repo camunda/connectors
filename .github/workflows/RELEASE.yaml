@@ -104,7 +104,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y bc
       - name: Identify previous release version
         id: prev_version
-        uses: camunda/infra-global-github-actions/previous-version@9965a08067900e11c602a050b8821ec92f49544b # main
+        uses: camunda/infra-global-github-actions/previous-version@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
         with:
           version: "${{ inputs.version }}"
           verbose: 'false'
@@ -347,7 +347,7 @@ jobs:
 
       - name: Create pull request to main branch
         if: steps.version_check.outputs.is_first_minor == 'true'
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: chore/version-bump-docs-links
@@ -567,7 +567,7 @@ jobs:
 
       - name: Create pull request
         if: steps.target.outputs.branch != ''
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8
         with:
           token: ${{ steps.app-token.outputs.token }}
           branch: chore/bump-api-baseline-${{ inputs.version }}-${{ steps.target.outputs.branch }}
