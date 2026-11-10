@@ -37,6 +37,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import javax.lang.model.element.Modifier;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
@@ -51,13 +52,19 @@ import org.jspecify.annotations.Nullable;
 final class JavaSourceIndex {
 
   /**
-   * A declared type. The binary name has the form {@code package.Outer$Inner}. The supertypes are
-   * simple names.
+   * A declared type. The binary name has the form {@code package.Outer$Inner}. The inherited
+   * members are the members without the private ones. The supertypes are simple names.
    */
-  record Type(String binaryName, Tree.Kind kind, Set<String> members, List<String> supertypes) {
+  record Type(
+      String binaryName,
+      Tree.Kind kind,
+      Set<String> members,
+      Set<String> inheritedMembers,
+      List<String> supertypes) {
 
     Type {
       members = Set.copyOf(members);
+      inheritedMembers = Set.copyOf(inheritedMembers);
       supertypes = List.copyOf(supertypes);
     }
 
@@ -180,13 +187,15 @@ final class JavaSourceIndex {
   }
 
   /**
-   * The members of the type and of its declared supertypes, without constructors. A supertype is
-   * found by its simple name, so all types of that name count. Supertypes that the sources do not
-   * declare are skipped.
+   * The members of the type and the inherited members of its declared supertypes, without
+   * constructors. A supertype is found by its simple name, so all types of that name count.
+   * Supertypes that the sources do not declare are skipped.
    */
   Set<String> members(final Type type) {
-    final Set<String> members = new LinkedHashSet<>();
-    hierarchy(type).forEach(current -> members.addAll(current.members()));
+    final Set<String> members = new LinkedHashSet<>(type.members());
+    hierarchy(type).stream()
+        .filter(current -> !current.equals(type))
+        .forEach(current -> members.addAll(current.inheritedMembers()));
     return members;
   }
 
@@ -326,11 +335,18 @@ final class JavaSourceIndex {
 
   private void declare(final String binaryName, final String simpleName, final ClassTree tree) {
     final Set<String> members = new HashSet<>();
+    final Set<String> inheritedMembers = new HashSet<>();
     for (final Tree member : tree.getMembers()) {
       if (member instanceof final MethodTree method && !method.getName().contentEquals("<init>")) {
         members.add(method.getName().toString());
+        if (!method.getModifiers().getFlags().contains(Modifier.PRIVATE)) {
+          inheritedMembers.add(method.getName().toString());
+        }
       } else if (member instanceof final VariableTree variable) {
         members.add(variable.getName().toString());
+        if (!variable.getModifiers().getFlags().contains(Modifier.PRIVATE)) {
+          inheritedMembers.add(variable.getName().toString());
+        }
       }
     }
     final List<String> supertypes = new ArrayList<>();
@@ -340,7 +356,7 @@ final class JavaSourceIndex {
     tree.getImplementsClause().forEach(supertype -> supertypes.add(simpleName(supertype)));
     declared
         .computeIfAbsent(simpleName, name -> new ArrayList<>())
-        .add(new Type(binaryName, tree.getKind(), members, supertypes));
+        .add(new Type(binaryName, tree.getKind(), members, inheritedMembers, supertypes));
   }
 
   private static String simpleName(final Tree typeTree) {
