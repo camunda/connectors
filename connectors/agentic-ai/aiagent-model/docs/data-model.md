@@ -65,6 +65,12 @@ derived from the `documents` feature and not persisted: `Untracked`, or `Tracked
 tool call results input builder, the document expander, the history mapper and the agent instance client match both
 variants exhaustively; none of them reads the feature or takes a `boolean`.
 
+**Tool definitions.** `AgentContext.toolDefinitions` holds the `ToolDefinition` of every tool offered to the model:
+`name`, `description`, `inputSchema`, the `kind` (written only for a `RUNTIME` tool; absent reads as `PROCESS`) and the
+`documentDelivery`, `reference` or `content`, the delivery of the documents the tool returns. `documentDelivery` is
+omitted when absent, and absent reads as `reference`. It is part of the configuration fingerprint when set, and the model
+providers get the definitions without it (`ToolDefinition.withoutDocumentDelivery`).
+
 ## AgentExecutionContext (the transient request context)
 
 The transient per-invocation request context, assembled fresh for each job activation and never
@@ -116,8 +122,9 @@ Neither is produced or consumed by the LangChain4j path yet; they exist so the s
 ready for chat model implementations that need them.
 
 `AgentDocumentContent` (content type `agent_document`) is the persisted form of a known document for an agent instance
-that tracks its documents: the `AgentDocumentId` and a `delivery`, `reference` or `content` (and the content
-`metadata`). The file name, content type and size the model reads are those of the agent document of the
+that tracks its documents: the `AgentDocumentId`, a `delivery`, `reference` or `content`, an optional `note` (a sentence
+for the model about the document, omitted when absent and set only on a block with the delivery `reference`) and the
+content `metadata`. The file name, content type and size the model reads are those of the agent document of the
 id: `AgentDocumentHandle.of(agentDocuments, id)` builds the handle the model sees. A document that is a whole tool result is
 persisted as such a block, which is rendered as its handle (`ToolCallResultContent.withDocumentsAsReferences`).
 `DocumentExpander.expand` expands it before a request is built (see [Conversation Memory](../../connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter)): in a user message to the handle text and, with the
