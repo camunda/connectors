@@ -78,10 +78,14 @@ class KafkaConsumerGroupHealthIntegrationTest {
                         new KafkaTopic(bootstrapServers(), TOPIC),
                         "group-health-" + UUID.randomUUID(),
                         Map.of(
-                            ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "6000",
-                            ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, "1000",
-                            ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, "3000",
-                            ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "10000"),
+                            ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG,
+                            "6000",
+                            ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG,
+                            "1000",
+                            ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
+                            "3000",
+                            ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
+                            "10000"),
                         null,
                         KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
                         new NoSchemaStrategy()))
