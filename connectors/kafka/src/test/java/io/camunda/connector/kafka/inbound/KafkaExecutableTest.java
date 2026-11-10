@@ -323,17 +323,17 @@ public class KafkaExecutableTest {
   @Test
   void testConsumerNotReportedUpBeforeGroupMembershipIsConfirmed() {
     // Given a consumer that has not joined its group yet
-    var group = new AtomicReference<>(new GroupState(-1, -1));
+    var group = new AtomicReference<>(new GroupState(-1, 0));
     stubGroupState(group);
     stubEmptyPolls();
     var spyContext = spy(contextWithAdditionalProperties(Map.of()));
     var healthChanges = recordHealthChanges(spyContext);
     KafkaExecutable kafkaExecutable = getConsumerMock();
 
-    // When it joins, but has not sent a heartbeat yet
+    // When it joins, but no heartbeat has been answered yet
     kafkaExecutable.activate(spyContext);
     awaitStatuses(healthChanges, Health.Status.UNKNOWN);
-    group.set(new GroupState(1, -1));
+    group.set(new GroupState(1, 0));
     await()
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(() ->
@@ -341,8 +341,8 @@ public class KafkaExecutableTest {
                 .containsEntry("group-generation-id", 1));
     awaitStatuses(healthChanges, Health.Status.UNKNOWN);
 
-    // Then it is UP only once a heartbeat confirms the membership
-    group.set(new GroupState(1, 0));
+    // Then it is UP only once heartbeat responses confirm the membership
+    group.set(new GroupState(1, 0.3));
     awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.UP);
     kafkaExecutable.deactivate();
   }
@@ -350,7 +350,7 @@ public class KafkaExecutableTest {
   @Test
   void testConsumerReportedDownWhenGroupNotJoinedWithinMaxPollInterval() {
     // Given a consumer that never joins its group
-    var group = new AtomicReference<>(new GroupState(-1, -1));
+    var group = new AtomicReference<>(new GroupState(-1, 0));
     stubGroupState(group);
     stubEmptyPolls();
     var spyContext =
@@ -371,7 +371,7 @@ public class KafkaExecutableTest {
     assertThat(down.getDetails()).containsEntry("group-generation-id", -1);
 
     // And UP once it joins
-    group.set(new GroupState(1, 0));
+    group.set(new GroupState(1, 0.3));
     awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.DOWN, Health.Status.UP);
     kafkaExecutable.deactivate();
   }
@@ -379,7 +379,7 @@ public class KafkaExecutableTest {
   @Test
   void testConsumerReportedDownWhenGroupMembershipLostAfterJoining() {
     // Given a consumer in its group
-    var group = new AtomicReference<>(new GroupState(1, 0));
+    var group = new AtomicReference<>(new GroupState(1, 0.3));
     stubGroupState(group);
     stubEmptyPolls();
     var spyContext =
@@ -391,15 +391,15 @@ public class KafkaExecutableTest {
     kafkaExecutable.activate(spyContext);
     awaitStatuses(healthChanges, Health.Status.UP);
 
-    // When it stops heartbeating for longer than the session timeout (45 s by default), while
+    // When the coordinator stops answering its heartbeats, while
     // groupMetadata() still returns the last generation
-    group.set(new GroupState(1, 60));
+    group.set(new GroupState(1, 0));
 
     // Then it is UNKNOWN, then DOWN once max.poll.interval.ms has elapsed
     awaitStatuses(healthChanges, Health.Status.UP, Health.Status.UNKNOWN, Health.Status.DOWN);
 
-    // And UP again once it heartbeats
-    group.set(new GroupState(1, 0));
+    // And UP again once heartbeats are answered
+    group.set(new GroupState(1, 0.3));
     awaitStatuses(
         healthChanges,
         Health.Status.UP,
@@ -409,8 +409,8 @@ public class KafkaExecutableTest {
     kafkaExecutable.deactivate();
   }
 
-  // The generation from groupMetadata() and the last-heartbeat-seconds-ago coordinator metric
-  private record GroupState(int generation, double lastHeartbeatSecondsAgo) {}
+  // The generation from groupMetadata() and the heartbeat-rate coordinator metric
+  private record GroupState(int generation, double heartbeatRate) {}
 
   // Every call returns an immutable snapshot, like the real consumer
   private void stubGroupState(AtomicReference<GroupState> group) {
@@ -428,25 +428,25 @@ public class KafkaExecutableTest {
                     default -> null;
                   });
         });
-    var lastHeartbeatName =
+    var heartbeatRateName =
         new MetricName(
-            KafkaConnectorConsumer.LAST_HEARTBEAT_METRIC,
+            KafkaConnectorConsumer.HEARTBEAT_RATE_METRIC,
             KafkaConnectorConsumer.COORDINATOR_METRIC_GROUP,
             "",
             Map.of());
-    Metric lastHeartbeat =
+    Metric heartbeatRate =
         new Metric() {
           @Override
           public MetricName metricName() {
-            return lastHeartbeatName;
+            return heartbeatRateName;
           }
 
           @Override
           public Object metricValue() {
-            return group.get().lastHeartbeatSecondsAgo();
+            return group.get().heartbeatRate();
           }
         };
-    when(mockConsumer.metrics()).thenAnswer(invocation -> Map.of(lastHeartbeatName, lastHeartbeat));
+    when(mockConsumer.metrics()).thenAnswer(invocation -> Map.of(heartbeatRateName, heartbeatRate));
   }
 
   // Compares the statuses with consecutive repeats collapsed: the group details in the health
