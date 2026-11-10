@@ -2251,6 +2251,16 @@
       "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
       "property": "provider.openaiCompatible.timeouts.timeout",
       "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "current-version-bump",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "reason": "Version 5 for Camunda 8.11 keeps versions 2 to 4 for patch releases of the 8.10 template. See the element template rules in connectors/agentic-ai/AGENTS.md."
+    },
+    {
+      "rule": "current-version-bump",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "reason": "Version 5 for Camunda 8.11 keeps versions 2 to 4 for patch releases of the 8.10 template. See the element template rules in connectors/agentic-ai/AGENTS.md."
     }
   ]
 }

@@ -444,7 +444,13 @@ and the `element-templates` symlink in this directory points to it.
    pointing to the latest `./<file>.json` in this folder. The superseded version moves into `versioned/`
    but is not listed (the table shows only the latest template per minimum Camunda version).
 3. **Higher minimum than the current top row**: insert a new top row with the new minimum Camunda
-   version and template version, and move the previous top row's link under `versioned/`.
+   version and template version, and move the previous top row's link under `versioned/`. Skip
+   template versions so the previous minor keeps room for patch releases: use the smallest multiple
+   of 5 that leaves at least two versions free (7 to 10 for Camunda 8.10, 1 to 5 for Camunda 8.11).
+   The patch releases of the previous minor take the skipped versions on its `stable/*` branch. The
+   validator rule `current-version-bump` expects the highest `versioned/` snapshot plus one, so
+   suppress it for the bumped templates in the `element-template-suppressions.json` of the module.
+   The next regular bump fails on the unused suppression; remove it then.
 4. **AI Agent has two tables** (Task and Sub-process) sharing the same version numbers. Update both.
 5. **New connector**: in an existing module, add a section to the README of the module with an intro
    paragraph linking to the `docs.camunda.io` overview page. In a new module, add a README like the
