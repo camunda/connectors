@@ -31,7 +31,7 @@ class MarkdownParserTest {
             "~~~");
 
     assertThat(lines(doc.fences())).containsExactly("1 markdown", "7 ");
-    assertThat(lines(doc.codeSpans())).containsExactly("6 Foo");
+    assertThat(doc.codeSpans()).containsExactly(new CodeSpan(6, "Foo"));
   }
 
   @Test
@@ -46,7 +46,7 @@ class MarkdownParserTest {
     final Doc doc = doc("> ```java", "> code", "after `Foo`");
 
     assertThat(lines(doc.fences())).containsExactly("1 java");
-    assertThat(lines(doc.codeSpans())).containsExactly("3 Foo");
+    assertThat(doc.codeSpans()).containsExactly(new CodeSpan(3, "Foo"));
   }
 
   @Test
@@ -60,7 +60,9 @@ class MarkdownParserTest {
   void codeSpansMayUseSeveralBackticks() {
     final Doc doc = doc("Use `` `Foo` `` and ``Map<String, Bar>`` and `Baz`.");
 
-    assertThat(texts(doc.codeSpans())).containsExactly("`Foo`", "Map<String, Bar>", "Baz");
+    assertThat(doc.codeSpans())
+        .extracting(CodeSpan::text)
+        .containsExactly("`Foo`", "Map<String, Bar>", "Baz");
   }
 
   @Test
@@ -201,7 +203,7 @@ class MarkdownParserTest {
         .isInstanceOf(UnsupportedOperationException.class);
     assertThatThrownBy(() -> doc.definitions().add(new Ref(9, "c.md")))
         .isInstanceOf(UnsupportedOperationException.class);
-    assertThatThrownBy(() -> doc.codeSpans().add(new Ref(9, "Bar")))
+    assertThatThrownBy(() -> doc.codeSpans().add(new CodeSpan(9, "Bar")))
         .isInstanceOf(UnsupportedOperationException.class);
     assertThatThrownBy(() -> doc.fences().add(new Ref(9, "java")))
         .isInstanceOf(UnsupportedOperationException.class);

@@ -10,9 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -28,21 +26,7 @@ import java.util.stream.Stream;
  */
 final class DocChecks {
 
-  private static final Pattern MEMBER_REFERENCE =
-      Pattern.compile(
-          "^((?:[a-z][a-z0-9_]*\\.)*(?:[A-Z]\\w*\\.)*)([A-Z]\\w*)(?:<.*>)?#(\\w+)(?:\\(.*\\))?$");
-
-  private static final Pattern TYPE_REFERENCE =
-      Pattern.compile("^(?:[a-z][a-z0-9_]*\\.)*([A-Z][A-Za-z0-9]*(?:\\.[A-Za-z][A-Za-z0-9]*)*)$");
-
   private static final Pattern ILLEGAL_CHARACTER = Pattern.compile("[ \"<>\\[\\\\\\]^`{|}]");
-
-  private static final Pattern UPPER_CAMEL = Pattern.compile("[A-Z]\\w*[a-z]\\w*");
-
-  private static final Pattern TYPE_ARGUMENT_SEPARATOR =
-      Pattern.compile("[<>,&\\s]+|\\?|\\bextends\\b|\\bsuper\\b");
-
-  private static final Pattern DOT = Pattern.compile("\\.");
 
   private DocChecks() {}
 
@@ -54,26 +38,12 @@ final class DocChecks {
         .flatMap(link -> link(doc, link, tree).stream());
   }
 
-  /** The fenced code blocks of the doc must not be Java code. */
-  static Stream<Finding> javaFences(final Doc doc) {
-    return doc.fences().stream()
-        .filter(fence -> fence.text().equalsIgnoreCase("java"))
-        .map(fence ->
-            new Violation(
-                doc.path(),
-                fence.line(),
-                "Java code block",
-                "a code excerpt goes stale when the code changes",
-                "replace the excerpt with the name of the type and member, for example"
-                    + " `Type#member`"));
-  }
-
   /** The names of code spans that read as types must be known to the code or allowed. */
   static Stream<Finding> types(
       final Doc doc, final JavaSourceIndex index, final Set<String> allowedNames) {
     return doc.codeSpans().stream()
         .flatMap(span ->
-            typeNames(span.text()).stream()
+            span.typeNames().stream()
                 .filter(name -> !index.knows(name) && !allowedNames.contains(name))
                 .map(name -> unknownType(doc, span, name, index)));
   }
@@ -84,13 +54,8 @@ final class DocChecks {
    */
   static Stream<Finding> members(final Doc doc, final JavaSourceIndex index) {
     return doc.codeSpans().stream()
-        .map(span -> new Ref(span.line(), span.text().replaceAll("\\s*#\\s*", "#")))
-        .flatMap(span -> {
-          final Matcher matcher = MEMBER_REFERENCE.matcher(span.text());
-          return matcher.matches()
-              ? member(doc, span, matcher.group(1), matcher.group(2), matcher.group(3), index)
-              : Stream.empty();
-        });
+        .flatMap(span -> span.memberReference().stream())
+        .flatMap(reference -> member(doc, reference, index));
   }
 
   /**
@@ -116,8 +81,8 @@ final class DocChecks {
               "add a README.md that starts with `" + title + "` and has the sections " + sections));
     }
     final List<Finding> findings = new ArrayList<>();
-    headings(readme.get(), title).ifPresent(findings::add);
-    sections(readme.get(), sections).ifPresent(findings::add);
+    readme.get().firstHeading(title).ifPresent(findings::add);
+    readme.get().sections(sections).ifPresent(findings::add);
     findings.addAll(unlinkedDocs(readme.get(), module, tree));
     return findings.stream();
   }
@@ -156,32 +121,8 @@ final class DocChecks {
   /** The type names of the code spans of the docs. */
   static Set<String> namedTypes(final Stream<Doc> docs) {
     final Set<String> named = new TreeSet<>();
-    docs.forEach(doc -> doc.codeSpans().forEach(span -> named.addAll(typeNames(span.text()))));
+    docs.forEach(doc -> doc.codeSpans().forEach(span -> named.addAll(span.typeNames())));
     return named;
-  }
-
-  /**
-   * The UpperCamel names of a code span that reads as a type reference, for example {@code
-   * Map<String, Foo>}, {@code @Foo(...)}, {@code Foo#bar}, {@code Foo.Bar}, {@code Foo.java} or
-   * {@code io.camunda.Foo}. Generic arguments count too.
-   */
-  private static List<String> typeNames(final String span) {
-    final String text = span.replaceFirst("^@", "").replaceFirst("[(#].*$", "");
-    String outer = text;
-    String previous;
-    do {
-      previous = outer;
-      outer = outer.replaceAll("<[^<>]*>", "");
-    } while (!outer.equals(previous));
-    final List<String> names = new ArrayList<>(segmentNames(outer));
-    if (names.isEmpty() || outer.equals(text)) {
-      return names;
-    }
-    final String arguments = text.substring(text.indexOf('<'));
-    TYPE_ARGUMENT_SEPARATOR
-        .splitAsStream(arguments)
-        .forEach(argument -> names.addAll(segmentNames(argument)));
-    return names;
   }
 
   /**
@@ -277,8 +218,8 @@ final class DocChecks {
   }
 
   private static Violation unknownType(
-      final Doc doc, final Ref span, final String name, final JavaSourceIndex index) {
-    final List<String> similar = similarNames(name, index.declaredNames());
+      final Doc doc, final CodeSpan span, final String name, final JavaSourceIndex index) {
+    final List<String> similar = index.similarNames(name);
     return new Violation(
         doc.path(),
         span.line(),
@@ -293,20 +234,18 @@ final class DocChecks {
   }
 
   private static Stream<Finding> member(
-      final Doc doc,
-      final Ref span,
-      final String qualifier,
-      final String simpleName,
-      final String member,
-      final JavaSourceIndex index) {
+      final Doc doc, final CodeSpan.MemberReference reference, final JavaSourceIndex index) {
+    final String qualifier = reference.qualifier();
+    final String simpleName = reference.simpleName();
+    final String member = reference.member();
     final List<JavaSourceIndex.Type> named = index.types(simpleName);
     if (named.isEmpty()) {
       return Stream.of(
           new Warning(
               doc.path(),
-              span.line(),
+              reference.line(),
               "member of `"
-                  + span.text()
+                  + reference.text()
                   + "` not verified: `"
                   + simpleName
                   + "` is not declared in the repo sources, so it is a type of a dependency whose"
@@ -328,8 +267,8 @@ final class DocChecks {
       return Stream.of(
           new Violation(
               doc.path(),
-              span.line(),
-              "qualified name `" + qualifiedName + "` of `" + span.text() + "` not found",
+              reference.line(),
+              "qualified name `" + qualifiedName + "` of `" + reference.text() + "` not found",
               "no type of the repo sources has this qualified name",
               "check the package and outer types. The types named "
                   + simpleName
@@ -342,9 +281,9 @@ final class DocChecks {
           ? Stream.of(
               new Warning(
                   doc.path(),
-                  span.line(),
+                  reference.line(),
                   "name `"
-                      + span.text()
+                      + reference.text()
                       + "` is ambiguous and was checked against all types of that name: "
                       + names,
                   "the member exists on one of the types of that name, and the doc does not say which",
@@ -355,8 +294,8 @@ final class DocChecks {
       return Stream.of(
           new Violation(
               doc.path(),
-              span.line(),
-              "no matching constructor for `" + span.text() + "`",
+              reference.line(),
+              "no matching constructor for `" + reference.text() + "`",
               "the type of this name is an interface, and an interface has no constructor",
               "check the kind of the type in the code: " + names));
     }
@@ -374,8 +313,8 @@ final class DocChecks {
       return Stream.of(
           new Warning(
               doc.path(),
-              span.line(),
-              "member of `" + span.text() + "` not verified",
+              reference.line(),
+              "member of `" + reference.text() + "` not verified",
               external.getValue()
                   + " extends "
                   + external.getKey()
@@ -388,9 +327,9 @@ final class DocChecks {
     return Stream.of(
         new Violation(
             doc.path(),
-            span.line(),
+            reference.line(),
             candidates.size() > 1
-                ? "no type named " + simpleName + " has the member of `" + span.text() + "`"
+                ? "no type named " + simpleName + " has the member of `" + reference.text() + "`"
                 : "no such member `"
                     + member
                     + "` on `"
@@ -431,58 +370,10 @@ final class DocChecks {
         ", ", types.stream().map(JavaSourceIndex.Type::qualifiedName).sorted().toList());
   }
 
-  private static Optional<Violation> headings(final Doc readme, final String title) {
-    final List<Ref> headings = readme.headings();
-    if (!headings.isEmpty() && headings.getFirst().text().equals(title)) {
-      return Optional.empty();
-    }
-    return Optional.of(
-        new Violation(
-            readme.path(),
-            headings.isEmpty() ? 1 : headings.getFirst().line(),
-            "first heading is "
-                + (headings.isEmpty() ? "missing" : "`" + headings.getFirst().text() + "`")
-                + ", expected `"
-                + title
-                + "`",
-            "the first heading names the module, so a reader and a search find the README by it",
-            "start the README with `" + title + "`"));
-  }
-
-  private static Optional<Violation> sections(final Doc readme, final List<String> expected) {
-    final List<Ref> sections =
-        readme.headings().stream()
-            .filter(heading -> heading.text().startsWith("## "))
-            .limit(expected.size())
-            .toList();
-    final List<String> actual = sections.stream().map(Ref::text).toList();
-    if (actual.equals(expected)) {
-      return Optional.empty();
-    }
-    return Optional.of(
-        new Violation(
-            readme.path(),
-            sections.isEmpty() ? 1 : sections.getFirst().line(),
-            "the first sections are " + actual + ", expected " + expected,
-            "all module READMEs share one layout, so a reader finds the same section in each",
-            "put the sections in this order before any other `##` section"));
-  }
-
   private static List<Finding> unlinkedDocs(
       final Doc readme, final DocModule module, final DocTree tree) {
-    final Optional<Ref> docs =
-        readme.headings().stream().filter(heading -> heading.text().equals("## Docs")).findFirst();
-    final int end =
-        docs.flatMap(section ->
-                readme.headings().stream()
-                    .filter(h -> h.line() > section.line() && h.text().startsWith("## "))
-                    .findFirst())
-            .map(Ref::line)
-            .orElse(Integer.MAX_VALUE);
     final List<Path> linked =
-        readme.links().stream()
-            .filter(
-                link -> docs.isPresent() && link.line() > docs.get().line() && link.line() < end)
+        readme.docsLinks().stream()
             .flatMap(link -> target(readme.path(), link.text()).stream())
             .toList();
     return tree.files(module.dir().resolve("docs"), ".md").stream()
@@ -490,56 +381,10 @@ final class DocChecks {
         .<Finding>map(file ->
             new Violation(
                 readme.path(),
-                docs.map(Ref::line).orElse(1),
+                readme.docsLine(),
                 "`## Docs` does not link `" + file + "`",
                 "the README lists every doc of the module, so a reader can find it",
                 "add a link to the doc under `## Docs`"))
         .toList();
-  }
-
-  private static List<String> segmentNames(final String reference) {
-    final String text =
-        reference.strip().replaceFirst("(\\[]|\\.\\.\\.)$", "").replaceFirst("\\.java$", "");
-    final Matcher matcher = TYPE_REFERENCE.matcher(text);
-    if (!matcher.matches()) {
-      return List.of();
-    }
-    return DOT.splitAsStream(matcher.group(1)).filter(UPPER_CAMEL.asMatchPredicate()).toList();
-  }
-
-  private static List<String> similarNames(final String name, final Set<String> candidates) {
-    final String lower = name.toLowerCase(Locale.ROOT);
-    return candidates.stream()
-        .filter(candidate -> {
-          final String other = candidate.toLowerCase(Locale.ROOT);
-          return other.contains(lower)
-              || (other.length() > 3 && lower.contains(other))
-              || distance(lower, other) <= 2;
-        })
-        .sorted(
-            Comparator.comparingInt(
-                    (final String candidate) -> distance(lower, candidate.toLowerCase(Locale.ROOT)))
-                .thenComparing(Comparator.naturalOrder()))
-        .limit(5)
-        .toList();
-  }
-
-  private static int distance(final String a, final String b) {
-    int[] previous = new int[b.length() + 1];
-    for (int j = 0; j <= b.length(); j++) {
-      previous[j] = j;
-    }
-    for (int i = 1; i <= a.length(); i++) {
-      final int[] current = new int[b.length() + 1];
-      current[0] = i;
-      for (int j = 1; j <= b.length(); j++) {
-        current[j] =
-            Math.min(
-                Math.min(current[j - 1], previous[j]) + 1,
-                previous[j - 1] + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1));
-      }
-      previous = current;
-    }
-    return previous[b.length()];
   }
 }
