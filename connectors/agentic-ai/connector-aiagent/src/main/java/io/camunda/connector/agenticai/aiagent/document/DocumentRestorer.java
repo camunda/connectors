@@ -26,8 +26,8 @@ public final class DocumentRestorer {
   }
 
   /**
-   * The document of the agent document with the given id, empty when the agent does not know the id
-   * or the document cannot be restored.
+   * The document of the agent document with the given id, empty when the agent does not know the
+   * id. Restoring reads nothing from the store; a missing document fails where its content is read.
    */
   public Optional<Document> restore(AgentDocuments documents, AgentDocumentId id) {
     final var agentDocument = documents.find(id);
@@ -35,14 +35,6 @@ public final class DocumentRestorer {
       LOGGER.debug("Document {} is not known to the agent, leaving its handle without content", id);
       return Optional.empty();
     }
-    try {
-      return Optional.of(agentDocument.get().toDocument(documentFactory));
-    } catch (RuntimeException e) {
-      LOGGER.warn(
-          "Document {} could not be restored from its reference, leaving its handle without content",
-          id,
-          e);
-      return Optional.empty();
-    }
+    return Optional.of(agentDocument.get().toDocument(documentFactory));
   }
 }

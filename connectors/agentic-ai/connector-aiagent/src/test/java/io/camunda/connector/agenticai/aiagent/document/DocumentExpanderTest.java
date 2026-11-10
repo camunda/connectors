@@ -204,39 +204,9 @@ class DocumentExpanderTest {
   }
 
   @Test
-  void doesNotAddTheDocumentAgainWhenItAlreadyFollowsTheReference() {
-    final var document = camundaDocument("hello");
-    final var agentDocuments =
-        agentDocumentsOf(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
-    final var reference = reference(agentDocuments, 0, DocumentDelivery.CONTENT);
-    final var message = userMessage(reference, DocumentContent.documentContent(document));
-
-    assertThat(
-            ((UserMessage)
-                    expander
-                        .expandMessages(List.of(message), agentDocuments, documentFactory)
-                        .getFirst())
-                .content())
-        .hasSize(2)
-        .containsExactly(
-            handleOf(agentDocuments, reference), DocumentContent.documentContent(document));
-  }
-
-  @Test
-  void expandsABlockToItsHandleOnlyWhenTheAgentCannotSupplyTheDocument() {
+  void expandsABlockOfADocumentTheAgentDoesNotKnowToItsHandleOnly() {
     final var unknown =
         new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.CONTENT, null);
-    final var document = camundaDocument("hello");
-    final var documents =
-        agentDocumentsOf(document, AgentDocumentOrigin.toolCall("fetch", "call-1"));
-    final var known = reference(documents, 0, DocumentDelivery.CONTENT);
-    final var failingFactory =
-        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE) {
-          @Override
-          public Document resolve(io.camunda.connector.api.document.DocumentReference reference) {
-            throw new IllegalStateException("store unavailable");
-          }
-        };
 
     assertThat(
             ((UserMessage)
@@ -248,13 +218,6 @@ class DocumentExpanderTest {
                         .getFirst())
                 .content())
         .containsExactly(textContent("text"), handleOf(AgentDocuments.empty(), unknown));
-    assertThat(
-            ((UserMessage)
-                    expander
-                        .expandMessages(List.of(userMessage(known)), documents, failingFactory)
-                        .getFirst())
-                .content())
-        .containsExactly(handleOf(documents, known));
     assertThat(
             resultContent(
                 expander

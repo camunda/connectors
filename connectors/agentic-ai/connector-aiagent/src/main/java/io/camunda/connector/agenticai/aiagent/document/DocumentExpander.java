@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.document;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
@@ -27,7 +26,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.DocumentFactory;
 import java.util.ArrayList;
 import java.util.List;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Expands the {@link AgentDocumentContent document blocks} of the conversation into the form the
@@ -35,9 +33,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>The persisted form of a document is its block only; the document is restored from the agent
  * documents. In a user message the model gets the handle text of every block and the document
- * content of the blocks with {@link DocumentDelivery#CONTENT}. A document the agent does not know,
- * or that cannot be restored, leaves the handle text alone. A handle a user typed into a prompt is
- * text and stays text.
+ * content of the blocks with {@link DocumentDelivery#CONTENT}. A document the agent does not know
+ * leaves the handle text alone. A handle a user typed into a prompt is text and stays text.
  *
  * <p>In a tool result a block becomes the handle text of the document, which for the model is the
  * handle only: the delivery of such a block is not read. A document nested in an object is replaced
@@ -101,9 +98,7 @@ public class DocumentExpander {
       switch (contents.get(i)) {
         case AgentDocumentContent block -> {
           expanded.add(new TextContent(handleText(documents, block.id()), block.metadata()));
-          final var next = i + 1 < contents.size() ? contents.get(i + 1) : null;
-          if (block.delivery() == DocumentDelivery.CONTENT
-              && !isFollowedByDocument(next, block.id())) {
+          if (block.delivery() == DocumentDelivery.CONTENT) {
             restorer
                 .restore(documents, block.id())
                 .map(DocumentContent::documentContent)
@@ -156,11 +151,5 @@ public class DocumentExpander {
     return rendered.documents().isEmpty()
         ? objectContent
         : new ObjectContent(rendered.tree(), objectContent.metadata());
-  }
-
-  private static boolean isFollowedByDocument(@Nullable Content next, AgentDocumentId id) {
-    return next instanceof DocumentContent following
-        && AgentDocument.isSupported(following.document())
-        && id.equals(AgentDocumentId.of(following.document()));
   }
 }

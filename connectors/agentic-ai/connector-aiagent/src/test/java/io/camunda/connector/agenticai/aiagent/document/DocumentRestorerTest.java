@@ -12,10 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
-import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -50,28 +47,5 @@ class DocumentRestorerTest {
   @Test
   void isEmptyForADocumentTheAgentDoesNotKnow() {
     assertThat(restorer.restore(AgentDocuments.empty(), AgentDocumentId.of("unknown"))).isEmpty();
-  }
-
-  @Test
-  void isEmptyWhenTheFactoryCannotRestoreTheDocument() {
-    final var document = TestDocuments.createDocument("hello", "a.txt");
-    final var documents =
-        AgentDocuments.empty()
-            .register(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
-    final DocumentFactory failing =
-        new DocumentFactory() {
-          @Override
-          public Document resolve(DocumentReference reference) {
-            throw new IllegalStateException("store unavailable");
-          }
-
-          @Override
-          public Document create(DocumentCreationRequest request) {
-            throw new UnsupportedOperationException();
-          }
-        };
-
-    assertThat(new DocumentRestorer(failing).restore(documents, AgentDocumentId.of(document)))
-        .isEmpty();
   }
 }
