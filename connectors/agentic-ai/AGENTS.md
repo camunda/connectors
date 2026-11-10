@@ -55,7 +55,7 @@ The module is split into Maven modules with a fixed dependency direction
 | `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client                                   | tools-schema, api, model, common                                      |
 | `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes                                      | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped                                           | all modules, in test scope                                            |
-| `agentic-ai-docs-lint`          | none (test-only)                     | Checks that keep the docs in step with the modules and the code, not shipped                    | none                                                                  |
+| `agentic-ai-docs-lint`          | `docslint`                           | Checks that keep the docs in step with the modules and the code, not shipped                    | none                                                                  |
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
 or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
@@ -127,8 +127,9 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 
 ### Docs checks
 
-`agentic-ai-docs-lint` holds the docs checks (plain JUnit, `AgenticAiDocsTest`). Each module README has the
-fixed sections and links the docs of its module. Relative links and anchors resolve. The docs hold no `java`
+`agentic-ai-docs-lint` holds the docs checks: the `DocsLint` engine, and `AgenticAiDocsTest` (plain JUnit),
+which applies it to the agentic AI docs and holds their paths, README layout and allowed names. Each module
+README has the fixed sections and links the docs of its module. Relative links and anchors resolve. The docs hold no `java`
 code blocks. The types and members that the docs name in backticks exist in the repository sources. Run them with:
 
 ```bash
