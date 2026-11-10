@@ -355,9 +355,8 @@ applies it to its persisted context, and the next round continues with the conte
   persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
-  `RuntimeToolContext`, `RuntimeToolDocuments`, `RuntimeToolResult`, `RuntimeToolException`) are in `aiagent.api.tool` of `aiagent-api`. The
-  four-argument `RuntimeTools.execute` takes the ids of the documents whose content the model reads as of the start of the
-  batch before the calls, and a `RuntimeToolExecution` carries the `RuntimeToolResult` the tool returned (`result()`); the
+  `RuntimeToolContext`, `RuntimeToolDocuments`, `RuntimeToolResult`, `RuntimeToolException`) are in `aiagent.api.tool` of `aiagent-api`. A
+  `RuntimeToolExecution` carries the `RuntimeToolResult` the tool returned (`result()`); the
   tool call result that becomes part of the conversation is `toolCallResult()`.
 
 <a id="persisted-data-8-11"></a>
