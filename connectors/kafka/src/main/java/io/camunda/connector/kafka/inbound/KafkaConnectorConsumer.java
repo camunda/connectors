@@ -34,6 +34,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.function.Function;
@@ -42,6 +43,8 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.Metric;
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.ConfigDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +52,8 @@ import org.slf4j.LoggerFactory;
 public class KafkaConnectorConsumer {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
+  static final String COORDINATOR_METRIC_GROUP = "consumer-coordinator-metrics";
+  static final String LAST_HEARTBEAT_METRIC = "last-heartbeat-seconds-ago";
   public static ObjectMapper objectMapper =
       new ObjectMapper()
           .registerModule(new Jdk8Module())
@@ -67,7 +72,9 @@ public class KafkaConnectorConsumer {
   KafkaConnectorProperties elementProps;
   boolean shouldLoop = true;
   private Health consumerStatus = Health.unknown();
-  private Duration groupJoinTimeout;
+  private Duration groupMembershipTimeout;
+  private Duration sessionTimeout;
+  private MetricName lastHeartbeatMetricName;
   private Instant notInGroupSince;
   private ObjectReader avroObjectReader;
 
@@ -122,7 +129,9 @@ public class KafkaConnectorConsumer {
     try {
       var kafkaProps = getKafkaProperties(elementProps, context);
       var consumer = consumerCreatorFunction.apply(kafkaProps);
-      groupJoinTimeout = groupJoinTimeout(kafkaProps);
+      groupMembershipTimeout = intConfig(kafkaProps, ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG);
+      sessionTimeout = intConfig(kafkaProps, ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG);
+      lastHeartbeatMetricName = null;
       notInGroupSince = null;
       String topicName = elementProps.topic().topicName();
       consumer.subscribe(
@@ -219,31 +228,23 @@ public class KafkaConnectorConsumer {
     }
   }
 
-  // The broker may hold a join for up to the rebalance timeout, which is max.poll.interval.ms
-  private static Duration groupJoinTimeout(Properties kafkaProps) {
+  private static Duration intConfig(Properties kafkaProps, String name) {
     Object value =
-        kafkaProps.getOrDefault(
-            ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
-            ConsumerConfig.configDef()
-                .defaultValues()
-                .get(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG));
-    int millis =
-        (Integer)
-            ConfigDef.parseType(
-                ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, value, ConfigDef.Type.INT);
-    return Duration.ofMillis(millis);
+        kafkaProps.getOrDefault(name, ConsumerConfig.configDef().defaultValues().get(name));
+    return Duration.ofMillis((Integer) ConfigDef.parseType(name, value, ConfigDef.Type.INT));
   }
 
-  // A consumer that is not in its group (generation -1) does not receive any message, even
-  // though poll() keeps returning without error while the client retries in the background
+  // A consumer that is not in its group does not receive any message, even though poll() keeps
+  // returning without error while the client retries in the background
   private void reportGroupHealth(Consumer<Object, Object> consumer) {
     var groupMetadata = consumer.groupMetadata();
+    int generation = groupMetadata.generationId();
     var details = new HashMap<String, Object>();
     details.put("group-id", groupMetadata.groupId());
     details.put("group-instance-id", groupMetadata.groupInstanceId().orElse("unknown"));
-    details.put("group-generation-id", groupMetadata.generationId());
+    details.put("group-generation-id", generation);
 
-    if (groupMetadata.generationId() >= 0) {
+    if (isGroupMember(consumer, generation)) {
       notInGroupSince = null;
       reportHealth(Health.up(details), Severity.INFO, details);
       return;
@@ -251,22 +252,61 @@ public class KafkaConnectorConsumer {
     if (notInGroupSince == null) {
       notInGroupSince = Instant.now();
     }
-    if (Duration.between(notInGroupSince, Instant.now()).compareTo(groupJoinTimeout) < 0) {
+    // The broker may hold a join for up to the rebalance timeout, which is max.poll.interval.ms
+    if (Duration.between(notInGroupSince, Instant.now()).compareTo(groupMembershipTimeout) < 0) {
       reportHealth(Health.unknown(details), Severity.INFO, details);
     } else {
       var error =
           new Health.Error(
-              "CONSUMER_GROUP_NOT_JOINED",
+              "NOT_IN_CONSUMER_GROUP",
               String.format(
-                  "Kafka consumer has not joined consumer group '%s' for %d ms (%s). It cannot"
-                      + " receive messages. Check that the brokers and the group coordinator are"
-                      + " reachable with the configured connection settings; the connector"
-                      + " runtime logs contain the Kafka client's connection errors.",
+                  "Kafka consumer has not been a member of consumer group '%s' for %d ms (%s)."
+                      + " It cannot receive messages. Check that the brokers and the group"
+                      + " coordinator are reachable with the configured connection settings; the"
+                      + " connector runtime logs contain the Kafka client's connection errors.",
                   groupMetadata.groupId(),
-                  groupJoinTimeout.toMillis(),
+                  groupMembershipTimeout.toMillis(),
                   ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG));
       reportHealth(Health.down(error, details), Severity.ERROR, details);
     }
+  }
+
+  // Joined generations start at 1. The classic consumer's groupMetadata() keeps the last
+  // generation after the membership is lost, so a heartbeat sent to the coordinator within the
+  // session timeout is what confirms that the consumer is still a member. Heartbeats are only
+  // sent while the member is stable, and stop once the coordinator stops answering.
+  private boolean isGroupMember(Consumer<Object, Object> consumer, int generation) {
+    if (generation <= 0) {
+      return false;
+    }
+    Optional<Double> lastHeartbeatSecondsAgo = lastHeartbeatSecondsAgo(consumer);
+    if (lastHeartbeatSecondsAgo.isEmpty()) {
+      // Consumers without coordinator metrics (e.g. other Consumer implementations)
+      return true;
+    }
+    // -1 means no heartbeat has been sent since joining, which does not confirm membership
+    double secondsAgo = lastHeartbeatSecondsAgo.get();
+    return secondsAgo >= 0 && secondsAgo * 1000 <= sessionTimeout.toMillis();
+  }
+
+  private Optional<Double> lastHeartbeatSecondsAgo(Consumer<Object, Object> consumer) {
+    Map<MetricName, ? extends Metric> metrics = consumer.metrics();
+    if (lastHeartbeatMetricName == null) {
+      lastHeartbeatMetricName =
+          metrics.keySet().stream()
+              .filter(name -> LAST_HEARTBEAT_METRIC.equals(name.name()))
+              .filter(name -> COORDINATOR_METRIC_GROUP.equals(name.group()))
+              .findFirst()
+              .orElse(null);
+      if (lastHeartbeatMetricName == null) {
+        return Optional.empty();
+      }
+    }
+    Metric metric = metrics.get(lastHeartbeatMetricName);
+    if (metric != null && metric.metricValue() instanceof Number value) {
+      return Optional.of(value.doubleValue());
+    }
+    return Optional.empty();
   }
 
   private void reportHealth(Health newStatus, Severity severity, Map<String, Object> details) {
