@@ -49,6 +49,10 @@
       <artifactId>commonmark-ext-heading-anchor</artifactId>
       <version>${version.commonmark}</version>
     </dependency>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
