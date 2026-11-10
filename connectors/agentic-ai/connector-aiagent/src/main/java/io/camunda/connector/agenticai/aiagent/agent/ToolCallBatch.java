@@ -8,7 +8,11 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -20,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -174,6 +179,62 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
           .ifPresent(document -> {
             throw UnsupportedDocumentReferenceException.inToolCallResult(result.name(), document);
           });
+    }
+
+    /**
+     * An agent instance that does not track its documents gives no document an id: a result names
+     * no document by its id and asks nothing of the agent. Its documents are {@code
+     * DocumentContent} blocks of any kind of document.
+     *
+     * @throws IllegalArgumentException if the result holds an {@code AgentDocumentContent} block or
+     *     an effect
+     */
+    public void requireNoDocumentIds() {
+      final var tool = result.name();
+      if (result.content().stream().anyMatch(AgentDocumentContent.class::isInstance)
+          || !effects.isEmpty()) {
+        throw new IllegalArgumentException(
+            "The runtime tool '%s' refers to a document by its id, which an agent instance that does not track its documents does not support"
+                .formatted(tool));
+      }
+    }
+
+    /**
+     * A new document is a {@code DocumentContent}, a known one an {@code AgentDocumentContent}, and
+     * content comes only through an effect. A result that breaks this is a defect of its tool.
+     *
+     * @param known the documents the agent knows as of the start of the batch
+     * @throws IllegalArgumentException if the result holds a block with the delivery content, or
+     *     refers to a document that is neither known nor returned by the result
+     */
+    public void requireWellFormed(AgentDocuments known) {
+      final var tool = result.name();
+      final var returned = documents.stream().map(AgentDocumentId::of).collect(Collectors.toSet());
+      final Consumer<AgentDocumentId> requireKnown =
+          id -> {
+            if (known.find(id).isEmpty() && !returned.contains(id)) {
+              throw new IllegalArgumentException(
+                  "The runtime tool '%s' refers to the document '%s', which the agent does not know and the result does not return"
+                      .formatted(tool, id));
+            }
+          };
+
+      result.content().stream()
+          .filter(AgentDocumentContent.class::isInstance)
+          .map(AgentDocumentContent.class::cast)
+          .forEach(reference -> {
+            if (reference.delivery() == DocumentDelivery.CONTENT) {
+              throw new IllegalArgumentException(
+                  "The runtime tool '%s' returned the content of the document '%s'; the content of a document is added with an effect only"
+                      .formatted(tool, reference.id()));
+            }
+            requireKnown.accept(reference.id());
+          });
+      for (final var effect : effects) {
+        switch (effect) {
+          case ToolCallEffect.AddDocumentContent add -> requireKnown.accept(add.id());
+        }
+      }
     }
   }
 }
