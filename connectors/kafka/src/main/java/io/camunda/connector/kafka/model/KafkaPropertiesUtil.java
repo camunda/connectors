@@ -32,6 +32,7 @@ public final class KafkaPropertiesUtil {
   private static final String MAX_BLOCK_MS_RECOMMENDED_VALUE = "60000";
   private static final String CLIENT_DNS_LOOKUP_RECOMMENDED_VALUE = "use_all_dns_ips";
   private static final String ACKS_RECOMMENDED_VALUE = "all";
+  private static final String METADATA_CLUSTER_CHECK_ENABLE_RECOMMENDED_VALUE = "false";
 
   private static final String SASL_JAAS_CONFIG_VALUE =
       "org.apache.kafka.common.security.plain.PlainLoginModule   required username='%s'   password='%s';";
@@ -99,6 +100,11 @@ public final class KafkaPropertiesUtil {
     props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, REQUEST_TIMEOUT_MS);
     props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, HEARTBEAT_INTERVAL_MS);
     props.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, DEFAULT_API_TIMEOUT_MS);
+    // Azure Event Hubs closes connections whose ApiVersions request carries the cluster check
+    // fields (KIP-1242), so clients can never join a group or reach a partition leader
+    props.put(
+        CommonClientConfigs.METADATA_CLUSTER_CHECK_ENABLE_CONFIG,
+        METADATA_CLUSTER_CHECK_ENABLE_RECOMMENDED_VALUE);
 
     // Step 3: override properties provided by the client
     if (request.additionalProperties() != null && !request.additionalProperties().isEmpty()) {
