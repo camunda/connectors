@@ -299,7 +299,7 @@ applies it to its persisted context, and the next round continues with the conte
   message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`); a `Success` can
   ask the agent to add the content of a known document to the request that follows the tool results
   (`withDocumentContent(AgentDocumentId)`) or to select a known document for the final
-  response (`withResponseDocument(key, AgentDocumentId, description)` or `withResponseDocument(key, Document, description)`); each adds a variant of the sealed
+  response (`withResponseDocument(key, AgentDocumentId, description)`); each adds a variant of the sealed
   `ToolCallEffect`, listed by `Success.effects()`, which the agent applies after all calls of the message ran, in call
   order. The content effect adds the content without a check of the type or the size of the document. The agent
   also writes, after the content a result returned, one sentence per document whose content the result asks for; a tool
