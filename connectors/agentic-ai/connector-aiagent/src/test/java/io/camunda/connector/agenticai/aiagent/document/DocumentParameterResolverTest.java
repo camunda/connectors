@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.document;
 
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
@@ -21,7 +22,15 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -31,7 +40,8 @@ import org.junit.jupiter.api.Test;
 
 class DocumentParameterResolverTest {
 
-  private final DocumentParameterResolver resolver = new DocumentParameterResolver();
+  private final DocumentParameterResolver resolver =
+      new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE);
 
   private final Document first = createDocument("first", "first.txt");
   private final Document second = createDocument("second", "second.txt");
@@ -945,5 +955,46 @@ class DocumentParameterResolverTest {
     final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
     return resolver.resolveRuntimeCall(
         agentContext(), new ToolCall("call", "tool", arguments), definition);
+  }
+
+  @Test
+  void writesTheReferenceOfADocumentAsDataWithTheMapperOfTheRuntime() {
+    // the mapper of the runtime reads documents and intrinsic functions in any object it converts
+    final var runtimeMapper =
+        new ObjectMapper()
+            .registerModule(
+                new JacksonModuleDocumentDeserializer(
+                    mock(DocumentFactory.class), new DisabledIntrinsicFunctionExecutor()));
+    final var withFunctionLikeProperty =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("data.txt")
+                    .customProperties(
+                        Map.of(
+                            "transform",
+                            Map.of("camunda.function.type", "base64", "params", List.of("x"))))
+                    .build());
+    final var agentDocument =
+        AgentDocument.of(
+            withFunctionLikeProperty, AgentDocumentOrigin.toolCall("search", "call-1"));
+
+    final var definition =
+        ToolDefinition.builder().name("tool").inputSchema(object("doc", DOC)).build();
+    final var context =
+        AgentContext.empty()
+            .withFeatures(List.of(AgentFeatures.DOCUMENTS))
+            .withDocuments(AgentDocuments.empty().register(List.of(agentDocument)))
+            .withToolDefinitions(List.of(definition));
+
+    final var result =
+        new DocumentParameterResolver(runtimeMapper)
+            .resolveProcessCall(
+                context, new ToolCall("call", "tool", Map.of("doc", handle(agentDocument.id()))));
+
+    assertThat(result)
+        .isEqualTo(
+            new Resolution.Resolved(Map.of("doc", TestDocuments.referenceJson(agentDocument))));
   }
 }

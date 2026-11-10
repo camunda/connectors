@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -75,7 +76,9 @@ class GatewayToolDocumentParametersTest {
     gatewayToolHandlers = new GatewayToolHandlerRegistryImpl(List.of(filesHandler));
     responseHandler =
         new AgentResponseHandlerImpl(
-            new ObjectMapper(), gatewayToolHandlers, new DocumentParameterResolver());
+            new ObjectMapper(),
+            gatewayToolHandlers,
+            new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
     final var discoveryResult =
         ToolCallResult.builder().id("discovery-1").name(FilesGatewayToolHandler.DISCOVERY).build();

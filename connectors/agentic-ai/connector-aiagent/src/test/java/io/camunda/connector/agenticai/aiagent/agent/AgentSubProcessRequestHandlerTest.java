@@ -232,7 +232,7 @@ class AgentSubProcessRequestHandlerTest {
       new RuntimeTools(
           List.of(LOOKUP_TOOL, HIDDEN_TOOL, TOGGLE_TOOL, CREATE_REPORT_TOOL, UPLOAD_RUNTIME_TOOL),
           TestObjectMapperSupplier.INSTANCE,
-          new DocumentParameterResolver());
+          new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
@@ -254,7 +254,7 @@ class AgentSubProcessRequestHandlerTest {
             responseHandler,
             agentInstanceClient,
             runtimeTools,
-            new ToolCallAdmission(new DocumentParameterResolver()),
+            new ToolCallAdmission(new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE)),
             new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer()),
             documentExpander);
     TOGGLE_ENABLED.set(true);

@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +74,7 @@ class ToolCallAdmissionTest {
                               REPORT, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)))));
 
   private final ToolCallAdmission admission =
-      new ToolCallAdmission(new DocumentParameterResolver());
+      new ToolCallAdmission(new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
   @Test
   void eachCallGetsTheKindOfTheOfferedToolOfItsName() {

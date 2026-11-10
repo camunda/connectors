@@ -316,7 +316,7 @@ class LegacyDocumentConversationTest {
         new RuntimeTools(
             List.of(StubRuntimeTool.of("acme_lookup", (toolContext, call) -> null)),
             TestObjectMapperSupplier.INSTANCE,
-            new DocumentParameterResolver());
+            new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
     final var executionContext = TestAgentExecutionContext.withConfiguration(configuration);
     assertThat(runtimeTools.enabledDefinitions(executionContext, context)).isEmpty();

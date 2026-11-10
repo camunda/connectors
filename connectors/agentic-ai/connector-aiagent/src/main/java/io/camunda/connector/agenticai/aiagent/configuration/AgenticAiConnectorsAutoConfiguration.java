@@ -262,8 +262,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public DocumentParameterResolver aiAgentDocumentParameterResolver() {
-    return new DocumentParameterResolver();
+  public DocumentParameterResolver aiAgentDocumentParameterResolver(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new DocumentParameterResolver(objectMapper);
   }
 
   @Bean

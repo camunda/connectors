@@ -48,6 +48,7 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfigura
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
@@ -103,7 +104,9 @@ class AgentResponseHandlerTest {
   void setUp() {
     responseHandler =
         new AgentResponseHandlerImpl(
-            objectMapper, gatewayToolHandlers, new DocumentParameterResolver());
+            objectMapper,
+            gatewayToolHandlers,
+            new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
     // by default, registry passes tool calls through unchanged
     lenient()
         .when(gatewayToolHandlers.transformToolCalls(any(), any()))
@@ -364,7 +367,9 @@ class AgentResponseHandlerTest {
                   new JacksonModuleDocumentDeserializer(
                       mock(DocumentFactory.class), new DisabledIntrinsicFunctionExecutor()));
       return new AgentResponseHandlerImpl(
-          documentModuleObjectMapper, gatewayToolHandlers, new DocumentParameterResolver());
+          documentModuleObjectMapper,
+          gatewayToolHandlers,
+          new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
     }
 
     @Test

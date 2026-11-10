@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter.Step;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,12 +66,17 @@ public class DocumentParameterResolver {
       "a JSON object such as {\"type\":\"%s\",\"id\":\"doc_…\"}."
           .formatted(AgentDocumentHandle.TYPE);
 
-  private final ObjectMapper referenceMapper = ConnectorsObjectMapperSupplier.getCopy();
+  // a mapper without the modules of the runtime: it reads every value as plain data
+  private static final ObjectMapper DATA_MAPPER = new ObjectMapper();
 
-  private final ObjectReader jsonReader =
-      referenceMapper
-          .readerFor(JsonNode.class)
-          .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+  private final ObjectMapper referenceMapper;
+  private final ObjectReader jsonReader;
+
+  public DocumentParameterResolver(ObjectMapper objectMapper) {
+    this.referenceMapper = objectMapper;
+    this.jsonReader =
+        objectMapper.readerFor(JsonNode.class).with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+  }
 
   /** Outcome of resolving the document parameters of one tool call. */
   public sealed interface Resolution {
@@ -145,7 +149,7 @@ public class DocumentParameterResolver {
 
   /** The document reference in the JSON format it is persisted in. */
   private Object referenceJson(AgentDocument document) {
-    return referenceMapper.convertValue(
+    return DATA_MAPPER.convertValue(
         referenceMapper.valueToTree(document).path("reference"),
         new TypeReference<Map<String, Object>>() {});
   }

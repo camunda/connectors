@@ -108,7 +108,7 @@ class AgentTaskRequestHandlerTest {
       new RuntimeTools(
           List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
           TestObjectMapperSupplier.INSTANCE,
-          new DocumentParameterResolver());
+          new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
   @Spy private DocumentExpander documentExpander = TestDocuments.documentExpander();
 
@@ -130,7 +130,7 @@ class AgentTaskRequestHandlerTest {
             responseHandler,
             agentInstanceClient,
             runtimeTools,
-            new ToolCallAdmission(new DocumentParameterResolver()),
+            new ToolCallAdmission(new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE)),
             new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer()),
             documentExpander);
     doReturn(new InProcessConversationStore())
