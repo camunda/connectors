@@ -2,17 +2,19 @@
 
 ## Purpose
 
-Checks that keep the docs of the agentic AI modules in step with the modules and the code. The module has
-test code only and is not shipped.
+Checks that keep the docs of the agentic AI modules in step with the modules and the code. The main code is a
+docs lint that knows no agentic AI paths or names. The tests apply it to the agentic AI docs. The module is not
+shipped.
 
 ## Key types
 
-- `AgenticAiDocsTest`: runs the checks per doc and per module.
-- `DocChecks`: the checks. Each returns findings.
+- `DocsLint`: checks a doc, a module README or the config, and lists the docs and modules in scope.
+- `DocsLintConfig`: the root, the docs in scope, the modules, the README layout and the allowed names.
 - `Finding` with `Violation` and `Warning`: a violation fails the test, a warning is reported.
+- `AgenticAiDocsTest`: the config of the agentic AI docs. Runs the checks per doc, per module and on the config.
 - `MarkdownParser` and `Doc`: a parsed Markdown file with its headings, links, code spans, fences and anchors.
 - `JavaSourceIndex`: the types, imports, members and supertypes of the repository sources.
-- `DocTree`: the docs in scope and the modules.
+- `DocChecks` and `DocTree`: the checks, and the docs, modules and sources below the root.
 
 ## Docs
 
