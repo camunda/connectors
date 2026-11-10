@@ -104,6 +104,7 @@ final class DocChecks {
       final List<String> sections,
       final Map<String, String> titles) {
     final Path path = module.dir().resolve("README.md");
+    final String title = titles.getOrDefault(module.name(), "# " + module.name());
     final Optional<Doc> readme = tree.doc(path);
     if (readme.isEmpty()) {
       return Stream.of(
@@ -111,14 +112,11 @@ final class DocChecks {
               path,
               0,
               "README is missing",
-              "a module README tells a reader its purpose, its key types and its docs",
-              "add a README.md that starts with `# "
-                  + module.name()
-                  + "` and has the sections "
-                  + sections));
+              "a reader starts at the README of a module, and it links the docs of the module",
+              "add a README.md that starts with `" + title + "` and has the sections " + sections));
     }
     final List<Finding> findings = new ArrayList<>();
-    headings(readme.get(), module, titles).ifPresent(findings::add);
+    headings(readme.get(), title).ifPresent(findings::add);
     sections(readme.get(), sections).ifPresent(findings::add);
     findings.addAll(unlinkedDocs(readme.get(), module, tree));
     return findings.stream();
@@ -167,7 +165,7 @@ final class DocChecks {
    * Map<String, Foo>}, {@code @Foo(...)}, {@code Foo#bar}, {@code Foo.Bar}, {@code Foo.java} or
    * {@code io.camunda.Foo}. Generic arguments count too.
    */
-  static List<String> typeNames(final String span) {
+  private static List<String> typeNames(final String span) {
     final String text = span.replaceFirst("^@", "").replaceFirst("[(#].*$", "");
     String outer = text;
     String previous;
@@ -433,9 +431,7 @@ final class DocChecks {
         ", ", types.stream().map(JavaSourceIndex.Type::qualifiedName).sorted().toList());
   }
 
-  private static Optional<Violation> headings(
-      final Doc readme, final DocModule module, final Map<String, String> titles) {
-    final String title = titles.getOrDefault(module.name(), "# " + module.name());
+  private static Optional<Violation> headings(final Doc readme, final String title) {
     final List<Ref> headings = readme.headings();
     if (!headings.isEmpty() && headings.getFirst().text().equals(title)) {
       return Optional.empty();
