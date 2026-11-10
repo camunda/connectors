@@ -53,6 +53,11 @@
       <groupId>org.jspecify</groupId>
       <artifactId>jspecify</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.soabase.record-builder</groupId>
+      <artifactId>record-builder-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -63,6 +68,22 @@
         <configuration>
           <redirectTestOutputToFile>false</redirectTestOutputToFile>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze-dependencies</id>
+            <configuration>
+              <ignoredDependencies>
+                <!-- needed on the compile classpath for the RecordBuilder annotation processor;
+                     no bytecode reference remains -->
+                <ignoredDependency>io.soabase.record-builder:record-builder-core</ignoredDependency>
+              </ignoredDependencies>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
