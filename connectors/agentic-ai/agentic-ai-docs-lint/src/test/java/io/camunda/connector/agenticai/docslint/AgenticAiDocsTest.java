@@ -70,26 +70,26 @@ class AgenticAiDocsTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("docs")
   void docIsInStepWithTheCode(final Path path, final TestReporter reporter) {
-    assertNoViolations(LINT.checkDoc(path), reporter);
+    assertNoViolations(LINT.findStaleReferences(path), reporter);
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("modules")
   void moduleReadmeFollowsTheLayout(final DocModule module, final TestReporter reporter) {
-    assertNoViolations(LINT.checkModule(module), reporter);
+    assertNoViolations(LINT.findReadmeLayoutViolations(module), reporter);
   }
 
   @Test
   void allowedNamesAreUsedAndUnknownToTheCode(final TestReporter reporter) {
-    assertNoViolations(LINT.checkConfig(), reporter);
+    assertNoViolations(LINT.findStaleAllowedNames(), reporter);
   }
 
   static List<Path> docs() {
-    return LINT.docs();
+    return LINT.docsInScope();
   }
 
   static List<DocModule> modules() {
-    return LINT.modules();
+    return LINT.modulesInScope();
   }
 
   /** The root of the repository that holds this module, which is run from its directory. */

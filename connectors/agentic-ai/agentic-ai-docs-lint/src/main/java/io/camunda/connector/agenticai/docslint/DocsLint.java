@@ -32,48 +32,53 @@ public final class DocsLint {
   }
 
   /** The docs in scope, sorted. */
-  public List<Path> docs() {
+  public List<Path> docsInScope() {
     return tree.docPaths();
   }
 
   /** The modules of the modules pom, then the extra modules. */
-  public List<DocModule> modules() {
+  public List<DocModule> modulesInScope() {
     return tree.modules();
   }
 
   /**
-   * The relative links of the doc resolve and it holds no Java code block. Unless it is a history
-   * doc, the types and members that it names in code spans exist in the code.
+   * The stale references of the doc: relative links and anchors that do not resolve, and Java code
+   * blocks. Unless it is a history doc, also the types and members of its code spans that the code
+   * does not know.
    */
-  public Stream<Finding> checkDoc(final Path path) {
-    final Doc doc =
-        tree.doc(path).orElseThrow(() -> new IllegalArgumentException("No doc at " + path));
+  public Stream<Finding> findStaleReferences(final Path doc) {
+    final Doc parsed =
+        tree.doc(doc).orElseThrow(() -> new IllegalArgumentException("No doc at " + doc));
     final Stream<Finding> findings =
-        Stream.concat(DocChecks.links(doc, tree), DocChecks.javaFences(doc));
-    if (tree.isHistory(path)) {
+        Stream.concat(DocChecks.links(parsed, tree), DocChecks.javaFences(parsed));
+    if (tree.isHistory(doc)) {
       return findings;
     }
     return Stream.of(
             findings,
-            DocChecks.types(doc, index(), config.allowedNames().keySet()),
-            DocChecks.members(doc, index()))
+            DocChecks.types(parsed, index(), config.allowedNames().keySet()),
+            DocChecks.members(parsed, index()))
         .flatMap(Function.identity());
   }
 
   /**
-   * The README of the module exists, starts with the module title and the README sections, and
-   * links every doc of the module under {@code ## Docs}.
+   * The violations of the README layout: the README of the module is missing, does not start with
+   * the module title and the README sections, or does not link every doc of the module under {@code
+   * ## Docs}.
    */
-  public Stream<Finding> checkModule(final DocModule module) {
+  public Stream<Finding> findReadmeLayoutViolations(final DocModule module) {
     return DocChecks.readme(module, tree, config.readmeSections(), config.readmeTitles());
   }
 
-  /** Each allowed name is used in a doc that is no history doc and is unknown to the code. */
-  public Stream<Finding> checkConfig() {
+  /**
+   * The stale allowed names: those that no doc uses outside the history docs, and those that the
+   * code now declares.
+   */
+  public Stream<Finding> findStaleAllowedNames() {
     return DocChecks.allowedNames(
         config.allowedNames(),
         DocChecks.namedTypes(
-            docs().stream()
+            docsInScope().stream()
                 .filter(path -> !tree.isHistory(path))
                 .map(path -> tree.doc(path).orElseThrow())),
         index(),

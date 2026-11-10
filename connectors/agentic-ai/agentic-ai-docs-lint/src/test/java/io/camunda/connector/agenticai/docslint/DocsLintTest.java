@@ -66,12 +66,12 @@ class DocsLintTest {
         "# one\n\n## Purpose\n\n## Key types\n\n## Docs\n\n- [Doc](docs/a.md)\n\n## More\n");
     write("project/one/docs/a.md", "# a");
 
-    assertThat(lint().checkModule(MODULE)).isEmpty();
+    assertThat(lint().findReadmeLayoutViolations(MODULE)).isEmpty();
   }
 
   @Test
   void aMissingReadmeIsReported() {
-    assertThat(messages(lint().checkModule(MODULE)))
+    assertThat(messages(lint().findReadmeLayoutViolations(MODULE)))
         .containsExactly(
             """
             project/one/README.md: README is missing
@@ -85,21 +85,23 @@ class DocsLintTest {
     write("project/one/README.md", "# other\n\n## Purpose\n\n## Key types\n\n## Docs\n");
     write("project/titled/README.md", "# Titled Module\n\n## Purpose\n\n## Key types\n\n## Docs\n");
 
-    assertThat(messages(lint().checkModule(MODULE)))
+    assertThat(messages(lint().findReadmeLayoutViolations(MODULE)))
         .containsExactly(
             """
             project/one/README.md:1: first heading is `# other`, expected `# one`
                 why: the first heading names the module, so a reader and a search find the README by it
                 fix: start the README with `# one`\
             """);
-    assertThat(lint().checkModule(new DocModule("titled", Path.of("project/titled")))).isEmpty();
+    assertThat(
+            lint().findReadmeLayoutViolations(new DocModule("titled", Path.of("project/titled"))))
+        .isEmpty();
   }
 
   @Test
   void wrongSectionsAreReported() throws IOException {
     write("project/one/README.md", "# one\n\n## Purpose\n\n## Docs\n\n## Key types\n");
 
-    assertThat(messages(lint().checkModule(MODULE)))
+    assertThat(messages(lint().findReadmeLayoutViolations(MODULE)))
         .containsExactly(
             """
             project/one/README.md:3: the first sections are [## Purpose, ## Docs, ## Key types], expected [## Purpose, ## Key types, ## Docs]
@@ -117,7 +119,7 @@ class DocsLintTest {
     write("project/one/docs/b.md", "# b");
     write("project/one/docs/c.md", "# c");
 
-    assertThat(messages(lint().checkModule(MODULE)))
+    assertThat(messages(lint().findReadmeLayoutViolations(MODULE)))
         .containsExactly(
             """
             project/one/README.md:9: `## Docs` does not link `project/one/docs/a.md`
@@ -138,7 +140,7 @@ class DocsLintTest {
         "# one\n\n## Purpose\n\n## Key types\n\n## Docs\n\n[topic]: docs/a.md\n");
     write("project/one/docs/a.md", "# a");
 
-    assertThat(messages(lint().checkModule(MODULE)))
+    assertThat(messages(lint().findReadmeLayoutViolations(MODULE)))
         .containsExactly(
             """
             project/one/README.md:7: `## Docs` does not link `project/one/docs/a.md`
@@ -154,7 +156,7 @@ class DocsLintTest {
         "# one\n\n## Purpose\n\n## Key types\n\n## Docs\n\n- [A][topic]\n\n## More\n\n[topic]: docs/a.md\n");
     write("project/one/docs/a.md", "# a");
 
-    assertThat(lint().checkModule(MODULE)).isEmpty();
+    assertThat(lint().findReadmeLayoutViolations(MODULE)).isEmpty();
   }
 
   @Test
@@ -164,7 +166,7 @@ class DocsLintTest {
         "# one\n\n## Purpose\n\n[A][topic]\n\n## Key types\n\n## Docs\n\n[topic]: docs/a.md\n");
     write("project/one/docs/a.md", "# a");
 
-    assertThat(messages(lint().checkModule(MODULE)))
+    assertThat(messages(lint().findReadmeLayoutViolations(MODULE)))
         .containsExactly(
             """
             project/one/README.md:9: `## Docs` does not link `project/one/docs/a.md`
@@ -175,7 +177,8 @@ class DocsLintTest {
 
   @Test
   void aBrokenDefinitionIsReported() throws IOException {
-    assertThat(messages(checkDoc("project/one/docs/source.md", "# Source", "[a]: gone.md")))
+    assertThat(
+            messages(findStaleReferences("project/one/docs/source.md", "# Source", "[a]: gone.md")))
         .containsExactly(
             """
             project/one/docs/source.md:2: link `gone.md` points to a file that does not exist (resolved to `project/one/docs/gone.md`)
@@ -188,7 +191,7 @@ class DocsLintTest {
   void aSchemeRelativeLinkIsExternalAndARootRelativeLinkIsNot() throws IOException {
     assertThat(
             messages(
-                checkDoc(
+                findStaleReferences(
                     "project/one/docs/source.md",
                     "# Source",
                     "[a](//example.com/guide.md) [b](/guide.md)")))
@@ -207,7 +210,7 @@ class DocsLintTest {
     write("top.md", "# Top");
 
     assertThat(
-            checkDoc(
+            findStaleReferences(
                 "project/one/docs/source.md",
                 "# Source",
                 "[a](target.md#section) [b](a%20b%2Bc.md) [c](/top.md) [d](#source)",
@@ -217,7 +220,8 @@ class DocsLintTest {
 
   @Test
   void aMissingFileIsReported() throws IOException {
-    assertThat(messages(checkDoc("project/one/docs/source.md", "# Source", "[a](gone.md)")))
+    assertThat(
+            messages(findStaleReferences("project/one/docs/source.md", "# Source", "[a](gone.md)")))
         .containsExactly(
             """
             project/one/docs/source.md:2: link `gone.md` points to a file that does not exist (resolved to `project/one/docs/gone.md`)
@@ -232,7 +236,7 @@ class DocsLintTest {
 
     assertThat(
             messages(
-                checkDoc(
+                findStaleReferences(
                     "project/one/docs/source.md", "# Source", "[a](target.md#nope) [b](#nope)")))
         .containsExactly(
             """
@@ -249,7 +253,8 @@ class DocsLintTest {
 
   @Test
   void aBadEscapeIsReported() throws IOException {
-    assertThat(messages(checkDoc("project/one/docs/source.md", "# Source", "[a](%zz.md)")))
+    assertThat(
+            messages(findStaleReferences("project/one/docs/source.md", "# Source", "[a](%zz.md)")))
         .containsExactly(
             """
             project/one/docs/source.md:2: link `%zz.md` is not a valid URI: Malformed escape pair
@@ -263,13 +268,16 @@ class DocsLintTest {
     write("project/one/docs/a[b].md", "# Brackets");
     write("project/one/docs/{c}|d.md", "# Others");
 
-    assertThat(checkDoc("project/one/docs/source.md", "# Source", "[a](a[b].md) [b](<{c}|d.md>)"))
+    assertThat(
+            findStaleReferences(
+                "project/one/docs/source.md", "# Source", "[a](a[b].md) [b](<{c}|d.md>)"))
         .isEmpty();
   }
 
   @Test
   void aLinkWithBracketsToAMissingFileNamesTheResolvedFile() throws IOException {
-    assertThat(messages(checkDoc("project/one/docs/source.md", "# Source", "[a](a[b].md)")))
+    assertThat(
+            messages(findStaleReferences("project/one/docs/source.md", "# Source", "[a](a[b].md)")))
         .containsExactly(
             """
             project/one/docs/source.md:2: link `a[b].md` points to a file that does not exist (resolved to `project/one/docs/a[b].md`)
@@ -282,7 +290,8 @@ class DocsLintTest {
   void aLinkThatLeavesTheRepositoryIsReported() throws IOException {
     assertThat(
             messages(
-                checkDoc("project/one/docs/source.md", "# Source", "[a](../../../../outside.md)")))
+                findStaleReferences(
+                    "project/one/docs/source.md", "# Source", "[a](../../../../outside.md)")))
         .containsExactly(
             """
             project/one/docs/source.md:2: link `../../../../outside.md` leaves the repository
@@ -297,7 +306,7 @@ class DocsLintTest {
 
     assertThat(
             messages(
-                checkDoc(
+                findStaleReferences(
                     "project/one/docs/source.md",
                     "# Source",
                     "[a](target.md?plain=1#L5) [b](target.md#L5)")))
@@ -315,7 +324,7 @@ class DocsLintTest {
 
     assertThat(
             messages(
-                checkDoc(
+                findStaleReferences(
                     "project/one/docs/source.md", "# Source", "[a](target.md?foo=bar#missing)")))
         .containsExactly(
             """
@@ -330,7 +339,8 @@ class DocsLintTest {
     write("project/one/docs/target.md", "# Target\n## Existing\n");
 
     assertThat(
-            checkDoc("project/one/docs/source.md", "# Source", "[a](target.md?foo=bar#existing)"))
+            findStaleReferences(
+                "project/one/docs/source.md", "# Source", "[a](target.md?foo=bar#existing)"))
         .isEmpty();
   }
 
@@ -339,7 +349,8 @@ class DocsLintTest {
     write("project/one/docs/target.md", "# Target");
 
     assertThat(
-            checkDoc("project/one/docs/source.md", "# Source", "[a](target.md?plain=1&foo=bar#L5)"))
+            findStaleReferences(
+                "project/one/docs/source.md", "# Source", "[a](target.md?plain=1&foo=bar#L5)"))
         .isEmpty();
   }
 
@@ -349,7 +360,7 @@ class DocsLintTest {
 
     assertThat(
             messages(
-                checkDoc(
+                findStaleReferences(
                     "project/one/docs/source.md", "# Source", "[a](target.md?plain=0#missing)")))
         .containsExactly(
             """
@@ -363,7 +374,9 @@ class DocsLintTest {
   void anEncodedFragmentMatchesTheDecodedAnchor() throws IOException {
     write("project/one/docs/target.md", "# Target\n## Größe\n");
 
-    assertThat(checkDoc("project/one/docs/source.md", "# Source", "[a](target.md#gr%C3%B6%C3%9Fe)"))
+    assertThat(
+            findStaleReferences(
+                "project/one/docs/source.md", "# Source", "[a](target.md#gr%C3%B6%C3%9Fe)"))
         .isEmpty();
   }
 
@@ -373,7 +386,8 @@ class DocsLintTest {
 
     assertThat(
             messages(
-                checkDoc("project/one/docs/source.md", "# Source", "[a](target.md#gr%C3%BCsse)")))
+                findStaleReferences(
+                    "project/one/docs/source.md", "# Source", "[a](target.md#gr%C3%BCsse)")))
         .containsExactly(
             """
             project/one/docs/source.md:2: link `target.md#gr%C3%BCsse` points to an anchor that does not exist in `project/one/docs/target.md`
@@ -386,7 +400,9 @@ class DocsLintTest {
   void aPlainViewLineAnchorHasNoFindings() throws IOException {
     write("project/one/docs/target.md", "# Target");
 
-    assertThat(checkDoc("project/one/docs/source.md", "# Source", "[a](target.md?plain=1#L5)"))
+    assertThat(
+            findStaleReferences(
+                "project/one/docs/source.md", "# Source", "[a](target.md?plain=1#L5)"))
         .isEmpty();
   }
 
@@ -394,13 +410,16 @@ class DocsLintTest {
   void aLinkToADirectoryWithATrailingSlashHasNoFindings() throws IOException {
     write("project/one/docs/target.md", "# Target");
 
-    assertThat(checkDoc("project/one/docs/source.md", "# Source", "[a](../docs/)")).isEmpty();
+    assertThat(findStaleReferences("project/one/docs/source.md", "# Source", "[a](../docs/)"))
+        .isEmpty();
   }
 
   @Test
   void aFragmentOnlyLinkIsCheckedAgainstTheAnchorsOfTheDoc() throws IOException {
     assertThat(
-            messages(checkDoc("project/one/docs/source.md", "# Source", "[a](#source) [b](#nope)")))
+            messages(
+                findStaleReferences(
+                    "project/one/docs/source.md", "# Source", "[a](#source) [b](#nope)")))
         .containsExactly(
             """
             project/one/docs/source.md:2: link `#nope` points to an anchor that does not exist in `project/one/docs/source.md`
@@ -414,7 +433,8 @@ class DocsLintTest {
     write("project/one/docs/c d.md", "# Spaced\n## Part\n");
 
     assertThat(
-            checkDoc("project/one/docs/source.md", "# Source", "[a](<c d.md#part>) [b](<c d.md>)"))
+            findStaleReferences(
+                "project/one/docs/source.md", "# Source", "[a](<c d.md#part>) [b](<c d.md>)"))
         .isEmpty();
   }
 
@@ -422,14 +442,15 @@ class DocsLintTest {
   void aPlusInTheLinkStaysAPlusInTheFileName() throws IOException {
     write("project/one/docs/a+b.md", "# Plus");
 
-    assertThat(checkDoc("project/one/docs/source.md", "# Source", "[a](a+b.md)")).isEmpty();
+    assertThat(findStaleReferences("project/one/docs/source.md", "# Source", "[a](a+b.md)"))
+        .isEmpty();
   }
 
   @Test
   void aJavaFenceIsReportedInAQuoteToo() throws IOException {
     assertThat(
             messages(
-                checkDoc(
+                findStaleReferences(
                     "project/one/docs/a.md",
                     "# A",
                     "```java",
@@ -459,7 +480,7 @@ class DocsLintTest {
 
     assertThat(
             messages(
-                checkDoc(
+                findStaleReferences(
                     lint(Map.of("Allowed", "reason")),
                     "project/one/docs/a.md",
                     "`Service`, `Map<String, Service>`, `a.Api`, `Servise`, `Allowed`")))
@@ -479,7 +500,7 @@ class DocsLintTest {
             "package p; class AAWidget {} class ABWidget {} class ACWidget {}"
                 + " class BWidget {} class CWidget {} class Widgets {} class Unrelated {}"));
 
-    assertThat(messages(checkDoc("project/one/docs/a.md", "`Widget`")))
+    assertThat(messages(findStaleReferences("project/one/docs/a.md", "`Widget`")))
         .containsExactly(
             """
             project/one/docs/a.md:1: unknown type `Widget` in `Widget`
@@ -494,7 +515,7 @@ class DocsLintTest {
 
     assertThat(
             messages(
-                checkDoc(
+                findStaleReferences(
                     "project/one/docs/a.md", "`List<Missing>` and `Optional<? extends Service>`")))
         .containsExactly(
             """
@@ -520,7 +541,7 @@ class DocsLintTest {
     writeSources(SOURCES);
 
     assertThat(
-            checkDoc(
+            findStaleReferences(
                 "project/one/docs/a.md",
                 "`Service#run` `Service#field()` `Service#Service(int)` `Service#inherited`",
                 "`Service#api` `Service.Nested#part` `a.Service#run` `Nested#part` `Api#api`"))
@@ -531,7 +552,7 @@ class DocsLintTest {
   void aMissingMemberListsTheMembers() throws IOException {
     writeSources(SOURCES);
 
-    assertThat(messages(checkDoc("project/one/docs/a.md", "# A", "`Service#gone()`")))
+    assertThat(messages(findStaleReferences("project/one/docs/a.md", "# A", "`Service#gone()`")))
         .containsExactly(
             """
             project/one/docs/a.md:2: no such member `gone` on `a.Service`
@@ -545,7 +566,7 @@ class DocsLintTest {
     writeSources(INHERITANCE);
 
     assertThat(
-            checkDoc(
+            findStaleReferences(
                 "project/one/docs/a.md",
                 "`Failure#getCause` `Failure#getMessage()` `Failure#run` `Plain#toString`",
                 "`Plain#equals` `Plain#hashCode` `Plain#getClass` `Client#own` `Client#toString`"))
@@ -557,7 +578,7 @@ class DocsLintTest {
     writeSources(INHERITANCE);
 
     assertThat(
-            checkDoc(
+            findStaleReferences(
                 "project/one/docs/a.md",
                 "`Point#toString` `Point#equals` `Point#hashCode` `Point#x`"))
         .isEmpty();
@@ -568,7 +589,7 @@ class DocsLintTest {
     writeSources(INHERITANCE);
 
     assertThat(
-            checkDoc(
+            findStaleReferences(
                 "project/one/docs/a.md",
                 "`Mode#values` `Mode#valueOf` `Mode#name` `Mode#ordinal` `Mode#FIRST`"))
         .isEmpty();
@@ -578,7 +599,7 @@ class DocsLintTest {
   void aMissingMemberOfATypeWithAnExternalSupertypeIsOnlyWarnedAbout() throws IOException {
     writeSources(INHERITANCE);
 
-    assertThat(checkDoc("project/one/docs/a.md", "`Client#missing`"))
+    assertThat(findStaleReferences("project/one/docs/a.md", "`Client#missing`"))
         .containsExactly(
             new Warning(
                 Path.of("project/one/docs/a.md"),
@@ -593,7 +614,7 @@ class DocsLintTest {
   void aMissingMemberOfATypeWithOnlyRepoAndJdkSupertypesIsReported() throws IOException {
     writeSources(INHERITANCE);
 
-    assertThat(messages(checkDoc("project/one/docs/a.md", "# A", "`Failure#gone`")))
+    assertThat(messages(findStaleReferences("project/one/docs/a.md", "# A", "`Failure#gone`")))
         .containsExactly(
             """
             project/one/docs/a.md:2: no such member `gone` on `c.Failure`
@@ -607,7 +628,7 @@ class DocsLintTest {
     writeSources(SOURCES);
 
     assertThat(
-            checkDoc(
+            findStaleReferences(
                 "project/one/docs/a.md", "`Service", "#run` `Service#", "run()` `Service  #  run`"))
         .isEmpty();
   }
@@ -617,7 +638,9 @@ class DocsLintTest {
     writeSources(SOURCES);
 
     assertThat(
-            messages(checkDoc("project/one/docs/a.md", "`Service", "#run`", "`Missing", "#run`")))
+            messages(
+                findStaleReferences(
+                    "project/one/docs/a.md", "`Service", "#run`", "`Missing", "#run`")))
         .containsExactly(
             """
             project/one/docs/a.md:3: unknown type `Missing` in `Missing #run`
@@ -636,7 +659,7 @@ class DocsLintTest {
     writeSources(SOURCES);
 
     final List<String> wrapped =
-        messages(checkDoc("project/one/docs/a.md", "# A", "`Service", "#gone()`"));
+        messages(findStaleReferences("project/one/docs/a.md", "# A", "`Service", "#gone()`"));
 
     assertThat(wrapped)
         .containsExactly(
@@ -646,14 +669,15 @@ class DocsLintTest {
                 fix: check the member against the code. Members, including those of supertypes of the repo: Service, api, field, inherited, run\
             """);
     assertThat(wrapped)
-        .isEqualTo(messages(checkDoc("project/one/docs/a.md", "# A", "`Service#gone()`")));
+        .isEqualTo(
+            messages(findStaleReferences("project/one/docs/a.md", "# A", "`Service#gone()`")));
   }
 
   @Test
   void aConstructorOfAnInterfaceIsReported() throws IOException {
     writeSources(SOURCES);
 
-    assertThat(messages(checkDoc("project/one/docs/a.md", "`Api#Api`")))
+    assertThat(messages(findStaleReferences("project/one/docs/a.md", "`Api#Api`")))
         .containsExactly(
             """
             project/one/docs/a.md:1: no matching constructor for `Api#Api`
@@ -666,7 +690,7 @@ class DocsLintTest {
   void anAmbiguousNameIsCheckedAgainstAllCandidatesWithAWarning() throws IOException {
     writeSources(SOURCES);
 
-    assertThat(checkDoc("project/one/docs/a.md", "`Dup#first` `b.Dup#second`"))
+    assertThat(findStaleReferences("project/one/docs/a.md", "`Dup#first` `b.Dup#second`"))
         .containsExactly(
             new Warning(
                 Path.of("project/one/docs/a.md"),
@@ -681,7 +705,7 @@ class DocsLintTest {
   void anAmbiguousNameWithoutTheMemberListsAllCandidates() throws IOException {
     writeSources(SOURCES);
 
-    assertThat(messages(checkDoc("project/one/docs/a.md", "`Dup#third`")))
+    assertThat(messages(findStaleReferences("project/one/docs/a.md", "`Dup#third`")))
         .containsExactly(
             """
             project/one/docs/a.md:1: no type named Dup has the member of `Dup#third`
@@ -694,7 +718,8 @@ class DocsLintTest {
   void aQualifiedNameThatPinsATypeIsCheckedOnlyAgainstIt() throws IOException {
     writeSources(SOURCES);
 
-    assertThat(messages(checkDoc("project/one/docs/a.md", "`a.Dup#second` `c.Dup#first`")))
+    assertThat(
+            messages(findStaleReferences("project/one/docs/a.md", "`a.Dup#second` `c.Dup#first`")))
         .containsExactly(
             """
             project/one/docs/a.md:1: no such member `second` on `a.Dup`
@@ -712,7 +737,7 @@ class DocsLintTest {
   void aTypeOfADependencyIsOnlyWarnedAbout() throws IOException {
     writeSources(SOURCES);
 
-    assertThat(checkDoc("project/one/docs/a.md", "`External#timeout`"))
+    assertThat(findStaleReferences("project/one/docs/a.md", "`External#timeout`"))
         .containsExactly(
             new Warning(
                 Path.of("project/one/docs/a.md"),
@@ -732,7 +757,7 @@ class DocsLintTest {
             "other/target/Generated.java",
             "package p; class Generated {}"));
 
-    assertThat(messages(checkDoc("project/one/docs/a.md", "`Sample` `Generated`")))
+    assertThat(messages(findStaleReferences("project/one/docs/a.md", "`Sample` `Generated`")))
         .containsExactly(
             """
             project/one/docs/a.md:1: unknown type `Generated` in `Generated`
@@ -761,7 +786,9 @@ class DocsLintTest {
     write("project/one/docs/a.md", "`Used` `Service`");
     write("project/docs/history.md", "`Unused`");
 
-    assertThat(messages(lint(Map.of("Used", "r", "Unused", "r", "Service", "r")).checkConfig()))
+    assertThat(
+            messages(
+                lint(Map.of("Used", "r", "Unused", "r", "Service", "r")).findStaleAllowedNames()))
         .containsExactly(
             """
             Policy.java: allowed name `Service` is now declared by the code
@@ -773,7 +800,7 @@ class DocsLintTest {
                 why: an entry that no doc needs keeps a name known that nothing uses
                 fix: delete the entry of the allowed names\
             """);
-    assertThat(lint(Map.of("Used", "r")).checkConfig()).isEmpty();
+    assertThat(lint(Map.of("Used", "r")).findStaleAllowedNames()).isEmpty();
   }
 
   @Test
@@ -784,7 +811,7 @@ class DocsLintTest {
     assertThat(
             messages(
                 lint(Map.of("Foo", "r", "Bar", "r", "List", "r", "Qux", "r", "plain", "r"))
-                    .checkConfig()))
+                    .findStaleAllowedNames()))
         .containsExactly(
             """
             Policy.java: allowed name `plain` is used in no doc
@@ -797,7 +824,7 @@ class DocsLintTest {
   void aHistoryDocHasItsLinksAndFencesCheckedButNotItsNames() throws IOException {
     final String[] lines = {"# History", "[a](gone.md) `Gone` `Gone#member`", "```java", "```"};
 
-    assertThat(messages(checkDoc("project/docs/history.md", lines)))
+    assertThat(messages(findStaleReferences("project/docs/history.md", lines)))
         .containsExactly(
             """
             project/docs/history.md:2: link `gone.md` points to a file that does not exist (resolved to `project/docs/gone.md`)
@@ -809,7 +836,7 @@ class DocsLintTest {
                 why: a code excerpt goes stale when the code changes
                 fix: replace the excerpt with the name of the type and member, for example `Type#member`\
             """);
-    assertThat(checkDoc("project/docs/current.md", lines))
+    assertThat(findStaleReferences("project/docs/current.md", lines))
         .extracting(DocsLintTest::what)
         .containsExactly(
             "link `gone.md` points to a file that does not exist (resolved to `project/docs/gone.md`)",
@@ -824,7 +851,7 @@ class DocsLintTest {
   void listsTheDocsInScopeSortedAndWithoutExcludedDirectories() throws IOException {
     writeTree();
 
-    assertThat(lint().docs())
+    assertThat(lint().docsInScope())
         .extracting(Path::toString)
         .containsExactly(
             "e2e/README.md",
@@ -838,7 +865,7 @@ class DocsLintTest {
     writeTree();
     Files.createSymbolicLink(root.resolve("project/linked.md"), root.resolve("project/README.md"));
 
-    assertThat(lint().docs())
+    assertThat(lint().docsInScope())
         .extracting(Path::toString)
         .containsExactly(
             "e2e/README.md",
@@ -853,7 +880,7 @@ class DocsLintTest {
         "project/pom.xml",
         "<project><modules><module>one</module><module>two</module></modules></project>");
 
-    assertThat(lint().modules())
+    assertThat(lint().modulesInScope())
         .containsExactly(
             new DocModule("one", Path.of("project/one")),
             new DocModule("two", Path.of("project/two")),
@@ -875,7 +902,7 @@ class DocsLintTest {
         </project>
         """);
 
-    assertThat(lint().modules())
+    assertThat(lint().modulesInScope())
         .containsExactly(
             new DocModule("one", Path.of("project/one")),
             new DocModule("two", Path.of("project/two")),
@@ -901,18 +928,19 @@ class DocsLintTest {
             Path.of("Policy.java")));
   }
 
-  private List<Finding> checkDoc(final String path, final String... lines) throws IOException {
-    return checkDoc(lint(), path, lines);
+  private List<Finding> findStaleReferences(final String path, final String... lines)
+      throws IOException {
+    return findStaleReferences(lint(), path, lines);
   }
 
-  private List<Finding> checkDoc(final DocsLint lint, final String path, final String... lines)
-      throws IOException {
+  private List<Finding> findStaleReferences(
+      final DocsLint lint, final String path, final String... lines) throws IOException {
     write(path, String.join("\n", lines) + "\n");
-    return lint.checkDoc(Path.of(path)).toList();
+    return lint.findStaleReferences(Path.of(path)).toList();
   }
 
   private List<String> unknownTypes(final String span) throws IOException {
-    return checkDoc("project/one/docs/a.md", "`" + span + "`").stream()
+    return findStaleReferences("project/one/docs/a.md", "`" + span + "`").stream()
         .map(DocsLintTest::what)
         .filter(what -> what.startsWith("unknown type `"))
         .map(what -> what.substring("unknown type `".length(), what.indexOf('`', 14)))
