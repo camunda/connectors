@@ -260,9 +260,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * The blocks of the documents of the user prompt, by the delivery of the prompt, for every kind
-   * of document. With the delivery content the content of a document is added when the model is
-   * called. Without a delivery the content of every document is added.
+   * The blocks of the documents of the user prompt, by the delivery of the prompt. With the
+   * delivery content the content of a document is added when the model is called. Without a
+   * delivery the content of every document is added.
    */
   private List<Content> trackedPromptDocuments(
       UserPrompt userPrompt, AgentDocuments known, Set<AgentDocumentId> idsWithContent) {
