@@ -137,7 +137,7 @@ The tool list of a `CONFIGURATION` item holds the process tools plus the enabled
 (`AgentConfiguration.toolDefinitions()`); the configuration fingerprint covers them.
 
 Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text),
-`AgentDocumentContent` → the text of its handle, and
+`AgentDocumentContent` → an object block that holds its handle (see "Documents in the history"), and
 `DocumentContent` → a Camunda document reference block. External document references currently fall
 back to an object/text block (see follow-ups). `ReasoningContent` maps to a tagged object containing
 `camunda.agenticai.content.type`, optional `text`, and `payload`; `provider` and `metadata` are not
