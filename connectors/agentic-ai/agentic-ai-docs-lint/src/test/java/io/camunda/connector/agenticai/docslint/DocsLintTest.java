@@ -69,13 +69,24 @@ class DocsLintTest {
   }
 
   @Test
-  void aMissingReadmeIsReported() {
+  void aMissingReadmeIsReportedWithTheTitleOfTheModule() {
     assertThat(messages(lint().findReadmeLayoutViolations(MODULE)))
         .containsExactly(
             """
             project/one/README.md: README is missing
-                why: a module README tells a reader its purpose, its key types and its docs
+                why: a reader starts at the README of a module, and it links the docs of the module
                 fix: add a README.md that starts with `# one` and has the sections [## Purpose, ## Key types, ## Docs]\
+            """);
+    assertThat(
+            messages(
+                lint()
+                    .findReadmeLayoutViolations(
+                        new DocModule("titled", Path.of("project/titled")))))
+        .containsExactly(
+            """
+            project/titled/README.md: README is missing
+                why: a reader starts at the README of a module, and it links the docs of the module
+                fix: add a README.md that starts with `# Titled Module` and has the sections [## Purpose, ## Key types, ## Docs]\
             """);
   }
 
