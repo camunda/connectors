@@ -127,7 +127,7 @@ jobs:
     permissions:
       contents: read
       id-token: write  # Vault JWT login
-    uses: camunda/connectors/.github/workflows/PREVIEW-ENV-CLEAN.yml@main
+    uses: ./.github/workflows/PREVIEW-ENV-CLEAN.yml
     needs: [deploy-preview]
     secrets: inherit
     with:
