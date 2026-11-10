@@ -356,7 +356,7 @@ jobs:
       - name: Observe build status
         if: always()
         continue-on-error: true
-        uses: ./.github/actions/observe-build-status
+        uses: camunda/connectors/.github/actions/observe-build-status@main
         with:
           build_status: ${{ job.status }}
           job_name: trigger-saas-e2e
