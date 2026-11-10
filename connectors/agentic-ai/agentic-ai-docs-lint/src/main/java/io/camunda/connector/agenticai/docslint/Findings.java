@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.docslint;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * The findings of a check, in the order they were found. A violation fails the check, a warning is
@@ -22,25 +21,13 @@ public record Findings(List<Finding> all) {
 
   /** The warnings, to report. */
   public List<Warning> warnings() {
-    return all.stream()
-        .flatMap(finding ->
-            switch (finding) {
-              case final Warning warning -> Stream.of(warning);
-              case final Violation violation -> Stream.<Warning>empty();
-            })
-        .toList();
+    return all.stream().filter(Warning.class::isInstance).map(Warning.class::cast).toList();
   }
 
   /** The violations, each after a line break, to fail the check. Empty without a violation. */
   public Optional<String> failureMessage() {
     final List<String> violations =
-        all.stream()
-            .flatMap(finding ->
-                switch (finding) {
-                  case final Violation violation -> Stream.of(violation.toString());
-                  case final Warning warning -> Stream.<String>empty();
-                })
-            .toList();
+        all.stream().filter(Violation.class::isInstance).map(Finding::toString).toList();
     return violations.isEmpty()
         ? Optional.empty()
         : Optional.of("\n" + String.join("\n", violations));
