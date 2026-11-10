@@ -23,7 +23,11 @@ class ModuleInventoryTest {
 
   private static final String GROUP_ID = "io.camunda.connector.agenticai";
 
-  /** The aggregator modules that the architecture rules do not analyze. */
+  /**
+   * The modules that the architecture rules do not analyze, because they have no production use.
+   * {@code agentic-ai-bundle} is a pom aggregator. The others support development only and are not
+   * deployed.
+   */
   private static final Set<String> NON_ANALYZED_MODULES =
       Set.of("agentic-ai-bundle", "agentic-ai-archunit-tests", "agentic-ai-docs-lint");
 

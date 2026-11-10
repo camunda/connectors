@@ -70,7 +70,8 @@ Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
 ### Architecture tests
 
 `agentic-ai-archunit-tests` holds the ArchUnit rules (`archunit-junit5`) for the production classes of
-all modules, in package `io.camunda.connector.agenticai.archunit`:
+all modules, in package `io.camunda.connector.agenticai.archunit`. They skip `agentic-ai-docs-lint` on
+purpose, because it supports development only and is not deployed. The rules are:
 
 - `ModuleLayersArchTest`: the dependency direction between the package roots (layers) of the modules.
 - `ModulePackageOwnershipArchTest`: every class of a package root is loaded from the module owning it,
