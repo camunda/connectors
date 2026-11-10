@@ -2,9 +2,9 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "UiPath Outbound Connector",
   "id": "io.camunda.connectors.UIPath.v1",
-  "version": 7,
+  "version": 8,
   "engines": {
-    "camunda": "^8.3"
+    "camunda": "^8.11"
   },
   "description": "Orchestrate your UiPath bots with Camunda. You can create new queue items and get the result from it",
   "keywords": [
@@ -95,6 +95,19 @@
       }
     },
     {
+      "id": "serviceAuthenticationConfiguration",
+      "label": "Authentication credential",
+      "tooltip": "Choose a reusable UiPath credential, or configure the one-time authentication below.",
+      "optional": true,
+      "group": "authentication",
+      "binding": {
+        "name": "serviceAuthenticationConfiguration",
+        "type": "zeebe:input"
+      },
+      "type": "Configuration",
+      "configurationTemplate": "io.camunda.connectors:uipath-authentication:1"
+    },
+    {
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
@@ -112,6 +125,11 @@
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.type"
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -127,8 +145,17 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "authenticationType",
-        "equals": "bearer"
+        "allMatch": [
+          {
+            "property": "authenticationType",
+            "equals": "bearer"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -143,8 +170,17 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "authenticationType",
-        "equals": "oauth-client-credentials-flow"
+        "allMatch": [
+          {
+            "property": "authenticationType",
+            "equals": "oauth-client-credentials-flow"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -161,8 +197,17 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "authenticationType",
-        "equals": "oauth-client-credentials-flow"
+        "allMatch": [
+          {
+            "property": "authenticationType",
+            "equals": "oauth-client-credentials-flow"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -179,8 +224,17 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "authenticationType",
-        "equals": "oauth-client-credentials-flow"
+        "allMatch": [
+          {
+            "property": "authenticationType",
+            "equals": "oauth-client-credentials-flow"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -192,8 +246,17 @@
         "name": "authentication.scopes"
       },
       "condition": {
-        "property": "authenticationType",
-        "equals": "oauth-client-credentials-flow"
+        "allMatch": [
+          {
+            "property": "authenticationType",
+            "equals": "oauth-client-credentials-flow"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -206,8 +269,17 @@
         "name": "authentication.clientAuthentication"
       },
       "condition": {
-        "property": "authenticationType",
-        "equals": "oauth-client-credentials-flow"
+        "allMatch": [
+          {
+            "property": "authenticationType",
+            "equals": "oauth-client-credentials-flow"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       }
     },
     {
@@ -253,6 +325,11 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -266,6 +343,11 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -278,6 +360,11 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -554,9 +641,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "addQueueItem"
+        "allMatch": [
+          {
+            "property": "operationType",
+            "oneOf": [
+              "addQueueItem"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/orchestrator_/odata/Queues/UiPathODataSvc.AddQueueItem\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationType",
+            "oneOf": [
+              "addQueueItem"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -569,9 +688,42 @@
         "name": "url"
       },
       "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "getItemById"
+        "allMatch": [
+          {
+            "property": "operationType",
+            "oneOf": [
+              "getItemById"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "=\"/orchestrator_/odata/QueueItems()\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationType",
+            "oneOf": [
+              "getItemById"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -590,7 +742,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "7",
+      "value": "8",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -685,6 +837,192 @@
       "properties": {
         "operationType": "getItemById"
       }
+    }
+  ],
+  "configurationTemplates": [
+    {
+      "id": "io.camunda.connectors:uipath-authentication:1",
+      "kind": "CREDENTIAL",
+      "version": 1,
+      "name": "UiPath Authentication",
+      "properties": [
+        {
+          "id": "authenticationType",
+          "label": "Authentication",
+          "value": "bearer",
+          "choices": [
+            {
+              "name": "Bearer token",
+              "value": "bearer"
+            },
+            {
+              "name": "OAuth 2.0 client credentials",
+              "value": "oauth-client-credentials-flow"
+            }
+          ],
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.type",
+            "type": "property"
+          },
+          "type": "Dropdown"
+        },
+        {
+          "id": "authentication.token",
+          "label": "Bearer token",
+          "constraints": {
+            "notEmpty": true
+          },
+          "condition": {
+            "property": "authenticationType",
+            "equals": "bearer",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.token",
+            "type": "property"
+          },
+          "type": "String",
+          "secret": true
+        },
+        {
+          "id": "authentication.oauthTokenEndpoint",
+          "value": "https://cloud.uipath.com/identity_/connect/token",
+          "condition": {
+            "property": "authenticationType",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.oauthTokenEndpoint",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.clientId",
+          "label": "Client ID",
+          "constraints": {
+            "notEmpty": true
+          },
+          "condition": {
+            "property": "authenticationType",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.clientId",
+            "type": "property"
+          },
+          "type": "String"
+        },
+        {
+          "id": "authentication.clientSecret",
+          "label": "Client secret",
+          "constraints": {
+            "notEmpty": true
+          },
+          "condition": {
+            "property": "authenticationType",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.clientSecret",
+            "type": "property"
+          },
+          "type": "String",
+          "secret": true
+        },
+        {
+          "id": "cloudUrl",
+          "label": "Cloud URL",
+          "tooltip": "Host of your UiPath Automation Cloud or Automation Suite.",
+          "value": "cloud.uipath.com",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "parameters.cloudUrl",
+            "type": "property"
+          },
+          "type": "String"
+        },
+        {
+          "id": "cloudOrg",
+          "label": "Organization",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "parameters.cloudOrg",
+            "type": "property"
+          },
+          "type": "String"
+        },
+        {
+          "id": "cloudTenant",
+          "label": "Tenant",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "parameters.cloudTenant",
+            "type": "property"
+          },
+          "type": "String"
+        },
+        {
+          "id": "baseUrl",
+          "value": "https://${cloudUrl}/${cloudOrg}/${cloudTenant}",
+          "group": "authentication",
+          "binding": {
+            "name": "baseUrl",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.scopes",
+          "value": "OR.Queues",
+          "condition": {
+            "property": "authenticationType",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.scopes",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.clientAuthentication",
+          "value": "basicAuthHeader",
+          "condition": {
+            "property": "authenticationType",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.clientAuthentication",
+            "type": "property"
+          },
+          "type": "Hidden"
+        }
+      ]
     }
   ]
 }
