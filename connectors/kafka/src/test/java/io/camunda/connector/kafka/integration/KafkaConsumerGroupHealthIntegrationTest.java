@@ -23,6 +23,7 @@ import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.test.utils.DockerImages;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ import org.testcontainers.utility.DockerImageName;
  * membership: the classic consumer keeps reporting the last generation in groupMetadata(), so the
  * health must not rely on it alone.
  */
+@SlowTest
 class KafkaConsumerGroupHealthIntegrationTest {
 
   private static final String TOPIC = "group-health-topic-" + UUID.randomUUID();
