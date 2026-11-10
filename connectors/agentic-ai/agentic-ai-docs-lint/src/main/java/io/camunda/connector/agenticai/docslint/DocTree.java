@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Element;
@@ -72,9 +73,17 @@ final class DocTree {
         .toList();
   }
 
-  /** Whether the doc records history and names types that no longer exist. */
-  boolean isHistory(final Path path) {
-    return config.historyDocs().contains(path);
+  /**
+   * The parsed doc whose names are checked against the code, or empty for a history doc. A history
+   * doc may name types that no longer exist.
+   */
+  Optional<Doc> currentDoc(final Path path) {
+    return isHistory(path) ? Optional.empty() : doc(path);
+  }
+
+  /** The parsed docs in scope without the history docs. */
+  Stream<Doc> currentDocs() {
+    return docPaths().stream().flatMap(path -> currentDoc(path).stream());
   }
 
   /** The modules of the modules pom, then the extra modules. */
@@ -152,6 +161,10 @@ final class DocTree {
       }
     }
     return files.stream().sorted().toList();
+  }
+
+  private boolean isHistory(final Path path) {
+    return config.historyDocs().contains(path);
   }
 
   private static List<Element> childElements(final Element parent, final String name) {

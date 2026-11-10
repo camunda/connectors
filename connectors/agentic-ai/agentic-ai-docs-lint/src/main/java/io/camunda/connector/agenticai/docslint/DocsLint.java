@@ -49,16 +49,15 @@ public final class DocsLint {
   public Findings findStaleReferences(final Path doc) {
     final Doc parsed =
         tree.doc(doc).orElseThrow(() -> new IllegalArgumentException("No doc at " + doc));
-    final Stream<Finding> findings =
-        Stream.concat(DocChecks.links(parsed, tree), DocChecks.javaFences(parsed));
-    if (tree.isHistory(doc)) {
-      return new Findings(findings.toList());
-    }
     return new Findings(
         Stream.of(
-                findings,
-                DocChecks.types(parsed, index(), config.allowedNames().keySet()),
-                DocChecks.members(parsed, index()))
+                DocChecks.links(parsed, tree),
+                DocChecks.javaFences(parsed),
+                tree.currentDoc(doc).stream()
+                    .flatMap(current ->
+                        Stream.concat(
+                            DocChecks.types(current, index(), config.allowedNames().keySet()),
+                            DocChecks.members(current, index()))))
             .flatMap(Function.identity())
             .toList());
   }
@@ -81,10 +80,7 @@ public final class DocsLint {
     return new Findings(
         DocChecks.allowedNames(
                 config.allowedNames(),
-                DocChecks.namedTypes(
-                    docsInScope().stream()
-                        .filter(path -> !tree.isHistory(path))
-                        .map(path -> tree.doc(path).orElseThrow())),
+                DocChecks.namedTypes(tree.currentDocs()),
                 index(),
                 config.allowedNamesSource())
             .toList());
