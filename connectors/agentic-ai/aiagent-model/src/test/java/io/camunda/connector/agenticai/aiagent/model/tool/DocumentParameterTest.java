@@ -320,7 +320,10 @@ class DocumentParameterTest {
   /** An object schema from alternating property names and schemas, in declaration order. */
   private static Map<String, Object> object(Object... namesAndSchemas) {
     final var properties = new LinkedHashMap<String, Object>();
-    for (int i = 0; i < namesAndSchemas.length; i += 2) {
+    if (namesAndSchemas.length % 2 != 0) {
+      throw new IllegalArgumentException("Expected alternating property names and schemas");
+    }
+    for (int i = 0; i + 1 < namesAndSchemas.length; i += 2) {
       properties.put((String) namesAndSchemas[i], namesAndSchemas[i + 1]);
     }
     final var schema = new LinkedHashMap<String, Object>();
