@@ -232,7 +232,7 @@ same persisted form. It is set for the documents of the user prompt, with the
 dropdown *Document delivery* (`data.userPrompt.documentDelivery`, choices `reference` (default) and `content`; the v2
 templates have it, the frozen v1 templates leave it out), and for the documents a process tool returns, with the extension
 property `io.camunda.agenticai.documents.delivery` on the tool activity ([Tool Resolution](../../aiagent-tools-schema/docs/tool-resolution.md#job-worker-flavor)), which takes `reference` or `content`
-(`DocumentDelivery.fromExtension`; another value fails the tool discovery with a message that names the element). The
+(`AdHocToolsSchemaResolverImpl` reads it; another value fails the tool discovery with a message that names the element). The
 composer reads the delivery of a tool from the stored tool definitions (`AgentContext.documentDeliveryOf`, `reference` for a
 tool without one) and gives the entry of the result of a tool with the delivery `content` an `AddDocumentContent` effect for
 every document of the result: the same effect a runtime tool adds to ask for content, so `ToolCallResultsInputBuilder`

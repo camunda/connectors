@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionReso
 import io.camunda.connector.agenticai.aiagent.api.tool.TypePropertyBasedGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,32 +66,38 @@ class AdHocToolsSchemaResolverTest {
     final var element =
         AdHocToolElement.builder()
             .elementId("Test_Tool")
-            .properties(Map.of(DocumentDelivery.EXTENSION_PROPERTY, value))
+            .properties(Map.of(AdHocToolsSchemaResolverImpl.DOCUMENT_DELIVERY_PROPERTY, value))
             .build();
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
 
     assertThat(resolver.resolveAdHocToolsSchema(List.of(element)).toolDefinitions())
-        .singleElement()
-        .satisfies(toolDefinition ->
-            assertThat(toolDefinition.documentDelivery()).isEqualTo(DocumentDelivery.CONTENT));
+        .containsExactly(
+            ToolDefinition.builder()
+                .name("Test_Tool")
+                .inputSchema(DUMMY_SCHEMA)
+                .documentDelivery(DocumentDelivery.CONTENT)
+                .build());
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"reference", "Reference", " ", ""})
-  void setsTheDeliveryReferenceForAToolWhoseActivityRequestsIt(String value) {
+  @ValueSource(strings = {"reference", "Reference", " REFERENCE ", " ", ""})
+  void storesNoDeliveryForAToolWhoseActivityRequestsTheDefaultDelivery(String value) {
     final var element =
         AdHocToolElement.builder()
             .elementId("Test_Tool")
-            .properties(Map.of(DocumentDelivery.EXTENSION_PROPERTY, value))
+            .properties(Map.of(AdHocToolsSchemaResolverImpl.DOCUMENT_DELIVERY_PROPERTY, value))
             .build();
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
 
     assertThat(resolver.resolveAdHocToolsSchema(List.of(element)).toolDefinitions())
-        .singleElement()
-        .satisfies(toolDefinition ->
-            assertThat(toolDefinition.documentDelivery()).isEqualTo(DocumentDelivery.REFERENCE));
+        .containsExactly(
+            ToolDefinition.builder()
+                .name("Test_Tool")
+                .inputSchema(DUMMY_SCHEMA)
+                .documentDelivery(null)
+                .build());
   }
 
   @Test
@@ -98,17 +105,15 @@ class AdHocToolsSchemaResolverTest {
     final var element =
         AdHocToolElement.builder()
             .elementId("Test_Tool")
-            .properties(Map.of(DocumentDelivery.EXTENSION_PROPERTY, "contnet"))
+            .properties(Map.of(AdHocToolsSchemaResolverImpl.DOCUMENT_DELIVERY_PROPERTY, "contnet"))
             .build();
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
 
     assertThatThrownBy(() -> resolver.resolveAdHocToolsSchema(List.of(element)))
         .isInstanceOf(AdHocToolSchemaGenerationException.class)
-        .hasMessageContaining("'Test_Tool'")
-        .hasMessageContaining(DocumentDelivery.EXTENSION_PROPERTY)
-        .hasMessageContaining("'contnet'")
-        .hasMessageContaining("reference, content");
+        .hasMessage(
+            "Failed to resolve ad-hoc tool element 'Test_Tool'. Property 'io.camunda.agenticai.documents.delivery': The document delivery 'contnet' is not allowed, use one of: reference, content.");
   }
 
   @Test
@@ -122,8 +127,12 @@ class AdHocToolsSchemaResolverTest {
     when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
 
     assertThat(resolver.resolveAdHocToolsSchema(List.of(element)).toolDefinitions())
-        .singleElement()
-        .satisfies(toolDefinition -> assertThat(toolDefinition.documentDelivery()).isNull());
+        .containsExactly(
+            ToolDefinition.builder()
+                .name("Test_Tool")
+                .inputSchema(DUMMY_SCHEMA)
+                .documentDelivery(null)
+                .build());
   }
 
   @ParameterizedTest

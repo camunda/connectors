@@ -326,7 +326,7 @@ The tool definitions of the snapshot are the ones the model provider gets: witho
   `ToolDefinition.documentDelivery`; the MCP and A2A handlers set none. The result of a runtime tool is never affected: it
   names the documents whose content it wants. The property takes `reference` or `content`; any other value fails the tool
   discovery of the agent with a message that names the element. A tool without the property has the delivery `reference`
-  (`DocumentDelivery.fromExtension`).
+  (`AdHocToolsSchemaResolverImpl` stores no delivery for an absent or blank property or the value `reference`).
 - The v2 AI Agent templates have the dropdown *Document delivery* next to the documents of the user prompt
   (`data.userPrompt.documentDelivery`, `reference` by default), so a process modeled with them gives the model the handles of
   the prompt documents, which it loads with `c8__load_document`, unless the dropdown is set to `content`. A process that has

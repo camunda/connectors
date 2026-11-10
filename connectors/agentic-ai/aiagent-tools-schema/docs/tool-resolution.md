@@ -22,8 +22,8 @@ The `AdHocToolsSchemaResolver` processes these into:
 2. **GatewayToolDefinitions**: Special tools (MCP clients, A2A) that need discovery
 
 A tool activity with the extension property `io.camunda.agenticai.documents.delivery` gets the `documentDelivery` the
-property names (`DocumentDelivery.fromExtension`: `reference` or `content`, ignoring case and surrounding blanks; a blank or
-absent property is `reference`). A value that is neither fails the tool discovery with a message that names the element
+property names (`reference` or `content`, ignoring case and surrounding blanks). An absent or blank property and the value
+`reference` store no `documentDelivery`, so they persist and fingerprint identically, and `content` stores `content`. A value that is neither fails the tool discovery with a message that names the element
 and the allowed values. With `content` the agent adds the content of the documents the tool returns to the request instead
 of leaving them as references. The field is part of the stored tool definition and of the configuration fingerprint when
 set, and the model providers do not get it (`ToolDefinition.withoutDocumentDelivery()` drops it where the conversation is windowed for the model call). See [ADR 018](../../docs/adr/018-document-flow.md).
