@@ -50,7 +50,7 @@ public class KafkaConnectorConsumer {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
   static final String COORDINATOR_METRIC_GROUP = "consumer-coordinator-metrics";
-  static final String LAST_HEARTBEAT_METRIC = "last-heartbeat-seconds-ago";
+  static final String HEARTBEAT_TOTAL_METRIC = "heartbeat-total";
   public static ObjectMapper objectMapper =
       new ObjectMapper()
           .registerModule(new Jdk8Module())
@@ -71,6 +71,8 @@ public class KafkaConnectorConsumer {
   private Health consumerStatus = Health.unknown();
   private Duration groupMembershipTimeout;
   private Duration sessionTimeout;
+  private double heartbeatResponses;
+  private Instant lastHeartbeatResponseAt;
   private Instant notInGroupSince;
   private ObjectReader avroObjectReader;
 
@@ -127,6 +129,8 @@ public class KafkaConnectorConsumer {
       var consumer = consumerCreatorFunction.apply(kafkaProps);
       groupMembershipTimeout = intConfig(kafkaProps, ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG);
       sessionTimeout = intConfig(kafkaProps, ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG);
+      heartbeatResponses = 0;
+      lastHeartbeatResponseAt = null;
       notInGroupSince = null;
       String topicName = elementProps.topic().topicName();
       consumer.subscribe(
@@ -266,19 +270,29 @@ public class KafkaConnectorConsumer {
   }
 
   // The classic consumer's groupMetadata() keeps the last generation after the membership is
-  // lost. Heartbeats are only sent while the consumer is a stable member, and stop once the
-  // coordinator stops answering, so a recent heartbeat is what confirms the membership. The metric
-  // is -1 before the first heartbeat.
+  // lost, so membership is confirmed by heartbeat responses instead: only a stable member sends
+  // heartbeats, and the coordinator expires a member it has not heard from within
+  // session.timeout.ms. heartbeat-total counts the responses received, independently of the
+  // metrics window. It stops increasing when the coordinator stops answering, even while the
+  // client keeps sending heartbeats, and when a response resets the membership (unknown member,
+  // illegal generation, rebalance), as the client stops sending heartbeats until it rejoins.
   private boolean isGroupMember(Consumer<Object, Object> consumer) {
-    return consumer.metrics().entrySet().stream()
-        .filter(metric -> LAST_HEARTBEAT_METRIC.equals(metric.getKey().name()))
-        .filter(metric -> COORDINATOR_METRIC_GROUP.equals(metric.getKey().group()))
-        .map(metric -> metric.getValue().metricValue())
-        .findFirst()
-        .filter(Number.class::isInstance)
-        .map(secondsAgo -> ((Number) secondsAgo).doubleValue())
-        .map(secondsAgo -> secondsAgo >= 0 && secondsAgo * 1000 <= sessionTimeout.toMillis())
-        .orElse(false);
+    var responses =
+        consumer.metrics().entrySet().stream()
+            .filter(metric -> HEARTBEAT_TOTAL_METRIC.equals(metric.getKey().name()))
+            .filter(metric -> COORDINATOR_METRIC_GROUP.equals(metric.getKey().group()))
+            .map(metric -> metric.getValue().metricValue())
+            .findFirst()
+            .filter(Number.class::isInstance)
+            .map(total -> ((Number) total).doubleValue())
+            .orElse(0d);
+    var now = Instant.now();
+    if (responses > heartbeatResponses) {
+      heartbeatResponses = responses;
+      lastHeartbeatResponseAt = now;
+    }
+    return lastHeartbeatResponseAt != null
+        && Duration.between(lastHeartbeatResponseAt, now).compareTo(sessionTimeout) < 0;
   }
 
   private void reportHealth(Health newStatus, Severity severity, Map<String, Object> details) {
