@@ -445,10 +445,7 @@ public abstract class BaseAgentRequestHandler<
     return agentInputComposer.assemble(
         ready.withResults(
             localToolCallExecutor.execute(
-                executionContext,
-                ready.agentContext(),
-                ready.documentIdsWithContent(),
-                ready.unansweredToolCalls())),
+                executionContext, ready.agentContext(), ready.unansweredToolCalls())),
         executionContext.documentFactory());
   }
 

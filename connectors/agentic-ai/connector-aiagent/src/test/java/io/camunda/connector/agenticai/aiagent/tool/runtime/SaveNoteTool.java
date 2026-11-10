@@ -79,8 +79,9 @@ public final class SaveNoteTool implements RuntimeTool {
     }
     final var number =
         notesOf(
-                    context.documents().all().stream()
-                        .map(agentDocument -> context.documents().document(agentDocument.id())))
+                    context.agentContext().documents().all().stream()
+                        .map(agentDocument ->
+                            agentDocument.toDocument(context.executionContext().documentFactory())))
                 .size()
             + 1;
     final var document =

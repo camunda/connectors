@@ -417,7 +417,7 @@ class AgentTaskRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     verify(chatModel, times(2)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), any(), any());
+    verify(runtimeTools, never()).execute(any(), any(), any());
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
             ToolCallResultMessage.class,

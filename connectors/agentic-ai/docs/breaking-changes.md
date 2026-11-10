@@ -300,15 +300,13 @@ applies it to its persisted context, and the next round continues with the conte
   batch of calls starts; a tool can return documents in its result, which the agent registers after all calls of the
   message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`); a `Success` can
   ask the agent to add the content of a known document to the request that follows the tool results
-  (`withDocumentContent(AgentDocumentId)` or `withDocumentContent(Document)`; they add a variant of the sealed
+  (`withDocumentContent(AgentDocumentId)`, which adds a variant of the sealed
   `ToolCallEffect`, listed by `Success.effects()`), which the agent applies after all calls of the message ran, in call
   order, and after its content guard accepted the document; a document the guard rejects stays a reference, and the agent writes into the tool result that the content is not loaded and why. The agent
   also writes, after the content a result returned, one sentence per document whose content the result asks for; a tool
   needs no text of its own for it. An error result has no effects. A reference block with the delivery `content` in a result, and
   a reference block or an effect that names a document neither known to the agent nor returned by the result, fail the job.
-  `RuntimeToolDocuments` returns the `AgentDocument` of `aiagent-model`, restores the live document with
-  `document(AgentDocumentId)` and tells with `hasContentInConversation(AgentDocumentId)` whether the model reads the content
-  of a document. The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A
+  `RuntimeToolDocuments.find(AgentDocumentId)` returns the `AgentDocument` of `aiagent-model`. The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A
   rejected call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is
   executed gets an error result from `RuntimeTools`; neither goes to the process.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime

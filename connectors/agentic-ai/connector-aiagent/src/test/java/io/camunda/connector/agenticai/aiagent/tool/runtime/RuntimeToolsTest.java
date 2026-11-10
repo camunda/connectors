@@ -51,7 +51,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
@@ -101,7 +100,9 @@ class RuntimeToolsTest {
 
   private static RuntimeTools toolsOf(RuntimeTool... tools) {
     return new RuntimeTools(
-        List.of(tools), TestObjectMapperSupplier.INSTANCE, new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
+        List.of(tools),
+        TestObjectMapperSupplier.INSTANCE,
+        new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
   }
 
   private static RuntimeTool tool(String name, Predicate<RuntimeToolContext> enabled) {
@@ -129,7 +130,7 @@ class RuntimeToolsTest {
 
   private static List<RuntimeToolExecution> execute(
       RuntimeTools tools, AgentExecutionContext executionContext, ToolCall... calls) {
-    return tools.execute(executionContext, NEW_INSTANCE, Set.of(), List.of(calls));
+    return tools.execute(executionContext, NEW_INSTANCE, List.of(calls));
   }
 
   private final RuntimeTools registered =
@@ -347,7 +348,7 @@ class RuntimeToolsTest {
             runtimeCall("c2", "acme_order", Map.of()),
             runtimeCall("c3", "acme_order", Map.of()));
 
-    final var executions = toolsOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, Set.of(), calls);
+    final var executions = toolsOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, calls);
 
     assertThat(order).containsExactly("c1", "c2", "c3");
     assertThat(executions)
@@ -382,8 +383,7 @@ class RuntimeToolsTest {
 
   @Test
   void givesACallOfAnAgentWithoutTheRuntimeToolsFeatureAnErrorResult() {
-    final var executions =
-        tools.execute(WITH_MEMORY, WITHOUT_FEATURES, Set.of(), List.of(note("n1", "a")));
+    final var executions = tools.execute(WITH_MEMORY, WITHOUT_FEATURES, List.of(note("n1", "a")));
 
     assertThat(executions)
         .singleElement()
@@ -398,8 +398,8 @@ class RuntimeToolsTest {
     final var call = runtimeCall("f1", "acme_featured", Map.of());
     final var withFeature = AgentContext.empty().withFeatures(List.of("runtimeTools", "acme"));
 
-    final var without = toolsOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, Set.of(), List.of(call));
-    final var with = toolsOf(tool).execute(WITH_MEMORY, withFeature, Set.of(), List.of(call));
+    final var without = toolsOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, List.of(call));
+    final var with = toolsOf(tool).execute(WITH_MEMORY, withFeature, List.of(call));
 
     assertThat(without)
         .singleElement()
@@ -483,11 +483,7 @@ class RuntimeToolsTest {
     final var agentContext = NEW_INSTANCE.withProperty("hello", "world");
 
     toolsOf(reading)
-        .execute(
-            WITH_MEMORY,
-            agentContext,
-            Set.of(),
-            List.of(runtimeCall("r1", "acme_reading", Map.of())));
+        .execute(WITH_MEMORY, agentContext, List.of(runtimeCall("r1", "acme_reading", Map.of())));
 
     assertThat(seen)
         .containsExactly(WITH_MEMORY, AgentFeatures.ofNewInstance(), Map.of("hello", "world"));
@@ -495,13 +491,14 @@ class RuntimeToolsTest {
 
   @Test
   void anEmptyBatchHasNoExecutions() {
-    assertThat(tools.execute(WITH_MEMORY, NEW_INSTANCE, Set.of(), List.of())).isEmpty();
+    assertThat(tools.execute(WITH_MEMORY, NEW_INSTANCE, List.of())).isEmpty();
   }
 
   @Test
   void aToolCanBeEnabledOnlyWhileTheAgentKnowsADocument() {
     final var needsDocuments =
-        toolsOf(tool("acme_documents", context -> !context.documents().all().isEmpty()));
+        toolsOf(
+            tool("acme_documents", context -> !context.agentContext().documents().all().isEmpty()));
     final var knowingADocument = knowing(createDocument("report", "report.txt"));
 
     assertThat(needsDocuments.enabledDefinitions(PLAIN, NEW_INSTANCE)).isEmpty();
@@ -516,11 +513,14 @@ class RuntimeToolsTest {
         StubRuntimeTool.of(
             "acme_reading",
             (context, call) -> {
-              seen.add(context.documents().all().stream().map(AgentDocument::id).toList());
+              seen.add(
+                  context.agentContext().documents().all().stream()
+                      .map(AgentDocument::id)
+                      .toList());
               final var found = context.documents().find(AgentDocumentId.of(report)).orElseThrow();
               seen.add(
                   new String(
-                      context.documents().document(found.id()).asByteArray(),
+                      found.toDocument(context.executionContext().documentFactory()).asByteArray(),
                       StandardCharsets.UTF_8));
               seen.add(found.origin());
               return RuntimeToolResult.success("read");
@@ -528,10 +528,7 @@ class RuntimeToolsTest {
 
     toolsOf(reading)
         .execute(
-            WITH_MEMORY,
-            knowing(report),
-            Set.of(),
-            List.of(runtimeCall("r1", "acme_reading", Map.of())));
+            WITH_MEMORY, knowing(report), List.of(runtimeCall("r1", "acme_reading", Map.of())));
 
     assertThat(seen)
         .containsExactly(
@@ -547,14 +544,14 @@ class RuntimeToolsTest {
         StubRuntimeTool.of(
             "acme_count",
             (context, call) ->
-                RuntimeToolResult.success("documents: " + context.documents().all().size()));
+                RuntimeToolResult.success(
+                    "documents: " + context.agentContext().documents().all().size()));
     final var batch = toolsOf(new SaveNoteTool(), counting);
 
     final var executions =
         batch.execute(
             WITH_MEMORY,
             knowing(report),
-            Set.of(),
             List.of(
                 runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a")),
                 runtimeCall("c1", "acme_count", Map.of()),
@@ -578,7 +575,6 @@ class RuntimeToolsTest {
             .execute(
                 WITH_MEMORY,
                 agentContext,
-                Set.of(),
                 List.of(runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a"))));
 
     assertThat(executions.getFirst().result().content())
@@ -587,33 +583,6 @@ class RuntimeToolsTest {
         .isInstanceOf(DocumentContent.class);
     // the agent context is the one the tools were given
     assertThat(agentContext.documents().all()).isEmpty();
-  }
-
-  @Test
-  void aToolReadsWhetherTheContentOfADocumentIsInTheConversationAsOfTheStartOfTheBatch() {
-    final var read = createDocument("read", "read.txt");
-    final var unread = createDocument("unread", "unread.txt");
-    final var seen = new ArrayList<Boolean>();
-    final var reading =
-        StubRuntimeTool.of(
-            "acme_reading",
-            (context, call) -> {
-              context
-                  .documents()
-                  .all()
-                  .forEach(document ->
-                      seen.add(context.documents().hasContentInConversation(document.id())));
-              return RuntimeToolResult.success("read");
-            });
-
-    toolsOf(reading)
-        .execute(
-            WITH_MEMORY,
-            knowing(read, unread),
-            Set.of(AgentDocumentId.of(read)),
-            List.of(runtimeCall("r1", "acme_reading", Map.of())));
-
-    assertThat(seen).containsExactly(true, false);
   }
 
   @Test
@@ -632,7 +601,6 @@ class RuntimeToolsTest {
             .execute(
                 WITH_MEMORY,
                 knowing(report),
-                Set.of(),
                 List.of(
                     runtimeCall("l1", "acme_load", Map.of()),
                     runtimeCall("f1", "acme_fail", Map.of())));
@@ -705,8 +673,7 @@ class RuntimeToolsTest {
     final var call = runtimeCall("r1", "c8__read_file", Map.of("file", handleOf(report)));
 
     final var executions =
-        toolsOf(tool)
-            .execute(WITH_MEMORY, knowingWithDocumentsFeature(report), Set.of(), List.of(call));
+        toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(report), List.of(call));
 
     assertThat(executions)
         .extracting(RuntimeToolExecution::call, RuntimeToolExecution::result)
@@ -742,8 +709,7 @@ class RuntimeToolsTest {
     final var call = runtimeCall("r1", "c8__read_file", arguments);
 
     final var executions =
-        toolsOf(tool)
-            .execute(WITH_MEMORY, knowingWithDocumentsFeature(report), Set.of(), List.of(call));
+        toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(report), List.of(call));
 
     assertThat(executions)
         .extracting(RuntimeToolExecution::call, RuntimeToolExecution::result)
@@ -770,7 +736,6 @@ class RuntimeToolsTest {
             .execute(
                 WITH_MEMORY,
                 knowingWithDocumentsFeature(createDocument("known", "known.txt")),
-                Set.of(),
                 List.of(call));
 
     assertThat(executions)
@@ -812,7 +777,6 @@ class RuntimeToolsTest {
         registeredTools.execute(
             WITH_MEMORY,
             knowingWithDocumentsFeature(createDocument("known", "known.txt")),
-            Set.of(),
             List.of(call));
 
     assertThat(executions)
@@ -842,7 +806,6 @@ class RuntimeToolsTest {
             .execute(
                 WITH_MEMORY,
                 knowingWithDocumentsFeature(createDocument("known", "known.txt")),
-                Set.of(),
                 List.of(call));
 
     assertThat(executions)
@@ -873,7 +836,6 @@ class RuntimeToolsTest {
             .execute(
                 WITH_MEMORY,
                 AgentContext.empty().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
-                Set.of(),
                 List.of(call));
 
     assertThat(executions)

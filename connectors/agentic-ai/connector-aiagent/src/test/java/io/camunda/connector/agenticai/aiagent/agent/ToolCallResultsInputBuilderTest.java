@@ -541,7 +541,7 @@ class ToolCallResultsInputBuilderTest {
             "c1",
             "alpha",
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
-                .withDocumentContent(first));
+                .withDocumentContent(AgentDocumentId.of(first)));
 
     assertThatThrownBy(() ->
             builder.build(

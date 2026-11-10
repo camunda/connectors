@@ -197,8 +197,7 @@ conversation holds no document, because a change of the tool list would break th
 what a handle looks like and not to call the tool without one. It loads the whole document, no ranges. For a known document the tool returns
 no text of its own: the result has no content and asks the agent to add the content
 (`RuntimeToolResult.Success.withDocumentContent`, the effect `ToolCallEffect.AddDocumentContent`), also when the document is
-already in the windowed conversation (a block with the delivery `content` in a windowed user message,
-`RuntimeToolDocuments.hasContentInConversation`); it is loadable again after that message left the window. A missing
+already in the windowed conversation (a block with the delivery `content` in a windowed user message); it is loadable again after that message left the window. A missing
 or unknown id is an error result. The agent, not the tool,
 applies the effect after all calls of the message ran,
 in the order of the calls, in `ToolCallResultsInputBuilder`: `DocumentContentDelivery` decides for every document a result
@@ -453,17 +452,14 @@ property typed `AgentDocumentId`. A call with a value that is not the handle of 
 and the tool is not called. `RuntimeTools` resolves the call again against the definition the tool is registered with; an
 invalid value gets a `RuntimeToolResult.error` with the resolution message, and the tool is not called.
 
-**Documents.** `RuntimeToolContext#documents()` gives a read-only view of the documents the agent knows (`find`, `all`) and
-`reference(AgentDocumentId)`, a content block the model reads as the handle of a known document. `find` and `all` return
-the persisted `AgentDocument` of `aiagent-model`; `document(AgentDocumentId)` restores the live `Document` (an unknown id is
-an `IllegalArgumentException`, a reference that cannot be restored an `IllegalStateException`). A `DocumentContent` block in the
+**Documents.** `RuntimeToolContext#documents()` gives a read-only view of the documents the agent knows: `find` returns the
+persisted `AgentDocument` of `aiagent-model`, or nothing for an id the agent does not know. An `AgentDocumentContent` block with the
+delivery `reference` in a result is the handle of a known document. A `DocumentContent` block in the
 result is a new document: after the calls of the message ran, the agent registers it with the tool call as its origin, and
-the model reads its handle only ([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). An error result registers nothing. `hasContentInConversation(AgentDocumentId)` tells a tool
-whether the model reads the content of a document already: in the messages the next model call reads (the context window),
-including the messages this turn adds.
+the model reads its handle only ([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). An error result registers nothing.
 
 **Effects.** `RuntimeToolResult.success(...)` returns a `Success`, which has the effect `withDocumentContent(AgentDocumentId)`
-(or `withDocumentContent(Document)` for a document the result returns itself): the agent adds the content of a known
+(`AgentDocumentId.of(document)` names a document the result returns itself): the agent adds the content of a known
 document, or of one the result returns itself, to the request that follows the tool results. An effect is a variant of the
 sealed `ToolCallEffect` (`aiagent-model`); `Success.effects()` lists them, `with*` methods append. `LoadDocumentTool` is the
 reference. The agent runs the content guard (`DocumentContentGuard`: the content type and the size limit of its kind) before

@@ -264,12 +264,7 @@ class LoadDocumentToolTest {
 
   @Test
   void answersAMissingIdWithAnErrorWithoutEffects() {
-    final var context =
-        RuntimeToolContextImpl.of(
-            withConfiguration(CONFIGURATION),
-            WITH_DOCUMENTS,
-            Set.of(),
-            new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+    final var context = RuntimeToolContextImpl.of(withConfiguration(CONFIGURATION), WITH_DOCUMENTS);
     final var arguments =
         new RuntimeToolCallImpl("1", LoadDocumentTool.NAME, Map.of(), objectMapper);
 
@@ -294,8 +289,7 @@ class LoadDocumentToolTest {
   private Run run(List<AgentDocument> entries, Set<AgentDocumentId> idsWithContent, ToolCall call) {
     final var agentContext = WITH_DOCUMENTS.withDocuments(AgentDocuments.of(entries));
     final var batchEntries =
-        executor.execute(
-            withConfiguration(CONFIGURATION), agentContext, idsWithContent, List.of(call));
+        executor.execute(withConfiguration(CONFIGURATION), agentContext, List.of(call));
     final var batch = ToolCallBatch.of(List.of(call)).withEntries(batchEntries);
     final var input =
         inputBuilder.build(agentContext, batch, idsWithContent, TestDocuments.documentFactory());
