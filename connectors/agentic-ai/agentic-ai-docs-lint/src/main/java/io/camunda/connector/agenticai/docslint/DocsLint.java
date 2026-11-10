@@ -46,19 +46,21 @@ public final class DocsLint {
    * blocks. Unless it is a history doc, also the types and members of its code spans that the code
    * does not know.
    */
-  public Stream<Finding> findStaleReferences(final Path doc) {
+  public Findings findStaleReferences(final Path doc) {
     final Doc parsed =
         tree.doc(doc).orElseThrow(() -> new IllegalArgumentException("No doc at " + doc));
     final Stream<Finding> findings =
         Stream.concat(DocChecks.links(parsed, tree), DocChecks.javaFences(parsed));
     if (tree.isHistory(doc)) {
-      return findings;
+      return new Findings(findings.toList());
     }
-    return Stream.of(
-            findings,
-            DocChecks.types(parsed, index(), config.allowedNames().keySet()),
-            DocChecks.members(parsed, index()))
-        .flatMap(Function.identity());
+    return new Findings(
+        Stream.of(
+                findings,
+                DocChecks.types(parsed, index(), config.allowedNames().keySet()),
+                DocChecks.members(parsed, index()))
+            .flatMap(Function.identity())
+            .toList());
   }
 
   /**
@@ -66,23 +68,26 @@ public final class DocsLint {
    * the module title and the README sections, or does not link every doc of the module under {@code
    * ## Docs}.
    */
-  public Stream<Finding> findReadmeLayoutViolations(final DocModule module) {
-    return DocChecks.readme(module, tree, config.readmeSections(), config.readmeTitles());
+  public Findings findReadmeLayoutViolations(final DocModule module) {
+    return new Findings(
+        DocChecks.readme(module, tree, config.readmeSections(), config.readmeTitles()).toList());
   }
 
   /**
    * The stale allowed names: those that no doc uses outside the history docs, and those that the
    * code now declares.
    */
-  public Stream<Finding> findStaleAllowedNames() {
-    return DocChecks.allowedNames(
-        config.allowedNames(),
-        DocChecks.namedTypes(
-            docsInScope().stream()
-                .filter(path -> !tree.isHistory(path))
-                .map(path -> tree.doc(path).orElseThrow())),
-        index(),
-        config.allowedNamesSource());
+  public Findings findStaleAllowedNames() {
+    return new Findings(
+        DocChecks.allowedNames(
+                config.allowedNames(),
+                DocChecks.namedTypes(
+                    docsInScope().stream()
+                        .filter(path -> !tree.isHistory(path))
+                        .map(path -> tree.doc(path).orElseThrow())),
+                index(),
+                config.allowedNamesSource())
+            .toList());
   }
 
   private JavaSourceIndex index() {
