@@ -36,6 +36,16 @@ class ResponseDocumentSelectionTest {
   }
 
   @Test
+  void tellsWhetherAKeyMatchesThePattern() {
+    for (final var key : List.of("a", "_", "report", "_report-2024_final", "A-b_9")) {
+      assertThat(ResponseDocumentSelection.isValidKey(key)).as(key).isTrue();
+    }
+    for (final var key : List.of("", " ", "1abc", "a b", "a.b", "-a", "ä")) {
+      assertThat(ResponseDocumentSelection.isValidKey(key)).as(key).isFalse();
+    }
+  }
+
+  @Test
   void rejectsAMissingKeyOrDocument() {
     assertThatThrownBy(() -> new ResponseDocumentSelection(null, DOCUMENT, null))
         .isInstanceOf(NullPointerException.class);

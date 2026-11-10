@@ -33,12 +33,17 @@ public record ResponseDocumentSelection(
 
   private static final Pattern KEY = Pattern.compile(KEY_PATTERN);
 
+  /** Whether {@code key} matches {@link #KEY_PATTERN}. */
+  public static boolean isValidKey(String key) {
+    return KEY.matcher(key).matches();
+  }
+
   /**
    * @throws IllegalArgumentException if the key does not match {@link #KEY_PATTERN}
    */
   public ResponseDocumentSelection {
     Objects.requireNonNull(key, "key must not be null");
-    if (!KEY.matcher(key).matches()) {
+    if (!isValidKey(key)) {
       throw new IllegalArgumentException(
           "The key '%s' of a response document must match %s".formatted(key, KEY_PATTERN));
     }
