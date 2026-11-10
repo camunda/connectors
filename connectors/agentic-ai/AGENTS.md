@@ -71,6 +71,7 @@ Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
 
 `agentic-ai-archunit-tests` holds the ArchUnit rules for the production classes of all modules (see its
 [README](agentic-ai-archunit-tests/README.md#key-types)). The class Javadoc of each architecture test describes what it checks.
+They skip `agentic-ai-docs-lint` on purpose, because it supports development only and is not deployed.
 
 - `PackageCyclesArchTest` allows the package cycles in `KNOWN_CYCLES`. When you break a cycle, delete its entry;
   never add one.
