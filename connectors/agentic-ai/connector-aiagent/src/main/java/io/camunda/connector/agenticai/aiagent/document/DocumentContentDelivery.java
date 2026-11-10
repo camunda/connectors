@@ -15,8 +15,11 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,11 +55,67 @@ public final class DocumentContentDelivery {
 
     /**
      * The content is not added because the model reads it already, or an earlier request of the
-     * same batch dealt with it.
+     * same batch delivers it.
      *
      * @param id the id of the document
      */
     record AlreadyInConversation(AgentDocumentId id) implements Outcome {}
+  }
+
+  /**
+   * What the requests of a batch dealt with so far: the documents whose content the model reads or
+   * receives in the next message, and the documents whose content is withheld with the note for the
+   * model. A document is in one of the two at most.
+   *
+   * @param inConversation the ids of the documents whose content is not added again
+   * @param withheld the note for the model by the id of every document whose content is withheld
+   */
+  public record Handled(
+      Set<AgentDocumentId> inConversation, Map<AgentDocumentId, String> withheld) {
+
+    public Handled {
+      inConversation = Set.copyOf(inConversation);
+      withheld = Map.copyOf(withheld);
+    }
+
+    /**
+     * The state before the first request of a batch.
+     *
+     * @param idsWithContent the ids of the documents whose content the model reads as of the start
+     *     of the batch
+     */
+    public static Handled of(Set<AgentDocumentId> idsWithContent) {
+      return new Handled(idsWithContent, Map.of());
+    }
+
+    private Handled after(Outcome outcome) {
+      return switch (outcome) {
+        case Outcome.Delivered delivered -> {
+          final var ids = new HashSet<>(inConversation);
+          ids.add(delivered.withContent().id());
+          yield new Handled(ids, withheld);
+        }
+        case Outcome.Withheld withheldOutcome -> {
+          final var notes = new HashMap<>(withheld);
+          notes.put(withheldOutcome.id(), withheldOutcome.note());
+          yield new Handled(inConversation, notes);
+        }
+        case Outcome.AlreadyInConversation ignored -> this;
+      };
+    }
+  }
+
+  /**
+   * The outcome for every document that was asked for, and the state after the requests.
+   *
+   * @param outcomes the outcome per document, in the order of the first request
+   * @param handled the state for the next request of the batch
+   */
+  public record Decision(List<Outcome> outcomes, Handled handled) {
+
+    public Decision {
+      outcomes = List.copyOf(outcomes);
+    }
   }
 
   private static final String CONTENT_LIMITS_PROPERTY =
@@ -73,36 +132,43 @@ public final class DocumentContentDelivery {
 
   /**
    * Decides for each document that was asked for, in the order of the first request, whether its
-   * content is added. A document in {@code handled} is {@link Outcome.AlreadyInConversation}: the
-   * model reads its content already, or an earlier request of the same batch dealt with it.
+   * content is added. A document that is {@link Handled#inConversation} is {@link
+   * Outcome.AlreadyInConversation}: the model reads its content already, or an earlier request of
+   * the same batch delivers it. A document that is {@link Handled#withheld} is {@link
+   * Outcome.Withheld} again with the note it got.
    *
    * @param known the documents the agent knows
    * @param requested the ids of the documents whose content is asked for
-   * @param handled the ids of the documents whose content is not added again
+   * @param handled what the earlier requests of the batch dealt with
    * @param documentFactory the document factory of the job, which restores the documents from the
    *     document store of the physical tenant of the job
    * @throws IllegalArgumentException if a requested id is not the one of a known document
    * @throws IllegalStateException if the document of a requested id cannot be restored
    */
-  public List<Outcome> deliver(
+  public Decision deliver(
       AgentDocuments known,
       Collection<AgentDocumentId> requested,
-      Set<AgentDocumentId> handled,
+      Handled handled,
       DocumentFactory documentFactory) {
     final var restorer = new DocumentRestorer(documentFactory);
     final var outcomes = new ArrayList<Outcome>();
+    var state = handled;
     for (final var id : new LinkedHashSet<>(requested)) {
       if (known.find(id).isEmpty()) {
         throw new IllegalArgumentException(
             "The content of the document '%s' is asked for, but the agent does not know it"
                 .formatted(id));
       }
-      outcomes.add(
-          handled.contains(id)
-              ? new Outcome.AlreadyInConversation(id)
-              : check(id, restore(known, id, restorer)));
+      final var outcome =
+          state.withheld().containsKey(id)
+              ? new Outcome.Withheld(id, state.withheld().get(id))
+              : state.inConversation().contains(id)
+                  ? new Outcome.AlreadyInConversation(id)
+                  : check(id, restore(known, id, restorer));
+      outcomes.add(outcome);
+      state = state.after(outcome);
     }
-    return List.copyOf(outcomes);
+    return new Decision(outcomes, state);
   }
 
   private static Document restore(
