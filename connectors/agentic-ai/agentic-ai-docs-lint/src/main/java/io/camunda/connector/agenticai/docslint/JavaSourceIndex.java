@@ -39,6 +39,7 @@ import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The types of the Java sources of the repository, read with the JDK compiler tree API: the types
@@ -101,12 +102,15 @@ final class JavaSourceIndex {
                     null,
                     diagnostic -> {
                       if (diagnostic.getKind() == Diagnostic.Kind.ERROR) {
+                        final @Nullable JavaFileObject source = diagnostic.getSource();
                         errors.add(
-                            diagnostic.getSource().getName()
-                                + ":"
-                                + diagnostic.getLineNumber()
-                                + ": "
-                                + diagnostic.getMessage(null));
+                            source == null
+                                ? diagnostic.getMessage(null)
+                                : source.getName()
+                                    + ":"
+                                    + diagnostic.getLineNumber()
+                                    + ": "
+                                    + diagnostic.getMessage(null));
                       }
                     },
                     List.of("-proc:none"),
@@ -242,9 +246,9 @@ final class JavaSourceIndex {
           .forEach(imported::add);
     }
     unit.accept(
-        new TreeScanner<Void, String>() {
+        new TreeScanner<@Nullable Void, @Nullable String>() {
           @Override
-          public Void visitClass(final ClassTree tree, final String outer) {
+          public @Nullable Void visitClass(final ClassTree tree, final @Nullable String outer) {
             final String simpleName = tree.getSimpleName().toString();
             if (simpleName.isEmpty()) {
               return super.visitClass(tree, outer);
@@ -256,7 +260,8 @@ final class JavaSourceIndex {
           }
 
           @Override
-          public Void visitMemberSelect(final MemberSelectTree tree, final String outer) {
+          public @Nullable Void visitMemberSelect(
+              final MemberSelectTree tree, final @Nullable String outer) {
             final String name = tree.getIdentifier().toString();
             final String qualifier = tree.getExpression().toString();
             final String last = qualifier.substring(qualifier.lastIndexOf('.') + 1);
