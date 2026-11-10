@@ -539,13 +539,31 @@ class DocsLintTest {
 
   @Test
   void typeNamesFollowTheConventions() throws IOException {
-    assertThat(unknownTypes("Foo<Alpha>.Bar<Beta>")).containsExactly("Foo", "Bar", "Alpha", "Beta");
-    assertThat(unknownTypes("@Foo(x = 1)")).containsExactly("Foo");
-    assertThat(unknownTypes("io.camunda.Foo.Bar#baz")).containsExactly("Foo", "Bar");
-    assertThat(unknownTypes("Foo.java")).containsExactly("Foo");
-    assertThat(unknownTypes("Foo[]")).containsExactly("Foo");
-    assertThat(unknownTypes("List<Foo> and Map<Bar>")).isEmpty();
-    assertThat(unknownTypes("MAX_TOKENS")).isEmpty();
+    assertThat(findStaleReferences("project/one/docs/a.md", "`Foo<Alpha>.Bar<Beta>`"))
+        .containsExactly(
+            unknownType("Foo<Alpha>.Bar<Beta>", "Foo"),
+            unknownType("Foo<Alpha>.Bar<Beta>", "Bar"),
+            unknownType("Foo<Alpha>.Bar<Beta>", "Alpha"),
+            unknownType("Foo<Alpha>.Bar<Beta>", "Beta"));
+    assertThat(findStaleReferences("project/one/docs/a.md", "`@Foo(x = 1)`"))
+        .containsExactly(unknownType("@Foo(x = 1)", "Foo"));
+    assertThat(findStaleReferences("project/one/docs/a.md", "`io.camunda.Foo.Bar#baz`"))
+        .containsExactly(
+            unknownType("io.camunda.Foo.Bar#baz", "Foo"),
+            unknownType("io.camunda.Foo.Bar#baz", "Bar"),
+            new Warning(
+                Path.of("project/one/docs/a.md"),
+                1,
+                "member of `io.camunda.Foo.Bar#baz` not verified: `Bar` is not declared in the repo"
+                    + " sources, so it is a type of a dependency whose classes are not loaded",
+                "the check reads the code of the repo, so it cannot see the members of a dependency",
+                "check the member against the documentation or the sources of the dependency"));
+    assertThat(findStaleReferences("project/one/docs/a.md", "`Foo.java`"))
+        .containsExactly(unknownType("Foo.java", "Foo"));
+    assertThat(findStaleReferences("project/one/docs/a.md", "`Foo[]`"))
+        .containsExactly(unknownType("Foo[]", "Foo"));
+    assertThat(findStaleReferences("project/one/docs/a.md", "`List<Foo> and Map<Bar>`")).isEmpty();
+    assertThat(findStaleReferences("project/one/docs/a.md", "`MAX_TOKENS`")).isEmpty();
   }
 
   @Test
@@ -805,7 +823,7 @@ class DocsLintTest {
 
     assertThat(findings.warnings()).containsExactly(warning);
     assertThat(findings.failureMessage())
-        .contains(
+        .hasValue(
             """
 
             project/one/docs/a.md:1: first
@@ -874,15 +892,33 @@ class DocsLintTest {
                 why: a code excerpt goes stale when the code changes
                 fix: replace the excerpt with the name of the type and member, for example `Type#member`\
             """);
-    assertThat(findStaleReferences("project/docs/current.md", lines))
-        .extracting(DocsLintTest::what)
+    assertThat(messages(findStaleReferences("project/docs/current.md", lines)))
         .containsExactly(
-            "link `gone.md` points to a file that does not exist (resolved to `project/docs/gone.md`)",
-            "Java code block",
-            "unknown type `Gone` in `Gone`",
-            "unknown type `Gone` in `Gone#member`",
-            "member of `Gone#member` not verified: `Gone` is not declared in the repo sources, so it"
-                + " is a type of a dependency whose classes are not loaded");
+            """
+            project/docs/current.md:2: link `gone.md` points to a file that does not exist (resolved to `project/docs/gone.md`)
+                why: the file was renamed, moved or deleted, or the path is wrong
+                fix: check the path against the file tree\
+            """,
+            """
+            project/docs/current.md:3: Java code block
+                why: a code excerpt goes stale when the code changes
+                fix: replace the excerpt with the name of the type and member, for example `Type#member`\
+            """,
+            """
+            project/docs/current.md:2: unknown type `Gone` in `Gone`
+                why: the code declares, imports or nests no type of this name, so the doc may name a type that was renamed or removed
+                fix: check the name against the code\
+            """,
+            """
+            project/docs/current.md:2: unknown type `Gone` in `Gone#member`
+                why: the code declares, imports or nests no type of this name, so the doc may name a type that was renamed or removed
+                fix: check the name against the code\
+            """,
+            """
+            project/docs/current.md:2: member of `Gone#member` not verified: `Gone` is not declared in the repo sources, so it is a type of a dependency whose classes are not loaded
+                why: the check reads the code of the repo, so it cannot see the members of a dependency
+                fix: check the member against the documentation or the sources of the dependency\
+            """);
   }
 
   @Test
@@ -979,19 +1015,18 @@ class DocsLintTest {
     return lint.findStaleReferences(Path.of(path)).all();
   }
 
-  private List<String> unknownTypes(final String span) throws IOException {
-    return findStaleReferences("project/one/docs/a.md", "`" + span + "`").stream()
-        .map(DocsLintTest::what)
-        .filter(what -> what.startsWith("unknown type `"))
-        .map(what -> what.substring("unknown type `".length(), what.indexOf('`', 14)))
-        .toList();
-  }
-
-  private static String what(final Finding finding) {
-    return switch (finding) {
-      case final Violation violation -> violation.what();
-      case final Warning warning -> warning.what();
-    };
+  /**
+   * The finding of an unknown type in a code span on the first line of the doc, without similar
+   * names.
+   */
+  private static Violation unknownType(final String span, final String name) {
+    return new Violation(
+        Path.of("project/one/docs/a.md"),
+        1,
+        "unknown type `" + name + "` in `" + span + "`",
+        "the code declares, imports or nests no type of this name, so the doc may name a type that"
+            + " was renamed or removed",
+        "check the name against the code");
   }
 
   private static List<String> messages(final Findings findings) {
