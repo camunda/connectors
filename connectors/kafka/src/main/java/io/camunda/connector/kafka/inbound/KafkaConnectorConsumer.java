@@ -30,15 +30,19 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.config.ConfigDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +67,8 @@ public class KafkaConnectorConsumer {
   KafkaConnectorProperties elementProps;
   boolean shouldLoop = true;
   private Health consumerStatus = Health.unknown();
+  private Duration groupJoinTimeout;
+  private Instant notInGroupSince;
   private ObjectReader avroObjectReader;
 
   public KafkaConnectorConsumer(
@@ -114,12 +120,15 @@ public class KafkaConnectorConsumer {
 
   private Consumer<Object, Object> prepareConsumer() {
     try {
-      var consumer = consumerCreatorFunction.apply(getKafkaProperties(elementProps, context));
+      var kafkaProps = getKafkaProperties(elementProps, context);
+      var consumer = consumerCreatorFunction.apply(kafkaProps);
+      groupJoinTimeout = groupJoinTimeout(kafkaProps);
+      notInGroupSince = null;
       String topicName = elementProps.topic().topicName();
       consumer.subscribe(
           List.of(topicName),
           new OffsetUpdateRequiredListener(topicName, consumer, elementProps.offsets()));
-      reportUp(consumer);
+      reportGroupHealth(consumer);
 
       return consumer;
     } catch (Exception ex) {
@@ -137,7 +146,7 @@ public class KafkaConnectorConsumer {
     while (shouldLoop) {
       try {
         pollAndPublish(consumer);
-        reportUp(consumer);
+        reportGroupHealth(consumer);
       } catch (Exception ex) {
         reportDown(ex);
         throw ex;
@@ -210,21 +219,68 @@ public class KafkaConnectorConsumer {
     }
   }
 
-  private void reportUp(Consumer<Object, Object> consumer) {
+  // The broker may hold a join for up to the rebalance timeout, which is max.poll.interval.ms
+  private static Duration groupJoinTimeout(Properties kafkaProps) {
+    Object value =
+        kafkaProps.getOrDefault(
+            ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
+            ConsumerConfig.configDef()
+                .defaultValues()
+                .get(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG));
+    int millis =
+        (Integer)
+            ConfigDef.parseType(
+                ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, value, ConfigDef.Type.INT);
+    return Duration.ofMillis(millis);
+  }
+
+  // A consumer that is not in its group (generation -1) does not receive any message, even
+  // though poll() keeps returning without error while the client retries in the background
+  private void reportGroupHealth(Consumer<Object, Object> consumer) {
+    var groupMetadata = consumer.groupMetadata();
     var details = new HashMap<String, Object>();
-    details.put("group-id", consumer.groupMetadata().groupId());
-    details.put("group-instance-id", consumer.groupMetadata().groupInstanceId().orElse("unknown"));
-    details.put("group-generation-id", consumer.groupMetadata().generationId());
-    var newStatus = Health.up(details);
+    details.put("group-id", groupMetadata.groupId());
+    details.put("group-instance-id", groupMetadata.groupInstanceId().orElse("unknown"));
+    details.put("group-generation-id", groupMetadata.generationId());
+
+    if (groupMetadata.generationId() >= 0) {
+      notInGroupSince = null;
+      reportHealth(Health.up(details), Severity.INFO, details);
+      return;
+    }
+    if (notInGroupSince == null) {
+      notInGroupSince = Instant.now();
+    }
+    if (Duration.between(notInGroupSince, Instant.now()).compareTo(groupJoinTimeout) < 0) {
+      reportHealth(Health.unknown(details), Severity.INFO, details);
+    } else {
+      var error =
+          new Health.Error(
+              "CONSUMER_GROUP_NOT_JOINED",
+              String.format(
+                  "Kafka consumer has not joined consumer group '%s' for %d ms (%s). It cannot"
+                      + " receive messages. Check that the brokers and the group coordinator are"
+                      + " reachable with the configured connection settings; the connector"
+                      + " runtime logs contain the Kafka client's connection errors.",
+                  groupMetadata.groupId(),
+                  groupJoinTimeout.toMillis(),
+                  ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG));
+      reportHealth(Health.down(error, details), Severity.ERROR, details);
+    }
+  }
+
+  private void reportHealth(Health newStatus, Severity severity, Map<String, Object> details) {
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
       context.log(activity ->
           activity
-              .withSeverity(Severity.INFO)
+              .withSeverity(severity)
               .withTag(ActivityLogTag.CONSUMER)
               .withData(details)
               .withMessage(
-                  "Kafka Consumer status changed to UP, deduplication ID: "
+                  "Kafka Consumer status changed to "
+                      + newStatus.getStatus()
+                      + ", deduplication ID: "
                       + context.getDefinition().deduplicationId())
               .andReportHealth(newStatus));
     }
