@@ -343,14 +343,13 @@ applies it to its persisted context, and the next round continues with the conte
   persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
-  `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) and `DocumentSchemas`, which replaces `RuntimeToolSchemas` and
+  `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) and `DocumentSchemas`, which
   declares the document parameters of runtime tools and of gateway tools, are in `aiagent.api.tool` of `aiagent-api`.
 - A document parameter in a tool definition is the object schema of a document handle: `type: object` with the required
   properties `type` (`enum: ["camunda.agenticai.document"]`) and `id` (`string`), and the description as authored
   (`DocumentSchemas.document(...)`; `ToolDefinition#documentParameters()` lists them as the sealed `DocumentParameter`).
-  There is no format marker and no hint appended to the description; the schema goes to the model provider as it is, and
-  `DocumentParameter.FORMAT_DOCUMENT_ID` does not exist. A custom definition that carries a string schema with the format
-  `camunda-document-id` is no document parameter. A gateway handler that defines its tools itself can declare document
+  There is no format marker and no hint appended to the description; the schema goes to the model provider as it is.
+  A gateway handler that defines its tools itself can declare document
   parameters in them and receives the Camunda document references in the arguments of a call.
 - The value of a document parameter is the handle object the model read, `{"type":"camunda.agenticai.document","id":"doc_…"}`;
   other fields are ignored and the `type` is required. A string that holds the handle as JSON is a handle too; the bare id of
