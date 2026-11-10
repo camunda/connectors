@@ -126,7 +126,8 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     /**
      * The entry of a result as the process returned it, from a tool with the given document
      * delivery. With the delivery {@link DocumentDelivery#CONTENT} the entry asks for the content
-     * of every document of the result.
+     * of every Camunda document of the result; a document of another kind has no agent document id,
+     * and {@link #requireCamundaDocuments()} reports it.
      */
     public static Entry from(
         ToolCallResult result,
@@ -171,7 +172,9 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      * The entry of a result of a tool with the given document delivery, for an agent instance that
      * tracks its documents, with the documents of {@link
      * #withRenderedDocuments(ToolCallResultContent, ObjectHandleRenderer)}. With the delivery {@link
-     * DocumentDelivery#CONTENT} the entry asks for the content of every document of the result.
+     * DocumentDelivery#CONTENT} the entry asks for the content of every Camunda document of the
+     * result; a document of another kind has no agent document id, and {@link
+     * #requireCamundaDocuments()} reports it.
      */
     public static Entry withRenderedDocuments(
         ToolCallResultContent result,
@@ -189,6 +192,7 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
         case REFERENCE -> List.of();
         case CONTENT ->
             documents.stream()
+                .filter(AgentDocument::isSupported)
                 .<ToolCallEffect>map(
                     document -> new ToolCallEffect.AddDocumentContent(AgentDocumentId.of(document)))
                 .toList();

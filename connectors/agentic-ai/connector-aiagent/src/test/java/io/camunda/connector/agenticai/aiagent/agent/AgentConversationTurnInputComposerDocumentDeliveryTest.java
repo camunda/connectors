@@ -14,6 +14,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMes
 import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -57,7 +59,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -198,26 +199,6 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   }
 
   @Test
-  void userPrompt_withoutADelivery_addsTheContentOfAnExternalDocument() {
-    final var external = externalDocument();
-
-    final var turn = nextTurn(composePrompt(CTX, null, List.of(), external));
-
-    assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), block(external, true));
-  }
-
-  @Test
-  void userPrompt_withReferenceDelivery_keepsAnExternalDocumentAsAReference() {
-    final var external = externalDocument();
-
-    final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.REFERENCE, List.of(), external));
-
-    assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), block(external, false));
-  }
-
-  @Test
   void userPrompt_withReferenceDelivery_keepsTheDocumentAsAReference() {
     final var doc = document("prompt data", "text/plain", "prompt.txt");
 
@@ -225,25 +206,6 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
 
     assertThat(((UserMessage) turn.messages().getFirst()).content())
         .containsExactly(textContent("Hello?"), block(doc, false));
-  }
-
-  @Test
-  void userPrompt_withTheDeliveryContent_addsTheContentOfAnExternalDocumentWithoutDownloadingIt() {
-    final var downloads = new AtomicInteger();
-    final var external =
-        new ExternalDocument(
-            "https://files.example.com/report.pdf",
-            "report.pdf",
-            url -> {
-              downloads.incrementAndGet();
-              return null;
-            });
-
-    final var turn = nextTurn(composePrompt(CTX, DocumentDelivery.CONTENT, List.of(), external));
-
-    assertThat(((UserMessage) turn.messages().getFirst()).content())
-        .containsExactly(textContent("Hello?"), block(external, true));
-    assertThat(downloads).hasValue(0);
   }
 
   @Test
@@ -522,6 +484,20 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     assertThat(((UserMessage) turn.messages().get(1)).content())
         .containsExactly(
             textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE), block(doc, true));
+  }
+
+  @Test
+  void toolResults_ofAToolWithTheDeliveryContent_failTheJobForAnExternalDocument() {
+    final var external = externalDocument();
+
+    assertThatThrownBy(() ->
+            composeToolResults(
+                contextWithTools(CONTENT_TOOL),
+                result("abcdef", "getWeather", external),
+                dateTimeResult()))
+        .isExactlyInstanceOf(UnsupportedDocumentReferenceException.class)
+        .hasMessage(
+            "Only Camunda documents can be passed to the AI Agent, but the result of the tool 'getWeather' contains an external document.");
   }
 
   @Test
