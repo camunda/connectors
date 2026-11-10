@@ -487,23 +487,33 @@ class AgentConfigurationTest {
     }
 
     @Test
-    void documentDeliveryOfAToolChangesTheFingerprint() {
-      final var tool =
-          ToolDefinition.builder()
-              .name("getWeather")
-              .description("Get the weather forecast")
-              .inputSchema(Map.of("type", "object", "required", List.of("city")))
-              .build();
-
-      final var byReference = configuration("gpt-4o", "Be nice.", 10, List.of(tool));
-      final var content =
+    void documentDeliveryOfAToolIsPartOfTheHashInput() throws NoSuchAlgorithmException {
+      final var configuration =
           configuration(
               "gpt-4o",
               "Be nice.",
               10,
-              List.of(tool.withDocumentDelivery(DocumentDelivery.CONTENT)));
+              List.of(
+                  ToolDefinition.builder()
+                      .name("getWeather")
+                      .description("Get the weather forecast")
+                      .inputSchema(Map.of("type", "object", "required", List.of("city")))
+                      .documentDelivery(DocumentDelivery.CONTENT)
+                      .build()));
 
-      assertThat(content.fingerprint()).isNotEqualTo(byReference.fingerprint());
+      final var json =
+          """
+          ["gpt-4o","%s","Be nice.",10,[["getWeather","Get the weather forecast",\
+          {"required":["city"],"type":"object"},[],"content"]]]\
+          """
+              .formatted(configuration.chatModel().descriptiveProvider());
+      final var expected =
+          HexFormat.of()
+              .formatHex(
+                  MessageDigest.getInstance("SHA-256")
+                      .digest(json.getBytes(StandardCharsets.UTF_8)));
+
+      assertThat(configuration.fingerprint()).isEqualTo(expected);
     }
 
     /**
