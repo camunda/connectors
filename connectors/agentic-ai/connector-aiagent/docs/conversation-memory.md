@@ -26,6 +26,11 @@ invocation and transformed through copy-on-write methods.
   the job with the tool call results of the local tool calls, and the messages that follow them, as its input. It applies
   the `UnaryOperator<AgentContext>` `registerDocuments` to the persisted context and continues with the context that it
   returns: the persisted context with the documents of the input registered (`TurnInput.applyTo`).
+  `documentIdsWithContent(addedMessages)` holds the ids of the documents whose content the model reads in the next model
+  call, from the blocks with the delivery `content` in the windowed messages, with the messages added before that call
+  counted (the tool call result message of a local round); `PreviousConversation` has the same for the conversation
+  before the invocation (`documentIdsWithContent(contextWindowSize, addedMessages)`), which keeps a place in the window for
+  a system message, because the system message of the next call is composed in the invocation.
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
   `AgentContext.metrics` by the current turn's delta and, once the current turn has been `ingest`ed,
   stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).
@@ -74,6 +79,10 @@ that does not track its documents (`Untracked`) the expander returns the snapsho
 are and a `Document` in a tool result is serialized as its Camunda reference JSON. No provider receives a document inside a
 tool result, so the content of a document reaches the model only in a user message. The content of a document stays in every request until
 the message that holds it leaves the window; there is no removal.
+
+The window never announces a document whose message it hides. The agent documents still resolve the handle of such a document,
+so a handle that is still in the model's context, in its own text for example, can be passed to a tool or loaded again within
+the guard.
 
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
 static window filter:

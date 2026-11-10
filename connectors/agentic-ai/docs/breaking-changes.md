@@ -266,7 +266,7 @@ The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler
 `DocumentContentGuard`, the check of the documents whose content the agent adds. The content delivery and the runtime
 tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`), never with a
 `DocumentFactory` bean. The size limits of the guard are set by the properties
-`camunda.connector.agenticai.aiagent.document.content-limits.*` (see §16 of the [reference](reference/ai-agent.md)). The
+`camunda.connector.agenticai.aiagent.document.content-limits.*` (see [Document content limits](architecture/spring-auto-configuration.md#document-content-limits)). The
 auto-configuration provides these beans and the built-in runtime tool, each `@ConditionalOnMissingBean`. A custom bean
 built with `new` needs the extra arguments; inject them as beans.
 
