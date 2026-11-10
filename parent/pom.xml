@@ -112,6 +112,11 @@ limitations under the License.</license.inlineheader>
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.37.1</version.amqp-client>
+    <!-- mariadb-java-client transitive override: connectors/jdbc/pom.xml declares 3.5.11 directly,
+         but spring-boot-dependencies' managed mariadb.version (3.5.10 on spring-boot 4.1.2) overrides
+         that declaration in every module importing this parent, including the bundles. Remove once
+         spring-boot-dependencies manages org.mariadb.jdbc:mariadb-java-client >= 3.5.11. -->
+    <version.mariadb-java-client>3.5.11</version.mariadb-java-client>
     <version.netty>4.2.20.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
@@ -326,6 +331,14 @@ limitations under the License.</license.inlineheader>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
         <version>42.7.14</version>
+      </dependency>
+
+      <!-- Temporary override: remove once spring-boot-dependencies manages
+           mariadb-java-client >= 3.5.11. Guarded by the version.spring-boot enforcer rule below. -->
+      <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client</artifactId>
+        <version>${version.mariadb-java-client}</version>
       </dependency>
 
       <!-- gRPC BOM - the version has to be equal or greater than the one from the Camunda client -->
@@ -1211,6 +1224,22 @@ If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.3
 version.amqp-client property, the amqp-client dependencyManagement entry, and this enforcer rule
 from parent/pom.xml.
 See: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx
+                </regexMessage>
+              </requireProperty>
+              <!-- mariadb-java-client guard: fails if version.spring-boot is bumped, as a reminder to
+                   check whether the mariadb-java-client override can be removed (see
+                   version.mariadb-java-client). Confirmed still needed as of spring-boot 4.1.2: its
+                   BOM ships mariadb.version 3.5.10. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.2$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the mariadb-java-client override can be removed.
+To check whether the new spring-boot-dependencies BOM ships org.mariadb.jdbc:mariadb-java-client
+&gt;= 3.5.11, temporarily remove the mariadb-java-client dependencyManagement entry (the override masks
+the BOM-managed version), then run `mvn dependency:tree -Dincludes=org.mariadb.jdbc:mariadb-java-client`
+on both bundle modules. If both resolve &gt;= 3.5.11, remove the version.mariadb-java-client property,
+the dependencyManagement entry, and this enforcer rule from parent/pom.xml; otherwise restore the entry.
                 </regexMessage>
               </requireProperty>
               <!-- CVE-2026-68497 / GHSA-q4xh-88c3-wmh7 guard: fails if version.spring-boot is
