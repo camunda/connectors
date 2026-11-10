@@ -25,6 +25,14 @@ gating a persisted shape on a feature.
 `RuntimeTools` and the conversation read the features from the `AgentContext`; they are not part of the configuration
 fingerprint.
 
+**Response documents.** `AgentContext.responseDocuments` is the list of the documents selected for the final response, in the
+order they were selected (omitted when empty, no schema version bump; a missing field binds to an empty list). An entry is
+`{key, document, description?}`: the key the process finds the document by, the `AgentDocumentId` of one of the agent
+documents and an optional description. A selection under a key that is already used replaces that selection in place
+(`AgentContext.withResponseDocument`). The runtime tool `c8__return_document` selects them ([Add a runtime tool](../../docs/architecture/extension-points.md#add-a-runtime-tool)); the list stays in the
+context for the lifetime of the agent instance, so every final response carries all of them. It is part of `agentContext`
+like the agent documents, so it is independent of the conversation store.
+
 **Documents.** `AgentContext.documents` is the `AgentDocuments` of the agent instance: a list of `AgentDocument` entries
 `{id, origin, reference}` (omitted when empty; a missing field binds to no documents), read and
 replaced through `AgentContext.documents()` and `withDocuments(...)`. `origin` is the sealed `AgentDocumentOrigin`
