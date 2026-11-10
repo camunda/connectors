@@ -76,19 +76,24 @@ class AgenticAiDocsTest {
 
   /** The config of the Agentic AI docs below the root of a repository. */
   static DocsLintConfig config(final Path root) {
-    return new DocsLintConfig(
-        root,
-        List.of(AGENTIC_AI, E2E),
-        List.of(
-            AGENTIC_AI + "/docs/adr/**", AGENTIC_AI + "/examples/**", "**/src/main/resources/**"),
-        Set.of(AGENTIC_AI.resolve("docs/breaking-changes.md")),
-        AGENTIC_AI.resolve("pom.xml"),
-        List.of(E2E),
-        List.of("## Purpose", "## Key types", "## Docs"),
-        Map.of("connector-aiagent", "# AI Agent Task"),
-        ALLOWED_NAMES,
-        AGENTIC_AI.resolve(
-            "agentic-ai-docs-lint/src/test/java/io/camunda/connector/agenticai/docslint/AgenticAiDocsTest.java"));
+    return DocsLintConfigBuilder.builder()
+        .root(root)
+        .docRoots(List.of(AGENTIC_AI, E2E))
+        .excludedDocs(
+            List.of(
+                AGENTIC_AI + "/docs/adr/**",
+                AGENTIC_AI + "/examples/**",
+                "**/src/main/resources/**"))
+        .historyDocs(Set.of(AGENTIC_AI.resolve("docs/breaking-changes.md")))
+        .modulesPom(AGENTIC_AI.resolve("pom.xml"))
+        .extraModules(List.of(E2E))
+        .readmeSections(List.of("## Purpose", "## Key types", "## Docs"))
+        .readmeTitles(Map.of("connector-aiagent", "# AI Agent Task"))
+        .allowedNames(ALLOWED_NAMES)
+        .allowedNamesSource(
+            AGENTIC_AI.resolve(
+                "agentic-ai-docs-lint/src/test/java/io/camunda/connector/agenticai/docslint/AgenticAiDocsTest.java"))
+        .build();
   }
 
   /** The root of the repository that holds this module, which is run from its directory. */

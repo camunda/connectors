@@ -953,17 +953,19 @@ class DocsLintTest {
 
   private DocsLint lint(final Map<String, String> allowedNames) {
     return DocsLint.of(
-        new DocsLintConfig(
-            root,
-            List.of(Path.of("project"), Path.of("e2e")),
-            List.of("project/docs/adr/**", "project/examples/**", "**/src/main/resources/**"),
-            Set.of(Path.of("project/docs/history.md")),
-            Path.of("project/pom.xml"),
-            List.of(Path.of("e2e")),
-            List.of("## Purpose", "## Key types", "## Docs"),
-            Map.of("titled", "# Titled Module"),
-            allowedNames,
-            Path.of("Policy.java")));
+        DocsLintConfigBuilder.builder()
+            .root(root)
+            .docRoots(List.of(Path.of("project"), Path.of("e2e")))
+            .excludedDocs(
+                List.of("project/docs/adr/**", "project/examples/**", "**/src/main/resources/**"))
+            .historyDocs(Set.of(Path.of("project/docs/history.md")))
+            .modulesPom(Path.of("project/pom.xml"))
+            .extraModules(List.of(Path.of("e2e")))
+            .readmeSections(List.of("## Purpose", "## Key types", "## Docs"))
+            .readmeTitles(Map.of("titled", "# Titled Module"))
+            .allowedNames(allowedNames)
+            .allowedNamesSource(Path.of("Policy.java"))
+            .build());
   }
 
   private List<Finding> findStaleReferences(final String path, final String... lines)

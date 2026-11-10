@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.docslint;
 
+import io.soabase.recordbuilder.core.RecordBuilder;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,11 @@ import java.util.Set;
  * @param allowedNamesSource the file that holds the allowed names, given as the file of a finding
  *     about them
  */
+@RecordBuilder
+@RecordBuilder.Options(
+    publicBuilderConstructors = true,
+    interpretNotNulls = true,
+    defaultNotNull = true)
 public record DocsLintConfig(
     Path root,
     List<Path> docRoots,
