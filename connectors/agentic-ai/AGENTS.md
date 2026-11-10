@@ -129,16 +129,17 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 
 `agentic-ai-docs-lint` holds the docs checks: the `DocsLint` engine, and `AgenticAiDocsTest` (plain JUnit),
 which applies it to the agentic AI docs and holds their paths, README layout and allowed names. Each module
-README has the fixed sections and links the docs of its module. Relative links and anchors resolve. The docs hold no `java`
-code blocks. The types and members that the docs name in backticks exist in the repository sources. Run them with:
+README has the fixed sections and links the docs of its module. Relative links and anchors resolve. The
+docs hold no `java` code blocks. The types and members that the docs name in backticks exist in the
+repository sources. Run them with:
 
 ```bash
 ./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-docs-lint
 ```
 
-A failure names the file and line, why it fails and what to verify. The code is the source of truth. A warning
-does not fail the test. The build log shows each warning as one line `WARN <path>:<line>: <what>`, and the
-JUnit report (the IDE test view) holds a `warning` entry with the why and the fix.
+A failure names the file and line, why it fails and what to verify. The code is the source of truth. A
+warning does not fail the test. The build log shows each warning as one line `WARN <path>:<line>: <what>`,
+and the JUnit report (the IDE test view) holds a `warning` entry with the why and the fix.
 
 ## Start here, navigation
 
