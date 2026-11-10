@@ -3,7 +3,10 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "ServiceNow Outbound Connector",
   "id": "io.camunda.connectors.ServiceNow.v1",
-  "version": 3,
+  "version": 4,
+  "engines": {
+    "camunda": "^8.11"
+  },
   "description": "Execute CRUD operations on any ServiceNow table",
   "keywords": [
     "create record",
@@ -83,6 +86,19 @@
       "type": "Hidden"
     },
     {
+      "id": "serviceAuthenticationConfiguration",
+      "label": "Authentication credential",
+      "tooltip": "Choose a reusable ServiceNow credential, or configure the one-time authentication below.",
+      "optional": true,
+      "group": "sn",
+      "binding": {
+        "name": "serviceAuthenticationConfiguration",
+        "type": "zeebe:input"
+      },
+      "type": "Configuration",
+      "configurationTemplate": "io.camunda.connectors:servicenow-authentication:1"
+    },
+    {
       "id": "snInstance",
       "label": "Instance name",
       "tooltip": "Enter only the instance name from your ServiceNow URL",
@@ -96,7 +112,12 @@
       "constraints": {
         "notEmpty": true
       },
-      "type": "String"
+      "type": "String",
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
+      }
     },
     {
       "id": "operationGroup",
@@ -491,7 +512,12 @@
           "name": "OAuth 2.0",
           "value": "oauth-client-credentials-flow"
         }
-      ]
+      ],
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
+      }
     },
     {
       "id": "authentication.apiKeyLocation",
@@ -508,9 +534,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "apiKey",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "apiKey",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "Dropdown",
       "choices": [
@@ -538,9 +573,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "apiKey",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "apiKey",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "String"
     },
@@ -558,9 +602,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "apiKey",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "apiKey",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "String"
     },
@@ -578,9 +631,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "basic",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "basic",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "String"
     },
@@ -598,9 +660,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "basic",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "basic",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "String"
     },
@@ -618,9 +689,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "bearer",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "bearer",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "String"
     },
@@ -642,9 +722,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-client-credentials-flow",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "String"
     },
@@ -663,9 +752,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-client-credentials-flow",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "String"
     },
@@ -684,9 +782,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-client-credentials-flow",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "String"
     },
@@ -702,9 +809,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-client-credentials-flow",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "String"
     },
@@ -722,9 +838,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-client-credentials-flow",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "Dropdown",
       "choices": [
@@ -751,9 +876,18 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "authentication.type",
-        "equals": "oauth-client-credentials-flow",
-        "type": "simple"
+        "allMatch": [
+          {
+            "property": "authentication.type",
+            "equals": "oauth-client-credentials-flow",
+            "type": "simple"
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
       },
       "type": "String"
     },
@@ -795,7 +929,32 @@
         "type": "zeebe:input"
       },
       "type": "Hidden",
-      "value": "={\n  \"baseUrl\": \"https://\" + snInstance + \".service-now.com/api/now/table/\",\n  \"table\": if targetTable = \"__custom\" then customRequestTarget else targetTable ,\n  \"updateOrDeleteSysId\": if updateTarget != null then updateTarget else (if deleteTarget != null then deleteTarget else null) ,\n  \"fullUrl\": baseUrl + table + (if updateOrDeleteSysId != null then \"/\" + updateOrDeleteSysId else \"\")\n}.fullUrl"
+      "value": "={\n  \"baseUrl\": \"https://\" + snInstance + \".service-now.com/api/now/table/\",\n  \"table\": if targetTable = \"__custom\" then customRequestTarget else targetTable ,\n  \"updateOrDeleteSysId\": if updateTarget != null then updateTarget else (if deleteTarget != null then deleteTarget else null) ,\n  \"fullUrl\": baseUrl + table + (if updateOrDeleteSysId != null then \"/\" + updateOrDeleteSysId else \"\")\n}.fullUrl",
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
+      }
+    },
+    {
+      "id": "relativeUrl",
+      "label": "URL",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "endpoint",
+      "binding": {
+        "name": "relativeUrl",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden",
+      "value": "={\n  \"baseUrl\": \"/api/now/table/\",\n  \"table\": if targetTable = \"__custom\" then customRequestTarget else targetTable ,\n  \"updateOrDeleteSysId\": if updateTarget != null then updateTarget else (if deleteTarget != null then deleteTarget else null) ,\n  \"fullUrl\": baseUrl + table + (if updateOrDeleteSysId != null then \"/\" + updateOrDeleteSysId else \"\")\n}.fullUrl",
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": false,
+        "type": "simple"
+      }
     },
 
 
@@ -1512,5 +1671,76 @@
   ],
   "icon": {
     "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIgZmlsbC1vcGFjaXR5PSIwLjAxIiBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6bXVsdGlwbHkiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yNTUuOTkzIDQwOS4zODhDMTgxLjU4OCA0MDkuMzg4IDEzMC42NTQgMzUzLjI5MiAxMzAuNjU0IDI4My45MDhDMTMwLjY1NCAyMTQuNDkxIDE4MS41ODggMTU3LjQ1NSAyNTUuOTkzIDE1Ny40NTVDMzMwLjQ0IDE1Ny40NTUgMzgxLjMzMyAyMTQuNDkxIDM4MS4zMzMgMjgzLjkwOEMzODEuMzMzIDM1My4yOTIgMzMwLjQ0IDQwOS4zODggMjU1Ljk5MyA0MDkuMzg4Wk0yNTcuNDU5IDMxLjQ5NjdDMTIwLjA4OSAzMC43MDE5IDYuNDc1NDUgMTQzLjI0NCA1LjMxNTA5IDI4MS4yOTZDNC43MjQ3NCAzNTQuMzc0IDM1LjA5NzggNDIwLjM1MSA4NC4wNTY4IDQ2Ni43NDJDMTAxLjg2OSA0ODMuNjA1IDEyOS4zOTIgNDg1LjI0NSAxNDguNjkxIDQ3MC4xNjZDMTc3LjIzMiA0NDcuODU4IDIxMy44NzQgNDM0LjU3IDI1NS45OTMgNDM0LjU3QzI5OC4xMTIgNDM0LjU3IDMzNC43NTUgNDQ3Ljg2NiAzNjMuMjk2IDQ3MC4xNjZDMzgyLjc3OCA0ODUuMzcyIDQxMC40MDMgNDgzLjQyMiA0MjguMzE3IDQ2Ni4zNzZDNDc2LjU2NCA0MjAuNDYzIDUwNi42OTIgMzU1LjQ1NyA1MDYuNjkyIDI4My40MjJDNTA2LjY5MiAxNDQuNzg4IDM5NS4yMTYgMzIuMjkzNiAyNTcuNDU5IDMxLjQ5NjdaIiBmaWxsPSIjNkFDNjNGIi8+Cjwvc3ZnPgo="
-  }
+  },
+  "configurationTemplates": [
+    {
+      "id": "io.camunda.connectors:servicenow-authentication:1",
+      "kind": "CREDENTIAL",
+      "version": 1,
+      "name": "ServiceNow Authentication",
+      "properties": [
+        {
+          "id": "authentication.type",
+          "value": "basic",
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.type",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "instance",
+          "label": "Instance name",
+          "tooltip": "The first part of your instance URL. For https://dev12345.service-now.com, enter dev12345.",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "parameters.instance",
+            "type": "property"
+          },
+          "type": "String"
+        },
+        {
+          "id": "baseUrl",
+          "value": "https://${instance}.service-now.com",
+          "group": "authentication",
+          "binding": {
+            "name": "baseUrl",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.username",
+          "label": "Username",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.username",
+            "type": "property"
+          },
+          "type": "String"
+        },
+        {
+          "id": "authentication.password",
+          "label": "Password",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.password",
+            "type": "property"
+          },
+          "type": "String",
+          "secret": true
+        }
+      ]
+    }
+  ]
 }

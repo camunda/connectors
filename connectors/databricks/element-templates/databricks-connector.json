@@ -2,7 +2,7 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Databricks",
   "id" : "io.camunda.connectors.databricks.rest.v1",
-  "version" : 1,
+  "version" : 2,
   "description" : "Call the Databricks SQL Statement Execution, SQL Warehouses, Jobs, Model Serving, and Vector Search REST APIs from a BPMN process.",
   "keywords" : [
     "databricks",
@@ -30,7 +30,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.11"
   },
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMzMSIgdmlld0JveD0iMCAwIDMwMCAzMzEiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0yODMuOTIzIDEzNi40NDlMMTUwLjE0NCAyMTMuNjI0TDYuODg5OTUgMTMxLjE2OEwwIDEzNC45ODJWMTk0Ljg0NEwxNTAuMTQ0IDI4MS4xMTVMMjgzLjkyMyAyMDQuMjM0VjIzNS45MjZMMTUwLjE0NCAzMTMuMUw2Ljg4OTk1IDIzMC42NDRMMCAyMzQuNDU4VjI0NC43MjlMMTUwLjE0NCAzMzFMMzAwIDI0NC43MjlWMTg0Ljg2N0wyOTMuMTEgMTgxLjA1MkwxNTAuMTQ0IDI2My4yMTVMMTYuMDc2NiAxODYuMzM0VjE1NC42NDNMMTUwLjE0NCAyMzEuNTI0TDMwMCAxNDUuMjUzVjg2LjI3MTNMMjkyLjUzNiA4MS44Njk3TDE1MC4xNDQgMTYzLjczOUwyMi45NjY1IDkwLjk2NjNMMTUwLjE0NCAxNy44OTk4TDI1NC42NDEgNzguMDU1TDI2My44MjggNzIuNzczVjY1LjQzNzFMMTUwLjE0NCAwTDAgODYuMjcxM1Y5NS42NjEzTDE1MC4xNDQgMTgxLjkzM0wyODMuOTIzIDEwNC43NThWMTM2LjQ0OVoiIGZpbGw9IiNGRjM2MjEiLz4KPC9zdmc+Cg=="
@@ -100,6 +100,19 @@
       }
     },
     {
+      "id" : "serviceAuthenticationConfiguration",
+      "label" : "Authentication credential",
+      "tooltip" : "Choose a reusable Databricks credential, or configure the one-time authentication below.",
+      "optional" : true,
+      "group" : "workspace",
+      "binding" : {
+        "name" : "serviceAuthenticationConfiguration",
+        "type" : "zeebe:input"
+      },
+      "type" : "Configuration",
+      "configurationTemplate" : "io.camunda.connectors:databricks-authentication:1"
+    },
+    {
       "id" : "databricksHost",
       "label" : "Workspace URL",
       "optional" : false,
@@ -118,7 +131,12 @@
       },
       "placeholder" : "https://dbc-1234abcd-5678.cloud.databricks.com",
       "tooltip" : "Base URL of the Databricks workspace. Do not include a path, the operation-specific path is appended automatically. A trailing slash is tolerated.",
-      "type" : "String"
+      "type" : "String",
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }
     },
     {
       "id" : "service",
@@ -352,7 +370,12 @@
           "name" : "Personal access token (testing only)",
           "value" : "bearer"
         }
-      ]
+      ],
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }
     },
     {
       "id" : "authentication.clientId",
@@ -368,9 +391,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "authentication.type",
-        "type" : "simple",
-        "equals" : "oauth-client-credentials-flow"
+        "allMatch" : [
+          {
+            "property" : "authentication.type",
+            "type" : "simple",
+            "equals" : "oauth-client-credentials-flow"
+          },
+          {
+            "property" : "serviceAuthenticationConfiguration",
+            "isEmpty" : true,
+            "type" : "simple"
+          }
+        ]
       },
       "tooltip" : "Application ID of the Databricks service principal.",
       "type" : "String"
@@ -390,9 +422,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "authentication.type",
-        "type" : "simple",
-        "equals" : "oauth-client-credentials-flow"
+        "allMatch" : [
+          {
+            "property" : "authentication.type",
+            "type" : "simple",
+            "equals" : "oauth-client-credentials-flow"
+          },
+          {
+            "property" : "serviceAuthenticationConfiguration",
+            "isEmpty" : true,
+            "type" : "simple"
+          }
+        ]
       },
       "tooltip" : "OAuth secret of the service principal. Reference it as a connector secret rather than entering the value directly.",
       "type" : "String",
@@ -414,9 +455,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "authentication.type",
-        "type" : "simple",
-        "equals" : "bearer"
+        "allMatch" : [
+          {
+            "property" : "authentication.type",
+            "type" : "simple",
+            "equals" : "bearer"
+          },
+          {
+            "property" : "serviceAuthenticationConfiguration",
+            "isEmpty" : true,
+            "type" : "simple"
+          }
+        ]
       },
       "type" : "String",
       "secret" : true
@@ -430,9 +480,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "authentication.type",
-        "type" : "simple",
-        "equals" : "oauth-client-credentials-flow"
+        "allMatch" : [
+          {
+            "property" : "authentication.type",
+            "type" : "simple",
+            "equals" : "oauth-client-credentials-flow"
+          },
+          {
+            "property" : "serviceAuthenticationConfiguration",
+            "isEmpty" : true,
+            "type" : "simple"
+          }
+        ]
       }
     },
     {
@@ -444,9 +503,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "authentication.type",
-        "type" : "simple",
-        "equals" : "oauth-client-credentials-flow"
+        "allMatch" : [
+          {
+            "property" : "authentication.type",
+            "type" : "simple",
+            "equals" : "oauth-client-credentials-flow"
+          },
+          {
+            "property" : "serviceAuthenticationConfiguration",
+            "isEmpty" : true,
+            "type" : "simple"
+          }
+        ]
       }
     },
     {
@@ -458,9 +526,18 @@
         "type" : "zeebe:input"
       },
       "condition" : {
-        "property" : "authentication.type",
-        "type" : "simple",
-        "equals" : "oauth-client-credentials-flow"
+        "allMatch" : [
+          {
+            "property" : "authentication.type",
+            "type" : "simple",
+            "equals" : "oauth-client-credentials-flow"
+          },
+          {
+            "property" : "serviceAuthenticationConfiguration",
+            "isEmpty" : true,
+            "type" : "simple"
+          }
+        ]
       }
     },
     {
@@ -1229,6 +1306,25 @@
       "binding" : {
         "name" : "url",
         "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      }
+    },
+    {
+      "type" : "Hidden",
+      "description" : "Workspace URL plus the operation-specific path. Model Serving invocations have no /api/2.0 prefix.",
+      "value" : "=(if operationInput = \"sql.execute\" then \"/api/2.0/sql/statements\" else if operationInput = \"sql.getStatement\" then \"/api/2.0/sql/statements/\" + statementIdInput else if operationInput = \"sql.cancel\" then \"/api/2.0/sql/statements/\" + statementIdInput + \"/cancel\" else if operationInput = \"sql.getChunk\" then \"/api/2.0/sql/statements/\" + statementIdInput + \"/result/chunks/\" + string(chunkIndexInput) else if operationInput = \"warehouse.get\" then \"/api/2.0/sql/warehouses/\" + warehouseIdInput else if operationInput = \"warehouse.start\" then \"/api/2.0/sql/warehouses/\" + warehouseIdInput + \"/start\" else if operationInput = \"warehouse.stop\" then \"/api/2.0/sql/warehouses/\" + warehouseIdInput + \"/stop\" else if operationInput = \"jobs.runNow\" then \"/api/2.2/jobs/run-now\" else if operationInput = \"jobs.getRun\" then \"/api/2.2/jobs/runs/get\" else if operationInput = \"jobs.getRunOutput\" then \"/api/2.2/jobs/runs/get-output\" else if operationInput = \"jobs.cancelRun\" then \"/api/2.2/jobs/runs/cancel\" else if operationInput = \"serving.getEndpoint\" then \"/api/2.0/serving-endpoints/\" + servingEndpointNameInput else if operationInput = \"vectorSearch.query\" then \"/api/2.0/vector-search/indexes/\" + vectorIndexNameInput + \"/query\" else \"/serving-endpoints/\" + servingEndpointNameInput + \"/invocations\")",
+      "binding" : {
+        "name" : "relativeUrl",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : false,
+        "type" : "simple"
       }
     },
     {
@@ -1357,7 +1453,7 @@
     {
       "id" : "elementTemplateVersion",
       "label" : "Version",
-      "value" : "1",
+      "value" : "2",
       "binding" : {
         "key" : "elementTemplateVersion",
         "type" : "zeebe:taskHeader"
@@ -1515,5 +1611,168 @@
     { "id" : "modelServing_raw", "properties" : { "service" : "modelServing", "servingOperation" : "serving.raw" } },
     { "id" : "modelServing_getEndpoint", "properties" : { "service" : "modelServing", "servingOperation" : "serving.getEndpoint" } },
     { "id" : "vectorSearch_query", "properties" : { "service" : "vectorSearch", "vectorSearchOperation" : "vectorSearch.query" } }
+  ],
+  "configurationTemplates" : [
+    {
+      "id" : "io.camunda.connectors:databricks-authentication:1",
+      "kind" : "CREDENTIAL",
+      "version" : 1,
+      "name" : "Databricks Authentication",
+      "properties" : [
+        {
+          "id" : "host",
+          "label" : "Workspace URL",
+          "tooltip" : "For example https://dbc-1234.cloud.databricks.com",
+          "constraints" : {
+            "notEmpty" : true,
+            "pattern" : {
+              "value" : "^https://.*$",
+              "message" : "Must be a https URL"
+            }
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "parameters.host",
+            "type" : "property"
+          },
+          "type" : "String"
+        },
+        {
+          "id" : "baseUrl",
+          "value" : "${host}",
+          "group" : "authentication",
+          "binding" : {
+            "name" : "baseUrl",
+            "type" : "property"
+          },
+          "type" : "Hidden"
+        },
+        {
+          "id" : "authenticationType",
+          "label" : "Authentication",
+          "value" : "oauth-client-credentials-flow",
+          "choices" : [
+            {
+              "name" : "OAuth 2.0 client credentials",
+              "value" : "oauth-client-credentials-flow"
+            },
+            {
+              "name" : "Bearer token",
+              "value" : "bearer"
+            }
+          ],
+          "constraints" : {
+            "notEmpty" : true
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.type",
+            "type" : "property"
+          },
+          "type" : "Dropdown"
+        },
+        {
+          "id" : "authentication.oauthTokenEndpoint",
+          "value" : "${host}/oidc/v1/token",
+          "condition" : {
+            "property" : "authenticationType",
+            "equals" : "oauth-client-credentials-flow",
+            "type" : "simple"
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.oauthTokenEndpoint",
+            "type" : "property"
+          },
+          "type" : "Hidden"
+        },
+        {
+          "id" : "authentication.clientId",
+          "label" : "Client ID",
+          "constraints" : {
+            "notEmpty" : true
+          },
+          "condition" : {
+            "property" : "authenticationType",
+            "equals" : "oauth-client-credentials-flow",
+            "type" : "simple"
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.clientId",
+            "type" : "property"
+          },
+          "type" : "String"
+        },
+        {
+          "id" : "authentication.clientSecret",
+          "label" : "Client secret",
+          "constraints" : {
+            "notEmpty" : true
+          },
+          "condition" : {
+            "property" : "authenticationType",
+            "equals" : "oauth-client-credentials-flow",
+            "type" : "simple"
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.clientSecret",
+            "type" : "property"
+          },
+          "type" : "String",
+          "secret" : true
+        },
+        {
+          "id" : "authentication.scopes",
+          "value" : "all-apis",
+          "condition" : {
+            "property" : "authenticationType",
+            "equals" : "oauth-client-credentials-flow",
+            "type" : "simple"
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.scopes",
+            "type" : "property"
+          },
+          "type" : "Hidden"
+        },
+        {
+          "id" : "authentication.clientAuthentication",
+          "value" : "basicAuthHeader",
+          "condition" : {
+            "property" : "authenticationType",
+            "equals" : "oauth-client-credentials-flow",
+            "type" : "simple"
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.clientAuthentication",
+            "type" : "property"
+          },
+          "type" : "Hidden"
+        },
+        {
+          "id" : "authentication.token",
+          "label" : "Bearer token",
+          "constraints" : {
+            "notEmpty" : true
+          },
+          "condition" : {
+            "property" : "authenticationType",
+            "equals" : "bearer",
+            "type" : "simple"
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.token",
+            "type" : "property"
+          },
+          "type" : "String",
+          "secret" : true
+        }
+      ]
+    }
   ]
 }

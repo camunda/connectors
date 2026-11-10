@@ -2,9 +2,9 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitLab Outbound Connector",
   "id": "io.camunda.connectors.GitLab.v1",
-  "version": 9,
+  "version": 10,
   "engines": {
-    "camunda": "^8.3"
+    "camunda": "^8.11"
   },
   "description": "Manage GitLab issues, branches, releases, and more",
   "keywords": [
@@ -73,11 +73,29 @@
       }
     },
     {
+      "id": "serviceAuthenticationConfiguration",
+      "label": "Authentication credential",
+      "tooltip": "Choose a reusable GitLab credential, or configure the one-time authentication below.",
+      "optional": true,
+      "group": "endpoint",
+      "binding": {
+        "name": "serviceAuthenticationConfiguration",
+        "type": "zeebe:input"
+      },
+      "type": "Configuration",
+      "configurationTemplate": "io.camunda.connectors:gitlab-authentication:1"
+    },
+    {
       "type": "Hidden",
       "value": "noAuth",
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.type"
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -96,6 +114,11 @@
           "value": "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
           "message": "Must be a http(s) URL"
         }
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -109,6 +132,11 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
       }
     },
     {
@@ -120,6 +148,27 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"Content-Type\":\"application/json\"}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headers"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": false,
+        "type": "simple"
       }
     },
     {
@@ -583,9 +632,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "issueOperation",
-        "oneOf": [
-          "getIssueById"
+        "allMatch": [
+          {
+            "property": "issueOperation",
+            "oneOf": [
+              "getIssueById"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/projects/\"+ projectId +\"/issues/\" + issueId",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "issueOperation",
+            "oneOf": [
+              "getIssueById"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -635,9 +716,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "issueOperation",
-        "oneOf": [
-          "createAnIssue"
+        "allMatch": [
+          {
+            "property": "issueOperation",
+            "oneOf": [
+              "createAnIssue"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/projects/\"+ projectId +\"/issues\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "issueOperation",
+            "oneOf": [
+              "createAnIssue"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -696,9 +809,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "issueOperation",
-        "oneOf": [
-          "deleteAnIssue"
+        "allMatch": [
+          {
+            "property": "issueOperation",
+            "oneOf": [
+              "deleteAnIssue"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/projects/\"+ projectId +\"/issues/\" + issueId",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "issueOperation",
+            "oneOf": [
+              "deleteAnIssue"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -791,9 +936,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "issueOperation",
-        "oneOf": [
-          "commentToAnIssue"
+        "allMatch": [
+          {
+            "property": "issueOperation",
+            "oneOf": [
+              "commentToAnIssue"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/projects/\"+ projectId +\"/issues/\" + issueId + \"/notes\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "issueOperation",
+            "oneOf": [
+              "commentToAnIssue"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -955,9 +1132,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "issueOperation",
-        "oneOf": [
-          "searchIssues"
+        "allMatch": [
+          {
+            "property": "issueOperation",
+            "oneOf": [
+              "searchIssues"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/issues\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "issueOperation",
+            "oneOf": [
+              "searchIssues"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -969,9 +1178,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "releaseOperation",
-        "oneOf": [
-          "getReleasesByProjectId"
+        "allMatch": [
+          {
+            "property": "releaseOperation",
+            "oneOf": [
+              "getReleasesByProjectId"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/projects/\"+ projectId +\"/releases\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "releaseOperation",
+            "oneOf": [
+              "getReleasesByProjectId"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -1003,9 +1244,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "releaseOperation",
-        "oneOf": [
-          "getReleaseByTagName"
+        "allMatch": [
+          {
+            "property": "releaseOperation",
+            "oneOf": [
+              "getReleaseByTagName"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/projects/\"+ projectId +\"/releases/\" + releaseTagName",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "releaseOperation",
+            "oneOf": [
+              "getReleaseByTagName"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -1091,9 +1364,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "releaseOperation",
-        "oneOf": [
-          "createRelease"
+        "allMatch": [
+          {
+            "property": "releaseOperation",
+            "oneOf": [
+              "createRelease"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/projects/\"+ projectId +\"/releases\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "releaseOperation",
+            "oneOf": [
+              "createRelease"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -1155,10 +1460,43 @@
         "name": "url"
       },
       "condition": {
-        "property": "branchOperation",
-        "oneOf": [
-          "getRepositoryBranchesByProjectId",
-          "createRepositoryBranch"
+        "allMatch": [
+          {
+            "property": "branchOperation",
+            "oneOf": [
+              "getRepositoryBranchesByProjectId",
+              "createRepositoryBranch"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/projects/\"+ projectId +\"/repository/branches\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "branchOperation",
+            "oneOf": [
+              "getRepositoryBranchesByProjectId",
+              "createRepositoryBranch"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -1436,11 +1774,45 @@
         "name": "url"
       },
       "condition": {
-        "property": "reposOperation",
-        "oneOf": [
-          "createRepositoryFile",
-          "getRepositoryFile",
-          "updateRepositoryFile"
+        "allMatch": [
+          {
+            "property": "reposOperation",
+            "oneOf": [
+              "createRepositoryFile",
+              "getRepositoryFile",
+              "updateRepositoryFile"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/projects/\"+ projectId +\"/repository/files/\" + filePath",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "reposOperation",
+            "oneOf": [
+              "createRepositoryFile",
+              "getRepositoryFile",
+              "updateRepositoryFile"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -1698,9 +2070,41 @@
         "name": "url"
       },
       "condition": {
-        "property": "mergeOperation",
-        "oneOf": [
-          "createMergeRequest"
+        "allMatch": [
+          {
+            "property": "mergeOperation",
+            "oneOf": [
+              "createMergeRequest"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": true,
+            "type": "simple"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"/api/v4/projects/\"+ projectId +\"/merge_requests\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relativeUrl"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "mergeOperation",
+            "oneOf": [
+              "createMergeRequest"
+            ]
+          },
+          {
+            "property": "serviceAuthenticationConfiguration",
+            "isEmpty": false,
+            "type": "simple"
+          }
         ]
       }
     },
@@ -1762,7 +2166,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "9",
+      "value": "10",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
@@ -2102,6 +2506,78 @@
         "operationGroup": "mergeRequests",
         "mergeOperation": "createMergeRequest"
       }
+    }
+  ],
+  "configurationTemplates": [
+    {
+      "id": "io.camunda.connectors:gitlab-authentication:1",
+      "kind": "CREDENTIAL",
+      "version": 1,
+      "name": "GitLab Authentication",
+      "properties": [
+        {
+          "id": "authentication.type",
+          "value": "apiKey",
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.type",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.apiKeyLocation",
+          "value": "headers",
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.apiKeyLocation",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "authentication.name",
+          "value": "PRIVATE-TOKEN",
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.name",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "baseUrl",
+          "label": "GitLab base URL",
+          "tooltip": "The root of your GitLab instance, for example https://gitlab.com",
+          "constraints": {
+            "notEmpty": true,
+            "pattern": {
+              "value": "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
+              "message": "Must be a http(s) URL"
+            }
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "baseUrl",
+            "type": "property"
+          },
+          "type": "String"
+        },
+        {
+          "id": "authentication.value",
+          "label": "Access token",
+          "constraints": {
+            "notEmpty": true
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.value",
+            "type": "property"
+          },
+          "type": "String",
+          "secret": true
+        }
+      ]
     }
   ]
 }
