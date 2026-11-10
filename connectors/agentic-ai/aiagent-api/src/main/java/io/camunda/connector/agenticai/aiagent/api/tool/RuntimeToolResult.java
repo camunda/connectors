@@ -29,9 +29,11 @@ import java.util.Objects;
  * (one created with the {@link
  * io.camunda.connector.agenticai.aiagent.model.AgentFeatures#DOCUMENTS} feature), the document is
  * new to the agent: the agent registers it, and the model reads its handle, never its content,
- * store id, content hash or URL. For an instance without the feature, the model reads the document
- * reference in the tool result and the content of the document in a message after the tool results,
- * as for a tool of the process.
+ * store id, content hash or URL. Such an instance accepts Camunda documents only: a result with an
+ * external or inline document, also one nested in an object, fails the job with the error code
+ * {@code UNSUPPORTED_DOCUMENT_REFERENCE}. For an instance without the feature, the model reads the
+ * document reference in the tool result and the content of the document in a message after the tool
+ * results, as for a tool of the process.
  */
 @Experimental
 public sealed interface RuntimeToolResult {
