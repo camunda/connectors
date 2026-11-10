@@ -414,10 +414,20 @@ public class KafkaExecutableTest {
 
   // Every call returns an immutable snapshot, like the real consumer
   private void stubGroupState(AtomicReference<GroupState> group) {
+    // The ConsumerGroupMetadata constructors are deprecated (it becomes an interface in Kafka 5)
     when(mockConsumer.groupMetadata())
-        .thenAnswer(invocation ->
-            new ConsumerGroupMetadata(
-                "groupId", group.get().generation(), "memberId", Optional.empty()));
+        .thenAnswer(invocation -> {
+          int generation = group.get().generation();
+          return mock(
+              ConsumerGroupMetadata.class,
+              metadataCall ->
+                  switch (metadataCall.getMethod().getName()) {
+                    case "groupId" -> "groupId";
+                    case "generationId" -> generation;
+                    case "groupInstanceId" -> Optional.empty();
+                    default -> null;
+                  });
+        });
     var lastHeartbeatName =
         new MetricName(
             KafkaConnectorConsumer.LAST_HEARTBEAT_METRIC,
