@@ -29,7 +29,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.DocumentFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -130,10 +129,9 @@ public class ToolCallResultsInputBuilder {
       List<ToolCallBatch.Entry> entries,
       Set<AgentDocumentId> documentIdsWithContent,
       DocumentFactory documentFactory) {
-    final var handledIds = new HashSet<>(documentIdsWithContent);
+    var handled = DocumentContentDelivery.Handled.of(documentIdsWithContent);
     final var statements = new ArrayList<List<Content>>();
     final var delivered = new ArrayList<AgentDocumentContent>();
-    final var notLoaded = new HashMap<AgentDocumentId, String>();
 
     for (final var entry : entries) {
       final var requestedContent = new ArrayList<AgentDocumentId>();
@@ -154,8 +152,10 @@ public class ToolCallResultsInputBuilder {
             case DocumentHandling.Untracked ignored -> AgentDocuments.empty();
           };
       final var entryStatements = new ArrayList<Content>();
-      for (final var outcome :
-          contentDelivery.deliver(known, requestedContent, handledIds, documentFactory)) {
+      final var decision =
+          contentDelivery.deliver(known, requestedContent, handled, documentFactory);
+      handled = decision.handled();
+      for (final var outcome : decision.outcomes()) {
         switch (outcome) {
           case DocumentContentDelivery.Outcome.Delivered delivery -> {
             delivered.add(delivery.withContent());
@@ -163,25 +163,15 @@ public class ToolCallResultsInputBuilder {
                 textContent(contentFollows(documentRef(known, delivery.withContent().id()))));
           }
           case DocumentContentDelivery.Outcome.Withheld withheld -> {
-            notLoaded.put(withheld.id(), withheld.note());
             entryStatements.add(
                 textContent(contentNotLoaded(documentRef(known, withheld.id()), withheld.note())));
           }
-          case DocumentContentDelivery.Outcome.AlreadyInConversation already -> {
-            // a document that an earlier result of the batch asked for, and that is not loaded,
-            // is not in the conversation
-            final var note = notLoaded.get(already.id());
-            final var ref = documentRef(known, already.id());
-            entryStatements.add(
-                textContent(
-                    note == null
-                        ? contentAlreadyInConversation(ref)
-                        : contentNotLoaded(ref, note)));
-          }
+          case DocumentContentDelivery.Outcome.AlreadyInConversation already ->
+              entryStatements.add(
+                  textContent(contentAlreadyInConversation(documentRef(known, already.id()))));
         }
       }
       statements.add(List.copyOf(entryStatements));
-      handledIds.addAll(requestedContent);
     }
     return new AppliedEffects(List.copyOf(statements), List.copyOf(delivered));
   }

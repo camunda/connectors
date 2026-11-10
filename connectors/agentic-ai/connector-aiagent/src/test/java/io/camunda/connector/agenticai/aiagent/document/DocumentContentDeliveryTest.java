@@ -16,6 +16,8 @@ import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery.Decision;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery.Handled;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery.Outcome;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
@@ -32,6 +34,7 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -59,12 +62,16 @@ class DocumentContentDeliveryTest {
     return AgentDocumentId.of(document);
   }
 
+  private Decision decide(List<AgentDocumentId> requested, Handled handled) {
+    return delivery.deliver(known, requested, handled, TestDocuments.documentFactory());
+  }
+
   private static Outcome delivered(Document document) {
     return new Outcome.Delivered(
         AgentDocumentContent.of(idOf(document)).withDelivery(DocumentDelivery.CONTENT));
   }
 
-  private Outcome withheldArchive() {
+  private Outcome.Withheld withheldArchive() {
     return new Outcome.Withheld(
         idOf(archive),
         "Documents of type application/zip cannot be loaded. If one of your tools can process the document, pass the handle to it.");
@@ -72,9 +79,9 @@ class DocumentContentDeliveryTest {
 
   @Test
   void deliversTheContentOfAnAllowedDocument() {
-    assertThat(
-            delivery.deliver(known, List.of(idOf(text)), Set.of(), TestDocuments.documentFactory()))
-        .containsExactly(delivered(text));
+    assertThat(decide(List.of(idOf(text)), Handled.of(Set.of())))
+        .isEqualTo(
+            new Decision(List.of(delivered(text)), new Handled(Set.of(idOf(text)), Map.of())));
   }
 
   @Test
@@ -89,50 +96,70 @@ class DocumentContentDeliveryTest {
           }
         };
 
-    assertThat(delivery.deliver(known, List.of(idOf(text)), Set.of(), jobDocumentFactory))
+    assertThat(
+            delivery
+                .deliver(known, List.of(idOf(text)), Handled.of(Set.of()), jobDocumentFactory)
+                .outcomes())
         .containsExactly(delivered(text));
     assertThat(restored).containsExactly(idOf(text));
   }
 
   @Test
   void withholdsTheContentOfARejectedDocumentWithAStandaloneNote() {
-    assertThat(
-            delivery.deliver(
-                known, List.of(idOf(archive)), Set.of(), TestDocuments.documentFactory()))
-        .containsExactly(withheldArchive());
+    assertThat(decide(List.of(idOf(archive)), Handled.of(Set.of())))
+        .isEqualTo(
+            new Decision(
+                List.of(withheldArchive()),
+                new Handled(Set.of(), Map.of(idOf(archive), withheldArchive().note()))));
   }
 
   @Test
   void decidesInTheOrderOfTheFirstRequestAndOnceForEveryDocument() {
     assertThat(
-            delivery.deliver(
-                known,
-                List.of(idOf(other), idOf(archive), idOf(other), idOf(text)),
-                Set.of(),
-                TestDocuments.documentFactory()))
+            decide(
+                    List.of(idOf(other), idOf(archive), idOf(other), idOf(text)),
+                    Handled.of(Set.of()))
+                .outcomes())
         .containsExactly(delivered(other), withheldArchive(), delivered(text));
   }
 
   @Test
   void reportsADocumentThatIsHandledAlreadyAsInTheConversation() {
     assertThat(
-            delivery.deliver(
-                known,
+            decide(
                 List.of(idOf(text), idOf(archive), idOf(other)),
-                Set.of(idOf(text), idOf(archive)),
-                TestDocuments.documentFactory()))
-        .containsExactly(
-            new Outcome.AlreadyInConversation(idOf(text)),
-            new Outcome.AlreadyInConversation(idOf(archive)),
-            delivered(other));
+                Handled.of(Set.of(idOf(text), idOf(archive)))))
+        .isEqualTo(
+            new Decision(
+                List.of(
+                    new Outcome.AlreadyInConversation(idOf(text)),
+                    new Outcome.AlreadyInConversation(idOf(archive)),
+                    delivered(other)),
+                new Handled(Set.of(idOf(text), idOf(archive), idOf(other)), Map.of())));
+  }
+
+  @Test
+  void reportsADocumentThatAnEarlierRequestDeliveredAsInTheConversation() {
+    final var first = decide(List.of(idOf(text)), Handled.of(Set.of()));
+
+    assertThat(decide(List.of(idOf(text)), first.handled()))
+        .isEqualTo(
+            new Decision(List.of(new Outcome.AlreadyInConversation(idOf(text))), first.handled()));
+  }
+
+  @Test
+  void withholdsADocumentThatAnEarlierRequestWithheldAgainWithTheSameNote() {
+    final var first = decide(List.of(idOf(archive)), Handled.of(Set.of()));
+
+    assertThat(decide(List.of(idOf(archive)), first.handled()))
+        .isEqualTo(new Decision(List.of(withheldArchive()), first.handled()));
   }
 
   @Test
   void aRequestForADocumentTheAgentDoesNotKnowIsADefect() {
     final var unknown = AgentDocumentId.of("unknown");
 
-    assertThatThrownBy(() ->
-            delivery.deliver(known, List.of(unknown), Set.of(), TestDocuments.documentFactory()))
+    assertThatThrownBy(() -> decide(List.of(unknown), Handled.of(Set.of())))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The content of the document 'unknown' is asked for, but the agent does not know it");
@@ -147,8 +174,13 @@ class DocumentContentDeliveryTest {
         logsOf(
             DocumentContentDelivery.class,
             () ->
-                tinyLimits.deliver(
-                    known, List.of(idOf(text)), Set.of(), TestDocuments.documentFactory()));
+                tinyLimits
+                    .deliver(
+                        known,
+                        List.of(idOf(text)),
+                        Handled.of(Set.of()),
+                        TestDocuments.documentFactory())
+                    .outcomes());
 
     assertThat(events)
         .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
@@ -179,7 +211,9 @@ class DocumentContentDeliveryTest {
     final var events =
         logsOf(
             DocumentContentDelivery.class,
-            () -> delivery.deliver(known, List.of(idOf(text)), Set.of(), jobDocumentFactory));
+            () ->
+                delivery.deliver(
+                    known, List.of(idOf(text)), Handled.of(Set.of()), jobDocumentFactory));
 
     assertThat(events)
         .extracting(
