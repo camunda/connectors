@@ -91,6 +91,11 @@ jobs:
   gate:
     name: Check feature flag
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      id-token: write # Vault JWT login for the feature flag lookup
     timeout-minutes: 5
     outputs:
       active: ${{ steps.flag.outputs.active }}
