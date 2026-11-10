@@ -579,6 +579,19 @@ class DocsLintTest {
   }
 
   @Test
+  void aConstructorOfASupertypeIsNotInherited() throws IOException {
+    writeSources(SOURCES);
+
+    assertThat(messages(findStaleReferences("project/one/docs/a.md", "`Service#Base`")))
+        .containsExactly(
+            """
+            project/one/docs/a.md:1: no such member `Base` on `a.Service`
+                why: the member was renamed or removed, or is spelled differently
+                fix: check the member against the code. Members, including those of supertypes of the repo: api, field, inherited, run\
+            """);
+  }
+
+  @Test
   void aMissingMemberListsTheMembers() throws IOException {
     writeSources(SOURCES);
 
@@ -587,7 +600,7 @@ class DocsLintTest {
             """
             project/one/docs/a.md:2: no such member `gone` on `a.Service`
                 why: the member was renamed or removed, or is spelled differently
-                fix: check the member against the code. Members, including those of supertypes of the repo: Service, api, field, inherited, run\
+                fix: check the member against the code. Members, including those of supertypes of the repo: api, field, inherited, run\
             """);
   }
 
@@ -696,7 +709,7 @@ class DocsLintTest {
             """
             project/one/docs/a.md:2: no such member `gone` on `a.Service`
                 why: the member was renamed or removed, or is spelled differently
-                fix: check the member against the code. Members, including those of supertypes of the repo: Service, api, field, inherited, run\
+                fix: check the member against the code. Members, including those of supertypes of the repo: api, field, inherited, run\
             """);
     assertThat(wrapped)
         .isEqualTo(

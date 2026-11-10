@@ -171,9 +171,9 @@ final class JavaSourceIndex {
   }
 
   /**
-   * The members of the type and of its declared supertypes. Constructors are listed under the
-   * simple name of their type. A supertype is found by its simple name, so all types of that name
-   * count. Supertypes that the sources do not declare are skipped.
+   * The members of the type and of its declared supertypes, without constructors. A supertype is
+   * found by its simple name, so all types of that name count. Supertypes that the sources do not
+   * declare are skipped.
    */
   Set<String> members(final Type type) {
     final Set<String> members = new LinkedHashSet<>();
@@ -318,9 +318,8 @@ final class JavaSourceIndex {
   private void declare(final String binaryName, final String simpleName, final ClassTree tree) {
     final Set<String> members = new HashSet<>();
     for (final Tree member : tree.getMembers()) {
-      if (member instanceof final MethodTree method) {
-        final String name = method.getName().toString();
-        members.add(name.equals("<init>") ? simpleName : name);
+      if (member instanceof final MethodTree method && !method.getName().contentEquals("<init>")) {
+        members.add(method.getName().toString());
       } else if (member instanceof final VariableTree variable) {
         members.add(variable.getName().toString());
       }

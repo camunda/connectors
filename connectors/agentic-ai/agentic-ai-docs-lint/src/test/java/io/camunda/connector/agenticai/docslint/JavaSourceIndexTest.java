@@ -90,7 +90,7 @@ class JavaSourceIndexTest {
   }
 
   @Test
-  void collectsMethodsFieldsConstructorsRecordComponentsAndEnumConstants() {
+  void collectsMethodsFieldsRecordComponentsAndEnumConstantsButNoConstructors() {
     final JavaSourceIndex index =
         index(
             "Members.java",
@@ -109,8 +109,8 @@ class JavaSourceIndexTest {
             interface Contract { void call(); }
             """);
 
-    assertThat(members(index, "Plain")).containsExactlyInAnyOrder("field", "Plain", "method");
-    assertThat(members(index, "Rec")).containsExactlyInAnyOrder("component", "Rec", "of");
+    assertThat(members(index, "Plain")).containsExactlyInAnyOrder("field", "method");
+    assertThat(members(index, "Rec")).containsExactlyInAnyOrder("component", "of");
     assertThat(members(index, "Mode")).containsExactlyInAnyOrder("FIRST", "SECOND");
     assertThat(members(index, "Contract")).containsExactly("call");
     assertThat(index.types("Contract").getFirst().isInterface()).isTrue();
