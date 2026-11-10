@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -87,17 +88,53 @@ class AgenticAiDocsSmokeTest {
 
     final DocsLint lint = lint();
 
-    assertThat(lint.docsInScope()).contains(Path.of(path));
-    assertThat(heads(lint.findStaleReferences(Path.of(path))))
+    assertThat(lint.docsInScope())
+        .containsExactlyElementsOf(
+            Stream.of(
+                    E2E + "/README.md",
+                    AGENTIC_AI + "/aiagent-api/README.md",
+                    AGENTIC_AI + "/connector-aiagent/README.md",
+                    path)
+                .map(Path::of)
+                .sorted()
+                .toList());
+    assertThat(lint.findStaleReferences(Path.of(path)).all())
         .containsExactly(
-            path
-                + ":3: link `gone.md` points to a file that does not exist (resolved to `"
-                + dir
-                + "/gone.md`)",
-            path + ":3: link `#nowhere` points to an anchor that does not exist in `" + path + "`",
-            path + ":5: Java code block",
-            path + ":8: unknown type `Missing` in `Missing`",
-            path + ":8: no such member `missing` on `io.camunda.smoke.Agent`");
+            new Violation(
+                Path.of(path),
+                3,
+                "link `gone.md` points to a file that does not exist (resolved to `"
+                    + dir
+                    + "/gone.md`)",
+                "the file was renamed, moved or deleted, or the path is wrong",
+                "check the path against the file tree"),
+            new Violation(
+                Path.of(path),
+                3,
+                "link `#nowhere` points to an anchor that does not exist in `" + path + "`",
+                "the heading was renamed or removed, or GitHub derives a different anchor from it",
+                "check the headings of the target. Its anchors are: doc"),
+            new Violation(
+                Path.of(path),
+                5,
+                "Java code block",
+                "a code excerpt goes stale when the code changes",
+                "replace the excerpt with the name of the type and member, for example"
+                    + " `Type#member`"),
+            new Violation(
+                Path.of(path),
+                8,
+                "unknown type `Missing` in `Missing`",
+                "the code declares, imports or nests no type of this name, so the doc may name a"
+                    + " type that was renamed or removed",
+                "check the name against the code"),
+            new Violation(
+                Path.of(path),
+                8,
+                "no such member `missing` on `io.camunda.smoke.Agent`",
+                "the member was renamed or removed, or is spelled differently",
+                "check the member against the code. Members, including those of supertypes of the"
+                    + " repo: run"));
   }
 
   @Test
@@ -116,12 +153,16 @@ class AgenticAiDocsSmokeTest {
             Path.of(AGENTIC_AI + "/aiagent-api/README.md"),
             Path.of(AGENTIC_AI + "/connector-aiagent/README.md"),
             Path.of(breakingChanges));
-    assertThat(heads(lint.findStaleReferences(Path.of(breakingChanges))))
+    assertThat(lint.findStaleReferences(Path.of(breakingChanges)).all())
         .containsExactly(
-            breakingChanges
-                + ":3: link `gone.md` points to a file that does not exist (resolved to `"
-                + AGENTIC_AI
-                + "/docs/gone.md`)");
+            new Violation(
+                Path.of(breakingChanges),
+                3,
+                "link `gone.md` points to a file that does not exist (resolved to `"
+                    + AGENTIC_AI
+                    + "/docs/gone.md`)",
+                "the file was renamed, moved or deleted, or the path is wrong",
+                "check the path against the file tree"));
   }
 
   @Test
@@ -137,11 +178,11 @@ class AgenticAiDocsSmokeTest {
             new DocModule("aiagent-api", Path.of(AGENTIC_AI + "/aiagent-api")),
             new DocModule("connectors-e2e-test-agentic-ai", Path.of(E2E)));
     assertThat(lint.modulesInScope().stream().map(lint::findReadmeLayoutViolations))
-        .map(AgenticAiDocsSmokeTest::heads)
+        .map(Findings::all)
         .containsExactly(
             List.of(),
-            List.of(AGENTIC_AI + "/aiagent-api/README.md: README is missing"),
-            List.of(E2E + "/README.md: README is missing"));
+            List.of(missingReadme(AGENTIC_AI + "/aiagent-api", "aiagent-api")),
+            List.of(missingReadme(E2E, "connectors-e2e-test-agentic-ai")));
   }
 
   @ParameterizedTest
@@ -151,13 +192,22 @@ class AgenticAiDocsSmokeTest {
     write(dir + "/docs/doc.md", "# Doc\n");
     final String readme = dir + "/README.md";
 
-    assertThat(heads(lint().findReadmeLayoutViolations(module(dir))))
+    assertThat(lint().findReadmeLayoutViolations(module(dir)).all())
         .containsExactly(
-            readme + ":1: first heading is `# wrong`, expected `# " + module(dir).name() + "`",
-            readme
-                + ":3: the first sections are [## Purpose, ## Docs, ## Key types], expected"
-                + " [## Purpose, ## Key types, ## Docs]",
-            readme + ":5: `## Docs` does not link `" + dir + "/docs/doc.md`");
+            wrongTitle(readme, "# wrong", "# " + module(dir).name()),
+            new Violation(
+                Path.of(readme),
+                3,
+                "the first sections are [## Purpose, ## Docs, ## Key types], expected"
+                    + " [## Purpose, ## Key types, ## Docs]",
+                "all module READMEs share one layout, so a reader finds the same section in each",
+                "put the sections in this order before any other `##` section"),
+            new Violation(
+                Path.of(readme),
+                5,
+                "`## Docs` does not link `" + dir + "/docs/doc.md`",
+                "the README lists every doc of the module, so a reader can find it",
+                "add a link to the doc under `## Docs`"));
   }
 
   @Test
@@ -169,9 +219,8 @@ class AgenticAiDocsSmokeTest {
 
     write(readme, readme("# connector-aiagent"));
 
-    assertThat(heads(lint().findReadmeLayoutViolations(module)))
-        .containsExactly(
-            readme + ":1: first heading is `# connector-aiagent`, expected `# AI Agent Task`");
+    assertThat(lint().findReadmeLayoutViolations(module).all())
+        .containsExactly(wrongTitle(readme, "# connector-aiagent", "# AI Agent Task"));
   }
 
   @Test
@@ -181,10 +230,26 @@ class AgenticAiDocsSmokeTest {
         AGENTIC_AI + "/aiagent-api/src/main/java/io/camunda/smoke/Foo.java",
         "package io.camunda.smoke; public class Foo {}");
 
-    assertThat(heads(lint().findStaleAllowedNames()))
-        .contains(
-            ALLOWED_NAMES_SOURCE + ": allowed name `Foo` is now declared by the code",
-            ALLOWED_NAMES_SOURCE + ": allowed name `Read` is used in no doc");
+    assertThat(lint().findStaleAllowedNames().all())
+        .containsExactlyElementsOf(
+            AgenticAiDocsTest.config(root).allowedNames().keySet().stream()
+                .sorted()
+                .map(name ->
+                    name.equals("Foo")
+                        ? new Violation(
+                            Path.of(ALLOWED_NAMES_SOURCE),
+                            0,
+                            "allowed name `Foo` is now declared by the code",
+                            "the code is the source of truth, and the check of the doc verifies a"
+                                + " declared name against it",
+                            "delete the entry of the allowed names")
+                        : new Violation(
+                            Path.of(ALLOWED_NAMES_SOURCE),
+                            0,
+                            "allowed name `" + name + "` is used in no doc",
+                            "an entry that no doc needs keeps a name known that nothing uses",
+                            "delete the entry of the allowed names"))
+                .toList());
   }
 
   private DocsLint lint() {
@@ -199,11 +264,25 @@ class AgenticAiDocsSmokeTest {
     return title + "\n\n## Purpose\n\n## Key types\n\n## Docs\n";
   }
 
-  /** The position and the what of each finding, as the first line of the finding. */
-  private static List<String> heads(final Findings findings) {
-    return findings.all().stream()
-        .map(finding -> finding.toString().lines().findFirst().orElseThrow())
-        .toList();
+  private static Violation missingReadme(final String dir, final String name) {
+    return new Violation(
+        Path.of(dir + "/README.md"),
+        0,
+        "README is missing",
+        "a reader starts at the README of a module, and it links the docs of the module",
+        "add a README.md that starts with `# "
+            + name
+            + "` and has the sections [## Purpose, ## Key types, ## Docs]");
+  }
+
+  private static Violation wrongTitle(
+      final String readme, final String actual, final String title) {
+    return new Violation(
+        Path.of(readme),
+        1,
+        "first heading is `" + actual + "`, expected `" + title + "`",
+        "the first heading names the module, so a reader and a search find the README by it",
+        "start the README with `" + title + "`");
   }
 
   private void write(final String path, final String content) throws IOException {
