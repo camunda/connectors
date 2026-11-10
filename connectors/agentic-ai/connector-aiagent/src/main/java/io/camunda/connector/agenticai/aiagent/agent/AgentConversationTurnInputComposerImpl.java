@@ -345,7 +345,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           ToolCallBatch.Entry.withRenderedDocuments(
               ToolCallResultContent.from(result), objectHandleRenderer, documentDelivery);
       case DocumentHandling.Untracked ignored ->
-          ToolCallBatch.Entry.from(result, documentExtractor, documentDelivery);
+          ToolCallBatch.Entry.from(result, documentExtractor);
     };
   }
 

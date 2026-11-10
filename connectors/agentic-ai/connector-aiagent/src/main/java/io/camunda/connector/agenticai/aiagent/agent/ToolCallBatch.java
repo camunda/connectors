@@ -117,28 +117,14 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     /**
      * The entry of a result as the process returned it, for an agent instance that does not track
      * its documents. The documents are extracted from the result, by its gateway tool handler if it
-     * has one.
+     * has one. The entry asks for no document content.
      */
     public static Entry from(ToolCallResult result, ToolCallResultDocumentExtractor extractor) {
-      return from(result, extractor, DocumentDelivery.REFERENCE);
-    }
-
-    /**
-     * The entry of a result as the process returned it, from a tool with the given document
-     * delivery. With the delivery {@link DocumentDelivery#CONTENT} the entry asks for the content
-     * of every Camunda document of the result; a document of another kind has no agent document id,
-     * and {@link #requireCamundaDocuments()} reports it.
-     */
-    public static Entry from(
-        ToolCallResult result,
-        ToolCallResultDocumentExtractor extractor,
-        DocumentDelivery documentDelivery) {
       final var documents =
           extractor.extractDocuments(List.of(result)).stream()
               .flatMap(group -> group.documents().stream())
               .toList();
-      return new Entry(
-          ToolCallResultContent.from(result), documents, effectsOf(documents, documentDelivery));
+      return new Entry(ToolCallResultContent.from(result), documents, List.of());
     }
 
     /**
