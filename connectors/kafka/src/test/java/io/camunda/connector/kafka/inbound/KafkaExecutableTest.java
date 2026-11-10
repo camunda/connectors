@@ -468,7 +468,8 @@ public class KafkaExecutableTest {
         });
     // heartbeat-total grows once per HEARTBEAT_RESPONSE_INTERVAL while the coordinator answers
     var responses = new AtomicLong();
-    var lastResponseAt = new AtomicLong(System.nanoTime());
+    // Started on the first read, so the consumer always starts without any response
+    var lastResponseAt = new AtomicReference<Long>();
     var heartbeatTotalName =
         new MetricName(
             KafkaConnectorConsumer.HEARTBEAT_TOTAL_METRIC,
@@ -485,6 +486,9 @@ public class KafkaExecutableTest {
           @Override
           public Object metricValue() {
             long now = System.nanoTime();
+            if (lastResponseAt.compareAndSet(null, now)) {
+              return (double) responses.get();
+            }
             if (group.get().answering()
                 && now - lastResponseAt.get() >= HEARTBEAT_RESPONSE_INTERVAL.toNanos()) {
               lastResponseAt.set(now);
