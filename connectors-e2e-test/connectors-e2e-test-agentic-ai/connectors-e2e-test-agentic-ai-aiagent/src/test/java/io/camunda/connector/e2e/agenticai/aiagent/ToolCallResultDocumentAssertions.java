@@ -230,9 +230,40 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
-   * Asserts that a wire-format content block node (OpenAI JSON) holds exactly the content of the
-   * test file ({@code test.<ext>} of the served files): the text of a text file, the {@code
-   * file_data} data URL of a PDF or the {@code image_url} data URL of an image.
+   * Asserts that a wire-format content part is the handle of a user prompt document (see {@link
+   * #assertDocumentHandlePart(JsonNode)}) of the given content type, without a note, and that its
+   * text is the complete rendering of the handle: the keys in the order of the handle, nothing
+   * else.
+   *
+   * @return the handle
+   */
+  public static ParsedDocumentHandle assertDocumentHandlePart(
+      JsonNode part, String expectedContentType) {
+    assertDocumentHandlePart(part);
+    final var text = part.path("text").asText();
+    final var handle = parseDocumentHandle(text);
+    assertThat(handle.contentType()).as("handle content type").isEqualTo(expectedContentType);
+    assertThat(handle.note()).as("handle note").isNull();
+    try {
+      assertThat(text)
+          .as("handle text")
+          .isEqualTo(
+              OBJECT_MAPPER.writeValueAsString(
+                  new AgentDocumentHandle(
+                      AgentDocumentHandle.TYPE,
+                      handle.id().value(),
+                      handle.fileName(),
+                      handle.contentType(),
+                      handle.size())));
+    } catch (JsonProcessingException e) {
+      throw new AssertionError("Unserializable document handle", e);
+    }
+    return handle;
+  }
+
+  /**
+   * Asserts a wire-format content block node (OpenAI JSON) based on a coarse type/mime
+   * classification used by user-prompt document tests.
    */
   public static void assertDocumentContentBlockJson(JsonNode block, String filename) {
     final var bytes = DocumentFlowFixtures.servedFile(filename);

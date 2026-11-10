@@ -75,11 +75,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1));
-    assertThat(
-            parseDocumentHandle(userMessage.contentParts().get(1).path("text").asText())
-                .contentType())
-        .isEqualTo(mimeType(filename));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), mimeType(filename));
 
     assertAgentResponse(
         zeebeTest,
@@ -131,7 +127,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
         .extracting(m -> m.role())
         .containsExactly("system", "user", "assistant", "tool", "user");
     final var promptHandle =
-        parseDocumentHandle(messages.get(1).contentParts().get(1).path("text").asText());
+        assertDocumentHandlePart(messages.get(1).contentParts().get(1), mimeType(filename));
     assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
     assertThat(messages.get(3).content()).isEqualTo(contentFollowsSentence(promptHandle));
 
@@ -185,13 +181,12 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
 
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.contentParts()).isNotEmpty();
     assertThat(userMessage.contentParts()).as("prompt text + 2 handles").hasSize(3);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1));
-    assertDocumentHandlePart(userMessage.contentParts().get(2));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), "text/plain");
+    assertDocumentHandlePart(userMessage.contentParts().get(2), "image/jpeg");
 
     assertAgentResponse(
         zeebeTest,
@@ -236,18 +231,14 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
-    assertThat(recorded.lastRequest().toolNames()).contains("c8__load_document");
+    assertToolSpecifications(recorded.lastRequest());
 
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
     assertThat(userMessage.contentParts()).as("prompt text + handle + content").hasSize(3);
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1));
-    assertThat(
-            parseDocumentHandle(userMessage.contentParts().get(1).path("text").asText())
-                .contentType())
-        .isEqualTo(mimeType(filename));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), mimeType(filename));
     assertDocumentContentBlockJson(
         userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
 
@@ -295,7 +286,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertThat(userMessage.contentParts()).as("prompt text + handle + content").hasSize(3);
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), mimeType(filename));
     assertDocumentContentBlockJson(
         userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
 

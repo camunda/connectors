@@ -353,7 +353,10 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .extracting(m -> m.role())
         .containsExactly("system", "user", "assistant", "tool", "user", "assistant", "tool");
     assertThat(afterUpload.get(6).toolCallId()).isEqualTo(UPLOAD_CALL_ID);
-    assertThat(afterUpload).noneMatch(m -> m.toString().contains("c8__load_document"));
+    assertThat(afterUpload)
+        .flatExtracting(message -> message.toolCalls())
+        .extracting(toolCall -> toolCall.name())
+        .containsExactly("Download_A_File", "Upload_A_File");
     assertUploaded(servedFile(file));
 
     assertAgentResponse(

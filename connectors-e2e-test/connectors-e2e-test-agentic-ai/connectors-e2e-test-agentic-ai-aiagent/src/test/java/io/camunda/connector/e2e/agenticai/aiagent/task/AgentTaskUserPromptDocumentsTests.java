@@ -77,11 +77,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1));
-    assertThat(
-            parseDocumentHandle(userMessage.contentParts().get(1).path("text").asText())
-                .contentType())
-        .isEqualTo(mimeType(filename));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), mimeType(filename));
 
     assertAgentResponse(
         zeebeTest,
@@ -129,13 +125,12 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     // user message: prompt text + the handles of the two documents
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.contentParts()).isNotEmpty();
     assertThat(userMessage.contentParts()).as("prompt text + 2 handles").hasSize(3);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1));
-    assertDocumentHandlePart(userMessage.contentParts().get(2));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), "text/plain");
+    assertDocumentHandlePart(userMessage.contentParts().get(2), "image/jpeg");
 
     assertAgentResponse(
         zeebeTest,
@@ -245,18 +240,14 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
-    assertThat(recorded.lastRequest().toolNames()).contains("c8__load_document");
+    assertToolSpecifications(recorded.lastRequest());
 
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
     assertThat(userMessage.contentParts()).as("prompt text + handle + content").hasSize(3);
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1));
-    assertThat(
-            parseDocumentHandle(userMessage.contentParts().get(1).path("text").asText())
-                .contentType())
-        .isEqualTo(mimeType(filename));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), mimeType(filename));
     assertDocumentContentBlockJson(
         userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
 
@@ -305,7 +296,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(userMessage.contentParts()).as("prompt text + handle + content").hasSize(3);
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), mimeType(filename));
     assertDocumentContentBlockJson(
         userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
 
