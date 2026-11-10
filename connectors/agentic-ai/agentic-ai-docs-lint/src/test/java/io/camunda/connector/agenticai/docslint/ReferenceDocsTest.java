@@ -21,7 +21,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * Keeps the Agentic AI docs in step with the modules and the code: every module has a README with
  * the fixed headings that links the module docs, every relative link resolves, the docs hold no
- * Java excerpts, and the types and members they name exist.
+ * Java excerpts, the types and members they name exist, and every public type of the {@code
+ * aiagent-api} lock is named.
  */
 class ReferenceDocsTest {
 
@@ -48,6 +49,9 @@ class ReferenceDocsTest {
   private static final Path ALLOWED_NAMES_SOURCE =
       DocTree.AGENTIC_AI.resolve(
           "agentic-ai-docs-lint/src/test/java/io/camunda/connector/agenticai/docslint/ReferenceDocsTest.java");
+
+  private static final Path API_LOCK =
+      DocTree.AGENTIC_AI.resolve("aiagent-api/docs/api-signatures.lock");
 
   private static final DocTree TREE = DocTree.ofRepository();
   private static final JavaSourceIndex JAVA_SOURCES = JavaSourceIndex.of(TREE.javaSources());
@@ -90,6 +94,16 @@ class ReferenceDocsTest {
             DocChecks.namedTypes(currentDocs().map(ReferenceDocsTest::doc)),
             JAVA_SOURCES,
             ALLOWED_NAMES_SOURCE),
+        reporter);
+  }
+
+  @Test
+  void everyPublicApiTypeIsNamedInTheDocs(final TestReporter reporter) {
+    assertNoViolations(
+        DocChecks.apiTypesNamed(
+            TREE.lines(API_LOCK),
+            API_LOCK,
+            DocChecks.namedTypes(currentDocs().map(ReferenceDocsTest::doc))),
         reporter);
   }
 

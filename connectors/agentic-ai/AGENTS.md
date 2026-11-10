@@ -110,6 +110,8 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
 - `ModuleInventoryTest` (plain JUnit): every Maven module of `connectors/agentic-ai` is registered in
   `AgenticAiModules` and the other way round, and `agentic-ai-bundle` depends on exactly the connector and
   integration modules.
+- `ApiSignaturesLockTest` (plain JUnit): the public signatures of `aiagent-api` match
+  `aiagent-api/docs/api-signatures.lock`.
 
 `AgenticAiModules` maps modules to package roots and kinds (library, connector, integration). When you add
 a module, a package root or a dependency between modules, update it and the layer rules; a new connector or
@@ -117,7 +119,7 @@ integration also goes into `agentic-ai-bundle`. Run only the architecture tests 
 
 ```bash
 ./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests -am \
-  '-Dtest=*ArchTest,ModuleInventoryTest' -Dsurefire.failIfNoSpecifiedTests=false
+  '-Dtest=*ArchTest,ModuleInventoryTest,ApiSignaturesLockTest' -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 `-am` builds the modules the tests read from their current sources. Keep `-f connectors/agentic-ai/pom.xml`:
@@ -129,7 +131,8 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 
 `agentic-ai-docs-lint` holds the docs checks (plain JUnit, `ReferenceDocsTest`). Each module README has the
 fixed sections and links the docs of its module. Relative links and anchors resolve. The docs hold no `java`
-code blocks. The types and members that the docs name in backticks exist in the repository sources. Run them with:
+code blocks. The types and members that the docs name in backticks exist in the repository sources. The docs name
+every public type that `aiagent-api/docs/api-signatures.lock` declares. Run them with:
 
 ```bash
 ./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-docs-lint
@@ -138,6 +141,13 @@ code blocks. The types and members that the docs name in backticks exist in the 
 A failure names the file and line, why it fails and what to verify. The code is the source of truth. A warning
 does not fail the test. The build log shows each warning as one line `WARN <path>:<line>: <what>`, and the
 JUnit report (the IDE test view) holds a `warning` entry with the why and the fix.
+
+`ApiSignaturesLockTest` (in `agentic-ai-archunit-tests`) fails on every `aiagent-api` signature change, additions
+included, and lists the docs that name the changed types. A lock change comes with a doc change: update those docs,
+then regenerate the lock with
+`./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests -am -Dtest=ApiSignaturesLockTest -Dsurefire.failIfNoSpecifiedTests=false -Dupdate-doc-lock`.
+A new public type also needs a mention in the docs of its module, which `agentic-ai-docs-lint` checks.
+Revapi ([`docs/api-compatibility.md`](../../docs/api-compatibility.md)) only gates breaking changes against a release, and is skipped here until 8.11.
 
 ## Start here, navigation
 

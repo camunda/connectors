@@ -8,6 +8,8 @@ Architecture tests for the production classes of all agentic AI modules. Test-on
 
 - `AgenticAiModules`: maps the modules to their package roots and kinds.
 - The `*ArchTest` classes and `ModuleInventoryTest`.
+- `ApiSignaturesLockTest`: checks the public signatures of `aiagent-api` against
+  `aiagent-api/docs/api-signatures.lock`.
 
 ## Docs
 

@@ -117,6 +117,11 @@ final class DocTree {
     return files(List.of(directory), extension);
   }
 
+  /** The lines of the file. */
+  List<String> lines(final Path path) {
+    return read(root.resolve(path)).lines().toList();
+  }
+
   /** The Java sources of the whole repository, by path and content. */
   Map<String, String> javaSources() {
     final Map<String, String> sources = new LinkedHashMap<>();
