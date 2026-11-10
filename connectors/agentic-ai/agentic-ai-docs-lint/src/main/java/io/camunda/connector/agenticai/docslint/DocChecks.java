@@ -278,20 +278,6 @@ final class DocChecks {
     final String simpleName = reference.simpleName();
     final String member = reference.member();
     final List<JavaSourceIndex.Type> named = index.types(simpleName);
-    if (named.isEmpty()) {
-      return Stream.of(
-          new Warning(
-              doc.path(),
-              reference.line(),
-              "member of `"
-                  + reference.text()
-                  + "` not verified: `"
-                  + simpleName
-                  + "` is not declared in the repo sources, so it is a type of a dependency whose"
-                  + " classes are not loaded",
-              "the check reads the code of the repo, so it cannot see the members of a dependency",
-              "check the member against the documentation or the sources of the dependency"));
-    }
     final String qualifiedName = qualifier + simpleName;
     final List<JavaSourceIndex.Type> candidates =
         qualifier.isEmpty()
@@ -301,6 +287,20 @@ final class DocChecks {
                     type.qualifiedName().equals(qualifiedName)
                         || type.qualifiedName().endsWith("." + qualifiedName))
                 .toList();
+    if (named.isEmpty() || (candidates.isEmpty() && index.imports(qualifiedName))) {
+      return Stream.of(
+          new Warning(
+              doc.path(),
+              reference.line(),
+              "member of `"
+                  + reference.text()
+                  + "` not verified: `"
+                  + (named.isEmpty() ? simpleName : qualifiedName)
+                  + "` is not declared in the repo sources, so it is a type of a dependency whose"
+                  + " classes are not loaded",
+              "the check reads the code of the repo, so it cannot see the members of a dependency",
+              "check the member against the documentation or the sources of the dependency"));
+    }
     final String names = qualifiedNames(named);
     if (candidates.isEmpty()) {
       return Stream.of(
