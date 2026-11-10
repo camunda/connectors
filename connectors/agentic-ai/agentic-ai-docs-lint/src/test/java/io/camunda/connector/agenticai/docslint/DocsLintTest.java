@@ -14,7 +14,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -66,7 +65,7 @@ class DocsLintTest {
         "# one\n\n## Purpose\n\n## Key types\n\n## Docs\n\n- [Doc](docs/a.md)\n\n## More\n");
     write("project/one/docs/a.md", "# a");
 
-    assertThat(lint().findReadmeLayoutViolations(MODULE)).isEmpty();
+    assertThat(lint().findReadmeLayoutViolations(MODULE).all()).isEmpty();
   }
 
   @Test
@@ -93,7 +92,9 @@ class DocsLintTest {
                 fix: start the README with `# one`\
             """);
     assertThat(
-            lint().findReadmeLayoutViolations(new DocModule("titled", Path.of("project/titled"))))
+            lint()
+                .findReadmeLayoutViolations(new DocModule("titled", Path.of("project/titled")))
+                .all())
         .isEmpty();
   }
 
@@ -156,7 +157,7 @@ class DocsLintTest {
         "# one\n\n## Purpose\n\n## Key types\n\n## Docs\n\n- [A][topic]\n\n## More\n\n[topic]: docs/a.md\n");
     write("project/one/docs/a.md", "# a");
 
-    assertThat(lint().findReadmeLayoutViolations(MODULE)).isEmpty();
+    assertThat(lint().findReadmeLayoutViolations(MODULE).all()).isEmpty();
   }
 
   @Test
@@ -781,6 +782,32 @@ class DocsLintTest {
   }
 
   @Test
+  void theWarningsAreReportedAndTheViolationsMakeTheFailureMessage() {
+    final Path file = Path.of("project/one/docs/a.md");
+    final Warning warning = new Warning(file, 1, "warned", "why", "fix");
+    final Findings findings =
+        new Findings(
+            List.of(
+                new Violation(file, 1, "first", "why", "fix"),
+                warning,
+                new Violation(file, 2, "second", "why", "fix")));
+
+    assertThat(findings.warnings()).containsExactly(warning);
+    assertThat(findings.failureMessage())
+        .contains(
+            """
+
+            project/one/docs/a.md:1: first
+                why: why
+                fix: fix
+            project/one/docs/a.md:2: second
+                why: why
+                fix: fix\
+            """);
+    assertThat(new Findings(List.of(warning)).failureMessage()).isEmpty();
+  }
+
+  @Test
   void allowedNamesMustBeUsedInACurrentDocAndUnknownToTheCode() throws IOException {
     writeSources(SOURCES);
     write("project/one/docs/a.md", "`Used` `Service`");
@@ -800,7 +827,7 @@ class DocsLintTest {
                 why: an entry that no doc needs keeps a name known that nothing uses
                 fix: delete the entry of the allowed names\
             """);
-    assertThat(lint(Map.of("Used", "r")).findStaleAllowedNames()).isEmpty();
+    assertThat(lint(Map.of("Used", "r")).findStaleAllowedNames().all()).isEmpty();
   }
 
   @Test
@@ -936,7 +963,7 @@ class DocsLintTest {
   private List<Finding> findStaleReferences(
       final DocsLint lint, final String path, final String... lines) throws IOException {
     write(path, String.join("\n", lines) + "\n");
-    return lint.findStaleReferences(Path.of(path)).toList();
+    return lint.findStaleReferences(Path.of(path)).all();
   }
 
   private List<String> unknownTypes(final String span) throws IOException {
@@ -954,12 +981,12 @@ class DocsLintTest {
     };
   }
 
-  private static List<String> messages(final List<Finding> findings) {
-    return messages(findings.stream());
+  private static List<String> messages(final Findings findings) {
+    return messages(findings.all());
   }
 
-  private static List<String> messages(final Stream<Finding> findings) {
-    return findings.map(Object::toString).toList();
+  private static List<String> messages(final List<Finding> findings) {
+    return findings.stream().map(Object::toString).toList();
   }
 
   private void writeTree() throws IOException {

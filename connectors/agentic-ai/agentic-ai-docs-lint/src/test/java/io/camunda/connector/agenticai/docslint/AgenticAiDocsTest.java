@@ -9,11 +9,9 @@ package io.camunda.connector.agenticai.docslint;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestReporter;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -98,20 +96,13 @@ class AgenticAiDocsTest {
     return moduleDir.getParent().getParent().getParent();
   }
 
-  private static void assertNoViolations(
-      final Stream<Finding> findings, final TestReporter reporter) {
-    final List<String> violations = new ArrayList<>();
-    findings.forEach(finding -> {
-      switch (finding) {
-        case final Warning warning -> {
+  private static void assertNoViolations(final Findings findings, final TestReporter reporter) {
+    findings
+        .warnings()
+        .forEach(warning -> {
           System.out.println(warning.logLine());
           reporter.publishEntry("warning", warning.toString());
-        }
-        case final Violation violation -> violations.add(violation.toString());
-      }
-    });
-    if (!violations.isEmpty()) {
-      fail("\n" + String.join("\n", violations));
-    }
+        });
+    findings.failureMessage().ifPresent(message -> fail(message));
   }
 }
