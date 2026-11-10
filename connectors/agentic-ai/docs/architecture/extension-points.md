@@ -240,7 +240,8 @@ applies it in the order of the calls, with the rule that a document whose conten
 earlier request of the turn handled is not added twice, and the sentences about the content that the builder writes at
 the end of the tool result of every request (the same sentences as for `c8__load_document`, above). A document becomes a block with the
 delivery `content` in the follow-up user message of the tool results (same preamble and `toolCallDocuments` metadata as
-above, the documents in the order of the requests). The delivery `content` never turns a result into an error. The delivery of a tool concerns the results of process
+above, the documents in the order of the requests). A document that is not a Camunda document fails the run, as for every
+tracked instance; the delivery `content` never turns a result into an error otherwise. The delivery of a tool concerns the results of process
 tools: a runtime tool asks for the content of a document by naming it, and its result is never delivered by the delivery of
 a tool definition. An instance without the `documents` feature ignores the delivery. The model providers never see the
 delivery of a tool: `AgentConversation.window(int)` drops it from the definitions they get.
