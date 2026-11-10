@@ -96,7 +96,7 @@ dependencies. A custom runtime that runs all agentic AI connectors, like the pre
 | `aiagent.model.request.v2.*`                                                 | `aiagent.request.v2.*`                         |
 | `aiagent.model`: `AgentConversation`, `AgentConversationTurn`, `TurnReconstructor`, `PreviousConversation`, `AgentInput` | `aiagent.conversation.*` |
 | `aiagent.model`: `AgentResponse`, `AgentSubProcessResponse`, `AgentTaskExecutionContext`, `AgentSubProcessExecutionContext` | `aiagent.agent.*` |
-| `aiagent.model.document.AgentDocumentHandle`, `aiagent.model.message.DocumentReferenceXmlTag` | `aiagent.document.*`               |
+| `aiagent.model.document.DocumentHandle`, `aiagent.model.message.DocumentReferenceXmlTag` | `aiagent.document.*`               |
 | `aiagent.model.tool.ToolCallProcessVariable`                                 | `aiagent.tool.ToolCallProcessVariable`         |
 | `aiagent.model.versioning.*`                                                 | `aiagent.memory.versioning.*`                  |
 | `aiagent.util.JacksonExceptionMessageExtractor`                              | `common.json.JacksonExceptionMessageExtractor` |
@@ -313,9 +313,9 @@ factory of the job.
   (the keys in this order, absent values omitted, no origin). It replaces the XML tag `<doc id="…" … />` for these
   instances; instances without the feature keep the XML tag. A custom `ChatModel` sees the handle as the text of a
   `TextContent`.
-- Removed: `aiagent.document.AgentDocumentHandle` (the earlier class of the same name, see the
-  [module split](#module-split), which derived the id). Derive the id of a document with `AgentDocumentId.of(Document)` or
-  `AgentDocumentId.of(DocumentReference)`; the id has the format described above.
+- Removed: `aiagent.document.DocumentHandle` (see the [module split](#module-split)), whose `idFor` derived the id.
+  Derive the id of a document with `AgentDocumentId.of(Document)` or `AgentDocumentId.of(DocumentReference)`; the id has
+  the format described above.
 - New in the libraries: the persisted document state (`AgentDocuments`, `AgentDocument`, the sealed `AgentDocumentOrigin`,
   persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
