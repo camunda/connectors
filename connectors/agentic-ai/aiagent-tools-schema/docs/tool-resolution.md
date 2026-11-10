@@ -101,8 +101,9 @@ assistant message is never rewritten, so the stored conversation and the history
 - **The call that goes to the process.** `AgentResponseHandlerImpl` resolves the document parameters of the process tool
   calls of the last turn into the Camunda document references before the gateway transformation, and the response carries
   them.
-- **The execution of a runtime call.** `RuntimeTools` resolves the document parameters of an admitted runtime tool call
-  into `AgentDocumentId`s before it calls the tool.
+- **The execution of a runtime call.** `RuntimeTools` resolves the document parameters of a runtime tool call with the
+  definition the tool is registered with into `AgentDocumentId`s before it calls the tool. A call whose document
+  parameters are invalid gets the sentences above as its error result and the tool is not called.
 
 A parameter that takes a document or something else (a union parameter) is declared with the schema argument of `fromAi()`,
 an `anyOf` (or `oneOf`) with more than one alternative, a `document` among them, directly or inside an object alternative

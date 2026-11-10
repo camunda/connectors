@@ -94,8 +94,11 @@ public class RuntimeTools {
    * Executes the calls of runtime tools offered in this job one after the other and returns one
    * execution per call in call order.
    *
-   * <p>A call of a tool that is not enabled when it is executed gets an error result, and so does a
-   * {@link RuntimeToolException}. Any other exception propagates.
+   * <p>The document parameters of a call are resolved by {@link
+   * DocumentParameterResolver#resolveRuntimeCall} with the definition the tool is registered with
+   * before the tool is called. A call of a tool that is not enabled when it is executed gets an
+   * error result, and so does a call with an invalid document parameter, and a {@link
+   * RuntimeToolException}. Any other exception propagates.
    */
   public List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
@@ -107,7 +110,7 @@ public class RuntimeTools {
     final var startedAt = OffsetDateTime.now(ZoneId.systemDefault());
     final var result =
         findEnabled(context, toolCall.name())
-            .map(tool -> callTool(context, tool, toolCall))
+            .map(registration -> callTool(context, registration, toolCall))
             .orElseGet(() ->
                 RuntimeToolResult.error(
                     "The tool '%s' is not available.".formatted(toolCall.name())));
@@ -115,25 +118,22 @@ public class RuntimeTools {
     return new RuntimeToolExecution(toolCall, result, startedAt, completedAt);
   }
 
-  private Optional<RuntimeTool> findEnabled(RuntimeToolContext context, String name) {
+  private Optional<Registration> findEnabled(RuntimeToolContext context, String name) {
     if (!context.agentContext().supports(AgentFeatures.RUNTIME_TOOLS)) {
       return Optional.empty();
     }
     return Optional.ofNullable(registrationsByName.get(name))
-        .map(Registration::tool)
-        .filter(tool -> tool.isEnabled(context));
+        .filter(registration -> registration.tool().isEnabled(context));
   }
 
   private RuntimeToolResult callTool(
-      RuntimeToolContext context, RuntimeTool tool, ToolCall toolCall) {
+      RuntimeToolContext context, Registration registration, ToolCall toolCall) {
     return switch (documentParameterResolver.resolveRuntimeCall(
-        context.agentContext(), toolCall, tool.definition())) {
+        context.agentContext(), toolCall, registration.definition())) {
       case DocumentParameterResolver.Resolution.Invalid invalid ->
-          throw new IllegalStateException(
-              "The call '%s' of the tool '%s' is admitted, but its document parameters are invalid: %s"
-                  .formatted(toolCall.id(), toolCall.name(), invalid.message()));
+          RuntimeToolResult.error(invalid.message());
       case DocumentParameterResolver.Resolution.Resolved resolved ->
-          callTool(context, tool, toolCall, resolved.arguments());
+          callTool(context, registration.tool(), toolCall, resolved.arguments());
     };
   }
 

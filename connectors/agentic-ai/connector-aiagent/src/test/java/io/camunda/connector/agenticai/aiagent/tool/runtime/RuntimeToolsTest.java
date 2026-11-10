@@ -46,6 +46,7 @@ import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -619,7 +620,7 @@ class RuntimeToolsTest {
   }
 
   @Test
-  void aCallWithAnInvalidDocumentParameterFailsAndDoesNotRunTheTool() {
+  void aCallWithAnInvalidDocumentParameterGetsAnErrorResultAndDoesNotRunTheTool() {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
@@ -630,17 +631,57 @@ class RuntimeToolsTest {
             });
     final var call = runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"));
 
-    assertThatThrownBy(() ->
-            toolsOf(tool)
-                .execute(
-                    WITH_MEMORY,
-                    knowingWithDocumentsFeature(createDocument("known", "known.txt")),
-                    List.of(call)))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessage(
-            "The call 'r1' of the tool 'c8__read_file' is admitted, but its document parameters are invalid: "
-                + BOGUS_FILE);
+    final var executions =
+        toolsOf(tool)
+            .execute(
+                WITH_MEMORY,
+                knowingWithDocumentsFeature(createDocument("known", "known.txt")),
+                List.of(call));
+
+    assertThat(executions)
+        .singleElement()
+        .satisfies(execution -> {
+          assertThat(execution.call()).isEqualTo(call);
+          assertThat(execution.result()).isEqualTo(RuntimeToolResult.error(BOGUS_FILE));
+        });
     assertThat(runs).hasValue(0);
+  }
+
+  @Test
+  void checksTheDocumentParametersWithTheDefinitionTheToolIsRegisteredWith() {
+    final var runs = new AtomicInteger();
+    final var withoutDocumentParameter =
+        definitionOf("c8__read_file", Map.of("file", Map.of("type", "string")));
+    final var withDocumentParameter =
+        definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file")));
+    final var definitions = new ArrayDeque<>(List.of(withoutDocumentParameter));
+    final RuntimeTool changing =
+        new RuntimeTool() {
+          @Override
+          public ToolDefinition definition() {
+            return definitions.isEmpty() ? withDocumentParameter : definitions.poll();
+          }
+
+          @Override
+          public RuntimeToolResult call(RuntimeToolContext context, RuntimeToolCall call) {
+            runs.incrementAndGet();
+            return RuntimeToolResult.success("read");
+          }
+        };
+    final var registeredTools = toolsOf(changing);
+    assertThat(changing.definition()).isEqualTo(withDocumentParameter);
+
+    final var executions =
+        registeredTools.execute(
+            WITH_MEMORY,
+            knowingWithDocumentsFeature(createDocument("known", "known.txt")),
+            List.of(runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"))));
+
+    assertThat(executions)
+        .singleElement()
+        .satisfies(execution ->
+            assertThat(execution.result()).isEqualTo(RuntimeToolResult.success("read")));
+    assertThat(runs).hasValue(1);
   }
 
   @Test
@@ -668,7 +709,7 @@ class RuntimeToolsTest {
   }
 
   @Test
-  void aCallWithAHandleOfAnUnknownDocumentInAUnionParameterFailsAndDoesNotRunTheTool() {
+  void aCallWithAHandleOfAnUnknownDocumentInAUnionParameterGetsAnErrorResultAndDoesNotRunTheTool() {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
@@ -683,16 +724,19 @@ class RuntimeToolsTest {
             "c8__send",
             Map.of("body", Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000")));
 
-    assertThatThrownBy(() ->
-            toolsOf(tool)
-                .execute(
-                    WITH_MEMORY,
-                    knowingWithDocumentsFeature(createDocument("known", "known.txt")),
-                    List.of(call)))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessage(
-            "The call 'r1' of the tool 'c8__send' is admitted, but its document parameters are invalid: "
-                + UNKNOWN_BODY);
+    final var executions =
+        toolsOf(tool)
+            .execute(
+                WITH_MEMORY,
+                knowingWithDocumentsFeature(createDocument("known", "known.txt")),
+                List.of(call));
+
+    assertThat(executions)
+        .singleElement()
+        .satisfies(execution -> {
+          assertThat(execution.call()).isEqualTo(call);
+          assertThat(execution.result()).isEqualTo(RuntimeToolResult.error(UNKNOWN_BODY));
+        });
     assertThat(runs).hasValue(0);
   }
 
