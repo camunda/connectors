@@ -2181,20 +2181,8 @@ class AgentSubProcessRequestHandlerTest {
     // the second request carries the error result of the first round
     final var secondRequestMessages =
         chatModelRequestCaptor.getAllValues().get(1).snapshot().messages();
-    assertThat(secondRequestMessages.getLast())
-        .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
-            message ->
-                assertThat(message.results())
-                    .singleElement()
-                    .satisfies(result -> {
-                      assertThat(result.id()).isEqualTo("call-1");
-                      assertThat(result.name()).isEqualTo("upload");
-                      assertThat(result.elementId()).isNull();
-                      assertThat(result.completedAt()).isNotNull();
-                      assertThat(result.content())
-                          .containsExactly(TextContent.textContent(mustBeHandleRejection("doc")));
-                    }));
+    assertErrorResultMessage(
+        secondRequestMessages.getLast(), "call-1", "upload", mustBeHandleRejection("doc"));
 
     // the call of the final round goes to the process as the model sent it, and the message of
     // the first round keeps its call with the tag of the agent
@@ -2212,7 +2200,8 @@ class AgentSubProcessRequestHandlerTest {
                   .isEqualTo(
                       firstMessage.withToolCalls(
                           List.of(badCall.withRejection(mustBeHandleRejection("doc")))));
-              assertThat(c.messages().get(3)).isInstanceOf(ToolCallResultMessage.class);
+              assertErrorResultMessage(
+                  c.messages().get(3), "call-1", "upload", mustBeHandleRejection("doc"));
               assertThat(c.messages().get(4)).isEqualTo(secondMessage);
             });
 
@@ -2253,9 +2242,9 @@ class AgentSubProcessRequestHandlerTest {
     inOrder.verifyNoMoreInteractions();
     final var turns = turnCaptor.getAllValues();
     assertThat(turns.get(2).iterationKey()).isEqualTo(2);
-    assertThat(turns.get(2).inputMessages())
-        .singleElement()
-        .isInstanceOf(ToolCallResultMessage.class);
+    assertThat(turns.get(2).inputMessages()).hasSize(1);
+    assertErrorResultMessage(
+        turns.get(2).inputMessages().getFirst(), "call-1", "upload", mustBeHandleRejection("doc"));
     // the history shows the arguments as the model sent them
     assertThat(turns.get(1).toolCalls().getFirst().arguments()).isEqualTo(badCall.arguments());
   }
@@ -2300,18 +2289,11 @@ class AgentSubProcessRequestHandlerTest {
             });
 
     // the second request carries the rejection as the result of the call
-    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
-        .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
-            message ->
-                assertThat(message.results())
-                    .singleElement()
-                    .satisfies(result -> {
-                      assertThat(result.id()).isEqualTo("call-1");
-                      assertThat(result.name()).isEqualTo("acme_upload");
-                      assertThat(result.content())
-                          .containsExactly(TextContent.textContent(BOGUS_DOCUMENT));
-                    }));
+    assertErrorResultMessage(
+        chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast(),
+        "call-1",
+        "acme_upload",
+        BOGUS_DOCUMENT);
 
     verify(agentInstanceClient, times(2))
         .applyTurnStart(any(), any(), any(), any(), any(), any(), any());
@@ -2345,13 +2327,11 @@ class AgentSubProcessRequestHandlerTest {
 
     verify(chatModel, times(2)).execute(any());
     assertThat(response.responseValue().toolCalls()).isEmpty();
-    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
-        .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
-            message ->
-                assertThat(message.results())
-                    .singleElement()
-                    .satisfies(result -> assertThat(result.id()).isEqualTo("call-1")));
+    assertErrorResultMessage(
+        chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast(),
+        "call-1",
+        "upload",
+        BOGUS_DOCUMENT);
   }
 
   @Test
@@ -2742,6 +2722,35 @@ class AgentSubProcessRequestHandlerTest {
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(chatModelRequestCaptor.capture()))
         .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
+  }
+
+  /**
+   * Asserts that {@code actual} is the {@link ToolCallResultMessage} with the one text result of
+   * the call. The generated message id is ignored; the message has the timestamp of its creation
+   * and the result a completion time.
+   */
+  private static void assertErrorResultMessage(
+      Message actual, String callId, String toolName, String text) {
+    final var message = (ToolCallResultMessage) actual;
+    assertThat(message.metadata()).containsOnlyKeys("timestamp");
+    final var expected =
+        ToolCallResultMessage.builder()
+            .metadata(message.metadata())
+            .results(
+                List.of(
+                    ToolCallResultContent.builder()
+                        .id(callId)
+                        .name(toolName)
+                        .content(List.of(TextContent.textContent(text)))
+                        .build()))
+            .build();
+    assertThat(message)
+        .usingRecursiveComparison()
+        .ignoringFields("id", "results.completedAt")
+        .isEqualTo(expected);
+    assertThat(message.results())
+        .singleElement()
+        .satisfies(result -> assertThat(result.completedAt()).isNotNull());
   }
 
   private static final String BOGUS_DOCUMENT = noDocumentsRejection("doc");
