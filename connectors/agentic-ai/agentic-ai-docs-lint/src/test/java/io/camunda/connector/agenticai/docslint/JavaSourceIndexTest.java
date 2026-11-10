@@ -136,13 +136,13 @@ class JavaSourceIndexTest {
   }
 
   @Test
-  void inheritsMembersFromSupertypesOfTheSourcesByTheirSimpleNames() {
+  void inheritsTheNonPrivateMembersOfSupertypesOfTheSourcesByTheirSimpleNames() {
     final JavaSourceIndex index =
         index(
             "Inheritance.java",
             """
             package p;
-            class Base<T> { void inherited() {} }
+            class Base<T> { void inherited() {} private void hidden() {} private int secret; }
             interface Api { void api(); }
             class Child extends Base<String> implements Api, java.io.Serializable { void own() {} }
             class Loop extends Loop {}
@@ -150,6 +150,8 @@ class JavaSourceIndexTest {
 
     assertThat(index.members(index.types("Child").getFirst()))
         .containsExactlyInAnyOrder("inherited", "api", "own");
+    assertThat(index.members(index.types("Base").getFirst()))
+        .containsExactlyInAnyOrder("inherited", "hidden", "secret");
     assertThat(index.members(index.types("Loop").getFirst())).isEmpty();
   }
 
