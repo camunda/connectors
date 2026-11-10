@@ -104,15 +104,7 @@ final class JavaSourceIndex {
                     null,
                     diagnostic -> {
                       if (diagnostic.getKind() == Diagnostic.Kind.ERROR) {
-                        final @Nullable JavaFileObject source = diagnostic.getSource();
-                        errors.add(
-                            source == null
-                                ? diagnostic.getMessage(null)
-                                : source.getName()
-                                    + ":"
-                                    + diagnostic.getLineNumber()
-                                    + ": "
-                                    + diagnostic.getMessage(null));
+                        errors.add(error(diagnostic));
                       }
                     },
                     List.of("-proc:none"),
@@ -130,6 +122,17 @@ final class JavaSourceIndex {
       throw new IllegalStateException("Java parse errors:\n" + String.join("\n", errors));
     }
     return index;
+  }
+
+  /**
+   * The error line of a diagnostic: the file and line, then the message. A diagnostic without a
+   * source gives only the message.
+   */
+  static String error(final Diagnostic<? extends JavaFileObject> diagnostic) {
+    final @Nullable JavaFileObject source = diagnostic.getSource();
+    return source == null
+        ? diagnostic.getMessage(null)
+        : source.getName() + ":" + diagnostic.getLineNumber() + ": " + diagnostic.getMessage(null);
   }
 
   /** The declared types with the simple name, in no particular order. */

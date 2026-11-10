@@ -9,9 +9,13 @@ package io.camunda.connector.agenticai.docslint;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import javax.tools.Diagnostic;
+import javax.tools.JavaFileObject;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class JavaSourceIndexTest {
@@ -171,6 +175,59 @@ class JavaSourceIndexTest {
             Broken.java:3: <identifier> expected
             Broken.java:3: illegal start of expression\
             """);
+  }
+
+  @Test
+  void anErrorWithoutASourceGivesOnlyTheMessage() {
+    final Diagnostic<JavaFileObject> diagnostic =
+        new Diagnostic<>() {
+          @Override
+          public Kind getKind() {
+            return Kind.ERROR;
+          }
+
+          @Override
+          public @Nullable JavaFileObject getSource() {
+            return null;
+          }
+
+          @Override
+          public long getPosition() {
+            return NOPOS;
+          }
+
+          @Override
+          public long getStartPosition() {
+            return NOPOS;
+          }
+
+          @Override
+          public long getEndPosition() {
+            return NOPOS;
+          }
+
+          @Override
+          public long getLineNumber() {
+            return NOPOS;
+          }
+
+          @Override
+          public long getColumnNumber() {
+            return NOPOS;
+          }
+
+          @Override
+          public @Nullable String getCode() {
+            return null;
+          }
+
+          @Override
+          public String getMessage(final @Nullable Locale locale) {
+            return "no source files";
+          }
+        };
+
+    assertThat(JavaSourceIndex.error(diagnostic)).isEqualTo("no source files");
   }
 
   @Test
