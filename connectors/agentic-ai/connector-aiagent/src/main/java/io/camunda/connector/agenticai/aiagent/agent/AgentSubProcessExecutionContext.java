@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.aiagent.document.JobDocumentFactory;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -54,8 +53,7 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
       List<AdHocToolElement> toolElements,
       ChatModelConfiguration chatModel) {
     this.jobContext = jobContext;
-    // one factory per job: a document is resolved once, so an external document downloads once
-    this.documentFactory = new JobDocumentFactory(documentFactory);
+    this.documentFactory = documentFactory;
     this.data = data;
     this.initialAgentContext = initialAgentContext;
     this.initialToolCallResults = initialToolCallResults;

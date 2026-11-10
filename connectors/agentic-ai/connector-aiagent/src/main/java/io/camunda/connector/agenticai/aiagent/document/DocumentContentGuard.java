@@ -21,11 +21,9 @@ import org.jspecify.annotations.Nullable;
  * fails the model call for it. A document with content stays in the conversation until its message
  * leaves the window, so a document that a provider cannot render would fail every later model call.
  *
- * <p>The content type and the size are read from the metadata of the document, which is known
- * without reading the content for a Camunda or an inline document. The metadata of an external
- * document, one that is a URL, is the response of its download (the headers {@code Content-Type}
- * and {@code Content-Length}), so the check downloads it. When the metadata has no size, at most
- * one byte more than the limit is read. A document that cannot be read is rejected as unreadable.
+ * <p>The content type and the size are read from the metadata of the reference of the document,
+ * which is known without reading the content. When the metadata has no size, at most one byte more
+ * than the limit is read. A document that cannot be read is rejected as unreadable.
  *
  * <p>A runtime tool asks for content by naming a document (see {@code
  * RuntimeToolResult.Success#withDocumentContent}) and the agent checks it with this guard.

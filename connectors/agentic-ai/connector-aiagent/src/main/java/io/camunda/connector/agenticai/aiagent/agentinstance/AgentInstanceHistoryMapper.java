@@ -236,9 +236,9 @@ public class AgentInstanceHistoryMapper {
    * gets, in a user message, an event and a tool result. Where the document enters the conversation
    * the handle is followed by the document itself (the chip); a document nested in an object is
    * replaced by its handle object, as the model gets it, and the documents follow the object. Text
-   * is reported as it is, also when it holds a handle. The sentences the agent writes into a tool result about the content of a
-   * document are text; the message that follows the tool results is its preamble as text and every
-   * document whose content is loaded as its handle and chip.
+   * is reported as it is, also when it holds a handle. The sentences the agent writes into a tool
+   * result about the content of a document are text; the message that follows the tool results is
+   * its preamble as text and every document whose content is loaded as its handle and chip.
    */
   private List<AgentInstanceHistoryContent> messageContent(
       List<Content> contents, HistoryDocuments historyDocuments) {

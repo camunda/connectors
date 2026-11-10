@@ -42,8 +42,7 @@ public interface RuntimeToolDocuments {
   AgentDocumentContent reference(AgentDocumentId id);
 
   /**
-   * The live document of a known document, to read its metadata and content. Reading the content of
-   * an external document downloads it.
+   * The live document of a known document, to read its metadata and content.
    *
    * @throws IllegalArgumentException if the agent does not know a document with this id
    * @throws IllegalStateException if the document cannot be restored from the state of the agent

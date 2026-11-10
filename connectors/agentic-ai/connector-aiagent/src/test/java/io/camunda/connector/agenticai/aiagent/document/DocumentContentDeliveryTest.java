@@ -9,8 +9,6 @@ package io.camunda.connector.agenticai.aiagent.document;
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery.Outcome;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -21,10 +19,8 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumen
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -123,41 +119,6 @@ class DocumentContentDeliveryTest {
             new Outcome.AlreadyInConversation(idOf(text)),
             new Outcome.AlreadyInConversation(idOf(archive)),
             delivered(other));
-  }
-
-  @Test
-  void checksAHandledExternalDocumentAgainAndWithholdsItWhenItsDownloadFailsTheGuard() {
-    final var external = new ExternalDocument("https://example.com/data", "data", u -> null);
-    final var withExternal =
-        known.register(external, AgentDocumentOrigin.toolCall("download", "call-1"));
-    final var servingAnArchive =
-        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE) {
-          @Override
-          public Document resolve(DocumentReference reference) {
-            if (!(reference instanceof DocumentReference.ExternalDocumentReference)) {
-              return super.resolve(reference);
-            }
-            final var metadata = mock(DocumentMetadata.class);
-            when(metadata.getContentType()).thenReturn("application/zip");
-            when(metadata.getSize()).thenReturn(2L);
-            final var document = mock(Document.class);
-            when(document.reference()).thenReturn(reference);
-            when(document.metadata()).thenReturn(metadata);
-            return document;
-          }
-        };
-
-    assertThat(
-            delivery.deliver(
-                withExternal,
-                List.of(idOf(external), idOf(text)),
-                Set.of(idOf(external), idOf(text)),
-                servingAnArchive))
-        .containsExactly(
-            new Outcome.Withheld(
-                idOf(external),
-                "Documents of type application/zip cannot be loaded. If one of your tools can process the document, pass the handle to it."),
-            new Outcome.AlreadyInConversation(idOf(text)));
   }
 
   @Test
