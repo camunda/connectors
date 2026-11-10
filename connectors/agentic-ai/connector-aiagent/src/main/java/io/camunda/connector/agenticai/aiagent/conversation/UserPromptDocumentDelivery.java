@@ -16,10 +16,7 @@ import org.jspecify.annotations.Nullable;
  * missing value as a delivery.
  */
 public enum UserPromptDocumentDelivery {
-  /**
-   * The process sets no delivery, as every process modeled before the option and every v1 template
-   * does: the content of every document goes to the model.
-   */
+  /** No delivery is configured: the content of every document goes to the model. */
   UNSET,
   /** The model reads the handle of a document; a tool can load the content on request. */
   REFERENCE,
