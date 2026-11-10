@@ -794,4 +794,39 @@ class AgentConversationTest {
     assertThat(conv.documentIdsWithContent(addedMessages))
         .isEqualTo(withContent ? Set.of(AgentDocumentId.of(document)) : Set.of());
   }
+
+  @ParameterizedTest
+  @CsvSource({"3, true", "2, false"})
+  void documentIdsWithContent_keepAPlaceForTheSystemMessageOfTheNextCallAlsoWithoutOne(
+      int windowSize, boolean withContent) {
+    var document = TestDocuments.createDocument("content", "a.txt");
+    var userMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    AgentDocumentContent.of(AgentDocumentId.of(document))
+                        .withDelivery(DocumentDelivery.CONTENT)))
+            .build();
+
+    var conv =
+        AgentConversation.rehydrate(
+                new AgentConfiguration(
+                    TEST_CHAT_MODEL,
+                    TEST_SYSTEM_PROMPT,
+                    null,
+                    new MemoryTemplateConfiguration(null, windowSize),
+                    null,
+                    null,
+                    null),
+                BASE_CONTEXT,
+                TurnReconstructor.reconstruct(List.of()),
+                null,
+                List.of(userMessage))
+            .ingest(assistantMessage("one"), AgentMetrics.empty());
+
+    // the user message and the assistant message fit into a window of two, but a place stays
+    // free for a system message the next call may compose
+    assertThat(conv.documentIdsWithContent(0))
+        .isEqualTo(withContent ? Set.of(AgentDocumentId.of(document)) : Set.of());
+  }
 }

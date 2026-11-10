@@ -33,14 +33,9 @@ public record PreviousConversation(
   /**
    * Returns the ids of the documents whose content the model reads in the conversation of the next
    * model call: the messages of the turns that stay within the context window once the messages
-   * this invocation adds are counted.
-   *
-   * <p>Windowing the previous messages together with {@code addedMessages} counted messages at the
-   * end evicts the same previous messages as windowing the previous messages alone with {@code
-   * contextWindowSize - addedMessages}. The window always keeps one place for a system message: the
-   * system message of the next model call is composed in this invocation, and the stored one tells
-   * only whether the previous call had one. Without a system message the result can miss a document
-   * whose content the model still reads, which only adds that content again.
+   * this invocation adds are counted. The window keeps a place for a system message whether or not
+   * the conversation has one, so the result never holds a document whose content the model may no
+   * longer read; a document missing from it only has its content added again.
    *
    * @param contextWindowSize the maximum number of messages the model call reads
    * @param addedMessages the number of messages this invocation adds that the window counts
@@ -58,7 +53,7 @@ public record PreviousConversation(
   }
 
   /** The ids of the documents whose content the model reads in the given messages. */
-  static Set<AgentDocumentId> documentIdsWithContentIn(List<Message> messages) {
+  private static Set<AgentDocumentId> documentIdsWithContentIn(List<Message> messages) {
     return messages.stream()
         .filter(UserMessage.class::isInstance)
         .map(UserMessage.class::cast)
