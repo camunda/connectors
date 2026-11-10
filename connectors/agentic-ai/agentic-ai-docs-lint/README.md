@@ -18,3 +18,4 @@ test code only and is not shipped.
 ## Docs
 
 - [Docs checks](../AGENTS.md#docs-checks)
+- [Doc checks](../docs/documentation-rules.md#checks)
