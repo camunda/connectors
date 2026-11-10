@@ -496,13 +496,14 @@ class RuntimeToolsTest {
 
   @Test
   void aToolCanBeEnabledOnlyWhileTheAgentKnowsADocument() {
-    final var needsDocuments =
-        toolsOf(
-            tool("acme_documents", context -> !context.agentContext().documents().all().isEmpty()));
+    final var tool =
+        tool("acme_documents", context -> !context.agentContext().documents().all().isEmpty());
+    final var needsDocuments = toolsOf(tool);
     final var knowingADocument = knowing(createDocument("report", "report.txt"));
 
     assertThat(needsDocuments.enabledDefinitions(PLAIN, NEW_INSTANCE)).isEmpty();
-    assertThat(needsDocuments.enabledDefinitions(PLAIN, knowingADocument)).hasSize(1);
+    assertThat(needsDocuments.enabledDefinitions(PLAIN, knowingADocument))
+        .containsExactly(tool.definition());
   }
 
   @Test

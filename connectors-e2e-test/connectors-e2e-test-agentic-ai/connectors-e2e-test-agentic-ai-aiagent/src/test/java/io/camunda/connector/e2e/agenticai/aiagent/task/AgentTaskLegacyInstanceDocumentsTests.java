@@ -53,10 +53,13 @@ public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
       Map.of("schemaVersion", 1, "state", "READY");
 
   private static Map<String, Object> variables(String userPrompt, Object... more) {
+    if (more.length % 2 != 0) {
+      throw new IllegalArgumentException("The variables must be pairs of a name and a value");
+    }
     final var variables = new java.util.HashMap<String, Object>();
     variables.put("userPrompt", userPrompt);
     variables.put("agent", Map.of("context", LEGACY_AGENT_CONTEXT));
-    for (int i = 0; i < more.length; i += 2) {
+    for (int i = 0; i + 1 < more.length; i += 2) {
       variables.put((String) more[i], more[i + 1]);
     }
     return variables;

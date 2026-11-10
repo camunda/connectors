@@ -110,7 +110,6 @@ class DocumentContentDeliveryTest {
                 List.of(idOf(other), idOf(archive), idOf(other), idOf(text)),
                 Set.of(),
                 TestDocuments.documentFactory()))
-        .hasSize(3)
         .containsExactly(delivered(other), withheldArchive(), delivered(text));
   }
 
