@@ -117,7 +117,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
 
-    <version.aws-sdk2>2.57.11</version.aws-sdk2>
+    <version.aws-sdk2>2.57.12</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -133,7 +133,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.2.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20261023-2.9.2</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20261106-2.9.2</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.57.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
@@ -167,7 +167,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.19.0</version.azure-identity>
     <version.azure-core>1.61.0</version.azure-core>
-    <version.msal4j>1.26.0</version.msal4j>
+    <version.msal4j>1.26.1</version.msal4j>
     <version.azure-cosmos>4.83.0</version.azure-cosmos>
 
     <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
@@ -216,10 +216,10 @@ limitations under the License.</license.inlineheader>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.7.0</plugin.version.maven-enforcer-plugin>
-    <plugin.version.maven-exec-plugin>3.6.4</plugin.version.maven-exec-plugin>
+    <plugin.version.maven-exec-plugin>3.7.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.2.0</plugin.version.maven-install-plugin>
     <plugin.version.license>5.1.2</plugin.version.license>
-    <plugin.version.license.codehaus>2.8.0</plugin.version.license.codehaus>
+    <plugin.version.license.codehaus>2.9.0</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>3.11.0</plugin.version.spotless-maven-plugin>
@@ -856,7 +856,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>animal-sniffer-annotations</artifactId>
-        <version>1.29</version>
+        <version>1.29.1</version>
       </dependency>
       <dependency>
         <groupId>org.jetbrains</groupId>

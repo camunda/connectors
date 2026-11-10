@@ -103,4 +103,4 @@ Chosen option: **Option 3 — data-driven verdicts + an `AgentConversation` aggr
 - **Stage 2**: migrate turn behavior onto `AgentConversation` (folding `engineToolCallResults` into
   messages, the model call, persistence, response building), thinning `BaseAgentRequestHandler` to a
   driver; reconsider whether the aggregate should then own the `ConversationSession`.
-- Update `docs/reference/ai-agent.md` and `connectors/agentic-ai/CLAUDE.md` to the new vocabulary.
+- Update `connector-aiagent/docs/agent-state-machine.md` and `connectors/agentic-ai/CLAUDE.md` to the new vocabulary.

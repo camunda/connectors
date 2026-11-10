@@ -9,14 +9,25 @@ package io.camunda.connectors.soap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.sun.net.httpserver.HttpServer;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import io.camunda.connectors.soap.CertificateUtil.CertificateHolder;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication.Signature;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication.Signature.Certificate.SingleCertificate;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication.UsernameToken;
 import io.camunda.connectors.soap.SoapConnectorInput.YesNo;
+import io.camunda.connectors.soap.client.SpringSoapClient;
+import java.io.ByteArrayInputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateFactory;
+import java.util.Base64;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 class SoapCredentialTest {
@@ -148,6 +159,92 @@ class SoapCredentialTest {
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining(
             "No authentication provided by the reusable credential or the element template");
+  }
+
+  @Test
+  void resolvesCertificateSecretInSignatureCredential_andSignsRequest() throws Exception {
+    CertificateHolder holder = CertificateUtil.generateSelfSignedCertificate();
+
+    var receivedRequest = new AtomicReference<String>();
+    HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+    server.createContext(
+        "/",
+        exchange -> {
+          receivedRequest.set(
+              new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+          byte[] response =
+              ("<env:Envelope xmlns:env=\"http://www.w3.org/2003/05/soap-envelope\">"
+                      + "<env:Body><pong xmlns=\"urn:test\"/></env:Body></env:Envelope>")
+                  .getBytes(StandardCharsets.UTF_8);
+          exchange.getResponseHeaders().add("Content-Type", "application/soap+xml");
+          exchange.sendResponseHeaders(200, response.length);
+          exchange.getResponseBody().write(response);
+          exchange.close();
+        });
+    server.start();
+    try {
+      String variables =
+          """
+          {"soapCredential": {"authentication": {"type": "signature",
+            "certificate": "{{secrets.SOAP_CERTIFICATE}}",
+            "privateKey": "{{secrets.SOAP_PRIVATE_KEY}}"}},
+          "serviceUrl": "http://localhost:%d/",
+          "soapVersion": {"version": "1.2"},
+          "header": {"type": "none"},
+          "body": {"type": "json", "json": {}}}\
+          """
+              .formatted(server.getAddress().getPort());
+      SoapConnectorInput input =
+          OutboundConnectorContextBuilder.create()
+              .validation(new DefaultValidationProvider())
+              .secret("SOAP_CERTIFICATE", holder.certificate())
+              .secret("SOAP_PRIVATE_KEY", holder.privateKey())
+              .variables(variables)
+              .build()
+              .bindVariables(SoapConnectorInput.class);
+
+      assertThat(input.authentication())
+          .isEqualTo(
+              new Signature(
+                  new SingleCertificate(holder.certificate(), holder.privateKey()),
+                  null,
+                  null,
+                  null,
+                  null));
+
+      new SpringSoapClient()
+          .sendSoapRequest(
+              input.serviceUrl(),
+              input.soapVersion(),
+              null,
+              "<ping xmlns=\"urn:test\"/>",
+              input.authentication(),
+              5,
+              Map.of());
+
+      String request = receivedRequest.get();
+      assertThat(request).contains("SignatureValue");
+      assertThat(extractBinarySecurityToken(request))
+          .isEqualTo(encodeCertificateAsBase64Der(holder.certificate()));
+    } finally {
+      server.stop(0);
+    }
+  }
+
+  private static String extractBinarySecurityToken(String request) {
+    var matcher =
+        Pattern.compile("<[^>]*BinarySecurityToken[^>]*>([^<]+)</", Pattern.DOTALL)
+            .matcher(request);
+    assertThat(matcher.find()).as("BinarySecurityToken in request").isTrue();
+    return matcher.group(1).replaceAll("\\s+", "");
+  }
+
+  private static String encodeCertificateAsBase64Der(String certificatePem) throws Exception {
+    var certificate =
+        CertificateFactory.getInstance("X.509")
+            .generateCertificate(
+                new ByteArrayInputStream(certificatePem.getBytes(StandardCharsets.UTF_8)));
+    return Base64.getEncoder().encodeToString(certificate.getEncoded());
   }
 
   @Test

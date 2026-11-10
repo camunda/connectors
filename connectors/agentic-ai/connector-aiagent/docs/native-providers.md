@@ -4,7 +4,7 @@ Implementation notes specific to each fully-native (non-LangChain4j) v2 chat mod
 what a particular provider's converters and configuration do, and why. The general rules every new
 v2 provider must follow (backend-subtype wrapping, provider-namespaced metadata, metadata stamping)
 and how to add a provider at all live in
-[`ai-agent.md` §25.1](ai-agent.md#251-add-an-llm-provider); read that first. This file only holds the
+[`extension-points.md`](../../docs/architecture/extension-points.md#add-an-llm-provider); read that first. This file only holds the
 per-provider "here's what's special" detail that would otherwise bloat that section.
 
 ## Token usage
@@ -94,7 +94,7 @@ everything else → `STOP`. Unrecognized values fall back to `UnknownStopReason`
 preserved. `refusal` and `model_context_window_exceeded` never reach this mapping: `toResult` throws
 `ContentFilteredException`/`ContextWindowExceededException` for them directly, carrying the
 assistant message and metrics already built for the turn as the exception's `PartialResult` (see
-[ai-agent.md §12](ai-agent.md#12-framework-abstraction)).
+[`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#normalized-stop-reasons--chatmodelrejectedexception)).
 
 ## Bedrock Converse
 
@@ -199,7 +199,7 @@ Four stop reasons never reach that mapping's result, because `toResult` throws b
 `content_filtered`, `guardrail_intervened` and `model_context_window_exceeded` throw
 `ContentFilteredException`/`GuardrailInterventionException`/`ContextWindowExceededException`,
 carrying the assistant message and metrics already built for the turn as the exception's
-`PartialResult` (see [ai-agent.md §12](ai-agent.md#12-framework-abstraction)).
+`PartialResult` (see [`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#normalized-stop-reasons--chatmodelrejectedexception)).
 `malformed_model_output` and `malformed_tool_use` are a generation failure rather than a policy
 decision, so they fail the call with `ERROR_CODE_FAILED_MODEL_CALL` instead.
 
@@ -335,7 +335,7 @@ normal completion maps to `STOP`, tool calls to `TOOL_USE`. Unrecognized `finish
 back to `StopReason.UnknownStopReason` with the raw value preserved. `content_filter` never reaches
 this mapping on either API family: `toResult` throws `ContentFilteredException` directly, carrying
 the assistant message and metrics already built for the turn as the exception's `PartialResult` (see
-[ai-agent.md §12](ai-agent.md#12-framework-abstraction)). A refusal (Responses' message-content
+[`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#normalized-stop-reasons--chatmodelrejectedexception)). A refusal (Responses' message-content
 `refusal` item, Completions' `message.refusal` field) is detected separately from `hasRefusal` and
 throws the same exception, since neither API surfaces it as a stop/finish reason - it's a normal
 completed turn whose content happens to be a declination. `LENGTH` never fails the job.

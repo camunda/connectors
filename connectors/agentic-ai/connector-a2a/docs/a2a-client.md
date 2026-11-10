@@ -3,62 +3,10 @@
 This document provides a comprehensive, code-level reference for the A2A (Agent-to-Agent) integration in the
 `agentic-ai` module. A2A enables the AI Agent to interact with remote autonomous agents via the A2A protocol.
 
-For the core AI Agent architecture, see [`ai-agent.md`](ai-agent.md).
-For the Gateway Tool Pattern that A2A implements, see [ai-agent.md §19](ai-agent.md#19-gateway-tool-pattern).
+For the core AI Agent architecture, see [`agentic-loop.md`](../../docs/architecture/agentic-loop.md).
+For the Gateway Tool Pattern that A2A implements, see [`extension-points.md`](../../docs/architecture/extension-points.md#gateway-tool-pattern).
 
----
-
-## Table of Contents
-
-1. [Overview](#1-overview)
-2. [Key Differences from MCP](#2-key-differences-from-mcp)
-3. [Connector Types](#3-connector-types)
-4. [Package Structure](#4-package-structure)
-5. [Tool Name Convention](#5-tool-name-convention)
-6. [Discovery Flow](#6-discovery-flow)
-7. [Tool Call Execution Flow](#7-tool-call-execution-flow)
-8. [Data Model](#8-data-model)
-9. [Connector Modes & Operations](#9-connector-modes--operations)
-10. [SDK Client Layer](#10-sdk-client-layer)
-11. [Converter Chain](#11-converter-chain)
-12. [System Prompt Contribution](#12-system-prompt-contribution)
-13. [Async Patterns](#13-async-patterns)
-14. [Spring Configuration](#14-spring-configuration)
-15. [Error Codes](#15-error-codes)
-16. [Key Source Files](#16-key-source-files)
-
----
-
-<a id="1-overview"></a>
-
-## 1. Overview
-
-Unlike MCP (which exposes discrete tools), A2A exposes **entire agents** as tools. Each A2A Client element in the AHSP
-becomes a single tool the LLM can send messages to. A2A supports multi-turn conversations with remote agents via
-`taskId` and `contextId` management.
-
----
-
-<a id="2-key-differences-from-mcp"></a>
-
-## 2. Key Differences from MCP
-
-| Aspect             | MCP                                  | A2A                                                                |
-|--------------------|--------------------------------------|--------------------------------------------------------------------|
-| What it exposes    | Multiple discrete tools per server   | One agent per remote server                                        |
-| Discovery          | `listTools` → N tool definitions    | `fetchAgentCard` → 1 tool definition                              |
-| Tool name format   | `MCP_<element>___<mcpTool>`          | `A2A_<element>` (no sub-tool)                                      |
-| Input schema       | Per-tool (from MCP server)           | Fixed (text + taskId + contextId + referenceTaskIds)               |
-| Tool description   | Per-tool (from MCP server)           | Serialized agent card JSON                                         |
-| Multi-turn         | Not applicable (stateless tools)     | Supported (taskId/contextId for continuation)                      |
-| System prompt      | None                                 | A2A protocol instructions injected automatically                   |
-| Response handling  | Simple content return                | Task lifecycle (submitted/working/input-required/completed/failed) |
-
----
-
-<a id="3-connector-types"></a>
-
-## 3. Connector Types
+## Connector Types
 
 **A2A Client Outbound** (`A2aClientOutboundConnectorFunction`):
 - Type: `io.camunda.agenticai:a2aclient:0`
@@ -76,11 +24,7 @@ becomes a single tool the LLM can send messages to. A2A supports multi-turn conv
 - Receives push notifications from A2A servers
 - HMAC signature verification for security
 
----
-
-<a id="4-package-structure"></a>
-
-## 4. Package Structure
+## Package Structure
 
 See `io.camunda.connector.agenticai.a2a.client` — organized into `common`, `outbound`, `inbound/polling`, and `inbound/webhook` sub-packages. The AI Agent tool integration lives in `io.camunda.connector.agenticai.a2a.integration`.
 
@@ -93,87 +37,7 @@ The two sub-packages ship as separate Maven modules:
   `a2a/a2a-system-prompt.md` resources). It depends on `connector-a2a`, `aiagent-api`, `aiagent-model` and
   `agentic-ai-common`, not on `connector-aiagent`.
 
----
-
-<a id="5-tool-name-convention"></a>
-
-## 5. Tool Name Convention
-
-`A2aToolCallIdentifier` manages the naming scheme:
-
-```
-A2A_<elementName>
-```
-
-- Prefix: `A2A_`
-- Element name: BPMN element ID of the A2A Client in the AHSP
-
-Example: `A2A_WeatherAgent`
-
-Simpler than MCP because there's only one "tool" per A2A element (the agent itself).
-
-- `isA2aToolCallIdentifier(String)` → `startsWith("A2A_") && length > 4`
-- `fullyQualifiedName()` → `"A2A_" + elementName`
-- `fromToolCallName(String)` → strips `"A2A_"` prefix
-
----
-
-<a id="6-discovery-flow"></a>
-
-## 6. Discovery Flow
-
-```
-1. Agent enters INITIALIZING state
-2. AdHocToolsSchemaResolver identifies A2A Client element via gateway type extension
-3. A2aGatewayToolHandler.initiateToolDiscovery():
-   - Stores A2A client element IDs in agentContext.properties.a2aClients
-   - Creates tool call: id="A2A_fetchAgentCard_<elementId>", name="<elementId>",
-     args={operation: "fetchAgentCard"}
-4. Agent completes job with activateElement("<elementId>")
-5. A2A Client connector fetches agent card from remote server
-6. Result (agent card JSON) flows back via outputElement
-7. Agent receives result in TOOL_DISCOVERY state
-8. A2aGatewayToolHandler.handleToolDiscoveryResults():
-   - Creates single ToolDefinition per A2A element:
-     name: "A2A_<elementId>"
-     description: serialized agent card JSON (the LLM reads agent capabilities from this)
-     inputSchema: fixed schema from a2a/tool-input-schema.json
-9. Tools merged into agentContext.toolDefinitions
-10. State → READY
-```
-
----
-
-<a id="7-tool-call-execution-flow"></a>
-
-## 7. Tool Call Execution Flow
-
-```
-1. LLM requests: "A2A_WeatherAgent" with args {text: "What's the weather?"}
-2. A2aGatewayToolHandler.transformToolCalls():
-   - Parses A2aToolCallIdentifier: elementName="WeatherAgent"
-   - Transforms to: ToolCall(name="WeatherAgent",
-     args={operation: "sendMessage", params: {text: "What's the weather?"}})
-3. Agent completes job with activateElement("WeatherAgent")
-4. A2A Client connector sends message to remote agent
-5. Result (A2aSendMessageResult — either A2aTask or A2aMessage) flows back
-6. A2aGatewayToolHandler.transformToolCallResults():
-   - Rebuilds fully qualified name: "A2A_WeatherAgent"
-   - Deserializes content into the typed A2aSendMessageResult and sets it as the transformed
-     ToolCallResult content
-7. LLM receives the response and decides next action based on task state
-8. A2aGatewayToolHandler.extractDocuments() walks the typed A2aSendMessageResult and collects
-   Camunda Documents from A2aDocumentPart entries: A2aMessage.contents at the root, plus
-   A2aTask.artifacts and (recursively) A2aTask.history. Documents flow into the synthetic
-   document UserMessage produced by ToolCallResultDocumentExtractor (see ai-agent.md §19
-   "Document Extraction from Tool Call Results").
-```
-
----
-
-<a id="8-data-model"></a>
-
-## 8. Data Model
+## Data Model
 
 ### Result Type Hierarchy
 
@@ -203,28 +67,7 @@ Wraps the connector output:
 - `pollingData: PollingData` — task/message ID for polling connector (nullable)
 - `pushNotificationData: PushNotificationData` — token for webhook connector (nullable)
 
-### Fixed Tool Input Schema
-
-All A2A tools share `a2a/tool-input-schema.json`:
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "text":             { "type": "string", "description": "The request or follow-up message" },
-    "taskId":           { "type": "string", "description": "Existing task ID (for continuation)" },
-    "contextId":        { "type": "string", "description": "Context ID (from first response)" },
-    "referenceTaskIds": { "type": "array", "description": "Prior task IDs for context" }
-  },
-  "required": ["text"]
-}
-```
-
----
-
-<a id="9-connector-modes--operations"></a>
-
-## 9. Connector Modes & Operations
+## Connector Modes & Operations
 
 ### A2aConnectorModeConfiguration (sealed)
 
@@ -249,11 +92,7 @@ Discriminated by `type`:
 - `Polling` — returns immediately; polling inbound connector retrieves result later
 - `Notification` — configures webhook URL for push notifications
 
----
-
-<a id="10-sdk-client-layer"></a>
-
-## 10. SDK Client Layer
+## SDK Client Layer
 
 ### A2aSdkClientFactory / A2aSdkClientFactoryImpl
 
@@ -282,11 +121,7 @@ Thin wrapper around the A2A SDK `Client`:
 Creates and tracks `io.grpc.ManagedChannel` instances with coordinated shutdown: 5-second graceful window, 2-second
 forced shutdown.
 
----
-
-<a id="11-converter-chain"></a>
-
-## 11. Converter Chain
+## Converter Chain
 
 ### SDK → Domain
 
@@ -313,31 +148,7 @@ forced shutdown.
 - `MessageEvent` → converts via `A2aSdkObjectConverter.convert(Message)`
 - `TaskEvent` → converts via `A2aSdkObjectConverter.convert(Task)`; throws on `AUTH_REQUIRED` state
 
----
-
-<a id="12-system-prompt-contribution"></a>
-
-## 12. System Prompt Contribution
-
-`A2aSystemPromptContributor` implements `SystemPromptContributor` (order = 100) and automatically injects A2A protocol
-instructions when A2A tools are detected.
-
-**Activation condition**: `agentContext.properties["a2aClients"]` is a non-empty list (i.e., A2A discovery completed).
-
-**Content**: Loaded from `classpath:a2a/a2a-system-prompt.md`, covering:
-- How to interpret `kind: "message"` vs `kind: "task"` responses
-- Task state handling (input-required, completed, submitted/working, failed)
-- ID management rules (taskId, contextId, referenceTaskIds)
-- Multi-turn flow examples
-- Common error patterns to avoid
-
-For the `SystemPromptContributor` SPI, see [ai-agent.md §13](ai-agent.md#13-system-prompt-composition).
-
----
-
-<a id="13-async-patterns"></a>
-
-## 13. Async Patterns
+## Async Patterns
 
 ### Blocking (synchronous)
 
@@ -375,11 +186,7 @@ Result correlation
 - Outbound configures push notifications on SDK client: `webhookUrl`, `token`, credentials
 - `A2aClientWebhookExecutable` receives POST, deserializes `Task`, verifies optional HMAC, correlates
 
----
-
-<a id="14-spring-configuration"></a>
-
-## 14. Spring Configuration
+## Spring Configuration
 
 ### A2aClientAutoConfiguration
 
@@ -401,17 +208,6 @@ Config: `camunda.connector.agenticai.a2a.client.transport.grpc.useTls` (default:
 Registers: `A2aDocumentToPartConverter`, `A2aSendMessageResponseHandler`, `A2aMessageSender`,
 `A2aClientRequestHandler`, `A2aClientOutboundConnectorFunction`
 
-### A2aClientAgenticToolAutoConfiguration
-
-Auto-configuration ordered after `A2aClientAutoConfiguration`. Does not depend on the A2A client beans.
-
-**Condition**: `camunda.connector.agenticai.a2a.client.agentic.tool.enabled` (default: **true**)
-
-Registers: `A2aGatewayToolDefinitionResolver`, `A2aGatewayToolHandler`, `A2aSystemPromptContributor`
-
-Config: `camunda.connector.agenticai.a2a.client.agentic.tool.systemPrompt` (default:
-`classpath:a2a/a2a-system-prompt.md`)
-
 ### A2aClientPollingConfiguration
 
 **Condition**: `camunda.connector.agenticai.a2a.client.polling.enabled` (default: **true**)
@@ -426,11 +222,7 @@ Config: `camunda.connector.agenticai.a2a.client.polling.threadPoolSize` (default
 
 Registers: `A2aClientWebhookExecutable` (prototype scope)
 
----
-
-<a id="15-error-codes"></a>
-
-## 15. Error Codes
+## Error Codes
 
 From `A2aErrorCodes`:
 
@@ -441,25 +233,14 @@ From `A2aErrorCodes`:
 | `ERROR_CODE_A2A_CLIENT_SEND_MESSAGE_FAILED`             | `A2A_CLIENT_SEND_MESSAGE_FAILED`                      | Error sending message to remote agent          |
 | `ERROR_CODE_A2A_CLIENT_TASK_RETRIEVAL_FAILED`           | `A2A_CLIENT_TASK_RETRIEVAL_FAILED`                    | Error polling task status                      |
 
----
-
-<a id="16-key-source-files"></a>
-
-## 16. Key Source Files
+## Key Source Files
 
 | File                                         | Purpose                                                       |
 |----------------------------------------------|---------------------------------------------------------------|
 | `A2aClientOutboundConnectorFunction.java`    | Outbound connector entry point                                |
 | `A2aClientRequestHandlerImpl.java`           | Handles fetchAgentCard and sendMessage operations             |
-| `A2aGatewayToolHandler.java`                 | Gateway handler: discovery, name transform, result transform  |
-| `A2aToolCallIdentifier.java`                 | Tool name parsing/construction (`A2A_<element>`)              |
-| `A2aGatewayToolDefinitionResolver.java`      | Identifies A2A elements in AHSP                               |
-| `A2aSystemPromptContributor.java`            | Injects A2A protocol instructions into system prompt          |
 | `A2aClientPollingExecutable.java`            | Polling inbound connector                                     |
 | `A2aClientWebhookExecutable.java`            | Webhook inbound connector                                     |
 | `A2aSendMessageResponseHandlerImpl.java`     | Handles message/task events from A2A SDK                      |
 | `A2aMessageSenderImpl.java`                  | Sends messages to remote A2A agents                           |
 | `A2aAgentCardFetcherImpl.java`               | Fetches agent cards from remote servers                       |
-| `a2a/tool-input-schema.json`                 | Fixed tool input schema for all A2A tools                     |
-| `a2a/a2a-system-prompt.md`                   | A2A protocol instructions for LLM                             |
-| `A2aClientAgenticToolAutoConfiguration.java` | Spring config for A2A gateway beans                           |

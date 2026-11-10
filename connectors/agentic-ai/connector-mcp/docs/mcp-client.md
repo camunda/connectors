@@ -3,35 +3,10 @@
 This document provides a comprehensive, code-level reference for the MCP (Model Context Protocol) integration in the
 `agentic-ai` module. MCP enables the AI Agent to discover and call tools from MCP servers.
 
-For the core AI Agent architecture, see [`ai-agent.md`](ai-agent.md).
-For the Gateway Tool Pattern that MCP implements, see [ai-agent.md §19](ai-agent.md#19-gateway-tool-pattern).
+For the core AI Agent architecture, see [`agentic-loop.md`](../../docs/architecture/agentic-loop.md).
+For the Gateway Tool Pattern that MCP implements, see [`extension-points.md`](../../docs/architecture/extension-points.md#gateway-tool-pattern).
 
----
-
-## Table of Contents
-
-1. [Overview](#1-overview)
-2. [Connector Types](#2-connector-types)
-3. [Package Structure](#3-package-structure)
-4. [MCP Client Architecture](#4-mcp-client-architecture)
-5. [Tool Name Convention](#5-tool-name-convention)
-6. [Discovery Flow](#6-discovery-flow)
-7. [Tool Call Execution Flow](#7-tool-call-execution-flow)
-8. [Request Data Model](#8-request-data-model)
-9. [Result Data Model](#9-result-data-model)
-10. [Client Lifecycle](#10-client-lifecycle)
-11. [Transport & Authentication](#11-transport--authentication)
-12. [Filtering](#12-filtering)
-13. [Binary Content & Document Handling](#13-binary-content--document-handling)
-14. [Spring Configuration](#14-spring-configuration)
-15. [Error Codes](#15-error-codes)
-16. [Key Source Files](#16-key-source-files)
-
----
-
-<a id="1-overview"></a>
-
-## 1. Overview
+## Overview
 
 MCP integration is bidirectional:
 
@@ -40,52 +15,7 @@ MCP integration is bidirectional:
 
 MCP exposes **multiple discrete tools per server** — one MCP Client BPMN element becomes N tools the LLM can call.
 
-### End-to-End Sequence (Agent Integration)
-
-```mermaid
-sequenceDiagram
-  autonumber
-  actor User as User
-  participant AAC as AI Agent Connector
-  participant LLM as LLM
-  participant MCPC as MCP Client Connector
-  participant MCPS as MCP Server
-
-  User ->>+ AAC: new request
-
-  %% MCP tool lookup
-  AAC ->>+ MCPC: list tools
-  deactivate AAC
-  MCPC ->>+ MCPS: list tools
-  note left of MCPC: no LLM interaction<br>(process flow only)
-  MCPS -->>- MCPC: MCP tools
-  MCPC -->>- AAC: MCP tools
-
-  %% LLM call with tool definitions
-  activate AAC
-  AAC ->>+ LLM: request including MCP tools
-  LLM -->>- AAC: tool call requests
-
-  %% MCP tool call
-  AAC ->>+ MCPC: call tool A
-  deactivate AAC
-  MCPC ->>+ MCPS: call tool A
-  MCPS -->>- MCPC: tool A response
-  MCPC -->>- AAC: tool A response
-  activate AAC
-
-  %% LLM feedback based on tool call
-  AAC ->>+ LLM: tool call response
-  LLM -->>- AAC: AI response derived from tool call
-
-  AAC -->>- User: final response
-```
-
----
-
-<a id="2-connector-types"></a>
-
-## 2. Connector Types
+## Connector Types
 
 **MCP Client** (`McpClientFunction`):
 - Type: `io.camunda.agenticai:mcpclient:1`
@@ -101,11 +31,7 @@ sequenceDiagram
 - Cache key: `(processDefinitionKey, elementId)` — scoped per deployment + element
 - Supports Basic, Bearer, and OAuth authentication
 
----
-
-<a id="3-package-structure"></a>
-
-## 3. Package Structure
+## Package Structure
 
 See `io.camunda.connector.agenticai.mcp` — split into `client` (connectors, handlers, execution, framework, model) and `integration` (gateway tool integration) sub-packages.
 
@@ -117,11 +43,7 @@ The two sub-packages ship as separate Maven modules:
   `McpClientAgenticToolAutoConfiguration`). It depends on `connector-mcp`, `aiagent-api`, `aiagent-model` and
   `agentic-ai-common`, not on `connector-aiagent`.
 
----
-
-<a id="4-mcp-client-architecture"></a>
-
-## 4. MCP Client Architecture
+## MCP Client Architecture
 
 ```
 McpClientFunction / McpRemoteClientFunction
@@ -156,7 +78,7 @@ McpClientFunction / McpRemoteClientFunction
 | `GET_PROMPT`              | `getPrompt(params, filter, meta)`        | Standalone only                                    |
 
 All operations accept an optional `meta: Map<String, Object>`, forwarded unmodified as the MCP request's `_meta`
-field (see [§8](#8-request-data-model)). When not configured, no `_meta` field is sent — fully backwards compatible.
+field (see [Request Data Model](#request-data-model)). When not configured, no `_meta` field is sent — fully backwards compatible.
 
 ### RPC Layer
 
@@ -178,90 +100,7 @@ The `meta` parameter is forwarded unmodified into the corresponding MCP SDK requ
 `CallToolRequest.builder(...).meta(meta)`, `ReadResourceRequest(uri, meta)`, `GetPromptRequest(name, arguments, meta)`,
 and `PaginatedRequest(cursor, meta)` for the four list operations (via the SDK's `(cursor, meta)` client overloads).
 
----
-
-<a id="5-tool-name-convention"></a>
-
-## 5. Tool Name Convention
-
-`McpToolCallIdentifier` manages the naming scheme:
-
-```
-MCP_<elementName>___<mcpToolName>
-```
-
-- Prefix: `MCP_`
-- Element name: BPMN element ID of the MCP Client in the AHSP — must NOT contain `___`
-- Separator: `___` (triple underscore)
-- MCP tool name: the tool's name on the MCP server — CAN contain `___`
-
-Example: `MCP_MyFilesystem___readFile`
-
-Pattern: `^MCP_(?<elementName>\S+?)___(?<mcpToolName>\S+)$` — note `\S+?` (non-greedy) on element name so any `___`
-in the tool name is captured correctly.
-
-Discovery tool call IDs use a different format: `MCP_toolsList_<elementId>` — NOT a valid `McpToolCallIdentifier`.
-
----
-
-<a id="6-discovery-flow"></a>
-
-## 6. Discovery Flow
-
-```
-1. Agent enters INITIALIZING state
-2. AdHocToolsSchemaResolver identifies MCP Client element via gateway type extension
-3. McpClientGatewayToolHandler.initiateToolDiscovery():
-   - Validates element IDs don't contain "___"
-   - Stores MCP client element IDs in agentContext.properties.mcpClients
-   - Creates tool call: id="MCP_toolsList_<elementId>", name="<elementId>",
-     args={method: "tools/list"}
-4. Agent completes job with activateElement("<elementId>") and
-   variables {toolCall: {method: "tools/list"}, toolCallResult: ""}
-5. MCP Client connector picks up the tool call, calls listTools on MCP server
-6. Result (McpClientListToolsResult with tool definitions) flows back via outputElement
-7. Agent receives result in TOOL_DISCOVERY state
-8. McpClientGatewayToolHandler.handleToolDiscoveryResults():
-   - Converts each McpToolDefinition → ToolDefinition
-   - Name: MCP_<elementId>___<mcpToolName>
-   - Schema: inputSchema from MCP server
-9. Tools merged into agentContext.toolDefinitions
-10. State → READY, tools available to LLM
-```
-
----
-
-<a id="7-tool-call-execution-flow"></a>
-
-## 7. Tool Call Execution Flow
-
-```
-1. LLM requests tool call: "MCP_MyFilesystem___readFile" with args {path: "/foo"}
-2. McpClientGatewayToolHandler.transformToolCalls():
-   - Parses McpToolCallIdentifier: elementName="MyFilesystem", mcpToolName="readFile"
-   - Transforms to: ToolCall(id=<original>, name="MyFilesystem",
-     args={method: "tools/call", params: {name: "readFile", arguments: {path: "/foo"}}})
-3. Agent completes job with activateElement("MyFilesystem")
-4. MCP Client connector executes callTool("readFile", {path: "/foo"})
-5. Result flows back as toolCallResult (McpClientCallToolResult)
-6. McpClientGatewayToolHandler.transformToolCallResults():
-   - Extracts tool name from result, rebuilds fully qualified name
-   - Maps content: if single McpTextContent → use string directly, else use the typed
-     List<McpContent> as the transformed ToolCallResult content
-   - Returns ToolCallResult with name="MCP_MyFilesystem___readFile"
-7. Agent presents result to LLM with the original fully qualified tool name
-8. McpClientGatewayToolHandler.extractDocuments() walks the List<McpContent> via a sealed-type
-   switch and collects Camunda Documents from McpDocumentContent and
-   McpEmbeddedResourceContent.BlobDocumentResource entries — feeding the synthetic document
-   UserMessage produced by ToolCallResultDocumentExtractor (see ai-agent.md §19 "Document
-   Extraction from Tool Call Results").
-```
-
----
-
-<a id="8-request-data-model"></a>
-
-## 8. Request Data Model
+## Request Data Model
 
 ### McpClientRequest (runtime-configured)
 
@@ -321,14 +160,11 @@ Factory methods: `of(method)`, `of(method, params)`, `of(method, params, meta)` 
 the 3-arg one with an empty `meta` map.
 
 `McpClientOperationDefinitions` provides factory methods: `listTools()`, `callTool(name, arguments)`. These back the
-AI-agent-internal tool discovery/invocation path (§6, §7), which is separate from the static Operation-group
+AI-agent-internal tool discovery/invocation path (see [Discovery Flow](../../aiagent-mcp-integration/docs/mcp-gateway-tool.md#discovery-flow) and
+[Tool Call Execution Flow](../../aiagent-mcp-integration/docs/mcp-gateway-tool.md#tool-call-execution-flow)), which is separate from the static Operation-group
 configuration above and has no `meta` FEEL property.
 
----
-
-<a id="9-result-data-model"></a>
-
-## 9. Result Data Model
+## Result Data Model
 
 ### Result Type Hierarchy
 
@@ -366,11 +202,7 @@ Jackson polymorphic on `type` property:
 record McpToolDefinition(String name, @Nullable String title, @Nullable String description, Map<String, Object> inputSchema)
 ```
 
----
-
-<a id="10-client-lifecycle"></a>
-
-## 10. Client Lifecycle
+## Client Lifecycle
 
 ### McpClientFactory (interface)
 
@@ -398,11 +230,7 @@ McpClientDelegate createClient(String clientId, McpClientConfiguration config);
 - Eviction listener auto-closes evicted clients
 - Default: max 15 entries, expires 10 minutes after last access
 
----
-
-<a id="11-transport--authentication"></a>
-
-## 11. Transport & Authentication
+## Transport & Authentication
 
 ### Transport Types
 
@@ -436,11 +264,7 @@ Jackson polymorphic on `type` property:
 `McpClientHeadersSupplierFactory` builds a composite `Supplier<Map<String, String>>` merging static headers with auth
 headers (uses `OAuthService` + `CustomApacheHttpClient` for OAuth).
 
----
-
-<a id="12-filtering"></a>
-
-## 12. Filtering
+## Filtering
 
 ### AllowDenyList
 
@@ -459,11 +283,7 @@ record FilterOptions(AllowDenyList toolFilters, AllowDenyList resourceFilters, A
 Filters are configured per connector instance via the element template. Both MCP Client types support allow/deny
 filtering for tools, resources, and prompts.
 
----
-
-<a id="13-binary-content--document-handling"></a>
-
-## 13. Binary Content & Document Handling
+## Binary Content & Document Handling
 
 `McpClientResultDocumentHandler` checks if `McpClientResult instanceof McpClientResultWithStorableData` and calls
 `convertStorableMcpResultData(documentFactory)`. This converts:
@@ -473,24 +293,12 @@ filtering for tools, resources, and prompts.
 
 This handles MCP resources that return binary data (images, files) by storing them as Camunda Documents.
 
----
-
-<a id="14-spring-configuration"></a>
-
-## 14. Spring Configuration
+## Spring Configuration
 
 ### McpClientAutoConfiguration
 
 Auto-configuration for the MCP client connectors, ordered after `AgenticAiCommonAutoConfiguration`.
 Imports `McpClientConfiguration` and `McpRemoteClientConfiguration`.
-
-### McpClientAgenticToolAutoConfiguration
-
-Auto-configuration ordered after `McpClientAutoConfiguration`.
-
-**Condition**: `camunda.connector.agenticai.mcp.client.agentic.tool.enabled` (default: **true**)
-
-Beans: `McpClientGatewayToolDefinitionResolver`, `McpClientGatewayToolHandler`
 
 ### McpClientBaseConfiguration
 
@@ -558,11 +366,7 @@ camunda.connector.agenticai.mcp.remote-client:
 `McpSdkMcpRemoteClientConfiguration` creates `McpSdkClientFactory` annotated `@RemoteMcpClientFactory`.
 These Spring `@Qualifier` meta-annotations disambiguate the two factory beans.
 
----
-
-<a id="15-error-codes"></a>
-
-## 15. Error Codes
+## Error Codes
 
 From `McpClientErrorCodes`:
 
@@ -573,26 +377,15 @@ From `McpClientErrorCodes`:
 | `ERROR_CODE_READ_RESOURCE_ERROR`   | `MCP_CLIENT_READ_RESOURCE_ERROR` | Error during read-resource operation         |
 | `ERROR_CODE_INVALID_METHOD`        | `MCP_CLIENT_INVALID_METHOD`      | Unknown MCP method string                   |
 
-From `McpClientGatewayToolHandler`:
-- `MCP_GATEWAY_INVALID_TOOL_DEFINITIONS` — Activity IDs contain `___` separator (would break naming)
-
----
-
-<a id="16-key-source-files"></a>
-
-## 16. Key Source Files
+## Key Source Files
 
 | File                                           | Purpose                                                       |
 |------------------------------------------------|---------------------------------------------------------------|
 | `McpClientFunction.java`                       | Pre-configured MCP client connector entry point               |
 | `McpRemoteClientFunction.java`                 | Remote MCP client connector entry point                       |
-| `McpClientGatewayToolHandler.java`             | Gateway handler: discovery, name transform, result transform  |
-| `McpToolCallIdentifier.java`                   | Tool name parsing/construction (`MCP_<element>___<tool>`)     |
-| `McpClientGatewayToolDefinitionResolver.java`  | Identifies MCP elements in AHSP                               |
 | `McpClientRegistry.java`                       | Pre-configured client lifecycle management                    |
 | `McpRemoteClientRegistry.java`                 | Remote client cache with Caffeine                             |
 | `McpClientExecutor.java`                       | Routes operations to McpClientDelegate methods                |
 | `McpClientDelegate.java`                       | Abstract MCP client interface                                 |
 | `McpSdkClientFactory.java`                     | Creates MCP SDK client instances                              |
 | `McpClientResultDocumentHandler.java`          | Binary content → Camunda document conversion                  |
-| `McpClientAgenticToolAutoConfiguration.java`   | Spring config for MCP gateway beans                           |
