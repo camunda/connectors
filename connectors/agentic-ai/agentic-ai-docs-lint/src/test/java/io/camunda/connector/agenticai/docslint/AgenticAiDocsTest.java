@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestReporter;
@@ -23,7 +24,10 @@ import org.junit.jupiter.params.provider.MethodSource;
  * the fixed headings that links the module docs, every relative link resolves, the docs hold no
  * Java excerpts, and the types and members they name exist.
  */
-class ReferenceDocsTest {
+class AgenticAiDocsTest {
+
+  private static final Path AGENTIC_AI = Path.of("connectors/agentic-ai");
+  private static final Path E2E = Path.of("connectors-e2e-test/connectors-e2e-test-agentic-ai");
 
   private static final Map<String, String> ALLOWED_NAMES =
       Map.ofEntries(
@@ -45,68 +49,53 @@ class ReferenceDocsTest {
           Map.entry("RetryInterceptor", "Google GenAI SDK type"),
           Map.entry("ThinkChunk", "Mistral schema name"));
 
-  private static final Path ALLOWED_NAMES_SOURCE =
-      DocTree.AGENTIC_AI.resolve(
-          "agentic-ai-docs-lint/src/test/java/io/camunda/connector/agenticai/docslint/ReferenceDocsTest.java");
-
-  private static final DocTree TREE = DocTree.ofRepository();
-  private static final JavaSourceIndex JAVA_SOURCES = JavaSourceIndex.of(TREE.javaSources());
+  private static final DocsLint LINT =
+      DocsLint.of(
+          new DocsLintConfig(
+              repositoryRoot(),
+              List.of(AGENTIC_AI, E2E),
+              List.of(
+                  AGENTIC_AI + "/docs/adr/**",
+                  AGENTIC_AI + "/examples/**",
+                  "**/src/main/resources/**"),
+              Set.of(AGENTIC_AI.resolve("docs/breaking-changes.md")),
+              AGENTIC_AI.resolve("pom.xml"),
+              List.of(E2E),
+              List.of("## Purpose", "## Key types", "## Docs"),
+              Map.of("connector-aiagent", "# AI Agent Task"),
+              ALLOWED_NAMES,
+              AGENTIC_AI.resolve(
+                  "agentic-ai-docs-lint/src/test/java/io/camunda/connector/agenticai/docslint/AgenticAiDocsTest.java")));
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("docs")
-  void relativeLinksResolve(final Path path, final TestReporter reporter) {
-    assertNoViolations(DocChecks.links(doc(path), TREE), reporter);
-  }
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("docs")
-  void noJavaCodeBlocks(final Path path, final TestReporter reporter) {
-    assertNoViolations(doc(path).javaFences(), reporter);
-  }
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("currentDocs")
-  void namedTypesExist(final Path path, final TestReporter reporter) {
-    assertNoViolations(DocChecks.types(doc(path), JAVA_SOURCES, ALLOWED_NAMES.keySet()), reporter);
-  }
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("currentDocs")
-  void memberReferencesResolve(final Path path, final TestReporter reporter) {
-    assertNoViolations(DocChecks.members(doc(path), JAVA_SOURCES), reporter);
+  void docIsInStepWithTheCode(final Path path, final TestReporter reporter) {
+    assertNoViolations(LINT.checkDoc(path), reporter);
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("modules")
   void moduleReadmeFollowsTheLayout(final DocModule module, final TestReporter reporter) {
-    assertNoViolations(DocChecks.readme(module, TREE), reporter);
+    assertNoViolations(LINT.checkModule(module), reporter);
   }
 
   @Test
   void allowedNamesAreUsedAndUnknownToTheCode(final TestReporter reporter) {
-    assertNoViolations(
-        DocChecks.allowedNames(
-            ALLOWED_NAMES,
-            DocChecks.namedTypes(currentDocs().map(ReferenceDocsTest::doc)),
-            JAVA_SOURCES,
-            ALLOWED_NAMES_SOURCE),
-        reporter);
+    assertNoViolations(LINT.checkConfig(), reporter);
   }
 
-  static Stream<Path> docs() {
-    return TREE.docPaths().stream();
-  }
-
-  static Stream<Path> currentDocs() {
-    return docs().filter(path -> !TREE.isHistory(path));
+  static List<Path> docs() {
+    return LINT.docs();
   }
 
   static List<DocModule> modules() {
-    return TREE.modules();
+    return LINT.modules();
   }
 
-  private static Doc doc(final Path path) {
-    return TREE.doc(path).orElseThrow();
+  /** The root of the repository that holds this module, which is run from its directory. */
+  private static Path repositoryRoot() {
+    final Path moduleDir = Path.of(System.getProperty("basedir", ".")).toAbsolutePath().normalize();
+    return moduleDir.getParent().getParent().getParent();
   }
 
   private static void assertNoViolations(

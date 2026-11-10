@@ -28,12 +28,6 @@ import java.util.stream.Stream;
  */
 final class DocChecks {
 
-  private static final List<String> README_SECTIONS =
-      List.of("## Purpose", "## Key types", "## Docs");
-
-  private static final Map<String, String> README_TITLES =
-      Map.of("connector-aiagent", "# AI Agent Task");
-
   private static final Pattern MEMBER_REFERENCE =
       Pattern.compile(
           "^((?:[a-z][a-z0-9_]*\\.)*(?:[A-Z]\\w*\\.)*)([A-Z]\\w*)(?:<.*>)?#(\\w+)(?:\\(.*\\))?$");
@@ -45,6 +39,11 @@ final class DocChecks {
 
   private static final Pattern UPPER_CAMEL = Pattern.compile("[A-Z]\\w*[a-z]\\w*");
 
+  private static final Pattern TYPE_ARGUMENT_SEPARATOR =
+      Pattern.compile("[<>,&\\s]+|\\?|\\bextends\\b|\\bsuper\\b");
+
+  private static final Pattern DOT = Pattern.compile("\\.");
+
   private DocChecks() {}
 
   /**
@@ -53,6 +52,20 @@ final class DocChecks {
   static Stream<Finding> links(final Doc doc, final DocTree tree) {
     return Stream.concat(doc.links().stream(), doc.definitions().stream())
         .flatMap(link -> link(doc, link, tree).stream());
+  }
+
+  /** The fenced code blocks of the doc must not be Java code. */
+  static Stream<Finding> javaFences(final Doc doc) {
+    return doc.fences().stream()
+        .filter(fence -> fence.text().equalsIgnoreCase("java"))
+        .map(fence ->
+            new Violation(
+                doc.path(),
+                fence.line(),
+                "Java code block",
+                "a code excerpt goes stale when the code changes",
+                "replace the excerpt with the name of the type and member, for example"
+                    + " `Type#member`"));
   }
 
   /** The names of code spans that read as types must be known to the code or allowed. */
@@ -81,10 +94,15 @@ final class DocChecks {
   }
 
   /**
-   * The README of the module exists, starts with the module title and the fixed sections, and links
-   * every doc of the module under {@code ## Docs}.
+   * The README of the module exists, starts with the module title and the sections, and links every
+   * doc of the module under {@code ## Docs}. The title is {@code # <module name>} unless the titles
+   * give another one.
    */
-  static Stream<Finding> readme(final DocModule module, final DocTree tree) {
+  static Stream<Finding> readme(
+      final DocModule module,
+      final DocTree tree,
+      final List<String> sections,
+      final Map<String, String> titles) {
     final Path path = module.dir().resolve("README.md");
     final Optional<Doc> readme = tree.doc(path);
     if (readme.isEmpty()) {
@@ -97,11 +115,11 @@ final class DocChecks {
               "add a README.md that starts with `# "
                   + module.name()
                   + "` and has the sections "
-                  + README_SECTIONS));
+                  + sections));
     }
     final List<Finding> findings = new ArrayList<>();
-    headings(readme.get(), module).ifPresent(findings::add);
-    sections(readme.get()).ifPresent(findings::add);
+    headings(readme.get(), module, titles).ifPresent(findings::add);
+    sections(readme.get(), sections).ifPresent(findings::add);
     findings.addAll(unlinkedDocs(readme.get(), module, tree));
     return findings.stream();
   }
@@ -162,9 +180,9 @@ final class DocChecks {
       return names;
     }
     final String arguments = text.substring(text.indexOf('<'));
-    for (final String argument : arguments.split("[<>,&\\s]+|\\?|\\bextends\\b|\\bsuper\\b")) {
-      names.addAll(segmentNames(argument));
-    }
+    TYPE_ARGUMENT_SEPARATOR
+        .splitAsStream(arguments)
+        .forEach(argument -> names.addAll(segmentNames(argument)));
     return names;
   }
 
@@ -415,8 +433,9 @@ final class DocChecks {
         ", ", types.stream().map(JavaSourceIndex.Type::qualifiedName).sorted().toList());
   }
 
-  private static Optional<Violation> headings(final Doc readme, final DocModule module) {
-    final String title = README_TITLES.getOrDefault(module.name(), "# " + module.name());
+  private static Optional<Violation> headings(
+      final Doc readme, final DocModule module, final Map<String, String> titles) {
+    final String title = titles.getOrDefault(module.name(), "# " + module.name());
     final List<Ref> headings = readme.headings();
     if (!headings.isEmpty() && headings.getFirst().text().equals(title)) {
       return Optional.empty();
@@ -434,21 +453,21 @@ final class DocChecks {
             "start the README with `" + title + "`"));
   }
 
-  private static Optional<Violation> sections(final Doc readme) {
+  private static Optional<Violation> sections(final Doc readme, final List<String> expected) {
     final List<Ref> sections =
         readme.headings().stream()
             .filter(heading -> heading.text().startsWith("## "))
-            .limit(README_SECTIONS.size())
+            .limit(expected.size())
             .toList();
     final List<String> actual = sections.stream().map(Ref::text).toList();
-    if (actual.equals(README_SECTIONS)) {
+    if (actual.equals(expected)) {
       return Optional.empty();
     }
     return Optional.of(
         new Violation(
             readme.path(),
             sections.isEmpty() ? 1 : sections.getFirst().line(),
-            "the first sections are " + actual + ", expected " + README_SECTIONS,
+            "the first sections are " + actual + ", expected " + expected,
             "all module READMEs share one layout, so a reader finds the same section in each",
             "put the sections in this order before any other `##` section"));
   }
@@ -489,13 +508,7 @@ final class DocChecks {
     if (!matcher.matches()) {
       return List.of();
     }
-    final List<String> names = new ArrayList<>();
-    for (final String segment : matcher.group(1).split("\\.")) {
-      if (UPPER_CAMEL.matcher(segment).matches()) {
-        names.add(segment);
-      }
-    }
-    return names;
+    return DOT.splitAsStream(matcher.group(1)).filter(UPPER_CAMEL.asMatchPredicate()).toList();
   }
 
   private static List<String> similarNames(final String name, final Set<String> candidates) {

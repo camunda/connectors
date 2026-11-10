@@ -127,7 +127,7 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 
 ### Docs checks
 
-`agentic-ai-docs-lint` holds the docs checks (plain JUnit, `ReferenceDocsTest`). Each module README has the
+`agentic-ai-docs-lint` holds the docs checks (plain JUnit, `AgenticAiDocsTest`). Each module README has the
 fixed sections and links the docs of its module. Relative links and anchors resolve. The docs hold no `java`
 code blocks. The types and members that the docs name in backticks exist in the repository sources. Run them with:
 

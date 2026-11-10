@@ -21,6 +21,8 @@ import org.junit.jupiter.api.io.TempDir;
 class DocChecksTest {
 
   private static final Path DIR = Path.of("connectors/agentic-ai/one");
+  private static final List<String> SECTIONS = List.of("## Purpose", "## Key types", "## Docs");
+  private static final Map<String, String> TITLES = Map.of("connector-aiagent", "# AI Agent Task");
   private static final DocModule MODULE = new DocModule("one", DIR);
 
   private static final JavaSourceIndex SOURCES =
@@ -61,12 +63,14 @@ class DocChecksTest {
     write("one/README.md", readme("# one", "- [Doc](docs/a.md)", "", "## More"));
     write("one/docs/a.md", "# a");
 
-    assertThat(DocChecks.readme(MODULE, new DocTree(root))).isEmpty();
+    assertThat(DocChecks.readme(MODULE, DocTreeTest.agenticAiTree(root), SECTIONS, TITLES))
+        .isEmpty();
   }
 
   @Test
   void aMissingReadmeIsReported() {
-    assertThat(messages(DocChecks.readme(MODULE, new DocTree(root))))
+    assertThat(
+            messages(DocChecks.readme(MODULE, DocTreeTest.agenticAiTree(root), SECTIONS, TITLES)))
         .containsExactly(
             """
             connectors/agentic-ai/one/README.md: README is missing
@@ -80,7 +84,8 @@ class DocChecksTest {
     write("one/README.md", "# other\n\n## Purpose\n\n## Key types\n\n## Docs\n");
     write("aiagent/README.md", "# AI Agent Task\n\n## Purpose\n\n## Key types\n\n## Docs\n");
 
-    assertThat(messages(DocChecks.readme(MODULE, new DocTree(root))))
+    assertThat(
+            messages(DocChecks.readme(MODULE, DocTreeTest.agenticAiTree(root), SECTIONS, TITLES)))
         .containsExactly(
             """
             connectors/agentic-ai/one/README.md:1: first heading is `# other`, expected `# one`
@@ -90,7 +95,9 @@ class DocChecksTest {
     assertThat(
             DocChecks.readme(
                 new DocModule("connector-aiagent", Path.of("connectors/agentic-ai/aiagent")),
-                new DocTree(root)))
+                DocTreeTest.agenticAiTree(root),
+                SECTIONS,
+                TITLES))
         .isEmpty();
   }
 
@@ -98,7 +105,8 @@ class DocChecksTest {
   void wrongSectionsAreReported() throws IOException {
     write("one/README.md", "# one\n\n## Purpose\n\n## Docs\n\n## Key types\n");
 
-    assertThat(messages(DocChecks.readme(MODULE, new DocTree(root))))
+    assertThat(
+            messages(DocChecks.readme(MODULE, DocTreeTest.agenticAiTree(root), SECTIONS, TITLES)))
         .containsExactly(
             """
             connectors/agentic-ai/one/README.md:3: the first sections are [## Purpose, ## Docs, ## Key types], expected [## Purpose, ## Key types, ## Docs]
@@ -116,7 +124,8 @@ class DocChecksTest {
     write("one/docs/b.md", "# b");
     write("one/docs/c.md", "# c");
 
-    assertThat(messages(DocChecks.readme(MODULE, new DocTree(root))))
+    assertThat(
+            messages(DocChecks.readme(MODULE, DocTreeTest.agenticAiTree(root), SECTIONS, TITLES)))
         .containsExactly(
             """
             connectors/agentic-ai/one/README.md:9: `## Docs` does not link `connectors/agentic-ai/one/docs/a.md`
@@ -136,7 +145,8 @@ class DocChecksTest {
         "one/README.md", "# one\n\n## Purpose\n\n## Key types\n\n## Docs\n\n[topic]: docs/a.md\n");
     write("one/docs/a.md", "# a");
 
-    assertThat(messages(DocChecks.readme(MODULE, new DocTree(root))))
+    assertThat(
+            messages(DocChecks.readme(MODULE, DocTreeTest.agenticAiTree(root), SECTIONS, TITLES)))
         .containsExactly(
             """
             connectors/agentic-ai/one/README.md:7: `## Docs` does not link `connectors/agentic-ai/one/docs/a.md`
@@ -152,7 +162,8 @@ class DocChecksTest {
         "# one\n\n## Purpose\n\n## Key types\n\n## Docs\n\n- [A][topic]\n\n## More\n\n[topic]: docs/a.md\n");
     write("one/docs/a.md", "# a");
 
-    assertThat(DocChecks.readme(MODULE, new DocTree(root))).isEmpty();
+    assertThat(DocChecks.readme(MODULE, DocTreeTest.agenticAiTree(root), SECTIONS, TITLES))
+        .isEmpty();
   }
 
   @Test
@@ -162,7 +173,8 @@ class DocChecksTest {
         "# one\n\n## Purpose\n\n[A][topic]\n\n## Key types\n\n## Docs\n\n[topic]: docs/a.md\n");
     write("one/docs/a.md", "# a");
 
-    assertThat(messages(DocChecks.readme(MODULE, new DocTree(root))))
+    assertThat(
+            messages(DocChecks.readme(MODULE, DocTreeTest.agenticAiTree(root), SECTIONS, TITLES)))
         .containsExactly(
             """
             connectors/agentic-ai/one/README.md:9: `## Docs` does not link `connectors/agentic-ai/one/docs/a.md`
@@ -175,7 +187,7 @@ class DocChecksTest {
   void aBrokenDefinitionIsReported() throws IOException {
     final Doc doc = doc("one/docs/source.md", "# Source", "[a]: gone.md");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `gone.md` points to a file that does not exist (resolved to `connectors/agentic-ai/one/docs/gone.md`)
@@ -189,7 +201,7 @@ class DocChecksTest {
     final Doc doc =
         doc("one/docs/source.md", "# Source", "[a](//example.com/guide.md) [b](/guide.md)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `/guide.md` points to a file that does not exist (resolved to `guide.md`)
@@ -210,14 +222,14 @@ class DocChecksTest {
             "[a](target.md#section) [b](a%20b%2Bc.md) [c](/top.md) [d](#source)",
             "[e](target.md?plain=1#L5) [f](../docs) [g](https://example.com/missing)");
 
-    assertThat(DocChecks.links(doc, new DocTree(root))).isEmpty();
+    assertThat(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))).isEmpty();
   }
 
   @Test
   void aMissingFileIsReported() throws IOException {
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](gone.md)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `gone.md` points to a file that does not exist (resolved to `connectors/agentic-ai/one/docs/gone.md`)
@@ -231,7 +243,7 @@ class DocChecksTest {
     write("one/docs/target.md", "# Target\n## Section\n");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md#nope) [b](#nope)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `target.md#nope` points to an anchor that does not exist in `connectors/agentic-ai/one/docs/target.md`
@@ -249,7 +261,7 @@ class DocChecksTest {
   void aBadEscapeIsReported() {
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](%zz.md)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `%zz.md` is not a valid URI: Malformed escape pair
@@ -264,14 +276,14 @@ class DocChecksTest {
     write("one/docs/{c}|d.md", "# Others");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](a[b].md) [b](<{c}|d.md>)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root)))).isEmpty();
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root)))).isEmpty();
   }
 
   @Test
   void aLinkWithBracketsToAMissingFileNamesTheResolvedFile() {
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](a[b].md)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `a[b].md` points to a file that does not exist (resolved to `connectors/agentic-ai/one/docs/a[b].md`)
@@ -284,7 +296,7 @@ class DocChecksTest {
   void aLinkThatLeavesTheRepositoryIsReported() {
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](../../../../../outside.md)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `../../../../../outside.md` leaves the repository
@@ -299,7 +311,7 @@ class DocChecksTest {
     final Doc doc =
         doc("one/docs/source.md", "# Source", "[a](target.md?plain=1#L5) [b](target.md#L5)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `target.md#L5` points to an anchor that does not exist in `connectors/agentic-ai/one/docs/target.md`
@@ -313,7 +325,7 @@ class DocChecksTest {
     write("one/docs/target.md", "# Target\n## Existing\n");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md?foo=bar#missing)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `target.md?foo=bar#missing` points to an anchor that does not exist in `connectors/agentic-ai/one/docs/target.md`
@@ -327,7 +339,7 @@ class DocChecksTest {
     write("one/docs/target.md", "# Target\n## Existing\n");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md?foo=bar#existing)");
 
-    assertThat(DocChecks.links(doc, new DocTree(root))).isEmpty();
+    assertThat(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))).isEmpty();
   }
 
   @Test
@@ -335,7 +347,7 @@ class DocChecksTest {
     write("one/docs/target.md", "# Target");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md?plain=1&foo=bar#L5)");
 
-    assertThat(DocChecks.links(doc, new DocTree(root))).isEmpty();
+    assertThat(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))).isEmpty();
   }
 
   @Test
@@ -343,7 +355,7 @@ class DocChecksTest {
     write("one/docs/target.md", "# Target");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md?plain=0#missing)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `target.md?plain=0#missing` points to an anchor that does not exist in `connectors/agentic-ai/one/docs/target.md`
@@ -357,7 +369,7 @@ class DocChecksTest {
     write("one/docs/target.md", "# Target\n## Größe\n");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md#gr%C3%B6%C3%9Fe)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root)))).isEmpty();
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root)))).isEmpty();
   }
 
   @Test
@@ -365,7 +377,7 @@ class DocChecksTest {
     write("one/docs/target.md", "# Target\n## Größe\n");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md#gr%C3%BCsse)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `target.md#gr%C3%BCsse` points to an anchor that does not exist in `connectors/agentic-ai/one/docs/target.md`
@@ -379,7 +391,7 @@ class DocChecksTest {
     write("one/docs/target.md", "# Target");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](target.md?plain=1#L5)");
 
-    assertThat(DocChecks.links(doc, new DocTree(root))).isEmpty();
+    assertThat(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))).isEmpty();
   }
 
   @Test
@@ -387,14 +399,14 @@ class DocChecksTest {
     write("one/docs/target.md", "# Target");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](../docs/)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root)))).isEmpty();
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root)))).isEmpty();
   }
 
   @Test
   void aFragmentOnlyLinkIsCheckedAgainstTheAnchorsOfTheDoc() {
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](#source) [b](#nope)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root))))
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root))))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/source.md:2: link `#nope` points to an anchor that does not exist in `connectors/agentic-ai/one/docs/source.md`
@@ -408,7 +420,7 @@ class DocChecksTest {
     write("one/docs/c d.md", "# Spaced\n## Part\n");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](<c d.md#part>) [b](<c d.md>)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root)))).isEmpty();
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root)))).isEmpty();
   }
 
   @Test
@@ -416,7 +428,7 @@ class DocChecksTest {
     write("one/docs/a+b.md", "# Plus");
     final Doc doc = doc("one/docs/source.md", "# Source", "[a](a+b.md)");
 
-    assertThat(messages(DocChecks.links(doc, new DocTree(root)))).isEmpty();
+    assertThat(messages(DocChecks.links(doc, DocTreeTest.agenticAiTree(root)))).isEmpty();
   }
 
   @Test
@@ -434,7 +446,7 @@ class DocChecksTest {
             "```json",
             "```");
 
-    assertThat(messages(doc.javaFences()))
+    assertThat(messages(DocChecks.javaFences(doc)))
         .containsExactly(
             """
             connectors/agentic-ai/one/docs/a.md:2: Java code block
