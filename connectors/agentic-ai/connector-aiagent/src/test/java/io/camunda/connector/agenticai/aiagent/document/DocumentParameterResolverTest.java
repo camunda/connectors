@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -109,16 +110,21 @@ class DocumentParameterResolverTest {
   void replacesAHandleObjectWithTheDocumentReference() {
     final var result = resolve(Map.of("doc", firstHandle, "other", "kept"), object("doc", DOC));
 
+    final var reference = (CamundaDocumentReference) first.reference();
+    final var expectedReference =
+        Map.of(
+            "camunda.document.type",
+            "camunda",
+            "storeId",
+            reference.getStoreId(),
+            "documentId",
+            reference.getDocumentId(),
+            "contentHash",
+            reference.getContentHash(),
+            "metadata",
+            Map.of("contentType", "text/plain", "fileName", "first.txt"));
     assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved ->
-                assertThat(resolved.arguments())
-                    .containsEntry("doc", reference(firstId))
-                    .containsEntry("other", "kept"));
-    assertThat(reference(firstId))
-        .containsEntry("camunda.document.type", "camunda")
-        .containsKeys("storeId", "documentId", "contentHash");
+        .isEqualTo(new Resolution.Resolved(Map.of("doc", expectedReference, "other", "kept")));
   }
 
   @Test
@@ -206,7 +212,7 @@ class DocumentParameterResolverTest {
 
     resolve(arguments, object("doc", DOC));
 
-    assertThat(arguments).containsEntry("doc", firstHandle);
+    assertThat(arguments).isEqualTo(Map.of("doc", firstHandle));
   }
 
   @Test
@@ -363,11 +369,7 @@ class DocumentParameterResolverTest {
   void resolvesPropertyNamesWithSpecialCharacters() {
     final var result = resolve(Map.of("a/b~c", firstHandle), object("a/b~c", DOC));
 
-    assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved ->
-                assertThat(resolved.arguments()).containsEntry("a/b~c", reference(firstId)));
+    assertThat(result).isEqualTo(new Resolution.Resolved(Map.of("a/b~c", reference(firstId))));
   }
 
   @Test
@@ -377,12 +379,7 @@ class DocumentParameterResolverTest {
     final var result = resolver.resolveProcessCall(agentContext(), call);
 
     assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved ->
-                assertThat(resolved.arguments())
-                    .containsEntry("doc", reference(firstId))
-                    .containsEntry("other", "kept"));
+        .isEqualTo(new Resolution.Resolved(Map.of("doc", reference(firstId), "other", "kept")));
   }
 
   @Test
@@ -466,13 +463,7 @@ class DocumentParameterResolverTest {
         resolver.resolveRuntimeCall(
             agentContext(), call, definition("c8__read", object("file", DOC)));
 
-    assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved ->
-                assertThat(resolved.arguments())
-                    .containsEntry("file", firstId)
-                    .containsEntry("other", "kept"));
+    assertThat(result).isEqualTo(new Resolution.Resolved(Map.of("file", firstId, "other", "kept")));
   }
 
   @Test

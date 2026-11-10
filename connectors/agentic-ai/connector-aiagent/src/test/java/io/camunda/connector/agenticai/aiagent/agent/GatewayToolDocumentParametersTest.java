@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -42,7 +43,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -103,23 +103,17 @@ class GatewayToolDocumentParametersTest {
 
     final var response = respond(conversation(call));
 
-    assertThat(filesHandler.receivedCalls).hasSize(1);
-    final var received = filesHandler.receivedCalls.getFirst();
-    assertThat(received.name()).isEqualTo(UPLOAD_TOOL);
-    assertThat(received.arguments())
-        .containsEntry(
-            "document", TestDocuments.referenceJson(documents.find(reportId).orElseThrow()))
-        .containsEntry("folder", "/inbox");
-    assertThat(received.arguments().get("document"))
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsEntry("camunda.document.type", "camunda")
-        .containsKeys("storeId", "documentId", "contentHash");
+    final var reference = TestDocuments.referenceJson(documents.find(reportId).orElseThrow());
+    final var resolvedArguments = Map.of("document", reference, "folder", "/inbox");
+
+    assertThat(filesHandler.receivedCalls)
+        .containsExactly(new ToolCall("call-2", UPLOAD_TOOL, resolvedArguments));
 
     // the handler wraps the resolved arguments into the call for the gateway element
-    assertThat(response.toolCalls()).hasSize(1);
-    assertThat(response.toolCalls().getFirst().metadata().name()).isEqualTo("files");
-    assertThat(response.toolCalls().getFirst().arguments())
-        .containsEntry("arguments", received.arguments());
+    assertThat(response.toolCalls())
+        .containsExactly(
+            new ToolCallProcessVariable(
+                "call-2", "files", Map.of("tool", UPLOAD_TOOL, "arguments", resolvedArguments)));
   }
 
   /** The response for the calls of the last message that the agent leaves to the process. */

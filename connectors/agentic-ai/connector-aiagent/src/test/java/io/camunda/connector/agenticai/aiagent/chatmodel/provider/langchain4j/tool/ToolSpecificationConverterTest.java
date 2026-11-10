@@ -100,6 +100,17 @@ class ToolSpecificationConverterTest {
         });
   }
 
+  private static JsonObjectSchema handleSchema(String description) {
+    return JsonObjectSchema.builder()
+        .description(description)
+        .addProperty(
+            "type", JsonEnumSchema.builder().enumValues("camunda.agenticai.document").build())
+        .addProperty(
+            "id", JsonStringSchema.builder().description("The id of the document.").build())
+        .required("type", "id")
+        .build();
+  }
+
   @Test
   void keepsTheHandleSchemaOfDocumentParametersThroughTheConversionAndBack() {
     final var properties = new LinkedHashMap<String, Object>();
@@ -121,20 +132,18 @@ class ToolSpecificationConverterTest {
 
     final var toolSpecification = toolSpecificationConverter.asToolSpecification(toolDefinition);
 
-    final var file = (JsonObjectSchema) toolSpecification.parameters().properties().get("file");
-    assertThat(file.description()).isEqualTo("The file");
-    assertThat(file.required()).containsExactly("type", "id");
-    assertThat(file.properties().get("type"))
-        .asInstanceOf(InstanceOfAssertFactories.type(JsonEnumSchema.class))
-        .satisfies(
-            type -> assertThat(type.enumValues()).containsExactly("camunda.agenticai.document"));
-    final var body = (JsonAnyOfSchema) toolSpecification.parameters().properties().get("body");
-    assertThat(body.description()).isEqualTo("The body");
-    assertThat(body.anyOf()).hasSize(2);
-    assertThat(body.anyOf().get(0)).isInstanceOf(JsonStringSchema.class);
-    final var handle = (JsonObjectSchema) body.anyOf().get(1);
-    assertThat(handle.required()).containsExactly("type", "id");
-    assertThat(handle.properties()).containsOnlyKeys("type", "id");
+    assertThat(toolSpecification.parameters())
+        .isEqualTo(
+            JsonObjectSchema.builder()
+                .addProperty("file", handleSchema("The file"))
+                .addProperty(
+                    "body",
+                    JsonAnyOfSchema.builder()
+                        .description("The body")
+                        .anyOf(JsonStringSchema.builder().build(), handleSchema(null))
+                        .build())
+                .required("file", "body")
+                .build());
 
     final var restored = toolSpecificationConverter.asToolDefinition(toolSpecification);
     assertThat(restored.documentParameters()).isEqualTo(toolDefinition.documentParameters());
