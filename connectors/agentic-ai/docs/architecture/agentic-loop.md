@@ -251,7 +251,7 @@ t2      Tool B completes                Job #1 still processing...
         → Creates Job #2                (Job #1 is now STALE)
 
 t3                                      Job #1: Determines B is missing
-                                        → compose returns AgentInput.None
+                                        → compose returns CompositionResult.Deferred
                                         → handleNoOp (no agentResponse)
                                         → No LLM call made
                                         → Job #1 completion may get NOT_FOUND
@@ -397,7 +397,7 @@ A lease token is required for every agent-instance write, and the connector fail
 
 **Problem**: If tools A and B complete almost simultaneously, Job #1 (with only A's result) and Job #2 (with both results) may both attempt LLM calls.
 
-**Mitigation**: This CANNOT happen due to the missing-results check. Job #1 will see that B's result is missing, so `AgentConversationTurnInputComposer.compose` returns `AgentInput.None` and the handler completes as a no-op. Only Job #2 (with complete results) will call the LLM.
+**Mitigation**: This CANNOT happen due to the missing-results check. Job #1 will see that B's result is missing, so `AgentConversationTurnInputComposer.compose` returns `CompositionResult.Deferred` and the handler completes as a no-op. Only Job #2 (with complete results) will call the LLM.
 
 ### Challenge 4: Variable Scoping and Merging
 

@@ -20,7 +20,7 @@ record CodeSpan(int line, String text) {
           "^((?:[a-z][a-z0-9_]*\\.)*(?:[A-Z]\\w*\\.)*)([A-Z]\\w*)(?:<.*>)?#(\\w+)(?:\\(.*\\))?$");
 
   private static final Pattern TYPE_REFERENCE =
-      Pattern.compile("^(?:[a-z][a-z0-9_]*\\.)*([A-Z][A-Za-z0-9]*(?:\\.[A-Za-z][A-Za-z0-9]*)*)$");
+      Pattern.compile("^((?:[a-z][a-z0-9_]*\\.)*)([A-Z][A-Za-z0-9]*(?:\\.[A-Za-z][A-Za-z0-9]*)*)$");
 
   private static final Pattern UPPER_CAMEL = Pattern.compile("[A-Z]\\w*[a-z]\\w*");
 
@@ -42,22 +42,16 @@ record CodeSpan(int line, String text) {
    * {@code io.camunda.Foo}. Generic arguments count too.
    */
   List<String> typeNames() {
-    final String reference = text.replaceFirst("^@", "").replaceFirst("[(#].*$", "");
-    String outer = reference;
-    String previous;
-    do {
-      previous = outer;
-      outer = outer.replaceAll("<[^<>]*>", "");
-    } while (!outer.equals(previous));
-    final List<String> names = new ArrayList<>(segmentNames(outer));
-    if (names.isEmpty() || outer.equals(reference)) {
-      return names;
-    }
-    final String arguments = reference.substring(reference.indexOf('<'));
-    TYPE_ARGUMENT_SEPARATOR
-        .splitAsStream(arguments)
-        .forEach(argument -> names.addAll(segmentNames(argument)));
-    return names;
+    return references().stream().flatMap(reference -> segmentNames(reference).stream()).toList();
+  }
+
+  /**
+   * The qualified type names of the span, for example {@code io.camunda.Foo} or {@code Foo.Bar}:
+   * the package and the UpperCamel names up to the first other name. Generic arguments count too. A
+   * name without a package or an outer type is left out.
+   */
+  List<String> qualifiedTypeNames() {
+    return references().stream().flatMap(reference -> qualifiedName(reference).stream()).toList();
   }
 
   /**
@@ -74,13 +68,47 @@ record CodeSpan(int line, String text) {
         : Optional.empty();
   }
 
+  private List<String> references() {
+    final String reference = text.replaceFirst("^@", "").replaceFirst("[(#].*$", "");
+    String outer = reference;
+    String previous;
+    do {
+      previous = outer;
+      outer = outer.replaceAll("<[^<>]*>", "");
+    } while (!outer.equals(previous));
+    final List<String> references = new ArrayList<>(List.of(outer));
+    if (segmentNames(outer).isEmpty() || outer.equals(reference)) {
+      return references;
+    }
+    TYPE_ARGUMENT_SEPARATOR
+        .splitAsStream(reference.substring(reference.indexOf('<')))
+        .forEach(references::add);
+    return references;
+  }
+
   private static List<String> segmentNames(final String reference) {
+    return typeReference(reference)
+        .map(matcher ->
+            DOT.splitAsStream(matcher.group(2)).filter(UPPER_CAMEL.asMatchPredicate()).toList())
+        .orElse(List.of());
+  }
+
+  private static Optional<String> qualifiedName(final String reference) {
+    return typeReference(reference)
+        .map(matcher ->
+            matcher.group(1)
+                + String.join(
+                    ".",
+                    DOT.splitAsStream(matcher.group(2))
+                        .takeWhile(UPPER_CAMEL.asMatchPredicate())
+                        .toList()))
+        .filter(name -> name.contains(".") && !name.endsWith("."));
+  }
+
+  private static Optional<Matcher> typeReference(final String reference) {
     final String text =
         reference.strip().replaceFirst("(\\[]|\\.\\.\\.)$", "").replaceFirst("\\.java$", "");
     final Matcher matcher = TYPE_REFERENCE.matcher(text);
-    if (!matcher.matches()) {
-      return List.of();
-    }
-    return DOT.splitAsStream(matcher.group(1)).filter(UPPER_CAMEL.asMatchPredicate()).toList();
+    return matcher.matches() ? Optional.of(matcher) : Optional.empty();
   }
 }

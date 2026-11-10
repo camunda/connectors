@@ -38,14 +38,23 @@ final class DocChecks {
         .flatMap(link -> link(doc, link, tree).stream());
   }
 
-  /** The names of code spans that read as types must be known to the code or allowed. */
+  /**
+   * The names of code spans that read as types must be known to the code or allowed. A qualified
+   * name whose outermost type the repo sources declare must name a type of the repo sources, unless
+   * the sources import it.
+   */
   static Stream<Finding> types(
       final Doc doc, final JavaSourceIndex index, final Set<String> allowedNames) {
     return doc.codeSpans().stream()
         .flatMap(span ->
-            span.typeNames().stream()
-                .filter(name -> !index.knows(name) && !allowedNames.contains(name))
-                .map(name -> unknownType(doc, span, name, index)));
+            Stream.concat(
+                span.typeNames().stream()
+                    .filter(name -> !index.knows(name) && !allowedNames.contains(name))
+                    .map(name -> unknownType(doc, span, name, index)),
+                span.memberReference().isPresent()
+                    ? Stream.empty()
+                    : span.qualifiedTypeNames().stream()
+                        .flatMap(name -> unknownQualifiedType(doc, span, name, index).stream())));
   }
 
   /**
@@ -231,6 +240,36 @@ final class DocChecks {
                 ? ""
                 : ". Similar names in the code (they may be unrelated): "
                     + String.join(", ", similar)));
+  }
+
+  private static Optional<Violation> unknownQualifiedType(
+      final Doc doc, final CodeSpan span, final String qualifiedName, final JavaSourceIndex index) {
+    final List<String> segments = List.of(qualifiedName.split("\\."));
+    final String outermost =
+        segments.stream()
+            .filter(segment -> Character.isUpperCase(segment.charAt(0)))
+            .findFirst()
+            .orElseThrow();
+    final List<JavaSourceIndex.Type> named = index.types(segments.getLast());
+    if (index.types(outermost).isEmpty()
+        || named.isEmpty()
+        || index.imports(qualifiedName)
+        || named.stream()
+            .anyMatch(type ->
+                type.qualifiedName().equals(qualifiedName)
+                    || type.qualifiedName().endsWith("." + qualifiedName))) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        new Violation(
+            doc.path(),
+            span.line(),
+            "qualified name `" + qualifiedName + "` of `" + span.text() + "` not found",
+            "no type of the repo sources has this qualified name",
+            "check the package and outer types. The types named "
+                + segments.getLast()
+                + " are: "
+                + qualifiedNames(named)));
   }
 
   private static Stream<Finding> member(

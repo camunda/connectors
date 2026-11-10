@@ -170,6 +170,15 @@ final class JavaSourceIndex {
         || Class.forName(Object.class.getModule(), "java.lang." + simpleName) != null;
   }
 
+  /** Whether the sources import the qualified type, one of its outer types or its package. */
+  boolean imports(final String qualifiedName) {
+    return importedNames.stream()
+        .anyMatch(name ->
+            qualifiedName.equals(name)
+                || qualifiedName.startsWith(
+                    name.endsWith(".*") ? name.replaceFirst("\\*$", "") : name + "."));
+  }
+
   /**
    * The members of the type and of its declared supertypes, without constructors. A supertype is
    * found by its simple name, so all types of that name count. Supertypes that the sources do not
