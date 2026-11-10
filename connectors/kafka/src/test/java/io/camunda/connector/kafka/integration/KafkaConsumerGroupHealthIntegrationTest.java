@@ -85,10 +85,7 @@ class KafkaConsumerGroupHealthIntegrationTest {
                             ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
                             "3000",
                             ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
-                            "10000",
-                            // heartbeat-rate window, 60 s by default
-                            ConsumerConfig.METRICS_SAMPLE_WINDOW_MS_CONFIG,
-                            "3000"),
+                            "10000"),
                         null,
                         KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
                         new NoSchemaStrategy()))

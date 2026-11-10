@@ -50,7 +50,7 @@ public class KafkaConnectorConsumer {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
   static final String COORDINATOR_METRIC_GROUP = "consumer-coordinator-metrics";
-  static final String HEARTBEAT_RATE_METRIC = "heartbeat-rate";
+  static final String HEARTBEAT_TOTAL_METRIC = "heartbeat-total";
   public static ObjectMapper objectMapper =
       new ObjectMapper()
           .registerModule(new Jdk8Module())
@@ -70,6 +70,9 @@ public class KafkaConnectorConsumer {
   boolean shouldLoop = true;
   private Health consumerStatus = Health.unknown();
   private Duration groupMembershipTimeout;
+  private Duration sessionTimeout;
+  private double heartbeatResponses;
+  private Instant lastHeartbeatResponseAt;
   private Instant notInGroupSince;
   private ObjectReader avroObjectReader;
 
@@ -125,6 +128,9 @@ public class KafkaConnectorConsumer {
       var kafkaProps = getKafkaProperties(elementProps, context);
       var consumer = consumerCreatorFunction.apply(kafkaProps);
       groupMembershipTimeout = intConfig(kafkaProps, ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG);
+      sessionTimeout = intConfig(kafkaProps, ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG);
+      heartbeatResponses = 0;
+      lastHeartbeatResponseAt = null;
       notInGroupSince = null;
       String topicName = elementProps.topic().topicName();
       consumer.subscribe(
@@ -264,20 +270,29 @@ public class KafkaConnectorConsumer {
   }
 
   // The classic consumer's groupMetadata() keeps the last generation after the membership is
-  // lost, so membership is confirmed by heartbeat responses instead. heartbeat-rate counts the
-  // responses received over the metrics window (metrics.sample.window.ms x metrics.num.samples,
-  // 60 s by default). It drops to 0 when the coordinator stops answering, even while the client
-  // keeps sending heartbeats, and when the membership is lost, as heartbeats are only sent by a
-  // stable member.
-  private static boolean isGroupMember(Consumer<Object, Object> consumer) {
-    return consumer.metrics().entrySet().stream()
-        .filter(metric -> HEARTBEAT_RATE_METRIC.equals(metric.getKey().name()))
-        .filter(metric -> COORDINATOR_METRIC_GROUP.equals(metric.getKey().group()))
-        .map(metric -> metric.getValue().metricValue())
-        .findFirst()
-        .filter(Number.class::isInstance)
-        .map(rate -> ((Number) rate).doubleValue() > 0)
-        .orElse(false);
+  // lost, so membership is confirmed by heartbeat responses instead: only a stable member sends
+  // heartbeats, and the coordinator expires a member it has not heard from within
+  // session.timeout.ms. heartbeat-total counts the responses received, independently of the
+  // metrics window. It stops increasing when the coordinator stops answering, even while the
+  // client keeps sending heartbeats, and when a response resets the membership (unknown member,
+  // illegal generation, rebalance), as the client stops sending heartbeats until it rejoins.
+  private boolean isGroupMember(Consumer<Object, Object> consumer) {
+    var responses =
+        consumer.metrics().entrySet().stream()
+            .filter(metric -> HEARTBEAT_TOTAL_METRIC.equals(metric.getKey().name()))
+            .filter(metric -> COORDINATOR_METRIC_GROUP.equals(metric.getKey().group()))
+            .map(metric -> metric.getValue().metricValue())
+            .findFirst()
+            .filter(Number.class::isInstance)
+            .map(total -> ((Number) total).doubleValue())
+            .orElse(0d);
+    var now = Instant.now();
+    if (responses > heartbeatResponses) {
+      heartbeatResponses = responses;
+      lastHeartbeatResponseAt = now;
+    }
+    return lastHeartbeatResponseAt != null
+        && Duration.between(lastHeartbeatResponseAt, now).compareTo(sessionTimeout) < 0;
   }
 
   private void reportHealth(Health newStatus, Severity severity, Map<String, Object> details) {
