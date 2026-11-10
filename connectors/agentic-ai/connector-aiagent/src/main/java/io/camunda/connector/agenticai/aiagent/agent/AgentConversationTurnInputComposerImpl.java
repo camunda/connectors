@@ -135,7 +135,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
                   processEntry(
                       result,
                       documentHandling,
-                      documentDeliveryOf(agentContext, toolNamesByCallId.get(result.id()))))
+                      agentContext.documentDeliveryOf(toolNamesByCallId.get(result.id()))))
               .toList();
       switch (documentHandling) {
         case DocumentHandling.Tracked ignored ->
@@ -163,7 +163,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           agentContext, documentIdsWithContent, batch, TurnInput.empty(), events);
     }
 
-    final boolean addsUserPromptMessage = addsUserPromptMessage(agentInput.userPrompt());
+    final boolean addsUserPromptMessage = agentInput.userPrompt().hasContent();
     if (!addsUserPromptMessage && events.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
@@ -189,26 +189,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             : toolCallResultsInputBuilder.build(
                 ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
     return input.followedBy(ready.events());
-  }
-
-  /**
-   * The delivery of the documents a process tool returns. An agent instance that does not track its
-   * documents ignores the delivery of a tool.
-   */
-  private static DocumentDelivery documentDeliveryOf(
-      AgentContext agentContext, @Nullable String toolName) {
-    if (toolName == null) {
-      return DocumentDelivery.REFERENCE;
-    }
-    return switch (agentContext.documentHandling()) {
-      case DocumentHandling.Tracked ignored -> agentContext.documentDeliveryOf(toolName);
-      case DocumentHandling.Untracked ignored -> DocumentDelivery.REFERENCE;
-    };
-  }
-
-  /** Whether the user prompt has a text or a document, so that it makes a message. */
-  private static boolean addsUserPromptMessage(UserPrompt userPrompt) {
-    return StringUtils.isNotBlank(userPrompt.prompt()) || !userPrompt.documents().isEmpty();
   }
 
   /** The user message of the user prompt and its documents. */

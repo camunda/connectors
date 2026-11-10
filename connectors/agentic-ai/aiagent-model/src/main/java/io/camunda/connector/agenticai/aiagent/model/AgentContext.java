@@ -115,15 +115,21 @@ public record AgentContext(
 
   /**
    * The document delivery of the documents the tool with the given name returns: the one of its
-   * stored definition, {@code reference} when the definition sets none or the tool is unknown.
+   * stored definition, {@code reference} when the definition sets none or the tool is unknown or
+   * has no name, and always {@code reference} for an agent instance that does not track its
+   * documents.
    */
-  public DocumentDelivery documentDeliveryOf(String toolName) {
-    return toolDefinitions.stream()
-        .filter(tool -> tool.name().equals(toolName))
-        .map(ToolDefinition::documentDelivery)
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(DocumentDelivery.REFERENCE);
+  public DocumentDelivery documentDeliveryOf(@Nullable String toolName) {
+    return switch (documentHandling()) {
+      case DocumentHandling.Tracked ignored ->
+          toolDefinitions.stream()
+              .filter(tool -> tool.name().equals(toolName))
+              .map(ToolDefinition::documentDelivery)
+              .filter(Objects::nonNull)
+              .findFirst()
+              .orElse(DocumentDelivery.REFERENCE);
+      case DocumentHandling.Untracked ignored -> DocumentDelivery.REFERENCE;
+    };
   }
 
   /**

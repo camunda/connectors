@@ -524,6 +524,7 @@ class AgentContextTest {
   void documentDeliveryOf_isTheDeliveryOfTheStoredDefinitionOfTheTool() {
     final var context =
         AgentContext.builder()
+            .features(List.of(AgentFeatures.DOCUMENTS))
             .toolDefinitions(
                 List.of(
                     tool("byContent", DocumentDelivery.CONTENT),
@@ -532,6 +533,24 @@ class AgentContextTest {
             .build();
 
     assertThat(context.documentDeliveryOf("byContent")).isEqualTo(DocumentDelivery.CONTENT);
+    assertThat(context.documentDeliveryOf("explicit")).isEqualTo(DocumentDelivery.REFERENCE);
+    assertThat(context.documentDeliveryOf("unset")).isEqualTo(DocumentDelivery.REFERENCE);
+    assertThat(context.documentDeliveryOf("unknown")).isEqualTo(DocumentDelivery.REFERENCE);
+    assertThat(context.documentDeliveryOf(null)).isEqualTo(DocumentDelivery.REFERENCE);
+  }
+
+  @Test
+  void documentDeliveryOf_isReferenceForAnInstanceThatDoesNotTrackItsDocuments() {
+    final var context =
+        AgentContext.builder()
+            .toolDefinitions(
+                List.of(
+                    tool("byContent", DocumentDelivery.CONTENT),
+                    tool("explicit", DocumentDelivery.REFERENCE),
+                    tool("unset", null)))
+            .build();
+
+    assertThat(context.documentDeliveryOf("byContent")).isEqualTo(DocumentDelivery.REFERENCE);
     assertThat(context.documentDeliveryOf("explicit")).isEqualTo(DocumentDelivery.REFERENCE);
     assertThat(context.documentDeliveryOf("unset")).isEqualTo(DocumentDelivery.REFERENCE);
     assertThat(context.documentDeliveryOf("unknown")).isEqualTo(DocumentDelivery.REFERENCE);
