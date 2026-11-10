@@ -6,10 +6,16 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery.Outcome;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
@@ -19,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumen
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -130,5 +137,61 @@ class DocumentContentDeliveryTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The content of the document 'unknown' is asked for, but the agent does not know it");
+  }
+
+  @Test
+  void logsAWithheldDocumentThatIsTooLargeAtInfoWithTheLimitPropertyAndMetadataOnly() {
+    final var tinyLimits =
+        new DocumentContentDelivery(new DocumentContentGuard(new DocumentContentLimits(1, 1, 1)));
+
+    final var events =
+        logsOf(
+            DocumentContentDelivery.class,
+            () ->
+                tinyLimits.deliver(
+                    known, List.of(idOf(text)), Set.of(), TestDocuments.documentFactory()));
+
+    assertThat(events)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(
+            tuple(
+                Level.INFO,
+                "The content of the document %s (content type text/plain, size unknown) is not loaded: it is above the limit of 1 bytes. Raise the limit of its kind with the property camunda.connector.agenticai.aiagent.document.content-limits.<text|pdf|image>."
+                    .formatted(idOf(text))));
+  }
+
+  @Test
+  void logsAWithheldDocumentThatCannotBeReadAtWarnWithTheCause() {
+    final var failure = new IllegalStateException("store unavailable");
+    final var metadata = mock(DocumentMetadata.class);
+    when(metadata.getContentType()).thenReturn("text/plain");
+    when(metadata.getSize()).thenReturn(-1L);
+    final var unreadable = mock(Document.class);
+    when(unreadable.metadata()).thenReturn(metadata);
+    when(unreadable.asInputStream()).thenThrow(failure);
+    final var jobDocumentFactory =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE) {
+          @Override
+          public Document resolve(DocumentReference reference) {
+            return unreadable;
+          }
+        };
+
+    final var events =
+        logsOf(
+            DocumentContentDelivery.class,
+            () -> delivery.deliver(known, List.of(idOf(text)), Set.of(), jobDocumentFactory));
+
+    assertThat(events)
+        .extracting(
+            ILoggingEvent::getLevel,
+            ILoggingEvent::getFormattedMessage,
+            event -> event.getThrowableProxy().getMessage())
+        .containsExactly(
+            tuple(
+                Level.WARN,
+                "The content of the document %s (content type text/plain, size unknown) is not loaded: it cannot be read."
+                    .formatted(idOf(text)),
+                "store unavailable"));
   }
 }
