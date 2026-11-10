@@ -20,7 +20,6 @@ import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -73,10 +72,9 @@ public record AgentContext(
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
     requireNoRuntimeTools(toolDefinitions);
+    Objects.requireNonNull(features, "Features must not be null");
     Objects.requireNonNull(documents, "Documents must not be null");
     Objects.requireNonNull(responseDocuments, "Response documents must not be null");
-    Objects.requireNonNull(features, "Features must not be null");
-    features = List.copyOf(new LinkedHashSet<>(features));
   }
 
   private static void requireNoRuntimeTools(List<ToolDefinition> toolDefinitions) {
