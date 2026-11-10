@@ -30,8 +30,8 @@ replaced through `AgentContext.documents()` and `withDocuments(...)`. `origin` i
 (`UserMessage`, `Event`, `ToolCall`), persisted with the discriminator `type`: `{"type": "user_message", "messageId": ...}`,
 `{"type": "event", "messageId": ...}` or `{"type": "tool_call", "toolName": ..., "toolCallId": ...}`. `reference` is the document reference of the
 connector SDK (`DocumentReferenceModel`), in the JSON the standard `DocumentSerializer` emits; the model module depends
-on the SDK for it. The file name, content type and size shown in handles are read from it (`AgentDocument.fileName()`,
-`contentType()`, `size()`), never stored. `AgentDocument.toDocument(DocumentFactory)` restores the live document.
+on the SDK for it. The file name, content type and size shown in handles are read from it
+(`AgentDocument.Descriptors.of(reference)`), never stored. `AgentDocument.toDocument(DocumentFactory)` restores the live document.
 `AgentDocuments` is immutable and insertion-ordered, the first registration of an id wins and a known id is never
 replaced; `register(Document, AgentDocumentOrigin)` and `register(List<AgentDocument>)` return the collection that holds the
 documents. Registering a document whose id belongs to a different document, one the agent knows or one of the same batch,

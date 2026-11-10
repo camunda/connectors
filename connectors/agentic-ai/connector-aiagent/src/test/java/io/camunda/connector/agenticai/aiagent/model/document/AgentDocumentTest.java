@@ -97,9 +97,11 @@ class AgentDocumentTest {
             AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
             reference);
 
-    assertThat(agentDocument.fileName()).isEqualTo("report.pdf");
-    assertThat(agentDocument.contentType()).isEqualTo("application/pdf");
-    assertThat(agentDocument.size()).isEqualTo(5L);
+    assertThat(AgentDocument.Descriptors.of(agentDocument.reference()).fileName())
+        .isEqualTo("report.pdf");
+    assertThat(AgentDocument.Descriptors.of(agentDocument.reference()).contentType())
+        .isEqualTo("application/pdf");
+    assertThat(AgentDocument.Descriptors.of(agentDocument.reference()).size()).isEqualTo(5L);
   }
 
   @Test
@@ -117,9 +119,10 @@ class AgentDocumentTest {
             AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID),
             reference);
 
-    assertThat(agentDocument.fileName()).isNull();
-    assertThat(agentDocument.contentType()).isEqualTo("text/plain");
-    assertThat(agentDocument.size()).isEqualTo(4L);
+    assertThat(AgentDocument.Descriptors.of(agentDocument.reference()).fileName()).isNull();
+    assertThat(AgentDocument.Descriptors.of(agentDocument.reference()).contentType())
+        .isEqualTo("text/plain");
+    assertThat(AgentDocument.Descriptors.of(agentDocument.reference()).size()).isEqualTo(4L);
   }
 
   @Test
@@ -259,7 +262,8 @@ class AgentDocumentTest {
 
     assertThat(agentDocument.id()).isEqualTo(AgentDocumentId.of("d1"));
     assertThat(agentDocument.origin()).isEqualTo(AgentDocumentOrigin.toolCall("t", "c"));
-    assertThat(agentDocument.fileName()).isEqualTo("y.txt");
+    assertThat(AgentDocument.Descriptors.of(agentDocument.reference()).fileName())
+        .isEqualTo("y.txt");
   }
 
   @Test

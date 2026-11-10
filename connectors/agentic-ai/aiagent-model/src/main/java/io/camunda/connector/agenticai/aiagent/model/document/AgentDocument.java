@@ -78,30 +78,6 @@ public record AgentDocument(
     return documentFactory.resolve(reference);
   }
 
-  /** What the model is shown about the document besides its id and origin. */
-  public Descriptors descriptors() {
-    return Descriptors.of(reference);
-  }
-
-  /**
-   * The file name the model is shown, or {@code null} when none is known: the file name of the
-   * metadata. A file name that equals the Camunda document id of the reference is left out: it is
-   * what a document stored without a name gets, and would only repeat an id.
-   */
-  public @Nullable String fileName() {
-    return descriptors().fileName();
-  }
-
-  /** The content type of the metadata the model is shown, or {@code null} when it has none. */
-  public @Nullable String contentType() {
-    return descriptors().contentType();
-  }
-
-  /** The size in bytes of the metadata the model is shown, or {@code null} when it has none. */
-  public @Nullable Long size() {
-    return descriptors().size();
-  }
-
   /**
    * Whether the document is the one this agent document stands for: the store id and the document
    * id are equal.
@@ -115,9 +91,11 @@ public record AgentDocument(
    * What the model is shown about a document besides its id, read from the metadata of the
    * reference of the document.
    *
-   * @param fileName see {@link AgentDocument#fileName()}
-   * @param contentType see {@link AgentDocument#contentType()}
-   * @param size see {@link AgentDocument#size()}
+   * @param fileName the file name of the metadata, or {@code null} when none is known. A file name
+   *     that equals the Camunda document id of the reference is left out: it is what a document
+   *     stored without a name gets, and would only repeat an id.
+   * @param contentType the content type of the metadata, or {@code null} when it has none
+   * @param size the size in bytes of the metadata, or {@code null} when it has none
    */
   public record Descriptors(
       @Nullable String fileName, @Nullable String contentType, @Nullable Long size) {

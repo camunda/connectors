@@ -76,8 +76,10 @@ class AgentDocumentsTest {
         .containsExactly(AgentDocumentId.of(first), AgentDocumentId.of(second));
     assertThat(documents.find(AgentDocumentId.of(second)))
         .hasValueSatisfying(found -> {
-          assertThat(found.fileName()).isEqualTo("two.txt");
-          assertThat(found.contentType()).isEqualTo("text/plain");
+          assertThat(AgentDocument.Descriptors.of(found.reference()).fileName())
+              .isEqualTo("two.txt");
+          assertThat(AgentDocument.Descriptors.of(found.reference()).contentType())
+              .isEqualTo("text/plain");
           assertThat(found.origin()).isEqualTo(AgentDocumentOrigin.toolCall("search", "call-1"));
         });
   }
