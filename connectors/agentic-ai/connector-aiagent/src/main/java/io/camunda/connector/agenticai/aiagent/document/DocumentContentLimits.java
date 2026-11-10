@@ -12,12 +12,10 @@ package io.camunda.connector.agenticai.aiagent.document;
  *
  * <p>The defaults stay below the limits of the most restrictive supported model provider, Amazon
  * Bedrock Converse (4.5 MB for a document, 3.75 MB for an image): 3.5 MB for a PDF document and for
- * an image. They apply to every provider. Limits per provider are an open point, together with a
- * capability matrix of the providers.
+ * an image. They apply to every provider.
  *
  * <p>A text document costs a roughly predictable number of tokens per byte, so its limit is the
- * smallest. Bytes are a poor proxy for the tokens a document costs: a PDF of 214 KB can cost about
- * 230,000 input tokens, depending on the pages and the provider.
+ * smallest.
  *
  * @param textBytes the limit of a text-based document
  * @param pdfBytes the limit of a PDF document
