@@ -3,7 +3,8 @@
 ## AgentResponse (the output)
 
 The result of an agent turn: the updated `AgentContext` plus either the tool calls to execute next or
-a final response to emit (text, JSON, or the full assistant message). Authoritative definition:
+a final response to emit (text, JSON, the full assistant message, or the response documents the agent returns with its
+built-in `c8__return_document` tool, by key, see [ADR 018](../../docs/adr/018-document-flow.md)). Authoritative definition:
 [`AgentResponse.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentResponse.java).
 
 ## AgentSubProcessConnectorResponse (job worker specific)
@@ -39,11 +40,19 @@ the final, `Completed` round, not on any intermediate `Continuation` round:
    gateway handlers, become `AgentResponse.toolCalls`. The local tool calls of the message stay in the
    stored assistant message and are not handed to the process ([`agentic-loop.md`](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete)).
 
+5. **Documents**: If the response carries no tool calls and the agent instance has the `documents` feature,
+   `responseDocuments` is a map from the key of each response document of the agent context to `{document, description?}`,
+   where `document` is the Camunda document reference of the agent document. The response documents stay in the returned
+   `agentContext`, so every later final response of the agent instance carries the documents returned earlier as well as
+   new ones (a key selected again replaces its entry). The map is never null and the field is omitted from the JSON when it is empty. A selection whose
+   document is not in the agent documents is an invariant violation and fails the job. The order of the entries is not specified (the order of selection is kept by the `responseDocuments` list of the context).
+   A response with tool calls carries none.
+
 ## Job Worker Response Variables
 
 On final completion (no tool calls):
 - `agent` variable = `AgentSubProcessResponse` containing:
-  - `responseText`, `responseJson`, `responseMessage`
+  - `responseText`, `responseJson`, `responseMessage`, `responseDocuments`
   - Optionally `context` (if `includeAgentContext` is true)
 - `agentContext` variable = updated agent context
 
