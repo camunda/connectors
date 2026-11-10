@@ -91,6 +91,8 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   Every `@ConfigurationProperties` prefix is `camunda.connector.agenticai` or below it.
 - `NoFieldInjectionArchTest`: no field injection (`@Autowired`, `@Value`, `@Resource`, `@Inject` on fields).
 - `SpringFreeModelAndApiArchTest`: `aiagent.model` and `aiagent.api` do not depend on `org.springframework`.
+- `BuiltInRuntimeToolsArchTest`: the built-in runtime tools (`aiagent.tool.runtime.builtin`) depend only on the API, the
+  model, the common library, the connector SDK, Jackson, jspecify, the JDK and their own package.
 - `PolymorphicJsonArchTest`: no `@JsonTypeInfo(use = Id.CLASS | Id.MINIMAL_CLASS)`, and every concrete
   `ConversationContext` implementation is annotated with `@JsonTypeName`.
 - `OutboundConnectorBeanScopeArchTest`: `@Bean` methods returning an outbound connector function (annotated with
@@ -148,6 +150,7 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 | Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern)                                                                  |
 | Agent documents (registry, handles, expansion for the model, only Camunda documents) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`data-model.md`](aiagent-model/docs/data-model.md), [ADR 018](docs/adr/018-document-flow.md) |
 | Document parameters of tools (`fromAi` type `document`, resolution, rejection) | [`document-parameters.md`](connector-aiagent/docs/document-parameters.md), [`extension-points.md`](docs/architecture/extension-points.md#documents-and-gateway-tools), [ADR 018](docs/adr/018-document-flow.md) |
+| Loading document content (`c8__load_document`, the content guard, document content limits) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`spring-auto-configuration.md`](docs/architecture/spring-auto-configuration.md#document-content-limits), [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 018](docs/adr/018-document-flow.md) |
 | MCP integration                                                          | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md)                       |
 | A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
 | Example BPMN processes & configurations                                  | the `Examples` section of the connector module READMEs, [`examples/`](examples/)                                                                     |
@@ -232,8 +235,7 @@ High-frequency traps (detail behind each link):
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
   `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
   keeps the previous document handling (bare content and the older XML tag format, no agent documents, no document
-  parameters), a `Tracked` one holds
-  its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
+  parameters, and no `c8__load_document`), a `Tracked` one holds its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
   `boolean` parameter. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
   and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
   behavior that changes the wire format or the persisted shape on a feature and keep the legacy
@@ -281,7 +283,18 @@ High-frequency traps (detail behind each link):
   (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
-  documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order.
+  documents of a turn input, also those a runtime tool returns; the documents a runtime tool returns are registered, and
+  the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
+  a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
+  and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
+  `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` (with the document factory of the job) runs the content guard
+  (`DocumentContentGuard`, limits in `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document
+  whose content a tool asks for. A document that fails it (a type no provider renders, a size above
+  the limit, a document that cannot be read) stays a reference, no incident: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
+  asks for content with one sentence per document (the content follows in the next message, it is not loaded and why, or it is in
+  the conversation already), and the message that follows the tool results holds the loaded documents only; a tool writes none of it. A new document in a tool result is a `DocumentContent`, a known one an
+  `AgentDocumentContent`, and content comes only through the effect; `LocalToolCallExecutor` fails the job when a result
+  breaks this. Passing a handle to a tool never adds content.
   A `Tracked` instance accepts only Camunda documents: an external or an inline document of the user prompt, a tool call
   result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`). A tool
   parameter of the `fromAi` type `document` (the parameter, array items or an object property) takes a handle.
@@ -384,9 +397,10 @@ Before claiming a change is complete:
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
-tool (a tool the connector runtime executes itself, without activating a BPMN element; a process tool must not have its name)
+tool (a tool the connector runtime executes itself, without activating a BPMN element; a built-in tool is a runtime tool
+the connector ships, such as `c8__load_document`; a process tool must not have its name)
 by implementing the SPI and registering a Spring bean. A runtime tool is the three-method interface `RuntimeTool`
-(`definition`, `isEnabled`, `call`), an experimental SPI in 8.11. Where to start (SPI + reference implementation per
+(`definition`, `isEnabled`, `call`), an experimental SPI in 8.11; the built-in tools use only that public API. Where to start (SPI + reference implementation per
 type): [Extension Points](docs/architecture/extension-points.md#extension-points) (gateway tools:
 [Gateway Tool Pattern](docs/architecture/extension-points.md#gateway-tool-pattern); runtime tools:
 [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool) and [ADR 016](docs/adr/016-runtime-tools.md)).

@@ -73,12 +73,12 @@ for the whole prefix (system prompt, tools, prior messages); there are no per-me
 
 A document inside a tool result is never embedded natively. For an agent instance with the `documents` feature the
 agent has already rendered it as text before the request is built (a document that is the whole result as
-its handle text, a document nested in an object as its handle object, see `ai-agent.md` §6), so
+its handle text, a document nested in an object as its handle object, see [`conversation-memory.md`](conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter)), so
 `AnthropicContentConverter.toToolResultBlocks` sees text and has no document specific code. The bytes reach the model
 only when the document gets content: they travel in the user message that follows the tool results, after the same handle,
 so the tool result is never sent together with a second copy. An agent instance without the `documents` feature is not
 expanded: the converter renders the `Document` as its reference JSON in a text block (see
-[ADR 018](../adr/018-document-flow.md)).
+[ADR 018](../../docs/adr/018-document-flow.md)).
 
 ### Token usage
 
