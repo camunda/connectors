@@ -8,9 +8,13 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
@@ -87,9 +91,11 @@ public class ToolCallResultDocumentExtractor {
         case ObjectContent objectContent ->
             documents.addAll(
                 ContentTreeDocumentWalker.extractDocumentsFromContent(objectContent.content()));
-        default -> {
-          // only these blocks hold live documents
-        }
+        // only document and object blocks hold live documents
+        case TextContent ignored -> {}
+        case AgentDocumentContent ignored -> {}
+        case ReasoningContent ignored -> {}
+        case ProviderContent ignored -> {}
       }
     }
     return distinct(documents);
@@ -109,9 +115,11 @@ public class ToolCallResultDocumentExtractor {
         case DocumentContent documentContent -> documents.add(documentContent.document());
         case ObjectContent objectContent ->
             documents.addAll(objectHandleRenderer.documentsIn(objectContent.content()));
-        default -> {
-          // only these blocks hold live documents
-        }
+        // only document and object blocks hold live documents
+        case TextContent ignored -> {}
+        case AgentDocumentContent ignored -> {}
+        case ReasoningContent ignored -> {}
+        case ProviderContent ignored -> {}
       }
     }
     return distinct(documents);
