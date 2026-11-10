@@ -8,9 +8,11 @@ package io.camunda.connector.agenticai.docslint;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -19,7 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Pattern;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -27,29 +28,25 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 /**
- * The Markdown docs and Java sources of the Agentic AI modules and their e2e tests below a
- * repository root. All paths are relative to the root. Symbolic links are not followed.
+ * The Markdown docs and Java sources below the root of a {@link DocsLintConfig}. All paths are
+ * relative to the root. Symbolic links are not followed.
  */
 final class DocTree {
 
-  static final Path AGENTIC_AI = Path.of("connectors/agentic-ai");
-  static final Path E2E = Path.of("connectors-e2e-test/connectors-e2e-test-agentic-ai");
-
-  private static final Set<Path> HISTORY_DOCS =
-      Set.of(AGENTIC_AI.resolve("docs/breaking-changes.md"));
   private static final Pattern SKIPPED_DIRECTORIES = Pattern.compile("target|node_modules|\\..+");
 
+  private final DocsLintConfig config;
   private final Path root;
+  private final List<PathMatcher> excludedDocs;
   private final Map<Path, Optional<Doc>> docs = new HashMap<>();
 
-  DocTree(final Path root) {
-    this.root = root;
-  }
-
-  /** The tree of the repository that holds this module, which is run from its directory. */
-  static DocTree ofRepository() {
-    final Path moduleDir = Path.of(System.getProperty("basedir", ".")).toAbsolutePath().normalize();
-    return new DocTree(moduleDir.getParent().getParent().getParent());
+  DocTree(final DocsLintConfig config) {
+    this.config = config;
+    this.root = config.root();
+    this.excludedDocs =
+        config.excludedDocs().stream()
+            .map(glob -> FileSystems.getDefault().getPathMatcher("glob:" + glob))
+            .toList();
   }
 
   boolean exists(final Path path) {
@@ -68,47 +65,42 @@ final class DocTree {
         });
   }
 
-  /**
-   * The Markdown docs in scope: every {@code *.md} below the Agentic AI and e2e directories,
-   * without ADRs, examples and prompt resources.
-   */
+  /** The Markdown docs in scope: every {@code *.md} below the doc roots that is not excluded. */
   List<Path> docPaths() {
-    return files(List.of(AGENTIC_AI, E2E), ".md").stream()
-        .filter(path -> !path.startsWith(AGENTIC_AI.resolve("docs/adr")))
-        .filter(path -> !path.startsWith(AGENTIC_AI.resolve("examples")))
-        .filter(path -> !path.toString().contains("src/main/resources/"))
+    return files(config.docRoots(), ".md").stream()
+        .filter(path -> excludedDocs.stream().noneMatch(matcher -> matcher.matches(path)))
         .toList();
   }
 
   /** Whether the doc records history and names types that no longer exist. */
   boolean isHistory(final Path path) {
-    return HISTORY_DOCS.contains(path);
+    return config.historyDocs().contains(path);
   }
 
-  /** The modules of the Agentic AI aggregator pom and the e2e module. */
+  /** The modules of the modules pom, then the extra modules. */
   List<DocModule> modules() {
     final List<DocModule> modules = new ArrayList<>();
+    final Path pom = config.modulesPom();
+    final Path pomDir = root.relativize(root.resolve(pom).getParent());
     try {
       final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setNamespaceAware(true);
       factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
       factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
       final Element project =
-          factory
-              .newDocumentBuilder()
-              .parse(root.resolve(AGENTIC_AI).resolve("pom.xml").toFile())
-              .getDocumentElement();
+          factory.newDocumentBuilder().parse(root.resolve(pom).toFile()).getDocumentElement();
       for (final Element container : childElements(project, "modules")) {
         for (final Element module : childElements(container, "module")) {
           final String name = module.getTextContent().strip();
-          modules.add(new DocModule(name, AGENTIC_AI.resolve(name)));
+          modules.add(new DocModule(name, pomDir.resolve(name)));
         }
       }
     } catch (final Exception e) {
-      throw new IllegalStateException(
-          "Cannot read the modules of " + AGENTIC_AI.resolve("pom.xml"), e);
+      throw new IllegalStateException("Cannot read the modules of " + pom, e);
     }
-    modules.add(new DocModule(E2E.getFileName().toString(), E2E));
+    config
+        .extraModules()
+        .forEach(dir -> modules.add(new DocModule(dir.getFileName().toString(), dir)));
     return modules;
   }
 

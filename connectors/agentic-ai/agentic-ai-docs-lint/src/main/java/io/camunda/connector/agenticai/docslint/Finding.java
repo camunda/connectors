@@ -7,4 +7,4 @@
 package io.camunda.connector.agenticai.docslint;
 
 /** The result of a check: a {@link Violation} fails it, a {@link Warning} is only reported. */
-sealed interface Finding permits Violation, Warning {}
+public sealed interface Finding permits Violation, Warning {}

@@ -11,10 +11,10 @@ import java.nio.file.Path;
 /**
  * A remark that does not fail a check. A line of 0 means the remark has no position in the file.
  */
-record Warning(Path file, int line, String what, String why, String fix) implements Finding {
+public record Warning(Path file, int line, String what, String why, String fix) implements Finding {
 
   /** The remark as one line for the build log. */
-  String logLine() {
+  public String logLine() {
     return "WARN " + position() + ": " + what;
   }
 

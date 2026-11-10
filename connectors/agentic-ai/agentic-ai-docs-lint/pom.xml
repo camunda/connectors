@@ -38,19 +38,16 @@
       <groupId>org.commonmark</groupId>
       <artifactId>commonmark</artifactId>
       <version>${version.commonmark}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.commonmark</groupId>
       <artifactId>commonmark-ext-yaml-front-matter</artifactId>
       <version>${version.commonmark}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.commonmark</groupId>
       <artifactId>commonmark-ext-heading-anchor</artifactId>
       <version>${version.commonmark}</version>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 

@@ -7,7 +7,7 @@ test code only and is not shipped.
 
 ## Key types
 
-- `ReferenceDocsTest`: runs the checks per doc and per module.
+- `AgenticAiDocsTest`: runs the checks per doc and per module.
 - `DocChecks`: the checks. Each returns findings.
 - `Finding` with `Violation` and `Warning`: a violation fails the test, a warning is reported.
 - `MarkdownParser` and `Doc`: a parsed Markdown file with its headings, links, code spans, fences and anchors.

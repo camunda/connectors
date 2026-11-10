@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
@@ -74,6 +75,8 @@ final class JavaSourceIndex {
       return binaryName.replace('$', '.');
     }
   }
+
+  private static final Pattern DOT = Pattern.compile("\\.");
 
   private final Map<String, List<Type>> declared = new HashMap<>();
   private final Set<String> imported = new HashSet<>();
@@ -234,11 +237,9 @@ final class JavaSourceIndex {
     final String packagePrefix = unit.getPackageName() == null ? "" : unit.getPackageName() + ".";
     for (final ImportTree anImport : unit.getImports()) {
       importedNames.add(anImport.getQualifiedIdentifier().toString());
-      for (final String segment : anImport.getQualifiedIdentifier().toString().split("\\.")) {
-        if (Character.isUpperCase(segment.charAt(0))) {
-          imported.add(segment);
-        }
-      }
+      DOT.splitAsStream(anImport.getQualifiedIdentifier().toString())
+          .filter(segment -> Character.isUpperCase(segment.charAt(0)))
+          .forEach(imported::add);
     }
     unit.accept(
         new TreeScanner<Void, String>() {

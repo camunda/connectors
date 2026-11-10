@@ -12,7 +12,8 @@ import java.nio.file.Path;
  * A problem that fails a check. A line of 0 means the problem has no position in the file. The
  * message tells what is wrong, why it matters and what to verify.
  */
-record Violation(Path file, int line, String what, String why, String fix) implements Finding {
+public record Violation(Path file, int line, String what, String why, String fix)
+    implements Finding {
 
   @Override
   public String toString() {

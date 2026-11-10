@@ -11,7 +11,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -41,7 +43,7 @@ class DocTreeTest {
 
   @Test
   void listsTheDocsInScopeSortedAndWithoutExcludedDirectories() {
-    assertThat(new DocTree(root).docPaths())
+    assertThat(agenticAiTree(root).docPaths())
         .extracting(Path::toString)
         .containsExactly(
             "connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md",
@@ -55,7 +57,7 @@ class DocTreeTest {
     final Path linked = root.resolve("connectors/agentic-ai/linked.md");
     Files.createSymbolicLink(linked, root.resolve("connectors/agentic-ai/README.md"));
 
-    assertThat(new DocTree(root).docPaths())
+    assertThat(agenticAiTree(root).docPaths())
         .extracting(Path::toString)
         .containsExactly(
             "connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md",
@@ -66,7 +68,7 @@ class DocTreeTest {
 
   @Test
   void marksHistoryDocs() {
-    final DocTree tree = new DocTree(root);
+    final DocTree tree = agenticAiTree(root);
 
     assertThat(tree.isHistory(Path.of("connectors/agentic-ai/docs/breaking-changes.md"))).isTrue();
     assertThat(tree.isHistory(Path.of("connectors/agentic-ai/README.md"))).isFalse();
@@ -74,7 +76,7 @@ class DocTreeTest {
 
   @Test
   void readsTheModulesFromThePomAndAddsTheE2eModule() {
-    assertThat(new DocTree(root).modules())
+    assertThat(agenticAiTree(root).modules())
         .containsExactly(
             new DocModule("one", Path.of("connectors/agentic-ai/one")),
             new DocModule("two", Path.of("connectors/agentic-ai/two")),
@@ -98,7 +100,7 @@ class DocTreeTest {
         </project>
         """);
 
-    assertThat(new DocTree(root).modules())
+    assertThat(agenticAiTree(root).modules())
         .containsExactly(
             new DocModule("one", Path.of("connectors/agentic-ai/one")),
             new DocModule("two", Path.of("connectors/agentic-ai/two")),
@@ -109,7 +111,7 @@ class DocTreeTest {
 
   @Test
   void parsesADocOnceAndReturnsEmptyForAMissingFile() {
-    final DocTree tree = new DocTree(root);
+    final DocTree tree = agenticAiTree(root);
     final Path readme = Path.of("connectors/agentic-ai/one/README.md");
 
     assertThat(tree.doc(readme)).containsSame(tree.doc(readme).orElseThrow());
@@ -120,16 +122,36 @@ class DocTreeTest {
 
   @Test
   void readsTheJavaSourcesOfTheWholeRepositoryByPath() {
-    assertThat(new DocTree(root).javaSources())
+    assertThat(agenticAiTree(root).javaSources())
         .isEqualTo(Map.of("connectors/agentic-ai/one/Sample.java", "package p; class Sample {}"));
   }
 
   @Test
   void listsTheFilesBelowADirectory() {
-    assertThat(new DocTree(root).files(Path.of("connectors/agentic-ai/one"), ".md"))
+    assertThat(agenticAiTree(root).files(Path.of("connectors/agentic-ai/one"), ".md"))
         .containsExactly(
             Path.of("connectors/agentic-ai/one/README.md"),
             Path.of("connectors/agentic-ai/one/src/main/resources/prompt.md"));
+  }
+
+  static DocTree agenticAiTree(final Path root) {
+    return new DocTree(
+        new DocsLintConfig(
+            root,
+            List.of(
+                Path.of("connectors/agentic-ai"),
+                Path.of("connectors-e2e-test/connectors-e2e-test-agentic-ai")),
+            List.of(
+                "connectors/agentic-ai/docs/adr/**",
+                "connectors/agentic-ai/examples/**",
+                "**/src/main/resources/**"),
+            Set.of(Path.of("connectors/agentic-ai/docs/breaking-changes.md")),
+            Path.of("connectors/agentic-ai/pom.xml"),
+            List.of(Path.of("connectors-e2e-test/connectors-e2e-test-agentic-ai")),
+            List.of(),
+            Map.of(),
+            Map.of(),
+            Path.of("Test.java")));
   }
 
   private void write(final String path, final String content) throws IOException {

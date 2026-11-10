@@ -9,4 +9,4 @@ package io.camunda.connector.agenticai.docslint;
 import java.nio.file.Path;
 
 /** A module whose README the checks look at. The directory is relative to the repository root. */
-record DocModule(String name, Path dir) {}
+public record DocModule(String name, Path dir) {}

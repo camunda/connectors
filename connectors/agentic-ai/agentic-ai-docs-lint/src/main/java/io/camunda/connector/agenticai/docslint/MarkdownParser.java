@@ -42,6 +42,7 @@ final class MarkdownParser {
           .build();
 
   private static final Pattern HTML_ANCHOR = Pattern.compile("<a\\s+(?:id|name)=([\"'])(.+?)\\1");
+  private static final Pattern WHITESPACE = Pattern.compile("\\s+");
   private static final Pattern EXTERNAL = Pattern.compile("^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|//).*");
 
   private MarkdownParser() {}
@@ -128,7 +129,7 @@ final class MarkdownParser {
     @Override
     public void visit(final FencedCodeBlock block) {
       final String info = block.getInfo().strip();
-      fences.add(new Ref(line(block), info.split("\\s+")[0]));
+      fences.add(new Ref(line(block), WHITESPACE.splitAsStream(info).findFirst().orElse("")));
     }
 
     @Override
