@@ -26,6 +26,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentAlreadyInConversationSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
+import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -37,10 +38,20 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
 public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
+
+  private static final String UNSUPPORTED_ZIP_MESSAGE =
+      "Unsupported content type 'application/zip' for document with reference"
+          + " 'CamundaDocumentReferenceModel\\[storeId=in-memory,"
+          + " documentId=[0-9a-f-]{36}, contentHash=\\d+,"
+          + " metadata=CamundaDocumentMetadataModel\\[contentType=application/zip,"
+          + " expiresAt=null, size=null, fileName=null, processDefinitionId=null,"
+          + " processInstanceKey=null, customProperties=null\\]\\]'";
 
   @ParameterizedTest
   @ValueSource(strings = {"test.pdf", "test.txt"})
@@ -307,6 +318,58 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
                 .isReady()
                 .hasNoToolCalls()
                 .hasResponseText(responseText));
+  }
+
+  /**
+   * Without a document delivery the content of every prompt document goes out with the prompt, so a
+   * document of a type the model provider cannot read fails the model call and raises an incident.
+   */
+  @Test
+  void raisesIncidentWhenDocumentTypeIsNotSupportedWithoutADelivery() throws Exception {
+    final var zeebeTest =
+        awaitActiveIncidents(
+            createProcessInstance(
+                elementTemplate ->
+                    elementTemplate.withoutProperty("data.userPrompt.documentDelivery"),
+                Map.of(
+                    "userPrompt",
+                    "Summarize the following document",
+                    "downloadUrls",
+                    List.of(wireMock.getHttpBaseUrl() + "/unsupported.zip"))));
+
+    assertIncident(
+        zeebeTest,
+        incident -> {
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
+          assertThat(incident.getErrorMessage()).matches(unsupportedZipIncidentMessage());
+        });
+  }
+
+  /** The error variables of the incident message are a map, whose fields come in any order. */
+  private static String unsupportedZipIncidentMessage() {
+    final var fields =
+        List.of(
+            Pattern.quote("message=") + UNSUPPORTED_ZIP_MESSAGE,
+            Pattern.quote("type=io.camunda.connector.api.error.ConnectorException"),
+            Pattern.quote("code=FAILED_MODEL_CALL"));
+    final var orders =
+        List.of(
+            List.of(0, 1, 2),
+            List.of(0, 2, 1),
+            List.of(1, 0, 2),
+            List.of(1, 2, 0),
+            List.of(2, 0, 1),
+            List.of(2, 1, 0));
+    final var alternatives =
+        orders.stream()
+            .map(order -> order.stream().map(fields::get).collect(Collectors.joining(", ")))
+            .collect(Collectors.joining("|"));
+    return UNSUPPORTED_ZIP_MESSAGE
+        + Pattern.quote(" | Error variables: {error={")
+        + "(?:"
+        + alternatives
+        + ")"
+        + Pattern.quote("}}");
   }
 
   private static String contentBlockType(String filename) {
