@@ -26,7 +26,7 @@ import java.util.List;
  * the way the model reads the object of a tool result and of a user message, and reports the
  * documents it replaced.
  */
-public final class ObjectHandleRenderer {
+public class ObjectHandleRenderer {
 
   private static final String COLLECTED_DOCUMENTS = "collectedDocuments";
 

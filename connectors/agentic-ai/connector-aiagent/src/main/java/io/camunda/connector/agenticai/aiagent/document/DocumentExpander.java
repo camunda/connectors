@@ -46,7 +46,7 @@ import org.jspecify.annotations.Nullable;
  * <p>The result depends only on the messages and the agent documents, never on time or call order,
  * so it is stable across requests (prompt caching). Nothing that is stored is changed.
  */
-public final class DocumentExpander {
+public class DocumentExpander {
 
   private final ObjectHandleRenderer objectHandleRenderer;
 
