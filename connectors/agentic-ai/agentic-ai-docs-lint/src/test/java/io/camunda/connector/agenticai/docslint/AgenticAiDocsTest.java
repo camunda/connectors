@@ -47,23 +47,7 @@ class AgenticAiDocsTest {
           Map.entry("RetryInterceptor", "Google GenAI SDK type"),
           Map.entry("ThinkChunk", "Mistral schema name"));
 
-  private static final DocsLint LINT =
-      DocsLint.of(
-          new DocsLintConfig(
-              repositoryRoot(),
-              List.of(AGENTIC_AI, E2E),
-              List.of(
-                  AGENTIC_AI + "/docs/adr/**",
-                  AGENTIC_AI + "/examples/**",
-                  "**/src/main/resources/**"),
-              Set.of(AGENTIC_AI.resolve("docs/breaking-changes.md")),
-              AGENTIC_AI.resolve("pom.xml"),
-              List.of(E2E),
-              List.of("## Purpose", "## Key types", "## Docs"),
-              Map.of("connector-aiagent", "# AI Agent Task"),
-              ALLOWED_NAMES,
-              AGENTIC_AI.resolve(
-                  "agentic-ai-docs-lint/src/test/java/io/camunda/connector/agenticai/docslint/AgenticAiDocsTest.java")));
+  private static final DocsLint LINT = DocsLint.of(config(repositoryRoot()));
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("docs")
@@ -88,6 +72,23 @@ class AgenticAiDocsTest {
 
   static List<DocModule> modules() {
     return LINT.modulesInScope();
+  }
+
+  /** The config of the Agentic AI docs below the root of a repository. */
+  static DocsLintConfig config(final Path root) {
+    return new DocsLintConfig(
+        root,
+        List.of(AGENTIC_AI, E2E),
+        List.of(
+            AGENTIC_AI + "/docs/adr/**", AGENTIC_AI + "/examples/**", "**/src/main/resources/**"),
+        Set.of(AGENTIC_AI.resolve("docs/breaking-changes.md")),
+        AGENTIC_AI.resolve("pom.xml"),
+        List.of(E2E),
+        List.of("## Purpose", "## Key types", "## Docs"),
+        Map.of("connector-aiagent", "# AI Agent Task"),
+        ALLOWED_NAMES,
+        AGENTIC_AI.resolve(
+            "agentic-ai-docs-lint/src/test/java/io/camunda/connector/agenticai/docslint/AgenticAiDocsTest.java"));
   }
 
   /** The root of the repository that holds this module, which is run from its directory. */
