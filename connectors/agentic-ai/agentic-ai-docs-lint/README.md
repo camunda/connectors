@@ -28,3 +28,4 @@ module supports development only and is not deployed, so the architecture tests 
 ## Docs
 
 - [Docs checks](../AGENTS.md#docs-checks)
+- [Agent instructions](AGENTS.md): the rules of the agentic AI modules that this module deviates from
