@@ -2702,11 +2702,21 @@ class AgentSubProcessRequestHandlerTest {
     // the built-in tool is offered next to the tools of the process, and never persisted with them
     assertThat(chatModelRequestCaptor.getAllValues().get(0).snapshot().toolDefinitions())
         .extracting(ToolDefinition::name)
-        .contains(ReturnDocumentTool.NAME);
+        .containsExactly(
+            "getWeather",
+            "getDateTime",
+            "acme_lookup",
+            "acme_toggle",
+            "acme_create_report",
+            "acme_count_documents",
+            "acme_load_document",
+            "acme_select_document",
+            ReturnDocumentTool.NAME,
+            LoadDocumentTool.NAME);
     final var context = response.responseValue().context();
     assertThat(context.toolDefinitions())
         .extracting(ToolDefinition::name)
-        .doesNotContain(ReturnDocumentTool.NAME);
+        .containsExactly("getWeather", "getDateTime");
     assertThat(context.responseDocuments())
         .containsExactly(
             new ResponseDocumentSelection(

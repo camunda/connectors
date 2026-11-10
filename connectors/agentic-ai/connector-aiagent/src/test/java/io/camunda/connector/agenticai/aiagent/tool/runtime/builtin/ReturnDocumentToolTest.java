@@ -222,8 +222,7 @@ class ReturnDocumentToolTest {
     final var run = run(call("1", Map.of("key", "_report-2024_final", "document", reportHandle)));
 
     assertThat(run.responseDocuments())
-        .extracting(ResponseDocumentSelection::key)
-        .containsExactly("_report-2024_final");
+        .containsExactly(new ResponseDocumentSelection("_report-2024_final", reportId, null));
   }
 
   @Test
