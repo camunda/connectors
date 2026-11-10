@@ -196,7 +196,7 @@ class AwsAgentCoreConversationMapperTest {
   }
 
   @Test
-  void shouldSummarizeADocumentReferenceInAToolResultAsItsTag() {
+  void shouldSummarizeADocumentBlockInAToolResultAsItsHandleAndKeepItInTheEnvelope() {
     // given
     var reference =
         AgentDocumentContent.of(AgentDocumentId.of(TestDocuments.createDocument("{}", "d.json")));
@@ -213,11 +213,15 @@ class AwsAgentCoreConversationMapperTest {
 
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
-    // then
+    // then — conversational summary + toolCallResults blob + metadata blob
+    assertThat(payloads).hasSize(3);
     assertThat(payloads.getFirst().conversational().content().text())
         .isEqualTo(
             "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\"}".formatted(reference.id()));
+    assertThat(message).isEqualTo(original);
   }
 
   @Test
