@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -170,17 +171,17 @@ public final class AgentConversation {
    *
    * @param inputMessages the input of the new turn, the results of every tool call of the closed
    *     turn first
-   * @param agentContext the agent context the new turn continues with, the {@linkplain
-   *     #persistedContext() persisted context} with the documents of the input registered
+   * @param registerDocuments registers the documents of the input in the {@linkplain
+   *     #persistedContext() persisted context}; the new turn continues with the context it returns
    * @throws IllegalStateException if the current turn has not been ingested yet
    */
   public AgentConversation nextRuntimeToolRound(
-      List<Message> inputMessages, AgentContext agentContext) {
+      List<Message> inputMessages, UnaryOperator<AgentContext> registerDocuments) {
     if (currentTurn.assistantMessage() == null) {
       throw new IllegalStateException(
           "nextRuntimeToolRound() called before the current turn was ingested");
     }
-    return nextRound(inputMessages, agentContext);
+    return nextRound(inputMessages, registerDocuments.apply(currentContext));
   }
 
   private AgentConversation nextRound(List<Message> inputMessages, AgentContext agentContext) {

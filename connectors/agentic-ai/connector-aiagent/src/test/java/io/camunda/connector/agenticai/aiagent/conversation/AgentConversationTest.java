@@ -39,6 +39,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
@@ -571,7 +572,7 @@ class AgentConversationTest {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", TOOL_CALLS), firstRound)
-            .nextRuntimeToolRound(List.of(results), BASE_CONTEXT);
+            .nextRuntimeToolRound(List.of(results), UnaryOperator.identity());
 
     assertThat(conv.currentTurn().iterationKey()).isEqualTo(2);
     assertThat(conv.currentTurn().inputMessages()).containsExactly(results);
@@ -587,7 +588,7 @@ class AgentConversationTest {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty())
-            .nextRuntimeToolRound(List.of(results, followUp), BASE_CONTEXT);
+            .nextRuntimeToolRound(List.of(results, followUp), UnaryOperator.identity());
 
     assertThat(conv.currentTurn().inputMessages()).containsExactly(results, followUp);
   }
@@ -598,7 +599,7 @@ class AgentConversationTest {
 
     assertThatThrownBy(() ->
             conv.nextRuntimeToolRound(
-                List.of(toolCallResultMessage(TOOL_CALL_RESULTS)), BASE_CONTEXT))
+                List.of(toolCallResultMessage(TOOL_CALL_RESULTS)), UnaryOperator.identity()))
         .isInstanceOf(IllegalStateException.class);
   }
 
@@ -609,7 +610,7 @@ class AgentConversationTest {
     var conv =
         rehydrate(List.of(), List.of(userMessage("hi")))
             .ingest(calling, AgentMetrics.empty())
-            .nextRuntimeToolRound(List.of(results), BASE_CONTEXT);
+            .nextRuntimeToolRound(List.of(results), UnaryOperator.identity());
 
     assertThat(conv.allMessages()).containsSubsequence(calling, results);
     // system message + user + assistant + results; evicting the assistant evicts its results
@@ -631,7 +632,8 @@ class AgentConversationTest {
                 List.of(userMessage("hi"), assistantMessage("calling", TOOL_CALLS)),
                 List.of(interrupted))
             .ingest(assistantMessage("calling again", TOOL_CALLS), AgentMetrics.empty())
-            .nextRuntimeToolRound(List.of(toolCallResultMessage(TOOL_CALL_RESULTS)), BASE_CONTEXT);
+            .nextRuntimeToolRound(
+                List.of(toolCallResultMessage(TOOL_CALL_RESULTS)), UnaryOperator.identity());
 
     assertThat(conv.currentTurn().hasInterruptedToolCallResults()).isFalse();
     assertThat(conv.hasInterruptedToolCallResultsInInvocation()).isTrue();
@@ -681,10 +683,15 @@ class AgentConversationTest {
             .withProperty("note", "x");
 
     var next =
-        conv.nextRuntimeToolRound(List.of(toolCallResultMessage(TOOL_CALL_RESULTS)), context);
+        conv.nextRuntimeToolRound(
+            List.of(toolCallResultMessage(TOOL_CALL_RESULTS)),
+            persisted ->
+                persisted
+                    .withDocuments(AgentDocuments.of(List.of(entry)))
+                    .withProperty("note", "x"));
 
     assertThat(conv.persistedContext().documents()).isEqualTo(AgentDocuments.empty());
-    assertThat(next.persistedContext()).isSameAs(context);
+    assertThat(next.persistedContext()).isEqualTo(context);
     assertThat(next.toAgentContext().documents().all()).containsExactly(entry);
     assertThat(next.toAgentContext().properties()).containsEntry("note", "x");
     // the metrics of the persisted context are not touched by a change of it

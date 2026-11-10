@@ -421,8 +421,7 @@ public abstract class BaseAgentRequestHandler<
             CompositionResult.Ready.of(
                 conversation.persistedContext(), ToolCallBatch.of(currentTurn.toolCalls())));
     final var nextConversation =
-        conversation.nextRuntimeToolRound(
-            input.messages(), input.applyTo(conversation.persistedContext()));
+        conversation.nextRuntimeToolRound(input.messages(), input::applyTo);
     // the previous turn is the one whose tool calls these results belong to
     agentInstanceClient.applyTurnStart(
         executionContext,

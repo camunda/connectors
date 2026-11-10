@@ -131,7 +131,7 @@ class TurnReconstructorTest {
         AgentConversation.rehydrate(
                 configuration, context, TurnReconstructor.reconstruct(List.of()), null, List.of(u))
             .ingest(a1, AgentMetrics.empty())
-            .nextRuntimeToolRound(List.of(runtimeResults), context)
+            .nextRuntimeToolRound(List.of(runtimeResults), persisted -> context)
             .ingest(a2, AgentMetrics.empty());
 
     var persisted = conversation.allMessages();
