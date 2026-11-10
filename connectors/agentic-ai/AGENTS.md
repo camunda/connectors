@@ -131,7 +131,8 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 which applies it to the agentic AI docs and holds their paths, README layout and allowed names. Each module
 README has the fixed sections and links the docs of its module. Relative links and anchors resolve. The
 docs hold no `java` code blocks. The types and members that the docs name in backticks exist in the
-repository sources. Run them with:
+repository sources. `AgenticAiDocsSmokeTest` seeds one defect per rule in a small tree and proves that
+the config of `AgenticAiDocsTest` finds each. Run them with:
 
 ```bash
 ./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-docs-lint
