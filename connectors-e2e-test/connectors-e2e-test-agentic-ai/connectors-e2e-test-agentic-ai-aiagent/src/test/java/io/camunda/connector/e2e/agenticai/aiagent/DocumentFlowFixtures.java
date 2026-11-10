@@ -26,18 +26,20 @@ import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlac
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.agenticai.aiagent.agent.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.agent.ReturnedDocument;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONException;
+import org.jspecify.annotations.Nullable;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.core.io.ClassPathResource;
 
@@ -293,7 +295,6 @@ public final class DocumentFlowFixtures {
             .find(AgentDocumentId.of(expectedDocumentId))
             .orElseThrow(() ->
                 new AssertionError("The agent does not know the document " + expectedDocumentId));
-    assertThat(reference).containsEntry("camunda.document.type", "camunda");
     try {
       JSONAssert.assertEquals(
           objectMapper.writeValueAsString(registered.reference()),
@@ -307,6 +308,13 @@ public final class DocumentFlowFixtures {
   }
 
   /**
+   * A response document the agent response is expected to hold: the key, the id of the document the
+   * model reads in its handle, and the description.
+   */
+  public record ExpectedResponseDocument(
+      String key, String documentId, @Nullable String description) {}
+
+  /**
    * Asserts that the response documents of an agent response hold only the document with the given
    * id, under the key and with the description the model sent.
    */
@@ -314,26 +322,28 @@ public final class DocumentFlowFixtures {
       AgentContext context,
       Map<String, ? extends ReturnedDocument> documents,
       String expectedDocumentId) {
-    assertThat(documents).containsOnlyKeys(RETURN_KEY);
-    final var returned = documents.get(RETURN_KEY);
-    assertCamundaDocumentReference(context, returned.document(), expectedDocumentId);
-    assertThat(returned.description()).isEqualTo(RETURN_DESCRIPTION);
+    assertResponseDocuments(
+        context,
+        documents,
+        new ExpectedResponseDocument(RETURN_KEY, expectedDocumentId, RETURN_DESCRIPTION));
   }
 
   /**
-   * Asserts that the response documents hold an entry under the key that is the Camunda document
-   * reference of the document with the given id, with the given description.
+   * Asserts that the response documents hold exactly the expected entries, in no particular order,
+   * each with the whole Camunda document reference of its document and its description.
    */
-  public static void assertResponseDocumentEntry(
+  public static void assertResponseDocuments(
       AgentContext context,
       Map<String, ? extends ReturnedDocument> documents,
-      String key,
-      String expectedDocumentId,
-      String expectedDescription) {
-    assertThat(documents).containsKey(key);
-    final var returned = documents.get(key);
-    assertCamundaDocumentReference(context, returned.document(), expectedDocumentId);
-    assertThat(returned.description()).isEqualTo(expectedDescription);
+      ExpectedResponseDocument... expected) {
+    assertThat(documents.keySet())
+        .containsExactlyInAnyOrderElementsOf(
+            Arrays.stream(expected).map(ExpectedResponseDocument::key).toList());
+    for (final var entry : expected) {
+      final var returned = documents.get(entry.key());
+      assertCamundaDocumentReference(context, returned.document(), entry.documentId());
+      assertThat(returned.description()).isEqualTo(entry.description());
+    }
   }
 
   /**

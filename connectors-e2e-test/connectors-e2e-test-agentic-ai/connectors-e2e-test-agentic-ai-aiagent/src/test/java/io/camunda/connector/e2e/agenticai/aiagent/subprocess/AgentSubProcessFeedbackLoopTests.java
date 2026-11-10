@@ -20,7 +20,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DO
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_DESCRIPTION;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertResponseDocumentEntry;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertResponseDocuments;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.documentIdOfToolResult;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentTurn;
@@ -31,7 +31,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.client.api.search.enums.IncidentErrorType;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
+import io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.ExpectedResponseDocument;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
@@ -148,22 +150,17 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(secondAnswer);
-          assertThat(agentResponse.responseDocuments()).containsOnlyKeys(RETURN_KEY, NOTES_KEY);
-          assertResponseDocumentEntry(
+          assertResponseDocuments(
               agentResponse.context(),
               agentResponse.responseDocuments(),
-              RETURN_KEY,
-              reportId,
-              RETURN_DESCRIPTION);
-          assertResponseDocumentEntry(
-              agentResponse.context(),
-              agentResponse.responseDocuments(),
-              NOTES_KEY,
-              notesId,
-              NOTES_DESCRIPTION);
+              new ExpectedResponseDocument(RETURN_KEY, reportId, RETURN_DESCRIPTION),
+              new ExpectedResponseDocument(NOTES_KEY, notesId, NOTES_DESCRIPTION));
           assertThat(agentResponse.context().responseDocuments())
-              .extracting(ResponseDocumentSelection::key)
-              .containsExactly(RETURN_KEY, NOTES_KEY);
+              .containsExactly(
+                  new ResponseDocumentSelection(
+                      RETURN_KEY, AgentDocumentId.of(reportId), RETURN_DESCRIPTION),
+                  new ResponseDocumentSelection(
+                      NOTES_KEY, AgentDocumentId.of(notesId), NOTES_DESCRIPTION));
         });
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
