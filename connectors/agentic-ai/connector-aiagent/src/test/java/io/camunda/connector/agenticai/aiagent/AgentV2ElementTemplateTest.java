@@ -19,6 +19,8 @@ import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 class AgentV2ElementTemplateTest {
 
@@ -209,20 +211,31 @@ class AgentV2ElementTemplateTest {
         "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
       })
   void offersTheDocumentDeliveryDropdownNextToTheDocumentsOfTheUserPrompt(String file)
-      throws IOException {
+      throws Exception {
     final var properties = template(file).get("properties");
 
     final var dropdown = named(properties, "id", DOCUMENT_DELIVERY_ID);
 
-    assertThat(dropdown.get("type").asText()).isEqualTo("Dropdown");
-    assertThat(dropdown.get("label").asText()).isEqualTo("Document delivery");
-    assertThat(dropdown.get("group").asText()).isEqualTo("userPrompt");
-    assertThat(dropdown.get("value").asText()).isEqualTo("reference");
-    assertThat(dropdown.get("choices").findValuesAsText("value"))
-        .containsExactly("reference", "content");
-    assertThat(dropdown.get("choices").findValuesAsText("name"))
-        .containsExactly("Reference", "Content");
-    assertThat(dropdown.get("binding").get("name").asText()).isEqualTo(DOCUMENT_DELIVERY_ID);
+    JSONAssert.assertEquals(
+        """
+        {
+          "id": "data.userPrompt.documentDelivery",
+          "label": "Document delivery",
+          "description": "How the model receives the documents of the user prompt.",
+          "tooltip": "<code>Reference</code> (recommended): the model loads the content of a document when it needs it. <code>Content</code>: the content is part of every model call and costs more tokens.",
+          "type": "Dropdown",
+          "optional": false,
+          "value": "reference",
+          "group": "userPrompt",
+          "choices": [
+            {"name": "Reference", "value": "reference"},
+            {"name": "Content", "value": "content"}
+          ],
+          "binding": {"name": "data.userPrompt.documentDelivery", "type": "zeebe:input"}
+        }
+        """,
+        dropdown.toString(),
+        JSONCompareMode.STRICT);
     final var ids = properties.findValuesAsText("id");
     assertThat(ids.indexOf(DOCUMENT_DELIVERY_ID))
         .isEqualTo(ids.indexOf("data.userPrompt.documents") + 1);
