@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -42,6 +43,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -55,6 +57,7 @@ import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -118,11 +121,6 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     return composer.assemble((CompositionResult.Ready) result);
   }
 
-  private static boolean isBlockWithContent(Content content) {
-    return content instanceof AgentDocumentContent block
-        && block.delivery() == DocumentDelivery.CONTENT;
-  }
-
   private static AgentDocumentContent block(Document document, boolean loaded) {
     return AgentDocumentContent.of(AgentDocumentId.of(document))
         .withDelivery(loaded ? DocumentDelivery.CONTENT : DocumentDelivery.REFERENCE);
@@ -139,6 +137,20 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   /** What the tool result says about a document whose content is added. */
   private static Content followsSentence(Document document) {
     return textContent("The content of " + refOf(document) + " follows in the next message.");
+  }
+
+  /** The tool call result of a process tool as the composer assembles it. */
+  private static ToolCallResultContent assembled(String id, String name, Content... content) {
+    return ToolCallResultContent.builder().id(id).name(name).content(List.of(content)).build();
+  }
+
+  /** The map with the entries in the given order. */
+  private static Map<String, Object> orderedMap(Object... keysAndValues) {
+    final var map = new LinkedHashMap<String, Object>();
+    for (int i = 0; i < keysAndValues.length; i += 2) {
+      map.put((String) keysAndValues[i], keysAndValues[i + 1]);
+    }
+    return map;
   }
 
   // --- user prompt
@@ -370,39 +382,38 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
       toolResults_ofAToolWithTheDeliveryContent_arePutIntoAFollowUpMessageAsDocumentsWithContent() {
     final var doc = document("weather data", "text/plain", "weather.txt");
     final var nested = document("nested data", "application/json", "nested.json");
+    final var files = orderedMap("file", doc, "more", List.of(nested));
 
     final var turn =
         nextTurn(
             composeToolResults(
                 contextWithTools(CONTENT_TOOL, REFERENCE_TOOL),
-                result("abcdef", "getWeather", Map.of("file", doc, "more", List.of(nested))),
+                result("abcdef", "getWeather", files),
                 dateTimeResult()));
 
     assertThat(turn.messages()).hasSize(2);
-    assertThat(turn.messages().getFirst()).isInstanceOf(ToolCallResultMessage.class);
-    assertThat(turn.messages().get(1))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            followUp -> {
-              assertThat(followUp.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-              assertThat(followUp.content())
-                  .startsWith(textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE))
-                  .contains(block(doc, true), block(nested, true))
-                  .hasSize(3);
-            });
-    assertThat(turn.documents())
-        .extracting(AgentDocument::id)
-        .contains(AgentDocumentId.of(doc), AgentDocumentId.of(nested));
     // the result of the tool says that the content of both documents follows, the other result
     // is as it was
-    final var results = ((ToolCallResultMessage) turn.messages().getFirst()).results();
-    assertThat(results.get(0).content()).hasSize(3);
-    assertThat(results.get(0).content().getFirst())
-        .isEqualTo(objectContent(Map.of("file", doc, "more", List.of(nested))));
-    assertThat(results.get(0).content().subList(1, 3))
-        .containsExactlyInAnyOrder(followsSentence(doc), followsSentence(nested));
-    assertThat(results.get(1).content()).containsExactly(textContent("15:00"));
+    assertThat(((ToolCallResultMessage) turn.messages().getFirst()).results())
+        .containsExactly(
+            assembled(
+                "abcdef",
+                "getWeather",
+                objectContent(files),
+                followsSentence(doc),
+                followsSentence(nested)),
+            assembled("fedcba", "getDateTime", textContent("15:00")));
+    final var followUp = (UserMessage) turn.messages().get(1);
+    assertThat(followUp.metadata()).containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+    assertThat(followUp.content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+            block(doc, true),
+            block(nested, true));
+    assertThat(turn.documents())
+        .containsExactly(
+            AgentDocument.of(doc, AgentDocumentOrigin.toolCall("getWeather", "abcdef")),
+            AgentDocument.of(nested, AgentDocumentOrigin.toolCall("getWeather", "abcdef")));
   }
 
   @Test
@@ -416,10 +427,14 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                 result("abcdef", "getWeather", "Sunny"),
                 result("fedcba", "getDateTime", Map.of("file", doc))));
 
-    assertThat(turn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    assertThat(turn.messages()).hasSize(1);
+    assertThat(((ToolCallResultMessage) turn.messages().getFirst()).results())
+        .containsExactly(
+            assembled("abcdef", "getWeather", textContent("Sunny")),
+            assembled("fedcba", "getDateTime", objectContent(Map.of("file", doc))));
     assertThat(turn.documents())
-        .extracting(AgentDocument::id)
-        .containsExactly(AgentDocumentId.of(doc));
+        .containsExactly(
+            AgentDocument.of(doc, AgentDocumentOrigin.toolCall("getDateTime", "fedcba")));
   }
 
   @Test
@@ -468,9 +483,15 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     final var turn =
         nextTurn(composer.resolve(CONFIG, contextWithTools(CONTENT_TOOL), history, input));
 
-    assertThat(turn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
-    assertThat(((ToolCallResultMessage) turn.messages().getFirst()).results().getFirst().content())
-        .endsWith(textContent("The content of " + refOf(doc) + " is already in the conversation."));
+    assertThat(turn.messages()).hasSize(1);
+    assertThat(((ToolCallResultMessage) turn.messages().getFirst()).results())
+        .containsExactly(
+            assembled(
+                "abcdef",
+                "getWeather",
+                objectContent(Map.of("file", doc)),
+                textContent("The content of " + refOf(doc) + " is already in the conversation.")),
+            assembled("fedcba", "getDateTime", textContent("15:00")));
   }
 
   @Test
@@ -530,8 +551,14 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
                 untracked, result("abcdef", "getWeather", Map.of("file", doc)), dateTimeResult()));
 
     assertThat(turn.messages()).hasSize(2);
+    assertThat(((ToolCallResultMessage) turn.messages().getFirst()).results())
+        .containsExactly(
+            assembled("abcdef", "getWeather", objectContent(Map.of("file", doc))),
+            assembled("fedcba", "getDateTime", textContent("15:00")));
     assertThat(((UserMessage) turn.messages().get(1)).content())
-        .contains(DocumentContent.documentContent(doc))
-        .noneMatch(AgentConversationTurnInputComposerDocumentDeliveryTest::isBlockWithContent);
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE),
+            textContent(DocumentReferenceXmlTag.from(doc, "abcdef", "getWeather").toXml()),
+            DocumentContent.documentContent(doc));
   }
 }
