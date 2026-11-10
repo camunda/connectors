@@ -2782,7 +2782,7 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(processCall));
     assertThat(response.responseValue().context().responseDocuments()).isEmpty();
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
   }
 
   @Test

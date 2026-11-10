@@ -126,23 +126,6 @@ class RuntimeToolResultTest {
   }
 
   @Test
-  void aDocumentNamesItsIdAsTheResponseDocumentEffect() {
-    final var document =
-        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
-            .create(
-                DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
-                    .contentType("text/plain")
-                    .build());
-
-    final var result = RuntimeToolResult.success("ok").withResponseDocument("k", document, "d");
-
-    assertThat(result.effects())
-        .containsExactly(
-            new ToolCallEffect.SelectResponseDocument(
-                new ResponseDocumentSelection("k", AgentDocumentId.of(document), "d")));
-  }
-
-  @Test
   void aWitherLeavesTheOriginalResultUnchanged() {
     final var original = RuntimeToolResult.success("ok");
 

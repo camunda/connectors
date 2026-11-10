@@ -129,17 +129,6 @@ public sealed interface RuntimeToolResult {
               new ResponseDocumentSelection(key, Objects.requireNonNull(id), description)));
     }
 
-    /**
-     * Returns a copy that asks the agent to select the given document, which this result returns
-     * itself or the agent knows, for the final response. See {@link #withResponseDocument(String,
-     * AgentDocumentId, String)}.
-     */
-    public Success withResponseDocument(
-        String key, Document document, @Nullable String description) {
-      return withResponseDocument(
-          key, AgentDocumentId.of(Objects.requireNonNull(document)), description);
-    }
-
     private Success withEffect(ToolCallEffect effect) {
       final var updated = new ArrayList<>(effects);
       updated.add(effect);

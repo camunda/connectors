@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -76,7 +77,9 @@ class AgentResponseHandlerDocumentsTest {
         .thenAnswer(inv -> inv.getArgument(1));
     responseHandler =
         new AgentResponseHandlerImpl(
-            objectMapper, gatewayToolHandlers, new DocumentParameterResolver());
+            objectMapper,
+            gatewayToolHandlers,
+            new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
   }
 
   @Test
@@ -222,7 +225,7 @@ class AgentResponseHandlerDocumentsTest {
                     mock(DocumentFactory.class), new DisabledIntrinsicFunctionExecutor()));
     final var handler =
         new AgentResponseHandlerImpl(
-            runtimeMapper, gatewayToolHandlers, new DocumentParameterResolver());
+            runtimeMapper, gatewayToolHandlers, new DocumentParameterResolver(runtimeMapper));
     final var withFunctionLikeProperty =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(

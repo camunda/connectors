@@ -65,7 +65,8 @@ class ReturnDocumentToolTest {
       AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
 
   private final ReturnDocumentTool tool = new ReturnDocumentTool();
-  private final DocumentParameterResolver resolver = new DocumentParameterResolver();
+  private final DocumentParameterResolver resolver =
+      new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE);
   private final RuntimeTools runtimeTools =
       new RuntimeTools(List.of(tool), TestObjectMapperSupplier.INSTANCE, resolver);
   private final LocalToolCallExecutor executor = new LocalToolCallExecutor(runtimeTools);
@@ -278,8 +279,7 @@ class ReturnDocumentToolTest {
     // the batch answers a rejected call with its rejection, so nothing is left to execute
     final var batch = ToolCallBatch.of(admitted);
     final var entries =
-        executor.execute(
-            withConfiguration(CONFIGURATION), agentContext, Set.of(), batch.unanswered());
+        executor.execute(withConfiguration(CONFIGURATION), agentContext, batch.unanswered());
     final var input = inputBuilder.build(agentContext, batch.withEntries(entries), Set.of());
 
     assertThat(admitted.getFirst().rejection())
@@ -343,7 +343,7 @@ class ReturnDocumentToolTest {
 
   private Run run(AgentContext agentContext, ToolCall... calls) {
     final var entries =
-        executor.execute(withConfiguration(CONFIGURATION), agentContext, Set.of(), List.of(calls));
+        executor.execute(withConfiguration(CONFIGURATION), agentContext, List.of(calls));
     final var batch = ToolCallBatch.of(List.of(calls)).withEntries(entries);
     final var input = inputBuilder.build(agentContext, batch, Set.of());
     return new Run(entries, input, input.applyTo(agentContext));
