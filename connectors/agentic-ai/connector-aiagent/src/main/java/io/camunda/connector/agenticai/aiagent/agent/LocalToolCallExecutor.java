@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
@@ -18,7 +17,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Produces the tool call results of the local tool calls that are executed: the calls of runtime
@@ -40,17 +38,12 @@ public class LocalToolCallExecutor {
    * Returns one entry per call. An agent instance that tracks its documents registers the documents
    * of a result that the model reads as handles, also those inside a typed record.
    *
-   * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
-   *     start of the batch
    * @throws IllegalStateException if a call is not a call of a runtime tool
    * @throws IllegalArgumentException if the result of a runtime tool breaks the rules of its
    *     documents, a defect of the tool
    */
   public List<ToolCallBatch.Entry> execute(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      Set<AgentDocumentId> documentIdsWithContent,
-      List<ToolCall> calls) {
+      AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
     for (final var call : calls) {
       if (!isExecutedByTheAgent(call)) {
         throw new IllegalStateException(
@@ -61,9 +54,7 @@ public class LocalToolCallExecutor {
     if (calls.isEmpty()) {
       return List.of();
     }
-    return runtimeTools
-        .execute(executionContext, agentContext, documentIdsWithContent, calls)
-        .stream()
+    return runtimeTools.execute(executionContext, agentContext, calls).stream()
         .map(execution -> checked(entryOf(execution), agentContext.documentHandling()))
         .toList();
   }

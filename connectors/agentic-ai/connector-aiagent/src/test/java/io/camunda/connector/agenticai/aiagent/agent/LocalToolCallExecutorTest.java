@@ -41,7 +41,6 @@ import io.camunda.connector.runtime.core.document.InlineDocument;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -105,12 +104,12 @@ class LocalToolCallExecutorTest {
     var runtimeCalls = List.of(RUNTIME_CALL, SECOND_RUNTIME_CALL);
     var executions =
         List.of(execution(RUNTIME_CALL, "Sunny"), execution(SECOND_RUNTIME_CALL, "15:00"));
-    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), runtimeCalls))
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, runtimeCalls))
         .thenReturn(executions);
 
-    var entries = executor.execute(executionContext, AGENT_CONTEXT, Set.of(), runtimeCalls);
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, runtimeCalls);
 
-    verify(runtimeTools, times(1)).execute(executionContext, AGENT_CONTEXT, Set.of(), runtimeCalls);
+    verify(runtimeTools, times(1)).execute(executionContext, AGENT_CONTEXT, runtimeCalls);
     verifyNoMoreInteractions(runtimeTools);
     assertThat(entries)
         .containsExactly(
@@ -119,17 +118,14 @@ class LocalToolCallExecutorTest {
   }
 
   @Test
-  void passesTheIdsOfTheDocumentsWithContentOnAndKeepsTheEffectsOfAResult() {
-    var withContent = Set.of(KNOWN_ID);
+  void keepsTheEffectsOfAResult() {
     var execution =
         runtimeExecution(RuntimeToolResult.success("loaded").withDocumentContent(KNOWN_ID));
-    when(runtimeTools.execute(
-            executionContext, AGENT_CONTEXT_WITH_DOCUMENT, withContent, List.of(RUNTIME_CALL)))
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(execution));
 
     var entries =
-        executor.execute(
-            executionContext, AGENT_CONTEXT_WITH_DOCUMENT, withContent, List.of(RUNTIME_CALL));
+        executor.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL));
 
     assertThat(entries)
         .containsExactly(
@@ -140,11 +136,10 @@ class LocalToolCallExecutorTest {
 
   @Test
   void anErrorResultHasNoEffects() {
-    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(runtimeExecution(RuntimeToolResult.error("no"))));
 
-    var entries =
-        executor.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL));
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL));
 
     assertThat(entries).singleElement().satisfies(entry -> assertThat(entry.effects()).isEmpty());
   }
@@ -157,13 +152,11 @@ class LocalToolCallExecutorTest {
         runtimeExecution(
             RuntimeToolResult.success(
                     List.of(DocumentContent.documentContent(returned), AgentDocumentContent.of(id)))
-                .withDocumentContent(returned));
-    when(runtimeTools.execute(
-            executionContext, TRACKED_AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+                .withDocumentContent(AgentDocumentId.of(returned)));
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(execution));
 
-    var entries =
-        executor.execute(executionContext, TRACKED_AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL));
+    var entries = executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL));
 
     assertThat(entries)
         .singleElement()
@@ -173,15 +166,13 @@ class LocalToolCallExecutorTest {
 
   @Test
   void anEffectThatNamesAnUnknownDocumentIsADefectOfTheTool() {
-    when(runtimeTools.execute(
-            executionContext, TRACKED_AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(
             List.of(
                 runtimeExecution(RuntimeToolResult.success("a").withDocumentContent(KNOWN_ID))));
 
-    assertThatThrownBy(() ->
-            executor.execute(
-                executionContext, TRACKED_AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+    assertThatThrownBy(
+            () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'getWeather' refers to the document '%s', which the agent does not know and the result does not return"
@@ -190,16 +181,14 @@ class LocalToolCallExecutorTest {
 
   @Test
   void aReferenceToAnUnknownDocumentIsADefectOfTheTool() {
-    when(runtimeTools.execute(
-            executionContext, TRACKED_AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(
             List.of(
                 runtimeExecution(
                     RuntimeToolResult.success(List.of(AgentDocumentContent.of(KNOWN_ID))))));
 
-    assertThatThrownBy(() ->
-            executor.execute(
-                executionContext, TRACKED_AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+    assertThatThrownBy(
+            () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'getWeather' refers to the document '%s', which the agent does not know and the result does not return"
@@ -217,11 +206,10 @@ class LocalToolCallExecutorTest {
                 List.of(
                     DocumentContent.documentContent(inline),
                     DocumentContent.documentContent(external))));
-    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(execution));
 
-    var entries =
-        executor.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL));
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL));
 
     assertThat(entries).containsExactly(ToolCallBatch.Entry.from(execution.toolCallResult()));
   }
@@ -229,7 +217,7 @@ class LocalToolCallExecutorTest {
   @Test
   void aReferenceInTheResultOfAnAgentThatDoesNotTrackItsDocumentsIsADefectOfTheTool() {
     var returned = createDocument("returned", "returned.txt");
-    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(
             List.of(
                 runtimeExecution(
@@ -238,8 +226,8 @@ class LocalToolCallExecutorTest {
                             DocumentContent.documentContent(returned),
                             AgentDocumentContent.of(AgentDocumentId.of(returned)))))));
 
-    assertThatThrownBy(() ->
-            executor.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+    assertThatThrownBy(
+            () -> executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'getWeather' refers to a document by its id, which an agent instance that does not track its documents does not support");
@@ -248,15 +236,15 @@ class LocalToolCallExecutorTest {
   @Test
   void anEffectInTheResultOfAnAgentThatDoesNotTrackItsDocumentsIsADefectOfTheTool() {
     var returned = createDocument("returned", "returned.txt");
-    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(
             List.of(
                 runtimeExecution(
                     RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
-                        .withDocumentContent(returned))));
+                        .withDocumentContent(AgentDocumentId.of(returned)))));
 
-    assertThatThrownBy(() ->
-            executor.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of(RUNTIME_CALL)))
+    assertThatThrownBy(
+            () -> executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'getWeather' refers to a document by its id, which an agent instance that does not track its documents does not support");
@@ -265,13 +253,11 @@ class LocalToolCallExecutorTest {
   @Test
   void aBlockWithTheDeliveryContentIsADefectOfTheTool() {
     var block = AgentDocumentContent.of(KNOWN_ID).withDelivery(DocumentDelivery.CONTENT);
-    when(runtimeTools.execute(
-            executionContext, AGENT_CONTEXT_WITH_DOCUMENT, Set.of(), List.of(RUNTIME_CALL)))
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(runtimeExecution(RuntimeToolResult.success(List.of(block)))));
 
     assertThatThrownBy(() ->
-            executor.execute(
-                executionContext, AGENT_CONTEXT_WITH_DOCUMENT, Set.of(), List.of(RUNTIME_CALL)))
+            executor.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'getWeather' returned the content of the document '%s'; the content of a document is added with an effect only"
@@ -282,7 +268,7 @@ class LocalToolCallExecutorTest {
   void aRejectedCallFailsBeforeAnyRuntimeToolRuns() {
     var calls = List.of(RUNTIME_CALL, REJECTED_CALL);
 
-    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, Set.of(), calls))
+    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, calls))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("rejected-1")
         .hasMessageContaining("REJECTED");
@@ -294,7 +280,7 @@ class LocalToolCallExecutorTest {
   void aRejectedCallOfARuntimeToolFailsBeforeAnyRuntimeToolRuns() {
     var calls = List.of(RUNTIME_CALL.withRejection("The call is not allowed."));
 
-    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, Set.of(), calls))
+    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, calls))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("runtime-1");
 
@@ -303,7 +289,7 @@ class LocalToolCallExecutorTest {
 
   @Test
   void noCallsGiveNoEntriesAndNoRuntimeToolCall() {
-    var entries = executor.execute(executionContext, AGENT_CONTEXT, Set.of(), List.of());
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of());
 
     assertThat(entries).isEmpty();
     verifyNoInteractions(runtimeTools);
@@ -313,7 +299,7 @@ class LocalToolCallExecutorTest {
   void aProcessCallFailsBeforeAnyRuntimeToolRuns() {
     var calls = List.of(RUNTIME_CALL, PROCESS_CALL);
 
-    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, Set.of(), calls))
+    assertThatThrownBy(() -> executor.execute(executionContext, AGENT_CONTEXT, calls))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("process-1")
         .hasMessageContaining("someTask");

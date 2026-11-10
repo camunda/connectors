@@ -359,9 +359,7 @@ on the message:
 `RuntimeTools.execute` executes the calls in call order, one after the other. Its contract allows the calls of one
 message to be executed concurrently, with the results applied in call order. Every execution (`RuntimeToolExecution`) keeps
 the call, the `RuntimeToolResult` the tool returned (with the effects of a successful one), the time the call started and
-completed, and derives the tool call result that becomes part of the conversation (`toolCallResult()`). The executor also
-receives the ids of the documents whose content the model reads as of the start of the batch (`Ready.documentIdsWithContent`),
-which the tools read as `RuntimeToolDocuments.hasContentInConversation(AgentDocumentId)`. The executor turns an execution into a
+completed, and derives the tool call result that becomes part of the conversation (`toolCallResult()`). The executor turns an execution into a
 `ToolCallBatch.Entry` (the result, its documents and its effects) with an exhaustive switch over `Success` and `Error`, and
 checks the result of a runtime tool against the documents known at the start of the batch ([Add a runtime tool](extension-points.md#add-a-runtime-tool)). No state about the local tool calls is persisted between
 jobs apart from the `kind` and the `rejection` of the calls. See [ADR 016](../adr/016-runtime-tools.md).

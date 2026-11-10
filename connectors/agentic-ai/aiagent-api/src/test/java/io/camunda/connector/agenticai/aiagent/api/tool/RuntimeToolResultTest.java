@@ -13,10 +13,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
-import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -93,21 +89,6 @@ class RuntimeToolResultTest {
             new ToolCallEffect.AddDocumentContent(DOC_2),
             new ToolCallEffect.AddDocumentContent(DOC_1));
     assertThat(result.content()).containsExactly(textContent("ok"));
-  }
-
-  @Test
-  void aDocumentNamesItsIdAsTheDocumentContentEffect() {
-    final var document =
-        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
-            .create(
-                DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
-                    .contentType("text/plain")
-                    .build());
-
-    final var result = RuntimeToolResult.success("ok").withDocumentContent(document);
-
-    assertThat(result.effects())
-        .containsExactly(new ToolCallEffect.AddDocumentContent(AgentDocumentId.of(document)));
   }
 
   @Test

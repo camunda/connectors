@@ -35,12 +35,12 @@ import java.util.Objects;
  * (one created with the {@link
  * io.camunda.connector.agenticai.aiagent.model.AgentFeatures#DOCUMENTS} feature), the document is
  * new to the agent: the agent registers it, and the model reads its handle, never its content,
- * store id, content hash or URL; a {@link RuntimeToolDocuments#reference reference} to a known
- * document is shown as its handle, too. Such an instance accepts Camunda documents only: a result
- * with an external or inline document, also one nested in an object, fails the job with the error
- * code {@code UNSUPPORTED_DOCUMENT_REFERENCE}. For an instance without the feature, the model reads
- * the document reference in the tool result and the content of the document in a message after the
- * tool results, as for a tool of the process.
+ * store id, content hash or URL; a {@link AgentDocumentContent reference} to a known document is
+ * shown as its handle, too. Such an instance accepts Camunda documents only: a result with an
+ * external or inline document, also one nested in an object, fails the job with the error code
+ * {@code UNSUPPORTED_DOCUMENT_REFERENCE}. For an instance without the feature, the model reads the
+ * document reference in the tool result and the content of the document in a message after the tool
+ * results, as for a tool of the process.
  *
  * <h2>Effects</h2>
  *
@@ -114,8 +114,8 @@ public sealed interface RuntimeToolResult {
      * document. The agent runs its content guard before it adds anything: when the document is not
      * allowed as content, for example because of its type or its size, the document stays a
      * reference and the sentence tells the model why the content is not loaded. A document whose
-     * content the model reads already (see {@link RuntimeToolDocuments#hasContentInConversation}),
-     * or that an earlier call of the same assistant message asked for, is not added again.
+     * content the model reads already, or that an earlier call of the same assistant message asked
+     * for, is not added again.
      *
      * <p>An id of a document the agent does not know, neither from {@link RuntimeToolDocuments} nor
      * as a document this result returns, is a defect of the tool: the agent throws an {@link
@@ -126,14 +126,6 @@ public sealed interface RuntimeToolResult {
      */
     public Success withDocumentContent(AgentDocumentId id) {
       return withEffect(new ToolCallEffect.AddDocumentContent(Objects.requireNonNull(id)));
-    }
-
-    /**
-     * Returns a copy that asks the agent to add the content of the given document, which this
-     * result returns itself or the agent knows. See {@link #withDocumentContent(AgentDocumentId)}.
-     */
-    public Success withDocumentContent(Document document) {
-      return withDocumentContent(AgentDocumentId.of(Objects.requireNonNull(document)));
     }
 
     private Success withEffect(ToolCallEffect effect) {

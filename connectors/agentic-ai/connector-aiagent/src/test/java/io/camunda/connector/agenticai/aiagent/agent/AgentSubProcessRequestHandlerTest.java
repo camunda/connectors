@@ -199,7 +199,8 @@ class AgentSubProcessRequestHandlerTest {
       StubRuntimeTool.of(
           "acme_count_documents",
           (context, call) ->
-              RuntimeToolResult.success("documents: " + context.documents().all().size()));
+              RuntimeToolResult.success(
+                  "documents: " + context.agentContext().documents().all().size()));
 
   /** A document the agent knows before the job starts, whose content a tool can load. */
   private static final Document KNOWN_DOCUMENT = createDocument("known content", "known.txt");
@@ -1286,7 +1287,7 @@ class AgentSubProcessRequestHandlerTest {
         .containsExactly(
             tuple("call-1", List.of(TextContent.textContent("found the customer"))),
             tuple("call-2", List.of(TextContent.textContent("Sunny"))));
-    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
   }
 
   @Test
@@ -1296,7 +1297,7 @@ class AgentSubProcessRequestHandlerTest {
     // the first job hands out the call of the process only and executes no tool, the second one
     // executes
     // the tool and returns the results of all calls in the order of the calls
-    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
     assertThat(chatRequests).hasSize(2);
     assertThat(chatRequests.get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -1393,7 +1394,7 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     // the runtime call was not executed yet when the event arrived: it is cancelled and never runs
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
         .filteredOn(ToolCallResultMessage.class::isInstance)
         .singleElement()
@@ -1453,7 +1454,7 @@ class AgentSubProcessRequestHandlerTest {
                     .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
 
     // a retried job fails the same way, so the tool is not called again on every retry
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     verifyNoInteractions(chatModelRegistry, chatModel);
   }
 
@@ -1482,7 +1483,7 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     verify(chatModel, times(3)).execute(any());
-    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
     assertThat(chatModelRequestCaptor.getAllValues().get(2).snapshot().messages().getLast())
         .isInstanceOf(ToolCallResultMessage.class);
     assertThat(response.responseValue().responseMessage()).isEqualTo(doneMessage);
@@ -1542,7 +1543,7 @@ class AgentSubProcessRequestHandlerTest {
     verify(chatModel, times(2)).execute(any());
     // the tool of the first round was executed; the limit stopped the second round before its
     // tool was executed
-    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
   }
 
   @ParameterizedTest
@@ -1599,7 +1600,7 @@ class AgentSubProcessRequestHandlerTest {
     verify(chatModel, times(1)).execute(any());
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(hiddenCall));
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
   }
 
   @Test
@@ -1653,7 +1654,7 @@ class AgentSubProcessRequestHandlerTest {
     // the agent answers the call in the same job and calls the model again; no runtime tool
     // receives the call
     verify(chatModel, times(2)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
             ToolCallResultMessage.class,
@@ -1693,7 +1694,7 @@ class AgentSubProcessRequestHandlerTest {
 
     @SuppressWarnings("unchecked")
     final ArgumentCaptor<List<ToolCall>> executedCalls = ArgumentCaptor.forClass(List.class);
-    verify(runtimeTools).execute(any(), any(), any(), executedCalls.capture());
+    verify(runtimeTools).execute(any(), any(), executedCalls.capture());
     assertThat(executedCalls.getValue()).extracting(ToolCall::id).containsExactly("call-2");
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -1725,7 +1726,7 @@ class AgentSubProcessRequestHandlerTest {
                 new ToolCall("call-3", "getWeather", Map.of("location", "MUC"))),
             () -> {});
 
-    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
     assertThat(chatRequests).hasSize(2);
     assertThat(chatRequests.get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -2247,7 +2248,7 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     verify(chatModel, times(2)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     assertThat(response.responseValue().toolCalls()).isEmpty();
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -2290,7 +2291,7 @@ class AgentSubProcessRequestHandlerTest {
     // only the call of the process goes to the process
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(processCall));
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
   }
 
   @Test
@@ -2319,7 +2320,7 @@ class AgentSubProcessRequestHandlerTest {
 
     verify(chatModel, times(2)).execute(any());
     // the call never runs a tool and is never activated
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
 
     // the second request carries the error result of the first round
     final var secondRequestMessages =
@@ -2414,7 +2415,7 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     verify(chatModel, times(2)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
 
     // the call is persisted with its kind and the rejection, as the model sent its arguments
     final var rejectedCall = badCall.withKind(ToolKind.RUNTIME).withRejection(BOGUS_DOCUMENT);
@@ -2661,7 +2662,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // no extra model call and no tool run: the valid call is handed to the process
     verify(chatModel, times(1)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     final var agentResponse = response.responseValue();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(otherCall));
@@ -2709,7 +2710,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // the first job runs no tool, the second one answers the rejected call from the same context
     // and returns the results of all calls in the order of the calls
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     assertThat(run.chatRequests()).hasSize(2);
     // the agent sets the completion time of the result it produces; the process result has none
     assertThat(run.chatRequests().get(1).snapshot().messages().getLast())
@@ -2751,7 +2752,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // the call goes to the process untagged
     verify(chatModel, times(1)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(call));
   }
@@ -2791,7 +2792,7 @@ class AgentSubProcessRequestHandlerTest {
                     .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
 
     verify(chatModel, times(1)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
     // no further round was started
     verify(agentInstanceClient, times(1))
         .applyTurnStart(any(), any(), any(), any(), any(), any(), any());
@@ -2896,7 +2897,7 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(firstJob.responseValue().toolCalls())
         .extracting(call -> call.metadata().id())
         .containsExactly(processCall.id());
-    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
 
     betweenJobs.run();
 
