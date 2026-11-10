@@ -401,10 +401,13 @@ public class AgentInstanceHistoryMapper {
    */
   private static @Nullable String fileNameOfTheHandle(
       CamundaDocumentReference ref, DocumentHandling documentHandling) {
-    return documentHandling instanceof DocumentHandling.Tracked
-            && AgentDocument.Descriptors.of(ref).fileName() == null
-        ? AgentDocumentId.of(ref).value()
-        : null;
+    return switch (documentHandling) {
+      case DocumentHandling.Tracked ignored ->
+          AgentDocument.Descriptors.of(ref).fileName() == null
+              ? AgentDocumentId.of(ref).value()
+              : null;
+      case DocumentHandling.Untracked ignored -> null;
+    };
   }
 
   private DocumentMetadataResponse toProtocolDocumentMetadata(
