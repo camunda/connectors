@@ -85,6 +85,24 @@ public class HttpJsonRequest extends HttpCommonRequest {
   }
 
   /**
+   * The part of the URL after the base URL held by a bound service credential. It starts with a
+   * slash, and the credential's base URL has its trailing slashes removed, so the two are simply
+   * concatenated. Templates of connectors whose credential carries the base (a ServiceNow instance,
+   * a Databricks host, ...) send this instead of an absolute {@code url} once a credential is
+   * chosen. Like the credential itself, it is not offered by the generic REST template.
+   */
+  @TemplateProperty(ignore = true)
+  private String relativeUrl;
+
+  public String getRelativeUrl() {
+    return relativeUrl;
+  }
+
+  public void setRelativeUrl(String relativeUrl) {
+    this.relativeUrl = relativeUrl == null || relativeUrl.isBlank() ? null : relativeUrl;
+  }
+
+  /**
    * The URL is the one place where the inline value wins over the credential rather than the other
    * way round: the credential's URL is the endpoint it is bound to by default, but a process author
    * who sets an inline URL on the task means it. Binding the credential and pointing the task
@@ -97,6 +115,11 @@ public class HttpJsonRequest extends HttpCommonRequest {
     String inlineUrl = super.getUrl();
     if (inlineUrl != null && !inlineUrl.isBlank()) {
       return inlineUrl;
+    }
+    if (serviceAuthenticationConfiguration != null
+        && serviceAuthenticationConfiguration.baseUrl() != null
+        && relativeUrl != null) {
+      return serviceAuthenticationConfiguration.baseUrl() + relativeUrl;
     }
     return authenticationConfiguration != null ? authenticationConfiguration.url() : null;
   }
