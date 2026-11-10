@@ -15,15 +15,18 @@ jobs:
   add-by-label:
     name: Add issue to project if label
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Vault JWT login
     steps:
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
@@ -83,15 +86,18 @@ jobs:
       (github.event_name == 'pull_request' &&
        !contains(github.event.pull_request.labels.*.name, 'idp') &&
        !contains(github.event.pull_request.labels.*.name, 'agentic-ai'))
+    permissions:
+      id-token: write  # Vault JWT login
     steps:
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
@@ -110,15 +116,18 @@ jobs:
     name: Add issue to quality board project if its a bug
     runs-on: ubuntu-latest
     if: (contains(github.event.issue.labels.*.name, 'kind/bug') || github.event.issue.type.name == 'Bug') && github.event_name != 'pull_request'
+    permissions:
+      id-token: write  # Vault JWT login
     steps:
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
