@@ -49,7 +49,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
@@ -442,6 +444,50 @@ public class KafkaExecutableTest {
     assertThat(healthChanges)
         .extracting(Health::getStatus)
         .containsExactly(Health.Status.UNKNOWN, Health.Status.UP);
+    kafkaExecutable.deactivate();
+  }
+
+  @Test
+  void testConsumerNotKeptUpByResponsesCountedAfterAStall() throws Exception {
+    // Given a consumer in its group, whose loop can be stalled
+    var group = new AtomicReference<>(new GroupState(1, true));
+    stubGroupState(group);
+    var stallNextPoll = new AtomicBoolean();
+    var stalled = new CountDownLatch(1);
+    var resume = new CountDownLatch(1);
+    when(mockConsumer.poll(any()))
+        .thenAnswer(invocation -> {
+          if (stallNextPoll.compareAndSet(true, false)) {
+            stalled.countDown();
+            resume.await();
+          }
+          Thread.sleep(10);
+          return ConsumerRecords.empty();
+        });
+    var spyContext =
+        spy(
+            contextWithAdditionalProperties(
+                Map.of(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "1000")));
+    var healthChanges = recordHealthChanges(spyContext);
+    KafkaExecutable kafkaExecutable = getConsumerMock();
+    kafkaExecutable.activate(spyContext);
+    awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.UP);
+
+    // When the loop stalls for longer than the session timeout, while a last response arrives
+    // and the coordinator then stops answering
+    stallNextPoll.set(true);
+    assertTrue(stalled.await(5, TimeUnit.SECONDS));
+    Thread.sleep(HEARTBEAT_RESPONSE_INTERVAL.toMillis());
+    mockConsumer.metrics().values().forEach(Metric::metricValue);
+    group.set(new GroupState(1, false));
+    Thread.sleep(1200);
+    resume.countDown();
+
+    // Then that response does not keep it UP once the loop resumes
+    await()
+        .atMost(Duration.ofMillis(500))
+        .untilAsserted(
+            () -> assertThat(healthChanges.getLast().getStatus()).isEqualTo(Health.Status.UNKNOWN));
     kafkaExecutable.deactivate();
   }
 
