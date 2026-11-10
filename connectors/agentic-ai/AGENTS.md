@@ -143,6 +143,10 @@ A failure names the file and line, why it fails and what to verify. The code is 
 warning does not fail the test. The build log shows each warning as one line `WARN <path>:<line>: <what>`,
 and the JUnit report (the IDE test view) holds a `warning` entry with the why and the fix.
 
+Before you change the checks, read [`agentic-ai-docs-lint/AGENTS.md`](agentic-ai-docs-lint/AGENTS.md). It
+lists the rules of this file and of the implementation rules that the module deviates from, because it is
+a development tool and not production code.
+
 ## Start here, navigation
 
 > Use the table below to find the doc for your task, then read only that doc or section. Each module `README.md` lists the docs of that module.
