@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.aiagent.configuration;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
-import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -44,28 +44,41 @@ public record AgenticAiConnectorsConfigurationProperties(
 
       /**
        * The size limits of the content the agent adds to the conversation. A document above the
-       * limit of its kind is not loaded: the model gets its handle only. A limit that is not set is
-       * the default of {@link DocumentContentLimits#defaults()}, which are the limits of the most
-       * restrictive supported model provider and apply to every provider.
+       * limit of its kind is not loaded: the model gets its handle only. The defaults are the ones
+       * of {@link DocumentContentLimits#defaults()}: the limits of the most restrictive supported
+       * model provider, which apply to every provider. Every limit must be positive.
        *
        * @param text the limit of a text-based document
        * @param pdf the limit of a PDF document
        * @param image the limit of an image
        */
       public record ContentLimitsProperties(
-          @Nullable DataSize text, @Nullable DataSize pdf, @Nullable DataSize image) {
+          @DefaultValue("256KB") DataSize text,
+          @DefaultValue("3584KB") DataSize pdf,
+          @DefaultValue("3584KB") DataSize image) {
 
-        /**
-         * The limits to apply: the ones set, the defaults for the others.
-         *
-         * @throws IllegalArgumentException if a limit is not positive
-         */
+        @AssertTrue(message = "text must be positive")
+        public boolean isTextPositive() {
+          return isPositive(text);
+        }
+
+        @AssertTrue(message = "pdf must be positive")
+        public boolean isPdfPositive() {
+          return isPositive(pdf);
+        }
+
+        @AssertTrue(message = "image must be positive")
+        public boolean isImagePositive() {
+          return isPositive(image);
+        }
+
+        /** The limits to apply. */
         public DocumentContentLimits toLimits() {
-          final var defaults = DocumentContentLimits.defaults();
-          return new DocumentContentLimits(
-              text != null ? text.toBytes() : defaults.textBytes(),
-              pdf != null ? pdf.toBytes() : defaults.pdfBytes(),
-              image != null ? image.toBytes() : defaults.imageBytes());
+          return new DocumentContentLimits(text.toBytes(), pdf.toBytes(), image.toBytes());
+        }
+
+        private static boolean isPositive(DataSize size) {
+          return size.toBytes() > 0;
         }
       }
     }
