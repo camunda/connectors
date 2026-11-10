@@ -39,7 +39,7 @@ final class DocTree {
   private final DocsLintConfig config;
   private final Path root;
   private final List<PathMatcher> excludedDocs;
-  private final Map<Path, Optional<Doc>> docs = new HashMap<>();
+  private final Map<Path, Doc> docs = new HashMap<>();
 
   DocTree(final DocsLintConfig config) {
     this.config = config;
@@ -56,14 +56,11 @@ final class DocTree {
 
   /** The parsed doc, or empty when the path is no regular file. Each doc is parsed once. */
   Optional<Doc> doc(final Path path) {
-    return docs.computeIfAbsent(
-        path,
-        key -> {
-          final Path file = root.resolve(key);
-          return Files.isRegularFile(file)
-              ? Optional.of(MarkdownParser.parse(key, read(file)))
-              : Optional.empty();
-        });
+    if (!Files.isRegularFile(root.resolve(path))) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        docs.computeIfAbsent(path, key -> MarkdownParser.parse(key, read(root.resolve(key)))));
   }
 
   /** The Markdown docs in scope: every {@code *.md} below the doc roots that is not excluded. */
