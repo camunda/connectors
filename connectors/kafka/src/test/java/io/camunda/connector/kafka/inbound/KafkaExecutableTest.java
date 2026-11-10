@@ -39,6 +39,7 @@ import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -333,12 +334,16 @@ public class KafkaExecutableTest {
     kafkaExecutable.activate(spyContext);
     awaitStatuses(healthChanges, Health.Status.UNKNOWN);
     group.set(new GroupState(1, -1));
-    awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.UNKNOWN);
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(() ->
+            assertThat(healthChanges.getLast().getDetails())
+                .containsEntry("group-generation-id", 1));
+    awaitStatuses(healthChanges, Health.Status.UNKNOWN);
 
     // Then it is UP only once a heartbeat confirms the membership
     group.set(new GroupState(1, 0));
-    awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.UNKNOWN, Health.Status.UP);
-    assertThat(healthChanges.get(1).getDetails()).containsEntry("group-generation-id", 1);
+    awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.UP);
     kafkaExecutable.deactivate();
   }
 
@@ -365,8 +370,7 @@ public class KafkaExecutableTest {
     assertThat(down.getError().message()).contains("'groupId'");
     assertThat(down.getDetails()).containsEntry("group-generation-id", -1);
 
-    // And UP once it joins (heartbeat first, so each read sees a consistent state)
-    group.set(new GroupState(-1, 0));
+    // And UP once it joins
     group.set(new GroupState(1, 0));
     awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.DOWN, Health.Status.UP);
     kafkaExecutable.deactivate();
@@ -435,11 +439,20 @@ public class KafkaExecutableTest {
     when(mockConsumer.metrics()).thenAnswer(invocation -> Map.of(lastHeartbeatName, lastHeartbeat));
   }
 
+  // Compares the statuses with consecutive repeats collapsed: the group details in the health
+  // (e.g. the generation) can change without the status changing
   private static void awaitStatuses(List<Health> healthChanges, Health.Status... statuses) {
     await()
         .atMost(Duration.ofSeconds(5))
-        .untilAsserted(() ->
-            assertThat(healthChanges).extracting(Health::getStatus).containsExactly(statuses));
+        .untilAsserted(() -> {
+          List<Health.Status> collapsed = new ArrayList<>();
+          for (Health health : healthChanges) {
+            if (collapsed.isEmpty() || collapsed.getLast() != health.getStatus()) {
+              collapsed.add(health.getStatus());
+            }
+          }
+          assertThat(collapsed).containsExactly(statuses);
+        });
   }
 
   private void stubEmptyPolls() {

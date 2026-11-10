@@ -34,7 +34,6 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.function.Function;
@@ -43,8 +42,6 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.Metric;
-import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.ConfigDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +71,6 @@ public class KafkaConnectorConsumer {
   private Health consumerStatus = Health.unknown();
   private Duration groupMembershipTimeout;
   private Duration sessionTimeout;
-  private MetricName lastHeartbeatMetricName;
   private Instant notInGroupSince;
   private ObjectReader avroObjectReader;
 
@@ -131,7 +127,6 @@ public class KafkaConnectorConsumer {
       var consumer = consumerCreatorFunction.apply(kafkaProps);
       groupMembershipTimeout = intConfig(kafkaProps, ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG);
       sessionTimeout = intConfig(kafkaProps, ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG);
-      lastHeartbeatMetricName = null;
       notInGroupSince = null;
       String topicName = elementProps.topic().topicName();
       consumer.subscribe(
@@ -238,13 +233,12 @@ public class KafkaConnectorConsumer {
   // returning without error while the client retries in the background
   private void reportGroupHealth(Consumer<Object, Object> consumer) {
     var groupMetadata = consumer.groupMetadata();
-    int generation = groupMetadata.generationId();
     var details = new HashMap<String, Object>();
     details.put("group-id", groupMetadata.groupId());
     details.put("group-instance-id", groupMetadata.groupInstanceId().orElse("unknown"));
-    details.put("group-generation-id", generation);
+    details.put("group-generation-id", groupMetadata.generationId());
 
-    if (isGroupMember(consumer, generation)) {
+    if (isGroupMember(consumer)) {
       notInGroupSince = null;
       reportHealth(Health.up(details), Severity.INFO, details);
       return;
@@ -271,42 +265,20 @@ public class KafkaConnectorConsumer {
     }
   }
 
-  // Joined generations start at 1. The classic consumer's groupMetadata() keeps the last
-  // generation after the membership is lost, so a heartbeat sent to the coordinator within the
-  // session timeout is what confirms that the consumer is still a member. Heartbeats are only
-  // sent while the member is stable, and stop once the coordinator stops answering.
-  private boolean isGroupMember(Consumer<Object, Object> consumer, int generation) {
-    if (generation <= 0) {
-      return false;
-    }
-    Optional<Double> lastHeartbeatSecondsAgo = lastHeartbeatSecondsAgo(consumer);
-    if (lastHeartbeatSecondsAgo.isEmpty()) {
-      // Consumers without coordinator metrics (e.g. other Consumer implementations)
-      return true;
-    }
-    // -1 means no heartbeat has been sent since joining, which does not confirm membership
-    double secondsAgo = lastHeartbeatSecondsAgo.get();
-    return secondsAgo >= 0 && secondsAgo * 1000 <= sessionTimeout.toMillis();
-  }
-
-  private Optional<Double> lastHeartbeatSecondsAgo(Consumer<Object, Object> consumer) {
-    Map<MetricName, ? extends Metric> metrics = consumer.metrics();
-    if (lastHeartbeatMetricName == null) {
-      lastHeartbeatMetricName =
-          metrics.keySet().stream()
-              .filter(name -> LAST_HEARTBEAT_METRIC.equals(name.name()))
-              .filter(name -> COORDINATOR_METRIC_GROUP.equals(name.group()))
-              .findFirst()
-              .orElse(null);
-      if (lastHeartbeatMetricName == null) {
-        return Optional.empty();
-      }
-    }
-    Metric metric = metrics.get(lastHeartbeatMetricName);
-    if (metric != null && metric.metricValue() instanceof Number value) {
-      return Optional.of(value.doubleValue());
-    }
-    return Optional.empty();
+  // The classic consumer's groupMetadata() keeps the last generation after the membership is
+  // lost. Heartbeats are only sent while the consumer is a stable member, and stop once the
+  // coordinator stops answering, so a recent heartbeat is what confirms the membership. The metric
+  // is -1 before the first heartbeat.
+  private boolean isGroupMember(Consumer<Object, Object> consumer) {
+    return consumer.metrics().entrySet().stream()
+        .filter(metric -> LAST_HEARTBEAT_METRIC.equals(metric.getKey().name()))
+        .filter(metric -> COORDINATOR_METRIC_GROUP.equals(metric.getKey().group()))
+        .map(metric -> metric.getValue().metricValue())
+        .findFirst()
+        .filter(Number.class::isInstance)
+        .map(secondsAgo -> ((Number) secondsAgo).doubleValue())
+        .map(secondsAgo -> secondsAgo >= 0 && secondsAgo * 1000 <= sessionTimeout.toMillis())
+        .orElse(false);
   }
 
   private void reportHealth(Health newStatus, Severity severity, Map<String, Object> details) {
