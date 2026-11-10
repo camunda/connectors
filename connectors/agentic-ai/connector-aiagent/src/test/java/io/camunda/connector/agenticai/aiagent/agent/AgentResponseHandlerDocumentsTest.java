@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -91,17 +92,17 @@ class AgentResponseHandlerDocumentsTest {
                     new ResponseDocumentSelection("report", reportId, null)),
                 assistantMessage("done")));
 
-    assertThat(response.responseDocuments()).containsOnlyKeys("summary", "report");
-    assertThat(response.responseDocuments().get("summary"))
-        .isEqualTo(new ReturnedDocument(referenceOf(summaryId), "Short version"));
-    assertThat(response.responseDocuments().get("report"))
-        .isEqualTo(new ReturnedDocument(referenceOf(reportId), null));
-    assertThat(response.responseDocuments().get("summary").document())
-        .containsEntry("camunda.document.type", "camunda")
-        .containsKeys("storeId", "documentId", "contentHash");
+    assertThat(response.responseDocuments())
+        .isEqualTo(
+            Map.of(
+                "summary",
+                new ReturnedDocument(referenceOf(summaryId), "Short version"),
+                "report",
+                new ReturnedDocument(referenceOf(reportId), null)));
     assertThat(response.context().responseDocuments())
-        .extracting(ResponseDocumentSelection::key)
-        .containsExactly("summary", "report");
+        .containsExactly(
+            new ResponseDocumentSelection("summary", summaryId, "Short version"),
+            new ResponseDocumentSelection("report", reportId, null));
     assertThat(response.responseText()).isEqualTo("done");
   }
 
@@ -114,7 +115,13 @@ class AgentResponseHandlerDocumentsTest {
                     new ResponseDocumentSelection("summary", summaryId, "Short version"),
                     new ResponseDocumentSelection("report", reportId, null)),
                 assistantMessage("first")));
-    assertThat(first.responseDocuments()).containsOnlyKeys("summary", "report");
+    assertThat(first.responseDocuments())
+        .isEqualTo(
+            Map.of(
+                "summary",
+                new ReturnedDocument(referenceOf(summaryId), "Short version"),
+                "report",
+                new ReturnedDocument(referenceOf(reportId), null)));
 
     // the next turn replaces the first key and adds a new one on top of the kept responseDocuments
     final var next =
@@ -126,13 +133,20 @@ class AgentResponseHandlerDocumentsTest {
 
     final var second = createResponse(conversation(next, assistantMessage("second")));
 
-    assertThat(second.responseDocuments()).containsOnlyKeys("summary", "report", "extra");
-    assertThat(second.responseDocuments().get("summary").description()).isEqualTo("Replaced");
-    assertThat(second.responseDocuments().get("summary").document())
-        .isEqualTo(referenceOf(reportId));
+    assertThat(second.responseDocuments())
+        .isEqualTo(
+            Map.of(
+                "summary",
+                new ReturnedDocument(referenceOf(reportId), "Replaced"),
+                "report",
+                new ReturnedDocument(referenceOf(reportId), null),
+                "extra",
+                new ReturnedDocument(referenceOf(summaryId), null)));
     assertThat(second.context().responseDocuments())
-        .extracting(ResponseDocumentSelection::key)
-        .containsExactly("summary", "report", "extra");
+        .containsExactly(
+            new ResponseDocumentSelection("summary", reportId, "Replaced"),
+            new ResponseDocumentSelection("report", reportId, null),
+            new ResponseDocumentSelection("extra", summaryId, null));
   }
 
   @Test
@@ -153,11 +167,10 @@ class AgentResponseHandlerDocumentsTest {
                 responseDocuments(new ResponseDocumentSelection("report", reportId, null)),
                 assistantMessage("checking", List.of(toolCall))));
 
-    assertThat(response.toolCalls()).hasSize(1);
+    assertThat(response.toolCalls()).containsExactly(ToolCallProcessVariable.from(toolCall));
     assertThat(response.responseDocuments()).isEmpty();
     assertThat(response.context().responseDocuments())
-        .extracting(ResponseDocumentSelection::key)
-        .containsExactly("report");
+        .containsExactly(new ResponseDocumentSelection("report", reportId, null));
   }
 
   @Test
@@ -172,14 +185,11 @@ class AgentResponseHandlerDocumentsTest {
                 responseDocuments(new ResponseDocumentSelection("report", reportId, null)),
                 assistantMessage("both", List.of(runtimeCall, processCall))));
 
-    assertThat(response.toolCalls())
-        .extracting(call -> call.metadata().id())
-        .containsExactly("call-2");
+    assertThat(response.toolCalls()).containsExactly(ToolCallProcessVariable.from(processCall));
     // the batch is not final: no documents are returned yet, and the selections stay
     assertThat(response.responseDocuments()).isEmpty();
     assertThat(response.context().responseDocuments())
-        .extracting(ResponseDocumentSelection::key)
-        .containsExactly("report");
+        .containsExactly(new ResponseDocumentSelection("report", reportId, null));
   }
 
   @Test
@@ -211,7 +221,9 @@ class AgentResponseHandlerDocumentsTest {
 
     assertThatThrownBy(() -> createResponse(conversation))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("'gone'");
+        .hasMessage(
+            "The response document 'gone' is the document '%s', which the agent does not know"
+                .formatted(AgentDocumentId.of("gone")));
   }
 
   @Test
