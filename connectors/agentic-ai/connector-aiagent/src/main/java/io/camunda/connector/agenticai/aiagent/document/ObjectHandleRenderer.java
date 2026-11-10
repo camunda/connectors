@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.document;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -80,7 +81,7 @@ public class ObjectHandleRenderer {
 
   /**
    * Renders the object with a {@link Document} at any depth as its handle object (see {@link
-   * AgentDocumentHandle#tree()}), and returns the rendered tree with the documents it replaced.
+   * #tree(AgentDocumentHandle)}), and returns the rendered tree with the documents it replaced.
    */
   public RenderedObject render(Object value) {
     final var documents = new ArrayList<Document>();
@@ -93,6 +94,23 @@ public class ObjectHandleRenderer {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
+  }
+
+  /** The handle as compact JSON text, the form the model reads for a document block. */
+  public String text(AgentDocumentHandle handle) {
+    try {
+      return handleMapper.writeValueAsString(handle);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("Failed to write the document handle", e);
+    }
+  }
+
+  /**
+   * The handle as a JSON object with the keys of {@link #text(AgentDocumentHandle)} in the same
+   * order, for a handle that sits inside an object.
+   */
+  public JsonNode tree(AgentDocumentHandle handle) {
+    return handleMapper.valueToTree(handle);
   }
 
   private static final class HandleCollector extends JsonSerializer<Document> {
@@ -114,7 +132,7 @@ public class ObjectHandleRenderer {
         gen.writeNull();
         return;
       }
-      gen.writeTree(AgentDocumentHandle.of(document).tree());
+      provider.defaultSerializeValue(AgentDocumentHandle.of(document), gen);
     }
   }
 }

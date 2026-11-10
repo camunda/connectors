@@ -414,7 +414,7 @@ public class AwsAgentCoreConversationMapper {
       case TextContent text -> text.text();
       case ObjectContent object -> contentToString(object.content());
       case DocumentContent document -> contentToString(document.document());
-      case AgentDocumentContent block -> AgentDocumentHandle.of(block.id()).text();
+      case AgentDocumentContent block -> contentToString(AgentDocumentHandle.of(block.id()));
       // preserve the opaque provider payload as its (best-effort) JSON representation; the
       // blob envelope carries the lossless structure regardless.
       case ReasoningContent reasoning ->

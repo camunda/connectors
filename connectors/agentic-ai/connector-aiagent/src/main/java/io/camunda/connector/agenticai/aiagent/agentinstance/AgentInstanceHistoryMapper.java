@@ -280,7 +280,7 @@ public class AgentInstanceHistoryMapper {
       AgentDocumentHandle handle,
       @Nullable Document document,
       DocumentHandling documentHandling) {
-    blocks.add(objectHistoryContent(handle.tree()));
+    blocks.add(objectHistoryContent(objectHandleRenderer.tree(handle)));
     if (document != null) {
       blocks.add(
           documentHistoryContent(DocumentContent.documentContent(document), documentHandling));
@@ -319,7 +319,7 @@ public class AgentInstanceHistoryMapper {
       case DocumentContent documentContent ->
           documentHistoryContent(documentContent, documentHandling);
       case AgentDocumentContent block ->
-          objectHistoryContent(AgentDocumentHandle.of(block.id()).tree());
+          objectHistoryContent(objectHandleRenderer.tree(AgentDocumentHandle.of(block.id())));
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);

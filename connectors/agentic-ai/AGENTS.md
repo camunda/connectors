@@ -261,8 +261,9 @@ High-frequency traps (detail behind each link):
   characters of a SHA-256 over the identity of the document (`AgentDocumentId.of`), never the id in the store; registering
   a different document under a known id, also within one batch, fails with `DOCUMENT_ID_COLLISION`. A block holds no file
   name, size or origin: the record `AgentDocumentHandle` is what the model reads (JSON with the keys `type`, `id`,
-  `fileName`, `contentType`, `size`, `note` in this order, no origin); `AgentDocumentHandle.of(agentDocuments, id)` builds it
-  from the agent document, `text()` is compact JSON and `tree()` an object node.
+  `fileName`, `contentType`, `size` in this order, no origin); `AgentDocumentHandle.of(agentDocuments, id)` builds it
+  from the agent document, and `ObjectHandleRenderer.text(handle)` writes it as compact JSON, `tree(handle)` as an object
+  node.
   Naming: a type of the agent document registry carries the `AgentDocument` prefix: the entry, a part of one entry, the
   list of entries, and a failure about an entry (`AgentDocument`, `AgentDocumentId`, `AgentDocumentOrigin`,
   `AgentDocumentHandle`, `AgentDocumentContent`, `AgentDocuments`, `AgentDocumentIdCollisionException`,

@@ -139,8 +139,8 @@ public class DocumentExpander {
     return List.copyOf(expanded);
   }
 
-  private static String handleText(AgentDocuments documents, AgentDocumentId id) {
-    return AgentDocumentHandle.of(documents, id).text();
+  private String handleText(AgentDocuments documents, AgentDocumentId id) {
+    return objectHandleRenderer.text(AgentDocumentHandle.of(documents, id));
   }
 
   /**

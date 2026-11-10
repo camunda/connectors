@@ -160,17 +160,18 @@ of the message ran, in the order of the calls and together with the documents of
 call that failed has none.
 
 **The handle.** `{"type":"camunda.agenticai.document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}`,
-the keys in the order `type`, `id`, `fileName`, `contentType`, `size`, `note`, written as compact JSON by Jackson from the
-record `AgentDocumentHandle` (`aiagent.model.document`, `AgentDocumentHandle.TYPE` is the `type`). `fileName`, `contentType`, `size`
-and `note` are omitted when null or blank; `size` is a JSON number. `AgentDocumentHandle.of(agentDocuments, id)` builds it from the agent document of
-the id, and `text()` and `tree()` render it as text or as an object node: the file name, content type and size are read from its reference, never by reading
+the keys in the order `type`, `id`, `fileName`, `contentType`, `size`, written as compact JSON by Jackson from the
+record `AgentDocumentHandle` (`aiagent.model.document`, `AgentDocumentHandle.TYPE` is the `type`). `fileName`, `contentType` and
+`size` are omitted when null or blank; `size` is a JSON number. `AgentDocumentHandle.of(agentDocuments, id)` builds it from the agent document of
+the id, and `ObjectHandleRenderer.text(handle)` and `tree(handle)` render it as text or as an object node, with the object
+mapper of the connectors: the file name, content type and size are read from its reference, never by reading
 the document, and an id the agent does not know is rendered as `{"type":"camunda.agenticai.document","id":"doc_…"}`.
 `fileName` is the Camunda metadata file name; it is omitted when it
 equals the Camunda document id of the reference (what a document stored without a name gets). `contentType` comes from
 the Camunda metadata. `size` is the number of bytes, present for a Camunda document whose reference
 metadata carries one. A store id, a content hash and the origin of the document are never part of the handle; the
-message it sits in shows where the document came from. The model never needs to write `fileName`, `contentType`, `size` or
-`note`; they are information for the model. In a user message the handle is a text block before the document, in a tool
+message it sits in shows where the document came from. The model never needs to write `fileName`, `contentType` or `size`;
+they are information for the model. In a user message the handle is a text block before the document, in a tool
 result that is a document it is a text block, and a document nested in the object of a result is the handle object at the
 place of the document.
 

@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.api.document.Document;
@@ -34,31 +35,28 @@ class AgentDocumentHandleTest {
 
   private static final String ID = "doc_0123456789ab";
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
-  private String json(AgentDocumentHandle handle) throws Exception {
-    return objectMapper.writeValueAsString(handle);
+  private static String json(AgentDocumentHandle handle) {
+    try {
+      return OBJECT_MAPPER.writeValueAsString(handle);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Test
   void writesAllFieldsInKeyOrderWithTheSizeAsANumber() throws Exception {
     final var handle =
-        new AgentDocumentHandle(
-            AgentDocumentHandle.TYPE,
-            ID,
-            "a.pdf",
-            "application/pdf",
-            123L,
-            "The content is not loaded.");
+        new AgentDocumentHandle(AgentDocumentHandle.TYPE, ID, "a.pdf", "application/pdf", 123L);
 
     assertThat(json(handle))
         .isEqualTo(
             "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\","
-                + "\"fileName\":\"a.pdf\",\"contentType\":\"application/pdf\",\"size\":123,"
-                + "\"note\":\"The content is not loaded.\"}");
+                + "\"fileName\":\"a.pdf\",\"contentType\":\"application/pdf\",\"size\":123}");
   }
 
   @Test
@@ -70,8 +68,7 @@ class AgentDocumentHandleTest {
   @Test
   void escapesTheFileName() throws Exception {
     final var handle =
-        new AgentDocumentHandle(
-            AgentDocumentHandle.TYPE, ID, "a \"b\" <c> \\ ä.txt", null, null, null);
+        new AgentDocumentHandle(AgentDocumentHandle.TYPE, ID, "a \"b\" <c> \\ ä.txt", null, null);
 
     assertThat(json(handle))
         .isEqualTo(
@@ -81,7 +78,7 @@ class AgentDocumentHandleTest {
 
   @Test
   void omitsBlankValuesAndKeepsASizeOfZero() throws Exception {
-    final var handle = new AgentDocumentHandle(AgentDocumentHandle.TYPE, ID, " ", "", 0L, "  ");
+    final var handle = new AgentDocumentHandle(AgentDocumentHandle.TYPE, ID, " ", "", 0L);
 
     assertThat(json(handle))
         .isEqualTo(
@@ -122,7 +119,7 @@ class AgentDocumentHandleTest {
 
   @Test
   void rejectsAnotherType() {
-    assertThatThrownBy(() -> new AgentDocumentHandle("other", ID, null, null, null, null))
+    assertThatThrownBy(() -> new AgentDocumentHandle("other", ID, null, null, null))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -132,13 +129,13 @@ class AgentDocumentHandleTest {
 
   /** The text of the handle of the known document. */
   private static String text(Document document) {
-    return AgentDocumentHandle.of(
+    return json(
+        AgentDocumentHandle.of(
             agentDocumentsOf(
                 document,
                 AgentDocumentOrigin.userMessage(
                     MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"))),
-            AgentDocumentId.of(document))
-        .text();
+            AgentDocumentId.of(document)));
   }
 
   private Document camundaDocument(@Nullable String fileName, @Nullable String contentType) {
@@ -235,7 +232,7 @@ class AgentDocumentHandleTest {
   @Test
   void theHandleHasNoOriginWhateverTheOriginOfTheDocument() {
     final var doc = camundaDocument("a.txt", "text/plain");
-    final var expected = AgentDocumentHandle.of(doc).text();
+    final var expected = json(AgentDocumentHandle.of(doc));
 
     for (final var origin :
         List.of(
@@ -243,7 +240,7 @@ class AgentDocumentHandleTest {
             AgentDocumentOrigin.event(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
             AgentDocumentOrigin.toolCall("search", "call_1"))) {
       assertThat(
-              AgentDocumentHandle.of(agentDocumentsOf(doc, origin), AgentDocumentId.of(doc)).text())
+              json(AgentDocumentHandle.of(agentDocumentsOf(doc, origin), AgentDocumentId.of(doc))))
           .isEqualTo(expected);
     }
   }
@@ -252,7 +249,7 @@ class AgentDocumentHandleTest {
   void theSizeIsReadFromTheMetadataWithoutReadingTheDocument() {
     final var document = camundaDocumentWithSize(10L);
 
-    assertThat(AgentDocumentHandle.of(document).text()).contains("\"size\":10");
+    assertThat(json(AgentDocumentHandle.of(document))).contains("\"size\":10");
 
     verify(document, atLeastOnce()).reference();
     verifyNoMoreInteractions(document);
@@ -272,7 +269,7 @@ class AgentDocumentHandleTest {
             camundaDocumentWithSize(48213L));
 
     for (final var doc : documents) {
-      assertThat(text(doc)).as("%s", doc.reference()).isEqualTo(AgentDocumentHandle.of(doc).text());
+      assertThat(text(doc)).as("%s", doc.reference()).isEqualTo(json(AgentDocumentHandle.of(doc)));
     }
   }
 
@@ -281,20 +278,7 @@ class AgentDocumentHandleTest {
     final var id = AgentDocumentId.of("doc_000000000000");
     final var expected = "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_000000000000\"}";
 
-    assertThat(AgentDocumentHandle.of(AgentDocuments.empty(), id).text()).isEqualTo(expected);
-    assertThat(AgentDocumentHandle.of(id).text()).isEqualTo(expected);
-  }
-
-  @Test
-  void theTreeHasTheKeysOfTheTextInOrder() {
-    final var doc = camundaDocumentWithSize(48213L);
-    final var tree = AgentDocumentHandle.of(doc).tree();
-
-    assertThat(tree.isObject()).isTrue();
-    assertThat(tree.fieldNames())
-        .toIterable()
-        .containsExactly("type", "id", "fileName", "contentType", "size");
-    assertThat(tree.get("size").isNumber()).isTrue();
-    assertThat(tree.toString()).isEqualTo(text(doc));
+    assertThat(json(AgentDocumentHandle.of(AgentDocuments.empty(), id))).isEqualTo(expected);
+    assertThat(json(AgentDocumentHandle.of(id))).isEqualTo(expected);
   }
 }

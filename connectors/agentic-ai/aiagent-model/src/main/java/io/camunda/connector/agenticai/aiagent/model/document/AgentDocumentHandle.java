@@ -8,9 +8,6 @@ package io.camunda.connector.agenticai.aiagent.model.document;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import java.util.Objects;
@@ -26,36 +23,31 @@ import org.jspecify.annotations.Nullable;
  * }</pre>
  *
  * <p>The keys are written in the order {@code type}, {@code id}, {@code fileName}, {@code
- * contentType}, {@code size}, {@code note}; a null or blank value is omitted. The model passes a
- * document to a tool with the {@code type} and the {@code id}; the other fields are information for
- * the model only. The handle holds no origin: the message it sits in shows where the document came
- * from.
+ * contentType}, {@code size}; a null or blank value is omitted. The model passes a document to a
+ * tool with the {@code type} and the {@code id}; the other fields are information for the model
+ * only. The handle holds no origin: the message it sits in shows where the document came from.
  *
- * <p>The text form is compact JSON, stable across requests (prompt caching). The tree form is a
- * JSON object node with the same keys in the same order, for a handle that sits inside the object
- * of a tool result.
+ * <p>The handle is a plain record; the code that shows it to the model writes it as compact JSON
+ * text, stable across requests (prompt caching), or as a JSON object with the same keys in the same
+ * order, for a handle that sits inside an object.
  *
  * @param type always {@link #TYPE}
  * @param id the id of the document
  * @param fileName the file name, if known
  * @param contentType the content type, if known without reading the content
  * @param size the size in bytes, if known without reading the content
- * @param note a sentence about the document for the model, e.g. why its content is withheld
  */
-@JsonPropertyOrder({"type", "id", "fileName", "contentType", "size", "note"})
+@JsonPropertyOrder({"type", "id", "fileName", "contentType", "size"})
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public record AgentDocumentHandle(
     String type,
     String id,
     @Nullable String fileName,
     @Nullable String contentType,
-    @Nullable Long size,
-    @Nullable String note) {
+    @Nullable Long size) {
 
   /** The value of the {@code type} of every handle. */
   public static final String TYPE = "camunda.agenticai.document";
-
-  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   public AgentDocumentHandle {
     if (!TYPE.equals(type)) {
@@ -64,7 +56,6 @@ public record AgentDocumentHandle(
     Objects.requireNonNull(id, "id must not be null");
     fileName = StringUtils.defaultIfBlank(fileName, null);
     contentType = StringUtils.defaultIfBlank(contentType, null);
-    note = StringUtils.defaultIfBlank(note, null);
   }
 
   /**
@@ -77,7 +68,7 @@ public record AgentDocumentHandle(
 
   /** The handle of a document the agent does not know: the id only. */
   public static AgentDocumentHandle of(AgentDocumentId id) {
-    return new AgentDocumentHandle(TYPE, id.value(), null, null, null, null);
+    return new AgentDocumentHandle(TYPE, id.value(), null, null, null);
   }
 
   /** The handle of a document known to the agent. */
@@ -95,32 +86,8 @@ public record AgentDocumentHandle(
     return of(id, AgentDocument.Descriptors.of((CamundaDocumentReference) document.reference()));
   }
 
-  /** The handle as compact JSON text. */
-  public String text() {
-    try {
-      return MAPPER.writeValueAsString(this);
-    } catch (JsonProcessingException e) {
-      throw new IllegalStateException("Failed to write the document handle", e);
-    }
-  }
-
-  /** The handle as a JSON object node. */
-  public JsonNode tree() {
-    return MAPPER.valueToTree(this);
-  }
-
-  /** This handle with the given note. */
-  public AgentDocumentHandle withNote(@Nullable String note) {
-    return new AgentDocumentHandle(type, id, fileName, contentType, size, note);
-  }
-
   private static AgentDocumentHandle of(AgentDocumentId id, AgentDocument.Descriptors descriptors) {
     return new AgentDocumentHandle(
-        TYPE,
-        id.value(),
-        descriptors.fileName(),
-        descriptors.contentType(),
-        descriptors.size(),
-        null);
+        TYPE, id.value(), descriptors.fileName(), descriptors.contentType(), descriptors.size());
   }
 }

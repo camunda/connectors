@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.document;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -76,6 +78,40 @@ class ObjectHandleRendererTest {
 
     assertThat(renderer.documentsIn(Map.of("report", Map.of("file", inline))))
         .containsExactly(inline);
+  }
+
+  @Test
+  void writesTheHandleAsCompactTextWithTheKeysTheModelReads() {
+    final var handle =
+        new AgentDocumentHandle(
+            AgentDocumentHandle.TYPE, "doc_0123456789ab", "a.pdf", "application/pdf", 123L);
+
+    assertThat(renderer.text(handle))
+        .isEqualTo(
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\","
+                + "\"fileName\":\"a.pdf\",\"contentType\":\"application/pdf\",\"size\":123}");
+  }
+
+  @Test
+  void writesTheHandleAsATreeWithTheKeysOfTheTextInOrder() {
+    final var handle =
+        new AgentDocumentHandle(
+            AgentDocumentHandle.TYPE, "doc_0123456789ab", "a.pdf", "application/pdf", 123L);
+
+    final var tree = renderer.tree(handle);
+
+    assertThat(tree.isObject()).isTrue();
+    assertThat(tree.fieldNames())
+        .toIterable()
+        .containsExactly("type", "id", "fileName", "contentType", "size");
+    assertThat(tree.get("size").isNumber()).isTrue();
+    assertThat(tree.toString()).isEqualTo(renderer.text(handle));
+  }
+
+  @Test
+  void omitsTheValuesTheHandleDoesNotKnow() {
+    assertThat(renderer.text(AgentDocumentHandle.of(AgentDocumentId.of("doc_0123456789ab"))))
+        .isEqualTo("{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\"}");
   }
 
   @Test
