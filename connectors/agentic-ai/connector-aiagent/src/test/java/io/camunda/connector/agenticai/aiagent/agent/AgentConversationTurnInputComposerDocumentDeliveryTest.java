@@ -19,8 +19,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker;
-import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
@@ -95,16 +93,12 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     when(gatewayToolHandlers.transformToolCallResults(any(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
     when(gatewayToolHandlers.handlerForToolDefinition(any())).thenReturn(Optional.empty());
-    composer = composerWith(gatewayToolHandlers);
-  }
-
-  private static AgentConversationTurnInputComposerImpl composerWith(
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentConversationTurnInputComposerImpl(
-        gatewayToolHandlers,
-        new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
-        TestDocuments.documentContentDelivery(),
-        TestDocuments.objectHandleRenderer());
+    composer =
+        new AgentConversationTurnInputComposerImpl(
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
+            TestDocuments.documentContentDelivery(),
+            TestDocuments.objectHandleRenderer());
   }
 
   private Document document(String content, String contentType, String fileName) {
@@ -119,14 +113,9 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     return new ExternalDocument("https://files.example.com/report.pdf", "report.pdf", url -> null);
   }
 
-  private static TurnInput nextTurn(
-      AgentConversationTurnInputComposerImpl composer, CompositionResult result) {
+  private TurnInput nextTurn(CompositionResult result) {
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     return composer.assemble((CompositionResult.Ready) result);
-  }
-
-  private TurnInput nextTurn(CompositionResult result) {
-    return nextTurn(composer, result);
   }
 
   private static boolean isBlockWithContent(Content content) {
@@ -354,13 +343,6 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   // --- tool results
 
   private CompositionResult composeToolResults(AgentContext context, ToolCallResult... results) {
-    return composeToolResults(composer, context, results);
-  }
-
-  private static CompositionResult composeToolResults(
-      AgentConversationTurnInputComposerImpl composer,
-      AgentContext context,
-      ToolCallResult... results) {
     final var input =
         AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of(results));
     return composer.resolve(CONFIG, context, processToolCallsHistory(), input);
@@ -421,37 +403,6 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     assertThat(results.get(0).content().subList(1, 3))
         .containsExactlyInAnyOrder(followsSentence(doc), followsSentence(nested));
     assertThat(results.get(1).content()).containsExactly(textContent("15:00"));
-  }
-
-  @Test
-  void toolResults_ofAGatewayToolWhoseDefinitionHasTheDeliveryContent_arePutIntoAFollowUpMessage() {
-    // a gateway handler sets the delivery on the definitions it creates; the extension property of
-    // the element is not read for gateway elements
-    final var doc = document("weather data", "text/plain", "weather.txt");
-    final var handler = mock(GatewayToolHandler.class);
-    when(handler.extractDocuments(any()))
-        .thenAnswer(inv ->
-            ContentTreeDocumentWalker.extractDocumentsFromContent(
-                ((ToolCallResult) inv.getArgument(0)).content()));
-    final var registry = mock(GatewayToolHandlerRegistry.class);
-    when(registry.transformToolCallResults(any(), any())).thenAnswer(inv -> inv.getArgument(1));
-    when(registry.handlerForToolDefinition("getWeather")).thenReturn(Optional.of(handler));
-    when(registry.handlerForToolDefinition("getDateTime")).thenReturn(Optional.empty());
-
-    final var gatewayComposer = composerWith(registry);
-    final var turn =
-        nextTurn(
-            gatewayComposer,
-            composeToolResults(
-                gatewayComposer,
-                contextWithTools(CONTENT_TOOL, REFERENCE_TOOL),
-                result("abcdef", "getWeather", Map.of("file", doc)),
-                dateTimeResult()));
-
-    assertThat(turn.messages()).hasSize(2);
-    assertThat(((UserMessage) turn.messages().get(1)).content())
-        .containsExactly(
-            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE), block(doc, true));
   }
 
   @Test

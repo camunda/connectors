@@ -150,9 +150,8 @@ document value gets an error result and never reaches the handler. The MCP and A
 parameters: the remote side defines their schemas.
 
 The document delivery of the documents a tool returns (`ToolDefinition.documentDelivery`) is set by the extension property
-`io.camunda.agenticai.documents.delivery` on ad-hoc tool elements only. A handler that sets `documentDelivery` on the definitions
-it returns opts its tools in, matched by the name of the (transformed) tool call result. The MCP and A2A handlers set none, so
-their documents keep the delivery `reference`. See [ADR 018](../adr/018-document-flow.md).
+`io.camunda.agenticai.documents.delivery` on ad-hoc tool elements only, so the documents of the MCP and A2A gateway tools keep the
+delivery `reference`. See [ADR 018](../adr/018-document-flow.md).
 
 ### Document Extraction from Tool Call Results
 
@@ -251,8 +250,7 @@ translated from the optional property of the request at the edge (`AgentInput`).
 dropdown existed and every v1 template, behaves as before: the content of every document goes out with the prompt, and a
 document the provider cannot read fails the model call. `CONTENT` adds the content of every document through
 `DocumentContentDelivery`, and `REFERENCE` gives the handles. A document whose content is already in the conversation is not
-added twice. Documents of events stay references, and so do those of the MCP and A2A gateway tools (a gateway handler can
-opt its tools in through `ToolDefinition.documentDelivery`). In an instance without the `documents` feature every document,
+added twice. Documents of events stay references, and so do those of the MCP and A2A gateway tools. In an instance without the `documents` feature every document,
 also those of the user prompt, events and tool results, is added as content. See [ADR 018](../adr/018-document-flow.md).
 
 **Only Camunda documents.** An instance with the `documents` feature accepts only Camunda documents
