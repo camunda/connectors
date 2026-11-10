@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.document;
 
-import static io.camunda.connector.api.document.InlineSizeGuard.MAX_INLINE_BYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -19,6 +18,7 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -98,70 +98,17 @@ class AgentDocumentsTest {
   }
 
   @Test
-  void rejectsABatchWithAnInlineDocumentAboveTheLimit() {
-    final var batch =
-        List.of(
-            AgentDocument.of(
-                document("one", "one.txt"),
-                AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)),
-            AgentDocument.of(
-                inline("x".repeat((int) MAX_INLINE_BYTES + 1), "big.png"),
-                AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
+  void rejectsADocumentThatIsNotACamundaDocument() {
+    final var origin = AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID);
 
-    assertThatThrownBy(() -> AgentDocuments.empty().register(batch))
-        .isInstanceOf(InlineDocumentTooLargeException.class)
-        .hasMessageContaining("'big.png'")
-        .hasMessageContaining("1572865 bytes")
-        .hasMessageContaining("limit is 1572864")
-        .hasMessageContaining("Camunda document");
-  }
-
-  @Test
-  void anInlineDocumentWithTheLimitAsContentLengthIsAccepted() {
-    final var content = "x".repeat((int) MAX_INLINE_BYTES);
-
-    final var documents =
-        AgentDocuments.empty()
-            .register(
-                inline(content, "limit.txt"),
-                AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
-
-    assertThat(documents.all()).hasSize(1);
-  }
-
-  @Test
-  void anInlineDocumentAboveTheLimitWithoutANameIsRejectedWithItsId() {
-    final var tooLarge = inline("x".repeat((int) MAX_INLINE_BYTES + 1), null);
-
+    assertThatThrownBy(() -> AgentDocuments.empty().register(inline("hello", "a.txt"), origin))
+        .isInstanceOf(UnsupportedDocumentReferenceException.class);
     assertThatThrownBy(() ->
             AgentDocuments.empty()
-                .register(tooLarge, AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID)))
-        .isInstanceOf(InlineDocumentTooLargeException.class)
-        .hasMessageContaining("'" + AgentDocumentId.of(tooLarge) + "'");
-  }
-
-  @Test
-  void camundaAndExternalDocumentsAreAcceptedWhateverTheirSize() {
-    final var camunda =
-        documentFactory.create(
-            DocumentCreationRequest.from(new byte[2 * (int) MAX_INLINE_BYTES])
-                .contentType("application/octet-stream")
-                .fileName("large.bin")
-                .build());
-    final var external =
-        documentWith(
-            new io.camunda.connector.document.jackson.DocumentReferenceModel
-                .ExternalDocumentReferenceModel(
-                "https://example.com/" + "a".repeat(2 * (int) MAX_INLINE_BYTES), "large.bin"));
-
-    final var documents =
-        AgentDocuments.empty()
-            .register(camunda, AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID))
-            .register(external, AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
-
-    assertThat(documents.all())
-        .extracting(AgentDocument::id)
-        .containsExactly(AgentDocumentId.of(camunda), AgentDocumentId.of(external));
+                .register(
+                    documentWith(new ExternalDocumentReferenceModel("https://example.com/a", "a")),
+                    origin))
+        .isInstanceOf(UnsupportedDocumentReferenceException.class);
   }
 
   @Test
@@ -278,8 +225,7 @@ class AgentDocumentsTest {
             .register(
                 document("one", "one.txt"),
                 AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
-            .register(
-                inline("aGVsbG8=", "a.txt"), AgentDocumentOrigin.toolCall("search", "call-1"));
+            .register(document("two", "two.txt"), AgentDocumentOrigin.toolCall("search", "call-1"));
 
     final var json = objectMapper.writeValueAsString(documents);
 

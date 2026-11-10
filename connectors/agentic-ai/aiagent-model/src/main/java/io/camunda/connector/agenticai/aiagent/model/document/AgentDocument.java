@@ -13,32 +13,23 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
-import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
  * A document known to the agent, as persisted in the agent context: its stable id, where it entered
- * the conversation and its document reference.
+ * the conversation and its document reference. The agent knows Camunda documents only, see {@link
+ * #isSupported(DocumentReference)}.
  *
- * <p>The reference is the document reference model of the connector SDK. It holds the URL of an
- * external document and the full content of an inline one, so it must never be rendered to the
- * model.
+ * <p>The reference is the document reference model of the connector SDK.
  *
- * <p>Reading a document costs memory and can reach other systems. The file name, content type and
- * size come from the reference only; they are never read from the {@link Document} of the connector
- * SDK. For an external document, the SDK downloads the whole file into memory to answer {@code
- * metadata().getContentType()} or {@code metadata().getSize()}, from a URL that the process or a
- * tool supplied. A Camunda document loads its content from the document store. Load the content of
- * a document, or the metadata of an external one, only where the content is needed, such as when
- * the agent adds it to a model call, and check its size against a limit first where one is known.
+ * <p>Reading a document costs memory. The file name, content type and size come from the metadata
+ * of the reference only; they are never read from the {@link Document} of the connector SDK. Load
+ * the content of a document only where the content is needed, such as when the agent adds it to a
+ * model call, and check its size against a limit first where one is known.
  *
  * @param id the stable id the document is known by
  * @param origin where the document entered the conversation
@@ -47,7 +38,7 @@ import org.jspecify.annotations.Nullable;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record AgentDocument(
-    AgentDocumentId id, AgentDocumentOrigin origin, DocumentReferenceModel reference) {
+    AgentDocumentId id, AgentDocumentOrigin origin, CamundaDocumentReferenceModel reference) {
 
   public AgentDocument {
     Objects.requireNonNull(id, "id must not be null");
@@ -56,16 +47,30 @@ public record AgentDocument(
   }
 
   /**
+   * Whether the agent supports the document the reference points to: only a Camunda document. The
+   * content of a Camunda document cannot change and its metadata is known without reading it,
+   * unlike an external document, which is read from its URL again in every job, and an inline
+   * document, which holds its content in the reference.
+   */
+  public static boolean isSupported(DocumentReference reference) {
+    return reference instanceof CamundaDocumentReference;
+  }
+
+  /** Whether the agent supports the document, see {@link #isSupported(DocumentReference)}. */
+  public static boolean isSupported(Document document) {
+    return isSupported(document.reference());
+  }
+
+  /**
    * The agent document of a document, with the reference in the form it has once persisted and read
    * again.
    *
-   * @throws UnsupportedDocumentReferenceException if the reference type of the document is not
-   *     supported
+   * @throws UnsupportedDocumentReferenceException if the document is not supported, see {@link
+   *     #isSupported(DocumentReference)}
    */
   public static AgentDocument of(Document document, AgentDocumentOrigin origin) {
-    final var reference = document.reference();
-    final var id = AgentDocumentId.of(reference);
-    return new AgentDocument(id, origin, toModel(reference));
+    final var id = AgentDocumentId.of(document);
+    return new AgentDocument(id, origin, toModel((CamundaDocumentReference) document.reference()));
   }
 
   /** The document the reference points to, restored with the given factory. */
@@ -80,42 +85,35 @@ public record AgentDocument(
 
   /**
    * The file name the model is shown, or {@code null} when none is known: the file name of the
-   * metadata of a Camunda document, the {@code name} of an external or inline reference. A file
-   * name that equals the Camunda document id of the reference is left out: it is what a document
-   * stored without a name gets, and would only repeat an id.
+   * metadata. A file name that equals the Camunda document id of the reference is left out: it is
+   * what a document stored without a name gets, and would only repeat an id.
    */
   public @Nullable String fileName() {
     return descriptors().fileName();
   }
 
-  /**
-   * The content type the model is shown, or {@code null} when it is not known without fetching the
-   * content: the content type of the metadata of a Camunda document or the {@code contentType} of
-   * an inline reference. An external reference has none.
-   */
+  /** The content type of the metadata the model is shown, or {@code null} when it has none. */
   public @Nullable String contentType() {
     return descriptors().contentType();
   }
 
-  /**
-   * The size in bytes the model is shown, or {@code null} when it is not known without reading the
-   * content: the size of the metadata of a Camunda document. Other references have none.
-   */
+  /** The size in bytes of the metadata the model is shown, or {@code null} when it has none. */
   public @Nullable Long size() {
     return descriptors().size();
   }
 
   /**
-   * Whether the document is the one this agent document stands for: the identity keys are equal.
+   * Whether the document is the one this agent document stands for: the store id and the document
+   * id are equal.
    */
   boolean isSameDocumentAs(AgentDocument other) {
-    return Objects.equals(
-        AgentDocumentId.identityKey(reference), AgentDocumentId.identityKey(other.reference()));
+    return Objects.equals(reference.getStoreId(), other.reference().getStoreId())
+        && Objects.equals(reference.getDocumentId(), other.reference().getDocumentId());
   }
 
   /**
-   * What the model is shown about a document besides its id, read from the reference of the
-   * document.
+   * What the model is shown about a document besides its id, read from the metadata of the
+   * reference of the document.
    *
    * @param fileName see {@link AgentDocument#fileName()}
    * @param contentType see {@link AgentDocument#contentType()}
@@ -124,21 +122,7 @@ public record AgentDocument(
   public record Descriptors(
       @Nullable String fileName, @Nullable String contentType, @Nullable Long size) {
 
-    public static Descriptors of(DocumentReference reference) {
-      return switch (reference) {
-        case CamundaDocumentReference ref -> ofCamunda(ref);
-        case ExternalDocumentReference ref ->
-            new Descriptors(StringUtils.trimToNull(ref.name()), null, null);
-        case InlineDocumentReference ref ->
-            new Descriptors(
-                StringUtils.trimToNull(ref.name()),
-                StringUtils.trimToNull(ref.contentType()),
-                null);
-        case null, default -> new Descriptors(null, null, null);
-      };
-    }
-
-    private static Descriptors ofCamunda(CamundaDocumentReference reference) {
+    public static Descriptors of(CamundaDocumentReference reference) {
       final DocumentMetadata metadata = reference.getMetadata();
       if (metadata == null) {
         return new Descriptors(null, null, null);
@@ -151,25 +135,15 @@ public record AgentDocument(
     }
   }
 
-  private static DocumentReferenceModel toModel(DocumentReference reference) {
-    return switch (reference) {
-      case DocumentReferenceModel model -> model;
-      case CamundaDocumentReference ref ->
-          new CamundaDocumentReferenceModel(
-              ref.getStoreId(),
-              ref.getDocumentId(),
-              ref.getContentHash(),
-              ref.getMetadata() == null
-                  ? null
-                  : new CamundaDocumentMetadataModel(ref.getMetadata()));
-      case ExternalDocumentReference ref ->
-          new ExternalDocumentReferenceModel(ref.url(), ref.name());
-      case InlineDocumentReference ref ->
-          new InlineDocumentReferenceModel(ref.content(), ref.name(), ref.contentType());
-      default ->
-          throw new UnsupportedDocumentReferenceException(
-              "Unsupported document reference type '%s'"
-                  .formatted(reference.getClass().getSimpleName()));
-    };
+  private static CamundaDocumentReferenceModel toModel(CamundaDocumentReference reference) {
+    return reference instanceof CamundaDocumentReferenceModel model
+        ? model
+        : new CamundaDocumentReferenceModel(
+            reference.getStoreId(),
+            reference.getDocumentId(),
+            reference.getContentHash(),
+            reference.getMetadata() == null
+                ? null
+                : new CamundaDocumentMetadataModel(reference.getMetadata()));
   }
 }

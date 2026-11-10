@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentIdCollisionException;
-import io.camunda.connector.agenticai.aiagent.model.document.InlineDocumentTooLargeException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +39,6 @@ public record TurnInput(List<Message> messages, List<AgentDocument> documents) {
    * The agent context with the documents of this input registered. It depends on the context and
    * the input only, so a job that runs again computes the same context.
    *
-   * @throws InlineDocumentTooLargeException if a new document is an inline document with too much
-   *     content
    * @throws AgentDocumentIdCollisionException if a document gets the id of a different document the
    *     context already holds, or of another document of this input
    */

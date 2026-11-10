@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.document;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
@@ -23,10 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.util.ArrayList;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
@@ -162,13 +160,7 @@ public final class DocumentExpander {
 
   private static boolean isFollowedByDocument(@Nullable Content next, AgentDocumentId id) {
     return next instanceof DocumentContent following
-        && hasHandle(following.document())
+        && AgentDocument.isSupported(following.document())
         && id.equals(AgentDocumentId.of(following.document()));
-  }
-
-  /** Only Camunda and external documents get a handle, inline documents are left as they are. */
-  private static boolean hasHandle(Document document) {
-    return document.reference() instanceof CamundaDocumentReference
-        || document.reference() instanceof ExternalDocumentReference;
   }
 }

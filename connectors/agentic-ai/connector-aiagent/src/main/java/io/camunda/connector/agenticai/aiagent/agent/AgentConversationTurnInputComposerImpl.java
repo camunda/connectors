@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
@@ -111,6 +112,15 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               previousTurn.processToolCalls(),
               agentInput.toolCallResults(),
               interruptMissingToolCalls);
+      final var processEntries =
+          processResults.arrivedResults().stream()
+              .map(result -> ToolCallBatch.Entry.from(result, documentExtractor))
+              .toList();
+      switch (documentHandling) {
+        case DocumentHandling.Tracked ignored ->
+            processEntries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
+        case DocumentHandling.Untracked ignored -> {}
+      }
 
       // either we have all results or we interrupted the missing tool calls
       // if incomplete, we wait on further tool call results to be added
@@ -118,12 +128,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         return new CompositionResult.Deferred(processResults.arrivedResults());
       }
 
-      var batch =
-          ToolCallBatch.of(previousTurn.toolCalls())
-              .withEntries(
-                  processResults.arrivedResults().stream()
-                      .map(result -> ToolCallBatch.Entry.from(result, documentExtractor))
-                      .toList());
+      var batch = ToolCallBatch.of(previousTurn.toolCalls()).withEntries(processEntries);
       if (interruptMissingToolCalls) {
         // every call without a result is cancelled: the missing process calls and the runtime
         // calls that were not executed yet; a rejected call keeps its rejection
@@ -167,6 +172,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       case DocumentHandling.Tracked ignored -> {
         // add the documents as blocks with the delivery content: the content is added when the
         // model is called
+        userPrompt.documents().stream()
+            .filter(doc -> !AgentDocument.isSupported(doc))
+            .findFirst()
+            .ifPresent(doc -> {
+              throw UnsupportedDocumentReferenceException.inUserPrompt(doc);
+            });
         final var origin = AgentDocumentOrigin.userMessage(messageId);
         for (var doc : userPrompt.documents()) {
           content.add(
@@ -274,6 +285,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     if (!eventDocuments.isEmpty()) {
       switch (documentHandling) {
         case DocumentHandling.Tracked ignored -> {
+          eventDocuments.stream()
+              .flatMap(group -> group.documents().stream())
+              .filter(doc -> !AgentDocument.isSupported(doc))
+              .findFirst()
+              .ifPresent(doc -> {
+                throw UnsupportedDocumentReferenceException.inEvent(doc);
+              });
           userMessageContent.add(textContent(TRACKED_EVENT_DOCUMENTS_PREAMBLE));
           final var origin = AgentDocumentOrigin.event(messageId);
           for (var group : eventDocuments) {

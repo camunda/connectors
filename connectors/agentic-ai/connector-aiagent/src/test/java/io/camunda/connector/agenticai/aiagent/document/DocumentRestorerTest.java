@@ -17,8 +17,6 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.ExternalDocument;
-import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
@@ -50,30 +48,13 @@ class DocumentRestorerTest {
   }
 
   @Test
-  void restoresAnExternalAndAnInlineDocumentFromTheirReference() {
-    final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
-    final var inline = new InlineDocument("{\"a\":1}", "data.json", "application/json");
-    final var documents =
-        AgentDocuments.empty()
-            .register(external, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
-            .register(inline, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
-
-    assertThat(restorer.restore(documents, AgentDocumentId.of(external)))
-        .hasValueSatisfying(
-            value -> assertThat(AgentDocumentId.of(value)).isEqualTo(AgentDocumentId.of(external)));
-    assertThat(restorer.restore(documents, AgentDocumentId.of(inline)))
-        .hasValueSatisfying(
-            value -> assertThat(AgentDocumentId.of(value)).isEqualTo(AgentDocumentId.of(inline)));
-  }
-
-  @Test
   void isEmptyForADocumentTheAgentDoesNotKnow() {
     assertThat(restorer.restore(AgentDocuments.empty(), AgentDocumentId.of("unknown"))).isEmpty();
   }
 
   @Test
   void isEmptyWhenTheFactoryCannotRestoreTheDocument() {
-    final var document = new InlineDocument("hello", "a.txt", "text/plain");
+    final var document = TestDocuments.createDocument("hello", "a.txt");
     final var documents =
         AgentDocuments.empty()
             .register(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));

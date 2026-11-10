@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
-import io.camunda.connector.runtime.core.document.InlineDocument;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +20,7 @@ class AgentDocumentContentTest {
 
   @Test
   void theBlockOfADocumentHoldsItsIdAndTheDeliveryReference() {
-    final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
+    final var doc = TestDocuments.createDocument("{\"a\":1}", "data.json");
 
     assertThat(AgentDocumentContent.of(AgentDocumentId.of(doc)))
         .isEqualTo(

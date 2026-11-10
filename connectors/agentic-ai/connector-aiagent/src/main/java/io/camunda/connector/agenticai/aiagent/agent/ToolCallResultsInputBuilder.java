@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -41,6 +42,8 @@ public class ToolCallResultsInputBuilder {
    * @return the messages and, for an agent instance that tracks its documents, the documents of the
    *     results to register, in call order
    * @throws IllegalStateException if a call of the batch has no result
+   * @throws UnsupportedDocumentReferenceException if an agent instance that tracks its documents
+   *     gets a document that is not a Camunda document
    */
   public TurnInput build(AgentContext agentContext, ToolCallBatch batch) {
     final var entries = batch.entriesInCallOrder();
@@ -56,6 +59,7 @@ public class ToolCallResultsInputBuilder {
    * origin.
    */
   private static TurnInput buildWithDocumentBlocks(List<ToolCallBatch.Entry> entries) {
+    entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
     final var results =
         entries.stream()
             .map(ToolCallBatch.Entry::result)

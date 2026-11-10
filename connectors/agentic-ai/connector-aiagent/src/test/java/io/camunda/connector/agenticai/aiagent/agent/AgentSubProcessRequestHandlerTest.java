@@ -17,7 +17,6 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCal
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static io.camunda.connector.agenticai.testutil.MessageAssertions.assertMessagesEqualIgnoringSystemMessageId;
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
-import static io.camunda.connector.api.document.InlineSizeGuard.MAX_INLINE_BYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -74,6 +73,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -101,7 +101,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -1810,20 +1810,34 @@ class AgentSubProcessRequestHandlerTest {
                                 registered,
                                 AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))
                             .reference()))));
-    final var tooLarge = mock(Document.class);
-    when(tooLarge.reference())
-        .thenReturn(
-            new InlineDocumentReferenceModel(
-                "x".repeat((int) MAX_INLINE_BYTES + 1), "big.txt", "text/plain"));
     final var unsupported = mock(Document.class);
     when(unsupported.reference()).thenReturn(new DocumentReference() {});
 
     assertThat(failureCodeOfRegistering(collidingContext, other))
         .isEqualTo(AgentErrorCodes.ERROR_CODE_DOCUMENT_ID_COLLISION);
-    assertThat(failureCodeOfRegistering(CONTEXT_WITH_DOCUMENTS, tooLarge))
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE);
     assertThat(failureCodeOfRegistering(CONTEXT_WITH_DOCUMENTS, unsupported))
         .isEqualTo(AgentErrorCodes.ERROR_CODE_UNSUPPORTED_DOCUMENT_REFERENCE);
+  }
+
+  @Test
+  void failsWithTheMessageOfTheDocumentThatIsNotACamundaDocumentWhenTheTurnIsComposed() {
+    final var external =
+        new ExternalDocument("https://example.com/report.pdf", "report.pdf", u -> null);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_WITH_DOCUMENTS, List.of()));
+    when(agentInputComposer.resolve(any(), any(), any(), any()))
+        .thenThrow(UnsupportedDocumentReferenceException.inUserPrompt(external));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_UNSUPPORTED_DOCUMENT_REFERENCE);
+              assertThat(e.getMessage())
+                  .isEqualTo(
+                      "Only Camunda documents can be passed to the AI Agent, but the user prompt contains an external document.");
+            });
   }
 
   private String failureCodeOfRegistering(AgentContext context, Document document) {

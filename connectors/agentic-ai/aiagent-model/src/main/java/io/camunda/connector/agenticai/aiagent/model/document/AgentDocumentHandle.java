@@ -12,6 +12,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -87,11 +88,11 @@ public record AgentDocumentHandle(
   /**
    * The handle of a document, read from its reference without reading its content.
    *
-   * @throws UnsupportedDocumentReferenceException if the reference type of the document is not
-   *     supported
+   * @throws UnsupportedDocumentReferenceException if the document is not a Camunda document
    */
   public static AgentDocumentHandle of(Document document) {
-    return of(AgentDocumentId.of(document), AgentDocument.Descriptors.of(document.reference()));
+    final var id = AgentDocumentId.of(document);
+    return of(id, AgentDocument.Descriptors.of((CamundaDocumentReference) document.reference()));
   }
 
   /** The handle as compact JSON text. */

@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -230,12 +229,7 @@ class AgentContextTest {
                                     "report.pdf",
                                     null,
                                     null,
-                                    null))),
-                        new AgentDocument(
-                            AgentDocumentId.of("doc_54f786b4cd7b"),
-                            AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID),
-                            new ExternalDocumentReferenceModel(
-                                "https://example.com/a.pdf?token=secret", "a.pdf")))))
+                                    null))))))
             .build();
 
     final var json =
@@ -252,10 +246,7 @@ class AgentContextTest {
                   "reference":{"camunda.document.type":"camunda","storeId":"in-memory",
                     "documentId":"doc-1","contentHash":"hash-1",
                     "metadata":{"contentType":"application/pdf","expiresAt":"2030-01-02T03:04:05Z",
-                      "size":48213,"fileName":"report.pdf"}}},
-                 {"id":"doc_54f786b4cd7b","origin":{"type":"event","messageId":"0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"},
-                  "reference":{"camunda.document.type":"external",
-                    "url":"https://example.com/a.pdf?token=secret","name":"a.pdf"}}]\
+                      "size":48213,"fileName":"report.pdf"}}}]\
                 """));
     assertThat(
             TestObjectMapperSupplier.INSTANCE.readValue(

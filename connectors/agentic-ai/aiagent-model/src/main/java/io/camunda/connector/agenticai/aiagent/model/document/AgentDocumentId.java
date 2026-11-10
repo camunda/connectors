@@ -11,17 +11,11 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HexFormat;
-import java.util.List;
-import org.jspecify.annotations.Nullable;
 
 /**
  * The stable id of a document the agent knows. The id is the handle a document is addressed by in
@@ -55,7 +49,7 @@ public record AgentDocumentId(@JsonValue String value) {
   /**
    * The stable id of the given document, see {@link #of(DocumentReference)}.
    *
-   * @throws UnsupportedDocumentReferenceException if the reference type is not supported
+   * @throws UnsupportedDocumentReferenceException if the document is not a Camunda document
    */
   public static AgentDocumentId of(Document document) {
     return of(document.reference());
@@ -63,21 +57,27 @@ public record AgentDocumentId(@JsonValue String value) {
 
   /**
    * The stable id of the document the reference points to: {@code "doc_"} followed by the first 12
-   * lowercase hex characters of the SHA-256 digest of the {@linkplain
-   * #identityKey(DocumentReference) identity key}. Neither the store id, the document id nor the
-   * URL of the reference is exposed to the model by the id, and the same document always gets the
-   * same id, so correlation and de-duplication work across the sites that register and render a
-   * document.
+   * lowercase hex characters of the SHA-256 digest of {@code "camunda"}, the store id and the
+   * document id of the reference; the content hash and the metadata are not part of it. Neither the
+   * store id nor the document id of the reference is exposed to the model by the id, and the same
+   * document always gets the same id, so correlation and de-duplication work across the sites that
+   * register and render a document.
    *
-   * <p>The identity key is hashed as the concatenation of its parts, each part written as a 4-byte
+   * <p>The parts are hashed as the concatenation of their parts, each part written as a 4-byte
    * big-endian length followed by its UTF-8 bytes. An absent part is written as the length {@code
    * -1} and no bytes, so it differs from every present part.
    *
-   * @throws UnsupportedDocumentReferenceException if the reference type is not supported
+   * @throws UnsupportedDocumentReferenceException if the reference is not a Camunda document
+   *     reference
    */
   public static AgentDocumentId of(DocumentReference reference) {
+    if (!(reference instanceof CamundaDocumentReference camundaReference)) {
+      throw new UnsupportedDocumentReferenceException(
+          "Only Camunda documents are supported, but the document reference is not a Camunda document reference.");
+    }
     final var digest = sha256();
-    for (final var part : identityKey(reference)) {
+    for (final var part :
+        new String[] {"camunda", camundaReference.getStoreId(), camundaReference.getDocumentId()}) {
       if (part == null) {
         digest.update(ByteBuffer.allocate(Integer.BYTES).putInt(-1).array());
         continue;
@@ -88,44 +88,6 @@ public record AgentDocumentId(@JsonValue String value) {
     }
     return new AgentDocumentId(
         ID_PREFIX + HEX_FORMAT.formatHex(digest.digest()).substring(0, ID_HEX_CHARS));
-  }
-
-  /**
-   * The parts that identify the document the reference points to; two references with equal
-   * identity keys point to the same document:
-   *
-   * <ul>
-   *   <li>{@link CamundaDocumentReference}: {@code "camunda"}, the store id and the document id;
-   *       the content hash and the metadata are not part of it
-   *   <li>{@link ExternalDocumentReference}: {@code "external"} and the URL
-   *   <li>{@link InlineDocumentReference} with non-blank content: {@code "inline"} and the content
-   * </ul>
-   *
-   * <p>Any other reference type, or an {@link InlineDocumentReference} with blank content, is
-   * rejected rather than given a random id: a fallback would produce a valid-looking id over an
-   * unsupported payload instead of surfacing the real problem.
-   *
-   * <p>The {@code case null, default} arm is compiler-mandated even though only the three reference
-   * types above are expected: {@link DocumentReference} is a plain, non-sealed interface, so the
-   * compiler cannot prove the switch is exhaustive without it.
-   */
-  static List<@Nullable String> identityKey(DocumentReference reference) {
-    return switch (reference) {
-      case CamundaDocumentReference ref -> parts("camunda", ref.getStoreId(), ref.getDocumentId());
-      case ExternalDocumentReference ref -> parts("external", ref.url());
-      case InlineDocumentReference ref when ref.content() != null && !ref.content().isBlank() ->
-          parts("inline", ref.content());
-      case null, default ->
-          throw new UnsupportedDocumentReferenceException(
-              "Unsupported document reference type '%s' for document with reference '%s'"
-                  .formatted(
-                      reference == null ? "null" : reference.getClass().getSimpleName(),
-                      reference));
-    };
-  }
-
-  private static List<@Nullable String> parts(@Nullable String... parts) {
-    return Collections.unmodifiableList(Arrays.asList(parts));
   }
 
   /** The id as the model reads it. */

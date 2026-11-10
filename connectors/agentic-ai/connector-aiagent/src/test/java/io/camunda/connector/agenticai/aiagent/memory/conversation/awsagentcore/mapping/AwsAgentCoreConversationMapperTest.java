@@ -32,10 +32,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.test.document.TestDocumentFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -199,7 +199,7 @@ class AwsAgentCoreConversationMapperTest {
   void shouldSummarizeADocumentReferenceInAToolResultAsItsTag() {
     // given
     var reference =
-        AgentDocumentContent.of(AgentDocumentId.of(new InlineDocument("{}", "d.json", null)));
+        AgentDocumentContent.of(AgentDocumentId.of(TestDocuments.createDocument("{}", "d.json")));
     ToolCallResultMessage original =
         ToolCallResultMessage.builder()
             .results(

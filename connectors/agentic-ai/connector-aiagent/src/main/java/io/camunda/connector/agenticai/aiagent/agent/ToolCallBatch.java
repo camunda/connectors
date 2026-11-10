@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -117,6 +119,22 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     /** The entry of a result with structured content; the documents are the ones of its content. */
     public static Entry from(ToolCallResultContent result) {
       return new Entry(result, ToolCallResultDocumentExtractor.documentsOf(result.content()));
+    }
+
+    /**
+     * Checks that the result holds Camunda documents only, which an agent instance that tracks its
+     * documents requires.
+     *
+     * @throws UnsupportedDocumentReferenceException if a document of the result is not a Camunda
+     *     document
+     */
+    public void requireCamundaDocuments() {
+      documents.stream()
+          .filter(document -> !AgentDocument.isSupported(document))
+          .findFirst()
+          .ifPresent(document -> {
+            throw UnsupportedDocumentReferenceException.inToolCallResult(result.name(), document);
+          });
     }
   }
 }

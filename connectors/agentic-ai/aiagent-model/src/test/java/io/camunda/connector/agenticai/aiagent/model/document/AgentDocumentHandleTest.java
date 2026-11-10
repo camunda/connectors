@@ -21,7 +21,6 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.InlineDocument;
@@ -95,12 +94,30 @@ class AgentDocumentHandleTest {
         new AgentDocument(
             AgentDocumentId.of(ID),
             AgentDocumentOrigin.userMessage(MessageId.of("0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b")),
-            new InlineDocumentReferenceModel("hello", "a.txt", "text/plain"));
+            new CamundaDocumentReferenceModel(
+                "store",
+                "doc-1",
+                "hash",
+                new CamundaDocumentMetadataModel(
+                    "text/plain", null, null, "a.txt", null, null, null)));
 
     assertThat(json(AgentDocumentHandle.of(document)))
         .isEqualTo(
             "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_0123456789ab\","
                 + "\"fileName\":\"a.txt\",\"contentType\":\"text/plain\"}");
+  }
+
+  @Test
+  void aDocumentThatIsNotACamundaDocumentHasNoHandle() {
+    final var documents =
+        List.<Document>of(
+            new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null),
+            new InlineDocument("{\"a\":1}", "data.json", "application/json"));
+
+    for (final var document : documents) {
+      assertThatThrownBy(() -> AgentDocumentHandle.of(document))
+          .isInstanceOf(UnsupportedDocumentReferenceException.class);
+    }
   }
 
   @Test
@@ -175,56 +192,6 @@ class AgentDocumentHandleTest {
   }
 
   @Test
-  void externalDocumentUsesReferenceNameAndNeverRendersTheUrlOrFetchesMetadata() {
-    // the downloader fails on use: rendering must not trigger a download for the content type
-    final var doc =
-        new ExternalDocument(
-            "https://example.com/files/report.pdf?X-Token=secret", "Quarterly Report", u -> null);
-
-    final var text = text(doc);
-
-    assertThat(text)
-        .isEqualTo(
-            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"Quarterly Report\"}"
-                .formatted(AgentDocumentId.of(doc)));
-    assertThat(text).doesNotContain("example.com", "secret", "url");
-  }
-
-  @Test
-  void externalDocumentWithoutNameOmitsFileNameInsteadOfTakingItFromTheUrl() {
-    final var doc =
-        new ExternalDocument(
-            "https://example.com/a/b/my%20file.pdf?X-Token=secret#frag", null, u -> null);
-
-    assertThat(text(doc))
-        .isEqualTo(
-            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\"}"
-                .formatted(AgentDocumentId.of(doc)));
-    assertThat(text(new ExternalDocument("https://example.com/x", "", u -> null)))
-        .doesNotContain("fileName");
-  }
-
-  @Test
-  void inlineDocumentWithoutContentTypeOmitsItInsteadOfResolvingItFromTheName() {
-    final var doc = new InlineDocument("{\"a\":1}", "data.json", null);
-
-    assertThat(text(doc))
-        .isEqualTo(
-            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"data.json\"}"
-                .formatted(AgentDocumentId.of(doc)));
-  }
-
-  @Test
-  void inlineDocumentRendersNameAndContentTypeAndNeverItsContent() {
-    final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
-
-    assertThat(text(doc))
-        .isEqualTo(
-            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"data.json\",\"contentType\":\"application/json\"}"
-                .formatted(AgentDocumentId.of(doc)));
-  }
-
-  @Test
   void omitsAFileNameThatEqualsTheCamundaDocumentIdOfTheReference() {
     final var doc =
         documentFactory.create(
@@ -253,13 +220,6 @@ class AgentDocumentHandleTest {
         .isEqualTo(
             "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"doc-1.txt\"}"
                 .formatted(AgentDocumentId.of(doc)));
-  }
-
-  @Test
-  void escapesSpecialCharactersInTheFileName() {
-    final var doc = new ExternalDocument("https://example.com/x", "a<b>\"c\"&.pdf", u -> null);
-
-    assertThat(text(doc)).contains("\"fileName\":\"a<b>\\\"c\\\"&.pdf\"");
   }
 
   @Test
@@ -301,10 +261,6 @@ class AgentDocumentHandleTest {
   @Test
   void aDocumentWithoutAKnownSizeRendersNone() {
     assertThat(text(camundaDocumentWithSize(null))).doesNotContain("size");
-    assertThat(text(new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null)))
-        .doesNotContain("size");
-    assertThat(text(new InlineDocument("{\"a\":1}", "d.json", "application/json")))
-        .doesNotContain("size");
   }
 
   @Test
@@ -313,12 +269,7 @@ class AgentDocumentHandleTest {
         List.<Document>of(
             camundaDocument("a.txt", "text/plain"),
             camundaDocument(null, null),
-            camundaDocumentWithSize(48213L),
-            new ExternalDocument(
-                "https://example.com/files/report.pdf?t=secret", "Report", u -> null),
-            new ExternalDocument("https://example.com/files/report.pdf?t=secret", null, u -> null),
-            new InlineDocument("{\"a\":1}", "data.json", "application/json"),
-            new InlineDocument("{\"a\":1}", "data.json", null));
+            camundaDocumentWithSize(48213L));
 
     for (final var doc : documents) {
       assertThat(text(doc)).as("%s", doc.reference()).isEqualTo(AgentDocumentHandle.of(doc).text());

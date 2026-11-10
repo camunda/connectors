@@ -33,7 +33,6 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
@@ -92,13 +91,13 @@ class DocumentExpanderTest {
 
   @Test
   void rendersTheExactHandleTextInAUserMessageAndAToolResult() {
-    final var document = new ExternalDocument("https://example.com/r", "r \"1\".pdf", u -> null);
+    final var document = TestDocuments.createDocument("data", "r \"1\".pdf");
     final var agentDocuments =
         agentDocumentsOf(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
     final var block =
         new AgentDocumentContent(AgentDocumentId.of(document), DocumentDelivery.REFERENCE, null);
     final var expectedText =
-        "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"r \\\"1\\\".pdf\"}"
+        "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"r \\\"1\\\".pdf\",\"contentType\":\"text/plain\"}"
             .formatted(AgentDocumentId.of(document));
 
     final var expanded =

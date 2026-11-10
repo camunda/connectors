@@ -22,8 +22,6 @@ import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.connector.document.jackson.DocumentReferenceModel.InlineDocumentReferenceModel;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.InlineDocument;
@@ -125,36 +123,18 @@ class AgentDocumentTest {
   }
 
   @Test
-  void externalAccessorsHaveTheNameOnly() {
-    final var agentDocument =
-        AgentDocument.of(
+  void aReferenceThatIsNotACamundaReferenceIsRejected() {
+    final var documents =
+        List.of(
+            documentOf(new DocumentReference() {}),
             new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null),
-            AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+            new InlineDocument("hello", "a.txt", "text/plain"));
 
-    assertThat(agentDocument.fileName()).isEqualTo("a.pdf");
-    assertThat(agentDocument.contentType()).isNull();
-    assertThat(agentDocument.size()).isNull();
-  }
-
-  @Test
-  void inlineAccessorsHaveTheNameAndTheContentType() {
-    final var agentDocument =
-        AgentDocument.of(
-            new InlineDocument("hello", "a.txt", "text/plain"),
-            AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
-
-    assertThat(agentDocument.fileName()).isEqualTo("a.txt");
-    assertThat(agentDocument.contentType()).isEqualTo("text/plain");
-    assertThat(agentDocument.size()).isNull();
-  }
-
-  @Test
-  void aReferenceOfAnUnsupportedTypeIsRejected() {
-    assertThatThrownBy(() ->
-            AgentDocument.of(
-                documentOf(new DocumentReference() {}),
-                AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID)))
-        .isInstanceOf(UnsupportedDocumentReferenceException.class);
+    for (final var document : documents) {
+      assertThatThrownBy(
+              () -> AgentDocument.of(document, AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID)))
+          .isInstanceOf(UnsupportedDocumentReferenceException.class);
+    }
   }
 
   @Test
@@ -231,26 +211,15 @@ class AgentDocumentTest {
         AgentDocument.of(
             documentOf(new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null)),
             AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
-    final var externalWithoutName =
-        AgentDocument.of(
-            documentOf(new ExternalDocumentReferenceModel("https://x/y", null)),
-            AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
-    final var inlineWithoutDetails =
-        AgentDocument.of(
-            documentOf(new InlineDocumentReferenceModel("aGVsbG8=", null, null)),
-            AgentDocumentOrigin.event(TestDocuments.MESSAGE_ID));
 
-    for (final var agentDocument :
-        List.of(camundaWithoutDetails, externalWithoutName, inlineWithoutDetails)) {
-      assertThat(
-              objectMapper.readValue(
-                  objectMapper.writeValueAsString(agentDocument), AgentDocument.class))
-          .isEqualTo(agentDocument);
-    }
+    assertThat(
+            objectMapper.readValue(
+                objectMapper.writeValueAsString(camundaWithoutDetails), AgentDocument.class))
+        .isEqualTo(camundaWithoutDetails);
   }
 
   @Test
-  void readsTheStoredJsonOfEveryReferenceType() throws JsonProcessingException {
+  void readsTheStoredJsonOfACamundaReference() throws JsonProcessingException {
     final var camunda =
         objectMapper.readValue(
             """
@@ -260,32 +229,9 @@ class AgentDocumentTest {
                "metadata":{"contentType":"application/pdf","size":5,"fileName":"report.pdf"}}}\
             """,
             AgentDocument.class);
-    final var external =
-        objectMapper.readValue(
-            """
-            {"id":"doc_54f786b4cd7b","origin":{"type":"event","messageId":"0190a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"},
-             "reference":{"camunda.document.type":"external",
-               "url":"https://example.com/a.pdf?token=secret","name":"a.pdf"}}\
-            """,
-            AgentDocument.class);
-    final var inline =
-        objectMapper.readValue(
-            """
-            {"id":"doc_5cb567bbb1c9","origin":{"type":"tool_call","toolName":"t","toolCallId":"c"},
-             "reference":{"camunda.document.type":"inline","content":"aGVsbG8=",
-               "name":"a.txt","contentType":"text/plain"}}\
-            """,
-            AgentDocument.class);
 
     assertThat(AgentDocumentId.of(camunda.reference())).isEqualTo(camunda.id());
-    assertThat(AgentDocumentId.of(external.reference())).isEqualTo(external.id());
-    assertThat(AgentDocumentId.of(inline.reference())).isEqualTo(inline.id());
     assertThat(camunda.reference()).isInstanceOf(CamundaDocumentReferenceModel.class);
-    assertThat(external.reference())
-        .isEqualTo(
-            new ExternalDocumentReferenceModel("https://example.com/a.pdf?token=secret", "a.pdf"));
-    assertThat(inline.reference())
-        .isEqualTo(new InlineDocumentReferenceModel("aGVsbG8=", "a.txt", "text/plain"));
   }
 
   @Test
@@ -305,7 +251,8 @@ class AgentDocumentTest {
     final var json =
         """
         {"id":"d1","future":true,"origin":{"type":"tool_call","toolName":"t","toolCallId":"c","future":1},
-         "reference":{"camunda.document.type":"external","url":"https://x/y","name":"y.txt"}}\
+         "reference":{"camunda.document.type":"camunda","storeId":"in-memory","documentId":"doc-1",
+          "metadata":{"fileName":"y.txt"}}}\
         """;
 
     final var agentDocument = objectMapper.readValue(json, AgentDocument.class);
@@ -319,19 +266,8 @@ class AgentDocumentTest {
   void serializedDocumentsStayWithinTheirSizeBudget() throws JsonProcessingException {
     final var origin = AgentDocumentOrigin.toolCall("Search_Tool", "call_0123456789abcdef");
     final var camunda = AgentDocument.of(camundaDocument("hello"), origin);
-    final var external =
-        AgentDocument.of(
-            new ExternalDocument(
-                "https://example.com/files/2026/quarterly-report.pdf",
-                "quarterly-report.pdf",
-                u -> null),
-            origin);
-    final var inline =
-        AgentDocument.of(new InlineDocument("x".repeat(1024), "inline.txt", "text/plain"), origin);
 
     assertThat(objectMapper.writeValueAsBytes(camunda).length).isLessThan(700);
-    assertThat(objectMapper.writeValueAsBytes(external).length).isLessThan(400);
-    assertThat(objectMapper.writeValueAsBytes(inline).length).isBetween(1024, 1700);
   }
 
   private static Document documentOf(DocumentReference reference) {

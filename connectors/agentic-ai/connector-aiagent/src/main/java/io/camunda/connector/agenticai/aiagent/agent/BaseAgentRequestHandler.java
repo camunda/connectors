@@ -37,7 +37,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentIdCollisionException;
-import io.camunda.connector.agenticai.aiagent.model.document.InlineDocumentTooLargeException;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
@@ -180,9 +179,6 @@ public abstract class BaseAgentRequestHandler<
     } catch (AgentDocumentIdCollisionException e) {
       throw new ConnectorException(
           AgentErrorCodes.ERROR_CODE_DOCUMENT_ID_COLLISION, e.getMessage(), e);
-    } catch (InlineDocumentTooLargeException e) {
-      throw new ConnectorException(
-          AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE, e.getMessage(), e);
     } catch (UnsupportedDocumentReferenceException e) {
       throw new ConnectorException(
           AgentErrorCodes.ERROR_CODE_UNSUPPORTED_DOCUMENT_REFERENCE, e.getMessage(), e);

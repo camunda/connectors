@@ -47,7 +47,6 @@ import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
-import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -1034,45 +1033,16 @@ class AgentInstanceHistoryMapperTest {
     }
 
     @Test
-    void aToolResultThatIsOneExternalDocumentIsTheHandleObjectAndTheExternalReference() {
+    void withoutTheDocumentsFeatureAnExternalDocumentIsReportedAsItsReference() {
       final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
 
-      final var item = item(message(DocumentContent.documentContent(external)), agentContext);
+      final var item =
+          item(message(DocumentContent.documentContent(external)), AgentContext.empty());
 
-      assertThat(item.content()).hasSize(2);
-      assertThat(described(item).get(0)).isEqualTo("OBJECT " + TestDocuments.handleText(external));
-      assertThat(item.content().get(1))
-          .isInstanceOf(AgentInstanceHistoryContent.ObjectContent.class);
-      assertThat(TestDocuments.handleText(external)).doesNotContain("example.com");
-    }
-
-    @Test
-    void anExternalDocumentWithoutANameIsReportedWithTheHandleIdAsItsName() {
-      final var nameless = new ExternalDocument("https://example.com/a.pdf", null, u -> null);
-
-      final var item = item(message(DocumentContent.documentContent(nameless)), agentContext);
-
-      assertThat(item.content()).hasSize(2);
-      assertThat(objectJson(item.content().get(1)))
+      assertThat(item.content()).hasSize(1);
+      assertThat(objectJson(item.content().getFirst()))
           .isEqualTo(
-              "{\"url\":\"https://example.com/a.pdf\",\"name\":\"%s\",\"camunda.document.type\":\"external\"}"
-                  .formatted(AgentDocumentId.of(nameless).value()));
-    }
-
-    @Test
-    void anInlineDocumentHasItsHandleOnly() {
-      final var inline = new InlineDocument("{\"a\":1}", "data.json", "application/json");
-      final var inlineHandle = TestDocuments.handleText(inline);
-
-      final var bare = item(message(DocumentContent.documentContent(inline)), agentContext);
-      final var nested =
-          item(message(ObjectContent.objectContent(Map.of("file", inline))), agentContext);
-
-      assertThat(described(bare)).containsExactly("OBJECT " + inlineHandle);
-      assertThat(nested.content()).hasSize(1);
-      assertThat(
-              ((AgentInstanceHistoryContent.ObjectContent) nested.content().getFirst()).getObject())
-          .isEqualTo(Map.of("file", TestDocuments.handleObject(inline)));
+              "{\"url\":\"https://example.com/a.pdf\",\"name\":\"a.pdf\",\"camunda.document.type\":\"external\"}");
     }
 
     @Test

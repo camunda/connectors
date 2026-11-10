@@ -234,10 +234,9 @@ public class AgentInstanceHistoryMapper {
    * The content of a message as the model reads it. For an agent instance that tracks its
    * documents, a document is its handle as an object block of its own, the same handle the model
    * gets, in a user message, an event and a tool result. Where the document enters the conversation
-   * a Camunda or an external document is followed by the document itself (the chip); a document
-   * nested in an object is replaced by its handle object, as the model gets it, and the documents
-   * follow the object. An inline document has its handle only. Text is reported as it is, also when
-   * it holds a handle.
+   * the handle is followed by the document itself (the chip); a document nested in an object is
+   * replaced by its handle object, as the model gets it, and the documents follow the object. Text
+   * is reported as it is, also when it holds a handle.
    */
   private List<AgentInstanceHistoryContent> messageContent(
       List<Content> contents, HistoryDocuments historyDocuments) {
@@ -282,7 +281,7 @@ public class AgentInstanceHistoryMapper {
       @Nullable Document document,
       DocumentHandling documentHandling) {
     blocks.add(objectHistoryContent(handle.tree()));
-    if (document != null && hasHistoryDocument(document)) {
+    if (document != null) {
       blocks.add(
           documentHistoryContent(DocumentContent.documentContent(document), documentHandling));
     }
@@ -301,19 +300,11 @@ public class AgentInstanceHistoryMapper {
     blocks.add(objectHistoryContent(rendered.tree()));
     final var reportedIds = new HashSet<AgentDocumentId>();
     for (final var document : rendered.documents()) {
-      if (hasHistoryDocument(document) && reportedIds.add(AgentDocumentId.of(document))) {
+      if (reportedIds.add(AgentDocumentId.of(document))) {
         blocks.add(
             documentHistoryContent(DocumentContent.documentContent(document), documentHandling));
       }
     }
-  }
-
-  /**
-   * The history shows the Camunda and the external documents; an inline one has its handle only.
-   */
-  private static boolean hasHistoryDocument(Document document) {
-    return document.reference() instanceof CamundaDocumentReference
-        || document.reference() instanceof ExternalDocumentReference;
   }
 
   private List<AgentInstanceHistoryContent> contentBlocks(
@@ -365,8 +356,7 @@ public class AgentInstanceHistoryMapper {
               toDocumentReferenceResponse(ref, document.metadata(), documentHandling));
       // External document references are not yet representable as a document content block on the
       // engine; fall back to an object reference block (follow-up: team decision).
-      case ExternalDocumentReference ref ->
-          externalDocumentReferenceContent(ref, document, documentHandling);
+      case ExternalDocumentReference ref -> externalDocumentReferenceContent(ref);
       case null, default ->
           throw new IllegalArgumentException(
               "Unsupported document reference type for history item: "
@@ -377,16 +367,12 @@ public class AgentInstanceHistoryMapper {
   }
 
   private AgentInstanceHistoryContent externalDocumentReferenceContent(
-      ExternalDocumentReference ref, Document document, DocumentHandling documentHandling) {
-    final var name =
-        ref.name() == null && documentHandling instanceof DocumentHandling.Tracked
-            ? AgentDocumentId.of(document).value()
-            : ref.name();
-    if (ref.url() == null || name == null) {
+      ExternalDocumentReference ref) {
+    if (ref.url() == null || ref.name() == null) {
       throw new IllegalArgumentException(
           "External document reference requires both url and name for a history item");
     }
-    return objectHistoryContent(new ExternalDocumentReferenceModel(ref.url(), name));
+    return objectHistoryContent(new ExternalDocumentReferenceModel(ref.url(), ref.name()));
   }
 
   private DocumentReferenceResponseImpl toDocumentReferenceResponse(
