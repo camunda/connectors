@@ -20,7 +20,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aDataPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aDocumentPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aTextPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
@@ -547,31 +546,6 @@ class A2aGatewayToolHandlerTest {
       var documents = handler.extractDocuments(toolCallResult);
 
       assertThat(documents).containsExactly(document);
-    }
-
-    @Test
-    void extractsDocumentsNestedInA2aDataPart() {
-      var document1 = createDocument("a2a-data-doc-1");
-      var document2 = createDocument("a2a-data-doc-2");
-      var message =
-          A2aMessage.builder()
-              .role(A2aMessage.Role.AGENT)
-              .messageId("msg-1")
-              .contextId("ctx-1")
-              .contents(
-                  List.of(
-                      A2aDataPart.dataPart(
-                          Map.of(
-                              "report",
-                              document1,
-                              "attachments",
-                              List.of(Map.of("file", document2))))))
-              .build();
-      var toolCallResult = createToolCallResultWithContent("call1", "A2A_a2a1", message);
-
-      var documents = handler.extractDocuments(toolCallResult);
-
-      assertThat(documents).containsExactlyInAnyOrder(document1, document2);
     }
 
     @Test

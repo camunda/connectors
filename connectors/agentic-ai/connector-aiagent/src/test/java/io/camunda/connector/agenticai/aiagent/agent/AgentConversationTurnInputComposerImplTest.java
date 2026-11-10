@@ -20,6 +20,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
@@ -94,7 +95,9 @@ class AgentConversationTurnInputComposerImplTest {
         .thenReturn(java.util.Optional.empty());
     composer =
         new AgentConversationTurnInputComposerImpl(
-            gatewayToolHandlers, new ToolCallResultsInputBuilder());
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilder(),
+            TestDocuments.objectHandleRenderer());
   }
 
   private CompositionResult resolve(
@@ -545,6 +548,81 @@ class AgentConversationTurnInputComposerImplTest {
         .first()
         .satisfies(r ->
             assertThat(r.content()).containsExactly(DocumentContent.documentContent(weatherDoc)));
+    assertThat(nextTurn.documents()).isEmpty();
+  }
+
+  /** The typed content of a gateway tool result, with a document nested in a record. */
+  record GatewayResponse(String text, GatewayPart part) {}
+
+  record GatewayPart(Map<String, Object> data) {}
+
+  private ToolCallResult gatewayResultWithNestedDocument(Document document) {
+    // the handler of the gateway extracts no document from the typed content
+    final var handler = mock(GatewayToolHandler.class);
+    when(handler.extractDocuments(any())).thenReturn(List.of());
+    when(gatewayToolHandlers.handlerForToolDefinition("getWeather"))
+        .thenReturn(java.util.Optional.of(handler));
+    return ToolCallResult.builder()
+        .id("abcdef")
+        .name("getWeather")
+        .content(new GatewayResponse("Sunny", new GatewayPart(Map.of("report", document))))
+        .build();
+  }
+
+  @Test
+  void toolResultTurn_documentNestedInTypedGatewayContent_isRegisteredAsTheModelReadsItsHandle() {
+    var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(
+                gatewayResultWithNestedDocument(weatherDoc),
+                ToolCallResult.builder()
+                    .id("fedcba")
+                    .name("getDateTime")
+                    .content("15:00")
+                    .build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
+
+    var nextTurn = inputOf(result);
+    assertThat(nextTurn.messages()).hasSize(1);
+    assertThat(nextTurn.documents())
+        .containsExactly(
+            AgentDocument.of(weatherDoc, AgentDocumentOrigin.toolCall("getWeather", "abcdef")));
+  }
+
+  @Test
+  void
+      toolResultTurn_documentNestedInTypedGatewayContent_withoutTheDocumentsFeature_followsTheHandler() {
+    var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
+    var legacyContext =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .conversation(InProcessConversationContext.builder("conv").build())
+            .build();
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(
+                gatewayResultWithNestedDocument(weatherDoc),
+                ToolCallResult.builder()
+                    .id("fedcba")
+                    .name("getDateTime")
+                    .content("15:00")
+                    .build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = resolve(CONFIG, legacyContext, history, input);
+
+    // no document message: the handler extracts no document
+    var nextTurn = inputOf(result);
+    assertThat(nextTurn.messages()).hasSize(1).first().isInstanceOf(ToolCallResultMessage.class);
     assertThat(nextTurn.documents()).isEmpty();
   }
 

@@ -81,7 +81,9 @@ class NonCamundaDocumentsConversationTest {
     when(gatewayToolHandlers.handlerForToolDefinition(any())).thenReturn(Optional.empty());
     composer =
         new AgentConversationTurnInputComposerImpl(
-            gatewayToolHandlers, new ToolCallResultsInputBuilder());
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilder(),
+            TestDocuments.objectHandleRenderer());
   }
 
   private static PreviousConversation firstTurn() {

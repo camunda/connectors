@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput.UserPrompt;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
@@ -66,13 +67,16 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
   private final ToolCallResultsInputBuilder toolCallResultsInputBuilder;
+  private final ObjectHandleRenderer objectHandleRenderer;
 
   public AgentConversationTurnInputComposerImpl(
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      ToolCallResultsInputBuilder toolCallResultsInputBuilder) {
+      ToolCallResultsInputBuilder toolCallResultsInputBuilder,
+      ObjectHandleRenderer objectHandleRenderer) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
     this.toolCallResultsInputBuilder = toolCallResultsInputBuilder;
+    this.objectHandleRenderer = objectHandleRenderer;
   }
 
   @Override
@@ -114,7 +118,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               interruptMissingToolCalls);
       final var processEntries =
           processResults.arrivedResults().stream()
-              .map(result -> ToolCallBatch.Entry.from(result, documentExtractor))
+              .map(result -> processEntry(result, documentHandling))
               .toList();
       switch (documentHandling) {
         case DocumentHandling.Tracked ignored ->
@@ -246,6 +250,21 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return new ProcessToolCallResults(arrivedToolCallResults, false);
     }
     return new ProcessToolCallResults(arrivedToolCallResults, true);
+  }
+
+  /**
+   * The entry of a process tool result. An agent instance that tracks its documents registers the
+   * documents the model reads as handles; an instance that does not adds the documents its gateway
+   * tool handler extracts in a message of their own.
+   */
+  private ToolCallBatch.Entry processEntry(
+      ToolCallResult result, DocumentHandling documentHandling) {
+    return switch (documentHandling) {
+      case DocumentHandling.Tracked ignored ->
+          ToolCallBatch.Entry.withRenderedDocuments(result, objectHandleRenderer);
+      case DocumentHandling.Untracked ignored ->
+          ToolCallBatch.Entry.from(result, documentExtractor);
+    };
   }
 
   private ToolCallBatch.Entry cancelled(ToolCall toolCall) {

@@ -146,7 +146,10 @@ Tool call results may contain Camunda `Document` instances — at the root, nest
 embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent extracts those documents, and
 what it does with them depends on the agent instance. For an instance with the `documents` feature the documents are
 references in the conversation: the agent registers them in the agent documents of the `agentContext`, and the tool
-result shows each document as its handle, a small JSON object, not its content. An instance without the feature keeps the
+result shows each document as its handle, a small JSON object, not its content. The agent registers exactly the documents
+the model reads as handles: `ToolCallResultDocumentExtractor.renderedDocumentsOf` collects every document that
+`ObjectHandleRenderer` replaces with its handle, at any depth and also inside a typed record, whatever gateway tool
+handler manages the result. An instance without the feature keeps the
 behavior of [ADR-004](../adr/004-document-handling-in-tool-call-results.md): the documents go into a synthetic follow-up
 `UserMessage` with native `DocumentContent` blocks so LLMs can interpret them. Design rationale:
 [ADR 018](../adr/018-document-flow.md), which extends [ADR 004](../adr/004-document-handling-in-tool-call-results.md).
@@ -215,8 +218,8 @@ evicted assistant message are not tracked, and handles the model writes in the f
 content type is not sniffed from the bytes for documents of unknown type. The follow-ups that close these limits are
 listed in [ADR 018](../adr/018-document-flow.md).
 
-`ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` for each
-process tool call result, before `ToolCallResultsInputBuilder` builds the `ToolCallResultMessage`. For each result it asks the registry which handler manages
+For an instance without the `documents` feature, `ToolCallResultDocumentExtractor` is the entrypoint, called from
+`AgentConversationTurnInputComposerImpl` for each process tool call result, before `ToolCallResultsInputBuilder` builds the `ToolCallResultMessage`. For each result it asks the registry which handler manages
 the tool name (`GatewayToolHandlerRegistry.handlerForToolDefinition`) and either:
 
 - delegates to that handler's `extractDocuments(ToolCallResult)` — handlers walk their own typed

@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.mcp.integration.McpToolCallIdentifi
 import static io.camunda.connector.agenticai.mcp.integration.McpToolCallIdentifier.MCP_PREFIX;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
@@ -29,7 +28,6 @@ import io.camunda.connector.agenticai.mcp.client.model.content.McpContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpDocumentContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent.BlobDocumentResource;
-import io.camunda.connector.agenticai.mcp.client.model.content.McpObjectContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
@@ -315,11 +313,8 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
             addIfNotNull(documents, blobDocumentResource.document());
           }
         }
-        case McpObjectContent objectContent ->
-            documents.addAll(
-                ContentTreeDocumentWalker.extractDocumentsFromContent(objectContent.content()));
         default -> {
-          // text/blob/resourceLink — no documents
+          // text/object/blob/resourceLink — no documents
         }
       }
     }

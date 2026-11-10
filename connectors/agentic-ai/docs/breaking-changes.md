@@ -209,8 +209,8 @@ client in its properties does not start.
   `TurnInput`, with the documents that enter the conversation with it, which the request handler registers. `Ready` holds the agent context, the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
   of a turn without tool call results, and the event messages. `Deferred.arrivedResults` holds only the results that
   arrived from the process.
-- The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`, a bean of the
-  auto-configuration.
+- The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an
+  `ObjectHandleRenderer`, beans of the auto-configuration.
 
 `AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
 process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent produces the tool call
@@ -242,8 +242,9 @@ extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate
 
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take
 `RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`, and the constructor of
-`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`. The auto-configuration provides these
-beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra arguments; inject them as beans.
+`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`. The
+auto-configuration provides these beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra
+arguments; inject them as beans.
 
 ### Conversation window
 

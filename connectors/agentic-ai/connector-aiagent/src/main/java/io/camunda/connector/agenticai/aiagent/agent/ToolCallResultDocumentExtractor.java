@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker;
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -86,6 +87,28 @@ public class ToolCallResultDocumentExtractor {
         case ObjectContent objectContent ->
             documents.addAll(
                 ContentTreeDocumentWalker.extractDocumentsFromContent(objectContent.content()));
+        default -> {
+          // only these blocks hold live documents
+        }
+      }
+    }
+    return distinct(documents);
+  }
+
+  /**
+   * Extracts the {@link Document} instances of structured content the way the model reads it: the
+   * documents of its {@link DocumentContent} blocks and every document that the renderer replaces
+   * with its handle in its {@link ObjectContent} blocks, at any depth and also inside a typed
+   * record, without duplicates and in order of appearance. No gateway tool handler takes part.
+   */
+  public static List<Document> renderedDocumentsOf(
+      List<Content> content, ObjectHandleRenderer objectHandleRenderer) {
+    final var documents = new ArrayList<Document>();
+    for (final var block : content) {
+      switch (block) {
+        case DocumentContent documentContent -> documents.add(documentContent.document());
+        case ObjectContent objectContent ->
+            documents.addAll(objectHandleRenderer.documentsIn(objectContent.content()));
         default -> {
           // only these blocks hold live documents
         }

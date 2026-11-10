@@ -29,6 +29,7 @@ import java.util.List;
 public class ObjectHandleRenderer {
 
   private static final String COLLECTED_DOCUMENTS = "collectedDocuments";
+  private static final String COLLECT_ONLY = "collectOnly";
 
   /**
    * Reads the rendered object back as plain JSON values. It has no modules: the data of the object
@@ -55,6 +56,27 @@ public class ObjectHandleRenderer {
    * @param documents the documents the handles stand for, one entry per occurrence
    */
   public record RenderedObject(Object tree, List<Document> documents) {}
+
+  /**
+   * The documents that {@link #render(Object)} replaces with their handles, in order of appearance,
+   * one entry per occurrence. No handle is built, so a document whose reference the agent does not
+   * support is reported too, for the caller to reject.
+   */
+  public List<Document> documentsIn(Object value) {
+    final var documents = new ArrayList<Document>();
+    try (var buffer = new TokenBuffer(handleMapper, false)) {
+      handleMapper
+          .writer()
+          .withAttribute(COLLECTED_DOCUMENTS, documents)
+          .withAttribute(COLLECT_ONLY, true)
+          .writeValue(buffer, value);
+      return List.copyOf(documents);
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Failed to collect the documents of the object", e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
 
   /**
    * Renders the object with a {@link Document} at any depth as its handle object (see {@link
@@ -87,6 +109,10 @@ public class ObjectHandleRenderer {
       final var collected = (List<Document>) provider.getAttribute(COLLECTED_DOCUMENTS);
       if (collected != null) {
         collected.add(document);
+      }
+      if (Boolean.TRUE.equals(provider.getAttribute(COLLECT_ONLY))) {
+        gen.writeNull();
+        return;
       }
       gen.writeTree(AgentDocumentHandle.of(document).tree());
     }

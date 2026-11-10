@@ -123,7 +123,9 @@ class LegacyDocumentConversationTest {
     when(gatewayToolHandlers.handlerForToolDefinition(any())).thenReturn(Optional.empty());
     composer =
         new AgentConversationTurnInputComposerImpl(
-            gatewayToolHandlers, new ToolCallResultsInputBuilder());
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilder(),
+            TestDocuments.objectHandleRenderer());
   }
 
   @Test

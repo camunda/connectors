@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -53,6 +54,28 @@ class ObjectHandleRendererTest {
                     Map.of("file", TestDocuments.handleObject(first)),
                     Map.of("file", TestDocuments.handleObject(second)))));
     assertThat(rendered.documents()).containsExactly(first, second);
+  }
+
+  record Part(String text, Map<String, Object> data) {}
+
+  @Test
+  void collectsTheDocumentsItRendersAsHandlesAlsoInsideARecord() {
+    final var first = camundaDocument("one");
+    final var second = camundaDocument("two");
+
+    final var documents =
+        renderer.documentsIn(
+            List.of(new Part("text", Map.of("file", first)), Map.of("files", List.of(second))));
+
+    assertThat(documents).containsExactly(first, second);
+  }
+
+  @Test
+  void collectsADocumentWhoseReferenceTheAgentDoesNotSupportWithoutFailing() {
+    final var inline = new InlineDocument("secret content", "report.txt", "text/plain");
+
+    assertThat(renderer.documentsIn(Map.of("report", Map.of("file", inline))))
+        .containsExactly(inline);
   }
 
   @Test

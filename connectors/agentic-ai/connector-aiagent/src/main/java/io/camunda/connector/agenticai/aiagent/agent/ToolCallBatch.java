@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -114,6 +115,20 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
               .flatMap(group -> group.documents().stream())
               .toList();
       return new Entry(ToolCallResultContent.from(result), documents);
+    }
+
+    /**
+     * The entry of a result as the process returned it, for an agent instance that tracks its
+     * documents. The documents are the ones the model reads as handles: every document the renderer
+     * finds in the result, at any depth, whatever gateway tool handler manages the result.
+     */
+    public static Entry withRenderedDocuments(
+        ToolCallResult result, ObjectHandleRenderer objectHandleRenderer) {
+      final var content = ToolCallResultContent.from(result);
+      return new Entry(
+          content,
+          ToolCallResultDocumentExtractor.renderedDocumentsOf(
+              content.content(), objectHandleRenderer));
     }
 
     /** The entry of a result with structured content; the documents are the ones of its content. */
