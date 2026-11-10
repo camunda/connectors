@@ -293,9 +293,8 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public DocumentExpander aiAgentDocumentExpander(
-      ObjectHandleRenderer objectHandleRenderer, DocumentContentGuard documentContentGuard) {
-    return new DocumentExpander(objectHandleRenderer, documentContentGuard);
+  public DocumentExpander aiAgentDocumentExpander(ObjectHandleRenderer objectHandleRenderer) {
+    return new DocumentExpander(objectHandleRenderer);
   }
 
   @Bean

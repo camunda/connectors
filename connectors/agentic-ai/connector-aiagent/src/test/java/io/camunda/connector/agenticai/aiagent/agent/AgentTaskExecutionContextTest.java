@@ -19,9 +19,7 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 import java.util.stream.Stream;
@@ -60,18 +58,13 @@ class AgentTaskExecutionContextTest {
   }
 
   @Test
-  void resolvesADocumentReferenceOnceForTheJob() {
-    final var runtimeFactory = mock(DocumentFactory.class);
-    final var reference = mock(DocumentReference.class);
-    when(runtimeFactory.resolve(reference)).thenAnswer(invocation -> mock(Document.class));
+  void exposesTheDocumentFactoryOfTheJob() {
+    final var documentFactory = mock(DocumentFactory.class);
     final var context =
         new AgentTaskExecutionContext(
-            jobContext, runtimeFactory, agentRequest, toolElementsResolver);
+            jobContext, documentFactory, agentRequest, toolElementsResolver);
 
-    final var first = context.documentFactory().resolve(reference);
-
-    assertThat(context.documentFactory().resolve(reference)).isSameAs(first);
-    verify(runtimeFactory, times(1)).resolve(reference);
+    assertThat(context.documentFactory()).isSameAs(documentFactory);
   }
 
   @ParameterizedTest

@@ -41,6 +41,7 @@ import io.camunda.connector.runtime.core.document.InlineDocument;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -82,7 +83,7 @@ class NonCamundaDocumentsConversationTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(),
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
             TestDocuments.objectHandleRenderer());
   }
 
@@ -113,7 +114,7 @@ class NonCamundaDocumentsConversationTest {
 
   private TurnInput assemble(CompositionResult result) {
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
-    return composer.assemble((CompositionResult.Ready) result);
+    return composer.assemble((CompositionResult.Ready) result, TestDocuments.documentFactory());
   }
 
   private void assertFailsWith(Runnable composition, String message) {
@@ -201,7 +202,8 @@ class NonCamundaDocumentsConversationTest {
     final var entry =
         new ToolCallBatch.Entry(
             unnamed.withContent(List.of(DocumentContent.documentContent(EXTERNAL))),
-            List.of(EXTERNAL));
+            List.of(EXTERNAL),
+            List.of());
 
     assertFailsWith(
         entry::requireCamundaDocuments,
@@ -224,7 +226,9 @@ class NonCamundaDocumentsConversationTest {
                     ToolCallBatch.Entry.from(ToolCallResultContent.from(dateTime()))));
 
     assertFailsWith(
-        () -> new ToolCallResultsInputBuilder().build(TRACKED, batch),
+        () ->
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery())
+                .build(TRACKED, batch, Set.of(), TestDocuments.documentFactory()),
         PREFIX + "the result of the tool 'acme_create_report' contains an inline document.");
   }
 
