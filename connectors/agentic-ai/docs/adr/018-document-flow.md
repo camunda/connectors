@@ -16,9 +16,9 @@ four problems:
 
 * The content costs tokens in every later request. A request fails when the provider cannot read the file type. Usually
   the model only has to pass the document to a tool.
-* The conversation stores an inline document several times. When the window evicts the message, the document is lost.
-* The model cannot pass a document to a tool. The reference of a Camunda document is long and shows store details. An
-  external URL can contain a token.
+* The conversation stores a document in every message that holds it. When the window evicts the message, the document is
+  lost.
+* The model cannot pass a document to a tool. The reference of a Camunda document is long and shows store details.
 * The model cannot return a document with the final response.
 
 The agent must give the model these four capabilities:
@@ -35,7 +35,7 @@ and A2A tools, Modeler support or document retention.
 ## Decision Drivers
 
 * **Tokens and providers**: content goes into a request only when the model needs it and every provider can read it.
-* **No store details for the model**: store ids, content hashes and URLs never go to the model, to tool arguments or to
+* **No store details for the model**: store ids and content hashes never go to the model, to tool arguments or to
   the history.
 * **Stable requests**: the bytes of a request prefix do not change between requests, for prompt caching. The agent never
   changes a stored message.
@@ -58,8 +58,8 @@ and A2A tools, Modeler support or document retention.
 Chosen option: **Option 2**. A handle costs a few dozen tokens, so a conversation can hold many documents. The model
 needs the content only in two known cases: the model asks for it, or the process designer knows it before.
 
-Option 3 is rejected. A window or a compaction that drops a message also drops its documents. The conversation stores an
-inline document in every message that holds it. A document in several messages needs a rule for the message that wins.
+Option 3 is rejected. A window or a compaction that drops a message also drops its documents. The conversation stores a
+document in every message that holds it. A document in several messages needs a rule for the message that wins.
 
 ### Vocabulary
 
@@ -69,7 +69,7 @@ inline document in every message that holds it. A document in several messages n
 | **Agent document**    | One of them: its document id, its document origin and its SDK reference (`AgentDocument`).              |
 | **Document id**       | The stable id of an agent document, calculated from the document (`AgentDocumentId`).                  |
 | **Document origin**   | The location where the document entered the conversation: user prompt, event or tool call (`AgentDocumentOrigin`). |
-| **SDK reference**     | The reference of the connector SDK to a Camunda document, an external URL or inline content.            |
+| **SDK reference**     | The reference of the connector SDK to a Camunda document.                                               |
 | **SDK document block** | A content block that holds a live document of the connector SDK (`DocumentContent`).                    |
 | **Document block**    | A content block that holds a document id and a delivery (`AgentDocumentContent`).                       |
 | **Handle**            | The JSON object that the model reads and writes for a document (`AgentDocumentHandle`).                 |
@@ -105,8 +105,7 @@ Consequences accepted:
 ### Document ids
 
 The agent calculates the document id from the document: `doc_` and 12 hexadecimal characters of a SHA-256 hash. The hash
-input is the store and the store id for a Camunda document, the URL for an external document, and the content for an
-inline document. The same document gets the same id in every job. When a job runs again, it calculates the same agent
+input is the store and the store id of the Camunda document. The same document gets the same id in every job. When a job runs again, it calculates the same agent
 documents. When a new document gets the id of a different document, the agent fails with an error. It never merges the
 two documents. With 48 bits, this is not expected.
 
@@ -115,9 +114,6 @@ Alternatives:
 * *The store id.* It ignores the store, shows an internal id, and can be any string.
 * *A random or sequential id.* It needs persisted state and an index to find a document that comes again.
 * *A UUID.* It costs more tokens in every handle. 48 bits are sufficient for one agent instance.
-
-Consequences accepted: a presigned URL that changes gives the same file a new id. Two inline documents with the same
-content are one document.
 
 ### The model reads handles only
 
@@ -176,7 +172,6 @@ One content guard checks each addition of content, for all requests:
   provider can read. A document without a content type does not pass.
 * The limits for each class are operator configuration, not job input. The default limits are below the limits of the
   most restrictive provider.
-* The guard checks an external document after the download, as all other documents.
 * When the guard rejects a document, the document stays a `reference`. The model gets a short sentence with the content
   type, the size and the limit. The cause goes to the log only, because it can contain a URL with a token. A rejection
   causes no incident.
@@ -261,11 +256,25 @@ document. Thus the model can pass the document to a tool or load it again.
 
 A note that lists the hidden documents is rejected. It costs one handle per document in every request.
 
-### Inline documents
+### Only Camunda documents
 
-The runtime limits the variables of a job completion to 1.5 MB, and an inline document stores its content in the agent
-context. The agent rejects an inline document above this limit when it registers the document, before the model call.
-The error has its own error code. The runtime check covers all other cases.
+An agent instance with the `documents` feature accepts only Camunda documents. It supports no external document (a URL)
+and no inline document (the content is in the reference).
+
+A Camunda document fits the agent documents. Its content cannot change, and it has a content hash. Its metadata (type,
+size, file name and expiry) is known without a download, so the history can show it. An external document is downloaded
+again in every job, and its URL can serve other content later. This breaks prompt caching and the content checks. An
+inline document carries its content in the reference, so the agent would persist the content in the agent context.
+
+A document that is not a Camunda document fails the job with the error code `UNSUPPORTED_DOCUMENT_REFERENCE`, at each
+place where a document enters the conversation: the user prompt, the result of a tool and an event. In a tool result, the
+document can be nested in an object at any depth, and a runtime tool can return it. The agent checks the documents on
+entry, before it registers or stores one. Thus the agent documents, the conversation, the expansion and the history
+hold Camunda documents only. The message names the kind of the document and the place, never a file name or a URL.
+
+A tool result and an event cannot change. The incident repeats on each retry until the process passes a Camunda document.
+
+An instance without the `documents` feature keeps its behavior and accepts external and inline documents.
 
 ### Instance features and the legacy path
 
@@ -273,7 +282,8 @@ The agent context lists the features of the agent instance: `runtimeTools` and `
 when it creates the instance and does not add features later. The `documents` feature selects the document handling:
 `Untracked` without the feature, `Tracked` with it. Each place that treats documents matches both variants.
 
-An instance without the `documents` feature behaves as before. Documents are content with the XML tag format. There are
+An instance without the `documents` feature behaves as before. Documents are content with the XML tag format, and all
+kinds of documents are accepted. There are
 no agent documents, response documents or document parameters.
 
 Alternatives: *migrate running instances* is not possible for an append-only store. *A global switch* changes all
@@ -315,8 +325,9 @@ the SDK reference that a tool received.
 * **Per-provider limits and documents in tool results.** A capability matrix of the providers replaces the global limits
   and lets the agent put content into a tool result for models that accept it.
 * **A token-based guard, a budget per turn or a way to remove content.**
-* **A bounded download of external documents.** Then the guard can reject a document before the download.
-* **Handles in the history for external documents.** The history can show a URL with a token.
+* **External and inline documents.** Support both kinds of reference. The agent passes an external document to the
+  provider as a URL and does not download it. It stores an inline document as a Camunda document on entry
+  (https://github.com/camunda/connectors/issues/5587).
 * **Response documents in the agent documents.** A marker on the agent document replaces the separate selections.
 * **Removal of agent documents and a size budget.**
 * **Compaction.** It must keep the agent documents and decide what happens to delivered content.

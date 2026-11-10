@@ -301,8 +301,8 @@ factory of the job.
   therefore sees text for these instances; instances without the feature keep the earlier form.
 - New in the model: `AgentDocumentId`, the value type of a document id (persisted as a plain string), used by the agent
   documents and `AgentDocumentContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the
-  identity of the document (the store and the id in the store of a Camunda document, the URL of an external document, the
-  content of an inline document), so it is no longer the id of the document in its store.
+  identity of the document (the store and the id in the store of a Camunda document), so it is no longer the id of the
+  document in its store.
   `AgentDocumentContent` holds the `AgentDocumentId`, the `delivery` and the content `metadata`; the file name, content
   type and size the model reads are those of the agent document of the id, and the `AgentDocumentHandle` (JSON, see below) is built from it.
   `DocumentContent` stays the content of a new document;
