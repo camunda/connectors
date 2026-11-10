@@ -254,8 +254,8 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
   incident.
   This is a deliberate exception to gating a change of the persisted shape on the feature.
 - To add a tool of your own, implement `RuntimeTool` (`definition`, `isEnabled(RuntimeToolContext)`,
-  `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see §25.4 of the
-  [reference](reference/ai-agent.md)). Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
+  `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see
+  [Add a runtime tool](architecture/extension-points.md#add-a-runtime-tool)). Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
   `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
   call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
   error result from the executor; neither goes to the process.
