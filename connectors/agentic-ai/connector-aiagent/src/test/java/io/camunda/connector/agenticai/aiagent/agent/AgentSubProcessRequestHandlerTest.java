@@ -2067,14 +2067,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var messages = requests.get(1).snapshot().messages();
     assertThat(messages.get(messages.size() - 2)).isInstanceOf(ToolCallResultMessage.class);
-    assertThat(messages.getLast())
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            message -> {
-              assertThat(message.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-              assertThat(message.content()).anyMatch(DocumentContent.class::isInstance);
-            });
+    assertContentMessageOf(messages.getLast(), KNOWN_DOCUMENT);
   }
 
   @Test
@@ -2529,13 +2522,9 @@ class AgentSubProcessRequestHandlerTest {
     // the first request shows the document as a tag only
     final var firstRequestMessages =
         chatModelRequestCaptor.getAllValues().get(0).snapshot().messages();
-    assertThat(firstRequestMessages)
-        .noneMatch(message ->
-            message instanceof UserMessage user
-                && user.content().stream().anyMatch(DocumentContent.class::isInstance));
+    assertThat(firstRequestMessages.getLast()).isEqualTo(USER_MESSAGE);
     assertThat(chatModelRequestCaptor.getAllValues().get(0).snapshot().toolDefinitions())
-        .extracting(ToolDefinition::name)
-        .contains(LoadDocumentTool.NAME);
+        .contains(new LoadDocumentTool().definition());
 
     // the second request has the tool result followed by the message with the loaded content
     final var secondRequestMessages =
@@ -2567,19 +2556,13 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(c.messages().get(4))
                   .isInstanceOfSatisfying(
                       UserMessage.class,
-                      message -> {
-                        assertThat(message.content())
-                            .noneMatch(DocumentContent.class::isInstance)
-                            .hasSize(2);
-                        assertThat(message.content().get(1))
-                            .isInstanceOfSatisfying(
-                                AgentDocumentContent.class,
-                                reference -> {
-                                  assertThat(reference.id()).isEqualTo(documentId);
-                                  assertThat(reference.delivery())
-                                      .isEqualTo(DocumentDelivery.CONTENT);
-                                });
-                      });
+                      message ->
+                          assertThat(message.content())
+                              .containsExactly(
+                                  TextContent.textContent(
+                                      ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+                                  AgentDocumentContent.of(documentId)
+                                      .withDelivery(DocumentDelivery.CONTENT)));
             });
 
     // the round reports both messages as input of its turn
@@ -2625,7 +2608,12 @@ class AgentSubProcessRequestHandlerTest {
             UserMessage.class,
             userMessage -> {
               assertThat(userMessage.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+                  .isEqualTo(
+                      Map.of(
+                          "timestamp",
+                          userMessage.metadata().get("timestamp"),
+                          UserMessage.METADATA_TOOL_CALL_DOCUMENTS,
+                          true));
               assertThat(userMessage.content()).hasSize(3);
               assertThat(userMessage.content().get(0))
                   .isEqualTo(

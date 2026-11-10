@@ -64,6 +64,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -1172,7 +1173,7 @@ class AgentConversationTurnInputComposerImplTest {
         resolveReady(
             CONFIG, contextKnowing(document), history, inputWith(TOOL_CALL_RESULTS.get(1)));
 
-    assertThat(ready.documentIdsWithContent()).contains(id);
+    assertThat(ready.documentIdsWithContent()).isEqualTo(Set.of(id));
     assertThat(
             composer
                 .assemble(
