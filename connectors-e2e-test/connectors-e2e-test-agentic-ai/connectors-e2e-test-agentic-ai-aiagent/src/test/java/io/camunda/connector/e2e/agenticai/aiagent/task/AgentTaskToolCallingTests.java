@@ -19,9 +19,11 @@ package io.camunda.connector.e2e.agenticai.aiagent.task;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.SUPERFLUX_PRODUCT_TOOL_NAME;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
+import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.client.api.search.enums.IncidentErrorType;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
@@ -122,11 +124,10 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
   }
 
   @Test
-  void supportsExternalDocumentReferenceResponsesFromToolCalls() throws Exception {
-    final var initialUserPrompt = "Reference an external document!";
+  void raisesAnIncidentWhenAToolReturnsAnExternalDocument() throws Exception {
     final var docUrl = wireMock.getHttpBaseUrl() + "/test.pdf";
-    final var docName = "Quarterly Report";
-    final var aiFinalResponseText = "Referenced the external document.";
+    final var message =
+        "Only Camunda documents can be passed to the AI Agent, but the result of the tool 'External_File_Reference' contains an external document.";
 
     OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
@@ -136,45 +137,26 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
             ToolCall.of(
                 "ext111",
                 "External_File_Reference",
-                "{\"url\": \"%s\", \"name\": \"%s\"}".formatted(docUrl, docName))),
-        Turn.text(aiFinalResponseText, 11, 22));
-
-    enqueueUserFeedback(userSatisfiedFeedback());
+                "{\"url\": \"%s\", \"name\": \"Quarterly Report\"}".formatted(docUrl))));
 
     final var zeebeTest =
-        awaitProcessCompletion(
-            createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
+        awaitActiveIncidents(
+            createProcessInstance(e -> e, Map.of("userPrompt", "Reference an external document!")));
 
-    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests();
-    assertThat(recorded.modelCallCount()).isEqualTo(2);
-
-    final var lastMessages = recorded.lastRequest().messages();
-    assertThat(lastMessages).hasSize(4);
-
-    assertRole(lastMessages.get(0), "system");
-    assertRole(lastMessages.get(1), "user"); // initial prompt
-    assertRole(lastMessages.get(2), "assistant"); // tool call
-
-    // tool result: external document shown as a handle with its name, never its URL
-    assertRole(lastMessages.get(3), "tool");
-    final var externalHandle = parseDocumentHandle(lastMessages.get(3).content());
-    assertThat(externalHandle.fileName()).isEqualTo(docName);
-    assertThat(lastMessages.get(3).content()).doesNotContain(docUrl);
-
-    assertThat(externalHandle.size()).isNull();
-
-    assertAgentResponse(
+    assertIncident(
         zeebeTest,
-        agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42), 1))
-                .hasResponseMessageText(aiFinalResponseText)
-                .hasResponseText(aiFinalResponseText));
-
-    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
+        incident -> {
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
+          assertThat(incident.getErrorType()).isEqualTo(IncidentErrorType.JOB_NO_RETRIES);
+          // the incident message ends with the variables of the error, in no fixed order
+          assertThat(incident.getErrorMessage())
+              .startsWith(message + " | Error variables: {error={")
+              .contains(
+                  "message=" + message,
+                  "code=UNSUPPORTED_DOCUMENT_REFERENCE",
+                  "type=io.camunda.connector.api.error.ConnectorException");
+        });
+    assertThat(OpenAiCompletionsRecordedConversation.recorded().modelCallCount()).isEqualTo(1);
   }
 
   @Test
