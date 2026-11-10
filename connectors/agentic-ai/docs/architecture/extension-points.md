@@ -229,7 +229,8 @@ switched off. A switch is a follow-up of [ADR 018](../adr/018-document-flow.md).
 **The delivery `content`.** It is the opt-in that adds content without a `c8__load_document` call, in the
 same persisted form. It is set for the documents of the user prompt, with the
 dropdown *Document delivery* (`data.userPrompt.documentDelivery`, choices `reference` (default) and `content`; the v2
-templates have it, the frozen v1 templates leave it out), and for the documents a process tool returns, with the extension
+templates of version 5 have it, the frozen v1 templates leave it out; the migration recipe of the v2 templates sets
+`content` for an element updated with `c8ctl element-template update` that has no value), and for the documents a process tool returns, with the extension
 property `io.camunda.agenticai.documents.delivery` on the tool activity ([Tool Resolution](../../aiagent-tools-schema/docs/tool-resolution.md#job-worker-flavor)), which takes `reference` or `content`
 (`AdHocToolsSchemaResolverImpl` reads it; another value fails the tool discovery with a message that names the element). The
 composer reads the delivery of a tool from the stored tool definitions (`AgentContext.documentDeliveryOf`, `reference` for a

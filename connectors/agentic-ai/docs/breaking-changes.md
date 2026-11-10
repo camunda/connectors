@@ -330,9 +330,13 @@ The tool definitions of the snapshot are the ones the model provider gets: witho
   (`data.userPrompt.documentDelivery`, `reference` by default), so a process modeled with them gives the model the handles of
   the prompt documents, which it loads with `c8__load_document`, unless the dropdown is set to `content`. A process that has
   no value, such as one deployed before the dropdown existed and every v1 template, keeps the content of every prompt
-  document. Updating a task or sub-process to the v2 template version that has the dropdown in the Modeler applies the
+  document. The v2 templates that have the dropdown are the template version 5 for Camunda 8.11 (the versions 2 to 4 are
+  left to patches of the 8.10 templates). A new element and an element updated to version 5 in the Modeler gets the
   default `reference`: from then on the prompt documents of an agent instance that tracks its documents are handles, and so
-  are the documents of a tool result, which no option could turn into content before.
+  are the documents of a tool result, which no option could turn into content before. `c8ctl element-template update`
+  applies the migration recipe of the version 5 templates (`metadata.migratesFrom`), which sets the dropdown to `content`
+  for an element that has no value, so an element updated from the v2 version 1 template or from the v1 template keeps
+  the content of its prompt documents, and the content guard checks each document. Select `reference` to change that.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
