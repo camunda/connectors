@@ -23,11 +23,13 @@ import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -135,9 +137,26 @@ final class JavaSourceIndex {
     return List.copyOf(declared.getOrDefault(simpleName, List.of()));
   }
 
-  /** The simple names of all declared types. */
-  Set<String> declaredNames() {
-    return new TreeSet<>(declared.keySet());
+  /**
+   * Up to five simple names of declared types that are similar to the name: one contains the other,
+   * or they differ in at most two characters. The closest come first, ties in alphabetical order.
+   * Case is ignored.
+   */
+  List<String> similarNames(final String name) {
+    final String lower = name.toLowerCase(Locale.ROOT);
+    return declared.keySet().stream()
+        .filter(candidate -> {
+          final String other = candidate.toLowerCase(Locale.ROOT);
+          return other.contains(lower)
+              || (other.length() > 3 && lower.contains(other))
+              || distance(lower, other) <= 2;
+        })
+        .sorted(
+            Comparator.comparingInt(
+                    (final String candidate) -> distance(lower, candidate.toLowerCase(Locale.ROOT)))
+                .thenComparing(Comparator.naturalOrder()))
+        .limit(5)
+        .toList();
   }
 
   /** Whether the sources declare or import the simple name, or it is a {@code java.lang} type. */
@@ -187,6 +206,25 @@ final class JavaSourceIndex {
         .flatMap(name -> load(name).stream())
         .findFirst()
         .map(JavaSourceIndex::memberNames);
+  }
+
+  private static int distance(final String a, final String b) {
+    int[] previous = new int[b.length() + 1];
+    for (int j = 0; j <= b.length(); j++) {
+      previous[j] = j;
+    }
+    for (int i = 1; i <= a.length(); i++) {
+      final int[] current = new int[b.length() + 1];
+      current[0] = i;
+      for (int j = 1; j <= b.length(); j++) {
+        current[j] =
+            Math.min(
+                Math.min(current[j - 1], previous[j]) + 1,
+                previous[j - 1] + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1));
+      }
+      previous = current;
+    }
+    return previous[b.length()];
   }
 
   private Set<Type> hierarchy(final Type type) {

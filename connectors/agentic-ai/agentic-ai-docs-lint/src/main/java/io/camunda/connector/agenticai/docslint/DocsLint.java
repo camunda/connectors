@@ -53,7 +53,7 @@ public final class DocsLint {
     return new Findings(
         Stream.of(
                 DocChecks.links(parsed, tree),
-                DocChecks.javaFences(parsed),
+                parsed.javaFences(),
                 tree.currentDoc(doc).stream()
                     .flatMap(current ->
                         Stream.concat(

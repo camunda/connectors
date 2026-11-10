@@ -72,7 +72,7 @@ final class MarkdownParser {
     private final List<Ref> headings = new ArrayList<>();
     private final List<Ref> links = new ArrayList<>();
     private final List<Ref> definitions = new ArrayList<>();
-    private final List<Ref> codeSpans = new ArrayList<>();
+    private final List<CodeSpan> codeSpans = new ArrayList<>();
     private final List<Ref> fences = new ArrayList<>();
     private final Set<String> anchors = new LinkedHashSet<>();
 
@@ -123,7 +123,7 @@ final class MarkdownParser {
 
     @Override
     public void visit(final Code code) {
-      codeSpans.add(new Ref(line(code), code.getLiteral().strip()));
+      codeSpans.add(new CodeSpan(line(code), code.getLiteral().strip()));
     }
 
     @Override
