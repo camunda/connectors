@@ -817,6 +817,23 @@ class DocsLintTest {
   }
 
   @Test
+  void aMemberOfAnImportedTypeThatSharesASimpleNameWithARepoTypeIsOnlyWarnedAbout()
+      throws IOException {
+    writeSources(SOURCES);
+    write("lib/d/User.java", "package d; import vendor.Api; class User {}");
+
+    assertThat(findStaleReferences("project/one/docs/a.md", "`vendor.Api#call`"))
+        .containsExactly(
+            new Warning(
+                Path.of("project/one/docs/a.md"),
+                1,
+                "member of `vendor.Api#call` not verified: `vendor.Api` is not declared in the repo"
+                    + " sources, so it is a type of a dependency whose classes are not loaded",
+                "the check reads the code of the repo, so it cannot see the members of a dependency",
+                "check the member against the documentation or the sources of the dependency"));
+  }
+
+  @Test
   void theJavaSourcesOfTheWholeRepositoryCountWithoutSkippedDirectories() throws IOException {
     writeSources(
         Map.of(
