@@ -14,6 +14,8 @@ module is not shipped.
 - `Findings` of `Violation` and `Warning`: a violation fails the test, a warning is reported.
 - `AgenticAiDocsTest`: the config of the agentic AI docs. Runs the checks per doc, per module and on the
   config.
+- `AgenticAiDocsSmokeTest`: seeds one defect per rule in a small tree and proves that the config of
+  `AgenticAiDocsTest` finds each.
 - `MarkdownParser` and `Doc`: a parsed Markdown file with its headings, links, code spans, fences and
   anchors.
 - `JavaSourceIndex`: the types, imports, members and supertypes of the repository sources.
