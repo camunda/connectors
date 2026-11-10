@@ -55,10 +55,8 @@ import org.jspecify.annotations.Nullable;
  * <p>Every document is replaced by the Camunda document reference JSON of the registered document
  * ({@link #resolveProcessCall}), or, for a runtime tool that looks the documents up itself, by its
  * {@link AgentDocumentId} ({@link #resolveRuntimeCall}). {@link #check} validates a call of a tool
- * of either kind. The result depends on the call, the tool definition and the agent documents only,
- * so the agent computes the same outcome wherever it needs it: when it admits a call, when it hands
- * a call to the process and when it runs a runtime tool. An {@link DocumentHandling.Untracked
- * untracked} agent instance has no document parameters.
+ * of either kind. The result depends on the call, the tool definition and the agent documents only.
+ * An {@link DocumentHandling.Untracked untracked} agent instance has no document parameters.
  */
 public class DocumentParameterResolver {
 
