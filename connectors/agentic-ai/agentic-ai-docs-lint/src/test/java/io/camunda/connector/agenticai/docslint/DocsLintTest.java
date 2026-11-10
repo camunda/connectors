@@ -592,6 +592,31 @@ class DocsLintTest {
   }
 
   @Test
+  void aQualifiedTypeNameResolvesAsAWholeOrIsImported() throws IOException {
+    writeSources(SOURCES);
+    write("lib/d/User.java", "package d; import vendor.Api; class User {}");
+
+    assertThat(
+            messages(
+                findStaleReferences(
+                    "project/one/docs/a.md",
+                    "`a.Service` `Service.Nested` `a.Service.Nested` `List<Service.Nested>`"
+                        + " `vendor.Api`",
+                    "`External.Nested` `Api.Nested` `b.Service`")))
+        .containsExactly(
+            """
+            project/one/docs/a.md:2: qualified name `Api.Nested` of `Api.Nested` not found
+                why: no type of the repo sources has this qualified name
+                fix: check the package and outer types. The types named Nested are: a.Service.Nested\
+            """,
+            """
+            project/one/docs/a.md:2: qualified name `b.Service` of `b.Service` not found
+                why: no type of the repo sources has this qualified name
+                fix: check the package and outer types. The types named Service are: a.Service\
+            """);
+  }
+
+  @Test
   void aMissingMemberListsTheMembers() throws IOException {
     writeSources(SOURCES);
 
