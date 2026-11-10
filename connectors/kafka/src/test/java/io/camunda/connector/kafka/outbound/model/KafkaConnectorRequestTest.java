@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
+import static org.apache.kafka.clients.CommonClientConfigs.METADATA_CLUSTER_CHECK_ENABLE_CONFIG;
 import static org.apache.kafka.clients.CommonClientConfigs.SESSION_TIMEOUT_MS_CONFIG;
 
 import io.camunda.connector.kafka.model.KafkaAuthentication;
@@ -49,6 +50,24 @@ class KafkaConnectorRequestTest {
 
     Assertions.assertThat(newPropertiesSize).isEqualTo(initialPropertiesSize);
     Assertions.assertThat(newProps).containsEntry(SESSION_TIMEOUT_MS_CONFIG, "99999");
+  }
+
+  @Test
+  void assembleKafkaClientProperties_MetadataClusterCheckDisabledByDefault() {
+    final Properties props =
+        KafkaPropertiesUtil.assembleKafkaClientProperties(
+            simpleConnectorRequest(Collections.emptyMap()));
+
+    Assertions.assertThat(props).containsEntry(METADATA_CLUSTER_CHECK_ENABLE_CONFIG, "false");
+  }
+
+  @Test
+  void assembleKafkaClientProperties_MetadataClusterCheckCanBeEnabledByUser() {
+    final Properties props =
+        KafkaPropertiesUtil.assembleKafkaClientProperties(
+            simpleConnectorRequest(Map.of(METADATA_CLUSTER_CHECK_ENABLE_CONFIG, "true")));
+
+    Assertions.assertThat(props).containsEntry(METADATA_CLUSTER_CHECK_ENABLE_CONFIG, "true");
   }
 
   private KafkaConnectorRequest simpleConnectorRequest(final Map<String, Object> kafkaProps) {
