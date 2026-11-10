@@ -141,6 +141,19 @@ Gateway handlers store per-handler state in `AgentContext.properties`:
 
 These are used during discovery checking and tool call result transformation.
 
+### Documents and Gateway Tools
+
+A gateway handler that defines its tools itself can declare document parameters in them. The tool definitions
+a handler returns from `handleToolDiscoveryResults` are stored as they are, so a handler writes the stored form of a document
+parameter (`DocumentSchemas.document(...)`: the object schema of a document handle) or of a
+union parameter (an `anyOf` or `oneOf` with `DocumentSchemas.document(...)` as one alternative); the
+shorthand type `document` is normalized only for `fromAi()` parameters. The agent resolves the document parameters of a call
+on the model's tool call, by the definition the model saw, before `transformToolCalls()`, so the handler receives the
+Camunda document references in the arguments it wraps into its envelope. A call with an invalid document value is answered
+with an error result to the model, and the handler is not given the call; a call of a tool without document parameters is
+not touched. The MCP and A2A handlers declare no document parameters, because the schema of an MCP tool comes from the
+remote server and the A2A schema is fixed, and neither has a document type; nothing of theirs is resolved.
+
 ### Document Extraction from Tool Call Results
 
 Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
@@ -212,6 +225,9 @@ document. The reason is in [ADR 018](../adr/018-document-flow.md).
   and `name` for an external document) and the `DocumentContent`, as in ADR-004. Nothing is registered.
 - `documents` stays empty; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
 - Without the `runtimeTools` feature there are no runtime tools, no mixed-batch handling and no tool name check ([Add a runtime tool](#add-a-runtime-tool)).
+- The document parameters of tool calls are not resolved or checked: a `fromAi(..., "document")` parameter reaches the
+  process as the plain string the model sent.
+- The schema of a document parameter is the handle schema for every instance; it is sent to the provider as it is.
 - The history reports the messages as stored.
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
@@ -326,9 +342,9 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 ### Add a runtime tool
 
-> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult` and
-> `RuntimeToolException`, package `aiagent.api.tool` of `aiagent-api`) is experimental since 8.11 and may change in an
-> incompatible way in a minor release.
+> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult`,
+> `RuntimeToolException` and `DocumentSchemas`, package `aiagent.api.tool` of `aiagent-api`) is experimental since 8.11
+> and may change in an incompatible way in a minor release.
 
 A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
 definition next to the tools of the process and the agent executes the call, in process. The connector registers no
@@ -366,6 +382,14 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   agent; it never reaches the tool, also when a tool of that name is enabled later. A call of a tool that is no longer
   enabled when it is executed ("is not available"), a `RuntimeToolException` and `RuntimeToolResult.error` give an error
   result the model reads.
+
+**Document parameters.** A parameter that carries a document is declared with `DocumentSchemas.document(...)`, one that
+takes a document or something else with an `anyOf` or `oneOf` that has `DocumentSchemas.document(...)` as one alternative (directly or inside an
+object or array alternative), and the agent resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, a property typed `AgentDocumentId` receives it and
+a property typed `String` the text of the id, a property typed `Object` a `AgentDocumentId` for a document and the value the
+model passed for any other value; a union parameter holds an `AgentDocumentId` in the place of every handle in the value. A call with a parameter that does not name a known document is rejected at admission: the agent answers it with the
+error and the tool is not called. A runtime tool whose definition gains a document parameter between the jobs of a mixed
+batch fails the job (`IllegalStateException`) for a call admitted before, instead of giving the model an error.
 
 **Documents.** A `DocumentContent` block in the result is a new document: after the calls of the message ran, the agent
 registers it with the tool call as its origin, and the model reads its handle only ([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). An error result registers nothing.
