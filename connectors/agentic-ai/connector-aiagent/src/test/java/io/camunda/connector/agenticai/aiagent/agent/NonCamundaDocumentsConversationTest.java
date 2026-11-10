@@ -26,11 +26,13 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -230,6 +232,31 @@ class NonCamundaDocumentsConversationTest {
             new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery())
                 .build(TRACKED, batch, Set.of(), TestDocuments.documentFactory()),
         PREFIX + "the result of the tool 'acme_create_report' contains an inline document.");
+  }
+
+  @Test
+  void aRuntimeToolResultThatAsksForTheContentOfADocumentThatIsNotACamundaDocumentFailsTheJob() {
+    final var runtimeResult =
+        ToolCallResultContent.builder()
+            .id("abcdef")
+            .name("acme_create_report")
+            .content(List.of(objectContent(Map.of("file", EXTERNAL))))
+            .build();
+    final var batch =
+        ToolCallBatch.of(TOOL_CALLS)
+            .withEntries(
+                List.of(
+                    ToolCallBatch.Entry.from(
+                        runtimeResult,
+                        List.of(
+                            new ToolCallEffect.AddDocumentContent(AgentDocumentId.of("doc_1")))),
+                    ToolCallBatch.Entry.from(ToolCallResultContent.from(dateTime()))));
+
+    assertFailsWith(
+        () ->
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery())
+                .build(TRACKED, batch, Set.of(), TestDocuments.documentFactory()),
+        PREFIX + "the result of the tool 'acme_create_report' contains an external document.");
   }
 
   @Test

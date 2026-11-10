@@ -98,6 +98,11 @@ public class ToolCallResultsInputBuilder {
       DocumentFactory documentFactory) {
     final var entries = batch.entriesInCallOrder();
     final var documentHandling = agentContext.documentHandling();
+    switch (documentHandling) {
+      case DocumentHandling.Tracked ignored ->
+          entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
+      case DocumentHandling.Untracked ignored -> {}
+    }
     final var applied =
         applyEffects(documentHandling, entries, documentIdsWithContent, documentFactory);
     return switch (documentHandling) {
@@ -200,7 +205,6 @@ public class ToolCallResultsInputBuilder {
    */
   private static TurnInput buildWithDocumentBlocks(
       List<ToolCallBatch.Entry> entries, AppliedEffects applied) {
-    entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
     final var results = new ArrayList<ToolCallResultContent>();
     for (int i = 0; i < entries.size(); i++) {
       final var result = entries.get(i).result().withDocumentsAsReferences();
