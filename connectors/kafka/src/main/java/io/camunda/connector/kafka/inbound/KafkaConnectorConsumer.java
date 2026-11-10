@@ -73,7 +73,6 @@ public class KafkaConnectorConsumer {
   private Duration sessionTimeout;
   private double heartbeatResponses;
   private Instant lastHeartbeatResponseAt;
-  private Instant lastGroupCheckAt;
   private Instant notInGroupSince;
   private ObjectReader avroObjectReader;
 
@@ -132,7 +131,6 @@ public class KafkaConnectorConsumer {
       sessionTimeout = intConfig(kafkaProps, ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG);
       heartbeatResponses = 0;
       lastHeartbeatResponseAt = null;
-      lastGroupCheckAt = Instant.now();
       notInGroupSince = null;
       String topicName = elementProps.topic().topicName();
       consumer.subscribe(
@@ -291,11 +289,8 @@ public class KafkaConnectorConsumer {
     var now = Instant.now();
     if (responses > heartbeatResponses) {
       heartbeatResponses = responses;
-      // The new responses arrived after the previous check, which is the most recent time they are
-      // known to be from: after a stall longer than the session timeout, they confirm nothing
-      lastHeartbeatResponseAt = lastGroupCheckAt;
+      lastHeartbeatResponseAt = now;
     }
-    lastGroupCheckAt = now;
     return lastHeartbeatResponseAt != null
         && Duration.between(lastHeartbeatResponseAt, now).compareTo(sessionTimeout) < 0;
   }
