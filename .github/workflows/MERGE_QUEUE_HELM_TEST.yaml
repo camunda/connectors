@@ -353,13 +353,6 @@ jobs:
                   }
                 }'
 
-      - name: Submit build status
-        if: always()
-        continue-on-error: true
-        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
-        with:
-          build_status: ${{ job.status }}
-
       - name: Wait for downstream workflow to finish
         id: wait-downstream
         if: steps.check-downstream.outputs.enabled == 'true'
