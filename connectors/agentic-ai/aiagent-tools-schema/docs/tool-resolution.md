@@ -158,6 +158,6 @@ keeps its kind, carries the sentence as its `ToolCall.rejection` and has the rej
 it is authored, with the shorthand turned into the handle schema. A union with a handle schema in an alternative gets no default
 `type: string` next to its `anyOf`. The search for document parameters stops at a union, and it does not look into `allOf`,
 `not`, `if`/`then`/`else`, `additionalProperties`, `patternProperties`, `prefixItems`, `$defs` or `$ref`. The output of the Ad-Hoc
-Tools Schema Resolver carries the handle schema, which every provider accepts as it is, so another LLM connector that sends it to
-its provider needs no rewrite. The shorthand type `document` is normalized only for `fromAi()` parameters. See
+Tools Schema Resolver carries the handle schema. The tests of the AI Agent connector send it to Gemini as it is, to OpenAI in strict
+mode (the handle object is closed) and through LangChain4j (a `oneOf` is sent as an `anyOf`). The shorthand type `document` is normalized only for `fromAi()` parameters. See
 [ADR 018](../../docs/adr/018-document-flow.md).
