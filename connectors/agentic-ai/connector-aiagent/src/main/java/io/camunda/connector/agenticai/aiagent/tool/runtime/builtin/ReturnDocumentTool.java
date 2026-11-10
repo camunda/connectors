@@ -111,7 +111,7 @@ public final class ReturnDocumentTool implements RuntimeTool {
   public RuntimeToolResult call(RuntimeToolContext context, RuntimeToolCall call) {
     final var arguments = call.argumentsAs(Arguments.class);
     final var key = arguments.key();
-    if (key == null) {
+    if (key == null || !ResponseDocumentSelection.isValidKey(key)) {
       return invalidKey();
     }
     final var document = arguments.document();
@@ -126,12 +126,8 @@ public final class ReturnDocumentTool implements RuntimeTool {
         arguments.description() == null || arguments.description().isBlank()
             ? null
             : arguments.description();
-    try {
-      return RuntimeToolResult.success("Returned the document under the key '%s'.".formatted(key))
-          .withResponseDocument(key, document, description);
-    } catch (IllegalArgumentException e) {
-      return invalidKey();
-    }
+    return RuntimeToolResult.success("Returned the document under the key '%s'.".formatted(key))
+        .withResponseDocument(key, document, description);
   }
 
   private static RuntimeToolResult invalidKey() {
