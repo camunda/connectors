@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Keeps the docs of a repository in step with its modules and its code. The code is the source of
@@ -20,7 +21,7 @@ public final class DocsLint {
 
   private final DocsLintConfig config;
   private final DocTree tree;
-  private JavaSourceIndex index;
+  private @Nullable JavaSourceIndex index;
 
   private DocsLint(final DocsLintConfig config) {
     this.config = config;
