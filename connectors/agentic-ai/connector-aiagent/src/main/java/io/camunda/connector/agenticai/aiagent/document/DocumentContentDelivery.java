@@ -59,6 +59,9 @@ public final class DocumentContentDelivery {
     record AlreadyInConversation(AgentDocumentId id) implements Outcome {}
   }
 
+  private static final String CONTENT_LIMITS_PROPERTY =
+      "camunda.connector.agenticai.aiagent.document.content-limits.<text|pdf|image>";
+
   private final DocumentContentGuard contentGuard;
 
   /**
@@ -117,13 +120,43 @@ public final class DocumentContentDelivery {
           new Outcome.Delivered(AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT));
       case Verdict.Rejected rejected -> {
         final var rejection = rejected.rejection();
-        LOGGER.debug(
-            "The content of the document {} is not loaded: {}",
-            id,
-            rejection.modelText(),
-            rejection.cause());
+        logWithheld(id, document, rejection);
         yield new Outcome.Withheld(id, rejection.modelText());
       }
     };
+  }
+
+  private static void logWithheld(
+      AgentDocumentId id, Document document, DocumentContentGuard.Rejection rejection) {
+    final var metadata = document.metadata();
+    final var contentType = metadata != null ? metadata.getContentType() : null;
+    final var metadataSize = metadata != null ? metadata.getSize() : null;
+    final var size =
+        metadataSize != null && metadataSize >= 0 ? metadataSize + " bytes" : "unknown";
+    switch (rejection) {
+      case DocumentContentGuard.Rejection.TooLarge tooLarge ->
+          LOGGER.info(
+              "The content of the document {} (content type {}, size {}) is not loaded: it is above the limit of {} bytes. "
+                  + "Raise the limit of its kind with the property {}.",
+              id,
+              contentType,
+              size,
+              tooLarge.limit(),
+              CONTENT_LIMITS_PROPERTY);
+      case DocumentContentGuard.Rejection.Unreadable unreadable ->
+          LOGGER.warn(
+              "The content of the document {} (content type {}, size {}) is not loaded: it cannot be read.",
+              id,
+              contentType,
+              size,
+              unreadable.cause());
+      case DocumentContentGuard.Rejection.UnsupportedType unsupported ->
+          LOGGER.debug(
+              "The content of the document {} (content type {}, size {}) is not loaded: {}",
+              id,
+              contentType,
+              size,
+              rejection.modelText());
+    }
   }
 }
