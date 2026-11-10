@@ -51,6 +51,7 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -140,7 +141,8 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
 
   /** The file name and the id of a document as the sentences about its content name it. */
   private static String refOf(Document document) {
-    final var fileName = AgentDocument.Descriptors.of(document.reference()).fileName();
+    final var fileName =
+        AgentDocument.Descriptors.of((CamundaDocumentReference) document.reference()).fileName();
     final var id = AgentDocumentId.of(document).value();
     return fileName == null ? id : "%s (%s)".formatted(fileName, id);
   }

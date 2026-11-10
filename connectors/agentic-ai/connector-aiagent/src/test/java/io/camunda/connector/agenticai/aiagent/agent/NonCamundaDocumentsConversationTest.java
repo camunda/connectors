@@ -82,7 +82,8 @@ class NonCamundaDocumentsConversationTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(),
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
+            TestDocuments.documentContentDelivery(),
             TestDocuments.objectHandleRenderer());
   }
 
