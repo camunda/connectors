@@ -69,6 +69,5 @@ is a Spring `DataSize` such as `256KB` or `4MB` and must be positive; a limit th
 | `camunda.connector.agenticai.aiagent.document.content-limits.image` | `3584KB` (3.5 MB) | an image (PNG, JPEG, GIF, WebP) |
 
 The defaults stay below the limits of the most restrictive supported model provider (Amazon Bedrock Converse: 4.5 MB for a
-document, 3.75 MB for an image) and apply to every provider. Limits per provider, together with a capability matrix of the
-providers, are a follow-up (follow-up of [ADR 018](../adr/018-document-flow.md)): raise a limit only when every provider
-of the runtime accepts the larger document.
+document, 3.75 MB for an image) and apply to every provider: raise a limit only when every provider of the runtime accepts
+the larger document.
