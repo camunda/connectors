@@ -26,6 +26,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GE
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PING_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_DESCRIPTION;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertResponseDocument;
@@ -62,6 +63,7 @@ import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.api.search.response.AgentInstanceHistory;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -254,8 +256,9 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
               .extracting(entry -> entry.id().value())
               .containsExactly(documentId);
           assertThat(agentResponse.context().responseDocuments())
-              .extracting(ResponseDocumentSelection::key)
-              .containsExactly(RETURN_KEY);
+              .containsExactly(
+                  new ResponseDocumentSelection(
+                      RETURN_KEY, AgentDocumentId.of(documentId), RETURN_DESCRIPTION));
           agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 
@@ -380,8 +383,9 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           assertResponseDocument(
               agentResponse.context(), agentResponse.responseDocuments(), documentId);
           assertThat(agentResponse.context().responseDocuments())
-              .extracting(ResponseDocumentSelection::key)
-              .containsExactly(RETURN_KEY);
+              .containsExactly(
+                  new ResponseDocumentSelection(
+                      RETURN_KEY, AgentDocumentId.of(documentId), RETURN_DESCRIPTION));
           agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 

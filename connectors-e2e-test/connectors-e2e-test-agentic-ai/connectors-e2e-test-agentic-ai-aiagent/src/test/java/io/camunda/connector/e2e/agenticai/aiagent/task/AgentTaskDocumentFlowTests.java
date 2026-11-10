@@ -22,6 +22,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DO
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PING_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_DESCRIPTION;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertResponseDocument;
@@ -36,6 +37,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.up
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
@@ -99,8 +101,9 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
           assertResponseDocument(
               agentResponse.context(), agentResponse.responseDocuments(), documentId);
           assertThat(agentResponse.context().responseDocuments())
-              .extracting(ResponseDocumentSelection::key)
-              .containsExactly(RETURN_KEY);
+              .containsExactly(
+                  new ResponseDocumentSelection(
+                      RETURN_KEY, AgentDocumentId.of(documentId), RETURN_DESCRIPTION));
         });
 
     assertNoDocumentInternalsInLlmRequests();
