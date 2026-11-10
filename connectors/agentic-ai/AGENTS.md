@@ -20,12 +20,10 @@ Task guidance and architecture live in linked documents:
 
 - [`docs/design-guidelines.md`](docs/design-guidelines.md): invariants, contract decisions and ADRs
 - [`docs/acceptance-testing.md`](docs/acceptance-testing.md): test selection, feature acceptance and provider coverage
-- [`docs/reference/ai-agent.md`](docs/reference/ai-agent.md): core AI Agent architecture (sections cited as
-  `ai-agent.md §N`)
-- [`docs/reference/mcp.md`](docs/reference/mcp.md): MCP integration
-- [`docs/reference/a2a.md`](docs/reference/a2a.md): A2A integration
-- [`docs/reference/native-providers.md`](docs/reference/native-providers.md): per-provider specifics
-  for the native/v2 (non-LangChain4j) chat model providers
+- [`docs/architecture/`](docs/architecture/): content that spans modules (the agentic loop, extension
+  points, Spring auto-configuration)
+- `<module>/README.md`: purpose, key types and docs of each module. Docs about the types of one module
+  are in `<module>/docs/`.
 - [`docs/adr/`](docs/adr/): architecture decision records
 - [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md): help text conventions for
   element templates
@@ -128,34 +126,33 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 
 ## Start here, navigation
 
-> **`ai-agent.md` is a long reference.** Use the table below to locate the exact section, then read it by anchor or `Read` with `offset`/`limit`. Do not ingest the whole file.
+> Use the table below to find the doc for your task, then read only that doc or section. Each module `README.md` lists the docs of that module.
 
-| Working on…                                                              | Read                                                                                    |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| The distributed agent loop / execution model                             | [§3](docs/reference/ai-agent.md#3-the-agentic-loop)                                     |
-| Agent state machine & initialization (INITIALIZING/TOOL_DISCOVERY/READY) | [§4](docs/reference/ai-agent.md#4-agent-state-machine)                                  |
-| Data model (`AgentContext`, `AgentResponse`, `ToolCallProcessVariable`)  | [§5](docs/reference/ai-agent.md#5-data-model)                                           |
-| Conversation memory, storage backends, write-ahead store contract        | [§6](docs/reference/ai-agent.md#6-conversation-memory)                                  |
-| Tool resolution, FEEL `fromAi()` extraction, JSON-schema generation      | [§7](docs/reference/ai-agent.md#7-tool-resolution)                                      |
-| Job completion / ad-hoc sub-process directives                           | [§8](docs/reference/ai-agent.md#8-job-completion)                                       |
-| Tool completion, partial results, no-op completion                       | [§9](docs/reference/ai-agent.md#9-tool-completion)                                      |
-| Concurrency & race conditions (supersession, store-ahead-of-Zeebe)       | [§10](docs/reference/ai-agent.md#10-concurrency)                                        |
-| Event handling (sub-process only)                                        | [§11](docs/reference/ai-agent.md#11-event-handling)                                     |
-| Chat model provider SPI & LangChain4j converter chain                    | [§12](docs/reference/ai-agent.md#12-framework-abstraction)                              |
-| System prompt composition / contributors                                 | [§13](docs/reference/ai-agent.md#13-system-prompt-composition)                          |
-| Response handling (text / JSON / full message)                           | [§14](docs/reference/ai-agent.md#14-response-handling)                                  |
-| Error codes                                                              | [§15](docs/reference/ai-agent.md#15-error-codes)                                        |
-| Spring auto-configuration, feature toggles, config defaults              | [§16](docs/reference/ai-agent.md#16-spring-auto-configuration)                          |
-| Process instance migration (what's allowed / blocked)                    | [§17](docs/reference/ai-agent.md#17-migration)                                          |
-| Code paths & class diagram                                               | [§18](docs/reference/ai-agent.md#18-code-paths)                                         |
-| Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [§19](docs/reference/ai-agent.md#19-gateway-tool-pattern)                               |
-| MCP integration                                                          | [§20](docs/reference/ai-agent.md#20-mcp-integration), [`mcp.md`](docs/reference/mcp.md) |
-| A2A integration                                                          | [§21](docs/reference/ai-agent.md#21-a2a-integration), [`a2a.md`](docs/reference/a2a.md) |
-| Example BPMN processes & configurations                                  | [§22](docs/reference/ai-agent.md#22-examples), [`examples/`](examples/)                 |
-| Agent instance API (status, metrics, history reporting)                  | [§23](docs/reference/ai-agent.md#23-agent-instance-integration)                         |
-| **Architectural invariants (what you must not break)**                   | [§24](docs/reference/ai-agent.md#24-architectural-invariants)                           |
-| **Extension points** (add provider / contributor / store)                | [§25](docs/reference/ai-agent.md#25-extension-playbooks)                                |
-| Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](docs/reference/native-providers.md)                             |
+| Working on…                                                              | Read                                                                                                                                                 |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The distributed agent loop / execution model                             | [`agentic-loop.md`](docs/architecture/agentic-loop.md#the-agentic-loop--distributed-execution-model)                                                 |
+| Agent state machine & initialization (INITIALIZING/TOOL_DISCOVERY/READY) | [`agent-state-machine.md`](connector-aiagent/docs/agent-state-machine.md)                                                                            |
+| Data model (`AgentContext`, `AgentResponse`, `ToolCallProcessVariable`)  | [`data-model.md`](aiagent-model/docs/data-model.md), [`response-handling.md`](connector-aiagent/docs/response-handling.md)                           |
+| Conversation memory, storage backends, write-ahead store contract        | [`conversation-store-spi.md`](aiagent-api/docs/conversation-store-spi.md), [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md) |
+| Tool resolution, FEEL `fromAi()` extraction, JSON-schema generation      | [`tool-resolution.md`](aiagent-tools-schema/docs/tool-resolution.md)                                                                                 |
+| Job completion / ad-hoc sub-process directives                           | [`agentic-loop.md`](docs/architecture/agentic-loop.md#job-completion--the-heart-of-the-distributed-loop)                                             |
+| Tool completion, partial results, no-op completion                       | [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete)                                                              |
+| Concurrency & race conditions (supersession, store-ahead-of-Zeebe)       | [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions)                                                       |
+| Event handling (sub-process only)                                        | [`agentic-loop.md`](docs/architecture/agentic-loop.md#event-handling)                                                                                |
+| Chat model provider SPI, provider selection, LangChain4j converter chain | [`chat-model-spi.md`](aiagent-api/docs/chat-model-spi.md), [`chat-model.md`](connector-aiagent/docs/chat-model.md), [`langchain4j-chat-model.md`](connector-aiagent/docs/langchain4j-chat-model.md) |
+| System prompt composition / contributors                                 | [`system-prompt-contributor.md`](aiagent-api/docs/system-prompt-contributor.md), [`system-prompt.md`](connector-aiagent/docs/system-prompt.md)       |
+| Response handling (text / JSON / full message)                           | [`response-handling.md`](connector-aiagent/docs/response-handling.md)                                                                                |
+| Error codes                                                              | [`error-codes.md`](connector-aiagent/docs/error-codes.md)                                                                                            |
+| Spring auto-configuration, feature toggles, config defaults              | [`spring-auto-configuration.md`](docs/architecture/spring-auto-configuration.md)                                                                     |
+| Process instance migration (what's allowed / blocked)                    | [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md)                                                              |
+| Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern)                                                                  |
+| MCP integration                                                          | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md)                       |
+| A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
+| Example BPMN processes & configurations                                  | the `Examples` section of the connector module READMEs, [`examples/`](examples/)                                                                     |
+| Agent instance API (status, metrics, history reporting)                  | [`agent-instance.md`](connector-aiagent/docs/agent-instance.md)                                                                                      |
+| **Architectural invariants (what you must not break)**                   | [`design-guidelines.md`](docs/design-guidelines.md#architectural-invariants)                                                                         |
+| **Extension points** (add provider / contributor / store)                | [`extension-points.md`](docs/architecture/extension-points.md#extension-points)                                                                      |
+| Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](connector-aiagent/docs/native-providers.md)                                                                                  |
 
 ## Mental model
 
@@ -172,13 +169,15 @@ elements and continue the loop, no tool calls finishes it. Zeebe appends each to
 `toolCallResults` and creates a new job; if results are still incomplete the worker no-ops and waits.
 
 Full flavor comparison (tool source, config-per-iteration, completion) and the loop diagram:
-`ai-agent.md` §2 and §3 (mechanics in §8, §9).
+[`flavors.md`](connector-aiagent/docs/flavors.md) and [`agentic-loop.md`](docs/architecture/agentic-loop.md#the-agentic-loop--distributed-execution-model)
+(mechanics in [Job Completion](docs/architecture/agentic-loop.md#job-completion--the-heart-of-the-distributed-loop) and
+[What Happens When Tools Complete](docs/architecture/agentic-loop.md#what-happens-when-tools-complete)).
 
 ## Glossary
 
 These terms are overloaded; the three `*Context` types are the usual confusion. Full definitions:
-[§5](docs/reference/ai-agent.md#5-data-model) for the data-model types (`AgentContext`,
-`AgentExecutionContext`) and [§6](docs/reference/ai-agent.md#6-conversation-memory) for the
+[`data-model.md`](aiagent-model/docs/data-model.md) for the data-model types (`AgentContext`,
+`AgentExecutionContext`) and [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter) for the
 conversation and turn types (everything else below).
 
 | Term                                  | One-line meaning                                                                                                         |
@@ -200,27 +199,33 @@ High-frequency traps (detail behind each link):
   The AI Agent connectors (v1 and v2, both flavors) opt into job leasing (`@OutboundConnector(withLease = true)`), so
   completion is fenced against a superseded activation; `CamundaAgentInstanceClient` forwards the lease token via
   `jobLeaseToken(...)` on each batched turn update
-  (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart`), so a
-  stale activation's writes are rejected (`404`) too — mapped to a non-retryable `AGENT_INSTANCE_SUPERSEDED` failure,
-  not the ordinary retry path (ADR 013). Gateway/MCP/A2A connectors are not leased. `ai-agent.md` §10, §23.
+  (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart`). The engine rejects
+  such an update (`404`) when its job is no longer active; that maps to a non-retryable `AGENT_INSTANCE_SUPERSEDED`
+  failure, not the ordinary retry path (ADR 013). An update with a stale lease on a job that is still active is
+  accepted, and the engine skips its status change. Gateway/MCP/A2A connectors are not leased. [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions),
+  [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Partial tool results → no-op (but not silent)**: incomplete results make the composer return `Deferred` and the
   worker completes without an LLM call — expected, not a bug — but it now also reports whichever results have
   arrived so far to agent instance history first (ADR 011). E2e tests asserting `verifyNoMoreInteractions` on
   `AgentInstanceClient` for a multi-tool-call turn with staggered completion times must account for this call.
-  `ai-agent.md` §9.
+  [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete).
 - **Write-ahead, pointer-based store contract**: `storeMessages` writes a new location; `loadMessages` follows the
-  `AgentContext` pointer. Never overwrite what the current pointer references. `ai-agent.md` §6.
+  `AgentContext` pointer. Never overwrite what the current pointer references.
+  [`conversation-store-spi.md`](aiagent-api/docs/conversation-store-spi.md#storage-contract).
 - **Sub-process config frozen at AHSP entry**: input mappings evaluate once, so config/migration changes don't reach a
-  running instance (Task flavor re-evaluates per iteration). `ai-agent.md` §17.
+  running instance (Task flavor re-evaluates per iteration).
+  [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md).
 - **Migration blocked cases**: removing/renaming tools or adding/removing gateway tools fails; adding tools or changing
-  descriptions is allowed. `ai-agent.md` §17.
+  descriptions is allowed. [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md).
 - **`toolCallResult = ""` scoping trick**: the empty default keeps the variable local to the tool element so it doesn't
-  bubble up to the AHSP scope. `ai-agent.md` §8.
+  bubble up to the AHSP scope.
+  [`agentic-loop.md`](docs/architecture/agentic-loop.md#job-completion--the-heart-of-the-distributed-loop).
 - **Events have `id = null`**: tool-call results without an id are event results, partitioned from real tool results.
-  `ai-agent.md` §11.
+  [`agentic-loop.md`](docs/architecture/agentic-loop.md#event-handling).
 - **Gateway `transformToolCallResults` must carry `completedAt` forward**: MCP/A2A handlers rebuild a
   new `ToolCallResult` when unwrapping the gateway envelope; unlike `elementId`, `completedAt` has no
-  fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
+  fallback resolution and is silently dropped if not copied explicitly.
+  [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
   instance without the `runtimeTools` feature (created before it) is offered no runtime tools and no tool element is
@@ -239,19 +244,19 @@ High-frequency traps (detail behind each link):
   `ToolCallBatch` is created, the calls of runtime tools in `LocalToolCallExecutor` only. An interrupting event cancels
   every call without a result, also the calls of runtime tools that were not executed yet. When the model issues local tool calls and process tool calls together, only
   the process tool calls are activated, and the agent adds the tool call results of the local tool calls when the next
-  turn is composed, merged with the process results in call order. `ai-agent.md` §9, [ADR 016](docs/adr/016-runtime-tools.md).
+  turn is composed, merged with the process results in call order. [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete), [ADR 016](docs/adr/016-runtime-tools.md).
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
   construct an "expected" message and compare it for equality against one built by the code under
-  test will fail on `id` alone. `ai-agent.md` §6, [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
+  test will fail on `id` alone. [`data-model.md`](aiagent-model/docs/data-model.md#message-identity), [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
 - **Map iteration order differs between JVMs after a record builder copied the map**: the `@AgenticAiRecord`
   builders copy maps and sets with `Map.copyOf` and `Set.copyOf`, whose iteration order changes with every JVM start.
   Never let a hash, an id or any value compared across runs depend on that order. Sort the map keys where the value
   is computed (`SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS` in `AgentConfiguration.fingerprint()`, which sorts
   every map at any depth), and carry an order that has meaning, such as the order of the tool parameters, as a list.
   No mapper flag sorts a set, so a hashed value must not contain one. Do not add a record annotation or a special
-  collection type to work around the copy. `ai-agent.md` §23.
+  collection type to work around the copy. [`agent-instance.md`](connector-aiagent/docs/agent-instance.md#conversation-history-items).
 
 ## Architectural invariants
 
@@ -335,7 +340,9 @@ Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gatew
 tool (a tool the connector runtime executes itself, without activating a BPMN element; a process tool must not have its name)
 by implementing the SPI and registering a Spring bean. A runtime tool is the three-method interface `RuntimeTool`
 (`definition`, `isEnabled`, `call`), an experimental SPI in 8.11. Where to start (SPI + reference implementation per
-type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and [ADR 016](docs/adr/016-runtime-tools.md)).
+type): [Extension Points](docs/architecture/extension-points.md#extension-points) (gateway tools:
+[Gateway Tool Pattern](docs/architecture/extension-points.md#gateway-tool-pattern); runtime tools:
+[Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool) and [ADR 016](docs/adr/016-runtime-tools.md)).
 
 ## Element templates
 
@@ -427,8 +434,6 @@ carried an unrelated legacy `"deprecated": true` boolean flag and were left unto
 | `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
 | `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                         |
 
-Full code-path reference and class diagram: `ai-agent.md` §18.
-
 ## Architecture decision records
 
 When planning a significant technical decision, use the
@@ -443,9 +448,15 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 - **`AGENTS.md`** (this file): high-level orientation (mental model, navigation, glossary, gotchas,
   build/test commands, entry points). Design rules live in `docs/design-guidelines.md`; testing rules
   live in `docs/acceptance-testing.md`; ADR authoring rules live in `docs/adr/README.md`.
-- **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
-  config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`, native/v2
-  provider specifics → `native-providers.md`.
+- **`<module>/README.md`** and **`<module>/docs/`**: the purpose and key types of a module, and the docs
+  about its types (data model, memory, tools, converters, providers, error codes, MCP, A2A). The
+  `## Docs` section of the README links every file in `<module>/docs/`.
+  `connector-aiagent/README.md` is generated: edit `connector-aiagent/README.peb`. It uses the shared
+  connector README layout, so it starts with the icon, `# AI Agent Task` and the description instead of
+  `# connector-aiagent`. `## Purpose`, `## Key types` and `## Docs` still come first after that.
+- **`docs/architecture/`**: content that spans modules (the agentic loop, extension points, Spring
+  auto-configuration).
+- **`docs/design-guidelines.md`**: the architectural invariants.
 - **`docs/breaking-changes.md`**: breaking changes for custom extensions (SPIs, public classes and
   packages, persisted data, job types, configuration). Add an entry in the same change that
   introduces the break, under the section of the release in development, with the old and new API

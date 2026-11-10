@@ -1,7 +1,23 @@
-# Agentic AI end-to-end tests
+# connectors-e2e-test-agentic-ai
+
+## Purpose
+
+Agentic AI end-to-end tests. This README is the E2E runbook.
 
 Run the smallest test that covers your change. Real-provider tests make paid API calls; do not run
 them or apply the opt-in label without authorization.
+
+## Key types
+
+- `BaseAgenticAiTest`: shared test support of all e2e modules.
+- `BaseAgentSubProcessTest` and `BaseAgentTaskTest`: the base classes of the AI Agent tests.
+- `AgentTestFixtures`: the paths of the element templates under test.
+- `RealProviderApiSmokeSupport`: the provider and model rows of the real-provider tests.
+
+## Docs
+
+- [`AGENTS.md`](AGENTS.md): the e2e modules, running and writing the tests, real-LLM CPT coverage
+- [Testing rules](../../connectors/agentic-ai/docs/acceptance-testing.md)
 
 ## Test ownership
 
