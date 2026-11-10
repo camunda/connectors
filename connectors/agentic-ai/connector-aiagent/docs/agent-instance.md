@@ -49,7 +49,9 @@ batched `update()` mechanism).
 ## Conversation history items
 
 - A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
-  document-reference messages).
+  document messages). A message of an agent
+  instance without the `documents` feature is reported as stored; the documents of one that tracks them are reported as
+  described below.
 - A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
   block(s) and a single-entry `toolCalls` array `{toolCallId: result.id(), toolName: result.name(),
   elementId, arguments}` correlating it back to the originating tool call. The `arguments` are the
@@ -59,6 +61,19 @@ batched `update()` mechanism).
   paginated history API and need not be joined back to the `ASSISTANT` item. Event results
   (`id == null`) have no originating call and carry `{}`; a result with a non-null id and no matching
   tool call is an invariant violation and fails the turn.
+- **Documents in the history** (an instance that tracks its documents). The history shows what the model reads. Every
+  document is its handle, as an `OBJECT` block of its own that holds exactly the handle (no marker key besides the handle's
+  own `type` = `camunda.agenticai.document`) and is never joined with other content, the same object `DocumentExpander`
+  renders for the model, so a consumer can render it as a card. Where a document enters the conversation (the user prompt, an
+  event, a tool result, also a tool result that is only a document) the handle is followed by a `DOCUMENT` block (the
+  chip). An object with documents in it is reported as the object with the handle objects nested, followed by the chips.
+  When a document reported as a `DOCUMENT` block has no file name, the reported metadata carries the agent document id
+  (`doc_…`) as the file name, so the chip shows the id the handle shows; the document and its stored reference are not changed. A
+  text is reported as it is, also when it holds a handle.
+  `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `HistoryDocuments` of the job (the document
+  handling of the agent instance and the document factory of the job): the document handling decides what the history
+  shows, and the agent documents of a `Tracked` instance are what the handles are expanded with. An
+  `Untracked` agent instance reports texts as they are.
 - An `ASSISTANT` item's content blocks preserve the order the model produced them in because
   `AgentInstanceHistoryMapper.assistantContent` maps the source list directly. An assistant message
   with neither text/object/etc.
@@ -75,8 +90,15 @@ job are reported. They use the tool-call id as `historyItemId`, no `elementId` (
 rejected call), the completion time of the execution as `completedAt` and the originating arguments, like every other
 result; an error result is plain text content, the history has no result status. A mixed batch completes its job with
 `TOOL_CALLING`, a batch of local tool calls only with `THINKING` followed by the next round. The engine deduplicates
-items by `historyItemId`, so results that more than one job writes appear once. The history API has no tool kind and no
-result status, so a runtime tool is recognizable only by its missing element id and an error result is plain text.
+items by `historyItemId`, so results that more than one job writes appear once.
+
+**What the history covers.** The history records what the model sent and received, in a representation suited to the
+history; process data stays in the tool element variables. Each message of a model request is covered by a history item:
+the system prompt by the `CONFIGURATION` item, user messages by `USER` items, assistant messages by `ASSISTANT` items and
+tool results by `TOOL_RESULT` items. The representations may differ: a document with content is a `DOCUMENT` block next to
+its handle in the history and the handle plus the native block in the request, so the history is a superset of what the model
+receives. The history API has no tool kind and no result status, so a runtime tool is recognizable only by its missing
+element id and an error result is plain text; tool input schemas are not reported.
 
 **`historyItemId` (`AgentInstanceHistoryItemIds`).** Every history item carries a `historyItemId` so a
 retried batch write, and the same result written by two jobs, dedup against the previous write (the engine keeps the first): `USER`/`ASSISTANT` items key off the domain
@@ -114,7 +136,8 @@ the tool list it reads the `kind` of the `ToolDefinition`, which is `RUNTIME` fo
 The tool list of a `CONFIGURATION` item holds the process tools plus the enabled runtime tools
 (`AgentConfiguration.toolDefinitions()`); the configuration fingerprint covers them.
 
-Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text), and
+Content blocks map by type: `TextContent` → text, `ObjectContent` → object (or JSON text),
+`AgentDocumentContent` → the text of its handle, and
 `DocumentContent` → a Camunda document reference block. External document references currently fall
 back to an object/text block (see follow-ups). `ReasoningContent` maps to a tagged object containing
 `camunda.agenticai.content.type`, optional `text`, and `payload`; `provider` and `metadata` are not

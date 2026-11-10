@@ -110,16 +110,17 @@ The loop operates as a distributed state machine between the connector runtime a
      handler first checks the model-call limit, so a job at the limit executes no runtime tool. Then it executes
      the unanswered calls, the calls of runtime tools (`LocalToolCallExecutor`), adds their results to the batch and
      assembles the input (`AgentConversationTurnInputComposer.assemble` → `TurnInput`), with all results in call order
-   - Compose the system message and `AgentConversation.rehydrate` into a pending turn
+   - Register the documents of the turn in the agent documents (`TurnInput.applyTo`, for a `Tracked` agent instance),
+     compose the system message and `AgentConversation.rehydrate` into a pending turn
    - Resolve a `ChatModel` for the configured provider via `ChatModelRegistry` and call
-     `execute(ChatRequest)` with a windowed `ConversationSnapshot`; `ingest` the assistant response
+     `execute(ChatRequest)` with the windowed `ConversationSnapshot` after `DocumentExpander.expand`; `ingest` the assistant response
      into the turn. Before the ingest, `ToolCallAdmission` admits the tool calls of the assistant message: each gets the kind
      of its tool, or a rejection when the tool is not offered (see [What Happens When Tools Complete](#what-happens-when-tools-complete)). If the result is a `ChatResult.Continuation`
      rather than `Completed`, the handler loops — persisting the round as its own turn and re-calling the model with no new
      input — until a `Completed` result ends the turn (see [`chat-model.md`](../../connector-aiagent/docs/chat-model.md#turn-based-continuation-loop)). The same happens when every
      tool call of the message is a local tool call: the handler checks the model-call limit, produces their tool call
      results the same way, from a `Ready` of the batch, and opens the next round with the assembled input
-     (`nextRuntimeToolRound`)
+     (`nextRuntimeToolRound`) and registers the documents of the results in the agent documents (`TurnInput.applyTo`)
    - Store the updated conversation back to the memory store (via `ConversationSession`) and reduce it back to `AgentContext`
    - Transform the process tool calls and create the response
 
@@ -371,7 +372,7 @@ return switch (agentInputComposer.resolve(...)) {
     case CompositionResult.NoInput ignored ->
         handleNoInput(executionContext);       // nothing to add; handler decides
     case CompositionResult.Ready ready ->
-        proceed(..., answerLocalToolCalls(..., ready).messages(), ...); // local results, assemble, call the LLM
+        proceed(..., answerLocalToolCalls(..., ready), ...); // local results, assemble, register the documents, call the LLM
 };
 ```
 
