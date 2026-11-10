@@ -11,11 +11,14 @@ inputs:
   vault-addr:
     description: Vault address
     required: true
-  vault-role-id:
-    description: AppRole role id
+  vault-jwt-path:
+    description: Vault JWT auth mount path
     required: true
-  vault-secret-id:
-    description: AppRole secret id
+  vault-jwt-role:
+    description: Vault JWT role name
+    required: true
+  vault-jwt-audience:
+    description: GitHub OIDC audience for the Vault JWT login
     required: true
   dry-run-override:
     description: When 'true', force dry-run regardless of the flag
@@ -42,12 +45,13 @@ runs:
     - name: Import Secrets
       id: secrets
       continue-on-error: true
-      uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+      uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
       with:
         url: ${{ inputs.vault-addr }}
-        method: approle
-        roleId: ${{ inputs.vault-role-id }}
-        secretId: ${{ inputs.vault-secret-id }}
+        method: jwt
+        role: ${{ inputs.vault-jwt-role }}
+        path: ${{ inputs.vault-jwt-path }}
+        jwtGithubAudience: ${{ inputs.vault-jwt-audience }}
         exportEnv: false
         secrets: |
           secret/data/products/qa/ci/common ALWAYSGREEN_FIX_AGENT ;
