@@ -174,8 +174,7 @@ One content guard checks each addition of content, for all requests:
 * The limits for each class are operator configuration, not job input. The default limits are below the limits of the
   most restrictive provider.
 * When the guard rejects a document, the document stays a `reference`. The model gets a short sentence with the content
-  type, the size and the limit. The cause goes to the log only, because it can contain a URL with a token. A rejection
-  causes no incident.
+  type, the size and the limit. The cause goes to the log only. A rejection causes no incident.
 
 Consequence accepted: bytes do not measure tokens well, and one limit for all providers is as strict as the strictest
 provider.
