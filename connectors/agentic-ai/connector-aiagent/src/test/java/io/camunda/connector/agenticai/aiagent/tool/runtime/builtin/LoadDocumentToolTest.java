@@ -74,7 +74,7 @@ class LoadDocumentToolTest {
   private final ObjectMapper objectMapper = objectMapperFor(InMemoryDocumentStore.INSTANCE);
   private final LoadDocumentTool tool = new LoadDocumentTool();
   private final RuntimeTools runtimeTools =
-      new RuntimeTools(List.of(tool), objectMapper, new DocumentParameterResolver());
+      new RuntimeTools(List.of(tool), objectMapper, new DocumentParameterResolver(objectMapper));
   private final LocalToolCallExecutor executor = new LocalToolCallExecutor(runtimeTools);
   private final ToolCallResultsInputBuilder inputBuilder =
       new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery());
