@@ -337,7 +337,8 @@ class LocalToolCallExecutorTest {
                     .content(List.of(content))
                     .completedAt(now)
                     .build(),
-                List.of(document)));
+                List.of(document),
+                List.of()));
   }
 
   @Test
@@ -363,6 +364,7 @@ class LocalToolCallExecutorTest {
                     .content(List.of(content))
                     .completedAt(now)
                     .build(),
+                List.of(),
                 List.of()));
   }
 }
