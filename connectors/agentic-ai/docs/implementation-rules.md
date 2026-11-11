@@ -93,8 +93,8 @@ effects. A good name does not replace a Javadoc that the rules below require.
   When two factories or methods compute different things, give them different names. (P1)
 - **Name the outcome.** The name of a new method states the result or the decision that the caller
   gets. Do not give a new method that makes a decision a generic verb such as `handle`, `process` or
-  `do`. Existing names keep their name. Example: `AgentContext.withToolDefinitions` returns the context
-  with these tool definitions. (P1)
+  `do`. Existing names keep their name. Example: `AgentConfiguration.withToolDefinitions` returns the
+  configuration with these tool definitions. (P1)
 - **One level of abstraction per method.** A method either calls named steps in order, or does one
   step. Do not mix calls to domain methods with field-level construction and loops. (P1)
 - **A test name states the scenario and the expected outcome.** Example:
