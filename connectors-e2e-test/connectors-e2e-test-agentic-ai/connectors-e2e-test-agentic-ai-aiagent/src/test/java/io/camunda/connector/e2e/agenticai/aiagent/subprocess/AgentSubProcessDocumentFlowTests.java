@@ -263,17 +263,23 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
     // the history of the agent instance shows the arguments of a call as the model sent them: the
     // handle of the document, for a tool of the process and for the runtime tool
+    final var documentHandle = Map.of("type", AgentDocumentHandle.TYPE, "id", documentId);
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasToolCallArguments(
             "Upload_A_File",
-            arguments ->
-                assertThat(arguments.get("document"))
-                    .isEqualTo(Map.of("type", AgentDocumentHandle.TYPE, "id", documentId)))
+            arguments -> assertThat(arguments).isEqualTo(Map.of("document", documentHandle)))
         .hasToolCallArguments(
             "c8__return_document",
             arguments ->
-                assertThat(arguments.get("document"))
-                    .isEqualTo(Map.of("type", AgentDocumentHandle.TYPE, "id", documentId)))
+                assertThat(arguments)
+                    .isEqualTo(
+                        Map.of(
+                            "key",
+                            RETURN_KEY,
+                            "document",
+                            documentHandle,
+                            "description",
+                            RETURN_DESCRIPTION)))
         .verify();
 
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
