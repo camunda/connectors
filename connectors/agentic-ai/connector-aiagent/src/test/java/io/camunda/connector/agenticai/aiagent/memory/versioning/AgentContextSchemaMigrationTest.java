@@ -14,11 +14,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -303,7 +310,7 @@ class AgentContextSchemaMigrationTest {
           objectMapper.readTree(
               """
               {
-                "schemaVersion": %d,
+                "schemaVersion": 2,
                 "state": "READY",
                 "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
                 "toolDefinitions": [],
@@ -321,14 +328,13 @@ class AgentContextSchemaMigrationTest {
                 },
                 "properties": {}
               }
-              """
-                  .formatted(AgentContext.CURRENT_SCHEMA_VERSION));
+              """);
 
       AgentContext agentContext =
           AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
 
       assertThat(agentContext).isNotNull();
-      assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+      assertThat(agentContext.schemaVersion()).isEqualTo(2);
     }
 
     @Test
@@ -362,7 +368,7 @@ class AgentContextSchemaMigrationTest {
       assertThat(agentContext).isNotNull();
       // the in-memory object is current-shape after upcast, even though it was read from
       // legacy-shaped JSON without a schemaVersion field
-      assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+      assertThat(agentContext.schemaVersion()).isEqualTo(2);
     }
 
     @Test
@@ -397,7 +403,7 @@ class AgentContextSchemaMigrationTest {
       assertThat(agentContext).isNotNull();
       // an explicit lower schemaVersion (not just a missing one) is also stamped to current, so
       // it isn't re-upcasted (and content re-wrapped) on the next read/write cycle
-      assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+      assertThat(agentContext.schemaVersion()).isEqualTo(2);
     }
 
     @Test
@@ -436,7 +442,7 @@ class AgentContextSchemaMigrationTest {
           AgentContextSchemaMigration.migrateAndBindAgentContext(reserializedTree, objectMapper);
 
       assertThat(secondPass).isNotNull();
-      assertThat(secondPass.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+      assertThat(secondPass.schemaVersion()).isEqualTo(2);
 
       InProcessConversationContext conversation =
           (InProcessConversationContext) secondPass.conversation();
@@ -450,16 +456,137 @@ class AgentContextSchemaMigrationTest {
     }
 
     @Test
-    void newerThanCurrentVersionThrows() throws Exception {
-      final int futureVersion = AgentContext.CURRENT_SCHEMA_VERSION + 1;
-      JsonNode tree = objectMapper.readTree("{\"schemaVersion\": %d}".formatted(futureVersion));
+    void unversionedStateIsMigratedAndBoundWithSchemaVersion2() throws Exception {
+      JsonNode tree = objectMapper.readTree(stateJson(null, "\"Found 3 items\""));
+
+      AgentContext agentContext =
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+
+      assertThat(agentContext).isEqualTo(expectedAgentContext());
+    }
+
+    @Test
+    void version1StateLoadsUnchangedAndIsBoundWithSchemaVersion2() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              stateJson(1, "[{\"type\": \"text\", \"text\": \"Found 3 items\"}]"));
+
+      AgentContext agentContext =
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+
+      assertThat(agentContext).isEqualTo(expectedAgentContext());
+    }
+
+    @Test
+    void version2StateLoads() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              stateJson(2, "[{\"type\": \"text\", \"text\": \"Found 3 items\"}]"));
+
+      AgentContext agentContext =
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+
+      assertThat(agentContext).isEqualTo(expectedAgentContext());
+    }
+
+    @Test
+    void version3StateIsRejected() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              stateJson(3, "[{\"type\": \"text\", \"text\": \"Found 3 items\"}]"));
 
       assertThatThrownBy(
               () -> AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper))
           .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining(String.valueOf(futureVersion))
-          .hasMessageContaining("newer")
-          .hasMessageContaining("not supported");
+          .hasMessage(
+              "Persisted conversation schema version 3 is newer than the highest version supported by this connector (2). This state was written by a newer connector version; rolling back to an older connector version is not supported. Upgrade the connector runtime to the version that wrote this state.");
+    }
+
+    @Test
+    void versionStampOfAMigratedStateSurvivesTheNextReadWriteCycle() throws Exception {
+      AgentContext migrated =
+          AgentContextSchemaMigration.migrateAndBindAgentContext(
+              objectMapper.readTree(stateJson(null, "\"Found 3 items\"")), objectMapper);
+
+      JsonNode persisted = objectMapper.valueToTree(migrated);
+
+      assertThat(persisted.get("schemaVersion").asInt()).isEqualTo(2);
+      assertThat(AgentContextSchemaMigration.migrateAndBindAgentContext(persisted, objectMapper))
+          .isEqualTo(expectedAgentContext());
+    }
+
+    private static String stateJson(Integer schemaVersion, String toolCallResultContent) {
+      final var versionField =
+          schemaVersion == null ? "" : "\"schemaVersion\": %d,".formatted(schemaVersion);
+      return """
+      {
+        %s
+        "state": "READY",
+        "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 10, "outputTokenCount": 20}, "toolCalls": 1},
+        "toolDefinitions": [],
+        "conversation": {
+          "type": "in-process",
+          "conversationId": "test",
+          "messages": [
+            {
+              "role": "assistant",
+              "id": "00000000-0000-7000-8000-000000000001",
+              "toolCalls": [{"id": "call-1", "name": "search", "arguments": {"q": "x"}}]
+            },
+            {
+              "role": "tool_call_result",
+              "id": "00000000-0000-7000-8000-000000000002",
+              "results": [{"id": "call-1", "name": "search", "content": %s}]
+            }
+          ]
+        },
+        "properties": {}
+      }
+      """
+          .formatted(versionField, toolCallResultContent);
+    }
+
+    private static AgentContext expectedAgentContext() {
+      return new AgentContext(
+          2,
+          AgentState.READY,
+          null,
+          new AgentMetrics(
+              1,
+              AgentMetrics.TokenUsage.builder().inputTokenCount(10).outputTokenCount(20).build(),
+              1),
+          List.of(),
+          new InProcessConversationContext(
+              "test",
+              List.of(
+                  AssistantMessage.builder()
+                      .id(MessageId.of("00000000-0000-7000-8000-000000000001"))
+                      .toolCalls(
+                          List.of(new ToolCall("call-1", "search", Map.of("q", "x"), Map.of())))
+                      .build(),
+                  ToolCallResultMessage.builder()
+                      .id(MessageId.of("00000000-0000-7000-8000-000000000002"))
+                      .results(
+                          List.of(
+                              ToolCallResultContent.builder()
+                                  .id("call-1")
+                                  .name("search")
+                                  .content(List.of(TextContent.textContent("Found 3 items")))
+                                  .build()))
+                      .build())),
+          List.of(),
+          Map.of());
+    }
+
+    @Test
+    void newerThanCurrentVersionThrows() throws Exception {
+      JsonNode tree = objectMapper.readTree("{\"schemaVersion\": 3}");
+
+      assertThatThrownBy(
+              () -> AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessage(
+              "Persisted conversation schema version 3 is newer than the highest version supported by this connector (2). This state was written by a newer connector version; rolling back to an older connector version is not supported. Upgrade the connector runtime to the version that wrote this state.");
     }
 
     @Test

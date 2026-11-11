@@ -26,17 +26,18 @@ public class CamundaDocumentConversationSerializer {
   }
 
   /**
-   * Reads the conversation document content, migrating its {@code messages} in place when the
-   * payload's own {@code schemaVersion} predates {@link AgentContext#CURRENT_SCHEMA_VERSION}
-   * (Camunda 8.9 tool-call results persisted with a flat {@code content} field). The version is
-   * read from the document payload itself — each persisted conversation root is self-describing,
+   * Reads the conversation document content, migrating it step by step when the payload's own
+   * {@code schemaVersion} predates {@link AgentContext#CURRENT_SCHEMA_VERSION}: an unversioned
+   * payload (Camunda 8.9 tool-call results persisted with a flat {@code content} field) has its
+   * {@code messages} upcast in place, a version 1 payload is bound unchanged. The version is read
+   * from the document payload itself — each persisted conversation root is self-describing,
    * mirroring the AWS AgentCore blob envelope — so a legacy payload behind a pointer-style {@code
    * AgentContext} (whose bound {@code schemaVersion} defaults to current) is still migrated
    * correctly.
    */
   public DocumentContent readDocumentContent(Document document) throws IOException {
     final JsonNode tree = objectMapper.readTree(document.asInputStream());
-    final int schemaVersion =
+    int schemaVersion =
         tree.hasNonNull("schemaVersion")
             ? tree.get("schemaVersion").asInt()
             : AgentContext.UNVERSIONED_SCHEMA_VERSION;
@@ -45,11 +46,24 @@ public class CamundaDocumentConversationSerializer {
           "Persisted conversation schema version %d is newer than the highest version supported by this connector (%d). This state was written by a newer connector version; rolling back to an older connector version is not supported. Upgrade the connector runtime to the version that wrote this state."
               .formatted(schemaVersion, AgentContext.CURRENT_SCHEMA_VERSION));
     }
-    if (schemaVersion < AgentContext.CURRENT_SCHEMA_VERSION) {
-      AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(
-          tree.get("messages"), objectMapper);
+    while (schemaVersion < AgentContext.CURRENT_SCHEMA_VERSION) {
+      schemaVersion = migrate(schemaVersion, tree);
     }
     return objectMapper.treeToValue(tree, DocumentContent.class);
+  }
+
+  private int migrate(int fromVersion, JsonNode tree) {
+    return switch (fromVersion) {
+      case AgentContext.UNVERSIONED_SCHEMA_VERSION -> {
+        AgentContextSchemaMigration.ToolCallResultUpcaster.upcastMessages(
+            tree.get("messages"), objectMapper);
+        yield 1;
+      }
+      case 1 -> 2;
+      default ->
+          throw new IllegalStateException(
+              "No migration registered from schema version %d".formatted(fromVersion));
+    };
   }
 
   public String writeDocumentContent(DocumentContent content) throws JsonProcessingException {

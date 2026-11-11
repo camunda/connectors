@@ -87,7 +87,7 @@ configuration, the result will contain the following fields:
       },
       "toolCalls" : 0
     },
-    "schemaVersion" : 1,
+    "schemaVersion" : 2,
     "state" : "READY",
     "toolDefinitions" : [ {
       "description" : "A sample tool for demonstration purposes.",
@@ -135,7 +135,7 @@ leading to the following result
       },
       "toolCalls" : 0
     },
-    "schemaVersion" : 1,
+    "schemaVersion" : 2,
     "state" : "READY",
     "toolDefinitions" : [ {
       "description" : "A sample tool for demonstration purposes.",
@@ -185,7 +185,7 @@ leading to the following result
       },
       "toolCalls" : 0
     },
-    "schemaVersion" : 1,
+    "schemaVersion" : 2,
     "state" : "READY",
     "toolDefinitions" : [ {
       "description" : "A sample tool for demonstration purposes.",
@@ -249,7 +249,7 @@ leading to the following result
       },
       "toolCalls" : 0
     },
-    "schemaVersion" : 1,
+    "schemaVersion" : 2,
     "state" : "READY",
     "toolDefinitions" : [ {
       "description" : "A sample tool for demonstration purposes.",
