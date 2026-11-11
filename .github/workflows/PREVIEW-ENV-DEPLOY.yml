@@ -43,12 +43,13 @@ jobs:
     # Setup: import secrets from vault
     - name: Import secrets
       id: secrets
-      uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+      uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
-        method: approle
-        roleId: ${{ secrets.VAULT_ROLE_ID }}
-        secretId: ${{ secrets.VAULT_SECRET_ID }}
+        method: jwt
+        role: ${{ secrets.VAULT_JWT_ROLE }}
+        path: ${{ secrets.VAULT_JWT_PATH }}
+        jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
         secrets: |
           secret/data/products/connectors/ci/common ARGOCD_TOKEN;
     #########################################################################
@@ -122,7 +123,10 @@ jobs:
         pull-request-id: ${{ github.event.pull_request.number }}
   clean:
     if: always() && github.event_name == 'pull_request' && needs.deploy-preview.result != 'skipped'
-    uses: camunda/connectors/.github/workflows/PREVIEW-ENV-CLEAN.yml@main
+    permissions:
+      contents: read
+      id-token: write  # Vault JWT login
+    uses: ./.github/workflows/PREVIEW-ENV-CLEAN.yml
     needs: [deploy-preview]
     secrets: inherit
     with:
