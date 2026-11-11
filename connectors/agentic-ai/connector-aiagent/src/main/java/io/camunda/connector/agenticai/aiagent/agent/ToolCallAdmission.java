@@ -34,12 +34,12 @@ public class ToolCallAdmission {
   /**
    * Admits the calls of the message.
    *
-   * @param offeredTools the tools offered to the model in this job
    * @param agentContext the agent context the message is answered with
+   * @param offeredTools the tools offered to the model in this job
    * @return the message with every call admitted or rejected; a message without calls as it is
    */
   public AssistantMessage admit(
-      AssistantMessage message, List<ToolDefinition> offeredTools, AgentContext agentContext) {
+      AgentContext agentContext, List<ToolDefinition> offeredTools, AssistantMessage message) {
     if (!message.hasToolCalls()) {
       return message;
     }
@@ -50,12 +50,12 @@ public class ToolCallAdmission {
                     ToolDefinition::name, Function.identity(), (first, second) -> first));
     return message.withToolCalls(
         message.toolCalls().stream()
-            .map(call -> admit(call, definitionsByName.get(call.name()), agentContext))
+            .map(call -> admit(agentContext, definitionsByName.get(call.name()), call))
             .toList());
   }
 
   private ToolCall admit(
-      ToolCall call, @Nullable ToolDefinition definition, AgentContext agentContext) {
+      AgentContext agentContext, @Nullable ToolDefinition definition, ToolCall call) {
     if (definition == null) {
       return call.withRejection("The tool '%s' does not exist.".formatted(call.name()));
     }

@@ -79,7 +79,7 @@ class ToolCallAdmissionTest {
             new ToolCall("r1", "acme_note", Map.of("text", "x")));
 
     final var admitted =
-        admission.admit(message, List.of(PROCESS_TOOL, RUNTIME_TOOL), NEW_INSTANCE);
+        admission.admit(NEW_INSTANCE, List.of(PROCESS_TOOL, RUNTIME_TOOL), message);
 
     assertThat(admitted)
         .isEqualTo(
@@ -97,7 +97,7 @@ class ToolCallAdmissionTest {
             new ToolCall("x1", "acme_unknown", Map.of()),
             new ToolCall("p1", "getWeather", Map.of()));
 
-    final var admitted = admission.admit(message, List.of(PROCESS_TOOL), NEW_INSTANCE);
+    final var admitted = admission.admit(NEW_INSTANCE, List.of(PROCESS_TOOL), message);
 
     assertThat(admitted.toolCalls())
         .containsExactly(
@@ -110,7 +110,7 @@ class ToolCallAdmissionTest {
   void aMessageWithoutCallsIsReturnedAsItIs() {
     final var message = AssistantMessage.builder().content(List.of(textContent("Hi"))).build();
 
-    assertThat(admission.admit(message, List.of(PROCESS_TOOL), NEW_INSTANCE)).isSameAs(message);
+    assertThat(admission.admit(NEW_INSTANCE, List.of(PROCESS_TOOL), message)).isSameAs(message);
   }
 
   @Test
@@ -118,7 +118,7 @@ class ToolCallAdmissionTest {
     final var call = new ToolCall("p1", "upload", Map.of("doc", "bogus"));
 
     final var admitted =
-        admission.admit(messageWith(call), List.of(PROCESS_UPLOAD_TOOL), KNOWING_REPORT);
+        admission.admit(KNOWING_REPORT, List.of(PROCESS_UPLOAD_TOOL), messageWith(call));
 
     assertThat(admitted.toolCalls()).containsExactly(call.withRejection(BOGUS_DOC));
   }
@@ -136,9 +136,9 @@ class ToolCallAdmissionTest {
 
     final var admitted =
         admission.admit(
-            messageWith(processCall, runtimeCall),
+            knowingNothing,
             List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
-            knowingNothing);
+            messageWith(processCall, runtimeCall));
 
     assertThat(admitted.toolCalls())
         .containsExactly(
@@ -151,7 +151,7 @@ class ToolCallAdmissionTest {
     final var call = new ToolCall("r1", "acme_upload", Map.of("doc", "bogus"));
 
     final var admitted =
-        admission.admit(messageWith(call), List.of(RUNTIME_UPLOAD_TOOL), KNOWING_REPORT);
+        admission.admit(KNOWING_REPORT, List.of(RUNTIME_UPLOAD_TOOL), messageWith(call));
 
     assertThat(admitted.toolCalls())
         .containsExactly(call.withKind(ToolKind.RUNTIME).withRejection(BOGUS_DOC));
@@ -164,9 +164,9 @@ class ToolCallAdmissionTest {
 
     final var admitted =
         admission.admit(
-            messageWith(processCall, runtimeCall),
+            KNOWING_REPORT,
             List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
-            KNOWING_REPORT);
+            messageWith(processCall, runtimeCall));
 
     assertThat(admitted.toolCalls())
         .containsExactly(processCall, runtimeCall.withKind(ToolKind.RUNTIME));
@@ -181,9 +181,9 @@ class ToolCallAdmissionTest {
 
     final var admitted =
         admission.admit(
-            messageWith(processKnown, runtimeKnown, processUnknown),
+            KNOWING_REPORT,
             List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
-            KNOWING_REPORT);
+            messageWith(processKnown, runtimeKnown, processUnknown));
 
     assertThat(admitted.toolCalls())
         .containsExactly(
@@ -201,9 +201,9 @@ class ToolCallAdmissionTest {
 
     final var admitted =
         admission.admit(
-            messageWith(invalidProcessCall, validRuntimeCall, invalidRuntimeCall, otherCall),
+            KNOWING_REPORT,
             List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL, PROCESS_TOOL),
-            KNOWING_REPORT);
+            messageWith(invalidProcessCall, validRuntimeCall, invalidRuntimeCall, otherCall));
 
     assertThat(admitted.toolCalls())
         .containsExactly(
@@ -220,9 +220,9 @@ class ToolCallAdmissionTest {
 
     final var admitted =
         admission.admit(
-            messageWith(processCall, runtimeCall),
+            NEW_INSTANCE,
             List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
-            NEW_INSTANCE);
+            messageWith(processCall, runtimeCall));
 
     assertThat(admitted.toolCalls())
         .containsExactly(processCall, runtimeCall.withKind(ToolKind.RUNTIME));
@@ -235,9 +235,9 @@ class ToolCallAdmissionTest {
 
     final var admitted =
         admission.admit(
-            messageWith(processCall, runtimeCall),
+            KNOWING_REPORT,
             List.of(PROCESS_TOOL, RUNTIME_TOOL),
-            KNOWING_REPORT);
+            messageWith(processCall, runtimeCall));
 
     assertThat(admitted.toolCalls())
         .containsExactly(processCall, runtimeCall.withKind(ToolKind.RUNTIME));
@@ -250,9 +250,9 @@ class ToolCallAdmissionTest {
 
     final var admitted =
         admission.admit(
-            messageWith(processCall, runtimeCall),
+            KNOWING_REPORT,
             List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
-            KNOWING_REPORT);
+            messageWith(processCall, runtimeCall));
 
     assertThat(admitted.toolCalls())
         .containsExactly(
@@ -269,7 +269,7 @@ class ToolCallAdmissionTest {
         new ToolCall("p2", "attach", Map.of("files", List.of(REPORT_HANDLE, UNKNOWN_HANDLE)));
 
     final var admitted =
-        admission.admit(messageWith(call, list), List.of(PROCESS_ATTACH_TOOL), KNOWING_REPORT);
+        admission.admit(KNOWING_REPORT, List.of(PROCESS_ATTACH_TOOL), messageWith(call, list));
 
     assertThat(admitted.toolCalls())
         .containsExactly(
