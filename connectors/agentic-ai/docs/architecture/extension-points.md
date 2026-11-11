@@ -233,7 +233,10 @@ reference. The same holds for a union parameter, a parameter that takes a docume
 this version on) and cannot be switched off; an instance created before the feature is not offered it. A switch for it is a
 follow-up of [ADR 018](../adr/018-document-flow.md).
 
-**The guard.** `DocumentContentGuard` is the one check for every addition of content, whoever asks. It classifies a
+**The guard.** `DocumentContentGuard` is the one check for the content a runtime tool asks for with the effect
+`AddDocumentContent`, in an agent instance with the `documents` feature (`DocumentContentDelivery` runs it). Other content
+in the conversation does not pass it: the documents of the user prompt, and every document of an instance without the
+`documents` feature (see below). It classifies a
 document by its content type with the
 classification of the model providers (`DocumentMimeTypes`): text-based types (`text/*`, `application/json`, `xml`, `yaml`,
 `x-yaml` and the suffixes `+json`, `+xml`, `+yaml`), `application/pdf`, and the images PNG, JPEG, GIF and WebP; parameters
@@ -251,8 +254,10 @@ most. The message and the cause of a failure, such as one while reading the docu
 the persisted conversation.
 
 **The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
-document goes out with the prompt, with no size limit and no type check, and a document the provider cannot read fails the
-model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
+document goes out with the prompt without the guard, with no size limit and no type check, and a document the provider
+cannot read fails the model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
+In an instance without the `documents` feature every document, also those of the user prompt, events and tool results,
+is added as content without the guard.
 
 **Only Camunda documents.** An instance with the `documents` feature accepts only Camunda documents
 (`AgentDocument.isSupported`). A document with an external reference (a URL) or an inline reference (the content is in the

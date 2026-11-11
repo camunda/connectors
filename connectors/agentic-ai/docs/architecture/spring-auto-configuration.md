@@ -55,8 +55,11 @@ API timeout (`aiagent.chatModel.api.*`), and the size limits of the document con
 
 ## Document content limits
 
-The agent adds the content of a document to the conversation only when the document passes the content guard (see "The
-guard" under [Document Extraction from Tool Call Results](extension-points.md#document-extraction-from-tool-call-results)). The size limits of the guard are properties of the
+The content guard checks the content that a runtime tool asks for (`c8__load_document`) in an agent instance with the
+`documents` feature: the agent adds the content of such a document to the conversation only when the document passes the
+guard (see "The guard" under [Document Extraction from Tool Call Results](extension-points.md#document-extraction-from-tool-call-results)).
+The limits do not bound the other content the model receives: the documents of the user prompt, and every document of an
+instance without the `documents` feature, are added without the guard. The size limits of the guard are properties of the
 connector, not of a job: the operator sets them for every agent of the runtime, and they are not FEEL expressions. A value
 is a Spring `DataSize` such as `256KB` or `4MB` and must be positive: a value that is not positive fails the binding of
 the properties. A limit that is not set has the default of the table below, which `DocumentContentLimits.defaults()` repeats. A bean of type

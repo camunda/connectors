@@ -12,9 +12,9 @@ import org.apache.hc.core5.http.ContentType;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The guard every addition of document content to the conversation passes on request of a tool or
- * of the process: the document must have a content type that a model provider can render, and it
- * must not exceed the limit of its kind of content (see {@link DocumentContentLimits}).
+ * Checks the content that a runtime tool asks for, in an agent instance that tracks its documents:
+ * the document must have a content type that a model provider can render, and it must not exceed
+ * the limit of its kind of content (see {@link DocumentContentLimits}).
  *
  * <p>The kinds are the ones the model providers tell apart ({@link DocumentMimeTypes}): text, PDF
  * and image. A document without a content type has no kind and is not loadable, because a provider
