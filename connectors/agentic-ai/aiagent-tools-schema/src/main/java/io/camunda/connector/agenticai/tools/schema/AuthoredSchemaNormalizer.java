@@ -94,6 +94,7 @@ final class AuthoredSchemaNormalizer {
     return result;
   }
 
+  // a schema node read as JSON is a JSON object, so its keys are strings
   @SuppressWarnings("unchecked")
   private static Map<String, Object> cast(Map<?, ?> map) {
     return (Map<String, Object>) map;

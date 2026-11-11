@@ -176,6 +176,7 @@ public class DocumentParameterResolver {
         : new Resolution.Invalid(problems);
   }
 
+  // the walk copies the arguments map with its string keys, so the root stays a Map<String, Object>
   @SuppressWarnings("unchecked")
   private Map<String, Object> walkAll(
       ToolCall toolCall,

@@ -61,22 +61,28 @@ class DocumentParameterTest {
 
   @Test
   void anObjectIsAHandleSchemaOnlyWithTheHandleTypeAsTheOnlyValueOfTheTypeProperty() {
-    assertThat(DocumentParameter.isDocumentSchema(doc())).isTrue();
-    assertThat(DocumentParameter.isDocumentSchema(withDescription(doc(), "A doc"))).isTrue();
-    assertThat(DocumentParameter.isDocumentSchema(object("id", string()))).isFalse();
+    assertThat(DocumentParameter.in(object("p", doc()))).containsExactly(document(property("p")));
+    assertThat(DocumentParameter.in(object("p", withDescription(doc(), "A doc"))))
+        .containsExactly(document(property("p")));
+    assertThat(DocumentParameter.in(object("p", object("id", string())))).isEmpty();
     assertThat(
-            DocumentParameter.isDocumentSchema(
-                object("type", Map.of("type", "string", "enum", List.of("other")))))
-        .isFalse();
+            DocumentParameter.in(
+                object("p", object("type", Map.of("type", "string", "enum", List.of("other"))))))
+        .isEmpty();
     assertThat(
-            DocumentParameter.isDocumentSchema(
+            DocumentParameter.in(
                 object(
-                    "type",
-                    Map.of(
-                        "type", "string", "enum", List.of("camunda.agenticai.document", "other")))))
-        .isFalse();
-    assertThat(DocumentParameter.isDocumentSchema(object("type", string()))).isFalse();
-    assertThat(DocumentParameter.isDocumentSchema(string())).isFalse();
+                    "p",
+                    object(
+                        "type",
+                        Map.of(
+                            "type",
+                            "string",
+                            "enum",
+                            List.of("camunda.agenticai.document", "other"))))))
+        .isEmpty();
+    assertThat(DocumentParameter.in(object("p", object("type", string())))).isEmpty();
+    assertThat(DocumentParameter.in(object("p", string()))).isEmpty();
   }
 
   @Test
@@ -137,15 +143,6 @@ class DocumentParameterTest {
     // a document node is not a union node
     assertThat(DocumentParameter.isUnionSchema(doc())).isFalse();
     assertThat(DocumentParameter.in(object("doc", Map.of("anyOf", List.of(doc()))))).isEmpty();
-  }
-
-  @Test
-  void theKeywordOfTheAlternativesIsTheOneThatListsTheDocument() {
-    assertThat(DocumentParameter.alternativesKeyword(Map.of("anyOf", List.of(string(), doc()))))
-        .isEqualTo("anyOf");
-    assertThat(DocumentParameter.alternativesKeyword(Map.of("oneOf", List.of(string(), doc()))))
-        .isEqualTo("oneOf");
-    assertThat(DocumentParameter.alternativesKeyword(string())).isNull();
   }
 
   @Test
@@ -227,15 +224,20 @@ class DocumentParameterTest {
   }
 
   @Test
-  void containsADocumentSchemaDirectlyInPropertiesInItemsAndInAlternatives() {
-    assertThat(DocumentParameter.containsDocumentSchema(doc())).isTrue();
-    assertThat(DocumentParameter.containsDocumentSchema(object("file", doc()))).isTrue();
-    assertThat(DocumentParameter.containsDocumentSchema(Map.of("type", "array", "items", doc())))
-        .isTrue();
-    assertThat(DocumentParameter.containsDocumentSchema(Map.of("oneOf", List.of(string(), doc()))))
-        .isTrue();
-    assertThat(DocumentParameter.containsDocumentSchema(object("a", string()))).isFalse();
-    assertThat(DocumentParameter.containsDocumentSchema(string())).isFalse();
+  void anAlternativeHoldsADocumentDirectlyInItsPropertiesInItsItemsOrInItsAlternatives() {
+    for (final var alternative :
+        List.of(
+            doc(),
+            object("file", doc()),
+            Map.of("type", "array", "items", doc()),
+            Map.of("oneOf", List.of(string(), doc())))) {
+      assertThat(DocumentParameter.in(object("v", Map.of("anyOf", List.of(string(), alternative)))))
+          .containsExactly(union(property("v")));
+    }
+    for (final var alternative : List.of(object("a", string()), string())) {
+      assertThat(DocumentParameter.in(object("v", Map.of("anyOf", List.of(string(), alternative)))))
+          .isEmpty();
+    }
   }
 
   @Test

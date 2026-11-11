@@ -21,7 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import org.jspecify.annotations.Nullable;
 
 /**
  * A parameter of a tool that carries a document, found in the input schema of the {@link
@@ -87,6 +86,7 @@ public sealed interface DocumentParameter {
      * {@code items} schema. The other entries keep their order and values. This is the one place
      * that defines where a document parameter can be.
      */
+    // a child of a schema node read as JSON is a JSON object, so its keys are strings
     @SuppressWarnings("unchecked")
     static Map<String, Object> mapChildren(
         Map<String, Object> node,
@@ -129,7 +129,7 @@ public sealed interface DocumentParameter {
    * Whether the schema node is the schema of a document handle: an object whose {@code
    * properties.type.enum} is exactly the handle type.
    */
-  static boolean isDocumentSchema(Map<?, ?> schema) {
+  private static boolean isDocumentSchema(Map<?, ?> schema) {
     return TYPE_OBJECT.equals(schema.get(PROPERTY_TYPE))
         && schema.get(PROPERTY_PROPERTIES) instanceof Map<?, ?> properties
         && properties.get(PROPERTY_TYPE) instanceof Map<?, ?> type
@@ -142,27 +142,14 @@ public sealed interface DocumentParameter {
    * #containsDocumentSchema}).
    */
   static boolean isUnionSchema(Map<?, ?> schema) {
-    return alternativesKeyword(schema) != null;
-  }
-
-  /**
-   * The keyword ({@code anyOf} or {@code oneOf}) of the alternatives that make the node a {@link
-   * Union}, or {@code null} when the node is none.
-   */
-  static @Nullable String alternativesKeyword(Map<?, ?> schema) {
-    if (isDocumentSchema(schema)) {
-      return null;
-    }
-    for (final var keyword : List.of(PROPERTY_ANYOF, PROPERTY_ONEOF)) {
-      if (schema.get(keyword) instanceof List<?> alternatives
-          && alternatives.size() > 1
-          && alternatives.stream()
-              .anyMatch(alternative ->
-                  alternative instanceof Map<?, ?> map && containsDocumentSchema(map))) {
-        return keyword;
-      }
-    }
-    return null;
+    return !isDocumentSchema(schema)
+        && List.of(PROPERTY_ANYOF, PROPERTY_ONEOF).stream()
+            .anyMatch(keyword ->
+                schema.get(keyword) instanceof List<?> alternatives
+                    && alternatives.size() > 1
+                    && alternatives.stream()
+                        .anyMatch(alternative ->
+                            alternative instanceof Map<?, ?> map && containsDocumentSchema(map)));
   }
 
   /**
@@ -170,7 +157,7 @@ public sealed interface DocumentParameter {
    * an object, in the {@code items} of an array or in the alternatives of a nested {@code anyOf} or
    * {@code oneOf}.
    */
-  static boolean containsDocumentSchema(Map<?, ?> schema) {
+  private static boolean containsDocumentSchema(Map<?, ?> schema) {
     if (isDocumentSchema(schema)) {
       return true;
     }
