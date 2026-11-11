@@ -22,13 +22,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.springframework.core.io.ClassPathResource;
@@ -167,19 +165,5 @@ public final class DocumentFlowFixtures {
 
   public static int uploadCount() {
     return findAll(postRequestedFor(urlPathEqualTo(UPLOAD_PATH))).size();
-  }
-
-  /**
-   * The id of the document in the handle of the result of the tool call with the given id, as the
-   * last request of the conversation holds it.
-   */
-  public static String documentIdOfToolResult(
-      OpenAiCompletionsRecordedConversation recorded, String toolCallId) {
-    final var result =
-        recorded.lastRequest().messages().stream()
-            .filter(m -> toolCallId.equals(m.toolCallId()))
-            .findFirst()
-            .orElseThrow(() -> new AssertionError("No tool result for call " + toolCallId));
-    return parseDocumentHandle(result.content()).id().value();
   }
 }
