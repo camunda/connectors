@@ -13,6 +13,7 @@ import com.google.genai.types.Candidate;
 import com.google.genai.types.Content;
 import com.google.genai.types.FinishReason;
 import com.google.genai.types.FunctionCall;
+import com.google.genai.types.FunctionDeclaration;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
@@ -675,7 +676,8 @@ class GeminiContentRequestConverterTest {
 
     final var declaration =
         config.tools().orElseThrow().get(0).functionDeclarations().orElseThrow().get(0);
-    assertThat(declaration.parametersJsonSchema()).contains(schema);
+    assertThat(declaration)
+        .isEqualTo(FunctionDeclaration.builder().name("send").parametersJsonSchema(schema).build());
   }
 
   @Test
