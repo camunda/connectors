@@ -388,8 +388,9 @@ takes a document or something else with an `anyOf` or `oneOf` that has `Document
 object or array alternative), and the agent resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, a property typed `AgentDocumentId` receives it and
 a property typed `String` the text of the id, a property typed `Object` a `AgentDocumentId` for a document and the value the
 model passed for any other value; a union parameter holds an `AgentDocumentId` in the place of every handle in the value. A call with a parameter that does not name a known document is rejected at admission: the agent answers it with the
-error and the tool is not called. A runtime tool whose definition gains a document parameter between the jobs of a mixed
-batch fails the job (`IllegalStateException`) for a call admitted before, instead of giving the model an error.
+error and the tool is not called. `RuntimeTools` resolves a call again when it executes it, against the definition the tool is registered with. A call that was
+admitted without a rejection, and whose value is not the handle of a known document for a document parameter of that
+definition, gets a `RuntimeToolResult.error` with the resolution message as its result, which the model reads, and the tool is not called.
 
 **Documents.** A `DocumentContent` block in the result is a new document: after the calls of the message ran, the agent
 registers it with the tool call as its origin, and the model reads its handle only ([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). An error result registers nothing.
