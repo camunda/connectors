@@ -31,10 +31,13 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
@@ -265,8 +268,8 @@ class CamundaDocumentConversationStoreTest {
     final var previousConversationContext =
         CamundaDocumentConversationContext.builder("test-conversation").document(document).build();
 
-    // AgentContext.empty() binds schemaVersion to CURRENT_SCHEMA_VERSION even though the document
-    // behind the pointer is a legacy (Camunda 8.9) payload; the migration must not depend on this.
+    // AgentContext.empty() binds schemaVersion 2 even though the document behind the pointer is a
+    // legacy (Camunda 8.9) payload; the migration must not depend on this.
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
 
     try (var session = store.createSession(executionContext, agentContext)) {
@@ -281,10 +284,107 @@ class CamundaDocumentConversationStoreTest {
   }
 
   @Test
+  void loadsAVersion1DocumentPayloadWithStructuredToolCallResultContentUnchanged()
+      throws Exception {
+    final String version1DocumentJson =
+        """
+        {
+          "schemaVersion": 1,
+          "messages": [
+            {
+              "role": "tool_call_result",
+              "id": "00000000-0000-7000-8000-000000000002",
+              "results": [
+                {
+                  "id": "1",
+                  "name": "t",
+                  "content": [{"type": "object", "content": {"text": "hello"}}]
+                }
+              ]
+            }
+          ]
+        }
+        """;
+
+    final var document = mock(Document.class);
+    when(document.asInputStream())
+        .thenReturn(
+            new ByteArrayInputStream(version1DocumentJson.getBytes(StandardCharsets.UTF_8)));
+    final var agentContext =
+        AgentContext.empty()
+            .withConversation(
+                CamundaDocumentConversationContext.builder("test-conversation")
+                    .document(document)
+                    .build());
+
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
+
+      // the structured content is not wrapped a second time into an opaque object content
+      assertThat(loadResult.messages())
+          .containsExactly(
+              ToolCallResultMessage.builder()
+                  .id(MessageId.of("00000000-0000-7000-8000-000000000002"))
+                  .results(
+                      List.of(
+                          ToolCallResultContent.builder()
+                              .id("1")
+                              .name("t")
+                              .content(
+                                  List.of(ObjectContent.objectContent(Map.of("text", "hello"))))
+                              .build()))
+                  .build());
+    }
+  }
+
+  @Test
+  void loadsAVersion2DocumentPayload() throws Exception {
+    final String version2DocumentJson =
+        """
+        {
+          "schemaVersion": 2,
+          "messages": [
+            {
+              "role": "tool_call_result",
+              "id": "00000000-0000-7000-8000-000000000002",
+              "results": [{"id": "1", "name": "t", "content": [{"type": "text", "text": "hello"}]}]
+            }
+          ]
+        }
+        """;
+
+    final var document = mock(Document.class);
+    when(document.asInputStream())
+        .thenReturn(
+            new ByteArrayInputStream(version2DocumentJson.getBytes(StandardCharsets.UTF_8)));
+    final var agentContext =
+        AgentContext.empty()
+            .withConversation(
+                CamundaDocumentConversationContext.builder("test-conversation")
+                    .document(document)
+                    .build());
+
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
+
+      assertThat(loadResult.messages())
+          .containsExactly(
+              ToolCallResultMessage.builder()
+                  .id(MessageId.of("00000000-0000-7000-8000-000000000002"))
+                  .results(
+                      List.of(
+                          ToolCallResultContent.builder()
+                              .id("1")
+                              .name("t")
+                              .content(List.of(TextContent.textContent("hello")))
+                              .build()))
+                  .build());
+    }
+  }
+
+  @Test
   void throwsWhenDocumentPayloadSchemaVersionIsNewerThanSupported() throws Exception {
-    final int futureVersion = AgentContext.CURRENT_SCHEMA_VERSION + 1;
-    final String futureDocumentJson =
-        "{\"schemaVersion\": %d, \"messages\": []}".formatted(futureVersion);
+    final String futureDocumentJson = "{\"schemaVersion\": 3, \"messages\": []}";
 
     final var document = mock(Document.class);
     when(document.asInputStream())
@@ -298,10 +398,51 @@ class CamundaDocumentConversationStoreTest {
     try (var session = store.createSession(executionContext, agentContext)) {
       assertThatThrownBy(() -> session.loadMessages(agentContext))
           .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining(String.valueOf(futureVersion))
-          .hasMessageContaining("newer")
-          .hasMessageContaining("not supported");
+          .hasMessage(
+              "Persisted conversation schema version 3 is newer than the highest version supported by this connector (2). This state was written by a newer connector version; rolling back to an older connector version is not supported. Upgrade the connector runtime to the version that wrote this state.");
     }
+  }
+
+  @Test
+  void writesTheDocumentPayloadWithSchemaVersion2() throws Exception {
+    mockJobContext();
+    final var document = mock(Document.class);
+    when(documentFactory.create(documentCreationRequestCaptor.capture())).thenReturn(document);
+
+    final var toolCallResultMessage =
+        ToolCallResultMessage.builder()
+            .id(MessageId.of("00000000-0000-7000-8000-000000000002"))
+            .results(
+                List.of(
+                    ToolCallResultContent.builder()
+                        .id("1")
+                        .name("t")
+                        .content(List.of(TextContent.textContent("hello")))
+                        .build()))
+            .build();
+
+    final var agentContext = AgentContext.empty();
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+      session.storeMessages(
+          agentContext, ConversationStoreRequest.of(List.of(toolCallResultMessage)));
+    }
+
+    JSONAssert.assertEquals(
+        """
+        {
+          "schemaVersion": 2,
+          "messages": [
+            {
+              "role": "tool_call_result",
+              "id": "00000000-0000-7000-8000-000000000002",
+              "results": [{"id": "1", "name": "t", "content": [{"type": "text", "text": "hello"}]}]
+            }
+          ]
+        }
+        """,
+        new String(documentCreationRequestCaptor.getValue().content().readAllBytes()),
+        true);
   }
 
   @Test

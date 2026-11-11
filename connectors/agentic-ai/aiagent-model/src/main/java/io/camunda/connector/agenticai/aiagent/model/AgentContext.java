@@ -45,7 +45,7 @@ public record AgentContext(
    * whenever a change to the persisted shape requires migrating previously-persisted state on read
    * (see {@code AgentContextSchemaMigration}).
    */
-  public static final int CURRENT_SCHEMA_VERSION = 1;
+  public static final int CURRENT_SCHEMA_VERSION = 2;
 
   /**
    * Marker for state whose {@code schemaVersion} field was absent (pre-versioning / Camunda 8.9).

@@ -40,15 +40,16 @@ class AgentContextTest {
   }
 
   @Test
-  void schemaVersionDefaultsToCurrentAndSerializesAsFirstField() throws JsonProcessingException {
+  void aNewAgentContextHasSchemaVersion2AndSerializesItAsFirstField()
+      throws JsonProcessingException {
     final var context = AgentContext.empty();
-    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    assertThat(context.schemaVersion()).isEqualTo(2);
 
     final var serialized = objectMapper.writeValueAsString(context);
-    assertThat(serialized).startsWith("{\"schemaVersion\":" + AgentContext.CURRENT_SCHEMA_VERSION);
+    assertThat(serialized).startsWith("{\"schemaVersion\":2,");
 
     final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
-    assertThat(deserialized.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    assertThat(deserialized.schemaVersion()).isEqualTo(2);
   }
 
   @Test
@@ -166,7 +167,7 @@ class AgentContextTest {
     final var json =
         """
         {
-          "schemaVersion": 1,
+          "schemaVersion": 2,
           "state": "READY",
           "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
           "toolDefinitions": []
@@ -177,7 +178,7 @@ class AgentContextTest {
 
     assertThat(context.features()).isEmpty();
     assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isFalse();
-    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    assertThat(context.schemaVersion()).isEqualTo(2);
     assertThat(objectMapper.writeValueAsString(context)).doesNotContain("features");
   }
 
@@ -241,7 +242,7 @@ class AgentContextTest {
       String exceptionMessage) {
     assertThatThrownBy(() ->
             new AgentContext(
-                AgentContext.CURRENT_SCHEMA_VERSION,
+                2,
                 state,
                 null,
                 metrics,
