@@ -17,7 +17,6 @@ import io.camunda.connector.agenticai.aiagent.agent.ToolCallAdmission;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallBatch;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agent.TurnInput;
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -31,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSel
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -145,7 +145,7 @@ class ReturnDocumentToolTest {
                         "A stable identifier the process uses to find the document, matching"
                             + " [A-Za-z_][A-Za-z0-9_-]*."),
                     "document",
-                    DocumentSchemas.document("The handle of the document to return."),
+                    DocumentParameter.documentSchema("The handle of the document to return."),
                     "description",
                     Map.of(
                         "type",
@@ -274,7 +274,7 @@ class ReturnDocumentToolTest {
 
     final var admitted =
         new ToolCallAdmission(resolver)
-            .admit(message, List.of(tool.definition()), agentContext)
+            .admit(agentContext, List.of(tool.definition()), message)
             .toolCalls();
     // the batch answers a rejected call with its rejection, so nothing is left to execute
     final var batch = ToolCallBatch.of(admitted);

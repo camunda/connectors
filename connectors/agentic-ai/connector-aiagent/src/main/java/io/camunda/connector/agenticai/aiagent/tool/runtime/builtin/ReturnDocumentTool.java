@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
@@ -15,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -77,7 +77,8 @@ public final class ReturnDocumentTool implements RuntimeTool {
                 + ResponseDocumentSelection.KEY_PATTERN
                 + "."));
     properties.put(
-        PARAMETER_DOCUMENT, DocumentSchemas.document("The handle of the document to return."));
+        PARAMETER_DOCUMENT,
+        DocumentParameter.documentSchema("The handle of the document to return."));
     properties.put(PARAMETER_DESCRIPTION, text("An optional short description of the document."));
     final var schema = new LinkedHashMap<String, Object>();
     schema.put("type", "object");
