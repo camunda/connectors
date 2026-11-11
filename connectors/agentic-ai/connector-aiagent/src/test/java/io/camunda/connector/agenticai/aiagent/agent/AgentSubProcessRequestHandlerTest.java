@@ -79,6 +79,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocument
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -2194,16 +2195,15 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(agentResponse.context().conversation())
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
-            c -> {
-              assertThat(c.messages()).hasSize(5);
-              assertThat(c.messages().get(2))
-                  .isEqualTo(
-                      firstMessage.withToolCalls(
-                          List.of(badCall.withRejection(mustBeHandleRejection("doc")))));
-              assertErrorResultMessage(
-                  c.messages().get(3), "call-1", "upload", mustBeHandleRejection("doc"));
-              assertThat(c.messages().get(4)).isEqualTo(secondMessage);
-            });
+            c ->
+                assertMessagesEqualIgnoringGeneratedValues(
+                    c.messages(),
+                    SYSTEM_MESSAGE,
+                    USER_MESSAGE,
+                    firstMessage.withToolCalls(
+                        List.of(badCall.withRejection(mustBeHandleRejection("doc")))),
+                    errorResultMessage("call-1", "upload", mustBeHandleRejection("doc")),
+                    secondMessage));
 
     // history: start of the first turn, completion (THINKING: another round follows), start of the
     // second round with the error result correlated to the first turn, final completion
@@ -2242,11 +2242,12 @@ class AgentSubProcessRequestHandlerTest {
     inOrder.verifyNoMoreInteractions();
     final var turns = turnCaptor.getAllValues();
     assertThat(turns.get(2).iterationKey()).isEqualTo(2);
-    assertThat(turns.get(2).inputMessages()).hasSize(1);
-    assertErrorResultMessage(
-        turns.get(2).inputMessages().getFirst(), "call-1", "upload", mustBeHandleRejection("doc"));
-    // the history shows the arguments as the model sent them
-    assertThat(turns.get(1).toolCalls().getFirst().arguments()).isEqualTo(badCall.arguments());
+    assertMessagesEqualIgnoringGeneratedValues(
+        turns.get(2).inputMessages(),
+        errorResultMessage("call-1", "upload", mustBeHandleRejection("doc")));
+    // the history shows the call as the model sent it, tagged with its rejection
+    assertThat(turns.get(1).toolCalls())
+        .containsExactly(badCall.withRejection(mustBeHandleRejection("doc")));
   }
 
   @Test
@@ -2281,12 +2282,14 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(agentResponse.context().conversation())
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
-            c -> {
-              assertThat(c.messages()).hasSize(5);
-              assertThat(c.messages().get(2))
-                  .isEqualTo(firstMessage.withToolCalls(List.of(rejectedCall)));
-              assertThat(c.messages().get(4)).isEqualTo(secondMessage);
-            });
+            c ->
+                assertMessagesEqualIgnoringGeneratedValues(
+                    c.messages(),
+                    SYSTEM_MESSAGE,
+                    USER_MESSAGE,
+                    firstMessage.withToolCalls(List.of(rejectedCall)),
+                    errorResultMessage("call-1", "acme_upload", BOGUS_DOCUMENT),
+                    secondMessage));
 
     // the second request carries the rejection as the result of the call
     assertErrorResultMessage(
@@ -2313,12 +2316,12 @@ class AgentSubProcessRequestHandlerTest {
     arguments.put("doc", "bogus");
     arguments.put("note", null);
     final var badCall = new ToolCall("call-1", "upload", arguments);
+    final var firstMessage = AssistantMessage.builder().toolCalls(List.of(badCall)).build();
+    final var secondMessage = assistantMessage("done");
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
-    doReturn(
-            new ChatResult.Completed(
-                AssistantMessage.builder().toolCalls(List.of(badCall)).build(), metrics))
-        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+    doReturn(new ChatResult.Completed(firstMessage, metrics))
+        .doReturn(new ChatResult.Completed(secondMessage, metrics))
         .when(chatModel)
         .execute(chatModelRequestCaptor.capture());
     mockResponseHandler();
@@ -2326,12 +2329,33 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     verify(chatModel, times(2)).execute(any());
-    assertThat(response.responseValue().toolCalls()).isEmpty();
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.toolCalls()).isEmpty();
     assertErrorResultMessage(
         chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast(),
         "call-1",
         "upload",
         BOGUS_DOCUMENT);
+
+    // the stored message keeps the call with the null argument the model sent
+    final var rejectedCall = badCall.withRejection(BOGUS_DOCUMENT);
+    assertThat(agentResponse.context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c ->
+                assertMessagesEqualIgnoringGeneratedValues(
+                    c.messages(),
+                    SYSTEM_MESSAGE,
+                    USER_MESSAGE,
+                    firstMessage.withToolCalls(List.of(rejectedCall)),
+                    errorResultMessage("call-1", "upload", BOGUS_DOCUMENT),
+                    secondMessage));
+
+    // the history shows the same call
+    verify(agentInstanceClient, times(2))
+        .applyTurnCompletion(any(), any(), turnCaptor.capture(), any(), any());
+    assertThat(turnCaptor.getAllValues().getFirst().toolCalls()).containsExactly(rejectedCall);
   }
 
   @Test
@@ -2365,12 +2389,12 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(agentResponse.context().conversation())
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
-            c -> {
-              assertThat(c.messages()).hasSize(3);
-              assertThat(c.messages().get(2))
-                  .isEqualTo(
-                      message.withToolCalls(List.of(rejectedForBogusDocument(badCall), otherCall)));
-            });
+            c ->
+                assertMessagesEqualIgnoringSystemMessageId(
+                    c.messages(),
+                    SYSTEM_MESSAGE,
+                    USER_MESSAGE,
+                    message.withToolCalls(List.of(rejectedForBogusDocument(badCall), otherCall))));
 
     // history: one turn start and one completion with the status of a tool calling turn; no
     // result is reported before the turn that follows the results of the process
@@ -2417,9 +2441,11 @@ class AgentSubProcessRequestHandlerTest {
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
             c ->
-                assertThat(c.messages().get(2))
-                    .isEqualTo(
-                        message.withToolCalls(List.of(rejectedForUnknownBody(badCall), textCall))));
+                assertMessagesEqualIgnoringSystemMessageId(
+                    c.messages(),
+                    SYSTEM_MESSAGE,
+                    USER_MESSAGE,
+                    message.withToolCalls(List.of(rejectedForUnknownBody(badCall), textCall))));
   }
 
   @Test
@@ -2731,26 +2757,56 @@ class AgentSubProcessRequestHandlerTest {
    */
   private static void assertErrorResultMessage(
       Message actual, String callId, String toolName, String text) {
-    final var message = (ToolCallResultMessage) actual;
-    assertThat(message.metadata()).containsOnlyKeys("timestamp");
-    final var expected =
-        ToolCallResultMessage.builder()
-            .metadata(message.metadata())
-            .results(
-                List.of(
-                    ToolCallResultContent.builder()
-                        .id(callId)
-                        .name(toolName)
-                        .content(List.of(TextContent.textContent(text)))
-                        .build()))
-            .build();
-    assertThat(message)
-        .usingRecursiveComparison()
-        .ignoringFields("id", "results.completedAt")
-        .isEqualTo(expected);
-    assertThat(message.results())
-        .singleElement()
-        .satisfies(result -> assertThat(result.completedAt()).isNotNull());
+    assertMessagesEqualIgnoringGeneratedValues(
+        List.of(actual), errorResultMessage(callId, toolName, text));
+  }
+
+  /** The tool call result message with the one text result of the call, as the agent creates it. */
+  private static ToolCallResultMessage errorResultMessage(
+      String callId, String toolName, String text) {
+    return ToolCallResultMessage.builder()
+        .results(
+            List.of(
+                ToolCallResultContent.builder()
+                    .id(callId)
+                    .name(toolName)
+                    .content(List.of(TextContent.textContent(text)))
+                    .build()))
+        .build();
+  }
+
+  /**
+   * Asserts {@code actual} equals {@code expected}, in order, apart from the values the agent
+   * generates: the id of a {@link SystemMessage} and the id, the timestamp and the completion times
+   * of a {@link ToolCallResultMessage}, which must be set.
+   */
+  private static void assertMessagesEqualIgnoringGeneratedValues(
+      List<? extends Message> actual, Message... expected) {
+    assertThat(actual).hasSize(expected.length);
+    for (int i = 0; i < expected.length; i++) {
+      if (expected[i] instanceof ToolCallResultMessage expectedResult
+          && actual.get(i) instanceof ToolCallResultMessage actualResult) {
+        assertThat(actualResult.metadata()).containsOnlyKeys("timestamp");
+        assertThat(actualResult.results())
+            .allSatisfy(result -> assertThat(result.completedAt()).isNotNull());
+        assertThat(
+                actualResult
+                    .withId(expectedResult.id())
+                    .withMetadata(expectedResult.metadata())
+                    .withResults(
+                        actualResult.results().stream()
+                            .map(result -> result.withCompletedAt(null))
+                            .toList()))
+            .isEqualTo(expectedResult);
+      } else if (expected[i] instanceof SystemMessage) {
+        assertThat(actual.get(i))
+            .usingRecursiveComparison()
+            .ignoringFields("id")
+            .isEqualTo(expected[i]);
+      } else {
+        assertThat(actual.get(i)).isEqualTo(expected[i]);
+      }
+    }
   }
 
   private static final String BOGUS_DOCUMENT = noDocumentsRejection("doc");
