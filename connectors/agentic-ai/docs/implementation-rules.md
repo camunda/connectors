@@ -62,6 +62,21 @@ Change only what the task needs. Clean up only your own changes.
 - Do not use the internals or the decision history of a different package or module to justify a
   precondition. When a reader must read a caller across that boundary to understand a precondition,
   document the coupling in an ADR or a reference doc, not in the Javadoc.
+- A Javadoc states the input and output behavior: what the method returns for which input, the
+  requirements for its parameters, each exception and the input that causes it, and each side effect
+  that a caller can see.
+- A Javadoc describes the code as it is. It does not tell about a change or an intent. Do not write
+  "now", "no longer", "new", "previously", "instead of", "replaces", "after this change", "for the
+  time being" or "until". Do not name a PR, an issue, a stack step or future work. Put the history in
+  the commit message, the PR, an ADR or [`docs/breaking-changes.md`](breaking-changes.md).
+- Each claim in a Javadoc MUST be true for the code of the same commit, on each path, also for a job
+  that runs again. Example: a job that runs again creates new message IDs, so a Javadoc must not claim
+  that it computes the same result. A claim that the code does not enforce is a defect.
+- A commit that changes the behavior or the signature of a method updates, in the same commit, the
+  Javadoc of the method, the Javadoc of its class, and each Javadoc and document that names the
+  method. This also applies to a later commit in the same PR.
+- In a review, flag a Javadoc or comment that tells about a change, that claims behavior that the code
+  does not have, or that does not agree with the code or the docs.
 
 ## Domain rules
 
@@ -86,6 +101,10 @@ that caused it.
      and `AgentContextSchemaMigration` migrates older stored agent contexts. (#8318)
    - Keep the agent state through a process instance migration. Example: the agent kept its
      `agentInstanceKey` only after the fix in #9164.
+   - Text that users or stored state can see is a wire format. Examples: the text of the agent
+     instance history, the format of a timestamp, the JSON of a document handle. Gate a change of it
+     on an agent instance feature, or record it in [`docs/breaking-changes.md`](breaking-changes.md).
+     (the review of #9631)
    - Why: a running process instance continues on the new connector version without a redeployment.
 2. **Check the source before you use vendor-specific data.** Data is valid only in the system that
    made it. An ID keeps its meaning.
@@ -112,6 +131,10 @@ that caused it.
      unsupported value. A test covers the error. Examples: `GeminiContentConverter` for an unsupported
      document type, `BedrockConverseRequestConverter` for unsupported content in a system message.
    - The help text of a new provider shows the value format that the runtime accepts.
+   - When a change stops calling a method of an extension point for some agent instances, the same
+     change updates the Javadoc of the method or deprecates the method. (the review of #9631)
+   - A class that users can extend has no two overridable methods whose results must agree.
+     (the review of #9631)
    - Why: a missing part fails at runtime without an error. (#7129)
 5. **Claim only the guarantees that the other system enforces.**
    - In this module: send the job key and the job lease token on every agent instance command. The
@@ -182,5 +205,20 @@ below make this style specific.
 - **One reason to change per class.** When an orchestrator gets a new responsibility, move it into a
   named step. Do not add one more method to the orchestrator. Example: `BaseAgentRequestHandler` calls
   `AgentInitializer` and `AgentConversationTurnInputComposer` as steps.
+- **Narrow surface, deep module.** Keep the public types and the extension points of one concept in
+  one package per module. Make a type or a member public only when code in a different package calls
+  it. Do not add a public member that only tests call.
+- **One owner per invariant.** When a rule must be true on more than one entry path, one function
+  enforces it. Example: each document that enters the conversation is checked before it is
+  registered, on the user prompt, event, process tool result and runtime tool result paths. A caller
+  does not call the steps in sequence, and does not choose between two implementations of the same
+  step.
+- **Exceptions belong to their contract.** When a Javadoc in `aiagent-api` requires an exception, the
+  exception class is in `aiagent-api`.
+- **Native providers and LangChain4j share no code.** A native SDK provider and the LangChain4j
+  integration do not share helpers or exception types. Why: the LangChain4j integration is planned for
+  removal.
+- **Code agrees with the accepted ADRs.** When code diverges from an accepted ADR, the same change
+  supersedes or extends the ADR with a new ADR, as the [ADR authoring rules](adr/README.md) say.
 
 For interfaces, follow the convention in [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md#architectural-invariants) (#9539).
