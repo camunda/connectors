@@ -98,6 +98,15 @@ public final class OpenAiCompletionsRecordedConversation {
     return requests;
   }
 
+  /** The requests in the provider-agnostic shape, oldest first. */
+  public List<io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest>
+      providerNeutralRequests() {
+    return requests.stream()
+        .<io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest>map(
+            OpenAiCompletionsRecordedChatRequestAdapter::new)
+        .toList();
+  }
+
   /** The most recent request, equivalent to {@code chatRequestCaptor.getValue()}. */
   public RecordedChatRequest lastRequest() {
     if (requests.isEmpty()) {
@@ -150,7 +159,7 @@ public final class OpenAiCompletionsRecordedConversation {
                 .map(ResponseFormatWire::toResponseFormat)
                 .orElse(null);
 
-        return new RecordedChatRequest(messages, toolDefinitions, responseFormat);
+        return new RecordedChatRequest(messages, toolDefinitions, responseFormat, rawBody);
       } catch (Exception e) {
         throw new IllegalStateException(
             "Failed to parse recorded chat request body: " + rawBody, e);
@@ -160,14 +169,22 @@ public final class OpenAiCompletionsRecordedConversation {
     private final List<RecordedMessage> messages;
     private final List<ToolDefinition> toolDefinitions;
     private final RecordedResponseFormat responseFormat;
+    private final String rawBody;
 
     private RecordedChatRequest(
         List<RecordedMessage> messages,
         List<ToolDefinition> toolDefinitions,
-        RecordedResponseFormat responseFormat) {
+        RecordedResponseFormat responseFormat,
+        String rawBody) {
       this.messages = messages;
       this.toolDefinitions = toolDefinitions;
       this.responseFormat = responseFormat;
+      this.rawBody = rawBody;
+    }
+
+    /** The request body as it went over the wire. */
+    public String rawBody() {
+      return rawBody;
     }
 
     /** The ordered {@code messages} array sent to the model. */

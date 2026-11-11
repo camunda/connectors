@@ -202,6 +202,34 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
+   * The type of the content block that carries the content of the test file ({@code test.<ext>} of
+   * the served files): {@code text} for text formats, {@code base64} for images and PDF.
+   */
+  public static String contentBlockType(String filename) {
+    return switch (filename) {
+      case "test.txt", "test.yaml", "test.csv", "test.json", "test.xml" -> "text";
+      default -> "base64";
+    };
+  }
+
+  /** The content type of the test file ({@code test.<ext>} of the served files). */
+  public static String mimeType(String filename) {
+    return switch (filename) {
+      case "test.csv" -> "text/csv";
+      case "test.gif" -> "image/gif";
+      case "test.jpg" -> "image/jpeg";
+      case "test.json" -> "application/json";
+      case "test.pdf" -> "application/pdf";
+      case "test.png" -> "image/png";
+      case "test.txt" -> "text/plain";
+      case "test.webp" -> "image/webp";
+      case "test.xml" -> "application/xml";
+      case "test.yaml" -> "application/yaml";
+      default -> throw new IllegalArgumentException("Unknown file: " + filename);
+    };
+  }
+
+  /**
    * Specification of one expected loaded document slot in the user message: the handle the earlier
    * message showed plus a content block check operating on the raw OpenAI wire-format {@link
    * JsonNode}.

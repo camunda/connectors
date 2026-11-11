@@ -160,7 +160,7 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
     assertThat(handle.fileName()).isEqualTo(REPORT_FILE);
     assertThat(handle.contentType()).isEqualTo("text/plain");
     // no store id, content hash or URL, in no request
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
 
     // the document is known to the agent: the process tool takes it by its handle
     assertThat(recorded.requests().get(2).messages().getLast().toolCallId())
