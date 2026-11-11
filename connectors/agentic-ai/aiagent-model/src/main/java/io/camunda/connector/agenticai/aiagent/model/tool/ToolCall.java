@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
@@ -89,7 +91,13 @@ public record ToolCall(
    * rejects.
    */
   public ToolCall withResolvedArguments(Map<String, Object> resolvedArguments) {
-    return new ToolCall(id, name, resolvedArguments, metadata, kind, rejection);
+    return new ToolCall(
+        id,
+        name,
+        Collections.unmodifiableMap(new LinkedHashMap<>(resolvedArguments)),
+        metadata,
+        kind,
+        rejection);
   }
 
   public static ToolCallBuilder builder() {
