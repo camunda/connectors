@@ -13,6 +13,9 @@ they do not conflict with these rules. If they conflict, these rules apply, and 
 divergence. [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md) links the module operating rules (test
 levels, the Definition of Done, ADRs, architectural invariants).
 
+`agentic-ai-docs-lint` is a development tool and deviates from some of these rules. Its
+[`AGENTS.md`](../agentic-ai-docs-lint/AGENTS.md) lists the deviations. Do not flag them in a review.
+
 In a review, flag a problem that a build check can find, and name the check. In a review, flag a rule
 that conflicts with the change or that a build check in the change now enforces. A maintainer decides
 the follow-up.
@@ -165,7 +168,7 @@ below make this style specific.
   `switch` in `BaseAgentRequestHandler.handleRequest`.
 - **Outcomes as types.** When a step has more than one expected outcome, return a sealed outcome type.
   Do not use a flag, `null` or an exception for an expected outcome. Use an exception only for an
-  error. Example: `CompositionResult` with `NextTurn`, `NoInput` and `Deferred`.
+  error. Example: `CompositionResult` with `Ready`, `NoInput` and `Deferred`.
 - **Null-marked code.** All code is `@NullMarked`. Mark each value that can be absent with `@Nullable`.
   See [Null safety in `connectors/agentic-ai/AGENTS.md`](../AGENTS.md#null-safety).
 - **`Optional` only as a return type.** Use `@Nullable` for fields and parameters.

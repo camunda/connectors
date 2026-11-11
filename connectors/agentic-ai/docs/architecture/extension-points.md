@@ -52,30 +52,19 @@ extensionProperties = {
 
 `GatewayToolHandler` is the core interface that each gateway type implements:
 
-```java
-public interface GatewayToolHandler extends GatewayToolCallTransformer {
-    String type();                              // e.g., "mcpClient", "a2aClient"
-    boolean isGatewayManaged(String toolName);  // tool name prefix check
-
-    // Discovery lifecycle
-    GatewayToolDiscoveryInitiationResult initiateToolDiscovery(agentContext, gatewayToolDefinitions);
-    boolean allToolDiscoveryResultsPresent(agentContext, toolCallResults);
-    boolean handlesToolDiscoveryResult(toolCallResult);
-    List<ToolDefinition> handleToolDiscoveryResults(agentContext, toolCallResults);
-
-    // Migration
-    GatewayToolDefinitionUpdates resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
-
-    // Document extraction (default falls back to ContentTreeDocumentWalker for raw content trees)
-    default List<Document> extractDocuments(ToolCallResult toolCallResult);
-}
-
-// From GatewayToolCallTransformer:
-public interface GatewayToolCallTransformer {
-    List<ToolCall> transformToolCalls(agentContext, toolCalls);             // LLM → process
-    List<ToolCallResult> transformToolCallResults(agentContext, results);   // process → LLM
-}
-```
+- `GatewayToolHandler#type` names the gateway type (for example `mcpClient` or `a2aClient`).
+  `GatewayToolHandler#isGatewayManaged` tells whether a tool name belongs to this handler, and
+  `GatewayToolHandler#resolveElementId` returns the BPMN element id from a namespaced tool name.
+- Discovery: `GatewayToolHandler#initiateToolDiscovery` returns a `GatewayToolDiscoveryInitiationResult` with the
+  updated `AgentContext` and the discovery tool calls,
+  `GatewayToolHandler#allToolDiscoveryResultsPresent` and `GatewayToolHandler#handlesToolDiscoveryResult`
+  match the results, and `GatewayToolHandler#handleToolDiscoveryResults` turns them into tool definitions.
+- Migration: `GatewayToolHandler#resolveUpdatedGatewayToolDefinitions` compares the gateway tool definitions
+  with the ones stored on the agent context.
+- Documents: `GatewayToolHandler#extractDocuments` runs after `transformToolCallResults`. The default walks
+  raw content trees with `ContentTreeDocumentWalker`; a handler with typed content must override it.
+- `GatewayToolCallTransformer#transformToolCalls` maps the tool calls of the LLM to the gateway element, and
+  `GatewayToolCallTransformer#transformToolCallResults` maps the results back to the tool names of the LLM.
 
 **Pitfall:** `transformToolCallResults` (MCP, A2A) rebuilds a new `ToolCallResult` via
 `.builder()...build()`. Unlike `elementId`, `completedAt` has no fallback — copy it over explicitly
@@ -113,7 +102,7 @@ INITIALIZING
 TOOL_DISCOVERY
   ├─ Tool results arrive (e.g., MCP listTools response, A2A agent card)
   ├─ GatewayToolHandlerRegistry.allToolDiscoveryResultsPresent()
-  │   ├─ Not all present → AgentDiscoveryInProgressInitializationResult (no-op completion)
+  │   ├─ Not all present → DeferConversation (no-op completion)
   │   └─ All present:
   │       ├─ GatewayToolHandlerRegistry.handleToolDiscoveryResults()
   │       │   ├─ MCP: each tool from listTools → ToolDefinition("MCP_<elementId>___<mcpToolName>")
@@ -225,8 +214,8 @@ Every new v2 provider backend must follow three conventions, regardless of provi
   discriminator's `defaultValue`.
 - **Provider-namespaced metadata.** Provider-specific data a converter attaches outside a domain
   object's mapped fields — on a content block's `metadata` ([`data-model.md`](../../aiagent-model/docs/data-model.md#toolcallresultcontent-persisted-tool-call-result-content)) or on
-  `AssistantMessage#metadata()` — must nest under a single provider key, never as top-level entries.
-- **Stamping `AssistantMessage#metadata()`.** Build it through
+  `message.AssistantMessage#metadata()` — must nest under a single provider key, never as top-level entries.
+- **Stamping `message.AssistantMessage#metadata()`.** Build it through
   `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent/util`), passing only your own
   provider-namespaced entries (or `Map.of()`); it adds the common `timestamp` entry. Never call
   `AssistantMessage.builder().metadata(...)` with a raw map directly.

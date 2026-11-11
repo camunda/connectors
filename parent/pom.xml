@@ -1699,7 +1699,7 @@ See: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv
               <artifactId>central-publishing-maven-plugin</artifactId>
               <extensions>true</extensions>
               <configuration>
-                <excludeArtifacts>connector-runtime-bundle-saas,connector-runtime-bundle,connector-runtime-application,element-template-validator,agentic-ai-archunit-tests</excludeArtifacts>
+                <excludeArtifacts>connector-runtime-bundle-saas,connector-runtime-bundle,connector-runtime-application,element-template-validator,agentic-ai-archunit-tests,agentic-ai-docs-lint</excludeArtifacts>
               </configuration>
             </plugin>
           </plugins>
