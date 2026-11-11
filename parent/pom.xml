@@ -117,7 +117,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
 
-    <version.aws-sdk2>2.57.13</version.aws-sdk2>
+    <version.aws-sdk2>2.58.0</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -140,7 +140,7 @@ limitations under the License.</license.inlineheader>
     <version.google-libraries-bom>26.93.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>2.1.0</version.google-genai>
+    <version.google-genai>2.2.0</version.google-genai>
     <!-- overrides the Google libraries BOM for the whole Vertex AI family -->
     <version.google-cloud-vertexai>1.52.0</version.google-cloud-vertexai>
     <version.jsr305>3.0.2</version.jsr305>
@@ -174,8 +174,8 @@ limitations under the License.</license.inlineheader>
          new patch releases in lockstep (e.g. 1.85.2 exists only for bcprov-jdk18on),
          so a shared property lets Renovate's property-grouping bump one artifact to a
          version the other doesn't have, breaking dependency resolution. -->
-    <version.bouncycastle-pkix>1.86</version.bouncycastle-pkix>
-    <version.bouncycastle-prov>1.86</version.bouncycastle-prov>
+    <version.bouncycastle-pkix>1.87</version.bouncycastle-pkix>
+    <version.bouncycastle-prov>1.87</version.bouncycastle-prov>
     <version.box-sdk>10.21.0</version.box-sdk>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override (kafka-clients) — remove once kafka-clients ships zstd-jni >= 1.5.7-14
@@ -1073,7 +1073,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.21.0</version>
+        <version>3.22.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
