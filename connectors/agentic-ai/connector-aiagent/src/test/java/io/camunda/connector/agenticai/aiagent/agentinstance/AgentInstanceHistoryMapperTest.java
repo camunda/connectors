@@ -52,9 +52,11 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -122,6 +124,52 @@ class AgentInstanceHistoryMapperTest {
         .toString();
   }
 
+  /** The chip as text: the whole reference with the metadata of its document. */
+  private static String chipText(AgentInstanceHistoryContent content) {
+    assertThat(content).isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+    final var reference =
+        ((AgentInstanceHistoryContent.DocumentContent) content).getDocumentReference();
+    final var metadata = reference.getMetadata();
+    return "DOCUMENT %s %s %s %s %s %s %s %s %s"
+        .formatted(
+            reference.getDocumentId(),
+            reference.getStoreId(),
+            reference.getContentHash(),
+            metadata.getFileName(),
+            metadata.getContentType(),
+            metadata.getSize(),
+            metadata.getExpiresAt(),
+            metadata.getProcessDefinitionId() + "/" + metadata.getProcessInstanceKey(),
+            metadata.getCustomProperties());
+  }
+
+  /**
+   * The chip the history shows for a Camunda document: the reference and the metadata of the
+   * document, with the expiry in UTC, and the given file name.
+   */
+  private static String expectedChip(Document document, @Nullable String fileName) {
+    final var reference = (CamundaDocumentReference) document.reference();
+    final var metadata = document.metadata();
+    final var expiresAt =
+        metadata.getExpiresAt() == null
+            ? null
+            : metadata.getExpiresAt().withOffsetSameInstant(ZoneOffset.UTC).toString();
+    // the chip has no custom properties as an empty map
+    final Map<String, Object> customProperties =
+        metadata.getCustomProperties() == null ? Map.of() : metadata.getCustomProperties();
+    return "DOCUMENT %s %s %s %s %s %s %s %s %s"
+        .formatted(
+            reference.getDocumentId(),
+            reference.getStoreId(),
+            reference.getContentHash(),
+            fileName,
+            metadata.getContentType(),
+            metadata.getSize(),
+            expiresAt,
+            metadata.getProcessDefinitionId() + "/" + metadata.getProcessInstanceKey(),
+            customProperties);
+  }
+
   private static List<String> texts(List<AgentInstanceHistoryContent> content) {
     return content.stream()
         .filter(AgentInstanceHistoryContent.TextContent.class::isInstance)
@@ -165,12 +213,8 @@ class AgentInstanceHistoryMapperTest {
               .isEqualTo(
                   "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"report.txt\",\"contentType\":\"text/plain\"}"
                       .formatted(block.id().value()));
-          assertThat(item.content().get(2))
-              .isInstanceOfSatisfying(
-                  AgentInstanceHistoryContent.DocumentContent.class,
-                  chip ->
-                      assertThat(chip.getDocumentReference().getMetadata().getFileName())
-                          .isEqualTo("report.txt"));
+          assertThat(chipText(item.content().get(2)))
+              .isEqualTo(expectedChip(document, "report.txt"));
         });
   }
 
@@ -217,8 +261,8 @@ class AgentInstanceHistoryMapperTest {
           assertThat(item.content()).hasSize(3);
           assertThat(objectJson(item.content().get(1)))
               .isEqualTo(TestDocuments.handleText(agentDocuments, tag.id()));
-          assertThat(item.content().get(2))
-              .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+          assertThat(chipText(item.content().get(2)))
+              .isEqualTo(expectedChip(document, "report.txt"));
         });
   }
 
@@ -272,12 +316,10 @@ class AgentInstanceHistoryMapperTest {
           assertThat(texts(item.content())).containsExactly(CONTENT_PREAMBLE);
           assertThat(objectJson(item.content().get(1)))
               .isEqualTo(TestDocuments.handleText(agentDocuments, firstBlock.id()));
-          assertThat(item.content().get(2))
-              .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+          assertThat(chipText(item.content().get(2))).isEqualTo(expectedChip(first, "first.txt"));
           assertThat(objectJson(item.content().get(3)))
               .isEqualTo(TestDocuments.handleText(agentDocuments, secondBlock.id()));
-          assertThat(item.content().get(4))
-              .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+          assertThat(chipText(item.content().get(4))).isEqualTo(expectedChip(second, "second.txt"));
         });
   }
 
@@ -1041,21 +1083,7 @@ class AgentInstanceHistoryMapperTest {
         case AgentInstanceHistoryContent.TextContent text -> "TEXT " + text.getText();
         case AgentInstanceHistoryContent.ObjectContent object ->
             "OBJECT " + objectMapper.valueToTree(object.getObject());
-        case AgentInstanceHistoryContent.DocumentContent doc -> {
-          final var reference = doc.getDocumentReference();
-          final var metadata = reference.getMetadata();
-          yield "DOCUMENT %s %s %s %s %s %s %s %s %s"
-              .formatted(
-                  reference.getDocumentId(),
-                  reference.getStoreId(),
-                  reference.getContentHash(),
-                  metadata.getFileName(),
-                  metadata.getContentType(),
-                  metadata.getSize(),
-                  metadata.getExpiresAt(),
-                  metadata.getProcessDefinitionId() + "/" + metadata.getProcessInstanceKey(),
-                  metadata.getCustomProperties());
-        }
+        case AgentInstanceHistoryContent.DocumentContent ignored -> chipText(content);
         default -> content.toString();
       };
     }
@@ -1111,8 +1139,7 @@ class AgentInstanceHistoryMapperTest {
       assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
       assertThat(item.content()).hasSize(2);
       assertThat(described(item).get(0)).isEqualTo("OBJECT " + handle);
-      assertThat(item.content().get(1))
-          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(chipText(item.content().get(1))).isEqualTo(expectedChip(document, "report.pdf"));
     }
 
     @Test
@@ -1141,8 +1168,8 @@ class AgentInstanceHistoryMapperTest {
           .satisfies(item -> {
             assertThat(item.content()).hasSize(2);
             assertThat(described(item).get(0)).isEqualTo("OBJECT " + handle);
-            assertThat(item.content().get(1))
-                .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+            assertThat(chipText(item.content().get(1)))
+                .isEqualTo(expectedChip(document, "report.pdf"));
           });
     }
 
@@ -1168,26 +1195,15 @@ class AgentInstanceHistoryMapperTest {
           .isEqualTo(
               "OBJECT {\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"contentType\":\"text/plain\"}"
                   .formatted(id));
-      assertThat(item.content().get(1))
-          .isInstanceOfSatisfying(
-              AgentInstanceHistoryContent.DocumentContent.class,
-              chip -> {
-                assertThat(chip.getDocumentReference().getMetadata().getFileName()).isEqualTo(id);
-                assertThat(chip.getDocumentReference().getMetadata().getContentType())
-                    .isEqualTo("text/plain");
-              });
+      assertThat(chipText(item.content().get(1))).isEqualTo(expectedChip(unnamed, id));
       // the document and its reference are left as they are
       assertThat(unnamed.metadata().getFileName()).isNotEqualTo(id);
       // without tracking there is no handle, so the chip keeps the stored file name
       final var untracked =
           item(message(DocumentContent.documentContent(unnamed)), AgentContext.empty());
-      assertThat(untracked.content())
-          .singleElement()
-          .isInstanceOfSatisfying(
-              AgentInstanceHistoryContent.DocumentContent.class,
-              chip ->
-                  assertThat(chip.getDocumentReference().getMetadata().getFileName())
-                      .isEqualTo(unnamed.metadata().getFileName()));
+      assertThat(untracked.content()).hasSize(1);
+      assertThat(chipText(untracked.content().getFirst()))
+          .isEqualTo(expectedChip(unnamed, unnamed.metadata().getFileName()));
     }
 
     @Test
@@ -1227,8 +1243,7 @@ class AgentInstanceHistoryMapperTest {
           .isEqualTo(
               "OBJECT {\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"report.pdf\",\"contentType\":\"application/pdf\"}"
                   .formatted(block.id().value()));
-      assertThat(item.content().get(2))
-          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(chipText(item.content().get(2))).isEqualTo(expectedChip(document, "report.pdf"));
       assertThat(described(item).get(3)).isEqualTo("TEXT Its content follows in the next message.");
     }
 
@@ -1281,8 +1296,7 @@ class AgentInstanceHistoryMapperTest {
                                   handleObject,
                                   "meta",
                                   Map.of("kind", "pdf")))));
-      assertThat(item.content().get(1))
-          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(chipText(item.content().get(1))).isEqualTo(expectedChip(document, "report.pdf"));
     }
 
     @Test
@@ -1339,20 +1353,9 @@ class AgentInstanceHistoryMapperTest {
               agentContext);
 
       assertThat(item.content()).hasSize(3);
-      assertThat(item.content().get(1))
-          .isInstanceOfSatisfying(
-              AgentInstanceHistoryContent.DocumentContent.class,
-              doc ->
-                  assertThat(doc.getDocumentReference().getDocumentId())
-                      .isEqualTo(
-                          ((CamundaDocumentReference) document.reference()).getDocumentId()));
-      assertThat(item.content().get(2))
-          .isInstanceOfSatisfying(
-              AgentInstanceHistoryContent.DocumentContent.class,
-              doc ->
-                  assertThat(doc.getDocumentReference().getDocumentId())
-                      .isEqualTo(
-                          ((CamundaDocumentReference) otherDocument.reference()).getDocumentId()));
+      assertThat(chipText(item.content().get(1))).isEqualTo(expectedChip(document, "report.pdf"));
+      assertThat(chipText(item.content().get(2)))
+          .isEqualTo(expectedChip(otherDocument, "other.txt"));
     }
 
     @Test
@@ -1380,12 +1383,11 @@ class AgentInstanceHistoryMapperTest {
       assertThat(item.content()).hasSize(5);
       assertThat(texts(item.content())).containsExactly("done");
       assertThat(described(item).get(1)).isEqualTo("OBJECT " + otherHandle);
-      assertThat(item.content().get(2))
-          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(chipText(item.content().get(2)))
+          .isEqualTo(expectedChip(otherDocument, "other.txt"));
       assertThat(item.content().get(3))
           .isInstanceOf(AgentInstanceHistoryContent.ObjectContent.class);
-      assertThat(item.content().get(4))
-          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(chipText(item.content().get(4))).isEqualTo(expectedChip(document, "report.pdf"));
     }
 
     @Test
@@ -1436,9 +1438,9 @@ class AgentInstanceHistoryMapperTest {
       final var nested =
           item(message(ObjectContent.objectContent(Map.of("file", document))), legacy);
 
-      assertThat(bare.content())
-          .singleElement()
-          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(bare.content()).hasSize(1);
+      assertThat(chipText(bare.content().getFirst()))
+          .isEqualTo(expectedChip(document, "report.pdf"));
       assertThat(nested.content())
           .singleElement()
           .isInstanceOfSatisfying(
