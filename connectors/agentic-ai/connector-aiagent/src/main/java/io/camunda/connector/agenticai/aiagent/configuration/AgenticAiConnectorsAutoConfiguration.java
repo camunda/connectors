@@ -100,12 +100,6 @@ public class AgenticAiConnectorsAutoConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean(name = "aiAgentLoadDocumentRuntimeTool")
-  public RuntimeTool aiAgentLoadDocumentRuntimeTool() {
-    return new LoadDocumentTool();
-  }
-
-  @Bean
   @ConditionalOnMissingBean
   public ToolCallAdmission aiAgentToolCallAdmission(
       DocumentParameterResolver documentParameterResolver) {
@@ -126,6 +120,12 @@ public class AgenticAiConnectorsAutoConfiguration {
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       DocumentParameterResolver documentParameterResolver) {
     return new RuntimeTools(runtimeTools, objectMapper, documentParameterResolver);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(name = "aiAgentLoadDocumentRuntimeTool")
+  public RuntimeTool aiAgentLoadDocumentRuntimeTool() {
+    return new LoadDocumentTool();
   }
 
   @Bean
