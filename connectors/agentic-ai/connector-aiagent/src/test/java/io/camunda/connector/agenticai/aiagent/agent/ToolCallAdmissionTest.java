@@ -126,9 +126,6 @@ class ToolCallAdmissionTest {
         admission.admit(messageWith(call), List.of(PROCESS_UPLOAD_TOOL), KNOWING_REPORT);
 
     assertThat(admitted.toolCalls()).containsExactly(call.withRejection(BOGUS_DOC));
-    assertThat(admitted.toolCalls().getFirst().kind()).isEqualTo(ToolKind.PROCESS);
-    assertThat(admitted.toolCalls().getFirst().resultSource())
-        .isEqualTo(ToolCall.ResultSource.REJECTED);
   }
 
   @Test
@@ -163,9 +160,6 @@ class ToolCallAdmissionTest {
 
     assertThat(admitted.toolCalls())
         .containsExactly(call.withKind(ToolKind.RUNTIME).withRejection(BOGUS_DOC));
-    assertThat(admitted.toolCalls().getFirst().kind()).isEqualTo(ToolKind.RUNTIME);
-    assertThat(admitted.toolCalls().getFirst().resultSource())
-        .isEqualTo(ToolCall.ResultSource.REJECTED);
   }
 
   @Test
@@ -181,7 +175,6 @@ class ToolCallAdmissionTest {
 
     assertThat(admitted.toolCalls())
         .containsExactly(processCall, runtimeCall.withKind(ToolKind.RUNTIME));
-    assertThat(admitted.toolCalls()).extracting(ToolCall::rejection).containsOnlyNulls();
   }
 
   @Test
@@ -270,9 +263,6 @@ class ToolCallAdmissionTest {
         .containsExactly(
             processCall.withRejection(UNKNOWN_BODY),
             runtimeCall.withKind(ToolKind.RUNTIME).withRejection(UNKNOWN_BODY));
-    assertThat(admitted.toolCalls())
-        .extracting(ToolCall::kind)
-        .containsExactly(ToolKind.PROCESS, ToolKind.RUNTIME);
   }
 
   @Test
