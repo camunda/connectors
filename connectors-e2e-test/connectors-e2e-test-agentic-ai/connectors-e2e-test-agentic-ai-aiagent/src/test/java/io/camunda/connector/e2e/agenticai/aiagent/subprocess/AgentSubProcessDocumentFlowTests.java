@@ -318,13 +318,14 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   @ValueSource(strings = {"test.txt", "test.pdf"})
   void addsTheContentOfTheDocumentsOfAToolWithTheDeliveryContentForTheModel(String file)
       throws Exception {
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
+    final var turns =
+        List.of(downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
+    OpenAiCompletionsChatModelStubs.stubConversation(turns.toArray(Turn[]::new));
 
     final var zeebeTest = awaitProcessCompletion(startDocumentsContentProcess());
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertThat(recorded.modelCallCount()).isEqualTo(3);
+    assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
     final var afterDownload = recorded.requests().get(1).messages();
     assertThat(afterDownload)
         .extracting(m -> m.role())
@@ -365,7 +366,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
             AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasResponseText(FINAL_TEXT));
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
   }
 
   /**

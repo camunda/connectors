@@ -22,7 +22,9 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.ge
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentBlockType;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.mimeType;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -109,8 +111,8 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     final var initialUserPrompt = "Summarize the following document";
     final var responseText = "TL;DR: it is pretty interesting";
 
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        getDocumentTurn(), Turn.text(responseText, 10, 20));
+    final var turns = List.of(getDocumentTurn(), Turn.text(responseText, 10, 20));
+    OpenAiCompletionsChatModelStubs.stubConversation(turns.toArray(Turn[]::new));
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
@@ -125,8 +127,8 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests();
-    assertThat(recorded.modelCallCount()).isEqualTo(2);
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
+    assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
 
     // the first request shows the handle only
     assertThat(recorded.requests().getFirst().messages()).hasSize(2);
@@ -182,7 +184,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                         wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
@@ -239,7 +241,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertToolSpecifications(recorded.lastRequest());
 
@@ -288,7 +290,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(1);
 
     final var userMessage = recorded.lastRequest().messages().get(1);
@@ -358,17 +360,5 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
         + alternatives
         + ")"
         + Pattern.quote("}}");
-  }
-
-  private static String contentBlockType(String filename) {
-    return "test.txt".equals(filename) ? "text" : "base64";
-  }
-
-  private static String mimeType(String filename) {
-    return switch (filename) {
-      case "test.pdf" -> "application/pdf";
-      case "test.txt" -> "text/plain";
-      default -> throw new IllegalArgumentException("Unknown file: " + filename);
-    };
   }
 }

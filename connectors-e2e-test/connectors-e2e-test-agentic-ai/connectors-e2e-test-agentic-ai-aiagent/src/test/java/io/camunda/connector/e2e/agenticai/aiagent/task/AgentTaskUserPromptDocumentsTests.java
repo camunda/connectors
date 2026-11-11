@@ -126,7 +126,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
                         wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
@@ -249,7 +249,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertToolSpecifications(recorded.lastRequest());
 
@@ -299,7 +299,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(1);
 
     final var userMessage = recorded.lastRequest().messages().get(1);
@@ -370,17 +370,5 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
         + alternatives
         + ")"
         + Pattern.quote("}}");
-  }
-
-  private static String contentBlockType(String filename) {
-    return "test.txt".equals(filename) ? "text" : "base64";
-  }
-
-  private static String mimeType(String filename) {
-    return switch (filename) {
-      case "test.pdf" -> "application/pdf";
-      case "test.txt" -> "text/plain";
-      default -> throw new IllegalArgumentException("Unknown file: " + filename);
-    };
   }
 }
