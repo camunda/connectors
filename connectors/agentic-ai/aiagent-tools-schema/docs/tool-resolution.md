@@ -67,7 +67,7 @@ Document parameters are found at the top level, as array `items` and through obj
 `properties` at any depth (`ToolDefinition#documentParameters()`, the sealed `DocumentParameter` of `Document` and
 `Union`). A node is a `Document` when it is an object whose `properties.type.enum` is exactly
 `["camunda.agenticai.document"]`; the search stops there, so its `type` and `id` properties are no parameters. A node is a
-`Union` when it has `anyOf` or `oneOf` with more than one alternative and a handle schema sits inside its alternatives (see
+`Union` when it has `anyOf` or `oneOf` and a handle schema sits inside its alternatives (see
 below); the search stops there too. A handle schema behind `$ref` is not a document parameter.
 
 The model passes the handle it read as the value: `{"type": "camunda.agenticai.document", "id": "doc_0123456789ab"}`. One
@@ -107,7 +107,7 @@ assistant message is never rewritten, so the stored conversation and the history
   parameters are invalid gets the sentences above as its error result and the tool is not called.
 
 A parameter that takes a document or something else (a union parameter) is declared with the schema argument of `fromAi()`,
-an `anyOf` (or `oneOf`) with more than one alternative, a `document` among them, directly or inside an object alternative
+an `anyOf` (or `oneOf`) with a `document` among its alternatives, directly or inside an object alternative
 (its properties) or an array alternative (its items). Leave the type argument out with named arguments, so the type of the
 other alternatives stays valid. Text or a document:
 

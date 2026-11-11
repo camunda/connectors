@@ -6,21 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_DESCRIPTION;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ENUM;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_REQUIRED;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_OBJECT;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_STRING;
-
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -41,9 +31,9 @@ import org.jspecify.annotations.Nullable;
  * RuntimeToolCall}), a process or gateway tool gets the Camunda document reference.
  *
  * <p>A parameter that takes a document or something else is a plain {@code anyOf} or {@code oneOf}
- * with more than one alternative, one of them {@link #document document(...)}, directly or inside
- * the properties of an object alternative or the items of an array alternative. Every handle in the
- * value of such a parameter is replaced; the rest of the value reaches the tool as it is.
+ * with {@link #document document(...)} among its alternatives, directly or inside the properties of
+ * an object alternative or the items of an array alternative. Every handle in the value of such a
+ * parameter is replaced; the rest of the value reaches the tool as it is.
  */
 @Experimental
 public final class DocumentSchemas {
@@ -58,25 +48,6 @@ public final class DocumentSchemas {
    * @return an insertion-ordered map
    */
   public static Map<String, Object> document(@Nullable String description) {
-    final var type = new LinkedHashMap<String, Object>();
-    type.put(PROPERTY_TYPE, TYPE_STRING);
-    type.put(PROPERTY_ENUM, List.of(AgentDocumentHandle.TYPE));
-
-    final var id = new LinkedHashMap<String, Object>();
-    id.put(PROPERTY_TYPE, TYPE_STRING);
-    id.put(PROPERTY_DESCRIPTION, "The id of the document.");
-
-    final var properties = new LinkedHashMap<String, Object>();
-    properties.put("type", type);
-    properties.put("id", id);
-
-    final var schema = new LinkedHashMap<String, Object>();
-    schema.put(PROPERTY_TYPE, TYPE_OBJECT);
-    if (StringUtils.isNotBlank(description)) {
-      schema.put(PROPERTY_DESCRIPTION, description);
-    }
-    schema.put(PROPERTY_PROPERTIES, properties);
-    schema.put(PROPERTY_REQUIRED, List.of("type", "id"));
-    return schema;
+    return DocumentParameter.documentSchema(description);
   }
 }

@@ -297,7 +297,10 @@ public class DocumentParameterResolver {
       Function<AgentDocument, Object> replacement,
       List<String> problems,
       boolean inUnion) {
-    final var id = handle.get("id") instanceof String text && !text.isBlank() ? text : null;
+    final var id =
+        handle.get(AgentDocumentHandle.FIELD_ID) instanceof String text && !text.isBlank()
+            ? text
+            : null;
     final var document =
         id != null ? documents.find(AgentDocumentId.of(id)) : Optional.<AgentDocument>empty();
     if (document.isEmpty()) {
@@ -313,7 +316,8 @@ public class DocumentParameterResolver {
    */
   private @Nullable Map<?, ?> asHandle(@Nullable Object value) {
     final var object = value instanceof String text ? parseObject(text) : value;
-    return object instanceof Map<?, ?> map && AgentDocumentHandle.TYPE.equals(map.get("type"))
+    return object instanceof Map<?, ?> map
+            && AgentDocumentHandle.TYPE.equals(map.get(AgentDocumentHandle.FIELD_TYPE))
         ? map
         : null;
   }

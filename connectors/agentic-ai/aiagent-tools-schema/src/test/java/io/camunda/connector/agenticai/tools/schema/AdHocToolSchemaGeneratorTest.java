@@ -555,6 +555,42 @@ class AdHocToolSchemaGeneratorTest {
   }
 
   @Test
+  void aSingleDocumentAlternativeIsAUnionWithoutADefaultType() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.file",
+                    "The file",
+                    null,
+                    Map.of("anyOf", List.of(Map.of("type", "document"))))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "file": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
+                    "id": {"type": "string", "description": "The id of the document."}
+                  },
+                  "required": ["type", "id"]
+                }
+              ],
+              "description": "The file"
+            }
+          },
+          "required": ["file"]
+        }
+        """);
+  }
+
+  @Test
   void stillDefaultsTheTypeOfAnAlternativesSchemaWithoutADocumentToString() throws Exception {
     final var element =
         createToolElement(

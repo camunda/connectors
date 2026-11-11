@@ -286,7 +286,7 @@ High-frequency traps (detail behind each link):
   result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`). A tool
   parameter of the type `document` of `fromAi` is the object schema of a handle (sent to the
   provider as it is) and holds the handle object the model passed or a string with its JSON, never a bare id;
-  a union parameter (an `anyOf` or `oneOf` with more than one alternative and a handle schema inside an alternative, also in an object or
+  a union parameter (an `anyOf` or `oneOf` with a handle schema inside an alternative, also in an object or
   array alternative) holds a document for every handle at or below its value and passes every other value as it is; `DocumentParameterResolver` turns the handle into the Camunda document reference for a
   process tool (`AgentResponseHandlerImpl`) and into an `AgentDocumentId` for a runtime tool (`RuntimeTools`), and the
   stored messages and the history keep the handle. A tool call of either kind whose value is not the handle of a known

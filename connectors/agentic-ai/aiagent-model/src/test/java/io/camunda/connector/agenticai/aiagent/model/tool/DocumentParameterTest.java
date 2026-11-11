@@ -138,11 +138,8 @@ class DocumentParameterTest {
             DocumentParameter.isUnionSchema(
                 Map.of("anyOf", List.of(string(), Map.of("type", "number")))))
         .isFalse();
-    // no other alternative
-    assertThat(DocumentParameter.isUnionSchema(Map.of("anyOf", List.of(doc())))).isFalse();
     // a document node is not a union node
     assertThat(DocumentParameter.isUnionSchema(doc())).isFalse();
-    assertThat(DocumentParameter.in(object("doc", Map.of("anyOf", List.of(doc()))))).isEmpty();
   }
 
   @Test
@@ -215,11 +212,26 @@ class DocumentParameterTest {
   }
 
   @Test
-  void aSingleAlternativeIsNoUnionEvenWithADocumentInside() {
-    assertThat(DocumentParameter.isUnionSchema(Map.of("anyOf", List.of(object("file", doc())))))
-        .isFalse();
-    assertThat(
-            DocumentParameter.in(object("value", Map.of("oneOf", List.of(object("file", doc()))))))
+  void aSingleAlternativeWithADocumentInsideMakesAUnion() {
+    final var schema =
+        object(
+            "doc",
+            Map.of("anyOf", List.of(doc())),
+            "value",
+            Map.of("oneOf", List.of(object("file", doc()))));
+
+    assertThat(DocumentParameter.in(schema))
+        .containsExactly(union(property("doc")), union(property("value")));
+  }
+
+  @Test
+  void anAlternativeWithPropertiesHoldsNoDocumentInItsItems() {
+    final var alternative = new LinkedHashMap<String, Object>();
+    alternative.put("type", "object");
+    alternative.put("properties", Map.of("text", string()));
+    alternative.put("items", doc());
+
+    assertThat(DocumentParameter.in(object("v", Map.of("anyOf", List.of(string(), alternative)))))
         .isEmpty();
   }
 

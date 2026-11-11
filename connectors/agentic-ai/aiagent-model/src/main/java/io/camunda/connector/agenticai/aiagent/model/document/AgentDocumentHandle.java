@@ -49,6 +49,12 @@ public record AgentDocumentHandle(
   /** The value of the {@code type} of every handle. */
   public static final String TYPE = "camunda.agenticai.document";
 
+  /** The JSON field of the {@link #type()}. */
+  public static final String FIELD_TYPE = "type";
+
+  /** The JSON field of the {@link #id()}. */
+  public static final String FIELD_ID = "id";
+
   public AgentDocumentHandle {
     if (!TYPE.equals(type)) {
       throw new IllegalArgumentException("A document handle has the type '" + TYPE + "'");

@@ -6,16 +6,12 @@
  */
 package io.camunda.connector.agenticai.tools.schema;
 
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ANYOF;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_DESCRIPTION;
-import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ONEOF;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter.Step;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,11 +23,12 @@ import java.util.Map;
  *
  * <p>A node is normalized where the agent resolves a document parameter: at the top level, in the
  * object {@code properties} and the array {@code items} (see {@link Step#mapChildren}), and in the
- * {@code anyOf} and {@code oneOf} alternatives of such a node at any depth, with the same rules
- * inside an alternative. The shorthand anywhere else, such as under {@code allOf}, {@code not},
- * {@code if}/{@code then}/{@code else}, {@code additionalProperties}, {@code patternProperties},
- * {@code prefixItems}, {@code $defs} or behind {@code $ref}, is left as authored: no document
- * parameter is found there, and the handle schema must not appear where nothing resolves it.
+ * {@code anyOf} and {@code oneOf} alternatives of such a node at any depth (see {@link
+ * DocumentParameter#mapAlternatives}), with the same rules inside an alternative. The shorthand
+ * anywhere else, such as under {@code allOf}, {@code not}, {@code if}/{@code then}/{@code else},
+ * {@code additionalProperties}, {@code patternProperties}, {@code prefixItems}, {@code $defs} or
+ * behind {@code $ref}, is left as authored: no document parameter is found there, and the handle
+ * schema must not appear where nothing resolves it.
  *
  * <p>A {@code type} array that lists {@value #TYPE_DOCUMENT} is rejected where a node is
  * normalized: a union that can hold a document is an explicit {@code anyOf} or {@code oneOf} with
@@ -49,23 +46,8 @@ final class AuthoredSchemaNormalizer {
    *     {@value #TYPE_DOCUMENT}
    */
   Map<String, Object> normalize(Map<String, Object> schema) {
-    final var node = alternativesOf(normalizeType(schema));
+    final var node = DocumentParameter.mapAlternatives(normalizeType(schema), this::normalize);
     return Step.mapChildren(node, (step, child) -> normalize(child));
-  }
-
-  /** The node with its {@code anyOf} and {@code oneOf} alternatives normalized. */
-  private Map<String, Object> alternativesOf(Map<String, Object> node) {
-    final var result = new LinkedHashMap<>(node);
-    for (final var keyword : List.of(PROPERTY_ANYOF, PROPERTY_ONEOF)) {
-      if (result.get(keyword) instanceof List<?> alternatives) {
-        final var mapped = new ArrayList<Object>();
-        for (final var alternative : alternatives) {
-          mapped.add(alternative instanceof Map<?, ?> map ? normalize(cast(map)) : alternative);
-        }
-        result.put(keyword, Collections.unmodifiableList(mapped));
-      }
-    }
-    return result;
   }
 
   private Map<String, Object> normalizeType(Map<String, Object> node) {
@@ -92,11 +74,5 @@ final class AuthoredSchemaNormalizer {
                 node.get(PROPERTY_DESCRIPTION) instanceof String description ? description : null));
     node.forEach(result::putIfAbsent);
     return result;
-  }
-
-  // a schema node read as JSON is a JSON object, so its keys are strings
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> cast(Map<?, ?> map) {
-    return (Map<String, Object>) map;
   }
 }
