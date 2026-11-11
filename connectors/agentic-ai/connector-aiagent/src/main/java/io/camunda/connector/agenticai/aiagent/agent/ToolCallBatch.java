@@ -140,11 +140,23 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      */
     public static Entry withRenderedDocuments(
         ToolCallResultContent result, ObjectHandleRenderer objectHandleRenderer) {
+      return withRenderedDocuments(result, objectHandleRenderer, List.of());
+    }
+
+    /**
+     * The entry of a result that asks something of the agent, for an agent instance that tracks its
+     * documents; the documents are the ones the model reads as handles, as in {@link
+     * #withRenderedDocuments(ToolCallResultContent, ObjectHandleRenderer)}.
+     */
+    public static Entry withRenderedDocuments(
+        ToolCallResultContent result,
+        ObjectHandleRenderer objectHandleRenderer,
+        List<ToolCallEffect> effects) {
       return new Entry(
           result,
           ToolCallResultDocumentExtractor.renderedDocumentsOf(
               result.content(), objectHandleRenderer),
-          List.of());
+          effects);
     }
 
     /**
@@ -157,8 +169,9 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     }
 
     /**
-     * The entry of a result with structured content that asks something of the agent; the documents
-     * are the ones of its content.
+     * The entry of a result with structured content that asks something of the agent, for an agent
+     * instance that does not track its documents; the documents are the ones the generic walker
+     * finds in its content.
      */
     public static Entry from(ToolCallResultContent result, List<ToolCallEffect> effects) {
       return new Entry(

@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import java.util.List;
@@ -55,7 +54,10 @@ public class LocalToolCallExecutor {
       return List.of();
     }
     return runtimeTools.execute(executionContext, agentContext, calls).stream()
-        .map(execution -> checked(entryOf(execution), agentContext.documentHandling()))
+        .map(execution ->
+            checked(
+                entryOf(execution, agentContext.documentHandling()),
+                agentContext.documentHandling()))
         .toList();
   }
 
@@ -68,20 +70,23 @@ public class LocalToolCallExecutor {
     return entry;
   }
 
-  private static ToolCallBatch.Entry entryOf(RuntimeToolExecution execution) {
+  /**
+   * The entry of an execution with the effects of a successful result. The documents are the ones
+   * the model reads as handles for an agent instance that tracks its documents, and the ones the
+   * generic walker finds for one that does not.
+   */
+  private ToolCallBatch.Entry entryOf(
+      RuntimeToolExecution execution, DocumentHandling documentHandling) {
     final var result = execution.toolCallResult();
-    return switch (execution.result()) {
-      case RuntimeToolResult.Success success -> ToolCallBatch.Entry.from(result, success.effects());
-      case RuntimeToolResult.Error ignored -> ToolCallBatch.Entry.from(result);
-    };
-  }
-
-  private ToolCallBatch.Entry entry(
-      ToolCallResultContent result, DocumentHandling documentHandling) {
+    final List<ToolCallEffect> effects =
+        switch (execution.result()) {
+          case RuntimeToolResult.Success success -> success.effects();
+          case RuntimeToolResult.Error ignored -> List.of();
+        };
     return switch (documentHandling) {
       case DocumentHandling.Tracked ignored ->
-          ToolCallBatch.Entry.withRenderedDocuments(result, objectHandleRenderer);
-      case DocumentHandling.Untracked ignored -> ToolCallBatch.Entry.from(result);
+          ToolCallBatch.Entry.withRenderedDocuments(result, objectHandleRenderer, effects);
+      case DocumentHandling.Untracked ignored -> ToolCallBatch.Entry.from(result, effects);
     };
   }
 

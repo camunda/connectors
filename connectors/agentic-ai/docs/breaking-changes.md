@@ -261,7 +261,8 @@ extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate
 
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take
 `RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`. The constructor of
-`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`, and the
+`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`, the
+constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandleRenderer`, and the
 `ToolCallResultsInputBuilder` takes the `DocumentContentDelivery`, which decides whether the content of a document is added and takes the
 `DocumentContentGuard`, the check of the documents whose content the agent adds. The content delivery and the runtime
 tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`), never with a
