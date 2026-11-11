@@ -132,7 +132,7 @@ public final class BedrockConverseRecordedConversation {
 
         final var responseFormat = extractResponseFormat(root.path("outputConfig"));
 
-        return new RecordedChatRequest(messages, tools, responseFormat);
+        return new RecordedChatRequest(messages, tools, responseFormat, rawBody);
       } catch (Exception e) {
         throw new IllegalStateException(
             "Failed to parse recorded Bedrock Converse request body: " + rawBody, e);
@@ -269,14 +269,22 @@ public final class BedrockConverseRecordedConversation {
     private final List<RecordedMessage> messages;
     private final List<ToolDefinition> toolDefinitions;
     private final RecordedResponseFormat responseFormat;
+    private final String rawBody;
 
     private RecordedChatRequest(
         List<RecordedMessage> messages,
         List<ToolDefinition> toolDefinitions,
-        RecordedResponseFormat responseFormat) {
+        RecordedResponseFormat responseFormat,
+        String rawBody) {
       this.messages = messages;
       this.toolDefinitions = toolDefinitions;
       this.responseFormat = responseFormat;
+      this.rawBody = rawBody;
+    }
+
+    /** The request body as it went over the wire. */
+    public String rawBody() {
+      return rawBody;
     }
 
     public List<RecordedMessage> messages() {

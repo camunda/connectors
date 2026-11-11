@@ -19,6 +19,8 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentBlockType;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.mimeType;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,7 +76,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
@@ -132,7 +134,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                         wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
@@ -182,28 +184,5 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
           assertThat(incident.getErrorMessage())
               .startsWith("Unsupported content type 'application/zip' for document with reference");
         });
-  }
-
-  private static String contentBlockType(String filename) {
-    return switch (filename) {
-      case "test.txt", "test.yaml", "test.csv", "test.json", "test.xml" -> "text";
-      default -> "base64";
-    };
-  }
-
-  private static String mimeType(String filename) {
-    return switch (filename) {
-      case "test.csv" -> "text/csv";
-      case "test.gif" -> "image/gif";
-      case "test.jpg" -> "image/jpeg";
-      case "test.json" -> "application/json";
-      case "test.pdf" -> "application/pdf";
-      case "test.png" -> "image/png";
-      case "test.txt" -> "text/plain";
-      case "test.webp" -> "image/webp";
-      case "test.xml" -> "application/xml";
-      case "test.yaml" -> "application/yaml";
-      default -> throw new IllegalArgumentException("Unknown file: " + filename);
-    };
   }
 }

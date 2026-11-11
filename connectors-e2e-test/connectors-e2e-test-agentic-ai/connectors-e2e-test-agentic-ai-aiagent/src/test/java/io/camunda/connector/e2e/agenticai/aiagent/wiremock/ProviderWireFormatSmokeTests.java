@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_JSON;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_JSON_ASSERTIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_TEXT;
@@ -231,6 +232,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         fixture.lastRecordedRequest(),
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
         ProviderWireFormatExpectedMessage.userWithDocument(userPrompt));
+    assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 
     assertAgentResponse(
         zeebeTest,
@@ -278,6 +280,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
             "get111",
             "The content of " + DOCUMENT_REF_REGEX + " is already in the conversation\\."));
+    assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 
     assertAgentResponse(
         zeebeTest,
@@ -336,6 +339,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             "get111", "The content of " + DOCUMENT_REF_REGEX + " follows in the next message\\."),
         ProviderWireFormatExpectedMessage.userWithDocument(
             ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
+    assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 
     assertAgentResponse(
         zeebeTest,

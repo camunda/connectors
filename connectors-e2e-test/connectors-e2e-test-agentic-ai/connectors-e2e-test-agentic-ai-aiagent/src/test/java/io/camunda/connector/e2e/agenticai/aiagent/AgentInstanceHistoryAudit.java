@@ -14,202 +14,68 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
+package io.camunda.connector.e2e.agenticai.aiagent;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
-import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
-import io.camunda.client.api.search.enums.AgentInstanceHistoryCommitStatus;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.api.search.response.AgentInstanceHistory;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.aiagent.common.AgentCoreMemoryTestConfiguration;
-import io.camunda.connector.e2e.agenticai.aiagent.common.InMemoryBedrockAgentCoreClientFactory;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedMessage;
+import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
 import io.camunda.connector.runtime.core.document.CamundaDocumentReferenceImpl;
-import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
-import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Import;
-import org.springframework.core.io.Resource;
 
 /**
  * Guards that the agent instance history is an auditable record of what the model receives: every
  * message of every model request must be covered by an item of the history as the engine returns
  * it. The formats may differ (a document is a block in the history and a handle in the request),
  * the content may not.
+ *
+ * <p>The scripted conversation must end with a model turn whose text is {@link
+ * DocumentFlowFixtures#FINAL_TEXT}.
  */
-@SlowTest
-@Import(AgentCoreMemoryTestConfiguration.class)
-public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
+public final class AgentInstanceHistoryAudit {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
-  private Resource documentsProcess;
+  private AgentInstanceHistoryAudit() {}
 
-  @Value("classpath:agentic-ai-ahsp-connectors-documents-results.bpmn")
-  private Resource resultDocumentsProcess;
-
-  @Override
-  protected Resource testProcess() {
-    return documentsProcess;
+  /** The committed history of the agent instance once it holds the final answer of the model. */
+  public static List<AgentInstanceHistory> awaitCommittedHistory(
+      CamundaClient client, long agentInstanceKey) {
+    return await()
+        .alias("committed agent instance history")
+        .atMost(Duration.ofSeconds(30))
+        .ignoreExceptions()
+        .until(
+            () -> AgentInstanceEngineVerifier.committedHistory(client, agentInstanceKey),
+            items ->
+                items.stream()
+                    .anyMatch(item ->
+                        item.getRole() == AgentInstanceHistoryRole.ASSISTANT
+                            && item.getContent().stream()
+                                .anyMatch(block ->
+                                    block instanceof AgentInstanceHistoryContent.TextContent text
+                                        && FINAL_TEXT.equals(text.getText()))));
   }
 
-  @BeforeEach
-  void setUpDocumentFlow() {
-    InMemoryBedrockAgentCoreClientFactory.INSTANCE.clear();
-    stubUploadEndpoint();
-  }
-
-  /**
-   * The user prompt carries a document, a tool returns one, the model loads the one of the tool and
-   * passes it to a tool.
-   */
-  @Test
-  void everyModelVisibleMessageOfADocumentFlowIsInTheHistory() throws Exception {
-    stubDocumentFlow();
-
-    final var agentInstanceKey = runAndGetAgentInstanceKey(e -> e);
-
-    assertHistoryCoversEveryModelRequest(agentInstanceKey);
-  }
-
-  /**
-   * Two tools return the attached document: one as the whole result, one nested in an object (and
-   * twice in it). The history shows the document of the first result as its handle and the document
-   * and the second result as the object with the handles nested in it followed by the document
-   * once.
-   */
-  @Test
-  void everyModelVisibleMessageOfToolResultDocumentsIsInTheHistory() throws Exception {
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        Turn.toolCalls(
-            "I will fetch the file and describe it.",
-            10,
-            20,
-            ToolCall.of("call_fetch", "Fetch_A_File", "{}"),
-            ToolCall.of("call_describe", "Describe_A_File", "{}")),
-        finalTurn());
-
-    final var agentInstanceKey = runAndGetAgentInstanceKey(resultDocumentsProcess, e -> e);
-
-    assertHistoryCoversEveryModelRequest(agentInstanceKey);
-
-    final var history = awaitCommittedHistory(agentInstanceKey);
-    final var fetched = toolResultOf(history, "call_fetch");
-    final var described = toolResultOf(history, "call_describe");
-    final var promptDocumentHandle = promptDocumentHandleInRequests();
-    assertThat(fetched.getContent()).hasSize(2);
-    assertThat(fetched.getContent().get(0))
-        .isInstanceOfSatisfying(
-            AgentInstanceHistoryContent.ObjectContent.class,
-            object -> assertThat(object.getObject()).isEqualTo(promptDocumentHandle));
-    assertThat(fetched.getContent().get(1))
-        .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
-
-    assertThat(described.getContent()).hasSize(2);
-    assertThat(described.getContent().get(0))
-        .isInstanceOfSatisfying(
-            AgentInstanceHistoryContent.ObjectContent.class,
-            object ->
-                assertThat(object.getObject())
-                    .isEqualTo(
-                        Map.of(
-                            "status",
-                            "found",
-                            "file",
-                            promptDocumentHandle,
-                            "related",
-                            List.of(promptDocumentHandle))));
-    assertThat(described.getContent().get(1))
-        .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
-  }
-
-  private void stubDocumentFlow() {
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        downloadTurn(wireMock.getHttpBaseUrl()),
-        // the documents of the request in order of appearance: the prompt document, the download;
-        // the content of the prompt document is in the conversation already, the download is only
-        // referenced until the model loads it
-        getDocumentTurn(documentId(1)),
-        uploadTurn(documentId(1)),
-        finalTurn());
-  }
-
-  private long runAndGetAgentInstanceKey(Function<ElementTemplate, ElementTemplate> modifier)
-      throws Exception {
-    return runAndGetAgentInstanceKey(documentsProcess, modifier);
-  }
-
-  private long runAndGetAgentInstanceKey(
-      Resource process, Function<ElementTemplate, ElementTemplate> modifier) throws Exception {
-    final var promptDocument =
-        InMemoryDocumentStore.INSTANCE.createDocument(
-            DocumentCreationRequest.from("the prompt document".getBytes())
-                .fileName("prompt.txt")
-                .contentType("text/plain")
-                .build());
-    final Map<String, Object> reference =
-        Map.of(
-            "camunda.document.type", "camunda",
-            "storeId", promptDocument.getStoreId(),
-            "documentId", promptDocument.getDocumentId(),
-            "contentHash", promptDocument.getContentHash(),
-            "metadata", Map.of("fileName", "prompt.txt", "contentType", "text/plain"));
-
-    final var zeebeTest =
-        awaitProcessCompletion(
-            createProcessInstance(
-                process,
-                modifier,
-                Map.of(
-                    "userPrompt",
-                    "Look at the attached file, download the other one, upload it and give me back.",
-                    "downloadedFiles",
-                    List.of(reference),
-                    "uploadUrl",
-                    uploadUrl(wireMock.getHttpBaseUrl()))));
-
-    final var agentInstanceKey = new AtomicLong();
-    assertAgentResponse(
-        zeebeTest,
-        agentResponse ->
-            agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value()));
-    return agentInstanceKey.get();
-  }
-
-  private void assertHistoryCoversEveryModelRequest(long agentInstanceKey) {
-    final var history = awaitCommittedHistory(agentInstanceKey);
-    final var requests = OpenAiCompletionsRecordedConversation.recorded().requests();
-    assertThat(requests).isNotEmpty();
+  /** Asserts that every message of every request is covered by an item of the history. */
+  public static void assertHistoryCoversEveryModelRequest(
+      List<AgentInstanceHistory> history, List<RecordedChatRequest> requests) {
+    assertThat(requests).as("recorded model requests").isNotEmpty();
 
     final var uncovered = new ArrayList<String>();
     for (int i = 0; i < requests.size(); i++) {
@@ -222,53 +88,6 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
     assertThat(uncovered)
         .as("model-visible messages without a covering agent instance history item")
         .isEmpty();
-  }
-
-  private static AgentInstanceHistory toolResultOf(
-      List<AgentInstanceHistory> history, String toolCallId) {
-    return history.stream()
-        .filter(item -> item.getRole() == AgentInstanceHistoryRole.TOOL_RESULT)
-        .filter(item -> toolCallId.equals(item.getToolCalls().getFirst().getToolCallId()))
-        .findFirst()
-        .orElseThrow();
-  }
-
-  /** The handle of the prompt document as the model read it in the result of the first tool. */
-  private static Map<String, Object> promptDocumentHandleInRequests() {
-    final var result =
-        OpenAiCompletionsRecordedConversation.recorded().lastRequest().messages().stream()
-            .filter(message -> "call_fetch".equals(message.toolCallId()))
-            .findFirst()
-            .orElseThrow();
-    try {
-      return OBJECT_MAPPER.readValue(result.content(), new TypeReference<>() {});
-    } catch (Exception e) {
-      throw new IllegalStateException(
-          "The result of the tool is no handle: " + result.content(), e);
-    }
-  }
-
-  private List<AgentInstanceHistory> awaitCommittedHistory(long agentInstanceKey) {
-    return await()
-        .alias("committed agent instance history")
-        .atMost(Duration.ofSeconds(30))
-        .ignoreExceptions()
-        .until(
-            () ->
-                camundaClient
-                    .newAgentInstanceHistorySearchRequest(agentInstanceKey)
-                    .filter(f -> f.commitStatus(AgentInstanceHistoryCommitStatus.COMMITTED))
-                    .sort(s -> s.historyItemKey().asc())
-                    .execute()
-                    .items(),
-            items ->
-                items.stream()
-                    .anyMatch(item ->
-                        item.getRole() == AgentInstanceHistoryRole.ASSISTANT
-                            && item.getContent().stream()
-                                .anyMatch(block ->
-                                    block instanceof AgentInstanceHistoryContent.TextContent text
-                                        && FINAL_TEXT.equals(text.getText()))));
   }
 
   private static boolean isCovered(RecordedMessage message, List<AgentInstanceHistory> history) {
@@ -378,13 +197,8 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   private record ModelPart(String text) {}
 
   private static List<ModelPart> modelParts(RecordedMessage message) {
-    if (message.content() != null) {
-      return List.of(new ModelPart(message.content()));
-    }
     return message.contentParts().stream()
-        .map(part ->
-            new ModelPart(
-                "text".equals(part.path("type").asText()) ? part.path("text").asText() : null))
+        .map(part -> new ModelPart(part.isText() ? part.text() : null))
         .toList();
   }
 
@@ -505,6 +319,9 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   private static String describe(RecordedMessage message) {
     return "role=%s toolCallId=%s toolCalls=%s text=%s"
         .formatted(
-            message.role(), message.toolCallId(), message.toolCalls(), message.textContent());
+            message.role(),
+            message.toolCallId(),
+            message.toolCalls().stream().map(call -> call.id() + ":" + call.name()).toList(),
+            message.textContent());
   }
 }
