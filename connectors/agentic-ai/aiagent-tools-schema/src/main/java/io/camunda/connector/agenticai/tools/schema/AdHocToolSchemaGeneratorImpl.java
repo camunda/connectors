@@ -15,7 +15,6 @@ import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstan
 
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -78,10 +77,8 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
           final var propertySchema =
               new LinkedHashMap<>(normalize(element, parameter, authoredSchema));
 
-          // default to string if no type is set (not on parameter, not in schema directly); a
-          // union keeps the type of its alternatives
-          if (!propertySchema.containsKey(PROPERTY_TYPE)
-              && !DocumentParameter.isUnionSchema(propertySchema)) {
+          // default to string if no type is set (not on parameter, not in schema directly)
+          if (!propertySchema.containsKey(PROPERTY_TYPE)) {
             propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
           }
 

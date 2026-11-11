@@ -14,7 +14,10 @@ import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParamet
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 class AdHocToolSchemaGeneratorTest {
@@ -191,22 +194,34 @@ class AdHocToolSchemaGeneratorTest {
             "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Duplicate parameter name 'toolCall.param1'.");
   }
 
-  @Test
-  void throwsExceptionWhenATypeArrayListsTheDocumentType() {
+  static Stream<Map<String, Object>> schemasWithTheDocumentTypeWhereNoParameterCanSit() {
+    final var document = Map.<String, Object>of("type", "document");
+    return Stream.of(
+        Map.of("anyOf", List.of(Map.of("type", "string"), document)),
+        Map.of("oneOf", List.of(Map.of("type", "number"), document)),
+        Map.of("anyOf", List.of(document)),
+        Map.of("type", List.of("string", "document")),
+        Map.of("allOf", List.of(document)),
+        Map.of("type", "object", "additionalProperties", document),
+        Map.of(
+            "anyOf",
+            List.of(
+                Map.of("type", "string"),
+                Map.of("type", "object", "properties", Map.of("file", document)))));
+  }
+
+  @ParameterizedTest
+  @MethodSource("schemasWithTheDocumentTypeWhereNoParameterCanSit")
+  void throwsExceptionWhenTheDocumentTypeIsUsedWhereNoDocumentParameterCanSit(
+      Map<String, Object> schema) {
     final var element =
         createToolElement(
-            List.of(
-                new AdHocToolElementParameter(
-                    "toolCall.body",
-                    "The body",
-                    null,
-                    Map.of("type", List.of("string", "document")),
-                    Map.of())));
+            List.of(new AdHocToolElementParameter("toolCall.body", "The body", null, schema)));
 
     assertThatThrownBy(() -> generator.generateToolSchema(element))
         .isInstanceOf(AdHocToolSchemaGenerationException.class)
         .hasMessage(
-            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter 'toolCall.body': The type 'document' cannot be part of a type array. Use \"type\": \"document\" for a document, or \"anyOf\" with {\"type\": \"document\"} as one alternative for a document or another value.");
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter 'toolCall.body': The type 'document' can only be the type of a parameter, of the items of an array or of an object property. Use a separate parameter for a document.");
   }
 
   @Test
@@ -446,82 +461,24 @@ class AdHocToolSchemaGeneratorTest {
   }
 
   @Test
-  void mapsTheDocumentTypeInsideAlternativesToTheDocumentFormat() throws Exception {
+  void mapsTheDocumentTypeOfItemsAndNestedPropertiesToTheDocumentFormat() throws Exception {
     final var element =
         createToolElement(
             List.of(
                 new AdHocToolElementParameter(
-                    "toolCall.body",
-                    "The body",
-                    "string",
-                    Map.of("anyOf", List.of(Map.of("type", "string"), Map.of("type", "document")))),
-                new AdHocToolElementParameter(
-                    "toolCall.value",
-                    "The value",
+                    "toolCall.docs",
+                    "The files",
                     null,
-                    Map.of(
-                        "oneOf", List.of(Map.of("type", "number"), Map.of("type", "document"))))));
-
-    assertJsonSchema(
-        element,
-        """
-        {
-          "type": "object",
-          "properties": {
-            "body": {
-              "anyOf": [
-                {"type": "string"},
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
-                    "id": {"type": "string", "description": "The id of the document."}
-                  },
-                  "required": ["type", "id"]
-                }
-              ],
-              "type": "string",
-              "description": "The body"
-            },
-            "value": {
-              "oneOf": [
-                {"type": "number"},
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
-                    "id": {"type": "string", "description": "The id of the document."}
-                  },
-                  "required": ["type", "id"]
-                }
-              ],
-              "description": "The value"
-            }
-          },
-          "required": ["body", "value"]
-        }
-        """);
-  }
-
-  @Test
-  void aUnionWithADocumentInAnAlternativeKeepsNoDefaultTypeNextToItsAlternatives()
-      throws Exception {
-    final var element =
-        createToolElement(
-            List.of(
+                    Map.of("type", "array", "items", Map.of("type", "document"))),
                 new AdHocToolElementParameter(
                     "toolCall.message",
                     "The message",
                     null,
                     Map.of(
-                        "anyOf",
-                        List.of(
-                            Map.of("type", "string"),
-                            Map.of(
-                                "type",
-                                "object",
-                                "properties",
-                                Map.of("file", Map.of("type", "document"))))))));
+                        "type",
+                        "object",
+                        "properties",
+                        Map.of("file", Map.of("type", "document"))))));
 
     assertJsonSchema(
         element,
@@ -529,51 +486,22 @@ class AdHocToolSchemaGeneratorTest {
         {
           "type": "object",
           "properties": {
+            "docs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
+                  "id": {"type": "string", "description": "The id of the document."}
+                },
+                "required": ["type", "id"]
+              },
+              "description": "The files"
+            },
             "message": {
-              "anyOf": [
-                {"type": "string"},
-                {
-                  "type": "object",
-                  "properties": {
-                    "file": {
-                      "type": "object",
-                      "properties": {
-                        "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
-                        "id": {"type": "string", "description": "The id of the document."}
-                      },
-                      "required": ["type", "id"]
-                    }
-                  }
-                }
-              ],
-              "description": "The message"
-            }
-          },
-          "required": ["message"]
-        }
-        """);
-  }
-
-  @Test
-  void aSingleDocumentAlternativeIsAUnionWithoutADefaultType() throws Exception {
-    final var element =
-        createToolElement(
-            List.of(
-                new AdHocToolElementParameter(
-                    "toolCall.file",
-                    "The file",
-                    null,
-                    Map.of("anyOf", List.of(Map.of("type", "document"))))));
-
-    assertJsonSchema(
-        element,
-        """
-        {
-          "type": "object",
-          "properties": {
-            "file": {
-              "anyOf": [
-                {
+              "type": "object",
+              "properties": {
+                "file": {
                   "type": "object",
                   "properties": {
                     "type": {"type": "string", "enum": ["camunda.agenticai.document"]},
@@ -581,17 +509,47 @@ class AdHocToolSchemaGeneratorTest {
                   },
                   "required": ["type", "id"]
                 }
-              ],
-              "description": "The file"
+              },
+              "description": "The message"
             }
           },
-          "required": ["file"]
+          "required": ["docs", "message"]
         }
         """);
   }
 
   @Test
-  void stillDefaultsTheTypeOfAnAlternativesSchemaWithoutADocumentToString() throws Exception {
+  void leavesTheDocumentTypeInEnumAndDefaultValuesAsItIs() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.kind",
+                    null,
+                    null,
+                    Map.of("type", "string", "enum", List.of("a", Map.of("type", "document")))),
+                new AdHocToolElementParameter(
+                    "toolCall.payload",
+                    null,
+                    null,
+                    Map.of("type", "object", "default", Map.of("type", "document")))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "kind": {"type": "string", "enum": ["a", {"type": "document"}]},
+            "payload": {"type": "object", "default": {"type": "document"}}
+          },
+          "required": ["kind", "payload"]
+        }
+        """);
+  }
+
+  @Test
+  void defaultsTheTypeOfASchemaWithAlternativesToString() throws Exception {
     final var element =
         createToolElement(
             List.of(

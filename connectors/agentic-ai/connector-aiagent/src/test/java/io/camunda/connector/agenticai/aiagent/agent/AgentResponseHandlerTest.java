@@ -448,16 +448,6 @@ class AgentResponseHandlerTest {
                 Map.of(
                     "type", "object", "properties", Map.of("doc", DocumentSchemas.document(null))))
             .build();
-    private static final ToolDefinition SEND =
-        ToolDefinition.builder()
-            .name("send")
-            .inputSchema(
-                Map.of(
-                    "type",
-                    "object",
-                    "properties",
-                    Map.of("body", TestDocuments.textOrDocument(null))))
-            .build();
     private static final ToolDefinition WEATHER =
         ToolDefinition.builder().name("getWeather").inputSchema(Map.of("type", "object")).build();
 
@@ -484,7 +474,7 @@ class AgentResponseHandlerTest {
               .withState(AgentState.READY)
               .withFeatures(features)
               .withDocuments(documents)
-              .withToolDefinitions(List.of(UPLOAD, SEND, WEATHER));
+              .withToolDefinitions(List.of(UPLOAD, WEATHER));
       return AgentConversation.rehydrate(
               new AgentConfiguration(
                   TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null),
@@ -527,31 +517,14 @@ class AgentResponseHandlerTest {
     }
 
     @Test
-    void handsTheCamundaDocumentReferenceOfAHandleInAUnionParameterAndKeepsTextAsText() {
-      final var tagged = new ToolCall("s1", "send", Map.of("body", handle(reportId.value())));
-      final var text = new ToolCall("s2", "send", Map.of("body", "hello " + reportId));
-
-      final var conversation = conversation(tagged, text);
-
-      final var response = responseHandler.createResponse(conversation);
-
-      assertThat(response)
-          .isEqualTo(
-              responseOf(
-                  conversation,
-                  new ToolCallProcessVariable("s1", "send", Map.of("body", reportReference())),
-                  new ToolCallProcessVariable("s2", "send", Map.of("body", "hello " + reportId))));
-    }
-
-    @Test
-    void failsForACallWithAHandleOfAnUnknownDocumentInAUnionParameterThatIsHandedToTheProcess() {
-      final var call = new ToolCall("s1", "send", Map.of("body", handle("doc_000000000000")));
+    void failsForACallWithAHandleOfAnUnknownDocumentThatIsHandedToTheProcess() {
+      final var call = new ToolCall("u1", "upload", Map.of("doc", handle("doc_000000000000")));
 
       assertThatThrownBy(() -> responseHandler.createResponse(conversation(call)))
           .isInstanceOf(IllegalStateException.class)
           .hasMessage(
-              "The call 's1' of the tool 'send' goes to the process, but its document parameters are invalid: "
-                  + "Parameter 'body' has the id 'doc_000000000000', but the conversation has no document with this id."
+              "The call 'u1' of the tool 'upload' goes to the process, but its document parameters are invalid: "
+                  + "Parameter 'doc' has the id 'doc_000000000000', but the conversation has no document with this id."
                   + " Pass the handle of a document from the conversation: a JSON object such as "
                   + "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.");
       verify(gatewayToolHandlers, never()).transformToolCalls(any(), any());

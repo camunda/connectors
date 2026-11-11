@@ -10,8 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter.Step;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,28 +55,22 @@ class AuthoredSchemaNormalizerTest {
   }
 
   @Test
-  void normalizesTheShorthandTypeInsideAlternativesAtAnyDepth() {
+  void normalizesTheShorthandTypeOfPropertiesAndItemsAtAnyDepth() {
     final var schema =
         object(
-            "text", Map.of("anyOf", List.of(string(), Map.of("type", "document"))),
-            "either",
-                Map.of("oneOf", List.of(Map.of("type", "document"), Map.of("type", "number"))),
-            "items",
+            "rows",
                 Map.of(
                     "type",
                     "array",
                     "items",
-                    Map.of("anyOf", List.of(string(), Map.of("type", "document")))),
-            "req", object("file", Map.of("anyOf", List.of(Map.of("type", "document"), string()))));
+                    object("file", Map.of("type", "document"), "note", string())),
+            "nested", object("inner", object("file", Map.of("type", "document"))));
 
     assertThat(normalizer.normalize(schema))
         .isEqualTo(
             object(
-                "text", Map.of("anyOf", List.of(string(), doc())),
-                "either", Map.of("oneOf", List.of(doc(), Map.of("type", "number"))),
-                "items",
-                    Map.of("type", "array", "items", Map.of("anyOf", List.of(string(), doc()))),
-                "req", object("file", Map.of("anyOf", List.of(doc(), string())))));
+                "rows", Map.of("type", "array", "items", object("file", doc(), "note", string())),
+                "nested", object("inner", object("file", doc()))));
   }
 
   @Test
@@ -88,119 +80,73 @@ class AuthoredSchemaNormalizerTest {
     assertThat(normalizer.normalize(schema)).isEqualTo(schema);
   }
 
-  static Stream<Map<String, Object>> schemasWithTheDocumentTypeInATypeArray() {
+  @Test
+  void leavesTheShorthandInTheDataKeywordsAsItIs() {
+    final var shorthand = Map.<String, Object>of("type", "document");
+    final var schema =
+        object(
+            "withEnum", Map.of("type", "string", "enum", List.of("a", shorthand)),
+            "withDefault", Map.of("type", "object", "default", shorthand),
+            "withConst", Map.of("const", shorthand),
+            "withExamples", Map.of("type", "object", "examples", List.of(shorthand)),
+            "doc", Map.of("type", "document"));
+
+    assertThat(normalizer.normalize(schema))
+        .isEqualTo(
+            object(
+                "withEnum", Map.of("type", "string", "enum", List.of("a", shorthand)),
+                "withDefault", Map.of("type", "object", "default", shorthand),
+                "withConst", Map.of("const", shorthand),
+                "withExamples", Map.of("type", "object", "examples", List.of(shorthand)),
+                "doc", doc()));
+  }
+
+  static Stream<Map<String, Object>> schemasWithTheDocumentTypeWhereNoParameterCanSit() {
+    final var shorthand = Map.<String, Object>of("type", "document");
+    final var itemsNextToProperties = new LinkedHashMap<String, Object>();
+    itemsNextToProperties.put("type", "object");
+    itemsNextToProperties.put("properties", Map.of("file", shorthand));
+    itemsNextToProperties.put("items", shorthand);
     return Stream.of(
+        object("value", Map.of("anyOf", List.of(string(), shorthand))),
+        object("value", Map.of("oneOf", List.of(shorthand, Map.of("type", "number")))),
+        object(
+            "value",
+            Map.of(
+                "anyOf",
+                List.of(Map.of("type", "number"), Map.of("oneOf", List.of(string(), shorthand))))),
+        object(
+            "docs",
+            Map.of("type", "array", "items", Map.of("anyOf", List.of(string(), shorthand)))),
+        object("req", object("file", Map.of("anyOf", List.of(shorthand, string())))),
+        object(
+            "message",
+            Map.of("anyOf", List.of(string(), object("file", shorthand, "caption", string())))),
         object("value", Map.of("type", List.of("string", "document"))),
         object("value", Map.of("type", List.of("document"))),
         object("value", Map.of("type", List.of("string", "document"), "anyOf", List.of(string()))),
         object(
             "docs",
             Map.of("type", "array", "items", Map.of("type", List.of("string", "document")))),
+        object("all", Map.of("allOf", List.of(shorthand))),
         object(
-            "value",
-            Map.of(
-                "anyOf",
-                List.of(string(), object("file", Map.of("type", List.of("string", "document")))))));
+            "allTypeArray",
+            Map.of("allOf", List.of(Map.of("type", List.of("string", "document"))))),
+        object("not", Map.of("not", shorthand)),
+        object("additional", Map.of("type", "object", "additionalProperties", shorthand)),
+        object("prefix", Map.of("type", "array", "prefixItems", List.of(shorthand))),
+        object("defs", Map.of("$defs", Map.of("file", shorthand))),
+        object("both", itemsNextToProperties));
   }
 
   @ParameterizedTest
-  @MethodSource("schemasWithTheDocumentTypeInATypeArray")
-  void rejectsATypeArrayThatListsTheDocumentType(Map<String, Object> schema) {
+  @MethodSource("schemasWithTheDocumentTypeWhereNoParameterCanSit")
+  void rejectsTheDocumentTypeWhereNoDocumentParameterCanSit(Map<String, Object> schema) {
     assertThatThrownBy(() -> normalizer.normalize(schema))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
-            "The type 'document' cannot be part of a type array. Use \"type\": \"document\" for a"
-                + " document, or \"anyOf\" with {\"type\": \"document\"} as one alternative for a"
-                + " document or another value.");
-  }
-
-  @Test
-  void normalizesTheShorthandInsideObjectAndArrayAlternatives() {
-    final var schema =
-        object(
-            "message",
-                Map.of(
-                    "anyOf",
-                    List.of(
-                        string(), object("file", Map.of("type", "document"), "caption", string()))),
-            "files",
-                Map.of(
-                    "oneOf",
-                    List.of(
-                        Map.of("type", "document"),
-                        Map.of("type", "array", "items", Map.of("type", "document")))));
-
-    final var normalized = normalizer.normalize(schema);
-
-    assertThat(normalized)
-        .isEqualTo(
-            object(
-                "message",
-                    Map.of("anyOf", List.of(string(), object("file", doc(), "caption", string()))),
-                "files", Map.of("oneOf", List.of(doc(), Map.of("type", "array", "items", doc())))));
-    assertThat(DocumentParameter.in(normalized))
-        .containsExactly(
-            new DocumentParameter.Union(List.of(new Step.Property("message"))),
-            new DocumentParameter.Union(List.of(new Step.Property("files"))));
-  }
-
-  @Test
-  void normalizesTheShorthandInsideNestedAlternatives() {
-    final var schema =
-        object(
-            "value",
-            Map.of(
-                "anyOf",
-                List.of(
-                    Map.of("type", "number"),
-                    Map.of("oneOf", List.of(string(), Map.of("type", "document"))))));
-
-    assertThat(normalizer.normalize(schema))
-        .isEqualTo(
-            object(
-                "value",
-                Map.of(
-                    "anyOf",
-                    List.of(Map.of("type", "number"), Map.of("oneOf", List.of(string(), doc()))))));
-  }
-
-  @Test
-  void leavesTheShorthandWhereTheAgentResolvesNoDocumentAsAuthored() {
-    final var shorthand = Map.<String, Object>of("type", "document");
-    final var itemsNextToProperties = new LinkedHashMap<String, Object>();
-    itemsNextToProperties.put("type", "object");
-    itemsNextToProperties.put("properties", Map.of("file", shorthand));
-    itemsNextToProperties.put("items", shorthand);
-    final var schema =
-        object(
-            "all", Map.of("allOf", List.of(shorthand)),
-            "not", Map.of("not", shorthand),
-            "additional", Map.of("type", "object", "additionalProperties", shorthand),
-            "prefix", Map.of("type", "array", "prefixItems", List.of(shorthand)),
-            "defs", Map.of("$defs", Map.of("file", shorthand)),
-            "allTypeArray", Map.of("allOf", List.of(Map.of("type", List.of("string", "document")))),
-            "both", itemsNextToProperties);
-
-    final var normalized = normalizer.normalize(schema);
-
-    assertThat(normalized)
-        .isEqualTo(
-            object(
-                "all", Map.of("allOf", List.of(shorthand)),
-                "not", Map.of("not", shorthand),
-                "additional", Map.of("type", "object", "additionalProperties", shorthand),
-                "prefix", Map.of("type", "array", "prefixItems", List.of(shorthand)),
-                "defs", Map.of("$defs", Map.of("file", shorthand)),
-                "allTypeArray",
-                    Map.of("allOf", List.of(Map.of("type", List.of("string", "document")))),
-                "both",
-                    Map.of(
-                        "type",
-                        "object",
-                        "properties",
-                        Map.of("file", doc()),
-                        "items",
-                        shorthand)));
+            "The type 'document' can only be the type of a parameter, of the items of an array or"
+                + " of an object property. Use a separate parameter for a document.");
   }
 
   private static Map<String, Object> doc() {

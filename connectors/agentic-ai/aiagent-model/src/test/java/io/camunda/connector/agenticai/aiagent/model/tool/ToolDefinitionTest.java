@@ -78,8 +78,8 @@ class ToolDefinitionTest {
     assertThat(restored).isEqualTo(toolDefinition);
     assertThat(restored.documentParameters())
         .containsExactlyInAnyOrder(
-            new DocumentParameter.Document(List.of(new DocumentParameter.Step.Property("doc"))),
-            new DocumentParameter.Document(
+            new DocumentParameter(List.of(new DocumentParameter.Step.Property("doc"))),
+            new DocumentParameter(
                 List.of(
                     new DocumentParameter.Step.Property("docs"),
                     new DocumentParameter.Step.Items())));

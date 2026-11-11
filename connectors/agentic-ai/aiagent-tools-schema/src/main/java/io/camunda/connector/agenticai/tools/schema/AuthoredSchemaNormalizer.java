@@ -9,70 +9,78 @@ package io.camunda.connector.agenticai.tools.schema;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_DESCRIPTION;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
 
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter.Step;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Turns the shorthand type {@value #TYPE_DOCUMENT} that an authored {@code fromAi} schema uses for
- * a document into the object schema of a document handle (see {@link DocumentSchemas#document}),
- * the form of a {@link DocumentParameter document parameter}.
+ * a document into the schema of a {@link DocumentParameter document parameter} (see {@link
+ * DocumentParameter#documentSchema}).
  *
- * <p>A node is normalized where the agent resolves a document parameter: at the top level, in the
- * object {@code properties} and the array {@code items} (see {@link Step#mapChildren}), and in the
- * {@code anyOf} and {@code oneOf} alternatives of such a node at any depth (see {@link
- * DocumentParameter#mapAlternatives}), with the same rules inside an alternative. The shorthand
- * anywhere else, such as under {@code allOf}, {@code not}, {@code if}/{@code then}/{@code else},
- * {@code additionalProperties}, {@code patternProperties}, {@code prefixItems}, {@code $defs} or
- * behind {@code $ref}, is left as authored: no document parameter is found there, and the handle
- * schema must not appear where nothing resolves it.
- *
- * <p>A {@code type} array that lists {@value #TYPE_DOCUMENT} is rejected where a node is
- * normalized: a union that can hold a document is an explicit {@code anyOf} or {@code oneOf} with
- * {@code {"type": "document"}} as one alternative.
+ * <p>The shorthand is supported where a document parameter can sit: as the type of the parameter,
+ * of the {@code items} of an array or of an object property, at any depth (see {@link
+ * DocumentParameter#mapChildren}). Anywhere else, such as in an {@code anyOf} alternative or in a
+ * {@code type} array, the schema is rejected: the model provider does not know the type.
  */
 final class AuthoredSchemaNormalizer {
 
   /** Type that an authored schema uses as a shorthand for a document parameter. */
   static final String TYPE_DOCUMENT = "document";
 
+  // keywords whose values are data, not schemas
+  private static final Set<String> DATA_KEYWORDS = Set.of("const", "enum", "default", "examples");
+
   /**
-   * The schema with the shorthand turned into the handle schema.
+   * The schema with the shorthand turned into the document schema.
    *
-   * @throws IllegalArgumentException if a normalized node has a {@code type} array that lists
-   *     {@value #TYPE_DOCUMENT}
+   * @throws IllegalArgumentException if the shorthand is used where no document parameter can sit
    */
   Map<String, Object> normalize(Map<String, Object> schema) {
-    final var node = DocumentParameter.mapAlternatives(normalizeType(schema), this::normalize);
-    return Step.mapChildren(node, (step, child) -> normalize(child));
+    final var normalized = normalizeNode(schema);
+    rejectRemainingShorthand(normalized);
+    return normalized;
   }
 
-  private Map<String, Object> normalizeType(Map<String, Object> node) {
+  private Map<String, Object> normalizeNode(Map<String, Object> node) {
     if (TYPE_DOCUMENT.equals(node.get(PROPERTY_TYPE))) {
       return documentNode(node);
     }
-    if (node.get(PROPERTY_TYPE) instanceof List<?> types && types.contains(TYPE_DOCUMENT)) {
-      throw new IllegalArgumentException(
-          "The type 'document' cannot be part of a type array. Use \"type\": \"document\" for a"
-              + " document, or \"anyOf\" with {\"type\": \"document\"} as one alternative for a"
-              + " document or another value.");
-    }
-    return new LinkedHashMap<>(node);
+    return DocumentParameter.mapChildren(node, (step, child) -> normalizeNode(child));
   }
 
   /**
-   * The handle schema with the description of the node; the other authored entries follow it unless
-   * the handle schema defines them.
+   * The document schema with the description of the node; the other authored entries follow it
+   * unless the document schema defines them.
    */
   private Map<String, Object> documentNode(Map<String, Object> node) {
     final var result =
         new LinkedHashMap<>(
-            DocumentSchemas.document(
+            DocumentParameter.documentSchema(
                 node.get(PROPERTY_DESCRIPTION) instanceof String description ? description : null));
     node.forEach(result::putIfAbsent);
     return result;
+  }
+
+  private void rejectRemainingShorthand(@Nullable Object node) {
+    if (node instanceof Map<?, ?> map) {
+      final var type = map.get(PROPERTY_TYPE);
+      if (TYPE_DOCUMENT.equals(type)
+          || (type instanceof List<?> types && types.contains(TYPE_DOCUMENT))) {
+        throw new IllegalArgumentException(
+            "The type 'document' can only be the type of a parameter, of the items of an array or"
+                + " of an object property. Use a separate parameter for a document.");
+      }
+      map.forEach((key, child) -> {
+        if (!DATA_KEYWORDS.contains(String.valueOf(key))) {
+          rejectRemainingShorthand(child);
+        }
+      });
+    } else if (node instanceof List<?> list) {
+      list.forEach(this::rejectRemainingShorthand);
+    }
   }
 }

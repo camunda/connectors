@@ -16,22 +16,6 @@ import org.junit.jupiter.api.Test;
 
 class DocumentParameterTest {
 
-  private static DocumentParameter document(Step... path) {
-    return new DocumentParameter.Document(List.of(path));
-  }
-
-  private static DocumentParameter union(Step... path) {
-    return new DocumentParameter.Union(List.of(path));
-  }
-
-  private static Step.Property property(String name) {
-    return new Step.Property(name);
-  }
-
-  private static Step.Items items() {
-    return new Step.Items();
-  }
-
   @Test
   void findsTopLevelArrayAndNestedDocumentParameters() {
     final var schema =
@@ -41,7 +25,7 @@ class DocumentParameterTest {
             "req", object("file", doc(), "note", string()),
             "rows", Map.of("type", "array", "items", object("file", doc())));
 
-    assertThat(DocumentParameter.in(schema))
+    assertThat(DocumentParameter.findAll(schema))
         .containsExactly(
             document(property("doc")),
             document(property("docs"), items()),
@@ -56,21 +40,22 @@ class DocumentParameterTest {
             "text", string(),
             "type", Map.of("type", "string", "description", "a property named type"));
 
-    assertThat(DocumentParameter.in(schema)).isEmpty();
+    assertThat(DocumentParameter.findAll(schema)).isEmpty();
   }
 
   @Test
   void anObjectIsAHandleSchemaOnlyWithTheHandleTypeAsTheOnlyValueOfTheTypeProperty() {
-    assertThat(DocumentParameter.in(object("p", doc()))).containsExactly(document(property("p")));
-    assertThat(DocumentParameter.in(object("p", withDescription(doc(), "A doc"))))
+    assertThat(DocumentParameter.findAll(object("p", doc())))
         .containsExactly(document(property("p")));
-    assertThat(DocumentParameter.in(object("p", object("id", string())))).isEmpty();
+    assertThat(DocumentParameter.findAll(object("p", withDescription(doc(), "A doc"))))
+        .containsExactly(document(property("p")));
+    assertThat(DocumentParameter.findAll(object("p", object("id", string())))).isEmpty();
     assertThat(
-            DocumentParameter.in(
+            DocumentParameter.findAll(
                 object("p", object("type", Map.of("type", "string", "enum", List.of("other"))))))
         .isEmpty();
     assertThat(
-            DocumentParameter.in(
+            DocumentParameter.findAll(
                 object(
                     "p",
                     object(
@@ -81,175 +66,28 @@ class DocumentParameterTest {
                             "enum",
                             List.of("camunda.agenticai.document", "other"))))))
         .isEmpty();
-    assertThat(DocumentParameter.in(object("p", object("type", string())))).isEmpty();
-    assertThat(DocumentParameter.in(object("p", string()))).isEmpty();
+    assertThat(DocumentParameter.findAll(object("p", object("type", string())))).isEmpty();
+    assertThat(DocumentParameter.findAll(object("p", string()))).isEmpty();
   }
 
   @Test
   void theSearchStopsAtAHandleSchemaAndNeverTreatsItsPropertiesAsParameters() {
     final var schema = object("doc", doc());
 
-    assertThat(DocumentParameter.in(schema)).containsExactly(document(property("doc")));
+    assertThat(DocumentParameter.findAll(schema)).containsExactly(document(property("doc")));
   }
 
   @Test
-  void findsUnionParametersAtAnyDepth() {
+  void findsNoDocumentParameterInAnAlternative() {
     final var schema =
         object(
             "text", Map.of("anyOf", List.of(string(), doc())),
-            "either", Map.of("oneOf", List.of(Map.of("type", "number"), doc(), string())),
+            "either", Map.of("oneOf", List.of(Map.of("type", "number"), doc())),
             "items", Map.of("type", "array", "items", Map.of("anyOf", List.of(doc(), string()))),
-            "req", object("file", Map.of("anyOf", List.of(string(), doc())), "plain", string()),
-            "rows",
-                Map.of(
-                    "type",
-                    "array",
-                    "items",
-                    object("file", Map.of("oneOf", List.of(string(), doc())))),
+            "message", Map.of("anyOf", List.of(string(), object("file", doc()))),
             "pure", doc());
 
-    assertThat(DocumentParameter.in(schema))
-        .containsExactly(
-            union(property("text")),
-            union(property("either")),
-            union(property("items"), items()),
-            union(property("req"), property("file")),
-            union(property("rows"), items(), property("file")),
-            document(property("pure")));
-  }
-
-  @Test
-  void aNodeWithSeveralAlternativesAndADocumentSchemaAmongThemIsAUnion() {
-    assertThat(DocumentParameter.isUnionSchema(Map.of("anyOf", List.of(string(), doc())))).isTrue();
-    assertThat(
-            DocumentParameter.isUnionSchema(
-                Map.of("oneOf", List.of(doc(), Map.of("type", "null")))))
-        .isTrue();
-    // the other alternatives may be objects or arrays
-    assertThat(
-            DocumentParameter.isUnionSchema(Map.of("anyOf", List.of(object("a", string()), doc()))))
-        .isTrue();
-    assertThat(
-            DocumentParameter.isUnionSchema(
-                Map.of("oneOf", List.of(Map.of("type", "array", "items", string()), doc()))))
-        .isTrue();
-    // no document alternative
-    assertThat(
-            DocumentParameter.isUnionSchema(
-                Map.of("anyOf", List.of(string(), Map.of("type", "number")))))
-        .isFalse();
-    // a document node is not a union node
-    assertThat(DocumentParameter.isUnionSchema(doc())).isFalse();
-  }
-
-  @Test
-  void aDocumentInAnObjectAlternativeMakesAUnion() {
-    final var schema =
-        object(
-            "message",
-            Map.of("anyOf", List.of(string(), object("file", doc(), "caption", string()))));
-
-    assertThat(DocumentParameter.in(schema)).containsExactly(union(property("message")));
-  }
-
-  @Test
-  void aDocumentInAnArrayAlternativeMakesAUnion() {
-    final var schema =
-        object(
-            "files",
-            Map.of("oneOf", List.of(doc(), Map.of("type", "array", "items", doc()))),
-            "texts",
-            Map.of("anyOf", List.of(string(), Map.of("type", "array", "items", doc()))));
-
-    assertThat(DocumentParameter.in(schema))
-        .containsExactly(union(property("files")), union(property("texts")));
-  }
-
-  @Test
-  void aDocumentInANestedUnionMakesTheOuterNodeAUnion() {
-    final var nested = Map.of("anyOf", List.of(string(), doc()));
-    final var schema = object("value", Map.of("oneOf", List.of(Map.of("type", "number"), nested)));
-
-    assertThat(DocumentParameter.in(schema)).containsExactly(union(property("value")));
-    assertThat(DocumentParameter.isUnionSchema(nested)).isTrue();
-  }
-
-  @Test
-  void aDocumentDeeperInAnAlternativeMakesAUnion() {
-    final var alternative = object("rows", Map.of("type", "array", "items", object("file", doc())));
-    final var schema = object("value", Map.of("anyOf", List.of(string(), alternative)));
-
-    assertThat(DocumentParameter.in(schema)).containsExactly(union(property("value")));
-  }
-
-  @Test
-  void theSearchStopsAtAUnionAndFindsNoParameterInsideItsAlternatives() {
-    final var schema =
-        object(
-            "doc",
-            Map.of(
-                "anyOf",
-                List.of(string(), Map.of("type", "array", "items", doc()), object("file", doc()))));
-
-    assertThat(DocumentParameter.in(schema)).containsExactly(union(property("doc")));
-  }
-
-  @Test
-  void anAnyOfWithoutADocumentAnywhereIsNoUnionAndIsNotSearched() {
-    final var schema =
-        object(
-            "value",
-            Map.of("anyOf", List.of(string(), object("a", string()), Map.of("type", "number"))));
-
-    assertThat(DocumentParameter.in(schema)).isEmpty();
-    assertThat(
-            DocumentParameter.isUnionSchema(Map.of("anyOf", List.of(string(), object("a", doc())))))
-        .isTrue();
-    assertThat(
-            DocumentParameter.isUnionSchema(
-                Map.of("anyOf", List.of(string(), object("a", string())))))
-        .isFalse();
-  }
-
-  @Test
-  void aSingleAlternativeWithADocumentInsideMakesAUnion() {
-    final var schema =
-        object(
-            "doc",
-            Map.of("anyOf", List.of(doc())),
-            "value",
-            Map.of("oneOf", List.of(object("file", doc()))));
-
-    assertThat(DocumentParameter.in(schema))
-        .containsExactly(union(property("doc")), union(property("value")));
-  }
-
-  @Test
-  void anAlternativeWithPropertiesHoldsNoDocumentInItsItems() {
-    final var alternative = new LinkedHashMap<String, Object>();
-    alternative.put("type", "object");
-    alternative.put("properties", Map.of("text", string()));
-    alternative.put("items", doc());
-
-    assertThat(DocumentParameter.in(object("v", Map.of("anyOf", List.of(string(), alternative)))))
-        .isEmpty();
-  }
-
-  @Test
-  void anAlternativeHoldsADocumentDirectlyInItsPropertiesInItsItemsOrInItsAlternatives() {
-    for (final var alternative :
-        List.of(
-            doc(),
-            object("file", doc()),
-            Map.of("type", "array", "items", doc()),
-            Map.of("oneOf", List.of(string(), doc())))) {
-      assertThat(DocumentParameter.in(object("v", Map.of("anyOf", List.of(string(), alternative)))))
-          .containsExactly(union(property("v")));
-    }
-    for (final var alternative : List.of(object("a", string()), string())) {
-      assertThat(DocumentParameter.in(object("v", Map.of("anyOf", List.of(string(), alternative)))))
-          .isEmpty();
-    }
+    assertThat(DocumentParameter.findAll(schema)).containsExactly(document(property("pure")));
   }
 
   @Test
@@ -259,18 +97,18 @@ class DocumentParameterTest {
     withProperties.put("properties", Map.of("file", doc()));
     withProperties.put("items", doc());
 
-    assertThat(DocumentParameter.in(object("both", withProperties)))
+    assertThat(DocumentParameter.findAll(object("both", withProperties)))
         .containsExactly(document(property("both"), property("file")));
   }
 
   @Test
   void aTypeDocumentNodeIsNotADocumentParameter() {
-    assertThat(DocumentParameter.in(object("doc", Map.of("type", "document")))).isEmpty();
+    assertThat(DocumentParameter.findAll(object("doc", Map.of("type", "document")))).isEmpty();
   }
 
   @Test
   void aSchemaThatIsItselfADocumentHasNoParameter() {
-    assertThat(DocumentParameter.in(doc())).isEmpty();
+    assertThat(DocumentParameter.findAll(doc())).isEmpty();
   }
 
   @Test
@@ -278,7 +116,7 @@ class DocumentParameterTest {
     final var schema = new LinkedHashMap<>(object("file", doc(), "text", string()));
     schema.put("anyOf", List.of(object("file", doc()), object("text", string())));
 
-    assertThat(DocumentParameter.in(schema)).containsExactly(document(property("file")));
+    assertThat(DocumentParameter.findAll(schema)).containsExactly(document(property("file")));
   }
 
   @Test
@@ -298,7 +136,8 @@ class DocumentParameterTest {
     node.put("properties", Map.of("a", string()));
     node.put("required", List.of("a"));
 
-    final var mapped = Step.mapChildren(node, (step, child) -> Map.of("seen", step.toString()));
+    final var mapped =
+        DocumentParameter.mapChildren(node, (step, child) -> Map.of("seen", step.toString()));
 
     assertThat(mapped)
         .containsExactly(
@@ -344,5 +183,17 @@ class DocumentParameterTest {
     schema.put("type", "object");
     schema.put("properties", properties);
     return schema;
+  }
+
+  private static DocumentParameter document(Step... path) {
+    return new DocumentParameter(List.of(path));
+  }
+
+  private static Step.Property property(String name) {
+    return new Step.Property(name);
+  }
+
+  private static Step.Items items() {
+    return new Step.Items();
   }
 }

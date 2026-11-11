@@ -347,18 +347,15 @@ applies it to its persisted context, and the next round continues with the conte
   declares the document parameters of runtime tools and of gateway tools, are in `aiagent.api.tool` of `aiagent-api`.
 - A document parameter in a tool definition is the object schema of a document handle: `type: object` with the required
   properties `type` (`enum: ["camunda.agenticai.document"]`) and `id` (`string`), and the description as authored
-  (`DocumentSchemas.document(...)`; `ToolDefinition#documentParameters()` lists them as the sealed `DocumentParameter`).
+  (`DocumentSchemas.document(...)`; `ToolDefinition#documentParameters()` lists them as `DocumentParameter`s).
   The schema goes to the model provider as it is.
   A gateway handler that defines its tools itself can declare document
   parameters in them and receives the Camunda document references in the arguments of a call.
 - The value of a document parameter is the handle object the model read, `{"type":"camunda.agenticai.document","id":"doc_…"}`;
   other fields are ignored and the `type` is required. A string that holds the handle as JSON is a handle too; the bare id of
   a document is not.
-- A parameter that takes a document or something else is a union schema: an `anyOf` or `oneOf` with more than one
-  alternative and a document schema (`DocumentSchemas.document(...)`) in an alternative, directly or inside the properties of an
-  object alternative or the items of an array alternative. Every handle at or below the value is a document; everything else,
-  text included, is passed as it is. `RuntimeToolCall.argumentsAs` binds such a parameter to a property of the type `Object`,
-  which receives an `AgentDocumentId` in the place of each handle or the value the model sent.
+- A document parameter is the parameter itself, the items of an array or an object property. The type `document` in an
+  `anyOf` or `oneOf` alternative or in a type array fails the tool schema generation.
 
 <a id="persisted-data-8-11"></a>
 

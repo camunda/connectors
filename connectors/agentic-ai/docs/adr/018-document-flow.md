@@ -191,8 +191,10 @@ because models often send nested objects as strings. The agent does not accept a
 to an id must not become a document. For a document parameter, the agent answers an incorrect value with an error
 result. The tool does not run.
 
-A parameter can also be a union of the handle schema and other schemas, for example text or a document. In a union, each
-handle in the value is a document. The agent gives all other values to the tool without changes.
+A document parameter is the parameter itself, the items of an array or a property of an object, at any depth. A union of
+the handle schema and other schemas, for example text or a document, is not supported: the tool schema generation fails
+for a `document` in an `anyOf` or `oneOf` alternative or in a type array. A tool that takes text or a document declares
+two parameters.
 
 A process tool receives the SDK reference of the agent document. A runtime tool receives the document id. The stored
 assistant message and the history keep the handle that the model wrote. A gateway handler that defines its own tools can
@@ -204,6 +206,8 @@ Alternatives:
 * *A string with a format marker.* Some providers reject an unknown format, and each description needs a hint.
 * *A separate field next to the schema.* It must stay in sync with the schema.
 * *Accept a bare id or an object without `type`.* A text or an object of the tool result can become a document.
+* *Union parameters.* The agent must search the value of every alternative for handles, and the rules for the schema,
+  the resolution and the error messages grow. Two parameters, an optional property or a list cover the same cases.
 
 ### Documents and effects of runtime tools
 

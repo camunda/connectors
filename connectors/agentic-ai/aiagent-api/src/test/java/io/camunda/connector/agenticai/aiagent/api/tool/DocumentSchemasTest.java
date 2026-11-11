@@ -69,14 +69,16 @@ class DocumentSchemasTest {
     final var properties = new LinkedHashMap<String, Object>();
     properties.put("file", DocumentSchemas.document("The file"));
     properties.put(
-        "body",
-        Map.of("anyOf", List.of(Map.of("type", "string"), DocumentSchemas.document("The body"))));
+        "attachments", Map.of("type", "array", "items", DocumentSchemas.document("The files")));
     final var definition =
         ToolDefinition.runtime("upload", null, Map.of("type", "object", "properties", properties));
 
     assertThat(definition.documentParameters())
         .containsExactly(
-            new DocumentParameter.Document(List.of(new DocumentParameter.Step.Property("file"))),
-            new DocumentParameter.Union(List.of(new DocumentParameter.Step.Property("body"))));
+            new DocumentParameter(List.of(new DocumentParameter.Step.Property("file"))),
+            new DocumentParameter(
+                List.of(
+                    new DocumentParameter.Step.Property("attachments"),
+                    new DocumentParameter.Step.Items())));
   }
 }

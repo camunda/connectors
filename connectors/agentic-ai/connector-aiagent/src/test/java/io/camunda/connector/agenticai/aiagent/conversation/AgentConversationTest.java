@@ -212,8 +212,8 @@ class AgentConversationTest {
                     Map.of(
                         "file",
                         DocumentSchemas.document("The file"),
-                        "body",
-                        TestDocuments.textOrDocument("The body"))))
+                        "files",
+                        Map.of("type", "array", "items", DocumentSchemas.document(null)))))
             .build();
     var conv =
         AgentConversation.rehydrate(

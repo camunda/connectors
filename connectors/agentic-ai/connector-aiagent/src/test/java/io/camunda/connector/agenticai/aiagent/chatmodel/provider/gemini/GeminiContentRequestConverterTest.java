@@ -39,7 +39,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiModelParameters;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
-import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -648,18 +647,15 @@ class GeminiContentRequestConverterTest {
   void passesTheSchemaOfDocumentParametersToGeminiUnchanged() {
     final var properties = new LinkedHashMap<String, Object>();
     properties.put("file", DocumentSchemas.document("The file"));
-    properties.put("body", TestDocuments.textOrDocument("The body"));
+    properties.put(
+        "files", Map.of("type", "array", "items", DocumentSchemas.document("The files")));
     properties.put(
         "message",
         Map.of(
-            "anyOf",
-            List.of(
-                Map.of("type", "string"),
-                Map.of(
-                    "type",
-                    "object",
-                    "properties",
-                    Map.of("file", DocumentSchemas.document(null))))));
+            "type",
+            "object",
+            "properties",
+            Map.of("file", DocumentSchemas.document(null), "caption", Map.of("type", "string"))));
     final Map<String, Object> schema =
         Map.of(
             "type",
@@ -667,7 +663,7 @@ class GeminiContentRequestConverterTest {
             "properties",
             properties,
             "required",
-            List.of("file", "body", "message"));
+            List.of("file", "files", "message"));
     final var snapshot =
         new ConversationSnapshot(
             List.of(), List.of(ToolDefinition.builder().name("send").inputSchema(schema).build()));

@@ -153,15 +153,6 @@ class AgentSubProcessRequestHandlerTest {
                               "object",
                               "properties",
                               Map.of("doc", DocumentSchemas.document(null))))
-                      .build(),
-                  ToolDefinition.builder()
-                      .name("send")
-                      .inputSchema(
-                          Map.of(
-                              "type",
-                              "object",
-                              "properties",
-                              Map.of("body", TestDocuments.textOrDocument(null))))
                       .build()))
           .toList();
 
@@ -2416,39 +2407,6 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void rejectsTheCallWithAHandleOfAnUnknownDocumentInAUnionParameter() {
-    mockSystemPrompt();
-    mockProceed(USER_MESSAGE);
-    when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
-
-    final var badCall =
-        new ToolCall("call-1", "send", Map.of("body", docHandle(AgentDocumentId.of("none"))));
-    final var textCall = new ToolCall("call-2", "send", Map.of("body", "plain text"));
-    final var message = AssistantMessage.builder().toolCalls(List.of(badCall, textCall)).build();
-    mockChatModelExecution(message);
-    mockResponseHandler();
-
-    final var response = requestHandler.handleRequest(agentExecutionContext);
-
-    // a call with text in the union parameter goes to the process, the rejected one does not
-    verify(chatModel, times(1)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
-    final var agentResponse = response.responseValue();
-    assertThat(agentResponse).isNotNull();
-    assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(textCall));
-    assertThat(agentResponse.context().conversation())
-        .isInstanceOfSatisfying(
-            InProcessConversationContext.class,
-            c ->
-                assertMessagesEqualIgnoringSystemMessageId(
-                    c.messages(),
-                    SYSTEM_MESSAGE,
-                    USER_MESSAGE,
-                    message.withToolCalls(List.of(rejectedForUnknownBody(badCall), textCall))));
-  }
-
-  @Test
   void answersTheRejectedCallOfAMixedBatchInTheJobThatFollowsTheResultsOfTheProcess() {
     final var run =
         runMixedBatchInTwoJobs(
@@ -2830,12 +2788,6 @@ class AgentSubProcessRequestHandlerTest {
     return ("Parameter '%s' must be the handle of a document from the conversation: a JSON object"
             + " such as {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.")
         .formatted(path);
-  }
-
-  private static ToolCall rejectedForUnknownBody(ToolCall call) {
-    return call.withRejection(
-        "Parameter 'body' holds a document handle, but the conversation has no documents. Do not"
-            + " pass a document handle.");
   }
 
   private static ToolCall rejectedForBogusDocument(ToolCall call) {

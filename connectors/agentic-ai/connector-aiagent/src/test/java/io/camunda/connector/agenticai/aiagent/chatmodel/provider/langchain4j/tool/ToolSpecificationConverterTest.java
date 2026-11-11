@@ -12,7 +12,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
@@ -22,7 +21,6 @@ import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.testutil.TestDocuments;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -116,7 +114,10 @@ class ToolSpecificationConverterTest {
   void keepsTheHandleSchemaOfDocumentParametersThroughTheConversionAndBack() throws Exception {
     final var properties = new LinkedHashMap<String, Object>();
     properties.put("file", DocumentSchemas.document("The file"));
-    properties.put("body", TestDocuments.textOrDocument("The body"));
+    properties.put(
+        "files",
+        Map.of(
+            "type", "array", "description", "The files", "items", DocumentSchemas.document(null)));
     final var toolDefinition =
         ToolDefinition.builder()
             .name("send")
@@ -128,7 +129,7 @@ class ToolSpecificationConverterTest {
                     "properties",
                     properties,
                     "required",
-                    List.of("file", "body")))
+                    List.of("file", "files")))
             .build();
 
     final var toolSpecification = toolSpecificationConverter.asToolSpecification(toolDefinition);
@@ -138,12 +139,12 @@ class ToolSpecificationConverterTest {
             JsonObjectSchema.builder()
                 .addProperty("file", handleSchema("The file"))
                 .addProperty(
-                    "body",
-                    JsonAnyOfSchema.builder()
-                        .description("The body")
-                        .anyOf(JsonStringSchema.builder().build(), handleSchema(null))
+                    "files",
+                    JsonArraySchema.builder()
+                        .description("The files")
+                        .items(handleSchema(null))
                         .build())
-                .required("file", "body")
+                .required("file", "files")
                 .build());
 
     final var restored = toolSpecificationConverter.asToolDefinition(toolSpecification);
@@ -164,22 +165,20 @@ class ToolSpecificationConverterTest {
                   },
                   "required": ["type", "id"]
                 },
-                "body": {
-                  "description": "The body",
-                  "anyOf": [
-                    {"type": "string"},
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {"enum": ["camunda.agenticai.document"]},
-                        "id": {"type": "string", "description": "The id of the document."}
-                      },
-                      "required": ["type", "id"]
-                    }
-                  ]
+                "files": {
+                  "type": "array",
+                  "description": "The files",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {"enum": ["camunda.agenticai.document"]},
+                      "id": {"type": "string", "description": "The id of the document."}
+                    },
+                    "required": ["type", "id"]
+                  }
                 }
               },
-              "required": ["file", "body"]
+              "required": ["file", "files"]
             }
             """,
             new TypeReference<Map<String, Object>>() {});

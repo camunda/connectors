@@ -32,7 +32,7 @@ class RuntimeToolCallImplTest {
 
   record DocumentArguments(AgentDocumentId document, @Nullable String note) {}
 
-  record UnionArguments(Object body) {}
+  record ObjectArguments(Object body) {}
 
   record TextArguments(@Nullable String body) {}
 
@@ -81,21 +81,21 @@ class RuntimeToolCallImplTest {
   }
 
   @Test
-  void aTagOfAUnionParameterBindsToADocumentIdAndOtherTextToAString() {
-    final var tag = call(Map.of("body", DOC)).argumentsAs(UnionArguments.class);
-    final var text = call(Map.of("body", "doc-1")).argumentsAs(UnionArguments.class);
+  void aDocumentIdInAnObjectPropertyStaysADocumentIdAndOtherTextStaysAString() {
+    final var tag = call(Map.of("body", DOC)).argumentsAs(ObjectArguments.class);
+    final var text = call(Map.of("body", "doc-1")).argumentsAs(ObjectArguments.class);
 
-    assertThat(tag).isEqualTo(new UnionArguments(DOC));
-    assertThat(text).isEqualTo(new UnionArguments("doc-1"));
+    assertThat(tag).isEqualTo(new ObjectArguments(DOC));
+    assertThat(text).isEqualTo(new ObjectArguments("doc-1"));
   }
 
   @Test
   void otherValuesOfAnObjectPropertyKeepTheirJsonType() {
-    final var number = call(Map.of("body", 42)).argumentsAs(UnionArguments.class);
-    final var list = call(Map.of("body", List.of("a", DOC))).argumentsAs(UnionArguments.class);
+    final var number = call(Map.of("body", 42)).argumentsAs(ObjectArguments.class);
+    final var list = call(Map.of("body", List.of("a", DOC))).argumentsAs(ObjectArguments.class);
 
-    assertThat(number).isEqualTo(new UnionArguments(42));
-    assertThat(list).isEqualTo(new UnionArguments(List.of("a", DOC)));
+    assertThat(number).isEqualTo(new ObjectArguments(42));
+    assertThat(list).isEqualTo(new ObjectArguments(List.of("a", DOC)));
   }
 
   @Test

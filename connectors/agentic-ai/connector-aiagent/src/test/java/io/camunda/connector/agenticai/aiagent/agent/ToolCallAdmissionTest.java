@@ -41,15 +41,10 @@ class ToolCallAdmissionTest {
   private static final ToolDefinition RUNTIME_UPLOAD_TOOL =
       ToolDefinition.runtime("acme_upload", "Upload", documentSchema());
 
-  private static final ToolDefinition PROCESS_SEND_TOOL =
-      new ToolDefinition("send", "Send", unionSchema());
-  private static final ToolDefinition RUNTIME_SEND_TOOL =
-      ToolDefinition.runtime("acme_send", "Send", unionSchema());
-
   private static final ToolDefinition PROCESS_ATTACH_TOOL =
       new ToolDefinition("attach", "Attach", attachSchema());
 
-  private static final String UNKNOWN_BODY = rejection("body", "doc_000000000000");
+  private static final String UNKNOWN_DOC = rejection("doc", "doc_000000000000");
 
   private static final String BOGUS_DOC = mustBeHandle("doc");
 
@@ -249,58 +244,37 @@ class ToolCallAdmissionTest {
   }
 
   @Test
-  void aCallOfEitherKindWithAHandleOfAnUnknownDocumentInAUnionParameterIsRejectedAndKeepsItsKind() {
-    final var processCall = new ToolCall("p1", "send", Map.of("body", UNKNOWN_HANDLE));
-    final var runtimeCall = new ToolCall("r1", "acme_send", Map.of("body", UNKNOWN_HANDLE));
+  void aCallOfEitherKindWithAHandleOfAnUnknownDocumentIsRejectedAndKeepsItsKind() {
+    final var processCall = new ToolCall("p1", "upload", Map.of("doc", UNKNOWN_HANDLE));
+    final var runtimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", UNKNOWN_HANDLE));
 
     final var admitted =
         admission.admit(
             messageWith(processCall, runtimeCall),
-            List.of(PROCESS_SEND_TOOL, RUNTIME_SEND_TOOL),
+            List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
             KNOWING_REPORT);
 
     assertThat(admitted.toolCalls())
         .containsExactly(
-            processCall.withRejection(UNKNOWN_BODY),
-            runtimeCall.withKind(ToolKind.RUNTIME).withRejection(UNKNOWN_BODY));
+            processCall.withRejection(UNKNOWN_DOC),
+            runtimeCall.withKind(ToolKind.RUNTIME).withRejection(UNKNOWN_DOC));
   }
 
   @Test
-  void aCallOfEitherKindWithTextOrAHandleOfAKnownDocumentInAUnionParameterIsAdmitted() {
-    final var processText = new ToolCall("p1", "send", Map.of("body", "hello"));
-    final var processHandle = new ToolCall("p2", "send", Map.of("body", REPORT_HANDLE));
-    final var runtimeText = new ToolCall("r1", "acme_send", Map.of("body", "hello"));
-    final var runtimeHandle = new ToolCall("r2", "acme_send", Map.of("body", REPORT_HANDLE));
-
-    final var admitted =
-        admission.admit(
-            messageWith(processText, processHandle, runtimeText, runtimeHandle),
-            List.of(PROCESS_SEND_TOOL, RUNTIME_SEND_TOOL),
-            KNOWING_REPORT);
-
-    assertThat(admitted.toolCalls())
-        .containsExactly(
-            processText,
-            processHandle,
-            runtimeText.withKind(ToolKind.RUNTIME),
-            runtimeHandle.withKind(ToolKind.RUNTIME));
-  }
-
-  @Test
-  void aCallWithAnUnknownHandleNestedInAUnionParameterIsRejectedWithTheFullPath() {
+  void aCallWithAnUnknownHandleNestedInAnObjectOrAnArrayIsRejectedWithTheFullPath() {
     final var call =
         new ToolCall(
             "p1", "attach", Map.of("message", Map.of("file", UNKNOWN_HANDLE, "caption", "c")));
-    final var oneOrList =
-        new ToolCall("p2", "attach", Map.of("message", List.of(REPORT_HANDLE, UNKNOWN_HANDLE)));
+    final var list =
+        new ToolCall("p2", "attach", Map.of("files", List.of(REPORT_HANDLE, UNKNOWN_HANDLE)));
 
     final var admitted =
-        admission.admit(messageWith(call, oneOrList), List.of(PROCESS_ATTACH_TOOL), KNOWING_REPORT);
+        admission.admit(messageWith(call, list), List.of(PROCESS_ATTACH_TOOL), KNOWING_REPORT);
 
     assertThat(admitted.toolCalls())
         .containsExactly(
             call.withRejection(rejection("message.file", "doc_000000000000")),
-            oneOrList.withRejection(rejection("message[1]", "doc_000000000000")));
+            list.withRejection(rejection("files[1]", "doc_000000000000")));
   }
 
   private static String mustBeHandle(String path) {
@@ -316,29 +290,16 @@ class ToolCallAdmissionTest {
         .formatted(path, id);
   }
 
-  private static Map<String, Object> unionSchema() {
-    return Map.of(
-        "type", "object", "properties", Map.of("body", TestDocuments.textOrDocument("The body")));
-  }
-
-  /** A message that is text, a file with a caption, or one or a list of documents. */
+  /** A file with a caption in an object, and a list of documents. */
   private static Map<String, Object> attachSchema() {
-    final var file =
+    final var message =
         Map.of(
             "type",
             "object",
             "properties",
             Map.of("file", DocumentSchemas.document(null), "caption", Map.of("type", "string")));
-    final var list = Map.of("type", "array", "items", DocumentSchemas.document(null));
-    return Map.of(
-        "type",
-        "object",
-        "properties",
-        Map.of(
-            "message",
-            Map.of(
-                "anyOf",
-                List.of(Map.of("type", "string"), file, DocumentSchemas.document(null), list))));
+    final var files = Map.of("type", "array", "items", DocumentSchemas.document(null));
+    return Map.of("type", "object", "properties", Map.of("message", message, "files", files));
   }
 
   private static Map<String, Object> documentSchema() {

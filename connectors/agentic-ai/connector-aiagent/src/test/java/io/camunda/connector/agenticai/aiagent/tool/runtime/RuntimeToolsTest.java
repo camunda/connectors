@@ -521,7 +521,7 @@ class RuntimeToolsTest {
       "Parameter 'file' must be the handle of a document from the conversation: a JSON object such as"
           + " {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.";
 
-  private static final String UNKNOWN_BODY = rejection("body", "doc_000000000000");
+  private static final String UNKNOWN_FILE = rejection("file", "doc_000000000000");
 
   private static String rejection(String path, String id) {
     return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
@@ -689,40 +689,11 @@ class RuntimeToolsTest {
   }
 
   @Test
-  void handsTheIdOfAHandleInAUnionParameterToARuntimeToolAndKeepsTextAsText() {
-    final var report = createDocument("report", "report.txt");
-    final var received = new ArrayList<Object>();
-    record Args(Object body) {}
-    final var tool =
-        StubRuntimeTool.of(
-            definitionOf("c8__send", Map.of("body", TestDocuments.textOrDocument("The body"))),
-            (context, call) -> {
-              received.add(call.argumentsAs(Args.class).body());
-              return RuntimeToolResult.success("sent");
-            });
-
-    final var handleCall = runtimeCall("r1", "c8__send", Map.of("body", handleOf(report)));
-    final var textCall = runtimeCall("r2", "c8__send", Map.of("body", "hello"));
-
-    final var executions =
-        toolsOf(tool)
-            .execute(
-                WITH_MEMORY, knowingWithDocumentsFeature(report), List.of(handleCall, textCall));
-
-    assertThat(executions)
-        .extracting(RuntimeToolExecution::call, RuntimeToolExecution::result)
-        .containsExactly(
-            tuple(handleCall, RuntimeToolResult.success("sent")),
-            tuple(textCall, RuntimeToolResult.success("sent")));
-    assertThat(received).containsExactly(AgentDocumentId.of(report), "hello");
-  }
-
-  @Test
-  void aCallWithAHandleOfAnUnknownDocumentInAUnionParameterGetsAnErrorResultAndDoesNotRunTheTool() {
+  void aCallWithAHandleOfAnUnknownDocumentGetsAnErrorResultAndDoesNotRunTheTool() {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__send", Map.of("body", TestDocuments.textOrDocument("The body"))),
+            definitionOf("c8__send", Map.of("file", DocumentSchemas.document("The file"))),
             (context, call) -> {
               runs.incrementAndGet();
               return RuntimeToolResult.success("sent");
@@ -731,7 +702,7 @@ class RuntimeToolsTest {
         runtimeCall(
             "r1",
             "c8__send",
-            Map.of("body", Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000")));
+            Map.of("file", Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000")));
 
     final var executions =
         toolsOf(tool)
@@ -744,7 +715,7 @@ class RuntimeToolsTest {
         .singleElement()
         .satisfies(execution -> {
           assertThat(execution.call()).isEqualTo(call);
-          assertThat(execution.result()).isEqualTo(RuntimeToolResult.error(UNKNOWN_BODY));
+          assertThat(execution.result()).isEqualTo(RuntimeToolResult.error(UNKNOWN_FILE));
         });
     assertThat(runs).hasValue(0);
   }

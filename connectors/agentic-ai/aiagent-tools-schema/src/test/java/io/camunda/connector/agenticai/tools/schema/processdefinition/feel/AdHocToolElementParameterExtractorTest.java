@@ -66,15 +66,15 @@ class AdHocToolElementParameterExtractorTest {
   }
 
   @Test
-  void returnsTheAlternativesOfAParameterThatTakesTextOrADocument() {
+  void returnsTheAlternativesOfAParameterThatTakesTextOrANumber() {
     final var expression =
         """
         {
           named: fromAi(value: toolCall.body, description: "The body", schema: {
-            "anyOf": [{"type": "string"}, {"type": "document"}]
+            "anyOf": [{"type": "string"}, {"type": "number"}]
           }),
           positional: fromAi(toolCall.note, "The note", "string", {
-            "oneOf": [{"type": "string"}, {"type": "document"}]
+            "oneOf": [{"type": "string"}, {"type": "number"}]
           })
         }
         """;
@@ -85,13 +85,13 @@ class AdHocToolElementParameterExtractorTest {
                 "toolCall.body",
                 "The body",
                 null,
-                Map.of("anyOf", List.of(Map.of("type", "string"), Map.of("type", "document"))),
+                Map.of("anyOf", List.of(Map.of("type", "string"), Map.of("type", "number"))),
                 Map.of()),
             new AdHocToolElementParameter(
                 "toolCall.note",
                 "The note",
                 "string",
-                Map.of("oneOf", List.of(Map.of("type", "string"), Map.of("type", "document"))),
+                Map.of("oneOf", List.of(Map.of("type", "string"), Map.of("type", "number"))),
                 Map.of()));
   }
 

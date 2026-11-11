@@ -28,35 +28,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Resolves the document parameters of a tool call, the {@link DocumentParameter}s of the input
- * schema of the tool; the arguments of a tool call mirror the schema, so each parameter addresses
- * the argument values that carry a document.
+ * Resolves the {@link DocumentParameter document parameters} of a tool call. The value of a
+ * document parameter must be the handle of a document the agent knows:
  *
- * <p>A value is a document handle when it is an object with the {@code type} {@value
- * AgentDocumentHandle#TYPE}, or a string that is exactly such an object as JSON (surrounding
- * whitespace is ignored). Other fields of the object are ignored; the {@code type} is required. A
- * string that is the id of a document is no handle.
+ * <pre>{@code
+ * {"type": "camunda.agenticai.document", "id": "doc_0123456789ab"}
+ * }</pre>
  *
- * <p>For a {@link DocumentParameter.Document} the value must be a handle of a known document. Any
- * other value is invalid: a handle with an unknown id, an object without the {@code type}, text.
- *
- * <p>For a {@link DocumentParameter.Union} the value is scanned: every handle at or below it, also
- * inside objects and arrays, is a document, and invalid when its id is unknown. Everything else is
- * left as it is: text, numbers, booleans and {@code null}, and the rest of an object or an array
- * around its handles.
- *
- * <p>The problem of an invalid value tells the model what to do: that the agent knows no documents
- * and none is to be passed, that the id of the handle is unknown, or what a handle looks like.
- *
- * <p>Every document is replaced by the Camunda document reference JSON of the registered document,
- * or, for a runtime tool that looks the documents up itself, by its {@link AgentDocumentId} (see
- * {@link #resolve}). The result depends on the call, the tool definition and the agent documents
- * only. An {@link DocumentHandling.Untracked untracked} agent instance has no document parameters.
+ * A string that holds such an object as JSON is a handle too. Other fields of the object are
+ * ignored. Every handle is replaced by the Camunda document reference JSON of the document for a
+ * tool of the process, and by the {@link AgentDocumentId} of the document for a runtime tool. Any
+ * other value is invalid, and the call gets one problem per invalid value, which tells the model
+ * what to pass instead.
  */
 public class DocumentParameterResolver {
 
@@ -81,12 +68,12 @@ public class DocumentParameterResolver {
   public sealed interface Resolution {
 
     /**
-     * All document ids are known; {@code arguments} carry the document references or, for a runtime
-     * call, the {@link AgentDocumentId}s.
+     * All document parameters are valid; {@code arguments} carry the document references or, for a
+     * runtime tool, the {@link AgentDocumentId}s.
      */
     record Resolved(Map<String, Object> arguments) implements Resolution {}
 
-    /** At least one document parameter is invalid; one message per invalid value. */
+    /** At least one document parameter is invalid; one problem per invalid value. */
     record Invalid(List<String> problems) implements Resolution {
       public Invalid {
         problems = List.copyOf(problems);
@@ -100,24 +87,24 @@ public class DocumentParameterResolver {
   }
 
   /**
-   * Resolves the document parameters of a call of the tool {@code definition}. What replaces a
-   * document depends on the {@link ToolDefinition#kind() kind} of the tool: the Camunda document
-   * reference for a tool of the process, the {@link AgentDocumentId} for a runtime tool. The call
-   * is resolved as it is, when the agent instance does not track its documents or the tool has no
-   * document parameters.
+   * Resolves the document parameters of a call of the tool {@code definition}. The arguments stay
+   * as they are when the agent instance does not track its documents or the tool has no document
+   * parameters.
    *
    * <p>The admission of a call, the call that goes to the process and the execution of a runtime
    * call all use this method, so they agree on whether a call is valid.
    */
   public Resolution resolve(
       AgentContext agentContext, ToolDefinition definition, ToolCall toolCall) {
-    if (definition.documentParameters().isEmpty()) {
-      return unchanged(toolCall);
+    final var parameters = definition.documentParameters();
+    if (parameters.isEmpty()) {
+      return new Resolution.Resolved(toolCall.arguments());
     }
     return switch (agentContext.documentHandling()) {
-      case DocumentHandling.Untracked ignored -> unchanged(toolCall);
+      case DocumentHandling.Untracked ignored -> new Resolution.Resolved(toolCall.arguments());
       case DocumentHandling.Tracked tracked ->
-          resolve(toolCall, definition, tracked.documents(), replacement(definition.kind()));
+          new CallResolution(tracked.documents(), replacement(definition.kind()))
+              .resolve(parameters, toolCall);
     };
   }
 
@@ -135,195 +122,119 @@ public class DocumentParameterResolver {
         new TypeReference<Map<String, Object>>() {});
   }
 
-  private static Resolution unchanged(ToolCall toolCall) {
-    return new Resolution.Resolved(toolCall.arguments());
-  }
-
   /**
-   * Resolves the document parameters of {@code toolCall}. A parameter that is missing or {@code
-   * null}, or that sits in an object property that is missing or {@code null}, is left as is; a
-   * {@code null} element of a document array is invalid. For a document parameter, a value that is
-   * not a handle of a registered document is reported as a problem naming the value. For a union
-   * parameter, only a handle with an unknown id is reported. Each valid document is replaced by
-   * what {@code replacement} returns for it.
+   * The resolution of one call: the documents it can name, what replaces a document, and the
+   * problems found. Every method takes the value and its path in the arguments, such as {@code
+   * message.files[1]}, which the problems name.
    */
-  private Resolution resolve(
-      ToolCall toolCall,
-      ToolDefinition toolDefinition,
-      AgentDocuments documents,
-      Function<AgentDocument, Object> replacement) {
-    final var problems = new ArrayList<String>();
-    final var resolved = walkAll(toolCall, toolDefinition, documents, replacement, problems);
-    return problems.isEmpty()
-        ? new Resolution.Resolved(resolved)
-        : new Resolution.Invalid(problems);
-  }
+  private static final class CallResolution {
 
-  // the walk copies the arguments map with its string keys, so the root stays a Map<String, Object>
-  @SuppressWarnings("unchecked")
-  private Map<String, Object> walkAll(
-      ToolCall toolCall,
-      ToolDefinition toolDefinition,
-      AgentDocuments documents,
-      Function<AgentDocument, Object> replacement,
-      List<String> problems) {
-    @Nullable Object resolved = toolCall.arguments();
-    for (final var parameter : toolDefinition.documentParameters()) {
-      resolved = walk(resolved, parameter, 0, "", documents, replacement, problems);
+    private final AgentDocuments documents;
+    private final Function<AgentDocument, Object> replacement;
+    private final List<String> problems = new ArrayList<>();
+
+    private CallResolution(AgentDocuments documents, Function<AgentDocument, Object> replacement) {
+      this.documents = documents;
+      this.replacement = replacement;
     }
-    // the root is the arguments object, which is never replaced by null
-    return Objects.requireNonNull((Map<String, Object>) resolved);
-  }
 
-  private @Nullable Object walk(
-      @Nullable Object node,
-      DocumentParameter parameter,
-      int index,
-      String path,
-      AgentDocuments documents,
-      Function<AgentDocument, Object> replacement,
-      List<String> problems) {
-    final var steps = parameter.path();
-    if (index == steps.size()) {
-      return switch (parameter) {
-        case DocumentParameter.Document ignored ->
-            resolveDocument(node, path, documents, replacement, problems);
-        case DocumentParameter.Union ignored ->
-            resolveUnion(node, path, documents, replacement, problems);
+    // the arguments are a JSON object, and a resolved object is never null and keeps its keys
+    @SuppressWarnings("unchecked")
+    Resolution resolve(List<DocumentParameter> parameters, ToolCall toolCall) {
+      Map<String, Object> arguments = toolCall.arguments();
+      for (final var parameter : parameters) {
+        arguments =
+            (Map<String, Object>) Objects.requireNonNull(resolve(arguments, "", parameter.path()));
+      }
+      return problems.isEmpty()
+          ? new Resolution.Resolved(arguments)
+          : new Resolution.Invalid(problems);
+    }
+
+    /** Resolves the document at the end of {@code steps}, which lead from {@code value} to it. */
+    private @Nullable Object resolve(@Nullable Object value, String path, List<Step> steps) {
+      if (steps.isEmpty()) {
+        return resolveDocument(value, path);
+      }
+      final var rest = steps.subList(1, steps.size());
+      return switch (steps.getFirst()) {
+        case Step.Property(var name) -> resolveProperty(value, path, name, rest);
+        case Step.Items() -> resolveItems(value, path, rest);
       };
     }
 
-    return switch (steps.get(index)) {
-      case Step.Property(var name) -> {
-        if (!(node instanceof Map<?, ?> map)) {
-          problems.add("Parameter '%s' must be an object.".formatted(path));
-          yield node;
-        }
-        final var value = map.get(name);
-        if (value == null) {
-          yield node;
-        }
-        final var copy = new LinkedHashMap<Object, Object>(map);
-        copy.put(
-            name,
-            walk(
-                value,
-                parameter,
-                index + 1,
-                path.isEmpty() ? name : path + "." + name,
-                documents,
-                replacement,
-                problems));
-        yield copy;
+    /** A missing or {@code null} property stays as it is. */
+    private @Nullable Object resolveProperty(
+        @Nullable Object value, String path, String name, List<Step> rest) {
+      if (!(value instanceof Map<?, ?> object)) {
+        problems.add("Parameter '%s' must be an object.".formatted(path));
+        return value;
       }
-      case Step.Items() -> {
-        if (!(node instanceof List<?> list)) {
-          problems.add("Parameter '%s' must be an array.".formatted(path));
-          yield node;
-        }
-        final var copy = new ArrayList<Object>(list.size());
-        for (int i = 0; i < list.size(); i++) {
-          copy.add(
-              walk(
-                  list.get(i),
-                  parameter,
-                  index + 1,
-                  path + "[" + i + "]",
-                  documents,
-                  replacement,
-                  problems));
-        }
-        yield copy;
+      final var property = object.get(name);
+      if (property == null) {
+        return value;
       }
-    };
-  }
-
-  /**
-   * A union parameter: every handle at or below the value is resolved, every other value is
-   * returned as it is.
-   */
-  private @Nullable Object resolveUnion(
-      @Nullable Object value,
-      String path,
-      AgentDocuments documents,
-      Function<AgentDocument, Object> replacement,
-      List<String> problems) {
-    final var handle = asHandle(value);
-    if (handle != null) {
-      return resolveHandle(handle, path, documents, replacement, problems, true);
-    }
-    if (value instanceof Map<?, ?> object) {
-      final var copy = new LinkedHashMap<Object, Object>();
-      object.forEach((key, child) ->
-          copy.put(
-              key,
-              resolveUnion(
-                  child,
-                  path.isEmpty() ? String.valueOf(key) : path + "." + key,
-                  documents,
-                  replacement,
-                  problems)));
+      final var copy = new LinkedHashMap<Object, Object>(object);
+      copy.put(name, resolve(property, path.isEmpty() ? name : path + "." + name, rest));
       return copy;
     }
-    if (value instanceof List<?> list) {
+
+    private @Nullable Object resolveItems(@Nullable Object value, String path, List<Step> rest) {
+      if (!(value instanceof List<?> list)) {
+        problems.add("Parameter '%s' must be an array.".formatted(path));
+        return value;
+      }
       final var copy = new ArrayList<@Nullable Object>(list.size());
       for (int i = 0; i < list.size(); i++) {
-        copy.add(resolveUnion(list.get(i), path + "[" + i + "]", documents, replacement, problems));
+        copy.add(resolve(list.get(i), path + "[" + i + "]", rest));
       }
       return copy;
     }
-    return value;
-  }
 
-  private @Nullable Object resolveDocument(
-      @Nullable Object value,
-      String path,
-      AgentDocuments documents,
-      Function<AgentDocument, Object> replacement,
-      List<String> problems) {
-    final var handle = asHandle(value);
-    if (handle == null) {
-      problems.add(
-          documents.all().isEmpty() ? noDocumentsProblem(path) : mustBeHandleProblem(path));
-      return value;
+    private @Nullable Object resolveDocument(@Nullable Object value, String path) {
+      if (documents.all().isEmpty()) {
+        problems.add(
+            ("Parameter '%s' takes a document, but the conversation has no documents."
+                    + " Do not pass a document.")
+                .formatted(path));
+        return value;
+      }
+      final var id = handleId(value);
+      if (id == null) {
+        problems.add(
+            "Parameter '%s' must be the handle of a document from the conversation: %s"
+                .formatted(path, HANDLE_EXAMPLE));
+        return value;
+      }
+      final var document = documents.find(AgentDocumentId.of(id));
+      if (document.isEmpty()) {
+        problems.add(
+            ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
+                    + " Pass the handle of a document from the conversation: %s")
+                .formatted(path, id, HANDLE_EXAMPLE));
+        return value;
+      }
+      return replacement.apply(document.get());
     }
-    return resolveHandle(handle, path, documents, replacement, problems, false);
-  }
-
-  private static @Nullable Object resolveHandle(
-      Map<?, ?> handle,
-      String path,
-      AgentDocuments documents,
-      Function<AgentDocument, Object> replacement,
-      List<String> problems,
-      boolean inUnion) {
-    final var id =
-        handle.get(AgentDocumentHandle.FIELD_ID) instanceof String text && !text.isBlank()
-            ? text
-            : null;
-    final var document =
-        id != null ? documents.find(AgentDocumentId.of(id)) : Optional.<AgentDocument>empty();
-    if (document.isEmpty()) {
-      problems.add(unknownHandleProblem(path, documents, id, inUnion));
-      return handle;
-    }
-    return replacement.apply(document.get());
   }
 
   /**
-   * The handle a value stands for: the object itself, or the object a string holds as JSON, when
-   * its {@code type} is the handle type; {@code null} for every other value.
+   * The id of the handle a value stands for: the object itself, or the object a string holds as
+   * JSON, when its {@code type} is the handle type; {@code null} for every other value and for a
+   * handle without an id.
    */
-  private @Nullable Map<?, ?> asHandle(@Nullable Object value) {
+  private static @Nullable String handleId(@Nullable Object value) {
     final var object = value instanceof String text ? parseObject(text) : value;
-    return object instanceof Map<?, ?> map
-            && AgentDocumentHandle.TYPE.equals(map.get(AgentDocumentHandle.FIELD_TYPE))
-        ? map
+    return object instanceof Map<?, ?> handle
+            && AgentDocumentHandle.TYPE.equals(handle.get(AgentDocumentHandle.FIELD_TYPE))
+            && handle.get(AgentDocumentHandle.FIELD_ID) instanceof String id
+            && !id.isBlank()
+        ? id
         : null;
   }
 
   /** The JSON object a string holds as a whole, or {@code null} for any other string. */
-  private @Nullable Map<?, ?> parseObject(String text) {
+  private static @Nullable Map<?, ?> parseObject(String text) {
     if (!text.stripLeading().startsWith("{")) {
       return null;
     }
@@ -335,40 +246,5 @@ public class DocumentParameterResolver {
     } catch (JsonProcessingException | IllegalArgumentException e) {
       return null;
     }
-  }
-
-  /**
-   * The problem of a handle whose document is not known: the agent knows no documents, or the id of
-   * the handle is not known. A handle in a union is reached only when the value holds one.
-   */
-  private static String unknownHandleProblem(
-      String path, AgentDocuments documents, @Nullable String id, boolean inUnion) {
-    if (documents.all().isEmpty()) {
-      return inUnion
-          ? "Parameter '%s' holds a document handle, but the conversation has no documents. Do not pass a document handle."
-              .formatted(path)
-          : noDocumentsProblem(path);
-    }
-    return unknownIdProblem(path, id);
-  }
-
-  private static String noDocumentsProblem(String path) {
-    return "Parameter '%s' takes a document, but the conversation has no documents. Do not pass a document."
-        .formatted(path);
-  }
-
-  /** A handle of an unknown id, or a handle without a usable id. */
-  private static String unknownIdProblem(String path, @Nullable String id) {
-    if (id == null) {
-      return mustBeHandleProblem(path);
-    }
-    return ("Parameter '%s' has the id '%s', but the conversation has no document with this id."
-            + " Pass the handle of a document from the conversation: %s")
-        .formatted(path, id, HANDLE_EXAMPLE);
-  }
-
-  private static String mustBeHandleProblem(String path) {
-    return "Parameter '%s' must be the handle of a document from the conversation: %s"
-        .formatted(path, HANDLE_EXAMPLE);
   }
 }
