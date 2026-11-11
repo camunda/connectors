@@ -19,6 +19,7 @@ module does not depend on Spring.
 - `ContentTreeDocumentWalker`: finds the documents in a tool call result.
 - `RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult` and `RuntimeToolException`: the
   runtime tool SPI, for a tool that the connector runtime executes itself. The SPI is experimental.
+- `DocumentSchemas`: the schemas of the document parameters of runtime tools and gateway tools. It is experimental too.
 
 ## Docs
 

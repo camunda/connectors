@@ -218,8 +218,8 @@ process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`)
 results of the other calls (`AgentConversationTurn.localToolCalls()`) itself and never hands them to the process. The
 response carries the Camunda document references in place of the document handles in the arguments of these calls
 (`DocumentParameterResolver.resolveProcessCall`), and the stored assistant message keeps the arguments as the model sent
-them. The constructors of `AgentResponseHandlerImpl`, `ToolCallAdmission` and `RuntimeTools` take the
-`DocumentParameterResolver`, a bean of the auto-configuration.
+them. The constructor of `AgentResponseHandlerImpl` takes the `DocumentParameterResolver`, a bean of the
+auto-configuration.
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
@@ -294,7 +294,7 @@ applies it to its persisted context, and the next round continues with the conte
 - A tool parameter that carries a document is declared with the type `document` of `fromAi`, or with
   `DocumentSchemas.document(...)` for a runtime tool. A process tool receives the Camunda document reference of the
   document in place of the handle the model passed; a runtime tool receives its `AgentDocumentId` (`RuntimeToolCall.argumentsAs`
-  binds it to a `AgentDocumentId` or a `String` property). A call of a tool of either kind whose value is not the handle of a
+  binds it to an `AgentDocumentId` or a `String` property). A call of a tool of either kind whose value is not the handle of a
   known document is rejected when the model response arrives: it keeps its kind, the agent answers it with the error
   and never activates it or runs the tool. Only agent instances with the `documents` feature have
   document parameters.
@@ -348,7 +348,7 @@ applies it to its persisted context, and the next round continues with the conte
 - A document parameter in a tool definition is the object schema of a document handle: `type: object` with the required
   properties `type` (`enum: ["camunda.agenticai.document"]`) and `id` (`string`), and the description as authored
   (`DocumentSchemas.document(...)`; `ToolDefinition#documentParameters()` lists them as the sealed `DocumentParameter`).
-  There is no format marker and no hint appended to the description; the schema goes to the model provider as it is.
+  The schema goes to the model provider as it is.
   A gateway handler that defines its tools itself can declare document
   parameters in them and receives the Camunda document references in the arguments of a call.
 - The value of a document parameter is the handle object the model read, `{"type":"camunda.agenticai.document","id":"doc_…"}`;
@@ -358,7 +358,7 @@ applies it to its persisted context, and the next round continues with the conte
   alternative and a document schema (`DocumentSchemas.document(...)`) in an alternative, directly or inside the properties of an
   object alternative or the items of an array alternative. Every handle at or below the value is a document; everything else,
   text included, is passed as it is. `RuntimeToolCall.argumentsAs` binds such a parameter to a property of the type `Object`,
-  which receives a `AgentDocumentId` in the place of each handle or the value the model sent.
+  which receives an `AgentDocumentId` in the place of each handle or the value the model sent.
 
 <a id="persisted-data-8-11"></a>
 

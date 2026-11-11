@@ -17,7 +17,7 @@ invocation and transformed through copy-on-write methods.
   (1 model call, the token usage, and the tool-call count).
 - `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
 - `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a read-only
-  `ConversationSnapshot` whose tool definitions are those of `AgentConfiguration.toolDefinitions()`, unchanged. The request handler
+  `ConversationSnapshot` whose tool definitions are those of `AgentConfiguration.toolDefinitions()`. The request handler
   hands the snapshot to `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before the model is
   called. The document factory is the one of the job (`AgentExecutionContext.documentFactory()`): it restores the
   documents from the document store of the physical tenant of the job.

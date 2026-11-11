@@ -225,8 +225,7 @@ document. The reason is in [ADR 018](../adr/018-document-flow.md).
   and `name` for an external document) and the `DocumentContent`, as in ADR-004. Nothing is registered.
 - `documents` stays empty; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
 - Without the `runtimeTools` feature there are no runtime tools, no mixed-batch handling and no tool name check ([Add a runtime tool](#add-a-runtime-tool)).
-- The document parameters of tool calls are not resolved or checked: a `fromAi(..., "document")` parameter reaches the
-  process as the plain string the model sent.
+- The document parameters of tool calls are not resolved or checked: the process gets the value the model sent as it is.
 - The schema of a document parameter is the handle schema for every instance; it is sent to the provider as it is.
 - The history reports the messages as stored.
 
@@ -386,7 +385,7 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
 **Document parameters.** A parameter that carries a document is declared with `DocumentSchemas.document(...)`, one that
 takes a document or something else with an `anyOf` or `oneOf` that has `DocumentSchemas.document(...)` as one alternative (directly or inside an
 object or array alternative), and the agent resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, a property typed `AgentDocumentId` receives it and
-a property typed `String` the text of the id, a property typed `Object` a `AgentDocumentId` for a document and the value the
+a property typed `String` the text of the id, a property typed `Object` an `AgentDocumentId` for a document and the value the
 model passed for any other value; a union parameter holds an `AgentDocumentId` in the place of every handle in the value. A call with a parameter that does not name a known document is rejected at admission: the agent answers it with the
 error and the tool is not called. `RuntimeTools` resolves a call again when it executes it, against the definition the tool is registered with. A call that was
 admitted without a rejection, and whose value is not the handle of a known document for a document parameter of that

@@ -62,8 +62,8 @@ A tool parameter that carries a document is declared with the type `document`:
 `properties` of an authored schema and in the `anyOf` and `oneOf` alternatives of such a node at any depth, and nowhere else
 (`allOf`, `not`, `if`/`then`/`else`, `additionalProperties`, `patternProperties`, `prefixItems`, `$defs` and `$ref` keep the shorthand as
 authored). The schema goes to the
-model provider as it is, so the stored definition, the configuration fingerprint and the request hold the same wording, and
-nothing is appended to a description. Document parameters are found at the top level, as array `items` and through object
+model provider as it is, so the stored definition, the configuration fingerprint and the request hold the same wording.
+Document parameters are found at the top level, as array `items` and through object
 `properties` at any depth (`ToolDefinition#documentParameters()`, the sealed `DocumentParameter` of `Document` and
 `Union`). A node is a `Document` when it is an object whose `properties.type.enum` is exactly
 `["camunda.agenticai.document"]`; the search stops there, so its `type` and `id` properties are no parameters. A node is a
@@ -86,7 +86,8 @@ For any other value it names the expected shape:
 In a union parameter that holds a handle while the agent knows no documents, the first sentence reads
 `Parameter 'message.file' holds a document handle, but the conversation has no documents. Do not pass a document handle.`
 (`name`, `parent.name` and `name[i]` are the paths of the value; an array parameter that is not an array reads
-`Parameter 'p' must be an array.`). A missing or `null` argument is left alone.
+`Parameter 'p' must be an array.` and the object that holds a document parameter, when it is not an object, reads
+`Parameter 'p' must be an object.`). A missing or `null` argument is left alone.
 
 `DocumentParameterResolver` resolves the document parameters of a call from the call, the tool definition and the agent
 documents only. A process tool receives the Camunda document reference JSON of the agent document (`resolveProcessCall`), a
@@ -158,6 +159,7 @@ keeps its kind, carries the sentence as its `ToolCall.rejection` and has the rej
 it is authored, with the shorthand turned into the handle schema. A union with a handle schema in an alternative gets no default
 `type: string` next to its `anyOf`. The search for document parameters stops at a union, and it does not look into `allOf`,
 `not`, `if`/`then`/`else`, `additionalProperties`, `patternProperties`, `prefixItems`, `$defs` or `$ref`. The output of the Ad-Hoc
-Tools Schema Resolver carries the handle schema. The tests of the AI Agent connector send it to Gemini as it is, to OpenAI in strict
-mode (the handle object is closed) and through LangChain4j (a `oneOf` is sent as an `anyOf`). The shorthand type `document` is normalized only for `fromAi()` parameters. See
+Tools Schema Resolver carries the handle schema. The providers receive the handle schema as it is: Gemini unchanged, OpenAI in
+strict mode (the handle object is closed with `additionalProperties: false`) and LangChain4j with a `oneOf` that has no `type` or
+`$ref` of its own sent as an `anyOf` of the same alternatives. The shorthand type `document` is normalized only for `fromAi()` parameters. See
 [ADR 018](../../docs/adr/018-document-flow.md).

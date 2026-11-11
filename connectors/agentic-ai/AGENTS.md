@@ -284,7 +284,7 @@ High-frequency traps (detail behind each link):
   documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order.
   A `Tracked` instance accepts only Camunda documents: an external or an inline document of the user prompt, a tool call
   result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`). A tool
-  parameter of the type `document` of `fromAi` is the object schema of a handle (no format marker, no hint, sent to the
+  parameter of the type `document` of `fromAi` is the object schema of a handle (sent to the
   provider as it is) and holds the handle object the model passed or a string with its JSON, never a bare id;
   a union parameter (an `anyOf` or `oneOf` with more than one alternative and a handle schema inside an alternative, also in an object or
   array alternative) holds a document for every handle at or below its value and passes every other value as it is; `DocumentParameterResolver` turns the handle into the Camunda document reference for a
