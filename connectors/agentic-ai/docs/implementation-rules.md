@@ -91,9 +91,10 @@ effects. A good name does not replace a Javadoc that the rules below require.
 
 - **Same name, same behavior.** Overloads of one name do the same thing for different input types.
   When two factories or methods compute different things, give them different names. (P1)
-- **Name the outcome.** A method name states the result or the decision that the caller gets. Do not
-  use a generic verb such as `handle`, `process` or `do` for a method that makes a decision. Example:
-  `AgentConversation.ingest`. (P1)
+- **Name the outcome.** The name of a new method states the result or the decision that the caller
+  gets. Do not give a new method that makes a decision a generic verb such as `handle`, `process` or
+  `do`. Existing names keep their name. Example: `AgentContext.withToolDefinitions` returns the context
+  with these tool definitions. (P1)
 - **One level of abstraction per method.** A method either calls named steps in order, or does one
   step. Do not mix calls to domain methods with field-level construction and loops. (P1)
 - **A test name states the scenario and the expected outcome.** Example:
@@ -231,7 +232,7 @@ below make this style specific.
   no `default` branch. Then a new subtype causes a compile error at each location that does not handle
   it. Do not write a chain of `instanceof` checks. Example: `AgentInitializationResult` and its
   `switch` in `BaseAgentRequestHandler.handleRequest`. (P3)
-- **Add a subtype that most `switch` sites handle.** Before you add a subtype to a sealed type that
+- **A new sealed subtype is one that most `switch` sites handle.** Before you add a subtype to a sealed type that
   many locations match, count the arms that can only throw. When most of them throw, carry the value
   in a narrower type. Sealed types stay the default. The question is whether a value that most
   consumers reject belongs in the hierarchy. (P3)
@@ -254,7 +255,8 @@ below make this style specific.
 - **One reason to change per class.** When an orchestrator gets a new responsibility, move it into a
   named step. Do not add one more method to the orchestrator. Example: `BaseAgentRequestHandler` calls
   `AgentInitializer` and `AgentConversationTurnInputComposer` as steps. A named step hides a decision
-  or I/O. Do not add a class that only forwards to another class.
+  or I/O. Do not add a class that only forwards to another class. A framework entry point, such as a
+  connector function that hands the job to its handler, is exempt. (P3)
 - **Narrow surface, deep module.** Keep the public types and the extension points of one concept in
   one package per module. Make a type or a member public only when code in a different package calls
   it, or when user code extends or replaces it. Do not add a public member that only tests call.
@@ -276,10 +278,10 @@ below make this style specific.
     consolidation.
 - **Decide a mode once.** Resolve a per-instance mode, such as an agent instance feature, at one point
   into a value or a strategy. The steps below that point do not switch on the mode again. (P2)
-- **Repeat a required guard only with a contract test.** An adapter can repeat a one-line guard that
-  a domain rule requires, when one shared test runs each adapter against the guard. Example of such a
-  guard: the provider tag comparison that [domain rule 2](#domain-rules) requires in each converter.
-  (P2)
+- **A required guard has one shared test.** When a domain rule requires the same guard in each
+  adapter, one test runs each adapter against the guard. A change that adds an adapter adds it to
+  that test. When the test does not exist yet, the change adds it. Example of such a guard: the
+  provider tag comparison that [domain rule 2](#domain-rules) requires in each converter. (P2)
 - **Exceptions belong to their contract.** When a Javadoc in `aiagent-api` requires an exception, the
   exception class is in `aiagent-api`.
 - **Native providers and LangChain4j share no code.** A native SDK provider and the LangChain4j
