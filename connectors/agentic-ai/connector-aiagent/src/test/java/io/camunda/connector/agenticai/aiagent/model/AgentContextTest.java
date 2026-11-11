@@ -321,7 +321,7 @@ class AgentContextTest {
     final var json =
         """
         {
-          "schemaVersion": 1,
+          "schemaVersion": 2,
           "state": "READY",
           "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
           "toolDefinitions": []

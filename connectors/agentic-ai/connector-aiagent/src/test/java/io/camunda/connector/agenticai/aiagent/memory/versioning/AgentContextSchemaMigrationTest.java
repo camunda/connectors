@@ -581,7 +581,8 @@ class AgentContextSchemaMigrationTest {
                       .build())),
           AgentDocuments.empty(),
           List.of(),
-          Map.of());
+          Map.of(),
+          List.of());
     }
 
     @Test
