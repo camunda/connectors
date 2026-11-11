@@ -112,7 +112,7 @@ class ToolSpecificationConverterTest {
   }
 
   @Test
-  void keepsTheHandleSchemaOfDocumentParametersThroughTheConversionAndBack() {
+  void keepsTheHandleSchemaOfDocumentParametersThroughTheConversionAndBack() throws Exception {
     final var properties = new LinkedHashMap<String, Object>();
     properties.put("file", DocumentSchemas.document("The file"));
     properties.put("body", TestDocuments.textOrDocument("The body"));
@@ -146,6 +146,44 @@ class ToolSpecificationConverterTest {
                 .build());
 
     final var restored = toolSpecificationConverter.asToolDefinition(toolSpecification);
+
+    assertThat(restored.name()).isEqualTo("send");
+    assertThat(restored.description()).isEqualTo("Sends");
+    // an enum is restored without the type
+    JSONAssert.assertEquals(
+        """
+        {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "object",
+              "description": "The file",
+              "properties": {
+                "type": {"enum": ["camunda.agenticai.document"]},
+                "id": {"type": "string", "description": "The id of the document."}
+              },
+              "required": ["type", "id"]
+            },
+            "body": {
+              "description": "The body",
+              "anyOf": [
+                {"type": "string"},
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {"enum": ["camunda.agenticai.document"]},
+                    "id": {"type": "string", "description": "The id of the document."}
+                  },
+                  "required": ["type", "id"]
+                }
+              ]
+            }
+          },
+          "required": ["file", "body"]
+        }
+        """,
+        objectMapper.writeValueAsString(restored.inputSchema()),
+        true);
     assertThat(restored.documentParameters()).isEqualTo(toolDefinition.documentParameters());
   }
 
