@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.json.ObjectMapperConstants;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinitionBuilder;
@@ -327,10 +328,9 @@ class McpClientGatewayToolHandlerTest {
 
       var result = handler.handleToolDiscoveryResults(AgentContext.empty(), toolDiscoveryResults);
 
-      assertThat(result).hasSize(1);
-      var toolDefinition = result.getFirst();
-      assertThat(toolDefinition.inputSchema()).isEqualTo(inputSchema);
-      assertThat(toolDefinition.documentParameters()).isEmpty();
+      assertThat(result)
+          .containsExactly(new ToolDefinition("MCP_mcp1___read", "Reads a document", inputSchema));
+      assertThat(result.getFirst().documentParameters()).isEmpty();
     }
 
     @Test
