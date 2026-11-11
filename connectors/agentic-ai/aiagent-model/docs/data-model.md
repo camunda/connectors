@@ -8,7 +8,7 @@ on every completion. Authoritative definition:
 [`AgentContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentContext.java).
 
 **Features.** `AgentContext.features` is the set of features (an insertion-ordered JSON array of strings, omitted
-when empty, no schema version bump) the agent instance was created with. A new agent instance gets the
+when empty) the agent instance was created with. A new agent instance gets the
 current features when its context is created at its first job (`AgentInitializerImpl`, both flavors): today
 `runtimeTools` (`AgentFeatures.RUNTIME_TOOLS`, the runtime tool facility, `AgentContext.supports(String)`).
 A context that exists without `features` belongs to an instance created before the features and never gets features
@@ -66,7 +66,7 @@ call result was the flat `ToolCallResult` shape — `content` was a raw scalar/o
 additional framework-internal properties were flattened as top-level fields. Old state is migrated on
 read by an **explicit persisted schema version**, not by inspecting the shape of `content`. Each
 conversation-state root carries its own version and is migrated independently — `schemaVersion` on
-`AgentContext` (`CURRENT_SCHEMA_VERSION`; absent ⇒ pre-8.10 legacy) for the process-variable payload
+`AgentContext` (`CURRENT_SCHEMA_VERSION`, 2; absent ⇒ pre-8.10 legacy) for the process-variable payload
 (which for the in-process store also holds the embedded messages), `schemaVersion` on the
 Camunda-document conversation payload, and the blob-envelope version for AWS AgentCore. A root's version
 is read from its own persisted form: for the pointer-based stores (Camunda document, AgentCore) the
@@ -78,6 +78,11 @@ legacy gateway (MCP/A2A) result whose `content` was a list of provider blocks is
 opaque `ObjectContent`, never re-split into typed `Content` — a shape heuristic could not distinguish
 it, since those blocks share the same `type` discriminators. The write path always re-persists the
 current shape, so a conversation touched again after upgrading is migrated forward on its next write.
+
+Version 2 adds `AgentContext.features` and the `kind` and `rejection` of a `ToolCall`. A version 1 root loads
+unchanged, because each of them binds to its empty value when it is missing. Every root migrates step by step: unversioned
+to 1 lifts the tool call result content, 1 to 2 changes nothing. A runtime that supports a lower version rejects a root
+with a higher one, so it fails on state that a newer connector wrote and never rewrites it.
 
 ## Message Identity
 
