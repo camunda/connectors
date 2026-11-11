@@ -291,13 +291,11 @@ applies it to its persisted context, and the next round continues with the conte
   calls of the message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
   call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
   error result from `RuntimeTools`; neither goes to the process.
-- A tool parameter that carries a document is declared with the type `document` of `fromAi`, or with
-  `DocumentParameter.documentSchema(...)` for a runtime tool. A process tool receives the Camunda document reference of the
-  document in place of the handle the model passed; a runtime tool receives its `AgentDocumentId` (`RuntimeToolCall.argumentsAs`
-  binds it to an `AgentDocumentId` or a `String` property). A call of a tool of either kind whose value is not the handle of a
-  known document is rejected when the model response arrives: it keeps its kind, the agent answers it with the error
-  and never activates it or runs the tool. Only agent instances with the `documents` feature have
-  document parameters.
+- A tool parameter that carries a document is declared with the `fromAi` type `document`, or with
+  `DocumentParameter.documentSchema(...)` for a runtime tool or a gateway tool. A process tool receives the Camunda
+  document reference, a runtime tool the `AgentDocumentId`. A call whose value is not the handle of a known document is
+  rejected when the model response arrives and never runs. Only agent instances with the `documents` feature have
+  document parameters ([Document parameters](../aiagent-tools-schema/docs/tool-resolution.md#document-parameters)).
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
@@ -344,17 +342,11 @@ applies it to its persisted context, and the next round continues with the conte
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
   `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
-- A document parameter in a tool definition is the object schema of a document handle: `type: object` with the required
-  properties `type` (`enum: ["camunda.agenticai.document"]`) and `id` (`string`), and the description as authored
-  (`DocumentParameter.documentSchema(...)`; `ToolDefinition#documentParameters()` lists them).
-  The schema goes to the model provider as it is.
-  A gateway handler that defines its tools itself can declare document
-  parameters in them and receives the Camunda document references in the arguments of a call.
-- The value of a document parameter is the handle object the model read, `{"type":"camunda.agenticai.document","id":"doc_…"}`;
-  other fields are ignored and the `type` is required. A string that holds the handle as JSON is a handle too; the bare id of
-  a document is not.
-- A document parameter is the parameter itself, the items of an array or an object property. The type `document` in an
-  `anyOf` or `oneOf` alternative or in a type array fails the tool schema generation.
+- A document parameter in a tool definition is the object schema of a document handle
+  (`DocumentParameter.documentSchema(...)`, listed by `ToolDefinition#documentParameters()`), sent to the model provider
+  as it is. It is the parameter, the items of an array or an object property; the type `document` anywhere else fails the
+  tool schema generation. Its value is the handle, `{"type":"camunda.agenticai.document","id":"doc_…"}`, or a string with
+  its JSON; a bare id is not.
 
 <a id="persisted-data-8-11"></a>
 

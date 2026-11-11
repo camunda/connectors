@@ -284,13 +284,10 @@ High-frequency traps (detail behind each link):
   documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order.
   A `Tracked` instance accepts only Camunda documents: an external or an inline document of the user prompt, a tool call
   result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`). A tool
-  parameter of the type `document` of `fromAi` is the object schema of a handle (sent to the
-  provider as it is) and holds the handle object the model passed or a string with its JSON, never a bare id. It is
-  the parameter, the items of an array or an object property; a `document` in an `anyOf`, `oneOf` or type array fails
-  the tool schema generation. `DocumentParameterResolver` turns the handle into the Camunda document reference for a
-  process tool (`AgentResponseHandlerImpl`) and into an `AgentDocumentId` for a runtime tool (`RuntimeTools`), and the
-  stored messages and the history keep the handle. A tool call of either kind whose value is not the handle of a known
-  document is rejected at admission (`ToolCallAdmission`).
+  parameter of the `fromAi` type `document` (the parameter, array items or an object property) takes a handle.
+  `DocumentParameterResolver` replaces it with the Camunda document reference for a process tool and the
+  `AgentDocumentId` for a runtime tool; `ToolCallAdmission` rejects a call whose value is not the handle of a known
+  document. The stored messages and the history keep the handle.
   [ADR 018](docs/adr/018-document-flow.md),
   [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results),
   [`tool-resolution.md`](aiagent-tools-schema/docs/tool-resolution.md#document-parameters).

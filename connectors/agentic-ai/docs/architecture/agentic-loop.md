@@ -341,8 +341,7 @@ whatever its kind, else `RUNTIME` or `PROCESS` after the kind. `ToolCall.isLocal
 tool call result (`ToolCallResultContent.forRejectedToolCall`) when its `ToolCallBatch` is created, and is never
 executed. `LocalToolCallExecutor` executes the rest, the calls of runtime tools, through `RuntimeTools` and fails for
 any other result source; a call whose tool is no longer enabled when it is executed gets the error result `The tool
-'<name>' is not available.` Neither goes to the process. `RuntimeTools` passes `AgentDocumentId`s for the document parameters of an
-admitted runtime tool call to the tool; admission already rejected a value that is not the handle of a known document. The error is plain text in the tool call
+'<name>' is not available.` Neither goes to the process. A runtime tool receives the `AgentDocumentId`s of its document parameters. The error is plain text in the tool call
 result; the tool call result has no error flag.
 
 Only the process tool calls are activated and handed to the process (`AgentResponse.toolCalls`, built from

@@ -143,15 +143,11 @@ These are used during discovery checking and tool call result transformation.
 
 ### Documents and Gateway Tools
 
-A gateway handler that defines its tools itself can declare document parameters in them. The tool definitions
-a handler returns from `handleToolDiscoveryResults` are stored as they are, so a handler writes the stored form of a document
-parameter (`DocumentParameter.documentSchema(...)`: the object schema of a document handle); the shorthand type `document` is
-normalized only for `fromAi()` parameters. The agent resolves the document parameters of a call
-on the model's tool call, by the definition the model saw, before `transformToolCalls()`, so the handler receives the
-Camunda document references in the arguments it wraps into its envelope. A call with an invalid document value is answered
-with an error result to the model, and the handler is not given the call; a call of a tool without document parameters is
-not touched. The MCP and A2A handlers declare no document parameters, because the schema of an MCP tool comes from the
-remote server and the A2A schema is fixed, and neither has a document type; nothing of theirs is resolved.
+A gateway handler that defines its tools itself can declare document parameters with
+`DocumentParameter.documentSchema(...)` in the definitions it returns from `handleToolDiscoveryResults`; they are stored as
+they are. `transformToolCalls()` receives the Camunda document references in place of the handles. A call with an invalid
+document value gets an error result and never reaches the handler. The MCP and A2A handlers declare no document
+parameters: the remote side defines their schemas.
 
 ### Document Extraction from Tool Call Results
 
