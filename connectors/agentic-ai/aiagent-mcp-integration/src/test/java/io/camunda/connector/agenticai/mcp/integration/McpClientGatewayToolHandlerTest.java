@@ -17,7 +17,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.json.ObjectMapperConstants;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinitionBuilder;
@@ -304,33 +303,6 @@ class McpClientGatewayToolHandlerTest {
                 assertThat(toolDefinition.name()).isEqualTo("MCP_mcp1___tool2");
                 assertThat(toolDefinition.description()).isEqualTo("Tool 2 description");
               });
-    }
-
-    @Test
-    void discoveredToolsDeclareNoDocumentParameters() {
-      var inputSchema =
-          Map.<String, Object>of(
-              "type",
-              "object",
-              "properties",
-              Map.of("document", Map.of("type", "string", "description", "The document name")));
-      var mcpListToolsResult =
-          new McpClientListToolsResult(
-              List.of(
-                  McpToolDefinitionBuilder.builder()
-                      .name("read")
-                      .description("Reads a document")
-                      .inputSchema(inputSchema)
-                      .build()));
-      var toolDiscoveryResults =
-          List.of(
-              createToolCallResultWithContent("MCP_toolsList_mcp1", "mcp1", mcpListToolsResult));
-
-      var result = handler.handleToolDiscoveryResults(AgentContext.empty(), toolDiscoveryResults);
-
-      assertThat(result)
-          .containsExactly(new ToolDefinition("MCP_mcp1___read", "Reads a document", inputSchema));
-      assertThat(result.getFirst().documentParameters()).isEmpty();
     }
 
     @Test

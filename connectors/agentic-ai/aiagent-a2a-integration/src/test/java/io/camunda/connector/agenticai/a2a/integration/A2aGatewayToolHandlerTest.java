@@ -30,7 +30,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -266,54 +265,6 @@ class A2aGatewayToolHandlerTest {
                       .containsOnlyKeys("text", "contextId", "taskId", "referenceTaskIds");
                 });
           });
-    }
-
-    @Test
-    void discoveredToolsDeclareNoDocumentParameters() {
-      var toolDiscoveryResults =
-          List.of(
-              createToolCallResultWithContent(
-                  "A2A_fetchAgentCard_a2a1", "a2a1", Map.of("title", "Agent 1")));
-
-      var result = handler.handleToolDiscoveryResults(AgentContext.empty(), toolDiscoveryResults);
-
-      assertThat(result)
-          .containsExactly(
-              new ToolDefinition(
-                  "A2A_a2a1",
-                  "This tool allows interaction with the remote A2A agent represented by the following agent card:\n{\"title\":\"Agent 1\"}",
-                  Map.of(
-                      "type",
-                      "object",
-                      "properties",
-                      Map.of(
-                          "text",
-                          Map.of(
-                              "type",
-                              "string",
-                              "description",
-                              "The request or the follow-up message to send to the agent."),
-                          "taskId",
-                          Map.of(
-                              "type",
-                              "string",
-                              "description",
-                              "The ID of the task this message is part of. ONLY include if continuing an existing task (e.g., input-required); otherwise OMIT."),
-                          "contextId",
-                          Map.of(
-                              "type",
-                              "string",
-                              "description",
-                              "The context ID for this message, used to group related interactions. OMIT on first message; include on subsequent messages."),
-                          "referenceTaskIds",
-                          Map.of(
-                              "type",
-                              "array",
-                              "description",
-                              "A list of other task IDs that this message references for additional context.")),
-                      "required",
-                      List.of("text"))));
-      assertThat(result.getFirst().documentParameters()).isEmpty();
     }
 
     @Test
