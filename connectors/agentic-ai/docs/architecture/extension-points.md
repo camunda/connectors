@@ -66,7 +66,8 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
     // Migration
     GatewayToolDefinitionUpdates resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
 
-    // Document extraction (default falls back to ContentTreeDocumentWalker for raw content trees)
+    // Document extraction, called only for agent instances without the documents feature
+    // (default falls back to ContentTreeDocumentWalker for raw content trees)
     default List<Document> extractDocuments(ToolCallResult toolCallResult);
 }
 
@@ -149,12 +150,13 @@ references in the conversation: the agent registers them in the agent documents 
 result shows each document as its handle, a small JSON object, not its content. The agent registers exactly the documents
 the model reads as handles: `ToolCallResultDocumentExtractor.renderedDocumentsOf` collects every document that
 `ObjectHandleRenderer` replaces with its handle, at any depth and also inside a typed record, whatever gateway tool
-handler manages the result. An instance without the feature keeps the
+handler manages the result. The same holds for the result of a runtime tool and for the content of an event, which
+`ObjectHandleRenderer.documentsIn` searches. An instance without the feature keeps the
 behavior of [ADR-004](../adr/004-document-handling-in-tool-call-results.md): the documents go into a synthetic follow-up
 `UserMessage` with native `DocumentContent` blocks so LLMs can interpret them. Design rationale:
 [ADR 018](../adr/018-document-flow.md), which extends [ADR 004](../adr/004-document-handling-in-tool-call-results.md).
-The documents of the result of a runtime tool ([Add a runtime tool](#add-a-runtime-tool)), in a batch of local tool calls only or in a mixed one, are extracted from its
-typed content (`ToolCallResultDocumentExtractor.documentsOf`) and handled the same way. They are registered after all calls
+The documents of the result of a runtime tool ([Add a runtime tool](#add-a-runtime-tool)), in a batch of local tool calls only or in a mixed one, are collected from its
+content with the renderer for an instance with the feature (`LocalToolCallExecutor`) and with `ContentTreeDocumentWalker` for one without it, and are handled the same way. They are registered after all calls
 of the message ran, in the order of the calls and together with the documents of the process results, by
 `ToolCallResultsInputBuilder`, which the composer and the runtime tool round of the request handler share; the result of a
 call that failed has none.
@@ -219,14 +221,15 @@ evicted assistant message are not tracked, and handles the model writes in the f
 content type is not sniffed from the bytes for documents of unknown type. The follow-ups that close these limits are
 listed in [ADR 018](../adr/018-document-flow.md).
 
-For an instance without the `documents` feature, `ToolCallResultDocumentExtractor` is the entrypoint, called from
+Only for an instance without the `documents` feature, `ToolCallResultDocumentExtractor` is the entrypoint, called from
 `AgentConversationTurnInputComposerImpl` for each process tool call result, before `ToolCallResultsInputBuilder` builds the `ToolCallResultMessage`. For each result it asks the registry which handler manages
 the tool name (`GatewayToolHandlerRegistry.handlerForToolDefinition`) and either:
 
-- delegates to that handler's `extractDocuments(ToolCallResult)` — handlers walk their own typed
+- delegates to that handler's `extractDocuments(ToolCallResult)` (called only for an instance without the `documents`
+  feature; an instance with it finds the documents of a result the way it renders them as handles) — handlers walk their own typed
   content (sealed-type `switch` over `McpContent` / `A2aSendMessageResult`), so documents inside
   typed records remain discoverable;
-- falls back to `ContentTreeDocumentWalker` — a stateless static utility that recursively walks
+- falls back to `ContentTreeDocumentWalker` (also only for an instance without the feature) — a stateless static utility that recursively walks
   `Map`, `Collection`, `Object[]` and `Document` nodes. Used for plain BPMN tools whose content is
   the raw FEEL tree from the engine.
 

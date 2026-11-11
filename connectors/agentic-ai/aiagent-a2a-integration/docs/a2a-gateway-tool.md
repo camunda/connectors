@@ -86,11 +86,13 @@ Simpler than MCP because there's only one "tool" per A2A element (the agent itse
    - Deserializes content into the typed A2aSendMessageResult and sets it as the transformed
      ToolCallResult content
 7. LLM receives the response and decides next action based on task state
-8. A2aGatewayToolHandler.extractDocuments() walks the typed A2aSendMessageResult and collects
+8. For an agent instance without the documents feature,
+   A2aGatewayToolHandler.extractDocuments() walks the typed A2aSendMessageResult and collects
    Camunda Documents from A2aDocumentPart entries: A2aMessage.contents at the root, plus
    A2aTask.artifacts and (recursively) A2aTask.history. Documents flow into the synthetic
    document UserMessage produced by ToolCallResultDocumentExtractor (see extension-points.md
-   "Document Extraction from Tool Call Results").
+   "Document Extraction from Tool Call Results"). An instance with the feature registers the
+   documents the model reads as handles instead and does not call extractDocuments().
 ```
 
 ## Fixed Tool Input Schema

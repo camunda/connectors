@@ -22,6 +22,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
 | [Turn input composer and response handler](#turn-input-composer-and-response-handler) | Custom `AgentConversationTurnInputComposer` and `AgentResponseHandler` |
+| [Gateway tool handlers](#gateway-tool-handlers)              | Custom `GatewayToolHandler` that overrides `extractDocuments` |
 | [Agent instance client and mappers](#agent-instance-client-and-mappers)      | Custom `AgentInstanceClient`, `AgentInstanceHistoryMapper`, `AgentInstanceToolMapper` |
 | [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers |
 | [Conversation window](#conversation-window)                                  | Code that calls `AgentConversation.window`                      |
@@ -220,6 +221,15 @@ Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHan
 change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
 implement the response handler interface directly, hand only the process tool calls to the process.
 
+### Gateway tool handlers
+
+`GatewayToolHandler.extractDocuments(ToolCallResult)` is called only for agent instances without the `documents` feature.
+An instance with the feature (every instance created from 8.11 on) finds the documents of a result the way it renders
+them as handles for the model, at any depth and also inside typed records, whatever handler manages the result.
+
+Migration: none for the handler of an instance without the feature. A handler whose typed content holds a
+`Document` needs no extra code for an instance with the feature, as long as Jackson can serialize the content.
+
 ### Agent instance client and mappers
 
 - `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `HistoryDocuments` of the job right after the
@@ -242,7 +252,8 @@ extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate
 
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take
 `RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`, and the constructor of
-`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`. The
+`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`, and the
+constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandleRenderer`. The
 auto-configuration provides these beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra
 arguments; inject them as beans.
 

@@ -110,11 +110,13 @@ Discovery tool call IDs use a different format: `MCP_toolsList_<elementId>` — 
      List<McpContent> as the transformed ToolCallResult content
    - Returns ToolCallResult with name="MCP_MyFilesystem___readFile"
 7. Agent presents result to LLM with the original fully qualified tool name
-8. McpClientGatewayToolHandler.extractDocuments() walks the List<McpContent> via a sealed-type
+8. For an agent instance without the documents feature,
+   McpClientGatewayToolHandler.extractDocuments() walks the List<McpContent> via a sealed-type
    switch and collects Camunda Documents from McpDocumentContent and
    McpEmbeddedResourceContent.BlobDocumentResource entries — feeding the synthetic document
    UserMessage produced by ToolCallResultDocumentExtractor (see extension-points.md "Document
-   Extraction from Tool Call Results").
+   Extraction from Tool Call Results"). An instance with the feature registers the documents the
+   model reads as handles instead and does not call extractDocuments().
 ```
 
 ## McpClientAgenticToolAutoConfiguration
