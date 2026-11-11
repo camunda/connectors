@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
@@ -578,6 +579,7 @@ class AgentContextSchemaMigrationTest {
                                   .content(List.of(TextContent.textContent("Found 3 items")))
                                   .build()))
                       .build())),
+          AgentDocuments.empty(),
           List.of(),
           Map.of());
     }
