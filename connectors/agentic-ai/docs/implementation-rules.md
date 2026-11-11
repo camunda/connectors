@@ -42,8 +42,8 @@ specific rule. When they conflict, the review names the rule for revision.
 - **P4. Each test protects one behavior that a plausible change can break.**
   - Why: a test without a purpose costs review time and refactor time and finds nothing. A test that
     mirrors the implementation breaks on every refactor and lets a behavior change pass.
-  - Test: name the production change that makes this test fail and no other test fail. If no such
-    change exists, the test has no purpose. The test rules are in
+  - Test: name a plausible production regression that this test detects. Overlap with tests at
+    other levels or with other scenarios does not make it redundant. The test rules are in
     [Unit tests](acceptance-testing.md#unit-tests).
 
 ## Before you plan
