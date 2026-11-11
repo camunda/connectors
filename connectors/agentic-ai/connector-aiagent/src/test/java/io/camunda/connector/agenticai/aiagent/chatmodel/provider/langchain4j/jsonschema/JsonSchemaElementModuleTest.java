@@ -23,9 +23,9 @@ import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -529,50 +529,63 @@ class JsonSchemaElementModuleTest {
   }
 
   @Test
-  void readsAOneOfAsAnAnyOfOfTheSameAlternatives() throws Exception {
-    final var oneOf = documentUnion("oneOf");
-    final var anyOf = documentUnion("anyOf");
+  void readsAOneOfAsAnAnyOfOfTheSameAlternatives() {
+    final var expected =
+        JsonObjectSchema.builder()
+            .addProperty(
+                "body",
+                JsonAnyOfSchema.builder()
+                    .description("The body")
+                    .anyOf(
+                        JsonStringSchema.builder().build(),
+                        JsonObjectSchema.builder()
+                            .addProperty(
+                                "type",
+                                JsonEnumSchema.builder()
+                                    .enumValues(AgentDocumentHandle.TYPE)
+                                    .build())
+                            .addProperty(
+                                "id",
+                                JsonStringSchema.builder()
+                                    .description("The id of the document.")
+                                    .build())
+                            .required("type", "id")
+                            .build())
+                    .build())
+            .build();
 
-    final var fromOneOf = objectMapper.convertValue(oneOf, JsonSchemaElement.class);
-    final var fromAnyOf = objectMapper.convertValue(anyOf, JsonSchemaElement.class);
-
-    assertThat(fromOneOf).isEqualTo(fromAnyOf);
-    JSONAssert.assertEquals(
-        objectMapper.writeValueAsString(fromAnyOf),
-        objectMapper.writeValueAsString(fromOneOf),
-        true);
+    assertThat(objectMapper.convertValue(documentUnion("oneOf"), JsonSchemaElement.class))
+        .isEqualTo(expected);
+    assertThat(objectMapper.convertValue(documentUnion("anyOf"), JsonSchemaElement.class))
+        .isEqualTo(expected);
   }
 
   @Test
-  void readsAnObjectWithAOneOfOfRequiredPropertiesAsTheObject() throws Exception {
+  void readsAnObjectWithAOneOfOfRequiredPropertiesAsTheObject() {
+    final var exclusiveProperties =
+        JsonObjectSchema.builder()
+            .addProperty("id", JsonStringSchema.builder().build())
+            .addProperty("name", JsonStringSchema.builder().build())
+            .build();
+
+    assertThat(objectMapper.convertValue(exclusiveProperties(), JsonSchemaElement.class))
+        .isEqualTo(exclusiveProperties);
+
     final var withOneOf =
         Map.of(
             "type",
             "object",
             "properties",
-            Map.of("filter", exclusiveProperties(true)),
-            "required",
-            List.of("filter"));
-    final var withoutOneOf =
-        Map.of(
-            "type",
-            "object",
-            "properties",
-            Map.of("filter", exclusiveProperties(false)),
+            Map.of("filter", exclusiveProperties()),
             "required",
             List.of("filter"));
 
-    final var root = exclusiveProperties(true);
-    assertThat(objectMapper.convertValue(root, JsonSchemaElement.class))
-        .isEqualTo(objectMapper.convertValue(exclusiveProperties(false), JsonSchemaElement.class));
-
-    final var fromOneOf = objectMapper.convertValue(withOneOf, JsonSchemaElement.class);
-    final var expected = objectMapper.convertValue(withoutOneOf, JsonSchemaElement.class);
-    assertThat(fromOneOf).isEqualTo(expected);
-    JSONAssert.assertEquals(
-        objectMapper.writeValueAsString(expected),
-        objectMapper.writeValueAsString(fromOneOf),
-        true);
+    assertThat(objectMapper.convertValue(withOneOf, JsonSchemaElement.class))
+        .isEqualTo(
+            JsonObjectSchema.builder()
+                .addProperty("filter", exclusiveProperties)
+                .required("filter")
+                .build());
   }
 
   @Test
@@ -596,18 +609,16 @@ class JsonSchemaElementModuleTest {
 
   /**
    * An object schema with two properties of which exactly one must be set, expressed as a {@code
-   * oneOf} of required-only alternatives, or the same object without the {@code oneOf}.
+   * oneOf} of required-only alternatives.
    */
-  private static Map<String, Object> exclusiveProperties(boolean withOneOf) {
-    final var schema = new LinkedHashMap<String, Object>();
-    schema.put("type", "object");
-    schema.put(
-        "properties", Map.of("id", Map.of("type", "string"), "name", Map.of("type", "string")));
-    if (withOneOf) {
-      schema.put(
-          "oneOf", List.of(Map.of("required", List.of("id")), Map.of("required", List.of("name"))));
-    }
-    return schema;
+  private static Map<String, Object> exclusiveProperties() {
+    return Map.of(
+        "type",
+        "object",
+        "properties",
+        Map.of("id", Map.of("type", "string"), "name", Map.of("type", "string")),
+        "oneOf",
+        List.of(Map.of("required", List.of("id")), Map.of("required", List.of("name"))));
   }
 
   /** An object schema with a union of text and a document under the given keyword. */
