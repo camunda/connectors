@@ -26,7 +26,7 @@ gating a persisted shape on a feature.
 fingerprint.
 
 **Response documents.** `AgentContext.responseDocuments` is the list of the documents selected for the final response, in the
-order they were selected (omitted when empty, no schema version bump; a missing field binds to an empty list). An entry is
+order they were selected (omitted when empty; a missing field binds to an empty list). An entry is
 `{key, document, description?}`: the key the process finds the document by, the `AgentDocumentId` of one of the agent
 documents and an optional description. A selection under a key that is already used replaces that selection in place
 (`AgentContext.withResponseDocument`); `AgentContext.selectedResponseDocuments()` returns them in that order
@@ -154,8 +154,8 @@ opaque `ObjectContent`, never re-split into typed `Content` — a shape heuristi
 it, since those blocks share the same `type` discriminators. The write path always re-persists the
 current shape, so a conversation touched again after upgrading is migrated forward on its next write.
 
-Version 2 adds `AgentContext.features` and `AgentContext.documents`, the `agent_document` content block, and the `kind`
-and `rejection` of a `ToolCall`. A version 1 root loads
+Version 2 adds `AgentContext.features`, `AgentContext.documents` and `AgentContext.responseDocuments`, the
+`agent_document` content block, and the `kind` and `rejection` of a `ToolCall`. A version 1 root loads
 unchanged, because each of them binds to its empty value when it is missing. Every root migrates step by step: unversioned
 to 1 lifts the tool call result content, 1 to 2 changes nothing. A runtime that supports a lower version rejects a root
 with a higher one, so it fails on state that a newer connector wrote and never rewrites it.
