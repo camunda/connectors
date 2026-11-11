@@ -8,7 +8,7 @@ on every completion. Authoritative definition:
 [`AgentContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentContext.java).
 
 **Features.** `AgentContext.features` is the set of features (an insertion-ordered JSON array of strings, omitted
-when empty, no schema version bump) the agent instance was created with. A new agent instance gets the
+when empty) the agent instance was created with. A new agent instance gets the
 current features when its context is created at its first job (`AgentInitializerImpl`, both flavors,
 `AgentFeatures.ofNewInstance()`). The features are `runtimeTools` (`AgentFeatures.RUNTIME_TOOLS`, the runtime tool
 facility) and `documents` (`AgentFeatures.DOCUMENTS`, the agent documents); a feature is read with
@@ -25,7 +25,7 @@ gating a persisted shape on a feature.
 fingerprint.
 
 **Documents.** `AgentContext.documents` is the `AgentDocuments` of the agent instance: a list of `AgentDocument` entries
-`{id, origin, reference}` (omitted when empty, no schema version bump; a missing field binds to no documents), read and
+`{id, origin, reference}` (omitted when empty; a missing field binds to no documents), read and
 replaced through `AgentContext.documents()` and `withDocuments(...)`. `origin` is the sealed `AgentDocumentOrigin`
 (`UserMessage`, `Event`, `ToolCall`), persisted with the discriminator `type`: `{"type": "user_message", "messageId": ...}`,
 `{"type": "event", "messageId": ...}` or `{"type": "tool_call", "toolName": ..., "toolCallId": ...}`. `reference` is the document reference of the
@@ -45,9 +45,9 @@ Camunda document is about 400 bytes; the bound is the broker message size of the
 together with the in-process store (see [Document Extraction from Tool Call Results](../../docs/architecture/extension-points.md#document-extraction-from-tool-call-results)). The id
 of a document is an `AgentDocumentId` (`aiagent.model.document`, persisted as a plain string) derived from the document:
 `doc_` followed by the first 12 lowercase hex characters of the SHA-256 of the store id and the document id (`AgentDocumentId.of`, see
-"The handle" in [Document Extraction from Tool Call Results](../../docs/architecture/extension-points.md#document-extraction-from-tool-call-results)). An 8.10 connector runtime ignores `features` and `documents` and
-drops them on its next write, and cannot read a conversation that holds a document block (the content type is
-unknown to it); a rollback after the new fields were written is not supported.
+"The handle" in [Document Extraction from Tool Call Results](../../docs/architecture/extension-points.md#document-extraction-from-tool-call-results)). The agent context is written with schema version 2, which an 8.10
+connector runtime rejects (see the schema versions under
+[ToolCallResultContent](#toolcallresultcontent-persisted-tool-call-result-content)).
 
 **Document handling.** `AgentContext.documentHandling()` is the sealed `DocumentHandling` of the agent instance,
 derived from the `documents` feature and not persisted: `Untracked`, or `Tracked(AgentDocuments)`. The composer, the
@@ -131,7 +131,8 @@ opaque `ObjectContent`, never re-split into typed `Content` — a shape heuristi
 it, since those blocks share the same `type` discriminators. The write path always re-persists the
 current shape, so a conversation touched again after upgrading is migrated forward on its next write.
 
-Version 2 adds `AgentContext.features` and the `kind` and `rejection` of a `ToolCall`. A version 1 root loads
+Version 2 adds `AgentContext.features` and `AgentContext.documents`, the `agent_document` content block, and the `kind`
+and `rejection` of a `ToolCall`. A version 1 root loads
 unchanged, because each of them binds to its empty value when it is missing. Every root migrates step by step: unversioned
 to 1 lifts the tool call result content, 1 to 2 changes nothing. A runtime that supports a lower version rejects a root
 with a higher one, so it fails on state that a newer connector wrote and never rewrites it.

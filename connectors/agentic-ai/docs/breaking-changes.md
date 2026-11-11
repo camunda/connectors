@@ -340,10 +340,9 @@ factory of the job.
 - The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
   SHA-256 over a JSON serialization of the configuration. Every running agent instance, also one created before 8.11, writes
   one additional `CONFIGURATION` history item on its first job after the upgrade.
-- `AgentContext` gains `features` and `documents` (the agent documents), and the conversation of an agent instance with
-  the `documents` feature can contain `agent_document` content blocks. There is no schema version bump, and a missing
-  field binds to its empty value, so state written by 8.10 loads unchanged. An 8.10 connector runtime ignores the new
-  fields and drops them on its next write.
+- `AgentContext` gains `documents` (the agent documents), and the conversation of an agent instance with the `documents`
+  feature can contain `agent_document` content blocks. A missing field binds to its empty value, so state written by 8.10
+  loads unchanged.
 - A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
   and without the `runtimeTools` feature. `kind` is the kind of the tool the call names; a call of a tool name that is not
   offered gets a `rejection`, the error text that is its tool call result, and keeps the kind `PROCESS`. The JSON holds `kind`
@@ -354,16 +353,6 @@ factory of the job.
 - A stored message can hold an `AgentDocumentContent`, which a custom `ConversationStore` must keep like any other
   content block (serializing `Content` with Jackson keeps it). What a block stands for is in the agent documents of the agent
   context, not in the store, so code that rewrites the agent context must keep `documents`.
-- Rolling back to 8.10 after 8.11 wrote the conversation of an agent instance with the `documents` feature is not
-  supported: an 8.10 runtime fails to read a conversation that contains an `agent_document` block (an unknown content
-  type).
-- **Mixed worker versions affect only a call of a runtime tool and a rejected call.** The JSON of every other tool call
-  is unchanged, so an agent instance that calls only tools of the process runs on any worker. A connector runtime that
-  predates this change ignores the unknown properties `kind` and `rejection` of a stored call, so it treats a call with the
-  kind `RUNTIME` or with a `rejection` as a call of the process. It raises no incident and the instance waits for a result
-  that never comes. A rejected call is the call of a tool that does not exist, which hung the agent before too. A call of a
-  runtime tool exists only once a runtime tool is registered. While such a call is in flight, run only workers of one
-  version, or drain the agent instances before a rolling upgrade.
 - The assistant message in the `responseMessage` of an `AgentResponse` (`includeAssistantMessage`) also carries `kind`
   for a runtime tool call and `rejection` for a rejected call.
 - Do not rely on the JSON shape of these fields in external systems.

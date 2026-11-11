@@ -100,7 +100,8 @@ Consequences accepted:
   the broker for a job completion.
 * A stored conversation needs the agent documents of the same agent context to show its documents. The same job
   completion writes both.
-* The schema version does not change. When the field is missing, the agent documents are empty.
+* The field is part of schema version 2 of the agent context, which an 8.10 runtime rejects. When the field is missing,
+  the agent documents are empty.
 
 ### Document ids
 
