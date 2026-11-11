@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -19,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -297,14 +297,21 @@ class ToolCallAdmissionTest {
             "type",
             "object",
             "properties",
-            Map.of("file", DocumentSchemas.document(null), "caption", Map.of("type", "string")));
-    final var files = Map.of("type", "array", "items", DocumentSchemas.document(null));
+            Map.of(
+                "file",
+                DocumentParameter.documentSchema(null),
+                "caption",
+                Map.of("type", "string")));
+    final var files = Map.of("type", "array", "items", DocumentParameter.documentSchema(null));
     return Map.of("type", "object", "properties", Map.of("message", message, "files", files));
   }
 
   private static Map<String, Object> documentSchema() {
     return Map.of(
-        "type", "object", "properties", Map.of("doc", DocumentSchemas.document("The file")));
+        "type",
+        "object",
+        "properties",
+        Map.of("doc", DocumentParameter.documentSchema("The file")));
   }
 
   private static AssistantMessage messageWith(ToolCall... calls) {

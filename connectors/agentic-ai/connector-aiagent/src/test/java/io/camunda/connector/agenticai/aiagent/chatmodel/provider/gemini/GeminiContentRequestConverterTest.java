@@ -17,7 +17,6 @@ import com.google.genai.types.FunctionDeclaration;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -26,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -646,16 +646,20 @@ class GeminiContentRequestConverterTest {
   @Test
   void passesTheSchemaOfDocumentParametersToGeminiUnchanged() {
     final var properties = new LinkedHashMap<String, Object>();
-    properties.put("file", DocumentSchemas.document("The file"));
+    properties.put("file", DocumentParameter.documentSchema("The file"));
     properties.put(
-        "files", Map.of("type", "array", "items", DocumentSchemas.document("The files")));
+        "files", Map.of("type", "array", "items", DocumentParameter.documentSchema("The files")));
     properties.put(
         "message",
         Map.of(
             "type",
             "object",
             "properties",
-            Map.of("file", DocumentSchemas.document(null), "caption", Map.of("type", "string"))));
+            Map.of(
+                "file",
+                DocumentParameter.documentSchema(null),
+                "caption",
+                Map.of("type", "string"))));
     final Map<String, Object> schema =
         Map.of(
             "type",

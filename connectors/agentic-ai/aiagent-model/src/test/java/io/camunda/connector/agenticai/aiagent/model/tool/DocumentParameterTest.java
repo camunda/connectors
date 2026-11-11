@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter.Step;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class DocumentParameterTest {
@@ -144,6 +145,53 @@ class DocumentParameterTest {
             Map.entry("title", "T"),
             Map.entry("properties", Map.of("a", Map.of("seen", "Property[name=a]"))),
             Map.entry("required", List.of("a")));
+  }
+
+  @Test
+  void theDocumentSchemaIsTheObjectSchemaOfAHandleWithTheDescription() {
+    final var schema = DocumentParameter.documentSchema("The file");
+
+    assertThat(schema).isEqualTo(handleSchema("The file"));
+    assertThat(List.copyOf(schema.keySet()))
+        .containsExactly("type", "description", "properties", "required");
+    assertThat(List.copyOf(properties(schema).keySet())).containsExactly("type", "id");
+  }
+
+  @Test
+  void theDocumentSchemaWithoutAUsableDescriptionHasNone() {
+    final var schema = DocumentParameter.documentSchema(null);
+
+    assertThat(schema).isEqualTo(handleSchema(null));
+    assertThat(List.copyOf(schema.keySet())).containsExactly("type", "properties", "required");
+    assertThat(DocumentParameter.documentSchema("  ")).isEqualTo(handleSchema(null));
+  }
+
+  @Test
+  void theDocumentSchemaHasNoFormatAndNoAdditionalPropertiesRule() {
+    assertThat(DocumentParameter.documentSchema("The file"))
+        .doesNotContainKeys("format", "additionalProperties");
+  }
+
+  private static Map<String, Object> handleSchema(@Nullable String description) {
+    final var expected = new LinkedHashMap<String, Object>();
+    expected.put("type", "object");
+    if (description != null) {
+      expected.put("description", description);
+    }
+    expected.put(
+        "properties",
+        Map.of(
+            "type",
+            Map.of("type", "string", "enum", List.of("camunda.agenticai.document")),
+            "id",
+            Map.of("type", "string", "description", "The id of the document.")));
+    expected.put("required", List.of("type", "id"));
+    return expected;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> properties(Map<String, Object> schema) {
+    return (Map<String, Object>) schema.get("properties");
   }
 
   private static Map<String, Object> doc() {

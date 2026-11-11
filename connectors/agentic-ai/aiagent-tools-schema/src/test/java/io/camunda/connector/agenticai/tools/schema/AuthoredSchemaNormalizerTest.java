@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.tools.schema;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +33,7 @@ class AuthoredSchemaNormalizerTest {
     assertThat(normalizer.normalize(schema))
         .isEqualTo(
             object(
-                "doc", DocumentSchemas.document("A document"),
+                "doc", DocumentParameter.documentSchema("A document"),
                 "docs", Map.of("type", "array", "items", doc()),
                 "req", object("file", doc())));
     assertThat(List.copyOf(valueOf(normalizer.normalize(schema), "doc").keySet()))
@@ -49,7 +49,8 @@ class AuthoredSchemaNormalizerTest {
 
     final var normalized = valueOf(normalizer.normalize(object("doc", node)), "doc");
 
-    assertThat(normalized).isEqualTo(withTitle(DocumentSchemas.document("A document"), "Doc"));
+    assertThat(normalized)
+        .isEqualTo(withTitle(DocumentParameter.documentSchema("A document"), "Doc"));
     assertThat(List.copyOf(normalized.keySet()))
         .containsExactly("type", "description", "properties", "required", "title");
   }
@@ -150,7 +151,7 @@ class AuthoredSchemaNormalizerTest {
   }
 
   private static Map<String, Object> doc() {
-    return DocumentSchemas.document(null);
+    return DocumentParameter.documentSchema(null);
   }
 
   private static Map<String, Object> withTitle(Map<String, Object> schema, String title) {

@@ -292,7 +292,7 @@ applies it to its persisted context, and the next round continues with the conte
   call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
   error result from `RuntimeTools`; neither goes to the process.
 - A tool parameter that carries a document is declared with the type `document` of `fromAi`, or with
-  `DocumentSchemas.document(...)` for a runtime tool. A process tool receives the Camunda document reference of the
+  `DocumentParameter.documentSchema(...)` for a runtime tool. A process tool receives the Camunda document reference of the
   document in place of the handle the model passed; a runtime tool receives its `AgentDocumentId` (`RuntimeToolCall.argumentsAs`
   binds it to an `AgentDocumentId` or a `String` property). A call of a tool of either kind whose value is not the handle of a
   known document is rejected when the model response arrives: it keeps its kind, the agent answers it with the error
@@ -343,11 +343,10 @@ applies it to its persisted context, and the next round continues with the conte
   persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
-  `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) and `DocumentSchemas`, which
-  declares the document parameters of runtime tools and of gateway tools, are in `aiagent.api.tool` of `aiagent-api`.
+  `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
 - A document parameter in a tool definition is the object schema of a document handle: `type: object` with the required
   properties `type` (`enum: ["camunda.agenticai.document"]`) and `id` (`string`), and the description as authored
-  (`DocumentSchemas.document(...)`; `ToolDefinition#documentParameters()` lists them as `DocumentParameter`s).
+  (`DocumentParameter.documentSchema(...)`; `ToolDefinition#documentParameters()` lists them).
   The schema goes to the model provider as it is.
   A gateway handler that defines its tools itself can declare document
   parameters in them and receives the Camunda document references in the arguments of a call.

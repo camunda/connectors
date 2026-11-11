@@ -53,7 +53,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredExcep
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
@@ -88,6 +87,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfigu
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -152,7 +152,7 @@ class AgentSubProcessRequestHandlerTest {
                               "type",
                               "object",
                               "properties",
-                              Map.of("doc", DocumentSchemas.document(null))))
+                              Map.of("doc", DocumentParameter.documentSchema(null))))
                       .build()))
           .toList();
 
@@ -215,7 +215,7 @@ class AgentSubProcessRequestHandlerTest {
                       "type",
                       "object",
                       "properties",
-                      Map.of("doc", DocumentSchemas.document("The file")))),
+                      Map.of("doc", DocumentParameter.documentSchema("The file")))),
               (context, call) -> RuntimeToolResult.success("uploaded"))
           .enabledWhen(context -> UPLOAD_ENABLED.get());
 

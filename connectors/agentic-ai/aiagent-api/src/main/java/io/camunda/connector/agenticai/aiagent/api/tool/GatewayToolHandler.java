@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -22,12 +23,9 @@ import java.util.List;
  * GatewayToolDefinitionResolver}.
  *
  * <p>A handler that defines its tools itself can declare document parameters in the {@link
- * ToolDefinition}s it returns from {@link #handleToolDiscoveryResults}, in the stored form of
- * {@link DocumentSchemas#document}, alone or as one alternative of an {@code anyOf} or {@code
- * oneOf}. For an agent instance that tracks its documents, the document parameters of a call are
- * resolved before {@link #transformToolCalls}, so the handler receives the Camunda document
- * references in the call arguments. For an agent instance that does not track its documents, the
- * handler receives the arguments as the model sent them.
+ * ToolDefinition}s it returns from {@link #handleToolDiscoveryResults} (see {@link
+ * DocumentParameter}). {@link #transformToolCalls} receives the Camunda document references in
+ * their place.
  */
 public interface GatewayToolHandler extends GatewayToolCallTransformer {
   String type();

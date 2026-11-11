@@ -145,7 +145,7 @@ These are used during discovery checking and tool call result transformation.
 
 A gateway handler that defines its tools itself can declare document parameters in them. The tool definitions
 a handler returns from `handleToolDiscoveryResults` are stored as they are, so a handler writes the stored form of a document
-parameter (`DocumentSchemas.document(...)`: the object schema of a document handle); the shorthand type `document` is
+parameter (`DocumentParameter.documentSchema(...)`: the object schema of a document handle); the shorthand type `document` is
 normalized only for `fromAi()` parameters. The agent resolves the document parameters of a call
 on the model's tool call, by the definition the model saw, before `transformToolCalls()`, so the handler receives the
 Camunda document references in the arguments it wraps into its envelope. A call with an invalid document value is answered
@@ -340,9 +340,9 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 ### Add a runtime tool
 
-> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult`,
-> `RuntimeToolException` and `DocumentSchemas`, package `aiagent.api.tool` of `aiagent-api`) is experimental since 8.11
-> and may change in an incompatible way in a minor release.
+> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult` and
+> `RuntimeToolException`, package `aiagent.api.tool` of `aiagent-api`) is experimental since 8.11 and may change in an
+> incompatible way in a minor release.
 
 A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
 definition next to the tools of the process and the agent executes the call, in process. The connector registers no
@@ -381,7 +381,7 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   enabled when it is executed ("is not available"), a `RuntimeToolException` and `RuntimeToolResult.error` give an error
   result the model reads.
 
-**Document parameters.** A parameter that carries a document is declared with `DocumentSchemas.document(...)`. The agent
+**Document parameters.** A parameter that carries a document is declared with `DocumentParameter.documentSchema(...)`. The agent
 resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, which `argumentsAs` binds to a
 property typed `AgentDocumentId`. A call with a value that is not the handle of a known document is rejected at admission,
 and the tool is not called. `RuntimeTools` resolves the call again against the definition the tool is registered with; an

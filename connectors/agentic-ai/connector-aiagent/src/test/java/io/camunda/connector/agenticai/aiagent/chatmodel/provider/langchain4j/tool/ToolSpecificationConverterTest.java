@@ -18,8 +18,8 @@ import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -113,11 +113,16 @@ class ToolSpecificationConverterTest {
   @Test
   void keepsTheHandleSchemaOfDocumentParametersThroughTheConversionAndBack() throws Exception {
     final var properties = new LinkedHashMap<String, Object>();
-    properties.put("file", DocumentSchemas.document("The file"));
+    properties.put("file", DocumentParameter.documentSchema("The file"));
     properties.put(
         "files",
         Map.of(
-            "type", "array", "description", "The files", "items", DocumentSchemas.document(null)));
+            "type",
+            "array",
+            "description",
+            "The files",
+            "items",
+            DocumentParameter.documentSchema(null)));
     final var toolDefinition =
         ToolDefinition.builder()
             .name("send")

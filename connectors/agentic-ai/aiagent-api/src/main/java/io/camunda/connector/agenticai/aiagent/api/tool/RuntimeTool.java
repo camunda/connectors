@@ -11,8 +11,7 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
 
 /**
  * A tool the connector runtime executes itself, without activating a BPMN element. Register it as a
- * Spring bean of this type. The runtime tool types of this package and {@link DocumentSchemas} are
- * {@link Experimental}.
+ * Spring bean of this type. {@link Experimental}.
  *
  * <h2>Execution contract</h2>
  *
@@ -53,8 +52,7 @@ public interface RuntimeTool {
    * the model request, so it must be the same on every call.
    *
    * <p>Build the schema with maps of a stable key order, such as {@link java.util.LinkedHashMap},
-   * not {@link java.util.Map#of}, which serializes differently in different JVMs. {@link
-   * DocumentSchemas} creates the schema of a parameter that carries a document.
+   * not {@link java.util.Map#of}, which serializes differently in different JVMs.
    */
   ToolDefinition definition();
 
@@ -72,11 +70,11 @@ public interface RuntimeTool {
   }
 
   /**
-   * Handles {@code call}, only when the tool is enabled and, for an agent instance that tracks its
-   * documents, the document parameters of the call name known documents: a call of a tool that is
-   * not enabled, or one whose document parameters do not, gets an error result and does not reach
-   * the tool. A {@link RuntimeToolException} becomes an error result; any other exception fails the
-   * job.
+   * Handles {@code call}, only when the tool is enabled. A {@link RuntimeToolException} becomes an
+   * error result; any other exception fails the job.
+   *
+   * <p>A call with a document parameter that does not hold the handle of a known document gets an
+   * error result and does not reach the tool.
    *
    * @return the result, never {@code null}
    */

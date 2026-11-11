@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.*;
 
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -30,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
@@ -211,9 +211,9 @@ class AgentConversationTest {
                     "properties",
                     Map.of(
                         "file",
-                        DocumentSchemas.document("The file"),
+                        DocumentParameter.documentSchema("The file"),
                         "files",
-                        Map.of("type", "array", "items", DocumentSchemas.document(null)))))
+                        Map.of("type", "array", "items", DocumentParameter.documentSchema(null)))))
             .build();
     var conv =
         AgentConversation.rehydrate(
@@ -237,7 +237,7 @@ class AgentConversationTest {
                     "type",
                     "object",
                     "properties",
-                    Map.of("doc", DocumentSchemas.document("The file"))))
+                    Map.of("doc", DocumentParameter.documentSchema("The file"))))
             .build();
     var untracked =
         BASE_CONTEXT

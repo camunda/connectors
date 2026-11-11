@@ -15,7 +15,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
@@ -34,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -565,7 +565,7 @@ class RuntimeToolsTest {
                 "c8__read_file",
                 Map.of(
                     "file",
-                    DocumentSchemas.document("The file"),
+                    DocumentParameter.documentSchema("The file"),
                     "files",
                     Map.of("type", "array", "items", Map.of("type", "string")))),
             (context, call) -> {
@@ -592,7 +592,8 @@ class RuntimeToolsTest {
     final var received = new ArrayList<Object>();
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file"))),
+            definitionOf(
+                "c8__read_file", Map.of("file", DocumentParameter.documentSchema("The file"))),
             (context, call) -> {
               received.add(call.arguments());
               return RuntimeToolResult.success("read");
@@ -627,7 +628,8 @@ class RuntimeToolsTest {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file"))),
+            definitionOf(
+                "c8__read_file", Map.of("file", DocumentParameter.documentSchema("The file"))),
             (context, call) -> {
               runs.incrementAndGet();
               return RuntimeToolResult.success("read");
@@ -656,7 +658,7 @@ class RuntimeToolsTest {
     final var withoutDocumentParameter =
         definitionOf("c8__read_file", Map.of("file", Map.of("type", "string")));
     final var withDocumentParameter =
-        definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file")));
+        definitionOf("c8__read_file", Map.of("file", DocumentParameter.documentSchema("The file")));
     final var definitions = new ArrayDeque<>(List.of(withoutDocumentParameter));
     final RuntimeTool changing =
         new RuntimeTool() {
@@ -693,7 +695,7 @@ class RuntimeToolsTest {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__send", Map.of("file", DocumentSchemas.document("The file"))),
+            definitionOf("c8__send", Map.of("file", DocumentParameter.documentSchema("The file"))),
             (context, call) -> {
               runs.incrementAndGet();
               return RuntimeToolResult.success("sent");
@@ -725,7 +727,8 @@ class RuntimeToolsTest {
     final var received = new ArrayList<Object>();
     final var tool =
         StubRuntimeTool.of(
-            definitionOf("c8__read_file", Map.of("file", DocumentSchemas.document("The file"))),
+            definitionOf(
+                "c8__read_file", Map.of("file", DocumentParameter.documentSchema("The file"))),
             (context, call) -> {
               received.add(call.arguments());
               return RuntimeToolResult.success("read");
