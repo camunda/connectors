@@ -679,17 +679,7 @@ class AgentContextSchemaMigrationTest {
       final var serialized = objectMapper.writeValueAsString(context);
       final var bound = objectMapper.readValue(serialized, AgentContext.class);
 
-      assertThat(bound.conversation())
-          .isInstanceOfSatisfying(
-              InProcessConversationContext.class,
-              conversation ->
-                  assertThat(conversation.messages())
-                      .singleElement()
-                      .isInstanceOfSatisfying(
-                          ToolCallResultMessage.class,
-                          message ->
-                              assertThat(message.results().getFirst().content())
-                                  .isEqualTo(blocks)));
+      assertThat(bound).isEqualTo(context);
     }
 
     @Test

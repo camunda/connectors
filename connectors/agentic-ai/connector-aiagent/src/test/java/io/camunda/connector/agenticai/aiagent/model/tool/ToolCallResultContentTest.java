@@ -225,6 +225,9 @@ class ToolCallResultContentTest {
           .id("call-1")
           .name("fetch")
           .content(List.of(content))
+          .elementId("Fetch_Task")
+          .completedAt(OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00"))
+          .properties(Map.of("custom", "value"))
           .build();
     }
 
@@ -233,11 +236,11 @@ class ToolCallResultContentTest {
       final var converted =
           result(DocumentContent.documentContent(document)).withDocumentsAsReferences();
 
-      assertThat(converted.content())
-          .containsExactly(
-              new AgentDocumentContent(
-                  AgentDocumentId.of(document), DocumentDelivery.REFERENCE, null));
-      assertThat(converted.id()).isEqualTo("call-1");
+      assertThat(converted)
+          .isEqualTo(
+              result(
+                  new AgentDocumentContent(
+                      AgentDocumentId.of(document), DocumentDelivery.REFERENCE, null)));
     }
 
     @Test
@@ -246,12 +249,13 @@ class ToolCallResultContentTest {
           result(new DocumentContent(document, Map.of("source", "crm")))
               .withDocumentsAsReferences();
 
-      assertThat(converted.content())
-          .containsExactly(
-              new AgentDocumentContent(
-                  AgentDocumentId.of(document),
-                  DocumentDelivery.REFERENCE,
-                  Map.of("source", "crm")));
+      assertThat(converted)
+          .isEqualTo(
+              result(
+                  new AgentDocumentContent(
+                      AgentDocumentId.of(document),
+                      DocumentDelivery.REFERENCE,
+                      Map.of("source", "crm"))));
     }
 
     @Test
