@@ -55,6 +55,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -517,6 +518,25 @@ class AgentResponseHandlerTest {
               responseOf(
                   conversation,
                   new ToolCallProcessVariable("u1", "upload", Map.of("doc", reportReference()))));
+    }
+
+    @Test
+    void keepsAnArgumentTheModelSentAsNullNextToAResolvedDocument() {
+      final var arguments = new LinkedHashMap<String, Object>();
+      arguments.put("doc", handle(reportId.value()));
+      arguments.put("note", null);
+      final var call = new ToolCall("u1", "upload", arguments);
+
+      final var conversation = conversation(call);
+
+      final var response = responseHandler.createResponse(conversation);
+
+      final var expected = new LinkedHashMap<String, Object>();
+      expected.put("doc", reportReference());
+      expected.put("note", null);
+      assertThat(response)
+          .isEqualTo(
+              responseOf(conversation, new ToolCallProcessVariable("u1", "upload", expected)));
     }
 
     @Test
