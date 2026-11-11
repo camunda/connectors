@@ -45,6 +45,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -75,13 +76,13 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
 
   @Test
   void passesADownloadedDocumentToAToolAndReturnsIt() throws Exception {
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        roundTripTurns(wireMock.getHttpBaseUrl()).toArray(Turn[]::new));
+    final var turns = roundTripTurns(wireMock.getHttpBaseUrl());
+    OpenAiCompletionsChatModelStubs.stubConversation(turns.toArray(Turn[]::new));
 
     final var zeebeTest = awaitProcessCompletion(startProcess());
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertThat(recorded.modelCallCount()).isEqualTo(4);
+    assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
     assertThat(recorded.requests().getFirst().toolNames())
         .containsExactlyInAnyOrder(
             "Download_A_File", "Upload_A_File", "Ping", "c8__return_document", "c8__load_document");
@@ -106,18 +107,19 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
                       RETURN_KEY, AgentDocumentId.of(documentId), RETURN_DESCRIPTION));
         });
 
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
   }
 
   @Test
   void mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall() throws Exception {
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentWithPingTurn(), finalTurn());
+    final var turns =
+        List.of(downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentWithPingTurn(), finalTurn());
+    OpenAiCompletionsChatModelStubs.stubConversation(turns.toArray(Turn[]::new));
 
     final var zeebeTest = awaitProcessCompletion(startProcess());
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertThat(recorded.modelCallCount()).isEqualTo(3);
+    assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
 
     final var documentId =
         parseDocumentHandle(recorded.requests().get(1).messages().get(3).content()).id().value();
@@ -139,7 +141,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
           assertResponseDocument(
               agentResponse.context(), agentResponse.responseDocuments(), documentId);
         });
-    assertNoDocumentInternalsInLlmRequests();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
   }
 
   private ZeebeTest startProcess() throws Exception {
