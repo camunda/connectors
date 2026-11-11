@@ -56,17 +56,15 @@ Change only what the task needs. Clean up only your own changes.
 
 - Write a comment only when it makes a contract or a constraint clear that the code does not show.
   Do not describe what the code does.
-- A Javadoc states the contract of its own code: what the method does, the requirements for its
-  parameters, and the exact triggers that a caller can see. Link to a type in the same package when it
-  helps. Example: `handleNoInput` links to `CompositionResult.NoInput`.
+- A Javadoc states the contract of its own code as input and output behavior: what the method returns
+  for which input, the requirements for its parameters, each exception and the input that causes it,
+  each side effect that a caller can see, and the exact triggers that a caller can see. Link to a type
+  in the same package when it helps. Example: `handleNoInput` links to `CompositionResult.NoInput`.
 - Do not use the internals or the decision history of a different package or module to justify a
   precondition. When a reader must read a caller across that boundary to understand a precondition,
   document the coupling in an ADR or a reference doc, not in the Javadoc.
-- A Javadoc states the input and output behavior: what the method returns for which input, the
-  requirements for its parameters, each exception and the input that causes it, and each side effect
-  that a caller can see.
 - A Javadoc describes the code as it is. It does not tell about a change or an intent. Do not write
-  "now", "no longer", "new", "previously", "instead of", "replaces", "after this change", "for the
+  "now", "no longer", "the new behavior", "previously", "instead of", "replaces", "after this change", "for the
   time being" or "until". Do not name a PR, an issue, a stack step or future work. Put the history in
   the commit message, the PR, an ADR or [`docs/breaking-changes.md`](breaking-changes.md).
 - Each claim in a Javadoc MUST be true for the code of the same commit, on each path, also for a job
@@ -207,17 +205,17 @@ below make this style specific.
   `AgentInitializer` and `AgentConversationTurnInputComposer` as steps.
 - **Narrow surface, deep module.** Keep the public types and the extension points of one concept in
   one package per module. Make a type or a member public only when code in a different package calls
-  it. Do not add a public member that only tests call.
+  it, or when user code extends or replaces it. Do not add a public member that only tests call.
 - **One owner per invariant.** When a rule must be true on more than one entry path, one function
-  enforces it. Example: each document that enters the conversation is checked before it is
-  registered, on the user prompt, event, process tool result and runtime tool result paths. A caller
+  enforces it. Example: when each input that enters the conversation must be validated, the user
+  prompt, event and tool result paths call the same validation function. A caller
   does not call the steps in sequence, and does not choose between two implementations of the same
   step.
 - **Exceptions belong to their contract.** When a Javadoc in `aiagent-api` requires an exception, the
   exception class is in `aiagent-api`.
 - **Native providers and LangChain4j share no code.** A native SDK provider and the LangChain4j
-  integration do not share helpers or exception types. Why: the LangChain4j integration is planned for
-  removal.
+  integration do not share helpers or exception types. Why: the two integrations change
+  independently, and a shared helper couples them.
 - **Code agrees with the accepted ADRs.** When code diverges from an accepted ADR, the same change
   supersedes or extends the ADR with a new ADR, as the [ADR authoring rules](adr/README.md) say.
 
