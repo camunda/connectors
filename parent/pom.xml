@@ -175,8 +175,8 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
     <version.azure-identity>1.19.0</version.azure-identity>
 
-    <version.bouncycastle.bcpkix>1.86</version.bouncycastle.bcpkix>
-    <version.bouncycastle.bcprov>1.86</version.bouncycastle.bcprov>
+    <version.bouncycastle.bcpkix>1.87</version.bouncycastle.bcpkix>
+    <version.bouncycastle.bcprov>1.87</version.bouncycastle.bcprov>
     <version.sendGrid>4.10.3</version.sendGrid>
 
     <version.slack>1.54.0</version.slack>
