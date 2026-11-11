@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.api.search.enums.AgentInstanceStatus;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
@@ -78,6 +79,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
         .applyToolCallResults(
             any(AgentExecutionContext.class),
             any(AgentInstanceKey.class),
+            any(HistoryDocuments.class),
             argThat((List<ToolCallResultContent> results) ->
                 results.size() == 1 && fastToolCallId.equals(results.getFirst().id())),
             any(AgentConversationTurn.class));

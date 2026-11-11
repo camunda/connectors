@@ -39,6 +39,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -101,8 +103,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public LocalToolCallExecutor aiAgentLocalToolCallExecutor(RuntimeTools runtimeTools) {
-    return new LocalToolCallExecutor(runtimeTools);
+  public LocalToolCallExecutor aiAgentLocalToolCallExecutor(
+      RuntimeTools runtimeTools, ObjectHandleRenderer objectHandleRenderer) {
+    return new LocalToolCallExecutor(runtimeTools, objectHandleRenderer);
   }
 
   @Bean
@@ -123,8 +126,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceHistoryMapper aiAgentInstanceHistoryMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentInstanceHistoryMapper(gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers, ObjectHandleRenderer objectHandleRenderer) {
+    return new AgentInstanceHistoryMapper(gatewayToolHandlers, objectHandleRenderer);
   }
 
   @Bean
@@ -234,15 +237,29 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AgentConversationTurnInputComposer aiAgentConversationTurnInputComposer(
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      ToolCallResultsInputBuilder toolCallResultsInputBuilder) {
+      ToolCallResultsInputBuilder toolCallResultsInputBuilder,
+      ObjectHandleRenderer objectHandleRenderer) {
     return new AgentConversationTurnInputComposerImpl(
-        gatewayToolHandlers, toolCallResultsInputBuilder);
+        gatewayToolHandlers, toolCallResultsInputBuilder, objectHandleRenderer);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public ToolCallResultsInputBuilder aiAgentToolCallResultsInputBuilder() {
     return new ToolCallResultsInputBuilder();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ObjectHandleRenderer aiAgentObjectHandleRenderer(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new ObjectHandleRenderer(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public DocumentExpander aiAgentDocumentExpander(ObjectHandleRenderer objectHandleRenderer) {
+    return new DocumentExpander(objectHandleRenderer);
   }
 
   @Bean
@@ -281,7 +298,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentInstanceClient agentInstanceClient,
       RuntimeTools runtimeTools,
       ToolCallAdmission toolCallAdmission,
-      LocalToolCallExecutor localToolCallExecutor) {
+      LocalToolCallExecutor localToolCallExecutor,
+      DocumentExpander documentExpander) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -292,7 +310,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         agentInstanceClient,
         runtimeTools,
         toolCallAdmission,
-        localToolCallExecutor);
+        localToolCallExecutor,
+        documentExpander);
   }
 
   @Bean
@@ -329,7 +348,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentInstanceClient agentInstanceClient,
       RuntimeTools runtimeTools,
       ToolCallAdmission toolCallAdmission,
-      LocalToolCallExecutor localToolCallExecutor) {
+      LocalToolCallExecutor localToolCallExecutor,
+      DocumentExpander documentExpander) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -340,7 +360,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         agentInstanceClient,
         runtimeTools,
         toolCallAdmission,
-        localToolCallExecutor);
+        localToolCallExecutor,
+        documentExpander);
   }
 
   @Bean

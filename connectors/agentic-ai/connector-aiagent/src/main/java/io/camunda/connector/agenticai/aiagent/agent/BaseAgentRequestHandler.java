@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
@@ -28,12 +29,15 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentIdCollisionException;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -75,6 +79,7 @@ public abstract class BaseAgentRequestHandler<
   private final RuntimeTools runtimeTools;
   private final ToolCallAdmission toolCallAdmission;
   private final LocalToolCallExecutor localToolCallExecutor;
+  private final DocumentExpander documentExpander;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -86,7 +91,8 @@ public abstract class BaseAgentRequestHandler<
       AgentInstanceClient agentInstanceClient,
       RuntimeTools runtimeTools,
       ToolCallAdmission toolCallAdmission,
-      LocalToolCallExecutor localToolCallExecutor) {
+      LocalToolCallExecutor localToolCallExecutor,
+      DocumentExpander documentExpander) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -97,6 +103,7 @@ public abstract class BaseAgentRequestHandler<
     this.runtimeTools = runtimeTools;
     this.toolCallAdmission = toolCallAdmission;
     this.localToolCallExecutor = localToolCallExecutor;
+    this.documentExpander = documentExpander;
   }
 
   @Override
@@ -158,16 +165,23 @@ public abstract class BaseAgentRequestHandler<
         case CompositionResult.Ready ready -> {
           // before the local tool calls are executed: a job at the limit executes no tool
           throwIfLimitsReached(agentContext.metrics(), configuration);
+          final var input = answerLocalToolCalls(executionContext, ready);
           yield proceed(
               executionContext,
-              agentContext,
+              input.applyTo(agentContext),
               configuration,
               previousConversation,
-              answerLocalToolCalls(executionContext, agentContext, ready).messages(),
+              input.messages(),
               session,
               store);
         }
       };
+    } catch (AgentDocumentIdCollisionException e) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_DOCUMENT_ID_COLLISION, e.getMessage(), e);
+    } catch (UnsupportedDocumentReferenceException e) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_UNSUPPORTED_DOCUMENT_REFERENCE, e.getMessage(), e);
     }
   }
 
@@ -209,6 +223,7 @@ public abstract class BaseAgentRequestHandler<
     agentInstanceClient.applyToolCallResults(
         executionContext,
         agentContext.agentInstanceKey(),
+        HistoryDocuments.of(executionContext, agentContext),
         arrivedResults.stream().map(ToolCallResultContent::from).toList(),
         previousConversation.turns().getLast());
   }
@@ -235,6 +250,7 @@ public abstract class BaseAgentRequestHandler<
         executionContext,
         agentConfiguration,
         agentInstanceKey,
+        HistoryDocuments.of(executionContext, conversation.persistedContext()),
         conversation.currentTurn(),
         conversation.lastTurn(),
         OffsetDateTime.now(ZoneId.systemDefault()));
@@ -349,8 +365,12 @@ public abstract class BaseAgentRequestHandler<
     LOGGER.debug(
         "Sending turn (iterationKey={}) to the model", conversation.currentTurn().iterationKey());
 
-    final var windowedSnapshot = conversation.window(agentConfiguration.contextWindowSize());
-    final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
+    final var snapshot =
+        documentExpander.expand(
+            conversation.window(agentConfiguration.contextWindowSize()),
+            conversation.persistedContext().documentHandling(),
+            executionContext.documentFactory());
+    final var chatResult = executeChatModel(chatModel, executionContext, snapshot);
 
     final var assistantMessage =
         toolCallAdmission.admit(
@@ -393,17 +413,21 @@ public abstract class BaseAgentRequestHandler<
         currentTurn.iterationKey());
 
     throwIfLimitsReached(conversation, agentConfiguration);
+    // the documents of the results are registered after all calls ran, in call order, so a call
+    // never sees what another call of the same message returned
     final var input =
         answerLocalToolCalls(
             executionContext,
-            conversation.persistedContext(),
-            CompositionResult.Ready.of(ToolCallBatch.of(currentTurn.toolCalls())));
-    final var nextConversation = conversation.nextRuntimeToolRound(input.messages());
+            CompositionResult.Ready.of(
+                conversation.persistedContext(), ToolCallBatch.of(currentTurn.toolCalls())));
+    final var nextConversation =
+        conversation.nextRuntimeToolRound(input.messages(), input::applyTo);
     // the previous turn is the one whose tool calls these results belong to
     agentInstanceClient.applyTurnStart(
         executionContext,
         agentConfiguration,
         agentInstanceKey,
+        HistoryDocuments.of(executionContext, nextConversation.persistedContext()),
         nextConversation.currentTurn(),
         nextConversation.lastTurn(),
         OffsetDateTime.now(ZoneId.systemDefault()));
@@ -412,13 +436,11 @@ public abstract class BaseAgentRequestHandler<
 
   /** The input of the next turn, with the results of the local tool calls of the batch. */
   private TurnInput answerLocalToolCalls(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      CompositionResult.Ready ready) {
+      AgentExecutionContext executionContext, CompositionResult.Ready ready) {
     return agentInputComposer.assemble(
         ready.withResults(
             localToolCallExecutor.execute(
-                executionContext, agentContext, ready.unansweredToolCalls())));
+                executionContext, ready.agentContext(), ready.unansweredToolCalls())));
   }
 
   /**

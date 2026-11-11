@@ -213,6 +213,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentExecutionContext executionContext,
       AgentConfiguration configuration,
       @Nullable AgentInstanceKey agentInstanceKey,
+      HistoryDocuments documents,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp) {
@@ -227,7 +228,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
           configurationHistoryItem(configuration, turn.iterationKey(), turnIngestionTimestamp));
     }
     historyItems.addAll(
-        inputHistoryItems(turn, previousTurn, turnIngestionTimestamp, turn.iterationKey()));
+        inputHistoryItems(
+            turn, previousTurn, turnIngestionTimestamp, turn.iterationKey(), documents));
 
     applyBatchedUpdate(
         executionContext,
@@ -264,13 +266,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
-      int iterationKey) {
+      int iterationKey,
+      HistoryDocuments documents) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
-          historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
+          historyMapper.inputHistoryItems(
+              message, toolCallsById, turnIngestionTimestamp, documents)) {
         items.add(toHistoryItem(item, iterationKey));
       }
     }
@@ -329,6 +333,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   public void applyToolCallResults(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
+      HistoryDocuments documents,
       List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn) {
     if (agentInstanceKey == null) {
@@ -345,7 +350,10 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     // completedAt
     for (final var item :
         historyMapper.inputHistoryItems(
-            syntheticMessage, toolCallsById, OffsetDateTime.now(ZoneId.systemDefault()))) {
+            syntheticMessage,
+            toolCallsById,
+            OffsetDateTime.now(ZoneId.systemDefault()),
+            documents)) {
       items.add(toHistoryItem(item, iteration));
     }
 

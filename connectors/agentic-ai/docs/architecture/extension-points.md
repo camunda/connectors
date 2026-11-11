@@ -66,7 +66,8 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
     // Migration
     GatewayToolDefinitionUpdates resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
 
-    // Document extraction (default falls back to ContentTreeDocumentWalker for raw content trees)
+    // Document extraction, called only for agent instances without the documents feature
+    // (default falls back to ContentTreeDocumentWalker for raw content trees)
     default List<Document> extractDocuments(ToolCallResult toolCallResult);
 }
 
@@ -143,20 +144,92 @@ These are used during discovery checking and tool call result transformation.
 ### Document Extraction from Tool Call Results
 
 Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
-embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent
-extracts those documents into a synthetic follow-up `UserMessage` with native `DocumentContent`
-blocks so LLMs can interpret them; see [ADR-004](../adr/004-document-handling-in-tool-call-results.md). The documents
-of the result of a runtime tool ([Add a runtime tool](#add-a-runtime-tool)), in a batch of local tool calls only or in a mixed one, are extracted from its typed content
-(`ToolCallResultDocumentExtractor.documentsOf`) and delivered the same way.
+embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent extracts those documents, and
+what it does with them depends on the agent instance. For an instance with the `documents` feature the documents are
+references in the conversation: the agent registers them in the agent documents of the `agentContext`, and the tool
+result shows each document as its handle, a small JSON object, not its content. The agent registers exactly the documents
+the model reads as handles: `ToolCallResultDocumentExtractor.renderedDocumentsOf` collects every document that
+`ObjectHandleRenderer` replaces with its handle, at any depth and also inside a typed record, whatever gateway tool
+handler manages the result. The same holds for the result of a runtime tool and for the content of an event, which
+`ObjectHandleRenderer.documentsIn` searches. An instance without the feature keeps the
+behavior of [ADR-004](../adr/004-document-handling-in-tool-call-results.md): the documents go into a synthetic follow-up
+`UserMessage` with native `DocumentContent` blocks so LLMs can interpret them. Design rationale:
+[ADR 018](../adr/018-document-flow.md), which extends [ADR 004](../adr/004-document-handling-in-tool-call-results.md).
+The documents of the result of a runtime tool ([Add a runtime tool](#add-a-runtime-tool)), in a batch of local tool calls only or in a mixed one, are collected from its
+content with the renderer for an instance with the feature (`LocalToolCallExecutor`) and with `ContentTreeDocumentWalker` for one without it, and are handled the same way. They are registered after all calls
+of the message ran, in the order of the calls and together with the documents of the process results, by
+`ToolCallResultsInputBuilder`, which the composer and the runtime tool round of the request handler share; the result of a
+call that failed has none.
 
-`ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` for each
-process tool call result, before `ToolCallResultsInputBuilder` builds the `ToolCallResultMessage`. For each result it asks the registry which handler manages
+**The handle.** `{"type":"camunda.agenticai.document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}`,
+the keys in the order `type`, `id`, `fileName`, `contentType`, `size`, written as compact JSON by Jackson from the
+record `AgentDocumentHandle` (`aiagent.model.document`, `AgentDocumentHandle.TYPE` is the `type`). `fileName`, `contentType` and
+`size` are omitted when null or blank; `size` is a JSON number. `AgentDocumentHandle.of(agentDocuments, id)` builds it from the agent document of
+the id, and `ObjectHandleRenderer.text(handle)` and `tree(handle)` render it as text or as an object node, with the object
+mapper of the connectors: the file name, content type and size are read from its reference, never by reading
+the document, and an id the agent does not know is rendered as `{"type":"camunda.agenticai.document","id":"doc_…"}`.
+`fileName` is the Camunda metadata file name; it is omitted when it
+equals the Camunda document id of the reference (what a document stored without a name gets). `contentType` comes from
+the Camunda metadata. `size` is the number of bytes, present for a Camunda document whose reference
+metadata carries one. A store id, a content hash and the origin of the document are never part of the handle; the
+message it sits in shows where the document came from. The model never needs to write `fileName`, `contentType` or `size`;
+they are information for the model. In a user message the handle is a text block before the document, in a tool
+result that is a document it is a text block, and a document nested in the object of a result is the handle object at the
+place of the document.
+
+The id is `doc_` followed by the first 12 lowercase hex characters of the SHA-256 of the identity key of the document
+(`AgentDocumentId.of`). The identity is `camunda`, the store id and the document id. It is hashed as the concatenation of
+its parts, each as a 4-byte big-endian length and its UTF-8 bytes. The content hash and the metadata are not part of it,
+so the same document always gets the same id. An absent part is hashed as such, never as the text `null`. The id never
+exposes a store id or the id of the document in its store.
+
+**The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
+document goes out with the prompt, with no size limit and no type check, and a document the provider cannot read fails the
+model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
+
+**Only Camunda documents.** An instance with the `documents` feature accepts only Camunda documents
+(`AgentDocument.isSupported`). A document with an external reference (a URL) or an inline reference (the content is in the
+reference) fails the job with the error code `UNSUPPORTED_DOCUMENT_REFERENCE` ([Error Codes](../../connector-aiagent/docs/error-codes.md)) wherever it enters the conversation: in
+the user prompt, in the result of a tool (at the root or nested at any depth in an object, also the result of a runtime
+tool) and in an event. The agent checks on entry, before it registers or stores a document, so the agent documents, the
+persisted messages, the expansion and the history never hold such a document. The message names the kind of the document
+and the place, never a file name or a URL:
+
+- `Only Camunda documents can be passed to the AI Agent, but the user prompt contains an external document.`
+- `Only Camunda documents can be passed to the AI Agent, but the result of the tool 'getReport' contains an inline document.`
+  (`the result of a tool` when the result has no tool name)
+- `Only Camunda documents can be passed to the AI Agent, but an event contains an external document.`
+
+A tool result and an event cannot change, so the incident repeats on each retry until the process passes a Camunda
+document. The reason is in [ADR 018](../adr/018-document-flow.md).
+
+**Instances without the `documents` feature.** An agent instance created before the feature (no `features` in its
+`agentContext`) keeps the document handling of Camunda 8.10:
+
+- A user prompt document is a bare `DocumentContent`. The documents of tool results and events go into a synthetic
+  user message with a preamble (also for an external or an inline document), then per document the tag in the older attribute format
+  (`DocumentReferenceXmlTag`: `toolName`, `toolCallId`, `documentId`, `storeId`, `contentType`, `fileName`, or `url`
+  and `name` for an external document) and the `DocumentContent`, as in ADR-004. Nothing is registered.
+- `documents` stays empty; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
+- Without the `runtimeTools` feature there are no runtime tools, no mixed-batch handling and no tool name check ([Add a runtime tool](#add-a-runtime-tool)).
+- The history reports the messages as stored.
+
+`LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
+
+**Limits.** A document that expires in its store is not noticed by the agent. Documents named only in the content of an
+evicted assistant message are not tracked, and handles the model writes in the final text are not interpreted. A
+content type is not sniffed from the bytes for documents of unknown type. The follow-ups that close these limits are
+listed in [ADR 018](../adr/018-document-flow.md).
+
+Only for an instance without the `documents` feature, `ToolCallResultDocumentExtractor` is the entrypoint, called from
+`AgentConversationTurnInputComposerImpl` for each process tool call result, before `ToolCallResultsInputBuilder` builds the `ToolCallResultMessage`. For each result it asks the registry which handler manages
 the tool name (`GatewayToolHandlerRegistry.handlerForToolDefinition`) and either:
 
-- delegates to that handler's `extractDocuments(ToolCallResult)` — handlers walk their own typed
+- delegates to that handler's `extractDocuments(ToolCallResult)` (called only for an instance without the `documents`
+  feature; an instance with it finds the documents of a result the way it renders them as handles) — handlers walk their own typed
   content (sealed-type `switch` over `McpContent` / `A2aSendMessageResult`), so documents inside
   typed records remain discoverable;
-- falls back to `ContentTreeDocumentWalker` — a stateless static utility that recursively walks
+- falls back to `ContentTreeDocumentWalker` (also only for an instance without the feature) — a stateless static utility that recursively walks
   `Map`, `Collection`, `Object[]` and `Document` nodes. Used for plain BPMN tools whose content is
   the raw FEEL tree from the engine.
 
@@ -294,6 +367,9 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   enabled when it is executed ("is not available"), a `RuntimeToolException` and `RuntimeToolResult.error` give an error
   result the model reads.
 
+**Documents.** A `DocumentContent` block in the result is a new document: after the calls of the message ran, the agent
+registers it with the tool call as its origin, and the model reads its handle only ([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). An error result registers nothing.
+
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
-of `AgentContext.toolDefinitions`), turns the content into a tool result, and reports the tool and its calls to agent
-instance history without an element id.
+of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the
+calls ran, and reports the tool and its calls to agent instance history without an element id.

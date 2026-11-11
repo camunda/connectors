@@ -7,9 +7,14 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker;
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
@@ -32,6 +37,10 @@ import org.slf4j.LoggerFactory;
  * io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler#extractDocuments(ToolCallResult)
  * extractDocuments}, the handler's typed extraction is used instead — gateway handlers contribute
  * extraction for the results they manage; the generic walker handles everything else.
+ *
+ * <p>The agent uses this extraction only for agent instances without the {@code documents} feature.
+ * An instance with it collects the documents of a result with {@link #renderedDocumentsOf} and
+ * {@link #renderedDocumentsIn}, the way it renders them as handles.
  */
 public class ToolCallResultDocumentExtractor {
 
@@ -86,12 +95,48 @@ public class ToolCallResultDocumentExtractor {
         case ObjectContent objectContent ->
             documents.addAll(
                 ContentTreeDocumentWalker.extractDocumentsFromContent(objectContent.content()));
-        default -> {
-          // only these blocks hold live documents
-        }
+        // only document and object blocks hold live documents
+        case TextContent ignored -> {}
+        case AgentDocumentContent ignored -> {}
+        case ReasoningContent ignored -> {}
+        case ProviderContent ignored -> {}
       }
     }
     return distinct(documents);
+  }
+
+  /**
+   * Extracts the {@link Document} instances of structured content the way the model reads it: the
+   * documents of its {@link DocumentContent} blocks and every document that the renderer replaces
+   * with its handle in its {@link ObjectContent} blocks, at any depth and also inside a typed
+   * record, without duplicates and in order of appearance. No gateway tool handler takes part.
+   */
+  public static List<Document> renderedDocumentsOf(
+      List<Content> content, ObjectHandleRenderer objectHandleRenderer) {
+    final var documents = new ArrayList<Document>();
+    for (final var block : content) {
+      switch (block) {
+        case DocumentContent documentContent -> documents.add(documentContent.document());
+        case ObjectContent objectContent ->
+            documents.addAll(objectHandleRenderer.documentsIn(objectContent.content()));
+        // only document and object blocks hold live documents
+        case TextContent ignored -> {}
+        case AgentDocumentContent ignored -> {}
+        case ReasoningContent ignored -> {}
+        case ProviderContent ignored -> {}
+      }
+    }
+    return distinct(documents);
+  }
+
+  /**
+   * The documents of any value the way the model reads it, for example the content of an event: the
+   * ones the renderer replaces with their handle, at any depth and also inside a typed record,
+   * without duplicates and in order of appearance.
+   */
+  public static List<Document> renderedDocumentsIn(
+      Object value, ObjectHandleRenderer objectHandleRenderer) {
+    return distinct(objectHandleRenderer.documentsIn(value));
   }
 
   private List<Document> extractFromToolCallResult(ToolCallResult toolCallResult) {
@@ -110,7 +155,7 @@ public class ToolCallResultDocumentExtractor {
    * the content tree), keyed by DocumentReference, which is a record / has structural equality for
    * the standard reference types.
    */
-  private static List<Document> distinct(List<Document> documents) {
+  static List<Document> distinct(List<Document> documents) {
     final var seen = new HashSet<DocumentReference>();
     return documents.stream()
         .filter(Objects::nonNull)

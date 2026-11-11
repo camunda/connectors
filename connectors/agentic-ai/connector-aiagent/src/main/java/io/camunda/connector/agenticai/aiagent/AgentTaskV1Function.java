@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
@@ -126,18 +125,19 @@ public class AgentTaskV1Function implements AgentConnectorFunction {
   @Override
   public AgentTaskConnectorResponse execute(OutboundConnectorContext context) {
     var request = context.bindVariables(AgentTaskV1Request.class);
-    var executionContext = buildExecutionContext(context.getJobContext(), request);
+    var executionContext = buildExecutionContext(context, request);
     return agentRequestHandler.handleRequest(executionContext);
   }
 
   private AgentTaskExecutionContext buildExecutionContext(
-      JobContext jobContext, AgentTaskV1Request request) {
+      OutboundConnectorContext context, AgentTaskV1Request request) {
     if (rewriteV1ProviderConfigToV2) {
       var nativeConfig = providerConfigurationMapper.map(request.provider());
       return new AgentTaskExecutionContext(
-          jobContext, request.data(), nativeConfig, toolElementsResolver);
+          context.getJobContext(), context, request.data(), nativeConfig, toolElementsResolver);
     }
 
-    return new AgentTaskExecutionContext(jobContext, request, toolElementsResolver);
+    return new AgentTaskExecutionContext(
+        context.getJobContext(), context, request, toolElementsResolver);
   }
 }

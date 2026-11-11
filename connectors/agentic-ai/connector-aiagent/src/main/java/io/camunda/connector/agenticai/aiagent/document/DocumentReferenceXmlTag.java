@@ -17,7 +17,8 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Represents a self-closing XML tag used to label a document in the synthetic user message, e.g.:
+ * The self-closing XML tag that labels a document in the synthetic user message of an agent
+ * instance created without the documents feature, e.g.:
  *
  * <pre>{@code
  * <doc toolName="search" toolCallId="call_abc" documentId="25ece9fa-aeea-..." storeId="in-memory" contentType="application/pdf" fileName="report.pdf" />
@@ -25,7 +26,9 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Attribute names mirror the JSON field names emitted by the standard {@code DocumentSerializer}
  * so the model can correlate references in the tool result JSON with the actual document content
- * blocks 1:1 without inferring partial-id matches. Blank/null attributes are omitted.
+ * blocks 1:1 without inferring partial-id matches. Blank/null attributes are omitted. An agent
+ * instance with the documents feature shows a document as its handle instead (see {@link
+ * io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle}).
  *
  * <p>Only {@link CamundaDocumentReferenceXmlTag} carries {@code contentType} and {@code fileName}:
  * Camunda references read their metadata in-memory from the document store on resolve, so surfacing

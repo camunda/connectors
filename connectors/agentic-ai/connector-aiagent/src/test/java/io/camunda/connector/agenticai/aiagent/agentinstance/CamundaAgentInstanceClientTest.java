@@ -45,6 +45,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
@@ -73,6 +74,8 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -103,6 +106,11 @@ class CamundaAgentInstanceClientTest {
 
   private static final RetriesProperties RETRIES_CONFIGURATION =
       new RetriesProperties(4, Duration.ofSeconds(1));
+
+  private static final HistoryDocuments NEW_INSTANCE =
+      HistoryDocuments.of(
+          TestAgentExecutionContext.withLimits(),
+          AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()));
 
   private static final long ELEMENT_INSTANCE_KEY = 77L;
 
@@ -142,7 +150,8 @@ class CamundaAgentInstanceClientTest {
   @BeforeEach
   void setUp() {
     recordedSleeps = new ArrayList<>();
-    var historyMapper = new AgentInstanceHistoryMapper(gatewayToolHandlers);
+    var historyMapper =
+        new AgentInstanceHistoryMapper(gatewayToolHandlers, TestDocuments.objectHandleRenderer());
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
@@ -173,7 +182,8 @@ class CamundaAgentInstanceClientTest {
                 selector,
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
-                new AgentInstanceHistoryMapper(gatewayToolHandlers),
+                new AgentInstanceHistoryMapper(
+                    gatewayToolHandlers, TestDocuments.objectHandleRenderer()),
                 new AgentInstanceToolMapper(gatewayToolHandlers))
             .create(executionContext);
 
@@ -651,6 +661,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           null,
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
           TURN_INGESTION_TIMESTAMP);
@@ -672,6 +683,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           turn,
           Optional.of(precedingTurn(configuration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -702,6 +714,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLeaseToken("lease-token-abc"),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(configuration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -725,6 +738,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(configuration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -752,6 +766,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
           TURN_INGESTION_TIMESTAMP);
@@ -798,6 +813,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
           TURN_INGESTION_TIMESTAMP);
@@ -818,6 +834,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -841,6 +858,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -861,6 +879,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -882,6 +901,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -914,6 +934,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -968,6 +989,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           turn,
           Optional.of(previousTurn),
           TURN_INGESTION_TIMESTAMP);
@@ -1044,6 +1066,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           turn,
           Optional.of(previousTurn),
           TURN_INGESTION_TIMESTAMP);
@@ -1107,6 +1130,7 @@ class CamundaAgentInstanceClientTest {
                   TestAgentExecutionContext.withLimits(),
                   configuration,
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   turn,
                   Optional.empty(),
                   TURN_INGESTION_TIMESTAMP))
@@ -1241,6 +1265,7 @@ class CamundaAgentInstanceClientTest {
       client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           null,
+          NEW_INSTANCE,
           List.of(
               ToolCallResultContent.from(
                   ToolCallResult.builder().id("a").name("getWeather").build())),
@@ -1279,6 +1304,7 @@ class CamundaAgentInstanceClientTest {
       client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           List.of(ToolCallResultContent.from(arrivedResult)),
           previousTurn);
 
@@ -1353,6 +1379,7 @@ class CamundaAgentInstanceClientTest {
       client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           List.of(runtimeResult),
           assistantTurn);
       // the other write carries it together with the result of the process, with the turn start
@@ -1360,6 +1387,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           nextTurn,
           Optional.of(assistantTurn),
           OffsetDateTime.parse("2026-07-02T10:00:00Z"));
@@ -1389,6 +1417,7 @@ class CamundaAgentInstanceClientTest {
               client.applyToolCallResults(
                   TestAgentExecutionContext.withLimits(),
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   List.of(
                       ToolCallResultContent.from(
                           ToolCallResult.builder().id("orphan").name("getWeather").build())),
@@ -1442,6 +1471,7 @@ class CamundaAgentInstanceClientTest {
                   TestAgentExecutionContext.withLimits(),
                   configuration(),
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   userMessageTurn(),
                   Optional.empty(),
                   TURN_INGESTION_TIMESTAMP))
@@ -1495,6 +1525,7 @@ class CamundaAgentInstanceClientTest {
               client.applyToolCallResults(
                   TestAgentExecutionContext.withLimits(),
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   List.of(
                       ToolCallResultContent.from(
                           ToolCallResult.builder()
@@ -1534,6 +1565,7 @@ class CamundaAgentInstanceClientTest {
                   TestAgentExecutionContext.withLimits(),
                   configuration(),
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   userMessageTurn(),
                   Optional.empty(),
                   TURN_INGESTION_TIMESTAMP))
@@ -1555,6 +1587,7 @@ class CamundaAgentInstanceClientTest {
                   TestAgentExecutionContext.withLimits(),
                   configuration(),
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   userMessageTurn(),
                   Optional.empty(),
                   TURN_INGESTION_TIMESTAMP))
@@ -1633,6 +1666,11 @@ class CamundaAgentInstanceClientTest {
     @Override
     public JobContext jobContext() {
       return jobContext;
+    }
+
+    @Override
+    public DocumentFactory documentFactory() {
+      return TestDocuments.documentFactory();
     }
 
     @Override

@@ -9,18 +9,27 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 /**
- * Builds the input of the turn that follows a batch of tool calls: the tool call result message in
- * call order, followed by a message with the documents of the results if there are any.
+ * Builds the input of the turn that follows a batch of tool calls from its results, in call order.
+ *
+ * <p>An agent instance that tracks its documents shows a document as its handle inside the tool
+ * result and reports it to be registered in its documents. An agent instance that does not keeps
+ * the document in a message of its own, next to its tag.
  */
 public class ToolCallResultsInputBuilder {
 
@@ -30,10 +39,47 @@ public class ToolCallResultsInputBuilder {
   /**
    * Builds the input of the turn that follows the batch.
    *
+   * @return the messages and, for an agent instance that tracks its documents, the documents of the
+   *     results to register, in call order
    * @throws IllegalStateException if a call of the batch has no result
+   * @throws UnsupportedDocumentReferenceException if an agent instance that tracks its documents
+   *     gets a document that is not a Camunda document
    */
-  public List<Message> build(ToolCallBatch batch) {
+  public TurnInput build(AgentContext agentContext, ToolCallBatch batch) {
     final var entries = batch.entriesInCallOrder();
+    return switch (agentContext.documentHandling()) {
+      case DocumentHandling.Tracked ignored -> buildWithDocumentBlocks(entries);
+      case DocumentHandling.Untracked ignored -> buildWithDocumentMessage(entries);
+    };
+  }
+
+  /**
+   * A document that is a whole result is persisted as a document block, like the documents that are
+   * not a whole result. The documents of every result are registered with the tool call as their
+   * origin.
+   */
+  private static TurnInput buildWithDocumentBlocks(List<ToolCallBatch.Entry> entries) {
+    entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
+    final var results =
+        entries.stream()
+            .map(ToolCallBatch.Entry::result)
+            .map(ToolCallResultContent::withDocumentsAsReferences)
+            .toList();
+    final var documents = new ArrayList<AgentDocument>();
+    for (final var entry : entries) {
+      final var origin = AgentDocumentOrigin.toolCall(entry.result().name(), entry.result().id());
+      entry.documents().forEach(document -> documents.add(AgentDocument.of(document, origin)));
+    }
+    return new TurnInput(
+        List.of(
+            ToolCallResultMessage.builder()
+                .results(results)
+                .metadata(MessageMetadata.defaults())
+                .build()),
+        documents);
+  }
+
+  private static TurnInput buildWithDocumentMessage(List<ToolCallBatch.Entry> entries) {
     final var messages = new ArrayList<Message>();
     messages.add(
         ToolCallResultMessage.builder()
@@ -57,7 +103,7 @@ public class ToolCallResultsInputBuilder {
       metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
       messages.add(UserMessage.builder().content(content).metadata(metadata).build());
     }
-    return List.copyOf(messages);
+    return new TurnInput(messages);
   }
 
   static List<Content> documentPairs(

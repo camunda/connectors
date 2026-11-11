@@ -122,18 +122,16 @@ class TurnReconstructorTest {
 
     var configuration =
         new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
+    var context =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .metadata(new AgentMetadata(1L, 1L, null, null))
+            .build();
     var conversation =
         AgentConversation.rehydrate(
-                configuration,
-                AgentContext.builder()
-                    .state(AgentState.READY)
-                    .metadata(new AgentMetadata(1L, 1L, null, null))
-                    .build(),
-                TurnReconstructor.reconstruct(List.of()),
-                null,
-                List.of(u))
+                configuration, context, TurnReconstructor.reconstruct(List.of()), null, List.of(u))
             .ingest(a1, AgentMetrics.empty())
-            .nextRuntimeToolRound(List.of(runtimeResults))
+            .nextRuntimeToolRound(List.of(runtimeResults), persisted -> context)
             .ingest(a2, AgentMetrics.empty());
 
     var persisted = conversation.allMessages();

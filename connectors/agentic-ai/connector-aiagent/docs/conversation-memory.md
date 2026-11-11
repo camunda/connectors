@@ -16,11 +16,16 @@ invocation and transformed through copy-on-write methods.
 - `ingest(assistantMessage, tokenUsage)`: completes the pending turn, recording per-turn metrics
   (1 model call, the token usage, and the tool-call count).
 - `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
-- `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a
-  read-only `ConversationSnapshot`.
+- `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a read-only
+  `ConversationSnapshot`. The request handler hands the snapshot to
+  `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before the model is called. The document factory
+  is the one of the job (`AgentExecutionContext.documentFactory()`): it restores the documents from the document store of
+  the physical tenant of the job.
 - `persistedContext()`: the base `AgentContext` without the metrics and iteration bookkeeping that `toAgentContext()`
-  adds; it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages)` opens the next round of the job with the
-  tool call results of the local tool calls, and the messages that follow them, as its input.
+  adds; it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages, registerDocuments)` opens the next round of
+  the job with the tool call results of the local tool calls, and the messages that follow them, as its input. It applies
+  the `UnaryOperator<AgentContext>` `registerDocuments` to the persisted context and continues with the context that it
+  returns: the persisted context with the documents of the input registered (`TurnInput.applyTo`).
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
   `AgentContext.metrics` by the current turn's delta and, once the current turn has been `ingest`ed,
   stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).
@@ -55,7 +60,20 @@ without a data migration, and is now also the cross-validation source for `itera
 detection described above.
 
 `ConversationSnapshot` (record, `...aiagent.api.conversation`) is the transient, windowed, read-only view sent
-to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`.
+to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. For an agent instance with the
+`documents` feature `DocumentExpander.expand` expands the document blocks
+(`AgentDocumentContent`, a typed content block with the delivery `reference` or `content`) with the agent documents
+(see [Document Extraction from Tool Call Results](../../docs/architecture/extension-points.md#document-extraction-from-tool-call-results)).
+The stored messages hold the document block only. In a user message a block becomes its handle text as a
+`TextContent` and, for the delivery `content`, the `DocumentContent` restored from the agent document after it. In a tool
+result a top-level block becomes the handle text as a `TextContent`, and a document nested in an object becomes its handle
+object inside the object, so the model providers have no document specific code for tool results. A block whose document
+the agent does not know stays its handle text (the id only), and the expansion never fails the request. The result depends only on the
+messages and the agent documents, so the request bytes are stable across requests (prompt caching). For an agent instance
+that does not track its documents (`Untracked`) the expander returns the snapshot as it is: the messages are left as they
+are and a `Document` in a tool result is serialized as its Camunda reference JSON. No provider receives a document inside a
+tool result, so the content of a document reaches the model only in a user message. The content of a document stays in every request until
+the message that holds it leaves the window; there is no removal.
 
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
 static window filter:

@@ -54,6 +54,7 @@ public interface AgentInstanceClient {
    * {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the agent-instance
    * feature).
    *
+   * @param documents how the history shows the documents of the agent
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -63,6 +64,7 @@ public interface AgentInstanceClient {
       AgentExecutionContext executionContext,
       AgentConfiguration configuration,
       @Nullable AgentInstanceKey agentInstanceKey,
+      HistoryDocuments documents,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp);
@@ -91,6 +93,7 @@ public interface AgentInstanceClient {
    * without changing the agent instance's status. Silently skips when {@code agentInstanceKey} is
    * {@code null}.
    *
+   * @param documents how the history shows the documents of the agent
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -99,6 +102,7 @@ public interface AgentInstanceClient {
   void applyToolCallResults(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
+      HistoryDocuments documents,
       List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn);
 }

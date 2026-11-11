@@ -20,17 +20,26 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
@@ -40,6 +49,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -60,11 +70,17 @@ class AgentConversationTurnInputComposerImplTest {
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
-  private static final AgentContext CTX = AgentContext.builder().state(AgentState.READY).build();
+  // the contexts of an agent instance with the documents feature
+  private static final AgentContext CTX =
+      AgentContext.builder()
+          .state(AgentState.READY)
+          .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+          .build();
   // a context with a previous conversation cursor — the realistic state when tool results arrive
   private static final AgentContext CTX_WITH_CONVERSATION =
       AgentContext.builder()
           .state(AgentState.READY)
+          .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
           .conversation(InProcessConversationContext.builder("conv").build())
           .build();
   private static final AgentConfiguration CONFIG =
@@ -79,7 +95,9 @@ class AgentConversationTurnInputComposerImplTest {
         .thenReturn(java.util.Optional.empty());
     composer =
         new AgentConversationTurnInputComposerImpl(
-            gatewayToolHandlers, new ToolCallResultsInputBuilder());
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilder(),
+            TestDocuments.objectHandleRenderer());
   }
 
   private CompositionResult resolve(
@@ -90,12 +108,16 @@ class AgentConversationTurnInputComposerImplTest {
     return composer.resolve(configuration, agentContext, history, input);
   }
 
-  /** The input messages of a result that is ready and has no local tool calls to answer. */
-  private List<Message> messagesOf(CompositionResult result) {
+  /** The input of a result that is ready and has no local tool calls to answer. */
+  private TurnInput inputOf(CompositionResult result) {
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     final var ready = (CompositionResult.Ready) result;
     assertThat(ready.unansweredToolCalls()).isEmpty();
-    return composer.assemble(ready).messages();
+    return composer.assemble(ready);
+  }
+
+  private List<Message> messagesOf(CompositionResult result) {
+    return inputOf(result).messages();
   }
 
   private Document createDocument(String content, String contentType, String fileName) {
@@ -114,10 +136,12 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     var ready = (CompositionResult.Ready) result;
     assertThat(ready.toolCallBatch()).isEqualTo(ToolCallBatch.of(List.of()));
-    assertThat(ready.eventMessages()).isEmpty();
-    assertThat(ready.userPrompt()).isNotNull();
-    assertThat(ready.userPrompt().content()).containsExactly(textContent("Hello?"));
-    assertThat(messagesOf(result)).containsExactly(ready.userPrompt());
+    assertThat(ready.events()).isEqualTo(TurnInput.empty());
+    assertThat(ready.userPrompt().messages()).singleElement().isInstanceOf(UserMessage.class);
+    assertThat(((UserMessage) ready.userPrompt().messages().getFirst()).content())
+        .containsExactly(textContent("Hello?"));
+    assertThat(ready.userPrompt().documents()).isEmpty();
+    assertThat(messagesOf(result)).containsExactlyElementsOf(ready.userPrompt().messages());
   }
 
   @Test
@@ -144,7 +168,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void toolResultTurn_allResultsPresent_returnsReady() {
+  void toolResultTurn_allResultsPresent_returnsTheResultsAsOneMessageAndIngestsNoDocument() {
     var input =
         AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
     List<Message> storedMessages =
@@ -152,6 +176,9 @@ class AgentConversationTurnInputComposerImplTest {
     var history = TurnReconstructor.reconstruct(storedMessages);
     var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
+    var nextTurn = inputOf(result);
+    assertThat(nextTurn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    assertThat(nextTurn.documents()).isEmpty();
   }
 
   @Test
@@ -222,8 +249,8 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void firstTurn_withUserPromptDocuments_addsDocumentContent() {
-    var document = mock(Document.class);
+  void firstTurn_withUserPromptDocuments_addsTheReferencesWithTheDeliveryContent() {
+    var document = createDocument("story notes", "text/plain", "notes.txt");
     var input =
         AgentInput.from(
             new UserPromptConfiguration("Tell me a story", List.of(document)), List.of());
@@ -233,7 +260,24 @@ class AgentConversationTurnInputComposerImplTest {
 
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     var userMessage = (UserMessage) messagesOf(result).getFirst();
-    assertThat(userMessage.content()).contains(DocumentContent.documentContent(document));
+    assertThat(userMessage.content())
+        .containsExactly(
+            textContent("Tell me a story"), documentReference(document, DocumentDelivery.CONTENT));
+    final var ingested = inputOf(result).documents();
+    assertThat(ingested)
+        .containsExactly(
+            AgentDocument.of(document, AgentDocumentOrigin.userMessage(userMessage.id())));
+    assertThat(
+            TestDocuments.handleText(
+                AgentDocuments.empty().register(ingested), AgentDocumentId.of(document)))
+        .isEqualTo(
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"notes.txt\",\"contentType\":\"text/plain\"}"
+                .formatted(AgentDocumentId.of(document)));
+  }
+
+  private static AgentDocumentContent documentReference(
+      Document document, DocumentDelivery delivery) {
+    return new AgentDocumentContent(AgentDocumentId.of(document), delivery, null);
   }
 
   @Test
@@ -390,7 +434,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void toolResultTurn_resultsContainDocuments_emitsToolCallDocumentMessage() {
+  void toolResultTurn_resultsContainDocuments_emitsNoDocumentMessage() {
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
         AgentInput.from(
@@ -412,30 +456,28 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    var messages = messagesOf(result);
-    assertThat(messages).hasSize(2);
-    assertThat(messages.getFirst()).isInstanceOf(ToolCallResultMessage.class);
-    assertThat(messages.get(1))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            documentMessage -> {
-              assertThat(documentMessage.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-              assertThat(documentMessage.content())
-                  .first()
-                  .isEqualTo(textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE));
-              assertThat(documentMessage.content())
-                  .contains(DocumentContent.documentContent(weatherDoc));
-            });
+    // the document is shown as its handle inside the tool result; the message holds it untouched
+    var nextTurn = inputOf(result);
+    assertThat(nextTurn.messages()).hasSize(1);
+    var toolCallResultMessage = (ToolCallResultMessage) nextTurn.messages().getFirst();
+    assertThat(toolCallResultMessage.results())
+        .filteredOn(r -> "abcdef".equals(r.id()))
+        .first()
+        .satisfies(r ->
+            assertThat(r.content())
+                .containsExactly(
+                    ObjectContent.objectContent(
+                        Map.of("result", "Sunny", "attachment", weatherDoc))));
+    assertThat(nextTurn.documents())
+        .containsExactly(
+            AgentDocument.of(weatherDoc, AgentDocumentOrigin.toolCall("getWeather", "abcdef")));
   }
 
   @Test
-  void toolResultTurn_bareDocumentResult_liftsToDocumentContentAndAlsoDeliversFallbackMessage() {
-    // a tool call result whose whole content is a Document (not nested in an object): the
-    // ToolCallResultContent lift turns this into a first-class DocumentContent, same as every
-    // other content-lift path; the fallback <doc/> message is still composed alongside it
-    // regardless — provider tool-result converters are responsible for not embedding the same
-    // bytes a second time, not this provider-agnostic composition step
+  void toolResultTurn_bareDocumentResult_isPersistedAsItsReferenceWithoutADocumentMessage() {
+    // a tool call result whose whole content is a Document (not nested in an object) is persisted
+    // as the reference that renders the handle the model sees, and is still ingested into the
+    // agent documents
     var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
     var input =
         AgentInput.from(
@@ -457,24 +499,135 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
-    var messages = messagesOf(result);
-    assertThat(messages).hasSize(2);
-    var toolCallResultMessage = (ToolCallResultMessage) messages.getFirst();
+    var nextTurn = inputOf(result);
+    assertThat(nextTurn.messages()).hasSize(1);
+    var toolCallResultMessage = (ToolCallResultMessage) nextTurn.messages().getFirst();
+    assertThat(toolCallResultMessage.results())
+        .filteredOn(r -> "abcdef".equals(r.id()))
+        .first()
+        .satisfies(r ->
+            assertThat(r.content())
+                .containsExactly(AgentDocumentContent.of(AgentDocumentId.of(weatherDoc))));
+    assertThat(nextTurn.documents())
+        .containsExactly(
+            AgentDocument.of(weatherDoc, AgentDocumentOrigin.toolCall("getWeather", "abcdef")));
+  }
+
+  @Test
+  void toolResultTurn_bareDocumentResult_withoutTheDocumentsFeature_staysTheBareDocument() {
+    var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
+    var legacyContext =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .conversation(InProcessConversationContext.builder("conv").build())
+            .build();
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(
+                ToolCallResult.builder()
+                    .id("abcdef")
+                    .name("getWeather")
+                    .content(weatherDoc)
+                    .build(),
+                ToolCallResult.builder()
+                    .id("fedcba")
+                    .name("getDateTime")
+                    .content("15:00")
+                    .build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = resolve(CONFIG, legacyContext, history, input);
+
+    var nextTurn = inputOf(result);
+    var toolCallResultMessage = (ToolCallResultMessage) nextTurn.messages().getFirst();
     assertThat(toolCallResultMessage.results())
         .filteredOn(r -> "abcdef".equals(r.id()))
         .first()
         .satisfies(r ->
             assertThat(r.content()).containsExactly(DocumentContent.documentContent(weatherDoc)));
-    assertThat(messages.get(1))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            documentMessage ->
-                assertThat(documentMessage.content())
-                    .contains(DocumentContent.documentContent(weatherDoc)));
+    assertThat(nextTurn.documents()).isEmpty();
+  }
+
+  /** The typed content of a gateway tool result, with a document nested in a record. */
+  record GatewayResponse(String text, GatewayPart part) {}
+
+  record GatewayPart(Map<String, Object> data) {}
+
+  private ToolCallResult gatewayResultWithNestedDocument(Document document) {
+    // the handler of the gateway extracts no document from the typed content
+    final var handler = mock(GatewayToolHandler.class);
+    when(handler.extractDocuments(any())).thenReturn(List.of());
+    when(gatewayToolHandlers.handlerForToolDefinition("getWeather"))
+        .thenReturn(java.util.Optional.of(handler));
+    return ToolCallResult.builder()
+        .id("abcdef")
+        .name("getWeather")
+        .content(new GatewayResponse("Sunny", new GatewayPart(Map.of("report", document))))
+        .build();
   }
 
   @Test
-  void waitForToolResults_toolAndEventDocuments_emitsMessagesInOrder() {
+  void toolResultTurn_documentNestedInTypedGatewayContent_isRegisteredAsTheModelReadsItsHandle() {
+    var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(
+                gatewayResultWithNestedDocument(weatherDoc),
+                ToolCallResult.builder()
+                    .id("fedcba")
+                    .name("getDateTime")
+                    .content("15:00")
+                    .build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
+
+    var nextTurn = inputOf(result);
+    assertThat(nextTurn.messages()).hasSize(1);
+    assertThat(nextTurn.documents())
+        .containsExactly(
+            AgentDocument.of(weatherDoc, AgentDocumentOrigin.toolCall("getWeather", "abcdef")));
+  }
+
+  @Test
+  void
+      toolResultTurn_documentNestedInTypedGatewayContent_withoutTheDocumentsFeature_followsTheHandler() {
+    var weatherDoc = createDocument("weather data", "text/plain", "weather.txt");
+    var legacyContext =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .conversation(InProcessConversationContext.builder("conv").build())
+            .build();
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(
+                gatewayResultWithNestedDocument(weatherDoc),
+                ToolCallResult.builder()
+                    .id("fedcba")
+                    .name("getDateTime")
+                    .content("15:00")
+                    .build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = resolve(CONFIG, legacyContext, history, input);
+
+    // no document message: the handler extracts no document
+    var nextTurn = inputOf(result);
+    assertThat(nextTurn.messages()).hasSize(1).first().isInstanceOf(ToolCallResultMessage.class);
+    assertThat(nextTurn.documents()).isEmpty();
+  }
+
+  @Test
+  void waitForToolResults_toolAndEventDocuments_emitsTheToolResultsThenTheEventWithHandles() {
     var config =
         new AgentConfiguration(
             null,
@@ -505,33 +658,127 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = resolve(config, CTX_WITH_CONVERSATION, history, input);
 
-    // order: tool call results -> tool-call documents -> event (with its documents)
+    // order: tool call results -> event (with its document handles)
     var messages = messagesOf(result);
-    assertThat(messages).hasSize(3);
+    assertThat(messages).hasSize(2);
     assertThat(messages.get(0)).isInstanceOf(ToolCallResultMessage.class);
     assertThat(messages.get(1))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            toolCallDocuments -> {
-              assertThat(toolCallDocuments.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-              assertThat(toolCallDocuments.content())
-                  .first()
-                  .isEqualTo(textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE));
-              assertThat(toolCallDocuments.content())
-                  .contains(DocumentContent.documentContent(toolDoc));
-            });
-    assertThat(messages.get(2))
         .isInstanceOfSatisfying(
             UserMessage.class,
             eventMessage -> {
               assertThat(eventMessage.content())
                   .contains(
-                      textContent(AgentConversationTurnInputComposerImpl.EVENT_DOCUMENTS_PREAMBLE))
-                  .contains(DocumentContent.documentContent(eventDoc));
+                      textContent(
+                          AgentConversationTurnInputComposerImpl.TRACKED_EVENT_DOCUMENTS_PREAMBLE))
+                  .contains(documentReference(eventDoc, DocumentDelivery.REFERENCE))
+                  .noneMatch(DocumentContent.class::isInstance);
               assertThat(eventMessage.metadata())
                   .doesNotContainKey(UserMessage.METADATA_TOOL_CALL_DOCUMENTS);
             });
+  }
+
+  @Test
+  void toolResultTurn_documentsAreIngestedWithTheirSourceFollowedByEventDocuments() {
+    var config =
+        new AgentConfiguration(
+            null,
+            null,
+            null,
+            null,
+            null,
+            new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
+            null);
+    var toolDoc = createDocument("weather data", "text/plain", "weather.txt");
+    var nestedToolDoc = createDocument("nested data", "text/plain", "nested.txt");
+    var eventDoc = createDocument("event data", "application/pdf", "event.pdf");
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(
+                ToolCallResult.builder()
+                    .id("abcdef")
+                    .name("getWeather")
+                    .content(Map.of("file", toolDoc, "more", List.of(Map.of("d", nestedToolDoc))))
+                    .build(),
+                ToolCallResult.builder().id("fedcba").name("getDateTime").content("15:00").build(),
+                ToolCallResult.builder().content(Map.of("file", eventDoc)).build()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = resolve(config, CTX_WITH_CONVERSATION, history, input);
+
+    final var nextTurn = inputOf(result);
+    assertThat(nextTurn.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
+    // the event document comes with the message of the event, the last one of the turn
+    final var eventOrigin = AgentDocumentOrigin.event(nextTurn.messages().getLast().id());
+    assertThat(nextTurn.documents())
+        .containsExactlyInAnyOrder(
+            AgentDocument.of(toolDoc, AgentDocumentOrigin.toolCall("getWeather", "abcdef")),
+            AgentDocument.of(nestedToolDoc, AgentDocumentOrigin.toolCall("getWeather", "abcdef")),
+            AgentDocument.of(eventDoc, eventOrigin))
+        .last()
+        .isEqualTo(AgentDocument.of(eventDoc, eventOrigin));
+  }
+
+  private record EventPayload(String text, Document file) {}
+
+  private static final EventHandlingConfiguration WAIT_FOR_TOOL_CALL_RESULTS =
+      new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS);
+
+  private AgentInput inputWithTheEventOf(EventPayload payload) {
+    return AgentInput.from(
+        new UserPromptConfiguration("user input", List.of()),
+        List.of(
+            ToolCallResult.builder().id("abcdef").name("getWeather").content("sunny").build(),
+            ToolCallResult.builder().id("fedcba").name("getDateTime").content("15:00").build(),
+            ToolCallResult.builder().content(payload).build()));
+  }
+
+  @Test
+  void eventTurn_documentInATypedRecordOfTheEvent_ofATrackedInstance_isRegisteredWithItsHandle() {
+    var config =
+        new AgentConfiguration(null, null, null, null, null, WAIT_FOR_TOOL_CALL_RESULTS, null);
+    var eventDoc = createDocument("event data", "application/pdf", "event.pdf");
+    var payload = new EventPayload("event", eventDoc);
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = resolve(config, CTX_WITH_CONVERSATION, history, inputWithTheEventOf(payload));
+
+    final var nextTurn = inputOf(result);
+    final var eventMessage = (UserMessage) nextTurn.messages().getLast();
+    assertThat(eventMessage.content())
+        .containsExactly(
+            ObjectContent.objectContent(payload),
+            textContent(AgentConversationTurnInputComposerImpl.TRACKED_EVENT_DOCUMENTS_PREAMBLE),
+            documentReference(eventDoc, DocumentDelivery.REFERENCE));
+    assertThat(nextTurn.documents())
+        .containsExactly(AgentDocument.of(eventDoc, AgentDocumentOrigin.event(eventMessage.id())));
+  }
+
+  @Test
+  void eventTurn_documentInATypedRecordOfTheEvent_ofAnUntrackedInstance_isNotFound() {
+    var config =
+        new AgentConfiguration(null, null, null, null, null, WAIT_FOR_TOOL_CALL_RESULTS, null);
+    var eventDoc = createDocument("event data", "application/pdf", "event.pdf");
+    var payload = new EventPayload("event", eventDoc);
+    var untracked =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .conversation(InProcessConversationContext.builder("conv").build())
+            .build();
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = resolve(config, untracked, history, inputWithTheEventOf(payload));
+
+    final var nextTurn = inputOf(result);
+    assertThat(((UserMessage) nextTurn.messages().getLast()).content())
+        .containsExactly(ObjectContent.objectContent(payload));
+    assertThat(nextTurn.documents()).isEmpty();
   }
 
   private static final ToolCallResultContent RUNTIME_RESULT =
@@ -627,7 +874,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void runtimeToolCallResult_thatReturnsADocumentIsFollowedByTheDocumentMessage() {
+  void runtimeToolCallResult_thatIsADocumentIsPersistedAsItsReferenceAndIngested() {
     var document = createDocument("first", "text/plain", "first.txt");
     var runtimeResult =
         RUNTIME_RESULT.withContent(List.of(DocumentContent.documentContent(document)));
@@ -636,22 +883,54 @@ class AgentConversationTurnInputComposerImplTest {
     var turnInput =
         assembleWithLocalResults(CONFIG, historyWith(MIXED_CALLS), input, runtimeResult);
 
-    // the document of the result is handled like the document of a result of the process
-    var messages = turnInput.messages();
-    assertThat(messages).hasSize(2);
-    assertThat(messages.get(0)).isInstanceOf(ToolCallResultMessage.class);
-    assertThat(messages.get(1))
-        .isInstanceOfSatisfying(
-            UserMessage.class,
-            toolCallDocuments -> {
-              assertThat(toolCallDocuments.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-              assertThat(toolCallDocuments.content())
-                  .first()
-                  .isEqualTo(textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE));
-              assertThat(toolCallDocuments.content())
-                  .contains(DocumentContent.documentContent(document));
-            });
+    assertThat(resultsOf(turnInput).getFirst().content())
+        .containsExactly(AgentDocumentContent.of(AgentDocumentId.of(document)));
+    // the document of the result of a runtime tool is registered with the call that returned it
+    assertThat(turnInput.documents())
+        .containsExactly(
+            AgentDocument.of(document, AgentDocumentOrigin.toolCall("getWeather", "abcdef")));
+  }
+
+  @Test
+  void runtimeToolDocuments_areIngestedWithTheProcessDocumentsInToolCallOrder() {
+    var runtimeDocument = createDocument("created", "text/plain", "created.txt");
+    var nestedRuntimeDocument = createDocument("nested", "text/plain", "nested.txt");
+    var processDocument = createDocument("weather", "text/plain", "weather.txt");
+    var runtimeResult =
+        RUNTIME_RESULT.withContent(
+            List.of(
+                textContent("Created."),
+                DocumentContent.documentContent(runtimeDocument),
+                ObjectContent.objectContent(Map.of("more", nestedRuntimeDocument))));
+    var input =
+        inputWith(
+            ToolCallResult.builder()
+                .id("fedcba")
+                .name("getDateTime")
+                .content(Map.of("file", processDocument))
+                .build());
+
+    var turnInput =
+        assembleWithLocalResults(CONFIG, historyWith(MIXED_CALLS), input, runtimeResult);
+
+    // the first call is the runtime tool call, the second one belongs to the process
+    assertThat(turnInput.documents())
+        .containsExactly(
+            AgentDocument.of(runtimeDocument, AgentDocumentOrigin.toolCall("getWeather", "abcdef")),
+            AgentDocument.of(
+                nestedRuntimeDocument, AgentDocumentOrigin.toolCall("getWeather", "abcdef")),
+            AgentDocument.of(
+                processDocument, AgentDocumentOrigin.toolCall("getDateTime", "fedcba")));
+  }
+
+  @Test
+  void runtimeToolErrorResult_ingestsNoDocument() {
+    var errorResult = RUNTIME_RESULT.withContent(List.of(textContent("The tool failed.")));
+    var input = inputWith(TOOL_CALL_RESULTS.get(1));
+
+    var turnInput = assembleWithLocalResults(CONFIG, historyWith(MIXED_CALLS), input, errorResult);
+
+    assertThat(turnInput.documents()).isEmpty();
   }
 
   @Test
@@ -662,8 +941,8 @@ class AgentConversationTurnInputComposerImplTest {
 
     assertThat(ready.toolCallBatch()).isEqualTo(ToolCallBatch.of(RUNTIME_CALLS));
     assertThat(ready.unansweredToolCalls()).isEqualTo(RUNTIME_CALLS);
-    assertThat(ready.userPrompt()).isNull();
-    assertThat(ready.eventMessages()).isEmpty();
+    assertThat(ready.userPrompt()).isEqualTo(TurnInput.empty());
+    assertThat(ready.events()).isEqualTo(TurnInput.empty());
 
     var turnInput =
         composer.assemble(

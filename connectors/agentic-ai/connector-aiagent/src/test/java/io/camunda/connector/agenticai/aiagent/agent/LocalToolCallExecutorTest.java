@@ -18,11 +18,16 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.api.document.Document;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +56,7 @@ class LocalToolCallExecutorTest {
   void setUp() {
     runtimeTools = mock(RuntimeTools.class);
     executionContext = mock(AgentExecutionContext.class);
-    executor = new LocalToolCallExecutor(runtimeTools);
+    executor = new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer());
   }
 
   private static ToolCallBatch.Entry entryOf(List<ToolCallBatch.Entry> entries, ToolCall call) {
@@ -125,5 +130,64 @@ class LocalToolCallExecutorTest {
         .hasMessageContaining("someTask");
 
     verifyNoInteractions(runtimeTools);
+  }
+
+  private record Attachment(String name, Document file) {}
+
+  @Test
+  void aTrackedInstanceRegistersTheDocumentInATypedRecordOfAResult() {
+    final var tracked =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+            .build();
+    final var document = TestDocuments.createDocument("content", "report.txt");
+    final var content = ObjectContent.objectContent(new Attachment("report", document));
+    final var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    final var calls = List.of(RUNTIME_CALL);
+    when(runtimeTools.execute(executionContext, tracked, calls))
+        .thenReturn(
+            List.of(
+                new RuntimeToolExecution(
+                    RUNTIME_CALL, RuntimeToolResult.success(List.of(content)), now, now)));
+
+    final var entries = executor.execute(executionContext, tracked, calls);
+
+    assertThat(entries)
+        .containsExactly(
+            new ToolCallBatch.Entry(
+                ToolCallResultContent.builder()
+                    .id("runtime-1")
+                    .name("getWeather")
+                    .content(List.of(content))
+                    .completedAt(now)
+                    .build(),
+                List.of(document)));
+  }
+
+  @Test
+  void anUntrackedInstanceFindsNoDocumentInATypedRecordOfAResult() {
+    final var document = TestDocuments.createDocument("content", "report.txt");
+    final var content = ObjectContent.objectContent(new Attachment("report", document));
+    final var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    final var calls = List.of(RUNTIME_CALL);
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, calls))
+        .thenReturn(
+            List.of(
+                new RuntimeToolExecution(
+                    RUNTIME_CALL, RuntimeToolResult.success(List.of(content)), now, now)));
+
+    final var entries = executor.execute(executionContext, AGENT_CONTEXT, calls);
+
+    assertThat(entries)
+        .containsExactly(
+            new ToolCallBatch.Entry(
+                ToolCallResultContent.builder()
+                    .id("runtime-1")
+                    .name("getWeather")
+                    .content(List.of(content))
+                    .completedAt(now)
+                    .build(),
+                List.of()));
   }
 }

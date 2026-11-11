@@ -146,6 +146,7 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 | Spring auto-configuration, feature toggles, config defaults              | [`spring-auto-configuration.md`](docs/architecture/spring-auto-configuration.md)                                                                     |
 | Process instance migration (what's allowed / blocked)                    | [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md)                                                              |
 | Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern)                                                                  |
+| Agent documents (registry, handles, expansion for the model, only Camunda documents) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`data-model.md`](aiagent-model/docs/data-model.md), [ADR 018](docs/adr/018-document-flow.md) |
 | MCP integration                                                          | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md)                       |
 | A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
 | Example BPMN processes & configurations                                  | the `Examples` section of the connector module READMEs, [`examples/`](examples/)                                                                     |
@@ -227,12 +228,17 @@ High-frequency traps (detail behind each link):
   fallback resolution and is silently dropped if not copied explicitly.
   [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
-  instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
-  instance without the `runtimeTools` feature (created before it) is offered no runtime tools and no tool element is
-  checked against runtime tool names; the feature gates only what is offered. Gate new behavior that changes the wire
-  format or the persisted shape on `AgentContext.supports(...)`. The one deliberate exception is the tagging and the
-  rejection of tool calls (next item), which applies to every agent instance: handing the call of an unknown tool to
-  the process made the agent wait for a result that never came, without an incident. [ADR 016](docs/adr/016-runtime-tools.md).
+  instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
+  `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
+  keeps the previous document handling (bare content and the older XML tag format, no agent documents), a `Tracked` one holds
+  its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
+  `boolean` parameter. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
+  and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
+  behavior that changes the wire format or the persisted shape on a feature and keep the legacy
+  path covered by `LegacyDocumentConversationTest`. The one deliberate exception is the admission and the rejection of
+  tool calls (next item), which applies to every agent instance: handing the call of an unknown tool to the process
+  made the agent wait for a result that never came, without an incident.
+  [ADR 018](docs/adr/018-document-flow.md), [ADR 016](docs/adr/016-runtime-tools.md).
 - **Tool calls are admitted once, and the agent produces the tool call results of local tool calls itself**: before an
   assistant message enters the conversation, `ToolCallAdmission` sets `ToolCall.kind` to the kind of the tool of the call's name among the
   tools offered in the job, and `ToolCall.rejection` (the error text) when the call must not be carried out, such as a name that is not offered, and never computes either
@@ -245,6 +251,37 @@ High-frequency traps (detail behind each link):
   every call without a result, also the calls of runtime tools that were not executed yet. When the model issues local tool calls and process tool calls together, only
   the process tool calls are activated, and the agent adds the tool call results of the local tool calls when the next
   turn is composed, merged with the process results in call order. [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete), [ADR 016](docs/adr/016-runtime-tools.md).
+- **Documents are persisted as references and expanded for the model**: for a `Tracked` instance the conversation holds
+  typed document blocks (`AgentDocumentContent`: the id and the delivery), also for a document that is a whole tool
+  result, and `AgentContext.documents` (`AgentDocuments`) holds what the blocks stand for: per document (`AgentDocument`)
+  its `AgentDocumentId`, its `AgentDocumentOrigin` (sealed: user message or event with the id of the message, or tool call, persisted with the
+  discriminator `type`) and its document reference in the format of the connector SDK. A new document is a `DocumentContent` (the user
+  prompt, events, tool results, and every document of an `Untracked` instance; the only document a provider sees), a known
+  one an `AgentDocumentContent` (it never reaches a provider, which fails loudly on it). The id is `doc_` and 12 hex
+  characters of a SHA-256 over the identity of the document (`AgentDocumentId.of`), never the id in the store; registering
+  a different document under a known id, also within one batch, fails with `DOCUMENT_ID_COLLISION`. A block holds no file
+  name, size or origin: the record `AgentDocumentHandle` is what the model reads (JSON with the keys `type`, `id`,
+  `fileName`, `contentType`, `size` in this order, no origin); `AgentDocumentHandle.of(agentDocuments, id)` builds it
+  from the agent document, and `ObjectHandleRenderer.text(handle)` writes it as compact JSON, `tree(handle)` as an object
+  node.
+  Naming: a type of the agent document registry carries the `AgentDocument` prefix: the entry, a part of one entry, the
+  list of entries, and a failure about an entry (`AgentDocument`, `AgentDocumentId`, `AgentDocumentOrigin`,
+  `AgentDocumentHandle`, `AgentDocumentContent`, `AgentDocuments`, `AgentDocumentIdCollisionException`,
+  `UnexpandedAgentDocumentException`). A type for any document of the SDK or for a setting of the instance keeps the
+  `Document` prefix (`DocumentContent`, `DocumentHandling`, `DocumentDelivery`). A class that does work is named by its
+  task (`DocumentExpander`, `DocumentRestorer`), and a type of another concept by that concept (`HistoryDocuments`).
+  `DocumentExpander.expand(snapshot, documentHandling, documentFactory)`, a named step of the model call after
+  `AgentConversation.window(int)` with the document factory of the job (`AgentExecutionContext.documentFactory()`, the
+  store of the physical tenant of the job), turns a block into its handle text and, with the delivery `content`, the document; in
+  a tool result it renders the handle as text and a document nested in an object as the handle object
+  (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
+  chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
+  SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
+  documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order.
+  A `Tracked` instance accepts only Camunda documents: an external or an inline document of the user prompt, a tool call
+  result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`).
+  [ADR 018](docs/adr/018-document-flow.md),
+  [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results).
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently

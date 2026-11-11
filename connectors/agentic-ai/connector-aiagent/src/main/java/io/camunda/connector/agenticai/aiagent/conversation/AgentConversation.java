@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -160,7 +161,7 @@ public final class AgentConversation {
       throw new IllegalStateException(
           "nextContinuationRound() called before the current turn was ingested");
     }
-    return nextRound(List.of());
+    return nextRound(List.of(), currentContext);
   }
 
   /**
@@ -170,17 +171,20 @@ public final class AgentConversation {
    *
    * @param inputMessages the input of the new turn, the results of every tool call of the closed
    *     turn first
+   * @param registerDocuments registers the documents of the input in the {@linkplain
+   *     #persistedContext() persisted context}; the new turn continues with the context it returns
    * @throws IllegalStateException if the current turn has not been ingested yet
    */
-  public AgentConversation nextRuntimeToolRound(List<Message> inputMessages) {
+  public AgentConversation nextRuntimeToolRound(
+      List<Message> inputMessages, UnaryOperator<AgentContext> registerDocuments) {
     if (currentTurn.assistantMessage() == null) {
       throw new IllegalStateException(
           "nextRuntimeToolRound() called before the current turn was ingested");
     }
-    return nextRound(inputMessages);
+    return nextRound(inputMessages, registerDocuments.apply(currentContext));
   }
 
-  private AgentConversation nextRound(List<Message> inputMessages) {
+  private AgentConversation nextRound(List<Message> inputMessages, AgentContext agentContext) {
     var updatedPreviousTurns = new ArrayList<>(previousTurns);
     updatedPreviousTurns.add(currentTurn);
     var nextTurn =
@@ -192,7 +196,7 @@ public final class AgentConversation {
             currentTurn.configurationFingerprint());
     return new AgentConversation(
         configuration,
-        currentContext,
+        agentContext,
         systemMessage,
         updatedPreviousTurns,
         nextTurn,
@@ -217,8 +221,9 @@ public final class AgentConversation {
   }
 
   /**
-   * The agent context this conversation is built on. Unlike {@link #toAgentContext()} it does not
-   * hold the metrics and the iteration bookkeeping of this invocation.
+   * The agent context this conversation is built on, with the changes made since: the registered
+   * documents and the properties. Unlike {@link #toAgentContext()} it does not hold the metrics and
+   * the iteration bookkeeping of this invocation.
    */
   public AgentContext persistedContext() {
     return currentContext;
