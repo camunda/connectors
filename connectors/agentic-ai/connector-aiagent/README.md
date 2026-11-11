@@ -310,7 +310,7 @@ leading to the following result
       },
       "toolCalls" : 0
     },
-    "schemaVersion" : 1,
+    "schemaVersion" : 2,
     "state" : "READY",
     "toolDefinitions" : [ {
       "description" : "A sample tool for demonstration purposes.",
