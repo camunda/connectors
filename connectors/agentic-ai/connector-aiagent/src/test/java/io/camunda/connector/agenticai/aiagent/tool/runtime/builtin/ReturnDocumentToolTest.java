@@ -69,7 +69,8 @@ class ReturnDocumentToolTest {
       new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE);
   private final RuntimeTools runtimeTools =
       new RuntimeTools(List.of(tool), TestObjectMapperSupplier.INSTANCE, resolver);
-  private final LocalToolCallExecutor executor = new LocalToolCallExecutor(runtimeTools);
+  private final LocalToolCallExecutor executor =
+      new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer());
   private final ToolCallResultsInputBuilder inputBuilder =
       new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery());
 
