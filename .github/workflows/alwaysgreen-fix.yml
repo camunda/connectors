@@ -60,9 +60,11 @@ on:
     secrets:
       VAULT_ADDR:
         required: true
-      VAULT_ROLE_ID:
+      VAULT_JWT_PATH:
         required: true
-      VAULT_SECRET_ID:
+      VAULT_JWT_ROLE:
+        required: true
+      VAULT_JWT_AUDIENCE:
         required: true
       CONNECTORS_SLACK_BOT_TOKEN:
         required: false
@@ -89,6 +91,11 @@ jobs:
   gate:
     name: Check feature flag
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      id-token: write # Vault JWT login for the feature flag lookup
     timeout-minutes: 5
     outputs:
       active: ${{ steps.flag.outputs.active }}
@@ -103,8 +110,9 @@ jobs:
         uses: ./.github/actions/alwaysgreen-flag
         with:
           vault-addr: ${{ secrets.VAULT_ADDR }}
-          vault-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-jwt-path: ${{ secrets.VAULT_JWT_PATH }}
+          vault-jwt-role: ${{ secrets.VAULT_JWT_ROLE }}
+          vault-jwt-audience: ${{ secrets.VAULT_JWT_AUDIENCE }}
       - name: Report disabled
         if: ${{ steps.flag.outputs.active != 'true' }}
         run: |
@@ -115,14 +123,83 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::AlwaysGreen fix agent is disabled by the Vault feature flag."
 
+  # Broker for the fix job: the only place that logs in to Vault on its behalf. It
+  # runs no agent and no repository code. The read token is minted here and left
+  # unrevoked (the fix job revokes it before the agent starts); it lives at most an
+  # hour, so a queued fix job must start within that window.
+  fix-secrets:
+    name: Wrap fix agent secrets
+    needs: gate
+    if: ${{ github.ref_protected && github.event_name != 'workflow_dispatch' && needs.gate.outputs.dispatch == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write  # Vault JWT login
+    outputs:
+      wrap-token: ${{ steps.wrap.outputs.wrap-token }}
+    steps:
+      - name: Generate read token
+        id: read-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@6c85c5de572dbc1790e5e7b4636c2ad9f5b614d8 # generate-github-app-token-from-vault-secrets: v1.1.0
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: jwt
+          vault-auth-jwt-path: ${{ secrets.VAULT_JWT_PATH }}
+          vault-auth-jwt-role: ${{ secrets.VAULT_JWT_ROLE }}
+          vault-auth-jwt-audience: ${{ secrets.VAULT_JWT_AUDIENCE }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: connectors,c8-cross-component-e2e-tests
+          skip-token-revoke: true
+
+      - name: Wrap secrets for the fix job
+        id: wrap
+        uses: camunda/infra-global-github-actions/vault-wrapped-secrets/wrap@c21e31eece771eb13d6c5e08e8831c9de62888bd # vault-wrapped-secrets-1.0.0
+        with:
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          vault-auth-jwt-path: ${{ secrets.VAULT_JWT_PATH }}
+          vault-auth-jwt-role: ${{ secrets.VAULT_JWT_ROLE }}
+          vault-auth-jwt-audience: ${{ secrets.VAULT_JWT_AUDIENCE }}
+          secrets: |
+            secret/data/products/qa/ci/common CLAUDE_API_KEY | ANTHROPIC_API_KEY;
+          values: '{"GH_READ_TOKEN": "${{ steps.read-token.outputs.token }}"}'
+
   fix:
     name: "AlwaysGreen fix [${{ inputs.dispatch_key }}]"
-    needs: gate
+    needs: [gate, fix-secrets]
     if: ${{ github.ref_protected && github.event_name != 'workflow_dispatch' && needs.gate.outputs.dispatch == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
+    # No id-token: this job runs an AI agent and cannot log in to Vault. Its secrets
+    # arrive wrapped from fix-secrets and the write credential lives in publish.
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      changed: ${{ steps.change.outputs.changed }}
+      repository: ${{ steps.change.outputs.repository }}
+      repository_name: ${{ steps.change.outputs.repository_name }}
+      base: ${{ steps.change.outputs.base }}
+      type: ${{ steps.change.outputs.type }}
+      branch: ${{ steps.change.outputs.branch }}
+      blame_author: ${{ steps.ctx.outputs.blame_author }}
+      blame_reviewer: ${{ steps.ctx.outputs.blame_reviewer }}
+      slack_ts: ${{ steps.ctx.outputs.slack_ts }}
+      slack_channel: ${{ steps.ctx.outputs.slack_channel }}
     steps:
+      - name: Unwrap secrets
+        id: unwrap
+        uses: camunda/infra-global-github-actions/vault-wrapped-secrets/unwrap@c21e31eece771eb13d6c5e08e8831c9de62888bd # vault-wrapped-secrets-1.0.0
+        with:
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          wrap-token: ${{ needs.fix-secrets.outputs.wrap-token }}
+
       - name: Validate inputs
         id: target
         env:
@@ -279,21 +356,6 @@ jobs:
           jq -r '.[] | "  \(.file) > \(.test_name)  attempts=\(.attempts) deterministic=\(.deterministic)"' \
             /tmp/test_specs.json
 
-      - name: Generate read token
-        id: read-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@6c85c5de572dbc1790e5e7b4636c2ad9f5b614d8 # generate-github-app-token-from-vault-secrets: v1.1.0
-        with:
-          github-app-id-vault-key: GITHUB_APP_ID
-          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          github-app-private-key-vault-key: GITHUB_APP_SECRET
-          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
-          vault-url: ${{ secrets.VAULT_ADDR }}
-          owner: camunda
-          repositories: connectors,c8-cross-component-e2e-tests
-
       - name: Install Claude Code CLI
         run: |
           npm install -g @anthropic-ai/claude-code@2.1.156
@@ -301,7 +363,7 @@ jobs:
 
       - name: Checkout agent workspace
         env:
-          GH_TOKEN: ${{ steps.read-token.outputs.token }}
+          GH_TOKEN: ${{ fromJSON(steps.unwrap.outputs.secrets).GH_READ_TOKEN }}
           BASE_REF: ${{ inputs.base_ref }}
         run: |
           set -euo pipefail
@@ -322,7 +384,7 @@ jobs:
 
       - name: Download evidence artifacts
         env:
-          GH_TOKEN: ${{ steps.read-token.outputs.token }}
+          GH_TOKEN: ${{ fromJSON(steps.unwrap.outputs.secrets).GH_READ_TOKEN }}
           EVIDENCE_RUN_URL: ${{ steps.ctx.outputs.evidence_run_url }}
           EVIDENCE_REPO: ${{ steps.ctx.outputs.evidence_repo }}
           FAILING_RUN_URL: ${{ inputs.failing_run_url }}
@@ -409,26 +471,15 @@ jobs:
              agent-workspace/.alwaysgreen-data/artifacts
 
       - name: Revoke read token
+        if: ${{ always() && steps.unwrap.outcome == 'success' }}
         env:
-          GH_TOKEN: ${{ steps.read-token.outputs.token }}
+          GH_TOKEN: ${{ fromJSON(steps.unwrap.outputs.secrets).GH_READ_TOKEN }}
         run: gh api --method DELETE /installation/token
-
-      - name: Import Claude API key
-        id: secrets
-        uses: hashicorp/vault-action@d1720f055e0635fd932a1d2a48f87a666a57906c
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false
-          secrets: |
-            secret/data/products/qa/ci/common CLAUDE_API_KEY | ANTHROPIC_API_KEY ;
 
       - name: Run Claude Code fix agent
         id: agent
         env:
-          ANTHROPIC_API_KEY: ${{ steps.secrets.outputs.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ fromJSON(steps.unwrap.outputs.secrets).ANTHROPIC_API_KEY }}
         run: |
           set -euo pipefail
           prompt=$(cat <<'EOF'
@@ -721,8 +772,63 @@ jobs:
             echo "branch=fix/alwaysgreen-${SURFACE}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Generate publish token
+      # Hand the validated change to the publish job, which holds the only write
+      # credential. The agent job has no Vault login, so it cannot mint one itself.
+      - name: Bundle validated change
         if: ${{ steps.change.outputs.changed == 'true' }}
+        env:
+          REPO_NAME: ${{ steps.change.outputs.repository_name }}
+        run: tar -C agent-workspace -cf /tmp/validated-change.tar "$REPO_NAME"
+
+      - name: Upload validated change
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: alwaysgreen-validated-${{ inputs.surface }}-${{ github.run_id }}
+          overwrite: true
+          path: |
+            /tmp/validated-change.tar
+            /tmp/test_specs.json
+            /tmp/fingerprints.json
+            /tmp/fix-meta.json
+          retention-days: 1
+          if-no-files-found: warn
+
+
+  # Holds the write credential. Runs no agent and executes nothing from the agent
+  # workspace: it commits and pushes the already validated tree with hooks disabled.
+  publish:
+    name: "AlwaysGreen publish [${{ inputs.dispatch_key }}]"
+    needs: fix
+    if: ${{ always() && needs.fix.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write  # Vault JWT login for the publish token
+    steps:
+      - name: Download validated change
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: alwaysgreen-validated-${{ inputs.surface }}-${{ github.run_id }}
+          path: /tmp/handover
+
+      - name: Restore validated change
+        env:
+          CHANGED: ${{ needs.fix.outputs.changed }}
+        run: |
+          set -euo pipefail
+          for f in test_specs fingerprints fix-meta; do
+            [ ! -f "/tmp/handover/${f}.json" ] || cp "/tmp/handover/${f}.json" "/tmp/${f}.json"
+          done
+          if [ "$CHANGED" = "true" ]; then
+            mkdir -p agent-workspace
+            tar -C agent-workspace -xf /tmp/handover/validated-change.tar
+          fi
+
+      - name: Generate publish token
+        if: ${{ needs.fix.outputs.changed == 'true' }}
         id: publish-token
         uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@6c85c5de572dbc1790e5e7b4636c2ad9f5b614d8 # generate-github-app-token-from-vault-secrets: v1.1.0
         with:
@@ -730,29 +836,30 @@ jobs:
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
           github-app-private-key-vault-key: GITHUB_APP_SECRET
           github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-auth-method: jwt
+          vault-auth-jwt-path: ${{ secrets.VAULT_JWT_PATH }}
+          vault-auth-jwt-role: ${{ secrets.VAULT_JWT_ROLE }}
+          vault-auth-jwt-audience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           vault-url: ${{ secrets.VAULT_ADDR }}
           owner: camunda
-          repositories: ${{ steps.change.outputs.repository_name }}
+          repositories: ${{ needs.fix.outputs.repository_name }}
 
       - name: Publish validated patch
-        if: ${{ steps.change.outputs.changed == 'true' }}
+        if: ${{ needs.fix.outputs.changed == 'true' }}
         env:
           GIT_CONFIG_GLOBAL: /dev/null
           GIT_CONFIG_SYSTEM: /dev/null
           GH_TOKEN: ${{ steps.publish-token.outputs.token }}
-          REPO: ${{ steps.change.outputs.repository }}
-          REPO_NAME: ${{ steps.change.outputs.repository_name }}
-          BASE_REF: ${{ steps.change.outputs.base }}
-          BRANCH: ${{ steps.change.outputs.branch }}
-          COMMIT_TYPE: ${{ steps.change.outputs.type }}
+          REPO: ${{ needs.fix.outputs.repository }}
+          REPO_NAME: ${{ needs.fix.outputs.repository_name }}
+          BASE_REF: ${{ needs.fix.outputs.base }}
+          BRANCH: ${{ needs.fix.outputs.branch }}
+          COMMIT_TYPE: ${{ needs.fix.outputs.type }}
           SURFACE: ${{ inputs.surface }}
           FAILING_RUN_URL: ${{ inputs.failing_run_url }}
           TRIAGE_RUN_URL: ${{ inputs.triage_run_url }}
-          BLAME_AUTHOR: ${{ steps.ctx.outputs.blame_author }}
-          BLAME_REVIEWER: ${{ steps.ctx.outputs.blame_reviewer }}
+          BLAME_AUTHOR: ${{ needs.fix.outputs.blame_author }}
+          BLAME_REVIEWER: ${{ needs.fix.outputs.blame_reviewer }}
           KEY_LABEL: ag-key:${{ inputs.dispatch_key }}
         run: |
           set -euo pipefail
@@ -938,15 +1045,15 @@ jobs:
           if-no-files-found: warn
 
       - name: Slack thread reply
-        if: ${{ always() && steps.ctx.outputs.slack_ts != '' }}
+        if: ${{ always() && needs.fix.outputs.slack_ts != '' }}
         continue-on-error: true
         env:
           SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
-          SLACK_TS: ${{ steps.ctx.outputs.slack_ts }}
-          SLACK_CHANNEL: ${{ steps.ctx.outputs.slack_channel }}
+          SLACK_TS: ${{ needs.fix.outputs.slack_ts }}
+          SLACK_CHANNEL: ${{ needs.fix.outputs.slack_channel }}
           SURFACE: ${{ inputs.surface }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          JOB_STATUS: ${{ job.status }}
+          JOB_STATUS: ${{ (needs.fix.result == 'failure' || job.status == 'failure') && 'failure' || job.status }}
         run: |
           set -euo pipefail
           if [ -f /tmp/fix-meta.json ] && [ "$(jq '.prs | length' /tmp/fix-meta.json)" -gt 0 ]; then

@@ -18,6 +18,7 @@ jobs:
     runs-on: gcp-core-2-default
     permissions:
       contents: read
+      id-token: write  # Vault JWT login
     # Run when the docker-images-required label is added, or on any push to a PR that already has it.
     # Skip fork PRs: pull_request runs from forks don't get repository secrets (Vault/registry creds).
     if: |
@@ -34,12 +35,13 @@ jobs:
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           exportEnv: false # we rely on step outputs, no need for environment variables
           secrets: |
             secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
