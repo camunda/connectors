@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.to
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
@@ -147,43 +148,42 @@ class ToolSpecificationConverterTest {
 
     final var restored = toolSpecificationConverter.asToolDefinition(toolSpecification);
 
-    assertThat(restored.name()).isEqualTo("send");
-    assertThat(restored.description()).isEqualTo("Sends");
     // an enum is restored without the type
-    JSONAssert.assertEquals(
-        """
-        {
-          "type": "object",
-          "properties": {
-            "file": {
+    final var expectedSchema =
+        objectMapper.readValue(
+            """
+            {
               "type": "object",
-              "description": "The file",
               "properties": {
-                "type": {"enum": ["camunda.agenticai.document"]},
-                "id": {"type": "string", "description": "The id of the document."}
-              },
-              "required": ["type", "id"]
-            },
-            "body": {
-              "description": "The body",
-              "anyOf": [
-                {"type": "string"},
-                {
+                "file": {
                   "type": "object",
+                  "description": "The file",
                   "properties": {
                     "type": {"enum": ["camunda.agenticai.document"]},
                     "id": {"type": "string", "description": "The id of the document."}
                   },
                   "required": ["type", "id"]
+                },
+                "body": {
+                  "description": "The body",
+                  "anyOf": [
+                    {"type": "string"},
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {"enum": ["camunda.agenticai.document"]},
+                        "id": {"type": "string", "description": "The id of the document."}
+                      },
+                      "required": ["type", "id"]
+                    }
+                  ]
                 }
-              ]
+              },
+              "required": ["file", "body"]
             }
-          },
-          "required": ["file", "body"]
-        }
-        """,
-        objectMapper.writeValueAsString(restored.inputSchema()),
-        true);
+            """,
+            new TypeReference<Map<String, Object>>() {});
+    assertThat(restored).isEqualTo(new ToolDefinition("send", "Sends", expectedSchema));
     assertThat(restored.documentParameters()).isEqualTo(toolDefinition.documentParameters());
   }
 
