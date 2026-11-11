@@ -43,7 +43,8 @@ specific rule. When they conflict, the review names the rule for revision.
   - Why: a test without a purpose costs review time and refactor time and finds nothing. A test that
     mirrors the implementation breaks on every refactor and lets a behavior change pass.
   - Test: name the production change that makes this test fail and no other test fail. If no such
-    change exists, the test has no purpose.
+    change exists, the test has no purpose. The test rules are in
+    [Unit tests](acceptance-testing.md#unit-tests).
 
 ## Before you plan
 
