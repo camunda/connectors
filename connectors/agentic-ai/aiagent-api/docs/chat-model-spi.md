@@ -5,7 +5,8 @@
 `ChatModel` (`aiagent/api/chatmodel/ChatModel.java`) is the provider SPI: an `AutoCloseable` exposing a
 single `ChatResult execute(ChatRequest request)`. `ChatRequest` bundles the `AgentExecutionContext` and
 the windowed `ConversationSnapshot` (`BaseAgentRequestHandler` builds the snapshot via
-`documentExpander.expand(conversation.window(configuration.contextWindowSize()), documentHandling)`). `ChatResult` is a sealed `Completed |
+`documentExpander.expand(conversation.window(agentConfiguration.contextWindowSize()), documentHandling, documentFactory)`
+with the document handling of the instance and the document factory of the job). `ChatResult` is a sealed `Completed |
 Continuation`, each carrying the produced `AssistantMessage` and `AgentMetrics` for that one round-trip:
 - **`Completed`** — the round-trip finished the agent's turn; no further model call is needed for it.
 - **`Continuation`** — the provider paused mid-turn (e.g. Anthropic's `pause_turn` stop reason) and

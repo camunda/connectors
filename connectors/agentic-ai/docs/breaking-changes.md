@@ -262,7 +262,8 @@ arguments; inject them as beans.
 `AgentConversation.window(int size)` keeps its signature. The request handler hands the snapshot to
 `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before it calls the model, with the document
 factory of the job.
-`AgentConversation.nextRuntimeToolRound` takes the `AgentContext` the next round continues with as a second parameter.
+`AgentConversation.nextRuntimeToolRound` takes a `UnaryOperator<AgentContext>` as a second parameter. The conversation
+applies it to its persisted context, and the next round continues with the context that it returns.
 
 ### Runtime tools and tool names
 

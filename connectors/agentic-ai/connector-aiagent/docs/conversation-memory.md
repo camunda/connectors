@@ -22,9 +22,10 @@ invocation and transformed through copy-on-write methods.
   is the one of the job (`AgentExecutionContext.documentFactory()`): it restores the documents from the document store of
   the physical tenant of the job.
 - `persistedContext()`: the base `AgentContext` without the metrics and iteration bookkeeping that `toAgentContext()`
-  adds; it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages, agentContext)` opens the next round of the
-  job with the tool call results of the local tool calls, and the messages that follow them, as its input, and continues
-  with the given context, the persisted context with the documents of the input registered (`TurnInput.applyTo`).
+  adds; it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages, registerDocuments)` opens the next round of
+  the job with the tool call results of the local tool calls, and the messages that follow them, as its input. It applies
+  the `UnaryOperator<AgentContext>` `registerDocuments` to the persisted context and continues with the context that it
+  returns: the persisted context with the documents of the input registered (`TurnInput.applyTo`).
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
   `AgentContext.metrics` by the current turn's delta and, once the current turn has been `ingest`ed,
   stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).
