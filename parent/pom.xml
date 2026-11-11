@@ -178,7 +178,7 @@ limitations under the License.</license.inlineheader>
     <version.azure-core>1.61.0</version.azure-core>
     <version.azure-cosmos>4.83.0</version.azure-cosmos>
 
-    <version.bouncycastle>1.86</version.bouncycastle>
+    <version.bouncycastle>1.87</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
