@@ -104,25 +104,14 @@ public sealed interface RuntimeToolResult {
 
     /**
      * Returns a copy that also asks the agent to add the content of a known document to the request
-     * that follows the tool results, as if the user had sent it. The id is the one of a document in
-     * {@link RuntimeToolDocuments}, or of a document this result returns ({@link
-     * AgentDocumentId#of(Document)}).
+     * that follows the tool results. {@code id} is a document of {@link RuntimeToolDocuments} or
+     * one this result returns ({@link AgentDocumentId#of(Document)}).
      *
-     * <p>The agent ends the result with one sentence per document it is asked for: the content
-     * follows in the next message, it is not loaded and why, or it is in the conversation already.
-     * The tool does not write such a sentence itself, so it needs no text of its own for the
-     * document. The agent runs its content guard before it adds anything: when the document is not
-     * allowed as content, for example because of its type or its size, the document stays a
-     * reference and the sentence tells the model why the content is not loaded. A document whose
-     * content the model reads already, or that an earlier call of the same assistant message asked
-     * for, is not added again.
-     *
-     * <p>An id of a document the agent does not know, neither from {@link RuntimeToolDocuments} nor
-     * as a document this result returns, is a defect of the tool: the agent throws an {@link
-     * IllegalArgumentException} and the job fails. The same holds for a {@link
-     * AgentDocumentContent} block with the delivery {@code content} in the result: content comes
-     * only from this effect. The agent knows documents only with the documents feature, so a tool
-     * that adds content is enabled for agents that have it (see {@link RuntimeTool#isEnabled}).
+     * <p>The agent adds the content when its content guard allows it, once per document, and ends
+     * the result with one sentence per document that tells the model whether the content follows.
+     * An unknown id fails the job, and so does an {@link AgentDocumentContent} block with the
+     * delivery {@code content} in the result. Only an agent with the documents feature knows
+     * documents (see {@link RuntimeTool#isEnabled}).
      */
     public Success withDocumentContent(AgentDocumentId id) {
       return withEffect(new ToolCallEffect.AddDocumentContent(Objects.requireNonNull(id)));
