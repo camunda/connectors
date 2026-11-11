@@ -42,7 +42,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlac
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -94,7 +94,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var parameters = toolParameters(rawRequest, "Upload_A_File");
     final var document = parameters.path("properties").path("document");
     assertThat(document)
-        .isEqualTo(OBJECT_MAPPER.valueToTree(DocumentSchemas.document("The document to upload.")));
+        .isEqualTo(
+            OBJECT_MAPPER.valueToTree(DocumentParameter.documentSchema("The document to upload.")));
     assertThat(parameters.path("required")).extracting(n -> n.asText()).contains("document");
 
     // the persisted tool definition holds the same schema
@@ -109,7 +110,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
           assertThat(upload.inputSchema())
               .extractingByKey("properties")
               .asInstanceOf(InstanceOfAssertFactories.MAP)
-              .containsEntry("document", DocumentSchemas.document("The document to upload."));
+              .containsEntry(
+                  "document", DocumentParameter.documentSchema("The document to upload."));
         });
 
     // the built-in tool is offered next to the tools of the process

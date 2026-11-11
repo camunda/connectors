@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.testutil;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
