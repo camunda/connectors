@@ -19,7 +19,7 @@ the follow-up.
 
 ## Principles
 
-The rules below apply four principles. Each rule ends with the principle that it applies, for example
+The rules below apply four principles. A rule that applies a principle ends with it, for example
 `(P2)`. When no rule names a case, reason from the principle and cite it. A principle wins over a
 specific rule. When they conflict, the review names the rule for revision.
 
@@ -233,7 +233,7 @@ below make this style specific.
   `switch` in `BaseAgentRequestHandler.handleRequest`. (P3)
 - **Add a subtype that most `switch` sites handle.** Before you add a subtype to a sealed type that
   many locations match, count the arms that can only throw. When most of them throw, carry the value
-  in a narrower type. This does not discourage sealed types. It asks whether a value that most
+  in a narrower type. Sealed types stay the default. The question is whether a value that most
   consumers reject belongs in the hierarchy. (P3)
 - **Outcomes as types.** When a step has more than one expected outcome, return a sealed outcome type.
   Do not use a flag, `null` or an exception for an expected outcome. Use an exception only for an
@@ -277,8 +277,9 @@ below make this style specific.
 - **Decide a mode once.** Resolve a per-instance mode, such as an agent instance feature, at one point
   into a value or a strategy. The steps below that point do not switch on the mode again. (P2)
 - **Repeat a required guard only with a contract test.** An adapter can repeat a one-line guard that
-  a domain rule requires, when one shared test runs each adapter against the guard. Example: each
-  provider converter compares the provider tag ([domain rule 2](#domain-rules)). (P2)
+  a domain rule requires, when one shared test runs each adapter against the guard. Example of such a
+  guard: the provider tag comparison that [domain rule 2](#domain-rules) requires in each converter.
+  (P2)
 - **Exceptions belong to their contract.** When a Javadoc in `aiagent-api` requires an exception, the
   exception class is in `aiagent-api`.
 - **Native providers and LangChain4j share no code.** A native SDK provider and the LangChain4j
