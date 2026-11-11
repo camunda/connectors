@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
 
@@ -48,6 +49,23 @@ public class ElementTemplate {
     } catch (com.jayway.jsonpath.PathNotFoundException e) {
       throw new RuntimeException("Property path not found for property ID: " + propertyId, e);
     }
+    return this;
+  }
+
+  /**
+   * Sets the value of every property bound to the given {@code zeebe:input} or {@code
+   * zeebe:taskHeader} name. Use this for properties that have no {@code id}. When several
+   * properties share the binding (for example, one per condition), all of them get the value.
+   */
+  public ElementTemplate propertyByBinding(String bindingName, String value) {
+    var jsonPath =
+        "$..properties[?(@.binding.name=='%s' || @.binding.key=='%s')]"
+            .formatted(bindingName, bindingName);
+    List<?> matches = documentContext.read(jsonPath);
+    if (matches.isEmpty()) {
+      throw new RuntimeException("No property found for binding: " + bindingName);
+    }
+    documentContext = documentContext.put(jsonPath, "value", value);
     return this;
   }
 
