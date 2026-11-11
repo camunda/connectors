@@ -991,4 +991,35 @@ class DocumentParameterResolverTest {
         .isEqualTo(
             new Resolution.Resolved(Map.of("doc", TestDocuments.referenceJson(agentDocument))));
   }
+
+  @Test
+  void readsTheJsonOfAHandleTheModelSentAsDataWithTheMapperOfTheRuntime() {
+    // the mapper of the runtime reads intrinsic functions in any object it converts
+    final var runtimeMapper =
+        new ObjectMapper()
+            .registerModule(
+                new JacksonModuleDocumentDeserializer(
+                    mock(DocumentFactory.class), new DisabledIntrinsicFunctionExecutor()));
+    final var agentDocument =
+        AgentDocument.of(first, AgentDocumentOrigin.toolCall("search", "call-1"));
+    final var definition =
+        ToolDefinition.builder().name("tool").inputSchema(object("doc", DOC)).build();
+    final var context =
+        AgentContext.empty()
+            .withFeatures(List.of(AgentFeatures.DOCUMENTS))
+            .withDocuments(AgentDocuments.empty().register(List.of(agentDocument)))
+            .withToolDefinitions(List.of(definition));
+    final var handleJson =
+        ("{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\","
+                + "\"note\":{\"camunda.function.type\":\"base64\",\"params\":[\"x\"]}}")
+            .formatted(agentDocument.id().value());
+
+    final var result =
+        new DocumentParameterResolver(runtimeMapper)
+            .resolveProcessCall(context, new ToolCall("call", "tool", Map.of("doc", handleJson)));
+
+    assertThat(result)
+        .isEqualTo(
+            new Resolution.Resolved(Map.of("doc", TestDocuments.referenceJson(agentDocument))));
+  }
 }

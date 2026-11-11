@@ -64,16 +64,17 @@ public class DocumentParameterResolver {
       "a JSON object such as {\"type\":\"%s\",\"id\":\"doc_…\"}."
           .formatted(AgentDocumentHandle.TYPE);
 
-  // a mapper without the modules of the runtime: it reads every value as plain data
+  // a mapper without the modules of the runtime: it reads every value as plain data, so neither a
+  // value the model sent nor a stored reference turns into a document or runs an intrinsic function
   private static final ObjectMapper DATA_MAPPER = new ObjectMapper();
 
+  private static final ObjectReader JSON_READER =
+      DATA_MAPPER.readerFor(JsonNode.class).with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+
   private final ObjectMapper referenceMapper;
-  private final ObjectReader jsonReader;
 
   public DocumentParameterResolver(ObjectMapper objectMapper) {
     this.referenceMapper = objectMapper;
-    this.jsonReader =
-        objectMapper.readerFor(JsonNode.class).with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
   }
 
   /** Outcome of resolving the document parameters of one tool call. */
@@ -339,9 +340,9 @@ public class DocumentParameterResolver {
       return null;
     }
     try {
-      final JsonNode node = jsonReader.readTree(text);
+      final JsonNode node = JSON_READER.readTree(text);
       return node != null && node.isObject()
-          ? referenceMapper.convertValue(node, new TypeReference<Map<String, Object>>() {})
+          ? DATA_MAPPER.convertValue(node, new TypeReference<Map<String, Object>>() {})
           : null;
     } catch (JsonProcessingException | IllegalArgumentException e) {
       return null;
