@@ -24,8 +24,10 @@ import java.util.List;
  * <p>A handler that defines its tools itself can declare document parameters in the {@link
  * ToolDefinition}s it returns from {@link #handleToolDiscoveryResults}, in the stored form of
  * {@link DocumentSchemas#document}, alone or as one alternative of an {@code anyOf} or {@code
- * oneOf}. The document parameters of a call are resolved before {@link #transformToolCalls}, so the
- * handler receives the Camunda document references in the call arguments.
+ * oneOf}. For an agent instance that tracks its documents, the document parameters of a call are
+ * resolved before {@link #transformToolCalls}, so the handler receives the Camunda document
+ * references in the call arguments. For an agent instance that does not track its documents, the
+ * handler receives the arguments as the model sent them.
  */
 public interface GatewayToolHandler extends GatewayToolCallTransformer {
   String type();

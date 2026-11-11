@@ -20,8 +20,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * Admits the tool calls of an assistant message from the model, before the message enters the
  * conversation: each call gets the kind of the offered tool of its name, and a rejection when no
- * tool has the name or a document parameter does not name a known document. The decision is
- * persisted with the call and never made again.
+ * tool has the name or, for an agent instance that tracks its documents, a document parameter does
+ * not name a known document. The decision is persisted with the call and never made again.
  */
 public class ToolCallAdmission {
 
