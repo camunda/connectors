@@ -2458,15 +2458,24 @@ class AgentSubProcessRequestHandlerTest {
     // and returns the results of all calls in the order of the calls
     verify(runtimeTools, never()).execute(any(), any(), anyList());
     assertThat(run.chatRequests()).hasSize(2);
+    // the agent sets the completion time of the result it produces; the process result has none
     assertThat(run.chatRequests().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
             ToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
-                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .usingRecursiveFieldByFieldElementComparatorIgnoringFields("completedAt")
                     .containsExactly(
-                        tuple("call-1", List.of(TextContent.textContent(BOGUS_DOCUMENT))),
-                        tuple("call-2", List.of(TextContent.textContent("Sunny")))));
+                        ToolCallResultContent.builder()
+                            .id("call-1")
+                            .name("upload")
+                            .content(List.of(TextContent.textContent(BOGUS_DOCUMENT)))
+                            .build(),
+                        ToolCallResultContent.builder()
+                            .id("call-2")
+                            .name("getWeather")
+                            .content(List.of(TextContent.textContent("Sunny")))
+                            .build()));
   }
 
   @Test
