@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.tools.schema;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -556,7 +555,7 @@ class AdHocToolSchemaGeneratorTest {
   }
 
   @Test
-  void stillDefaultsTheTypeOfAnAlternativesSchemaWithoutADocumentToString() {
+  void stillDefaultsTheTypeOfAnAlternativesSchemaWithoutADocumentToString() throws Exception {
     final var element =
         createToolElement(
             List.of(
@@ -566,14 +565,23 @@ class AdHocToolSchemaGeneratorTest {
                     null,
                     Map.of("anyOf", List.of(Map.of("type", "number"), Map.of("type", "string"))))));
 
-    assertThat(generator.generateToolSchema(element))
-        .extracting(schema -> ((Map<?, ?>) schema.get("properties")).get("value"))
-        .isEqualTo(
-            Map.of(
-                "anyOf",
-                List.of(Map.of("type", "number"), Map.of("type", "string")),
-                "type",
-                "string"));
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "anyOf": [
+                {"type": "number"},
+                {"type": "string"}
+              ],
+              "type": "string"
+            }
+          },
+          "required": ["value"]
+        }
+        """);
   }
 
   private void assertJsonSchema(AdHocToolElement element, String expectedJsonSchema)

@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.api.tool.TypePropertyBasedGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,8 +71,7 @@ class AdHocToolsSchemaResolverTest {
 
     final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
     assertThat(schemaResponse.toolDefinitions())
-        .singleElement()
-        .satisfies(toolDefinition -> assertThat(toolDefinition.inputSchema()).isEqualTo(schema));
+        .containsExactly(new ToolDefinition("Test_Tool", "A tool.", schema));
   }
 
   @ParameterizedTest
