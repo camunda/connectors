@@ -79,7 +79,7 @@ class ToolCallAdmissionTest {
             new ToolCall("r1", "acme_note", Map.of("text", "x")));
 
     final var admitted =
-        admission.admit(message, List.of(PROCESS_TOOL, RUNTIME_TOOL), WITHOUT_DOCUMENTS);
+        admission.admit(WITHOUT_DOCUMENTS, List.of(PROCESS_TOOL, RUNTIME_TOOL), message);
 
     assertThat(admitted)
         .isEqualTo(
@@ -97,7 +97,7 @@ class ToolCallAdmissionTest {
             new ToolCall("x1", "acme_unknown", Map.of()),
             new ToolCall("p1", "getWeather", Map.of()));
 
-    final var admitted = admission.admit(message, List.of(PROCESS_TOOL), WITHOUT_DOCUMENTS);
+    final var admitted = admission.admit(WITHOUT_DOCUMENTS, List.of(PROCESS_TOOL), message);
 
     assertThat(admitted.toolCalls())
         .containsExactly(
@@ -110,7 +110,7 @@ class ToolCallAdmissionTest {
   void aMessageWithoutCallsIsReturnedAsItIs() {
     final var message = AssistantMessage.builder().content(List.of(textContent("Hi"))).build();
 
-    assertThat(admission.admit(message, List.of(PROCESS_TOOL), WITHOUT_DOCUMENTS))
+    assertThat(admission.admit(WITHOUT_DOCUMENTS, List.of(PROCESS_TOOL), message))
         .isSameAs(message);
   }
 
@@ -221,9 +221,9 @@ class ToolCallAdmissionTest {
 
     final var admitted =
         admission.admit(
-            NEW_INSTANCE,
+            WITHOUT_DOCUMENTS,
             List.of(PROCESS_UPLOAD_TOOL, RUNTIME_UPLOAD_TOOL),
-            WITHOUT_DOCUMENTS);
+            messageWith(processCall, runtimeCall));
 
     assertThat(admitted.toolCalls())
         .containsExactly(processCall, runtimeCall.withKind(ToolKind.RUNTIME));

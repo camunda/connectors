@@ -11,7 +11,6 @@ import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstan
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_OBJECT;
 
-import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
@@ -19,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,7 +62,8 @@ public final class LoadDocumentTool implements RuntimeTool {
     schema.put(PROPERTY_TYPE, TYPE_OBJECT);
     schema.put(
         PROPERTY_PROPERTIES,
-        Map.of(PARAMETER_ID, DocumentSchemas.document("The handle of the document to load.")));
+        Map.of(
+            PARAMETER_ID, DocumentParameter.documentSchema("The handle of the document to load.")));
     schema.put(PROPERTY_REQUIRED, List.of(PARAMETER_ID));
     return schema;
   }

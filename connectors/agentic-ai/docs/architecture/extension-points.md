@@ -228,7 +228,7 @@ document (a block with the delivery `content`); there is no such message when no
 metadata `toolCallDocuments` makes it leave the context window together with its tool results (`MessageWindowFilter`). The
 handle text and the content are added from the agent documents when the request is built (`DocumentExpander`). Passing the handle of a document to
 a tool parameter declared with `fromAi(..., "document")` never adds content: the tool receives the full Camunda document
-reference. The same holds for a union parameter, a parameter that takes a document or something else, for every handle in its value.
+reference.
 `c8__load_document` is offered to every agent instance with the `documents` feature (every instance created from
 this version on) and cannot be switched off; an instance created before the feature is not offered it. A switch for it is a
 follow-up of [ADR 018](../adr/018-document-flow.md).
