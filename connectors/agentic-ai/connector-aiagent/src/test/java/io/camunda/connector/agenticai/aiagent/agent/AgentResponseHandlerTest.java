@@ -16,9 +16,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
@@ -67,6 +69,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 class AgentResponseHandlerTest {
@@ -107,8 +111,7 @@ class AgentResponseHandlerTest {
             gatewayToolHandlers,
             new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
     // by default, registry passes tool calls through unchanged
-    lenient()
-        .when(gatewayToolHandlers.transformToolCalls(any(), any()))
+    when(gatewayToolHandlers.transformToolCalls(any(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
   }
 
@@ -421,7 +424,9 @@ class AgentResponseHandlerTest {
         .containsExactly("call-2");
   }
 
+  // a call with invalid document parameters fails before the gateway tool handlers are reached
   @Nested
+  @MockitoSettings(strictness = Strictness.LENIENT)
   class DocumentParameters {
 
     private static final ToolDefinition UPLOAD =
@@ -484,15 +489,29 @@ class AgentResponseHandlerTest {
       return conversation(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS), calls);
     }
 
+    /** The response to the text of the assistant message with the given tool calls. */
+    private static AgentResponse responseOf(
+        AgentConversation conversation, ToolCallProcessVariable... toolCalls) {
+      return AgentResponse.builder()
+          .context(conversation.toAgentContext())
+          .toolCalls(List.of(toolCalls))
+          .responseText("calling")
+          .build();
+    }
+
     @Test
     void handsTheCamundaDocumentReferenceOfAKnownHandleToTheProcess() {
       final var call = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
 
-      final var response = responseHandler.createResponse(conversation(call));
+      final var conversation = conversation(call);
 
-      assertThat(response.toolCalls())
-          .containsExactly(
-              new ToolCallProcessVariable("u1", "upload", Map.of("doc", reportReference())));
+      final var response = responseHandler.createResponse(conversation);
+
+      assertThat(response)
+          .isEqualTo(
+              responseOf(
+                  conversation,
+                  new ToolCallProcessVariable("u1", "upload", Map.of("doc", reportReference()))));
     }
 
     @Test
@@ -500,12 +519,16 @@ class AgentResponseHandlerTest {
       final var tagged = new ToolCall("s1", "send", Map.of("body", handle(reportId.value())));
       final var text = new ToolCall("s2", "send", Map.of("body", "hello " + reportId));
 
-      final var response = responseHandler.createResponse(conversation(tagged, text));
+      final var conversation = conversation(tagged, text);
 
-      assertThat(response.toolCalls())
-          .containsExactly(
-              new ToolCallProcessVariable("s1", "send", Map.of("body", reportReference())),
-              new ToolCallProcessVariable("s2", "send", Map.of("body", "hello " + reportId)));
+      final var response = responseHandler.createResponse(conversation);
+
+      assertThat(response)
+          .isEqualTo(
+              responseOf(
+                  conversation,
+                  new ToolCallProcessVariable("s1", "send", Map.of("body", reportReference())),
+                  new ToolCallProcessVariable("s2", "send", Map.of("body", "hello " + reportId))));
     }
 
     @Test
@@ -519,6 +542,7 @@ class AgentResponseHandlerTest {
                   + "Parameter 'body' has the id 'doc_000000000000', but the conversation has no document with this id."
                   + " Pass the handle of a document from the conversation: a JSON object such as "
                   + "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.");
+      verify(gatewayToolHandlers, never()).transformToolCalls(any(), any());
     }
 
     @Test
@@ -537,23 +561,30 @@ class AgentResponseHandlerTest {
       final var upload = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
       final var weather = new ToolCall("w1", "getWeather", Map.of("doc", "nope"));
 
-      final var response = responseHandler.createResponse(conversation(upload, weather));
+      final var conversation = conversation(upload, weather);
 
-      assertThat(response.toolCalls())
-          .containsExactly(
-              new ToolCallProcessVariable("u1", "upload", Map.of("doc", reportReference())),
-              new ToolCallProcessVariable("w1", "getWeather", Map.of("doc", "nope")));
+      final var response = responseHandler.createResponse(conversation);
+
+      assertThat(response)
+          .isEqualTo(
+              responseOf(
+                  conversation,
+                  new ToolCallProcessVariable("u1", "upload", Map.of("doc", reportReference())),
+                  new ToolCallProcessVariable("w1", "getWeather", Map.of("doc", "nope"))));
     }
 
     @Test
     void passesTheCallsWithResolvedArgumentsToTheGatewayToolHandlers() {
       final var call = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
 
-      responseHandler.createResponse(conversation(call));
+      final var conversation = conversation(call);
+
+      responseHandler.createResponse(conversation);
 
       @SuppressWarnings("unchecked")
       final ArgumentCaptor<List<ToolCall>> transformed = ArgumentCaptor.forClass(List.class);
-      verify(gatewayToolHandlers).transformToolCalls(any(), transformed.capture());
+      verify(gatewayToolHandlers)
+          .transformToolCalls(eq(conversation.toAgentContext()), transformed.capture());
       assertThat(transformed.getValue())
           .containsExactly(new ToolCall("u1", "upload", Map.of("doc", reportReference())));
     }
@@ -562,13 +593,16 @@ class AgentResponseHandlerTest {
     void anAgentInstanceWithoutTheDocumentsFeatureHandsTheArgumentsAsTheModelSentThem() {
       final var call = new ToolCall("u1", "upload", Map.of("doc", handle("doc_000000000000")));
 
-      final var response =
-          responseHandler.createResponse(conversation(List.of(AgentFeatures.RUNTIME_TOOLS), call));
+      final var conversation = conversation(List.of(AgentFeatures.RUNTIME_TOOLS), call);
 
-      assertThat(response.toolCalls())
-          .containsExactly(
-              new ToolCallProcessVariable(
-                  "u1", "upload", Map.of("doc", handle("doc_000000000000"))));
+      final var response = responseHandler.createResponse(conversation);
+
+      assertThat(response)
+          .isEqualTo(
+              responseOf(
+                  conversation,
+                  new ToolCallProcessVariable(
+                      "u1", "upload", Map.of("doc", handle("doc_000000000000")))));
     }
 
     @Test
@@ -581,6 +615,7 @@ class AgentResponseHandlerTest {
               "The call 'u1' of the tool 'upload' goes to the process, but its document parameters are invalid: "
                   + "Parameter 'doc' must be the handle of a document from the conversation: a JSON object such as "
                   + "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.");
+      verify(gatewayToolHandlers, never()).transformToolCalls(any(), any());
     }
 
     @Test
@@ -590,10 +625,13 @@ class AgentResponseHandlerTest {
               .withRejection("Parameter 'doc' must be the handle of a document.");
       final var weather = new ToolCall("w1", "getWeather", Map.of());
 
-      final var response = responseHandler.createResponse(conversation(rejected, weather));
+      final var conversation = conversation(rejected, weather);
 
-      assertThat(response.toolCalls())
-          .containsExactly(new ToolCallProcessVariable("w1", "getWeather", Map.of()));
+      final var response = responseHandler.createResponse(conversation);
+
+      assertThat(response)
+          .isEqualTo(
+              responseOf(conversation, new ToolCallProcessVariable("w1", "getWeather", Map.of())));
     }
   }
 
