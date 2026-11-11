@@ -34,6 +34,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.base.model.auth.ApiKeyAuthentication;
 import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import java.nio.charset.StandardCharsets;
@@ -281,5 +282,387 @@ class HttpJsonFunctionServiceCredentialTest {
     assertThatThrownBy(() -> context(variables).bindVariables(HttpJsonRequest.class))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("A credential must specify an authentication mechanism");
+  }
+
+  @Test
+  void baseUrlOfTheCredentialIsJoinedWithTheRelativeUrlOfTheTask(WireMockRuntimeInfo wiremock) {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api/now/table/incident",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "%s",
+            "authentication": { "type": "bearer", "token": "service-token" }
+          }
+        }
+        """
+            .formatted(wiremock.getHttpBaseUrl());
+    stubFor(any(urlPathEqualTo("/api/now/table/incident")).willReturn(aResponse().withStatus(200)));
+
+    function.execute(context(variables));
+
+    verify(
+        anyRequestedFor(urlPathEqualTo("/api/now/table/incident"))
+            .withHeader("Authorization", equalTo("Bearer service-token")));
+  }
+
+  @Test
+  void trailingSlashesOfTheCredentialBaseUrlAreRemovedBeforeJoining() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api/v4/issues",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:8080//",
+            "authentication": { "type": "bearer", "token": "service-token" }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    assertThat(request.getUrl()).isEqualTo("http://localhost:8080/api/v4/issues");
+  }
+
+  @Test
+  void whitespaceAroundTheCredentialBaseUrlIsRemovedBeforeJoining() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api/v4/issues",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:8080/ ",
+            "authentication": { "type": "bearer", "token": "service-token" }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    assertThat(request.getUrl()).isEqualTo("http://localhost:8080/api/v4/issues");
+  }
+
+  @Test
+  void inlineUrlWinsOverTheCredentialBaseUrl() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "url": "http://localhost:8081/x",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:8080",
+            "authentication": { "type": "bearer", "token": "service-token" }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    assertThat(request.getUrl()).isEqualTo("http://localhost:8081/x");
+  }
+
+  @Test
+  void restCredentialWinsOverServiceCredentialForTheUrlAsForTheAuthentication() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "authenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "rest-token" },
+            "url": "http://localhost:8081/rest"
+          },
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:8082",
+            "authentication": { "type": "bearer", "token": "service-token" }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    assertThat(request.getUrl()).isEqualTo("http://localhost:8081/rest");
+    assertThat(((BearerAuthentication) request.getAuthentication()).token())
+        .isEqualTo("rest-token");
+  }
+
+  @Test
+  void relativeUrlWithoutACredentialBaseUrlIsNotAUrl() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "authentication": { "type": "bearer", "token": "service-token" }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> context(variables).bindVariables(HttpJsonRequest.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("No URL provided");
+  }
+
+  @Test
+  void relativeUrlThatDoesNotStartWithASlashIsRejected() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "-x:1080/steal",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost",
+            "authentication": { "type": "bearer", "token": "service-token" }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> context(variables).bindVariables(HttpJsonRequest.class))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("Must start with '/'");
+  }
+
+  @Test
+  void placeholdersInTheBaseUrlAreFilledFromTheParameters() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api/now/table/incident",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:${port}",
+            "parameters": { "port": "8080" },
+            "authentication": { "type": "basic", "username": "admin", "password": "secret" }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    assertThat(request.getUrl()).isEqualTo("http://localhost:8080/api/now/table/incident");
+  }
+
+  @Test
+  void placeholdersAreFilledInTheOAuthTokenEndpointButNotInTheSecret() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "url": "http://localhost:8080/x",
+          "serviceAuthenticationConfiguration": {
+            "parameters": { "host": "localhost:8080" },
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "http://${host}/oidc/v1/token",
+              "clientId": "id",
+              "clientSecret": "${host}",
+              "clientAuthentication": "basicAuthHeader"
+            }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    var oauth = (OAuthAuthentication) request.getAuthentication();
+    assertThat(oauth.oauthTokenEndpoint()).isEqualTo("http://localhost:8080/oidc/v1/token");
+    assertThat(oauth.clientSecret()).isEqualTo("${host}");
+  }
+
+  @Test
+  void basicUsernameCanBeDerivedFromAParameter() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "url": "https://api.twilio.com/x",
+          "serviceAuthenticationConfiguration": {
+            "parameters": { "accountSid": "AC123" },
+            "authentication": { "type": "basic", "username": "${accountSid}", "password": "token" }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    assertThat(((BasicAuthentication) request.getAuthentication()).username()).isEqualTo("AC123");
+  }
+
+  @Test
+  void aParameterValueThatLooksLikeAPlaceholderIsKeptAsText() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:8080",
+            "parameters": { "account": "${other}", "other": "x" },
+            "authentication": { "type": "basic", "username": "${account}", "password": "secret" }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    assertThat(((BasicAuthentication) request.getAuthentication()).username())
+        .isEqualTo("${other}");
+  }
+
+  @Test
+  void parameterValuesInUrlsAreCleanedButTheUsernameIsKeptExact() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://${host}",
+            "parameters": { "host": " localhost:8080/ ", "account": "ab/ " },
+            "authentication": {
+              "type": "basic",
+              "username": "${account}",
+              "password": "secret"
+            }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    assertThat(request.getUrl()).isEqualTo("http://localhost:8080/api");
+    assertThat(((BasicAuthentication) request.getAuthentication()).username()).isEqualTo("ab/ ");
+  }
+
+  @Test
+  void tokenEndpointBuiltFromAHostWithATrailingSlashHasASingleSlash() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:8080",
+            "parameters": { "host": "http://localhost:8080/" },
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "${host}/oidc/v1/token",
+              "clientId": "id",
+              "clientSecret": "secret",
+              "clientAuthentication": "credentialsBody"
+            }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    assertThat(((OAuthAuthentication) request.getAuthentication()).oauthTokenEndpoint())
+        .isEqualTo("http://localhost:8080/oidc/v1/token");
+  }
+
+  @Test
+  void unresolvedPlaceholderInTheBasicUsernameIsRejected() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:8080",
+            "parameters": { "other": "x" },
+            "authentication": { "type": "basic", "username": "${account}", "password": "secret" }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> context(variables).bindVariables(HttpJsonRequest.class))
+        .hasMessageContaining("parameter 'account', which has no value");
+  }
+
+  @Test
+  void unresolvedPlaceholderInTheOAuthTokenEndpointIsRejected() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:8080",
+            "parameters": { "other": "x" },
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "http://localhost:8080/${tenant}/token",
+              "clientId": "id",
+              "clientSecret": "secret"
+            }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> context(variables).bindVariables(HttpJsonRequest.class))
+        .hasMessageContaining("parameter 'tenant', which has no value");
+  }
+
+  @Test
+  void baseUrlWithAParameterThatIsNull() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:${port}",
+            "parameters": { "port": null },
+            "authentication": { "type": "bearer", "token": "service-token" }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> context(variables).bindVariables(HttpJsonRequest.class))
+        .hasMessageContaining("which has no value");
+  }
+
+  @Test
+  void baseUrlWithAParameterThatIsEmpty() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:${port}",
+            "parameters": { "port": "" },
+            "authentication": { "type": "bearer", "token": "service-token" }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> context(variables).bindVariables(HttpJsonRequest.class))
+        .hasMessageContaining("which has no value");
+  }
+
+  @Test
+  void baseUrlWithAParameterThatHasNoValueIsRejected() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:${instance}",
+            "parameters": { "other": "x" },
+            "authentication": { "type": "bearer", "token": "service-token" }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> context(variables).bindVariables(HttpJsonRequest.class))
+        .hasMessageContaining("which has no value");
   }
 }
