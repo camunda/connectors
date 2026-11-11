@@ -17,6 +17,34 @@ In a review, flag a problem that a build check can find, and name the check. In 
 that conflicts with the change or that a build check in the change now enforces. A maintainer decides
 the follow-up.
 
+## Principles
+
+The rules below apply four principles. Each rule ends with the principle that it applies, for example
+`(P2)`. When no rule names a case, reason from the principle and cite it. A principle wins over a
+specific rule. When they conflict, the review names the rule for revision.
+
+- **P1. A reader predicts the behavior from the name.**
+  - Why: a reviewer reads the diff and the call sites, and the bodies only sometimes. A name that
+    hides a decision hides a defect.
+  - Test: cover the body. From the name, the parameter types and the return type, write down what the
+    method does with each input. If the body does more, or something different, the name fails.
+- **P2. Each piece of logic has one home. The home hides its steps.**
+  - Why: a copy of a step drifts from the original. A caller that must order the steps can order them
+    wrongly.
+  - Test: for each rule that the change adds, count the functions that implement it. The answer is
+    one. A caller can use the home without knowing the order of its internal steps.
+- **P3. A typical next change touches few files, and the compiler finds each one.**
+  - Why: a change that must edit many files, each repeating the same rule, misses one of them sooner
+    or later.
+  - Test: name the typical next change (a new input source, a new provider, a new content type, a
+    wire format change) and count the production files that it edits. Do not count sealed `switch`
+    arms, because the compiler finds them.
+- **P4. Each test protects one behavior that a plausible change can break.**
+  - Why: a test without a purpose costs review time and refactor time and finds nothing. A test that
+    mirrors the implementation breaks on every refactor and lets a behavior change pass.
+  - Test: name the production change that makes this test fail and no other test fail. If no such
+    change exists, the test has no purpose.
+
 ## Before you plan
 
 A change in this module often has more than one location to change. Before you plan, find each
@@ -32,6 +60,9 @@ location that the change must reach:
   instance migration. See [domain rule 1](#domain-rules).
 
 The plan names each location, or says why the change does not apply to it.
+
+**State the change footprint.** For each concept that the change adds, the plan lists its production
+files. It names the typical next change and the files that this change will touch. (P3)
 
 ## Simplicity first
 
@@ -52,10 +83,26 @@ Change only what the task needs. Clean up only your own changes.
 - When the change leaves related code redundant or inconsistent, name it in the plan with the risk of
   keeping it and the risk of changing it, and ask.
 
+## Names
+
+The name predicts the behavior. The Javadoc states the edges: the inputs, the exceptions and the side
+effects. A good name does not replace a Javadoc that the rules below require.
+
+- **Same name, same behavior.** Overloads of one name do the same thing for different input types.
+  When two factories or methods compute different things, give them different names. (P1)
+- **Name the outcome.** A method name states the result or the decision that the caller gets. Do not
+  use a generic verb such as `handle`, `process` or `do` for a method that makes a decision. Example:
+  `AgentConversation.ingest`. (P1)
+- **One level of abstraction per method.** A method either calls named steps in order, or does one
+  step. Do not mix calls to domain methods with field-level construction and loops. (P1)
+- **A test name states the scenario and the expected outcome.** Example:
+  `CompositionResultTest.readyRejectsToolCallsTogetherWithAUserPrompt`. (P1)
+
 ## Code comments and Javadoc
 
 - Write a comment only when it makes a contract or a constraint clear that the code does not show.
-  Do not describe what the code does.
+  Do not describe what the code does. When a comment names what the next lines do, extract a method
+  with that name, or delete the comment. (P1)
 - A Javadoc states the contract of its own code as input and output behavior: what the method returns
   for which input, the requirements for its parameters, each exception and the input that causes it,
   each side effect that a caller can see, and the exact triggers that a caller can see. Link to a type
@@ -154,7 +201,7 @@ that caused it.
    - In this module: compare the full input schema of a tool definition. Assert the number of model
      requests in an agentic loop test, for example `modelCallCount()`.
    - Why: a partial assertion lets a regression pass. A schema regression and an extra loop iteration
-     passed this way. (#7463, #6999)
+     passed this way. (#7463, #6999) (P4)
 
 ## Code design
 
@@ -168,10 +215,10 @@ below make this style specific.
 
 - **Rich domain models.** Put behavior on the type that owns the data. Example: `AgentConversation`.
   A service is a class without domain state: a handler, composer, converter, registry, store or
-  client. Add a service only for I/O, for orchestration across domain types, or for an SPI.
+  client. Add a service only for I/O, for orchestration across domain types, or for an SPI. (P2)
 - **Tell, don't ask.** Do not read getters and make the decision outside the model. Call a domain
   method. The method returns the new state as a new instance. Example:
-  `conversation.ingest(message, metrics)`.
+  `conversation.ingest(message, metrics)`. (P2)
 - **Immutable by default.** Use records for values. When a record does not fit, use a final class
   without side effects. Example: the canonical constructor is too large, and the type needs named
   factory methods such as `of`, `fromFoo` or `fromBar`. A change makes a new instance.
@@ -182,7 +229,11 @@ below make this style specific.
 - **Sealed and exhaustive.** Make a closed hierarchy `sealed`. Match it with a pattern `switch` that has
   no `default` branch. Then a new subtype causes a compile error at each location that does not handle
   it. Do not write a chain of `instanceof` checks. Example: `AgentInitializationResult` and its
-  `switch` in `BaseAgentRequestHandler.handleRequest`.
+  `switch` in `BaseAgentRequestHandler.handleRequest`. (P3)
+- **Add a subtype that most `switch` sites handle.** Before you add a subtype to a sealed type that
+  many locations match, count the arms that can only throw. When most of them throw, carry the value
+  in a narrower type. This does not discourage sealed types. It asks whether a value that most
+  consumers reject belongs in the hierarchy. (P3)
 - **Outcomes as types.** When a step has more than one expected outcome, return a sealed outcome type.
   Do not use a flag, `null` or an exception for an expected outcome. Use an exception only for an
   error. Example: `CompositionResult` with `Ready`, `NoInput` and `Deferred`.
@@ -201,15 +252,32 @@ below make this style specific.
   interface.
 - **One reason to change per class.** When an orchestrator gets a new responsibility, move it into a
   named step. Do not add one more method to the orchestrator. Example: `BaseAgentRequestHandler` calls
-  `AgentInitializer` and `AgentConversationTurnInputComposer` as steps.
+  `AgentInitializer` and `AgentConversationTurnInputComposer` as steps. A named step hides a decision
+  or I/O. Do not add a class that only forwards to another class.
 - **Narrow surface, deep module.** Keep the public types and the extension points of one concept in
   one package per module. Make a type or a member public only when code in a different package calls
   it, or when user code extends or replaces it. Do not add a public member that only tests call.
+  A public method of a domain type does the whole job that its name promises. The caller does not
+  call a precondition method first. Depth is the work that a type hides per public method. This rule
+  never requires a new interface. (P2)
 - **One owner per invariant.** When a rule must be true on more than one entry path, one function
   enforces it. Example: when each input that enters the conversation must be validated, the user
   prompt, event and tool result paths call the same validation function. A caller
   does not call the steps in sequence, and does not choose between two implementations of the same
-  step.
+  step. (P2)
+  - A change that adds such a rule adds one function and one call to it per path.
+  - Do not add a second copy of a sequence of domain steps. Put the sequence on the domain type that
+    owns the data, as "Rich domain models" says, and call it from each path. The home is never a
+    helper class.
+  - An owner exists only when two callers need it now (see [Simplicity first](#simplicity-first)).
+  - When the only way to avoid a copy is to refactor existing code, name it in the plan and ask, as
+    [Surgical changes](#surgical-changes) says. In a review, report existing copies as an advisory
+    consolidation.
+- **Decide a mode once.** Resolve a per-instance mode, such as an agent instance feature, at one point
+  into a value or a strategy. The steps below that point do not switch on the mode again. (P2)
+- **Repeat a required guard only with a contract test.** An adapter can repeat a one-line guard that
+  a domain rule requires, when one shared test runs each adapter against the guard. Example: each
+  provider converter compares the provider tag ([domain rule 2](#domain-rules)). (P2)
 - **Exceptions belong to their contract.** When a Javadoc in `aiagent-api` requires an exception, the
   exception class is in `aiagent-api`.
 - **Native providers and LangChain4j share no code.** A native SDK provider and the LangChain4j
