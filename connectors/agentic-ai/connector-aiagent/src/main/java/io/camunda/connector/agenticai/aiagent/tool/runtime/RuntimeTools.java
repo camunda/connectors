@@ -94,11 +94,10 @@ public class RuntimeTools {
    * Executes the calls of runtime tools offered in this job one after the other and returns one
    * execution per call in call order.
    *
-   * <p>The document parameters of a call are resolved by {@link
-   * DocumentParameterResolver#resolveRuntimeCall} with the definition the tool is registered with
-   * before the tool is called. A call of a tool that is not enabled when it is executed gets an
-   * error result, and so does a call with an invalid document parameter, and a {@link
-   * RuntimeToolException}. Any other exception propagates.
+   * <p>The document parameters of a call are resolved by {@link DocumentParameterResolver#resolve}
+   * with the definition the tool is registered with before the tool is called. A call of a tool
+   * that is not enabled when it is executed gets an error result, and so does a call with an
+   * invalid document parameter, and a {@link RuntimeToolException}. Any other exception propagates.
    */
   public List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
@@ -128,8 +127,8 @@ public class RuntimeTools {
 
   private RuntimeToolResult callTool(
       RuntimeToolContext context, Registration registration, ToolCall toolCall) {
-    return switch (documentParameterResolver.resolveRuntimeCall(
-        context.agentContext(), toolCall, registration.definition())) {
+    return switch (documentParameterResolver.resolve(
+        context.agentContext(), registration.definition(), toolCall)) {
       case DocumentParameterResolver.Resolution.Invalid invalid ->
           RuntimeToolResult.error(invalid.message());
       case DocumentParameterResolver.Resolution.Resolved resolved ->

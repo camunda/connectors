@@ -60,7 +60,7 @@ public class ToolCallAdmission {
       return call.withRejection("The tool '%s' does not exist.".formatted(call.name()));
     }
     final var admitted = call.withKind(definition.kind());
-    return switch (documentParameterResolver.check(agentContext, call, definition)) {
+    return switch (documentParameterResolver.resolve(agentContext, definition, call)) {
       case DocumentParameterResolver.Resolution.Resolved ignored -> admitted;
       case DocumentParameterResolver.Resolution.Invalid invalid ->
           admitted.withRejection(invalid.message());

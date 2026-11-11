@@ -89,10 +89,10 @@ In a union parameter that holds a handle while the agent knows no documents, the
 `Parameter 'p' must be an array.` and the object that holds a document parameter, when it is not an object, reads
 `Parameter 'p' must be an object.`). A missing or `null` argument is left alone.
 
-`DocumentParameterResolver` resolves the document parameters of a call from the call, the tool definition and the agent
-documents only. A process tool receives the Camunda document reference JSON of the agent document (`resolveProcessCall`), a
-runtime tool the `AgentDocumentId` of the document (`resolveRuntimeCall`); `check` validates the call of a tool of either kind. An `Untracked` agent instance has
-no document parameters: the calls are not touched. The agent uses the resolver at three places, and the tool call of the
+`DocumentParameterResolver.resolve` resolves the document parameters of a call from the call, the tool definition and
+the agent documents only. The kind of the tool decides what replaces a document: a process tool receives the Camunda
+document reference JSON of the agent document, a runtime tool the `AgentDocumentId` of the document. Whether a call is
+valid does not depend on the kind. An `Untracked` agent instance has no document parameters: the calls are not touched. The agent uses the resolver at three places, and the tool call of the
 assistant message is never rewritten, so the stored conversation and the history keep what the model sent:
 
 - **The admission of a call.** `ToolCallAdmission` admits the tool calls of an assistant message before it is ingested

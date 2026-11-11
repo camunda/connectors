@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
@@ -87,15 +88,17 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
   }
 
   /**
-   * The calls with the documents of their document parameters resolved. The calls that go to the
-   * process have valid document parameters: a call with an invalid one is rejected (see {@link
-   * ToolCall#rejection()}).
+   * The calls with the documents of their document parameters resolved, with the tool definitions
+   * of the agent context. The calls that go to the process were admitted against these definitions
+   * (see {@link ToolCallAdmission}): each has a definition, and a call with an invalid document
+   * parameter is rejected (see {@link ToolCall#rejection()}).
    */
   private List<ToolCall> withDocumentReferences(
       AgentContext agentContext, List<ToolCall> processToolCalls) {
     return processToolCalls.stream()
         .map(toolCall ->
-            switch (documentParameterResolver.resolveProcessCall(agentContext, toolCall)) {
+            switch (documentParameterResolver.resolve(
+                agentContext, definitionOf(agentContext, toolCall), toolCall)) {
               case DocumentParameterResolver.Resolution.Resolved resolved ->
                   toolCall.withResolvedArguments(resolved.arguments());
               case DocumentParameterResolver.Resolution.Invalid invalid ->
@@ -104,6 +107,16 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
                           .formatted(toolCall.id(), toolCall.name(), invalid.message()));
             })
         .toList();
+  }
+
+  private static ToolDefinition definitionOf(AgentContext agentContext, ToolCall toolCall) {
+    return agentContext.toolDefinitions().stream()
+        .filter(definition -> definition.name().equals(toolCall.name()))
+        .findFirst()
+        .orElseThrow(() ->
+            new IllegalStateException(
+                "The call '%s' of the tool '%s' goes to the process, but the agent context has no tool of this name"
+                    .formatted(toolCall.id(), toolCall.name())));
   }
 
   private static AgentConversationTurn lastTurnOf(AgentConversation conversation) {

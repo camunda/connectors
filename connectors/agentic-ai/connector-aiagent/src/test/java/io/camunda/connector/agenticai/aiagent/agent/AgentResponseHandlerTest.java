@@ -413,9 +413,21 @@ class AgentResponseHandlerTest {
         new ToolCall("call-1", "acme_lookup", Map.of()).withKind(ToolKind.RUNTIME);
     final var processCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     final var conversation =
-        conversationWith(
-            new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false),
-            assistantMessage("both", List.of(runtimeCall, processCall)));
+        AgentConversation.rehydrate(
+                new AgentConfiguration(
+                    TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null),
+                BASE_AGENT_CONTEXT.withToolDefinitions(
+                    List.of(
+                        ToolDefinition.builder()
+                            .name("getWeather")
+                            .inputSchema(Map.of("type", "object"))
+                            .build())),
+                TurnReconstructor.reconstruct(List.of()),
+                systemMessage("system"),
+                List.of())
+            .ingest(
+                assistantMessage("both", List.of(runtimeCall, processCall)),
+                new AgentMetrics(1, AgentMetrics.TokenUsage.empty(), 2));
 
     final var response = responseHandler.createResponse(conversation);
 
@@ -603,6 +615,17 @@ class AgentResponseHandlerTest {
                   conversation,
                   new ToolCallProcessVariable(
                       "u1", "upload", Map.of("doc", handle("doc_000000000000")))));
+    }
+
+    @Test
+    void failsForACallOfAToolThatTheAgentContextDoesNotDefine() {
+      final var call = new ToolCall("x1", "unknown", Map.of("doc", handle(reportId.value())));
+
+      assertThatThrownBy(() -> responseHandler.createResponse(conversation(call)))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessage(
+              "The call 'x1' of the tool 'unknown' goes to the process, but the agent context has no tool of this name");
+      verify(gatewayToolHandlers, never()).transformToolCalls(any(), any());
     }
 
     @Test

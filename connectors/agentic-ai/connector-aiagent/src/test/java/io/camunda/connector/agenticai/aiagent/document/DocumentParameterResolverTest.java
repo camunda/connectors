@@ -275,10 +275,10 @@ class DocumentParameterResolverTest {
             Map.of("type", "camunda.agenticai.document", "id", "doc_000000000000"),
             Map.of("id", "x"))) {
       assertThat(
-              resolver.check(
+              resolver.resolve(
                   withoutDocuments,
-                  new ToolCall("call", "upload", Map.of("doc", value)),
-                  definition))
+                  definition,
+                  new ToolCall("call", "upload", Map.of("doc", value))))
           .as("%s", value)
           .isEqualTo(new Resolution.Invalid(List.of(noDocuments("doc"))));
     }
@@ -372,7 +372,7 @@ class DocumentParameterResolverTest {
   void resolvesTheCallOfAToolOfTheProcessWithTheToolDefinitionOfTheAgentContext() {
     final var call = new ToolCall("call", "upload", Map.of("doc", firstHandle, "other", "kept"));
 
-    final var result = resolver.resolveProcessCall(agentContext(), call);
+    final var result = resolveProcess(agentContext(), call);
 
     assertThat(result)
         .isEqualTo(new Resolution.Resolved(Map.of("doc", reference(firstId), "other", "kept")));
@@ -383,7 +383,7 @@ class DocumentParameterResolverTest {
     final var call =
         new ToolCall("call", "upload", Map.of("doc", handle(AgentDocumentId.of("nope"))));
 
-    final var result = resolver.resolveProcessCall(agentContext(), call);
+    final var result = resolveProcess(agentContext(), call);
 
     assertThat(result).isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", "nope"))));
   }
@@ -397,7 +397,7 @@ class DocumentParameterResolverTest {
             Map.of(
                 "docs", List.of(handle(AgentDocumentId.of("a")), handle(AgentDocumentId.of("b")))));
 
-    final var result = resolver.resolveProcessCall(agentContext(), call);
+    final var result = resolveProcess(agentContext(), call);
 
     assertThat(result)
         .isEqualTo(
@@ -408,16 +408,7 @@ class DocumentParameterResolverTest {
   void leavesTheCallOfAToolWithoutDocumentParametersAsItIs() {
     final var call = new ToolCall("call", "weather", Map.of("doc", "nope"));
 
-    final var result = resolver.resolveProcessCall(agentContext(), call);
-
-    assertThat(result).isEqualTo(new Resolution.Resolved(call.arguments()));
-  }
-
-  @Test
-  void leavesTheCallOfAToolTheAgentDoesNotKnowAsItIs() {
-    final var call = new ToolCall("call", "unknown", Map.of("doc", "nope"));
-
-    final var result = resolver.resolveProcessCall(agentContext(), call);
+    final var result = resolveProcess(agentContext(), call);
 
     assertThat(result).isEqualTo(new Resolution.Resolved(call.arguments()));
   }
@@ -427,11 +418,9 @@ class DocumentParameterResolverTest {
     final var call = new ToolCall("call", "upload", Map.of("doc", "bogus"));
     final var withoutDocuments = agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS));
 
-    assertThat(resolver.resolveProcessCall(withoutDocuments, call))
+    assertThat(resolveProcess(withoutDocuments, call))
         .isEqualTo(new Resolution.Resolved(call.arguments()));
-    assertThat(
-            resolver.resolveRuntimeCall(
-                withoutDocuments, call, definition("upload", object("doc", DOC))))
+    assertThat(resolver.resolve(withoutDocuments, definition("upload", object("doc", DOC)), call))
         .isEqualTo(new Resolution.Resolved(call.arguments()));
   }
 
@@ -440,8 +429,7 @@ class DocumentParameterResolverTest {
     final var call = new ToolCall("call", "c8__read", Map.of("file", firstHandle, "other", "kept"));
 
     final var result =
-        resolver.resolveRuntimeCall(
-            agentContext(), call, definition("c8__read", object("file", DOC)));
+        resolver.resolve(agentContext(), runtimeDefinition("c8__read", object("file", DOC)), call);
 
     assertThat(result).isEqualTo(new Resolution.Resolved(Map.of("file", firstId, "other", "kept")));
   }
@@ -452,29 +440,28 @@ class DocumentParameterResolverTest {
         new ToolCall("call", "c8__read", Map.of("file", handle(AgentDocumentId.of("none"))));
 
     final var result =
-        resolver.resolveRuntimeCall(
-            agentContext(), call, definition("c8__read", object("file", DOC)));
+        resolver.resolve(agentContext(), runtimeDefinition("c8__read", object("file", DOC)), call);
 
     assertThat(result).isEqualTo(new Resolution.Invalid(List.of(unknownId("file", "none"))));
   }
 
   @Test
-  void checksTheCallOfAToolOfEitherKindLikeTheCallOfARuntimeTool() {
-    final var definition = definition("upload", object("doc", DOC));
+  void theKindOfTheToolDecidesWhatReplacesADocumentButNotWhetherTheCallIsValid() {
+    final var schema = object("doc", DOC);
+    final var processTool = definition("upload", schema);
+    final var runtimeTool = runtimeDefinition("upload", schema);
     final var valid = new ToolCall("call", "upload", Map.of("doc", firstHandle));
     final var invalid =
         new ToolCall("call", "upload", Map.of("doc", handle(AgentDocumentId.of("nope"))));
 
-    assertThat(resolver.check(agentContext(), valid, definition))
+    assertThat(resolver.resolve(agentContext(), processTool, valid))
+        .isEqualTo(new Resolution.Resolved(Map.of("doc", reference(firstId))));
+    assertThat(resolver.resolve(agentContext(), runtimeTool, valid))
         .isEqualTo(new Resolution.Resolved(Map.of("doc", firstId)));
-    assertThat(resolver.check(agentContext(), invalid, definition))
+    assertThat(resolver.resolve(agentContext(), processTool, invalid))
         .isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", "nope"))));
-    assertThat(
-            resolver.check(
-                agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
-                invalid,
-                definition))
-        .isEqualTo(new Resolution.Resolved(invalid.arguments()));
+    assertThat(resolver.resolve(agentContext(), runtimeTool, invalid))
+        .isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", "nope"))));
   }
 
   @Test
@@ -482,8 +469,10 @@ class DocumentParameterResolverTest {
     final var call = new ToolCall("call", "c8__read", Map.of("file", "bogus"));
 
     final var result =
-        resolver.resolveRuntimeCall(
-            agentContext(), call, definition("c8__read", object("file", Map.of("type", "string"))));
+        resolver.resolve(
+            agentContext(),
+            runtimeDefinition("c8__read", object("file", Map.of("type", "string"))),
+            call);
 
     assertThat(result).isEqualTo(new Resolution.Resolved(call.arguments()));
   }
@@ -494,8 +483,8 @@ class DocumentParameterResolverTest {
     final var context = agentContext();
 
     final var expected = new Resolution.Resolved(Map.of("doc", reference(firstId)));
-    assertThat(resolver.resolveProcessCall(context, call)).isEqualTo(expected);
-    assertThat(resolver.resolveProcessCall(context, call)).isEqualTo(expected);
+    assertThat(resolveProcess(context, call)).isEqualTo(expected);
+    assertThat(resolveProcess(context, call)).isEqualTo(expected);
   }
 
   @Test
@@ -618,22 +607,22 @@ class DocumentParameterResolverTest {
 
     for (final Object handle : List.of(firstHandle, handleJson(firstId))) {
       assertThat(
-              resolver.check(
+              resolver.resolve(
                   withoutDocuments,
-                  new ToolCall("call", "send", Map.of("body", handle)),
-                  definition))
+                  definition,
+                  new ToolCall("call", "send", Map.of("body", handle))))
           .as("%s", handle)
           .isEqualTo(new Resolution.Invalid(List.of(holdsHandleButNoDocuments("body"))));
     }
     assertThat(
-            resolver.check(
+            resolver.resolve(
                 withoutDocuments,
-                new ToolCall("call", "send", Map.of("body", List.of("text", firstHandle))),
-                definition))
+                definition,
+                new ToolCall("call", "send", Map.of("body", List.of("text", firstHandle)))))
         .isEqualTo(new Resolution.Invalid(List.of(holdsHandleButNoDocuments("body[1]"))));
     assertThat(
-            resolver.check(
-                withoutDocuments, new ToolCall("call", "send", Map.of("body", "text")), definition))
+            resolver.resolve(
+                withoutDocuments, definition, new ToolCall("call", "send", Map.of("body", "text"))))
         .isEqualTo(new Resolution.Resolved(Map.of("body", "text")));
   }
 
@@ -818,9 +807,9 @@ class DocumentParameterResolverTest {
     final var handle = new ToolCall("call", "send", Map.of("body", firstHandle, "other", "kept"));
     final var text = new ToolCall("call", "send", Map.of("body", "hello"));
 
-    assertThat(resolver.resolveProcessCall(agentContext(), handle))
+    assertThat(resolveProcess(agentContext(), handle))
         .isEqualTo(new Resolution.Resolved(Map.of("body", reference(firstId), "other", "kept")));
-    assertThat(resolver.resolveProcessCall(agentContext(), text))
+    assertThat(resolveProcess(agentContext(), text))
         .isEqualTo(new Resolution.Resolved(Map.of("body", "hello")));
   }
 
@@ -829,19 +818,19 @@ class DocumentParameterResolverTest {
     final var call =
         new ToolCall("call", "send", Map.of("body", handle(AgentDocumentId.of("none"))));
 
-    assertThat(resolver.resolveProcessCall(agentContext(), call))
+    assertThat(resolveProcess(agentContext(), call))
         .isEqualTo(new Resolution.Invalid(List.of(unknownId("body", "none"))));
   }
 
   @Test
   void resolvesAUnionParameterOfTheCallOfARuntimeToolToTheIdOfAHandleAndKeepsTextAsText() {
-    final var definition = definition("c8__send", object("body", UNION));
+    final var definition = runtimeDefinition("c8__send", object("body", UNION));
     final var handle = new ToolCall("call", "c8__send", Map.of("body", firstHandle));
     final var text = new ToolCall("call", "c8__send", Map.of("body", firstId.value()));
 
-    assertThat(resolver.resolveRuntimeCall(agentContext(), handle, definition))
+    assertThat(resolver.resolve(agentContext(), definition, handle))
         .isEqualTo(new Resolution.Resolved(Map.of("body", firstId)));
-    assertThat(resolver.resolveRuntimeCall(agentContext(), text, definition))
+    assertThat(resolver.resolve(agentContext(), definition, text))
         .isEqualTo(new Resolution.Resolved(Map.of("body", firstId.value())));
   }
 
@@ -851,8 +840,8 @@ class DocumentParameterResolverTest {
         new ToolCall("call", "c8__send", Map.of("body", handle(AgentDocumentId.of("none"))));
 
     assertThat(
-            resolver.resolveRuntimeCall(
-                agentContext(), call, definition("c8__send", object("body", UNION))))
+            resolver.resolve(
+                agentContext(), runtimeDefinition("c8__send", object("body", UNION)), call))
         .isEqualTo(new Resolution.Invalid(List.of(unknownId("body", "none"))));
   }
 
@@ -861,7 +850,7 @@ class DocumentParameterResolverTest {
     final var call = new ToolCall("call", "send", Map.of("body", firstHandle));
     final var withoutDocuments = agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS));
 
-    assertThat(resolver.resolveProcessCall(withoutDocuments, call))
+    assertThat(resolveProcess(withoutDocuments, call))
         .isEqualTo(new Resolution.Resolved(call.arguments()));
   }
 
@@ -879,6 +868,20 @@ class DocumentParameterResolverTest {
 
   private static ToolDefinition definition(String name, Map<String, Object> inputSchema) {
     return ToolDefinition.builder().name(name).inputSchema(inputSchema).build();
+  }
+
+  private static ToolDefinition runtimeDefinition(String name, Map<String, Object> inputSchema) {
+    return ToolDefinition.runtime(name, null, inputSchema);
+  }
+
+  /** Resolves the call of a tool of the process with its definition in the agent context. */
+  private Resolution resolveProcess(AgentContext context, ToolCall call) {
+    final var definition =
+        context.toolDefinitions().stream()
+            .filter(candidate -> candidate.name().equals(call.name()))
+            .findFirst()
+            .orElseThrow();
+    return resolver.resolve(context, definition, call);
   }
 
   private static final Map<String, Object> DOC = DocumentSchemas.document(null);
@@ -910,17 +913,14 @@ class DocumentParameterResolverTest {
   }
 
   private Resolution resolve(Map<String, Object> arguments, Map<String, Object> inputSchema) {
-    final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
-    return resolver.resolveProcessCall(
-        agentContext().withToolDefinitions(List.of(definition)),
-        new ToolCall("call", "tool", arguments));
+    return resolver.resolve(
+        agentContext(), definition("tool", inputSchema), new ToolCall("call", "tool", arguments));
   }
 
   private Resolution resolveRuntime(
       Map<String, Object> arguments, Map<String, Object> inputSchema) {
-    final var definition = ToolDefinition.builder().name("tool").inputSchema(inputSchema).build();
-    return resolver.resolveRuntimeCall(
-        agentContext(), new ToolCall("call", "tool", arguments), definition);
+    final var definition = runtimeDefinition("tool", inputSchema);
+    return resolver.resolve(agentContext(), definition, new ToolCall("call", "tool", arguments));
   }
 
   @Test
@@ -956,8 +956,10 @@ class DocumentParameterResolverTest {
 
     final var result =
         new DocumentParameterResolver(runtimeMapper)
-            .resolveProcessCall(
-                context, new ToolCall("call", "tool", Map.of("doc", handle(agentDocument.id()))));
+            .resolve(
+                context,
+                definition,
+                new ToolCall("call", "tool", Map.of("doc", handle(agentDocument.id()))));
 
     assertThat(result)
         .isEqualTo(
@@ -988,7 +990,7 @@ class DocumentParameterResolverTest {
 
     final var result =
         new DocumentParameterResolver(runtimeMapper)
-            .resolveProcessCall(context, new ToolCall("call", "tool", Map.of("doc", handleJson)));
+            .resolve(context, definition, new ToolCall("call", "tool", Map.of("doc", handleJson)));
 
     assertThat(result)
         .isEqualTo(

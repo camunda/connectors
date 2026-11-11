@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter.Step;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,11 +53,10 @@ import org.jspecify.annotations.Nullable;
  * <p>The problem of an invalid value tells the model what to do: that the agent knows no documents
  * and none is to be passed, that the id of the handle is unknown, or what a handle looks like.
  *
- * <p>Every document is replaced by the Camunda document reference JSON of the registered document
- * ({@link #resolveProcessCall}), or, for a runtime tool that looks the documents up itself, by its
- * {@link AgentDocumentId} ({@link #resolveRuntimeCall}). {@link #check} validates a call of a tool
- * of either kind. The result depends on the call, the tool definition and the agent documents only.
- * An {@link DocumentHandling.Untracked untracked} agent instance has no document parameters.
+ * <p>Every document is replaced by the Camunda document reference JSON of the registered document,
+ * or, for a runtime tool that looks the documents up itself, by its {@link AgentDocumentId} (see
+ * {@link #resolve}). The result depends on the call, the tool definition and the agent documents
+ * only. An {@link DocumentHandling.Untracked untracked} agent instance has no document parameters.
  */
 public class DocumentParameterResolver {
 
@@ -100,50 +100,32 @@ public class DocumentParameterResolver {
   }
 
   /**
-   * Resolves the document parameters of a call of a tool of the process, a tool that is not a
-   * runtime tool, with the tool definition of the agent context: the documents become the Camunda
-   * document references. The call is resolved as it is, when the agent instance does not track its
-   * documents or the tool has no document parameters.
+   * Resolves the document parameters of a call of the tool {@code definition}. What replaces a
+   * document depends on the {@link ToolDefinition#kind() kind} of the tool: the Camunda document
+   * reference for a tool of the process, the {@link AgentDocumentId} for a runtime tool. The call
+   * is resolved as it is, when the agent instance does not track its documents or the tool has no
+   * document parameters.
+   *
+   * <p>The admission of a call, the call that goes to the process and the execution of a runtime
+   * call all use this method, so they agree on whether a call is valid.
    */
-  public Resolution resolveProcessCall(AgentContext agentContext, ToolCall toolCall) {
-    return switch (agentContext.documentHandling()) {
-      case DocumentHandling.Untracked ignored -> unchanged(toolCall);
-      case DocumentHandling.Tracked tracked ->
-          agentContext.toolDefinitions().stream()
-              .filter(definition -> definition.name().equals(toolCall.name()))
-              .filter(definition -> !definition.documentParameters().isEmpty())
-              .findFirst()
-              .map(definition ->
-                  resolve(toolCall, definition, tracked.documents(), this::referenceJson))
-              .orElseGet(() -> unchanged(toolCall));
-    };
-  }
-
-  /**
-   * Resolves the document parameters of a call of a runtime tool: the documents become their {@link
-   * AgentDocumentId}s. The call is resolved as it is, when the agent instance does not track its
-   * documents or the tool has no document parameters.
-   */
-  public Resolution resolveRuntimeCall(
-      AgentContext agentContext, ToolCall toolCall, ToolDefinition definition) {
+  public Resolution resolve(
+      AgentContext agentContext, ToolDefinition definition, ToolCall toolCall) {
     if (definition.documentParameters().isEmpty()) {
       return unchanged(toolCall);
     }
     return switch (agentContext.documentHandling()) {
       case DocumentHandling.Untracked ignored -> unchanged(toolCall);
       case DocumentHandling.Tracked tracked ->
-          resolve(toolCall, definition, tracked.documents(), AgentDocument::id);
+          resolve(toolCall, definition, tracked.documents(), replacement(definition.kind()));
     };
   }
 
-  /**
-   * Checks the document parameters of a call of a tool of either kind against the documents the
-   * agent knows, for the admission of the call. The outcome is the one of {@link
-   * #resolveRuntimeCall}: the call is valid as it is when the agent instance does not track its
-   * documents or the tool has no document parameter.
-   */
-  public Resolution check(AgentContext agentContext, ToolCall toolCall, ToolDefinition definition) {
-    return resolveRuntimeCall(agentContext, toolCall, definition);
+  private Function<AgentDocument, Object> replacement(ToolKind kind) {
+    return switch (kind) {
+      case PROCESS -> this::referenceJson;
+      case RUNTIME -> AgentDocument::id;
+    };
   }
 
   /** The document reference in the JSON format it is persisted in. */
@@ -159,10 +141,11 @@ public class DocumentParameterResolver {
 
   /**
    * Resolves the document parameters of {@code toolCall}. A parameter that is missing or {@code
-   * null} is left as is. For a document parameter, a value that is not a handle of a registered
-   * document is reported as a problem naming the value. For a union parameter, only a handle with
-   * an unknown id is reported. Each valid document is replaced by what {@code replacement} returns
-   * for it.
+   * null}, or that sits in an object property that is missing or {@code null}, is left as is; a
+   * {@code null} element of a document array is invalid. For a document parameter, a value that is
+   * not a handle of a registered document is reported as a problem naming the value. For a union
+   * parameter, only a handle with an unknown id is reported. Each valid document is replaced by
+   * what {@code replacement} returns for it.
    */
   private Resolution resolve(
       ToolCall toolCall,
