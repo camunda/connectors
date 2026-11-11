@@ -28,13 +28,13 @@ public interface RuntimeToolCall {
   /**
    * The arguments, with an unmodifiable top level. The values are JSON values: a {@link String}, a
    * {@link Number}, a {@link Boolean}, a {@link java.util.List}, a {@link Map} or {@code null}, and
-   * a {@link AgentDocumentId} for a parameter that carries a document.
+   * an {@link AgentDocumentId} for a parameter that carries a document.
    *
    * <ul>
-   *   <li>A document parameter holds a {@link AgentDocumentId}.
+   *   <li>A document parameter holds an {@link AgentDocumentId}.
    *   <li>A union parameter (an {@code anyOf} or {@code oneOf} with {@link
    *       DocumentSchemas#document} as one alternative, directly or inside an object or array
-   *       alternative) holds a {@link AgentDocumentId} for every document handle in the value the
+   *       alternative) holds an {@link AgentDocumentId} for every document handle in the value the
    *       model passed, and the rest of the value as the model passed it. A string that is not a
    *       handle as JSON is text, also one that equals the id of a document.
    * </ul>
@@ -43,11 +43,11 @@ public interface RuntimeToolCall {
 
   /**
    * Binds the {@link #arguments() arguments} to {@code type}, a record or a bean with a property
-   * per argument. A {@link AgentDocumentId} property receives the document of a document parameter,
-   * a {@link String} property the text of the id. A property typed {@link Object} receives a {@link
-   * AgentDocumentId} for a document and the value the model passed for any other value, so a union
-   * parameter binds to a {@link AgentDocumentId} or a {@link String}. Properties without an
-   * argument are {@code null}, arguments without a property are ignored.
+   * per argument. An {@link AgentDocumentId} property receives the document of a document
+   * parameter, a {@link String} property the text of the id. A property typed {@link Object}
+   * receives an {@link AgentDocumentId} for a document and the value the model passed for any other
+   * value, so a union parameter binds to an {@link AgentDocumentId} or a {@link String}. Properties
+   * without an argument are {@code null}, arguments without a property are ignored.
    *
    * @throws RuntimeToolException if the arguments do not fit {@code type}, which gives the call an
    *     error result

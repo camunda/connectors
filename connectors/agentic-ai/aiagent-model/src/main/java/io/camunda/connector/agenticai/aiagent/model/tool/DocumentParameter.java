@@ -27,7 +27,7 @@ import java.util.function.BiFunction;
  * ToolDefinition tool definition}. It is either
  *
  * <ul>
- *   <li>a {@link Document}: the schema of a {@link AgentDocumentHandle}, an object whose {@code
+ *   <li>a {@link Document}: the schema of an {@link AgentDocumentHandle}, an object whose {@code
  *       properties.type.enum} is {@code ["camunda.agenticai.document"]}; the value must be a
  *       handle, or
  *   <li>a {@link Union}: a node with {@code anyOf} or {@code oneOf} and more than one alternative,

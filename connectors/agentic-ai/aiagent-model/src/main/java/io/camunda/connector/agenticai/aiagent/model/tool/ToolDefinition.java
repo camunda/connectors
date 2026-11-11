@@ -23,7 +23,7 @@ import org.jspecify.annotations.Nullable;
  * to JSON only for a {@link ToolKind#RUNTIME} definition; a missing value reads as {@link
  * ToolKind#PROCESS}.
  *
- * <p>A parameter that carries a document has the object schema of a {@link
+ * <p>A parameter that carries a document has the object schema of an {@link
  * io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle} (see {@link
  * #documentParameters()}). The schema is stored and sent to the model provider as it is.
  */

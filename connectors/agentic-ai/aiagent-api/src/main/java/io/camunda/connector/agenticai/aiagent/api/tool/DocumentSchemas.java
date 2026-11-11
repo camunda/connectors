@@ -33,11 +33,12 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>The schema of a document is the object schema of its {@link AgentDocumentHandle}: the model
  * passes the {@code type} and the {@code id} of a handle it read, and the schema goes to the model
- * provider as it is. A call whose document parameter does not hold the handle of a known document
- * is rejected before the tool is reached, and the model reads the reason as the result of the call.
- * What the tool receives instead of the handle depends on its kind: a runtime tool gets the {@link
+ * provider as it is. For an agent instance that tracks its documents, a call whose document
+ * parameter does not hold the handle of a known document is rejected before the tool is reached,
+ * and the model reads the reason as the result of the call. What the tool receives instead of the
+ * handle depends on its kind: a runtime tool gets the {@link
  * io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId} (see {@link
- * RuntimeToolCall}), the process or a gateway tool the Camunda document reference.
+ * RuntimeToolCall}), a process or gateway tool gets the Camunda document reference.
  *
  * <p>A parameter that takes a document or something else is a plain {@code anyOf} or {@code oneOf}
  * with more than one alternative, one of them {@link #document document(...)}, directly or inside

@@ -41,8 +41,8 @@ public final class RuntimeToolCallImpl implements RuntimeToolCall {
 
   /**
    * A copy of the mapper that binds the arguments of a call. It ignores arguments the type has no
-   * property for, as a model sends them now and then, and hands a {@link AgentDocumentId} on as the
-   * object it is, so that it binds to a property of the type {@link AgentDocumentId} and to a
+   * property for, as a model sends them now and then, and hands an {@link AgentDocumentId} on as
+   * the object it is, so that it binds to a property of the type {@link AgentDocumentId} and to a
    * property of the type {@link Object} alike, instead of as the string it is serialized to.
    */
   public static ObjectMapper argumentsMapper(ObjectMapper objectMapper) {
