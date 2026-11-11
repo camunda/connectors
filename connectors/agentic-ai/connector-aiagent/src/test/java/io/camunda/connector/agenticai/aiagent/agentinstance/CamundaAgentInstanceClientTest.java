@@ -26,6 +26,8 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.ProblemDetail;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryItem;
+import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
+import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.client.api.command.AgentTool;
 import io.camunda.client.api.command.ClientHttpException;
@@ -1504,15 +1506,46 @@ class CamundaAgentInstanceClientTest {
           OffsetDateTime.parse("2026-07-02T10:00:00Z"));
 
       verify(updateCommandStep4, times(3)).history(historyCaptor.capture());
-      final var assistantItem = historyCaptor.getAllValues().get(0).getFirst();
-      final var firstResult = historyCaptor.getAllValues().get(1).getFirst();
-      final var mergedResult = historyCaptor.getAllValues().get(2).getLast();
-      final var expectedArguments = Map.of("customerId", "42", "document", documentTag);
-      assertThat(assistantItem.getToolCalls().getFirst().getArguments())
-          .isEqualTo(expectedArguments);
-      assertThat(firstResult.getToolCalls().getFirst().getArguments()).isEqualTo(expectedArguments);
+      final Map<String, Object> expectedArguments =
+          Map.of("customerId", "42", "document", documentTag);
+      final var expectedToolCall =
+          new AgentInstanceHistoryToolCall()
+              .toolCallId("runtime")
+              .toolName("acme_lookup")
+              .arguments(expectedArguments);
+      final var expectedAssistantItem =
+          new AgentInstanceHistoryItem()
+              .historyItemId(
+                  AgentInstanceHistoryItemIds.forMessage(assistantTurn.assistantMessage()))
+              .role(AgentInstanceHistoryRole.ASSISTANT)
+              .content(List.of())
+              .toolCalls(List.of(expectedToolCall))
+              .metrics(
+                  new AgentInstanceHistoryMetrics()
+                      .inputTokens(0)
+                      .outputTokens(0)
+                      .reasoningTokenCount(0)
+                      .cacheCreationTokenCount(0)
+                      .cacheReadTokenCount(0)
+                      .durationMs(0))
+              .producedAt(OffsetDateTime.parse("2026-07-02T09:59:30Z"))
+              .loopIteration(1);
+      final var expectedResultItem =
+          new AgentInstanceHistoryItem()
+              .historyItemId("runtime")
+              .role(AgentInstanceHistoryRole.TOOL_RESULT)
+              .content(List.of(AgentInstanceHistoryContent.text("Found the customer.")))
+              .toolCalls(List.of(expectedToolCall))
+              .producedAt(OffsetDateTime.parse("2026-07-02T09:59:40Z"))
+              .loopIteration(2);
       // the engine keeps the first write of a history item id, the later write is identical
-      assertThat(mergedResult).usingRecursiveComparison().isEqualTo(firstResult);
+      assertThat(historyCaptor.getAllValues())
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(
+                  List.of(expectedAssistantItem),
+                  List.of(expectedResultItem),
+                  List.of(expectedResultItem)));
     }
 
     @Test

@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
+import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
@@ -75,6 +76,25 @@ class AgentInstanceHistoryMapperTest {
   private final AgentInstanceHistoryMapper mapper =
       new AgentInstanceHistoryMapper(
           Mockito.mock(GatewayToolHandlerRegistry.class), TestDocuments.objectHandleRenderer());
+
+  private static AgentInstanceHistoryToolCall historyToolCall(
+      String id, String name, String elementId, Map<String, Object> arguments) {
+    return new AgentInstanceHistoryToolCall()
+        .toolCallId(id)
+        .toolName(name)
+        .elementId(elementId)
+        .arguments(arguments);
+  }
+
+  private static AgentInstanceHistoryMapper.InputHistoryItem toolResultItem(
+      String id, String name, String elementId, String text, Map<String, Object> arguments) {
+    return new AgentInstanceHistoryMapper.InputHistoryItem(
+        AgentInstanceHistoryRole.TOOL_RESULT,
+        List.of(new AgentInstanceHistoryContent.TextContent(text)),
+        List.of(historyToolCall(id, name, elementId, arguments)),
+        TOOL_RESULT_COMPLETED_AT,
+        id);
+  }
 
   private static HistoryDocuments historyDocuments(DocumentHandling handling) {
     return new HistoryDocuments(handling, new DocumentRestorer(TestDocuments.documentFactory()));
@@ -637,8 +657,9 @@ class AgentInstanceHistoryMapperTest {
               AssistantMessage.builder().toolCalls(List.of(uploadCall)).build());
 
       assertThat(calls)
-          .singleElement()
-          .satisfies(call -> assertThat(call.getArguments()).isEqualTo(uploadCall.arguments()));
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(historyToolCall("call-1", "upload", "upload", uploadCall.arguments())));
     }
 
     @Test
@@ -660,12 +681,9 @@ class AgentInstanceHistoryMapperTest {
               historyDocuments(agentContext.documentHandling()));
 
       assertThat(items)
-          .singleElement()
-          .satisfies(item ->
-              assertThat(item.toolCalls())
-                  .singleElement()
-                  .satisfies(
-                      call -> assertThat(call.getArguments()).isEqualTo(uploadCall.arguments())));
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(toolResultItem("call-1", "upload", "upload", "200", uploadCall.arguments())));
     }
 
     @Test
@@ -683,10 +701,11 @@ class AgentInstanceHistoryMapperTest {
           mapper.assistantToolCalls(AssistantMessage.builder().toolCalls(List.of(call)).build());
 
       assertThat(calls)
-          .singleElement()
-          .satisfies(reported ->
-              assertThat(reported.getArguments())
-                  .isEqualTo(Map.of("key", "report", "document", tag)));
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(
+                  historyToolCall(
+                      "call-2", "acme_lookup", null, Map.of("key", "report", "document", tag))));
     }
 
     @Test
@@ -717,20 +736,18 @@ class AgentInstanceHistoryMapperTest {
               historyDocuments(agentContext.documentHandling()));
 
       assertThat(calls)
-          .singleElement()
-          .satisfies(call -> {
-            assertThat(call.getElementId()).isNull();
-            assertThat(call.getArguments()).isEqualTo(rejected.arguments());
-          });
+          .usingRecursiveComparison()
+          .isEqualTo(List.of(historyToolCall("call-3", "upload", null, rejected.arguments())));
       assertThat(items)
-          .singleElement()
-          .satisfies(item ->
-              assertThat(item.toolCalls())
-                  .singleElement()
-                  .satisfies(call -> {
-                    assertThat(call.getElementId()).isNull();
-                    assertThat(call.getArguments()).isEqualTo(rejected.arguments());
-                  }));
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(
+                  toolResultItem(
+                      "call-3",
+                      "upload",
+                      null,
+                      "Parameter 'file' must be a tag.",
+                      rejected.arguments())));
     }
 
     @Test
@@ -752,12 +769,9 @@ class AgentInstanceHistoryMapperTest {
               historyDocuments(NEW_INSTANCE.documentHandling()));
 
       assertThat(items)
-          .singleElement()
-          .satisfies(item ->
-              assertThat(item.toolCalls())
-                  .singleElement()
-                  .satisfies(
-                      call -> assertThat(call.getArguments()).isEqualTo(uploadCall.arguments())));
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(toolResultItem("call-1", "upload", "upload", "200", uploadCall.arguments())));
     }
   }
 
@@ -1219,8 +1233,8 @@ class AgentInstanceHistoryMapperTest {
               agentContext);
 
       assertThat(item.toolCalls())
-          .singleElement()
-          .satisfies(reported -> assertThat(reported.getArguments()).isEqualTo(call.arguments()));
+          .usingRecursiveComparison()
+          .isEqualTo(List.of(historyToolCall("call-1", "fetch", "fetch", call.arguments())));
     }
 
     @Test
