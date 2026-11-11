@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
@@ -112,13 +110,31 @@ class OpenAiStrictJsonSchemasTest {
 
     final var strict = OpenAiStrictJsonSchemas.forStrictMode(schema, objectMapper);
 
-    final var objectAlternative = strict.at("/properties/message/anyOf/1");
-    assertThat(objectAlternative.path("additionalProperties").asBoolean(true)).isFalse();
-    final var file = objectAlternative.at("/properties/file");
-    assertThat(file.path("additionalProperties").asBoolean(true)).isFalse();
-    assertThat(file.path("required").toString()).isEqualTo("[\"type\",\"id\"]");
-    assertThat(file.at("/properties/type/enum").toString())
-        .isEqualTo("[\"camunda.agenticai.document\"]");
+    JSONAssert.assertEquals(
+        """
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "message": {
+              "anyOf": [
+                {"type": "string"},
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "file": %s,
+                    "caption": {"type": "string"}
+                  }
+                }
+              ]
+            }
+          }
+        }
+        """
+            .formatted(HANDLE),
+        strict.toString(),
+        true);
   }
 
   @Test
@@ -132,8 +148,21 @@ class OpenAiStrictJsonSchemasTest {
 
     final var strict = OpenAiStrictJsonSchemas.forStrictMode(schema, objectMapper);
 
-    assertThat(strict.at("/properties/files/items/additionalProperties").asBoolean(true)).isFalse();
-    assertThat(strict.at("/properties/files/items/required").toString())
-        .isEqualTo("[\"type\",\"id\"]");
+    JSONAssert.assertEquals(
+        """
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "files": {
+              "type": "array",
+              "items": %s
+            }
+          }
+        }
+        """
+            .formatted(HANDLE),
+        strict.toString(),
+        true);
   }
 }
