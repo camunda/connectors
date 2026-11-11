@@ -721,6 +721,66 @@ class AgentConversationTurnInputComposerImplTest {
         .isEqualTo(AgentDocument.of(eventDoc, eventOrigin));
   }
 
+  private record EventPayload(String text, Document file) {}
+
+  private static final EventHandlingConfiguration WAIT_FOR_TOOL_CALL_RESULTS =
+      new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS);
+
+  private AgentInput inputWithTheEventOf(EventPayload payload) {
+    return AgentInput.from(
+        new UserPromptConfiguration("user input", List.of()),
+        List.of(
+            ToolCallResult.builder().id("abcdef").name("getWeather").content("sunny").build(),
+            ToolCallResult.builder().id("fedcba").name("getDateTime").content("15:00").build(),
+            ToolCallResult.builder().content(payload).build()));
+  }
+
+  @Test
+  void eventTurn_documentInATypedRecordOfTheEvent_ofATrackedInstance_isRegisteredWithItsHandle() {
+    var config =
+        new AgentConfiguration(null, null, null, null, null, WAIT_FOR_TOOL_CALL_RESULTS, null);
+    var eventDoc = createDocument("event data", "application/pdf", "event.pdf");
+    var payload = new EventPayload("event", eventDoc);
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = resolve(config, CTX_WITH_CONVERSATION, history, inputWithTheEventOf(payload));
+
+    final var nextTurn = inputOf(result);
+    final var eventMessage = (UserMessage) nextTurn.messages().getLast();
+    assertThat(eventMessage.content())
+        .containsExactly(
+            ObjectContent.objectContent(payload),
+            textContent(AgentConversationTurnInputComposerImpl.TRACKED_EVENT_DOCUMENTS_PREAMBLE),
+            documentReference(eventDoc, DocumentDelivery.REFERENCE));
+    assertThat(nextTurn.documents())
+        .containsExactly(AgentDocument.of(eventDoc, AgentDocumentOrigin.event(eventMessage.id())));
+  }
+
+  @Test
+  void eventTurn_documentInATypedRecordOfTheEvent_ofAnUntrackedInstance_isNotFound() {
+    var config =
+        new AgentConfiguration(null, null, null, null, null, WAIT_FOR_TOOL_CALL_RESULTS, null);
+    var eventDoc = createDocument("event data", "application/pdf", "event.pdf");
+    var payload = new EventPayload("event", eventDoc);
+    var untracked =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .conversation(InProcessConversationContext.builder("conv").build())
+            .build();
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = resolve(config, untracked, history, inputWithTheEventOf(payload));
+
+    final var nextTurn = inputOf(result);
+    assertThat(((UserMessage) nextTurn.messages().getLast()).content())
+        .containsExactly(ObjectContent.objectContent(payload));
+    assertThat(nextTurn.documents()).isEmpty();
+  }
+
   private static final ToolCallResultContent RUNTIME_RESULT =
       ToolCallResultContent.builder()
           .id("abcdef")

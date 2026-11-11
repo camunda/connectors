@@ -6,9 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import java.util.List;
 
@@ -20,13 +23,17 @@ import java.util.List;
 public class LocalToolCallExecutor {
 
   private final RuntimeTools runtimeTools;
+  private final ObjectHandleRenderer objectHandleRenderer;
 
-  public LocalToolCallExecutor(RuntimeTools runtimeTools) {
+  public LocalToolCallExecutor(
+      RuntimeTools runtimeTools, ObjectHandleRenderer objectHandleRenderer) {
     this.runtimeTools = runtimeTools;
+    this.objectHandleRenderer = objectHandleRenderer;
   }
 
   /**
-   * Returns one entry per call.
+   * Returns one entry per call. An agent instance that tracks its documents registers the documents
+   * of a result that the model reads as handles, also those inside a typed record.
    *
    * @throws IllegalStateException if a call is not a call of a runtime tool
    */
@@ -43,8 +50,17 @@ public class LocalToolCallExecutor {
       return List.of();
     }
     return runtimeTools.execute(executionContext, agentContext, calls).stream()
-        .map(execution -> ToolCallBatch.Entry.from(execution.toolCallResult()))
+        .map(execution -> entry(execution.toolCallResult(), agentContext.documentHandling()))
         .toList();
+  }
+
+  private ToolCallBatch.Entry entry(
+      ToolCallResultContent result, DocumentHandling documentHandling) {
+    return switch (documentHandling) {
+      case DocumentHandling.Tracked ignored ->
+          ToolCallBatch.Entry.withRenderedDocuments(result, objectHandleRenderer);
+      case DocumentHandling.Untracked ignored -> ToolCallBatch.Entry.from(result);
+    };
   }
 
   private static boolean isExecutedByTheAgent(ToolCall call) {

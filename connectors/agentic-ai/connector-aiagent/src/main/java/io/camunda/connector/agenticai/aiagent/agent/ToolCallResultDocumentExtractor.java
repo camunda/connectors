@@ -37,6 +37,10 @@ import org.slf4j.LoggerFactory;
  * io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler#extractDocuments(ToolCallResult)
  * extractDocuments}, the handler's typed extraction is used instead — gateway handlers contribute
  * extraction for the results they manage; the generic walker handles everything else.
+ *
+ * <p>The agent uses this extraction only for agent instances without the {@code documents} feature.
+ * An instance with it collects the documents of a result with {@link #renderedDocumentsOf} and
+ * {@link #renderedDocumentsIn}, the way it renders them as handles.
  */
 public class ToolCallResultDocumentExtractor {
 
@@ -125,6 +129,16 @@ public class ToolCallResultDocumentExtractor {
     return distinct(documents);
   }
 
+  /**
+   * The documents of any value the way the model reads it, for example the content of an event: the
+   * ones the renderer replaces with their handle, at any depth and also inside a typed record,
+   * without duplicates and in order of appearance.
+   */
+  public static List<Document> renderedDocumentsIn(
+      Object value, ObjectHandleRenderer objectHandleRenderer) {
+    return distinct(objectHandleRenderer.documentsIn(value));
+  }
+
   private List<Document> extractFromToolCallResult(ToolCallResult toolCallResult) {
     final var documents =
         Optional.ofNullable(toolCallResult.name())
@@ -141,7 +155,7 @@ public class ToolCallResultDocumentExtractor {
    * the content tree), keyed by DocumentReference, which is a record / has structural equality for
    * the standard reference types.
    */
-  private static List<Document> distinct(List<Document> documents) {
+  static List<Document> distinct(List<Document> documents) {
     final var seen = new HashSet<DocumentReference>();
     return documents.stream()
         .filter(Objects::nonNull)

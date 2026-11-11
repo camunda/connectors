@@ -103,8 +103,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public LocalToolCallExecutor aiAgentLocalToolCallExecutor(RuntimeTools runtimeTools) {
-    return new LocalToolCallExecutor(runtimeTools);
+  public LocalToolCallExecutor aiAgentLocalToolCallExecutor(
+      RuntimeTools runtimeTools, ObjectHandleRenderer objectHandleRenderer) {
+    return new LocalToolCallExecutor(runtimeTools, objectHandleRenderer);
   }
 
   @Bean

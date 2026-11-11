@@ -106,8 +106,9 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     }
 
     /**
-     * The entry of a result as the process returned it. The documents are extracted from the
-     * result, by its gateway tool handler if it has one.
+     * The entry of a result as the process returned it, for an agent instance that does not track
+     * its documents. The documents are extracted from the result, by its gateway tool handler if it
+     * has one.
      */
     public static Entry from(ToolCallResult result, ToolCallResultDocumentExtractor extractor) {
       final var documents =
@@ -118,20 +119,24 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     }
 
     /**
-     * The entry of a result as the process returned it, for an agent instance that tracks its
-     * documents. The documents are the ones the model reads as handles: every document the renderer
-     * finds in the result, at any depth, whatever gateway tool handler manages the result.
+     * The entry of a result of any source (a process tool or a runtime tool), for an agent instance
+     * that tracks its documents. The documents are the ones the model reads as handles: every
+     * document the renderer finds in the result, at any depth and also inside a typed record,
+     * whatever gateway tool handler manages the result.
      */
     public static Entry withRenderedDocuments(
-        ToolCallResult result, ObjectHandleRenderer objectHandleRenderer) {
-      final var content = ToolCallResultContent.from(result);
+        ToolCallResultContent result, ObjectHandleRenderer objectHandleRenderer) {
       return new Entry(
-          content,
+          result,
           ToolCallResultDocumentExtractor.renderedDocumentsOf(
-              content.content(), objectHandleRenderer));
+              result.content(), objectHandleRenderer));
     }
 
-    /** The entry of a result with structured content; the documents are the ones of its content. */
+    /**
+     * The entry of a result with structured content, for an agent instance that does not track its
+     * documents, or a result that holds none, such as the rejection of a call; the documents are
+     * the ones the generic walker finds in its content.
+     */
     public static Entry from(ToolCallResultContent result) {
       return new Entry(result, ToolCallResultDocumentExtractor.documentsOf(result.content()));
     }

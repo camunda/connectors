@@ -30,7 +30,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -261,7 +263,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       ToolCallResult result, DocumentHandling documentHandling) {
     return switch (documentHandling) {
       case DocumentHandling.Tracked ignored ->
-          ToolCallBatch.Entry.withRenderedDocuments(result, objectHandleRenderer);
+          ToolCallBatch.Entry.withRenderedDocuments(
+              ToolCallResultContent.from(result), objectHandleRenderer);
       case DocumentHandling.Untracked ignored ->
           ToolCallBatch.Entry.from(result, documentExtractor);
     };
@@ -300,12 +303,16 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     // events arrive as ToolCallResult with null id/name, so their documents have no tool call
-    final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
-    if (!eventDocuments.isEmpty()) {
-      switch (documentHandling) {
-        case DocumentHandling.Tracked ignored -> {
+    switch (documentHandling) {
+      case DocumentHandling.Tracked ignored -> {
+        // the documents the model reads as handles
+        final var eventDocuments =
+            eventContent == null
+                ? List.<Document>of()
+                : ToolCallResultDocumentExtractor.renderedDocumentsIn(
+                    eventContent, objectHandleRenderer);
+        if (!eventDocuments.isEmpty()) {
           eventDocuments.stream()
-              .flatMap(group -> group.documents().stream())
               .filter(doc -> !AgentDocument.isSupported(doc))
               .findFirst()
               .ifPresent(doc -> {
@@ -313,14 +320,15 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               });
           userMessageContent.add(textContent(TRACKED_EVENT_DOCUMENTS_PREAMBLE));
           final var origin = AgentDocumentOrigin.event(messageId);
-          for (var group : eventDocuments) {
-            for (var doc : group.documents()) {
-              newDocuments.add(AgentDocument.of(doc, origin));
-              userMessageContent.add(AgentDocumentContent.of(AgentDocumentId.of(doc)));
-            }
+          for (var doc : eventDocuments) {
+            newDocuments.add(AgentDocument.of(doc, origin));
+            userMessageContent.add(AgentDocumentContent.of(AgentDocumentId.of(doc)));
           }
         }
-        case DocumentHandling.Untracked ignored -> {
+      }
+      case DocumentHandling.Untracked ignored -> {
+        final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
+        if (!eventDocuments.isEmpty()) {
           userMessageContent.add(textContent(UNTRACKED_EVENT_DOCUMENTS_PREAMBLE));
           userMessageContent.addAll(ToolCallResultsInputBuilder.documentPairs(eventDocuments));
         }

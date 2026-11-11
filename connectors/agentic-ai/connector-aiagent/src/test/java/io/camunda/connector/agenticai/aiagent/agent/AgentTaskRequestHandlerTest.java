@@ -129,7 +129,7 @@ class AgentTaskRequestHandlerTest {
             agentInstanceClient,
             runtimeTools,
             new ToolCallAdmission(),
-            new LocalToolCallExecutor(runtimeTools),
+            new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer()),
             documentExpander);
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
