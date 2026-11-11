@@ -187,12 +187,10 @@ has no element; a rejected call has none either. In a mixed batch the results ca
 * **Every conversation store must keep the kind and the rejection.** A store that drops them turns a runtime call or a
   rejected call into a process call that never gets a result, for an agent instance with or without the `runtimeTools`
   feature. A missing kind reads as a process call and a missing rejection as none, so existing data keeps working.
-* **Workers of different versions can mishandle a runtime call or a rejected call in flight.** A worker that predates
-  the kind ignores the unknown properties of a stored call and treats such a call as a call of the process. It raises no
-  incident and the instance waits for a result that never comes. The JSON of every other call is unchanged, so an agent
-  instance that calls only tools of the process is not affected. A rejected call names a tool that does not exist, which
-  hung the agent before too. While a runtime call is in flight, the agent instances are drained before a rolling upgrade,
-  or only workers of one version run.
+* **A worker that predates the kind fails on the state.** 8.11 writes `schemaVersion` 2 for every agent instance, and an
+  8.10 worker rejects a newer schema version, so it fails the job instead of treating a runtime call or a rejected call
+  as a call of the process. The job is retried and, when its retries run out, raises an incident. Rolling back to a
+  worker that predates the kind is not supported.
 * A tool call that names a tool that is not offered, or a runtime tool that is not enabled when it is executed, gets an
   error result, and the model has to recover.
 * A model that keeps calling tools that are not offered, or keeps calling only runtime tools, gets a new model call in

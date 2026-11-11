@@ -283,9 +283,6 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
 - The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
   SHA-256 over a JSON serialization of the configuration. Every running agent instance, also one created before 8.11, writes
   one additional `CONFIGURATION` history item on its first job after the upgrade.
-- 8.11 writes `schemaVersion` 2 on the first write of every agent instance, also of an instance created before 8.11. State
-  written by 8.10 (`schemaVersion` 1) and by 8.9 still loads. `AgentContext` gains `features`, and a missing field binds
-  to its empty value, so state written by 8.10 loads unchanged.
 - A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
   and without the `runtimeTools` feature. `kind` is the kind of the tool the call names; a call of a tool name that is not
   offered gets a `rejection`, the error text that is its tool call result, and keeps the kind `PROCESS`. The JSON holds `kind`
@@ -293,12 +290,6 @@ beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs th
   state written by 8.10 loads unchanged. The agent never computes them again, so a custom `ConversationStore` must keep
   them: a store that drops them turns a runtime tool call or a rejected call into a process tool call that never gets a
   result. Serializing the `ToolCall` record with Jackson keeps them.
-- **An 8.10 runtime fails to read state that 8.11 wrote.** An 8.10 connector runtime rejects a `schemaVersion` newer than
-  its own, so it fails on the state. It does not drop `features`, and it does not treat a call of a runtime tool or a
-  rejected call as a call of the process. During a rolling upgrade, a job of such an agent instance
-  that an 8.10 worker activates fails and is retried. When its retries run out, it raises an incident; retry it after the
-  upgrade. Finish the rolling upgrade quickly, or drain the agent instances first. Rolling back to 8.10 after 8.11 wrote
-  state is not supported.
 - The assistant message in the `responseMessage` of an `AgentResponse` (`includeAssistantMessage`) also carries `kind`
   for a runtime tool call and `rejection` for a rejected call.
 - Do not rely on the JSON shape of this field in external systems.
