@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SY
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.api.tool.DocumentSchemas;
@@ -574,14 +575,14 @@ class RuntimeToolsTest {
               return RuntimeToolResult.success("read");
             });
 
-    final var executions =
-        toolsOf(tool)
-            .execute(
-                WITH_MEMORY,
-                knowingWithDocumentsFeature(report),
-                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", handleOf(report)))));
+    final var call = runtimeCall("r1", "c8__read_file", Map.of("file", handleOf(report)));
 
-    assertThat(text(executions.getFirst())).isEqualTo("read");
+    final var executions =
+        toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(report), List.of(call));
+
+    assertThat(executions)
+        .extracting(RuntimeToolExecution::call, RuntimeToolExecution::result)
+        .containsExactly(tuple(call, RuntimeToolResult.success("read")));
     assertThat(received).containsExactly(AgentDocumentId.of(report), null);
   }
 
@@ -609,12 +610,14 @@ class RuntimeToolsTest {
             "other",
             "kept");
 
-    toolsOf(tool)
-        .execute(
-            WITH_MEMORY,
-            knowingWithDocumentsFeature(report),
-            List.of(runtimeCall("r1", "c8__read_file", arguments)));
+    final var call = runtimeCall("r1", "c8__read_file", arguments);
 
+    final var executions =
+        toolsOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(report), List.of(call));
+
+    assertThat(executions)
+        .extracting(RuntimeToolExecution::call, RuntimeToolExecution::result)
+        .containsExactly(tuple(call, RuntimeToolResult.success("read")));
     assertThat(received)
         .containsExactly(Map.of("file", AgentDocumentId.of(report), "other", "kept"));
   }
@@ -671,16 +674,17 @@ class RuntimeToolsTest {
     final var registeredTools = toolsOf(changing);
     assertThat(changing.definition()).isEqualTo(withDocumentParameter);
 
+    final var call = runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"));
+
     final var executions =
         registeredTools.execute(
             WITH_MEMORY,
             knowingWithDocumentsFeature(createDocument("known", "known.txt")),
-            List.of(runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"))));
+            List.of(call));
 
     assertThat(executions)
-        .singleElement()
-        .satisfies(execution ->
-            assertThat(execution.result()).isEqualTo(RuntimeToolResult.success("read")));
+        .extracting(RuntimeToolExecution::call, RuntimeToolExecution::result)
+        .containsExactly(tuple(call, RuntimeToolResult.success("read")));
     assertThat(runs).hasValue(1);
   }
 
@@ -697,14 +701,19 @@ class RuntimeToolsTest {
               return RuntimeToolResult.success("sent");
             });
 
-    toolsOf(tool)
-        .execute(
-            WITH_MEMORY,
-            knowingWithDocumentsFeature(report),
-            List.of(
-                runtimeCall("r1", "c8__send", Map.of("body", handleOf(report))),
-                runtimeCall("r2", "c8__send", Map.of("body", "hello"))));
+    final var handleCall = runtimeCall("r1", "c8__send", Map.of("body", handleOf(report)));
+    final var textCall = runtimeCall("r2", "c8__send", Map.of("body", "hello"));
 
+    final var executions =
+        toolsOf(tool)
+            .execute(
+                WITH_MEMORY, knowingWithDocumentsFeature(report), List.of(handleCall, textCall));
+
+    assertThat(executions)
+        .extracting(RuntimeToolExecution::call, RuntimeToolExecution::result)
+        .containsExactly(
+            tuple(handleCall, RuntimeToolResult.success("sent")),
+            tuple(textCall, RuntimeToolResult.success("sent")));
     assertThat(received).containsExactly(AgentDocumentId.of(report), "hello");
   }
 
@@ -751,14 +760,13 @@ class RuntimeToolsTest {
               return RuntimeToolResult.success("read");
             });
 
-    final var executions =
-        toolsOf(tool)
-            .execute(
-                WITH_MEMORY,
-                NEW_INSTANCE,
-                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"))));
+    final var call = runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"));
 
-    assertThat(text(executions.getFirst())).isEqualTo("read");
+    final var executions = toolsOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, List.of(call));
+
+    assertThat(executions)
+        .extracting(RuntimeToolExecution::call, RuntimeToolExecution::result)
+        .containsExactly(tuple(call, RuntimeToolResult.success("read")));
     assertThat(received).containsExactly(Map.of("file", "bogus"));
   }
 }
