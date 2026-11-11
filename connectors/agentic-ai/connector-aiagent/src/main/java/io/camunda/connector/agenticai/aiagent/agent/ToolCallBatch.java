@@ -128,20 +128,9 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     }
 
     /**
-     * The entry of a result of any source (a process tool or a runtime tool), for an agent instance
-     * that tracks its documents. The documents are the ones the model reads as handles: every
-     * document the renderer finds in the result, at any depth and also inside a typed record,
-     * whatever gateway tool handler manages the result.
-     */
-    public static Entry withRenderedDocuments(
-        ToolCallResultContent result, ObjectHandleRenderer objectHandleRenderer) {
-      return withRenderedDocuments(result, objectHandleRenderer, List.of());
-    }
-
-    /**
-     * The entry of a result that asks something of the agent, for an agent instance that tracks its
-     * documents; the documents are the ones the model reads as handles, as in {@link
-     * #withRenderedDocuments(ToolCallResultContent, ObjectHandleRenderer)}.
+     * The entry of a result of a runtime tool, which asks something of the agent, for an agent
+     * instance that tracks its documents. The documents are the ones the model reads as handles:
+     * every document the renderer finds in the result, at any depth and also inside a typed record.
      */
     static Entry withRenderedDocuments(
         ToolCallResultContent result,
@@ -155,9 +144,10 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     }
 
     /**
-     * The entry of a result of a tool with the given document delivery, for an agent instance that
-     * tracks its documents, with the documents of {@link
-     * #withRenderedDocuments(ToolCallResultContent, ObjectHandleRenderer)}. With the delivery {@link
+     * The entry of a result of a process tool with the given document delivery, for an agent
+     * instance that tracks its documents. The documents are the ones the model reads as handles:
+     * every document the renderer finds in the result, at any depth and also inside a typed record,
+     * whatever gateway tool handler manages the result. With the delivery {@link
      * DocumentDelivery#CONTENT} the entry asks for the content of every Camunda document of the
      * result; a document of another kind has no agent document id, and {@link
      * #requireCamundaDocuments()} reports it.
