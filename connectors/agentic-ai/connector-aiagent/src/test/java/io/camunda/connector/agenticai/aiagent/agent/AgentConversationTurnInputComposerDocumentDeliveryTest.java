@@ -146,8 +146,11 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
 
   /** The map with the entries in the given order. */
   private static Map<String, Object> orderedMap(Object... keysAndValues) {
+    if (keysAndValues.length % 2 != 0) {
+      throw new IllegalArgumentException("Expected pairs of a key and a value");
+    }
     final var map = new LinkedHashMap<String, Object>();
-    for (int i = 0; i < keysAndValues.length; i += 2) {
+    for (int i = 0; i + 1 < keysAndValues.length; i += 2) {
       map.put((String) keysAndValues[i], keysAndValues[i + 1]);
     }
     return map;
