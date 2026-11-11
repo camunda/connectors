@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,6 @@ class ToolCallTest {
     final var resolved =
         new ToolCall("call-1", "upload", Map.of()).withResolvedArguments(arguments);
 
-    assertThat(resolved.arguments()).containsEntry("note", null).hasSize(1);
+    assertThat(resolved.arguments()).isEqualTo(Collections.singletonMap("note", null));
   }
 }

@@ -85,8 +85,8 @@ class RuntimeToolCallImplTest {
     final var tag = call(Map.of("body", DOC)).argumentsAs(UnionArguments.class);
     final var text = call(Map.of("body", "doc-1")).argumentsAs(UnionArguments.class);
 
-    assertThat(tag.body()).isInstanceOf(AgentDocumentId.class).isEqualTo(DOC);
-    assertThat(text.body()).isInstanceOf(String.class).isEqualTo("doc-1");
+    assertThat(tag).isEqualTo(new UnionArguments(DOC));
+    assertThat(text).isEqualTo(new UnionArguments("doc-1"));
   }
 
   @Test
@@ -94,14 +94,14 @@ class RuntimeToolCallImplTest {
     final var number = call(Map.of("body", 42)).argumentsAs(UnionArguments.class);
     final var list = call(Map.of("body", List.of("a", DOC))).argumentsAs(UnionArguments.class);
 
-    assertThat(number.body()).isEqualTo(42);
-    assertThat(list.body()).isEqualTo(List.of("a", DOC));
+    assertThat(number).isEqualTo(new UnionArguments(42));
+    assertThat(list).isEqualTo(new UnionArguments(List.of("a", DOC)));
   }
 
   @Test
   void aDocumentBindsToTheTextOfItsIdForAStringProperty() {
-    assertThat(call(Map.of("body", DOC)).argumentsAs(TextArguments.class).body())
-        .isEqualTo("doc-1");
+    assertThat(call(Map.of("body", DOC)).argumentsAs(TextArguments.class))
+        .isEqualTo(new TextArguments("doc-1"));
   }
 
   @Test
@@ -111,15 +111,14 @@ class RuntimeToolCallImplTest {
     final var arguments =
         call(Map.of("documents", List.of(DOC, other))).argumentsAs(DocumentsArguments.class);
 
-    assertThat(arguments.documents()).containsExactly(DOC, other);
+    assertThat(arguments).isEqualTo(new DocumentsArguments(List.of(DOC, other)));
   }
 
   @Test
   void missingArgumentsAreNullAndUnknownArgumentsAreIgnored() {
     final var arguments = call(Map.of("title", "t", "other", "x")).argumentsAs(NoteArguments.class);
 
-    assertThat(arguments.title()).isEqualTo("t");
-    assertThat(arguments.note()).isNull();
+    assertThat(arguments).isEqualTo(new NoteArguments("t", null));
   }
 
   @Test
