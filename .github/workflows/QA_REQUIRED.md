@@ -41,13 +41,14 @@ This workflow automates the QA review process when a pull request is labeled wit
 ### GitHub Secrets
 - `CONNECTORS_SLACK_BOT_TOKEN` - Slack bot token for posting messages
 - `VAULT_ADDR` - Vault server address
-- `VAULT_ROLE_ID` - Vault role ID
-- `VAULT_SECRET_ID` - Vault secret ID
+- `VAULT_JWT_PATH` - Vault JWT auth mount path
+- `VAULT_JWT_ROLE` - Vault JWT role name
+- `VAULT_JWT_AUDIENCE` - GitHub OIDC audience for the Vault JWT login
 
 ## Dependencies
 
 ### GitHub Actions
-- `hashicorp/vault-action@v3.4.0` - For retrieving secrets from Vault
+- `hashicorp/vault-action@v4.0.0` - For retrieving secrets from Vault
 - `actions/create-github-app-token@v2` - For generating GitHub App tokens
 - `slackapi/slack-github-action@v2.1.1` - For sending Slack messages
 
