@@ -43,6 +43,7 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
@@ -570,18 +571,20 @@ class RuntimeToolsTest {
   @Test
   void returnsTheDocumentsOfAResultAsTheyAreAndRegistersNone() {
     final var agentContext = knowing();
+    final List<Content> content =
+        List.of(
+            TextContent.textContent("Saved the note"),
+            DocumentContent.documentContent(new InlineDocument("a", "note-1.txt", "text/plain")));
+    final var notes =
+        StubRuntimeTool.of("acme_notes", (context, call) -> RuntimeToolResult.success(content));
 
     final var executions =
-        toolsOf(new SaveNoteTool())
-            .execute(
-                WITH_MEMORY,
-                agentContext,
-                List.of(runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a"))));
+        toolsOf(notes)
+            .execute(WITH_MEMORY, agentContext, List.of(runtimeCall("n1", "acme_notes", Map.of())));
 
-    assertThat(executions.getFirst().result().content())
-        .hasSize(2)
-        .last()
-        .isInstanceOf(DocumentContent.class);
+    assertThat(executions)
+        .singleElement()
+        .satisfies(execution -> assertThat(execution.result().content()).isEqualTo(content));
     // the agent context is the one the tools were given
     assertThat(agentContext.documents().all()).isEmpty();
   }
