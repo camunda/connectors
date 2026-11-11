@@ -165,11 +165,9 @@ class DocumentParameterResolverTest {
             Map.of("docs", List.of(firstHandle, handleJson(secondId))), object("docs", array(DOC)));
 
     assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved ->
-                assertThat(resolved.arguments().get("docs"))
-                    .isEqualTo(List.of(reference(firstId), reference(secondId))));
+        .isEqualTo(
+            new Resolution.Resolved(
+                Map.of("docs", List.of(reference(firstId), reference(secondId)))));
   }
 
   @Test
@@ -185,16 +183,14 @@ class DocumentParameterResolverTest {
         resolve(arguments, object("req", object("file", DOC), "rows", array(object("file", DOC))));
 
     assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved -> {
-              assertThat(resolved.arguments().get("req"))
-                  .isEqualTo(Map.of("file", reference(firstId), "note", "n"));
-              assertThat(resolved.arguments().get("rows"))
-                  .isEqualTo(
-                      List.of(
-                          Map.of("file", reference(secondId)), Map.of("file", reference(firstId))));
-            });
+        .isEqualTo(
+            new Resolution.Resolved(
+                Map.of(
+                    "req",
+                    Map.of("file", reference(firstId), "note", "n"),
+                    "rows",
+                    List.of(
+                        Map.of("file", reference(secondId)), Map.of("file", reference(firstId))))));
   }
 
   @Test
@@ -389,10 +385,7 @@ class DocumentParameterResolverTest {
 
     final var result = resolver.resolveProcessCall(agentContext(), call);
 
-    assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Invalid.class,
-            invalid -> assertThat(invalid.message()).isEqualTo(unknownId("doc", "nope")));
+    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", "nope"))));
   }
 
   @Test
@@ -407,11 +400,8 @@ class DocumentParameterResolverTest {
     final var result = resolver.resolveProcessCall(agentContext(), call);
 
     assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Invalid.class,
-            invalid ->
-                assertThat(invalid.message())
-                    .isEqualTo(unknownId("docs[0]", "a") + " " + unknownId("docs[1]", "b")));
+        .isEqualTo(
+            new Resolution.Invalid(List.of(unknownId("docs[0]", "a"), unknownId("docs[1]", "b"))));
   }
 
   @Test
@@ -420,10 +410,7 @@ class DocumentParameterResolverTest {
 
     final var result = resolver.resolveProcessCall(agentContext(), call);
 
-    assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved -> assertThat(resolved.arguments()).isEqualTo(call.arguments()));
+    assertThat(result).isEqualTo(new Resolution.Resolved(call.arguments()));
   }
 
   @Test
@@ -432,10 +419,7 @@ class DocumentParameterResolverTest {
 
     final var result = resolver.resolveProcessCall(agentContext(), call);
 
-    assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved -> assertThat(resolved.arguments()).isEqualTo(call.arguments()));
+    assertThat(result).isEqualTo(new Resolution.Resolved(call.arguments()));
   }
 
   @Test
@@ -444,15 +428,11 @@ class DocumentParameterResolverTest {
     final var withoutDocuments = agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS));
 
     assertThat(resolver.resolveProcessCall(withoutDocuments, call))
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved -> assertThat(resolved.arguments()).isEqualTo(call.arguments()));
+        .isEqualTo(new Resolution.Resolved(call.arguments()));
     assertThat(
             resolver.resolveRuntimeCall(
                 withoutDocuments, call, definition("upload", object("doc", DOC))))
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved -> assertThat(resolved.arguments()).isEqualTo(call.arguments()));
+        .isEqualTo(new Resolution.Resolved(call.arguments()));
   }
 
   @Test
@@ -505,10 +485,7 @@ class DocumentParameterResolverTest {
         resolver.resolveRuntimeCall(
             agentContext(), call, definition("c8__read", object("file", Map.of("type", "string"))));
 
-    assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved -> assertThat(resolved.arguments()).isEqualTo(call.arguments()));
+    assertThat(result).isEqualTo(new Resolution.Resolved(call.arguments()));
   }
 
   @Test
@@ -516,8 +493,9 @@ class DocumentParameterResolverTest {
     final var call = new ToolCall("call", "upload", Map.of("doc", firstHandle));
     final var context = agentContext();
 
-    assertThat(resolver.resolveProcessCall(context, call))
-        .isEqualTo(resolver.resolveProcessCall(context, call));
+    final var expected = new Resolution.Resolved(Map.of("doc", reference(firstId)));
+    assertThat(resolver.resolveProcessCall(context, call)).isEqualTo(expected);
+    assertThat(resolver.resolveProcessCall(context, call)).isEqualTo(expected);
   }
 
   @Test
@@ -731,18 +709,12 @@ class DocumentParameterResolverTest {
     final var result = resolve(Map.of("items", elements), object("items", array(UNION)));
 
     assertThat(result)
-        .isInstanceOfSatisfying(
-            Resolution.Resolved.class,
-            resolved ->
-                assertThat(resolved.arguments().get("items"))
-                    .isEqualTo(
-                        Arrays.<Object>asList(
-                            reference(secondId),
-                            "text",
-                            7,
-                            firstId.value(),
-                            null,
-                            Map.of("k", "v"))));
+        .isEqualTo(
+            new Resolution.Resolved(
+                Map.of(
+                    "items",
+                    Arrays.<Object>asList(
+                        reference(secondId), "text", 7, firstId.value(), null, Map.of("k", "v")))));
   }
 
   @Test
