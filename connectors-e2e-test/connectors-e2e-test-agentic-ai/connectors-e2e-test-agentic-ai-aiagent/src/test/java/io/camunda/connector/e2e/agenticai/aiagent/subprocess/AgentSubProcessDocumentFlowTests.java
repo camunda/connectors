@@ -207,13 +207,13 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   @MethodSource("memoryStores")
   void passesADownloadedDocumentToAToolAndReturnsIt(
       String store, Function<ElementTemplate, ElementTemplate> memoryStore) throws Exception {
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        roundTripTurns(wireMock.getHttpBaseUrl()).toArray(Turn[]::new));
+    final var turns = roundTripTurns(wireMock.getHttpBaseUrl());
+    OpenAiCompletionsChatModelStubs.stubConversation(turns.toArray(Turn[]::new));
 
     final var zeebeTest = awaitProcessCompletion(startProcess(memoryStore));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertThat(recorded.modelCallCount()).isEqualTo(4);
+    assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
     assertThat(recorded.requests().getFirst().toolNames())
         .containsExactlyInAnyOrder(
             "Download_A_File",
@@ -359,13 +359,14 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
    */
   @Test
   void mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall() throws Exception {
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentWithPingTurn(), finalTurn());
+    final var turns =
+        List.of(downloadTurn(wireMock.getHttpBaseUrl()), returnDocumentWithPingTurn(), finalTurn());
+    OpenAiCompletionsChatModelStubs.stubConversation(turns.toArray(Turn[]::new));
 
     final var zeebeTest = awaitProcessCompletion(startProcess(e -> e));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertThat(recorded.modelCallCount()).isEqualTo(3);
+    assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
 
     final var documentId =
         parseDocumentHandle(recorded.requests().get(1).messages().get(3).content()).id().value();
