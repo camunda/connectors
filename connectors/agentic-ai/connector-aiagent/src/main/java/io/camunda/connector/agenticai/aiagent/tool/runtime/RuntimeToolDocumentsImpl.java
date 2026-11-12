@@ -13,14 +13,14 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import java.util.Optional;
 
 /** The agent documents, as a runtime tool reads them. */
-public final class RuntimeToolDocumentsImpl implements RuntimeToolDocuments {
+final class RuntimeToolDocumentsImpl implements RuntimeToolDocuments {
 
   private final AgentDocuments documents;
 
   /**
    * @param documents the documents the agent knows
    */
-  public RuntimeToolDocumentsImpl(AgentDocuments documents) {
+  RuntimeToolDocumentsImpl(AgentDocuments documents) {
     this.documents = documents;
   }
 
