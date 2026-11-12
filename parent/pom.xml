@@ -140,7 +140,7 @@ limitations under the License.</license.inlineheader>
     <version.google-libraries-bom>26.93.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>2.2.0</version.google-genai>
+    <version.google-genai>2.3.0</version.google-genai>
     <!-- overrides the Google libraries BOM for the whole Vertex AI family -->
     <version.google-cloud-vertexai>1.52.0</version.google-cloud-vertexai>
     <version.jsr305>3.0.2</version.jsr305>
