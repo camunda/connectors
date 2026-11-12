@@ -40,7 +40,8 @@ How can the type system guarantee that a provider never receives a block that on
 * **Persisted shape unchanged**: no schema version, no migration and no agent instance feature.
 * **Cheap for extensions now**: the API compatibility check skips `aiagent-api` until 8.11, so a source break for a
   custom `ChatModel` costs least before 8.11.
-* **LangChain4j will be removed** ([#8408](https://github.com/camunda/connectors/issues/8408)): adapt it with the
+* **LangChain4j changes little**: [#8408](https://github.com/camunda/connectors/issues/8408) removes the LangChain4j
+  provider factories. It keeps `LangChain4JChatModel` and its converters for custom chat models. Adapt them with the
   least code.
 
 ## Considered Options
@@ -137,4 +138,5 @@ domain-only block away from the providers, and a new domain-only block touches o
 * **`ConversationSnapshot` outside the SPI.** The snapshot is the window of the persisted messages. Only the agent reads
   it, so it can move out of `aiagent-api` in a separate change.
 * **LangChain4j mapping.** The mapping back to the persisted messages, and with it `UnexpandedAgentDocumentException`,
-  goes away with the LangChain4j integration ([#8408](https://github.com/camunda/connectors/issues/8408)).
+  goes away when the LangChain4j converters read the request messages. [#8408](https://github.com/camunda/connectors/issues/8408)
+  keeps these converters, so this needs a change of its own.
