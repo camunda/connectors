@@ -107,7 +107,7 @@ class ToolCallResultsInputBuilderTest {
     final var execution = new RuntimeToolExecution(call, toolResult, COMPLETED_AT, COMPLETED_AT);
     return switch (toolResult) {
       case RuntimeToolResult.Success success ->
-          Entry.from(execution.toolCallResult(), success.effects());
+          entryWithEffects(execution.toolCallResult(), success.effects());
       case RuntimeToolResult.Error ignored -> Entry.from(execution.toolCallResult());
     };
   }
@@ -363,7 +363,7 @@ class ToolCallResultsInputBuilderTest {
   @Test
   void aResultOfAProcessToolThatCarriesAnEffectGetsTheSentenceAsWell() {
     final var processEntry =
-        Entry.from(
+        entryWithEffects(
             result("c1", "process_tool", textContent("done")),
             List.of(new ToolCallEffect.AddDocumentContent(idOf(known))));
 
@@ -405,27 +405,10 @@ class ToolCallResultsInputBuilderTest {
         .hasMessageContaining("unknown");
   }
 
-  @Test
-  void withoutTheDocumentsFeatureAResultCannotAskForTheContentOfADocumentItReturns() {
-    final var entry =
-        runtimeEntry(
-            "c1",
-            "alpha",
-            RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
-                .withDocumentContent(AgentDocumentId.of(first)));
-
-    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry), Set.of()))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining(idOf(first).value());
-  }
-
-  @Test
-  void withoutTheDocumentsFeatureTheAgentKnowsNoDocument() {
-    final var entry =
-        runtimeEntry(
-            "c1", "alpha", RuntimeToolResult.success("a").withDocumentContent(idOf(known)));
-
-    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry), Set.of()))
-        .isInstanceOf(IllegalArgumentException.class);
+  /** An entry with the documents the generic walker finds and the given effects. */
+  private static ToolCallBatch.Entry entryWithEffects(
+      ToolCallResultContent result, List<ToolCallEffect> effects) {
+    return new ToolCallBatch.Entry(
+        result, ToolCallResultDocumentExtractor.documentsOf(result.content()), effects);
   }
 }

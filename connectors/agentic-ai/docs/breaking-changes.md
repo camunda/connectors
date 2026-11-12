@@ -302,9 +302,10 @@ applies it to its persisted context, and the next round continues with the conte
   `ToolCallEffect`, listed by `Success.effects()`), which the agent applies after all calls of the message ran, in call
   order, without a check of the type or the size of the document. The agent
   also writes, after the content a result returned, one sentence per document whose content the result asks for; a tool
-  needs no text of its own for it. An error result has no effects. A reference block with the delivery `content` in a result, and
-  a reference block or an effect that names a document neither known to the agent nor returned by the result, fail the job.
-  An `AgentDocument` in a result fails the job. The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A
+  needs no text of its own for it. An error result has no effects. A result holds a document as the `Document` of the connector SDK:
+  an `AgentDocument` or an `AgentDocumentContent` block in a result, and an effect that names a document neither known to
+  the agent nor returned by the result, fail the job.
+  The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A
   rejected call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is
   executed gets an error result from `RuntimeTools`; neither goes to the process.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime

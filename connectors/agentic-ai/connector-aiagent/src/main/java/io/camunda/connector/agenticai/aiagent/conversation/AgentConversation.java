@@ -310,17 +310,14 @@ public final class AgentConversation {
   /**
    * Returns the ids of the documents whose content the model reads in the next model call: see
    * {@link PreviousConversation#documentIdsWithContent} for the turns of this conversation and the
-   * context window of the {@link #configuration()}.
+   * context window of the {@link #configuration()}. The turns are the completed turns, the current
+   * one included once the model answered it.
    *
    * @param addedMessages the number of messages added before the next model call that the window
    *     counts
    */
   public Set<AgentDocumentId> documentIdsWithContent(int addedMessages) {
-    final var turns = new ArrayList<>(allCompletedTurns());
-    if (currentTurn.assistantMessage() == null) {
-      turns.add(currentTurn);
-    }
-    return new PreviousConversation(Optional.ofNullable(systemMessage), turns)
+    return new PreviousConversation(Optional.ofNullable(systemMessage), allCompletedTurns())
         .documentIdsWithContent(configuration.contextWindowSize(), addedMessages);
   }
 

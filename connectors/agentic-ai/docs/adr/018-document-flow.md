@@ -291,7 +291,8 @@ An instance without the `documents` feature keeps its behavior and accepts exter
 
 The agent context lists the features of the agent instance: `runtimeTools` and `documents`. The agent sets the features
 when it creates the instance and does not add features later. The `documents` feature selects the document handling:
-`Untracked` without the feature, `Tracked` with it. Each place that treats documents matches both variants.
+`Untracked` without the feature, `Tracked` with it. Each step that treats documents matches both variants once and hands
+the result to the code below it.
 
 An instance without the `documents` feature behaves as before. Documents are content with the XML tag format, and all
 kinds of documents are accepted. There are

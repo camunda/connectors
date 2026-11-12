@@ -84,17 +84,25 @@ public class ToolCallResultsInputBuilder {
   public TurnInput build(
       AgentContext agentContext, ToolCallBatch batch, Set<AgentDocumentId> documentIdsWithContent) {
     final var entries = batch.entriesInCallOrder();
-    final var documentHandling = agentContext.documentHandling();
-    switch (documentHandling) {
-      case DocumentHandling.Tracked ignored ->
-          entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
-      case DocumentHandling.Untracked ignored -> {}
-    }
-    final var applied = applyEffects(documentHandling, entries, documentIdsWithContent);
-    return switch (documentHandling) {
-      case DocumentHandling.Tracked ignored -> buildWithDocumentBlocks(entries, applied);
+    return switch (agentContext.documentHandling()) {
+      case DocumentHandling.Tracked tracked ->
+          trackedInput(tracked.documents(), entries, documentIdsWithContent);
       case DocumentHandling.Untracked ignored -> buildWithDocumentMessage(entries);
     };
+  }
+
+  /**
+   * The input for an agent instance that tracks its documents. The results of an instance that does
+   * not track its documents ask nothing of the agent (see {@link LocalToolCallExecutor}), so only
+   * this input applies effects.
+   */
+  private TurnInput trackedInput(
+      AgentDocuments documents,
+      List<ToolCallBatch.Entry> entries,
+      Set<AgentDocumentId> documentIdsWithContent) {
+    entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
+    return buildWithDocumentBlocks(
+        entries, applyEffects(documents, entries, documentIdsWithContent));
   }
 
   /**
@@ -112,7 +120,7 @@ public class ToolCallResultsInputBuilder {
    * its own documents only, never the ones of another entry.
    */
   private AppliedEffects applyEffects(
-      DocumentHandling documentHandling,
+      AgentDocuments documents,
       List<ToolCallBatch.Entry> entries,
       Set<AgentDocumentId> documentIdsWithContent) {
     var handled = DocumentContentDelivery.Handled.of(documentIdsWithContent);
@@ -131,12 +139,7 @@ public class ToolCallResultsInputBuilder {
         continue;
       }
 
-      final var known =
-          switch (documentHandling) {
-            case DocumentHandling.Tracked tracked ->
-                tracked.documents().register(newDocumentsOf(entry));
-            case DocumentHandling.Untracked ignored -> AgentDocuments.empty();
-          };
+      final var known = documents.register(newDocumentsOf(entry));
       final var entryStatements = new ArrayList<Content>();
       final var decision = contentDelivery.deliver(known, requestedContent, handled);
       handled = decision.handled();

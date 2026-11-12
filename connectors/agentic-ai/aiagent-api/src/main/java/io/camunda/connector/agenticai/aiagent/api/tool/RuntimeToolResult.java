@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -33,12 +32,12 @@ import java.util.Objects;
  * io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent document}, also one
  * nested in an object, depends on the agent instance. For an instance that tracks its documents
  * (one created with the {@link
- * io.camunda.connector.agenticai.aiagent.model.AgentFeatures#DOCUMENTS} feature), the document is
- * new to the agent: the agent registers it, and the model reads its handle, never its content,
- * store id, content hash or URL; a {@link AgentDocumentContent reference} to a known document is
- * shown as its handle, too. Such an instance accepts Camunda documents only: a result with an
- * external or inline document, also one nested in an object, fails the job with the error code
- * {@code UNSUPPORTED_DOCUMENT_REFERENCE}. For an instance without the feature, the model reads the
+ * io.camunda.connector.agenticai.aiagent.model.AgentFeatures#DOCUMENTS} feature), the agent
+ * registers the document, and the model reads its handle, never its content, store id, content hash
+ * or URL. A document the agent knows already, such as one of {@link RuntimeToolContext#document},
+ * keeps its entry. Such an instance accepts Camunda documents only: a result with an external or
+ * inline document, also one nested in an object, fails the job with the error code {@code
+ * UNSUPPORTED_DOCUMENT_REFERENCE}. For an instance without the feature, the model reads the
  * document reference in the tool result and the content of the document in a message after the tool
  * results, as for a tool of the process.
  *
@@ -54,9 +53,9 @@ import java.util.Objects;
  *       request that follows the tool results.
  * </ul>
  *
- * <p>A new document is a {@link
- * io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent}, a known one an
- * {@link AgentDocumentContent} reference, and content comes only through an effect.
+ * <p>A document in a result, new or known, is the {@link Document} of the connector SDK, and its
+ * content comes only through an effect. A result that holds an {@code AgentDocument} or an {@code
+ * AgentDocumentContent} block, the forms of the agent context and the conversation, fails the job.
  */
 @Experimental
 public sealed interface RuntimeToolResult {
@@ -68,7 +67,7 @@ public sealed interface RuntimeToolResult {
 
   /**
    * A successful result with the given blocks as its content, in the order the model reads them:
-   * text, objects, documents and references to known documents.
+   * text, objects and documents.
    */
   static Success success(List<Content> content) {
     return new Success(content);
@@ -112,9 +111,8 @@ public sealed interface RuntimeToolResult {
      *
      * <p>The agent adds the content once per document, whatever its type and size, and ends the
      * result with one sentence per document that tells the model whether the content follows or is
-     * in the conversation already. An unknown id fails the job, and so does an {@link
-     * AgentDocumentContent} block with the delivery {@code content} in the result. Only an agent
-     * with the documents feature knows documents (see {@link RuntimeTool#isEnabled}).
+     * in the conversation already. An unknown id fails the job. Only an agent with the documents
+     * feature knows documents (see {@link RuntimeTool#isEnabled}).
      */
     public Success withDocumentContent(AgentDocumentId id) {
       return withEffect(new ToolCallEffect.AddDocumentContent(Objects.requireNonNull(id)));

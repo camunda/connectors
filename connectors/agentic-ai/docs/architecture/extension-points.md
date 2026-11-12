@@ -421,19 +421,19 @@ resolution message, and the tool is not called.
 the agent knows, restored with the document factory of the job, or nothing. Its content is read only when the tool reads
 it. A result holds a document as the `Document` of the connector SDK, never as the `AgentDocument` of the agent context:
 an `AgentDocument` carries the store details of the document, which never go to the model, and one in a result fails the
-job. A result holds a new document as a `DocumentContent` block. After the calls
-ran, the agent registers it with the tool call as origin, and the model reads its handle only
-([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). A result holds a known
-document as an `AgentDocumentContent` block with the delivery `reference`. An error result registers nothing.
+job, as does an `AgentDocumentContent` block, the reference the conversation stores. A result holds a document, new or
+known, as a `DocumentContent` block or nested in an object. After the calls ran, the agent registers a new document with
+the tool call as origin, a known one keeps its entry, and the model reads its handle only
+([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). An error result registers
+nothing.
 
 **Effects.** `RuntimeToolResult.success(...)` returns a `Success`. `Success.withDocumentContent(AgentDocumentId)` adds the
 effect `ToolCallEffect.AddDocumentContent` (`AgentDocumentId.of(document)` names a document the result returns). The agent
 adds the content to the request after the tool results, once for each document. The agent writes the outcome
 sentence into the result, so a tool does not. `LoadDocumentTool` is the reference.
 
-Content comes only through the effect. These cases fail the job with an `IllegalArgumentException`: a reference block with the
-delivery `content`, and a reference block or an effect with an id that the agent did not know when the batch started and the
-result does not return.
+Content comes only through the effect. An effect with an id that the agent did not know when the batch started and the result
+does not return fails the job with an `IllegalArgumentException`.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the
