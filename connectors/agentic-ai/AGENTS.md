@@ -419,6 +419,8 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 - **`<connector module>/element-templates/README.md`** and the index
   **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new
   connectors (maintenance rules are in the Element templates section above).
+  These READMEs serve users who pick or configure a template: which template fits which Camunda version
+  and what a user selects. Put the details of how the templates are generated in `<module>/docs/`.
 
 > `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
 > Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.
