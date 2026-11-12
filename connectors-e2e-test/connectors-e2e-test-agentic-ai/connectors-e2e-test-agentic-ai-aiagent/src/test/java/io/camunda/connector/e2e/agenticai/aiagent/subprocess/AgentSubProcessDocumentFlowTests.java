@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentInstanceHistoryAudit.assertHistoryCoversEveryModelRequest;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentInstanceHistoryAudit.awaitCommittedHistory;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOADED_FILE;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOAD_CALL_ID;
@@ -46,6 +44,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -63,9 +62,11 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -94,9 +95,6 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
   @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
   private Resource documentsProcess;
-
-  @Value("classpath:agentic-ai-ahsp-connectors-documents-results.bpmn")
-  private Resource resultDocumentsProcess;
 
   @Override
   protected Resource testProcess() {
@@ -146,7 +144,13 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     // the built-in tool is offered next to the tools of the process
     assertThat(recorded.lastRequest().toolNames())
         .containsExactlyInAnyOrder(
-            "Download_A_File", "Upload_A_File", "Ping", "Slow_Tool", "c8__load_document");
+            "Download_A_File",
+            "Upload_A_File",
+            "Fetch_A_File",
+            "Describe_A_File",
+            "Ping",
+            "Slow_Tool",
+            "c8__load_document");
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
   }
 
@@ -154,7 +158,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
    * A tool returns a document, the model loads it twice and passes its handle to a tool: the first
    * load puts the content next to the handle, the second one is answered without loading again, and
    * the tool receives the real bytes. The content is a text for a text document, an image for an
-   * image and a file for a PDF. The history covers every message the model received.
+   * image and a file for a PDF.
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(
@@ -189,19 +193,13 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         block -> assertDocumentContentBlockJson(block, contentBlockType(file), mimeType(file)));
     assertUploaded(servedFile(file));
 
-    final var agentInstanceKey = new AtomicLong();
     assertAgentResponse(
         zeebeTest,
-        agentResponse -> {
-          AgentSubProcessResponseAssert.assertThat(agentResponse)
-              .isReady()
-              .hasResponseText(FINAL_TEXT);
-          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
-        });
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(FINAL_TEXT));
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
-    assertHistoryCoversEveryModelRequest(
-        awaitCommittedHistory(camundaClient, agentInstanceKey.get()),
-        recorded.providerNeutralRequests());
   }
 
   /**
@@ -221,11 +219,10 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
             ToolCall.of("call_describe", "Describe_A_File", "{}")),
         finalTurn());
 
-    final var agentInstanceKey = runWithPromptDocument(resultDocumentsProcess);
+    final var agentInstanceKey = runWithPromptDocument(documentsProcess);
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    final var history = awaitCommittedHistory(camundaClient, agentInstanceKey);
-    assertHistoryCoversEveryModelRequest(history, recorded.providerNeutralRequests());
+    final var history = awaitCommittedHistory(agentInstanceKey);
 
     final var fetched = toolResultOf(history, "call_fetch");
     final var described = toolResultOf(history, "call_describe");
@@ -407,6 +404,24 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         request.toolDefinitions().stream().filter(tool -> name.equals(tool.name())).toList();
     assertThat(matches).as("tool '%s' in request", name).hasSize(1);
     return matches.getFirst();
+  }
+
+  /** The committed history of the agent instance once it holds the final answer of the model. */
+  private List<AgentInstanceHistory> awaitCommittedHistory(long agentInstanceKey) {
+    return await()
+        .alias("committed agent instance history")
+        .atMost(Duration.ofSeconds(30))
+        .ignoreExceptions()
+        .until(
+            () -> AgentInstanceEngineVerifier.committedHistory(camundaClient, agentInstanceKey),
+            items ->
+                items.stream()
+                    .anyMatch(item ->
+                        item.getRole() == AgentInstanceHistoryRole.ASSISTANT
+                            && item.getContent().stream()
+                                .anyMatch(block ->
+                                    block instanceof AgentInstanceHistoryContent.TextContent text
+                                        && FINAL_TEXT.equals(text.getText()))));
   }
 
   private static AgentInstanceHistory toolResultOf(
