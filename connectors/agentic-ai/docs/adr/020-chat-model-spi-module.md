@@ -131,3 +131,6 @@ records of the element templates in the connector. The native providers follow w
 
   Done when `connector-aiagent` has no class below `aiagent.chatmodel.provider` and does not import the configuration of
   the providers.
+* **A narrow chat request.** `ChatRequest` carries the full `AgentExecutionContext`, but the native providers and
+  LangChain4j read only `configuration().response()`. Decide which parts belong to the API (the ADR 015 follow-up) before
+  the API baseline of `aiagent-chatmodel-api` moves to 8.11.0. After that, a narrower `ChatRequest` is a gated break.
