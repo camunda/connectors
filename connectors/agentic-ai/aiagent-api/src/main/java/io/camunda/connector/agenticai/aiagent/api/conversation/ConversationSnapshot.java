@@ -24,9 +24,4 @@ public record ConversationSnapshot(List<Message> messages, List<ToolDefinition> 
     messages = List.copyOf(messages);
     toolDefinitions = List.copyOf(toolDefinitions);
   }
-
-  /** The snapshot with the given messages and the same tool definitions. */
-  public ConversationSnapshot withMessages(List<Message> messages) {
-    return new ConversationSnapshot(messages, toolDefinitions);
-  }
 }
