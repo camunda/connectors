@@ -116,7 +116,7 @@ class NonCamundaDocumentsConversationTest {
 
   private TurnInput assemble(CompositionResult result) {
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
-    return composer.assemble((CompositionResult.Ready) result, TestDocuments.documentFactory());
+    return composer.assemble((CompositionResult.Ready) result);
   }
 
   private void assertFailsWith(Runnable composition, String message) {
@@ -230,7 +230,7 @@ class NonCamundaDocumentsConversationTest {
     assertFailsWith(
         () ->
             new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery())
-                .build(TRACKED, batch, Set.of(), TestDocuments.documentFactory()),
+                .build(TRACKED, batch, Set.of()),
         PREFIX + "the result of the tool 'acme_create_report' contains an inline document.");
   }
 
@@ -255,7 +255,7 @@ class NonCamundaDocumentsConversationTest {
     assertFailsWith(
         () ->
             new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery())
-                .build(TRACKED, batch, Set.of(), TestDocuments.documentFactory()),
+                .build(TRACKED, batch, Set.of()),
         PREFIX + "the result of the tool 'acme_create_report' contains an external document.");
   }
 

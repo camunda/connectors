@@ -107,11 +107,11 @@ public sealed interface RuntimeToolResult {
      * that follows the tool results. {@code id} is a document of {@link RuntimeToolDocuments} or
      * one this result returns ({@link AgentDocumentId#of(Document)}).
      *
-     * <p>The agent adds the content when its content guard allows it, once per document, and ends
-     * the result with one sentence per document that tells the model whether the content follows.
-     * An unknown id fails the job, and so does an {@link AgentDocumentContent} block with the
-     * delivery {@code content} in the result. Only an agent with the documents feature knows
-     * documents (see {@link RuntimeTool#isEnabled}).
+     * <p>The agent adds the content once per document, whatever its type and size, and ends the
+     * result with one sentence per document that tells the model whether the content follows or is
+     * in the conversation already. An unknown id fails the job, and so does an {@link
+     * AgentDocumentContent} block with the delivery {@code content} in the result. Only an agent
+     * with the documents feature knows documents (see {@link RuntimeTool#isEnabled}).
      */
     public Success withDocumentContent(AgentDocumentId id) {
       return withEffect(new ToolCallEffect.AddDocumentContent(Objects.requireNonNull(id)));

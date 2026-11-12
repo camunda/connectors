@@ -26,7 +26,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.api.document.DocumentFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,10 +39,9 @@ import java.util.Set;
  * <p>An agent instance that tracks its documents shows a document as its handle inside the tool
  * result and reports it to be registered in its documents. For every document whose content a
  * result asks for, the builder appends a sentence to that result that tells the model what happens:
- * the content follows in the next message, the content is not loaded and why, or the content is in
- * the conversation already. The documents whose content is added follow in a message of their own.
- * An agent instance that does not track its documents keeps the document in a message of its own,
- * next to its tag.
+ * the content follows in the next message, or the content is in the conversation already. The
+ * documents whose content is added follow in a message of their own. An agent instance that does
+ * not track its documents keeps the document in a message of its own, next to its tag.
  */
 public class ToolCallResultsInputBuilder {
 
@@ -56,11 +54,6 @@ public class ToolCallResultsInputBuilder {
   /** The sentence for a document whose content follows in the next message. */
   static String contentFollows(String documentRef) {
     return "The content of %s follows in the next message.".formatted(documentRef);
-  }
-
-  /** The sentence for a document whose content is not loaded; {@code note} says why. */
-  static String contentNotLoaded(String documentRef, String note) {
-    return "The content of %s is not loaded. %s".formatted(documentRef, note);
   }
 
   /** The sentence for a document whose content the model reads already. */
@@ -82,8 +75,6 @@ public class ToolCallResultsInputBuilder {
    *
    * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
    *     start of the batch
-   * @param documentFactory the document factory of the job, which restores the documents whose
-   *     content a result asks for
    * @throws IllegalStateException if a call of the batch has no result
    * @throws UnsupportedDocumentReferenceException if an agent instance that tracks its documents
    *     gets a document that is not a Camunda document
@@ -91,10 +82,7 @@ public class ToolCallResultsInputBuilder {
    *     {@code agentContext} nor the result knows
    */
   public TurnInput build(
-      AgentContext agentContext,
-      ToolCallBatch batch,
-      Set<AgentDocumentId> documentIdsWithContent,
-      DocumentFactory documentFactory) {
+      AgentContext agentContext, ToolCallBatch batch, Set<AgentDocumentId> documentIdsWithContent) {
     final var entries = batch.entriesInCallOrder();
     final var documentHandling = agentContext.documentHandling();
     switch (documentHandling) {
@@ -102,8 +90,7 @@ public class ToolCallResultsInputBuilder {
           entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
       case DocumentHandling.Untracked ignored -> {}
     }
-    final var applied =
-        applyEffects(documentHandling, entries, documentIdsWithContent, documentFactory);
+    final var applied = applyEffects(documentHandling, entries, documentIdsWithContent);
     return switch (documentHandling) {
       case DocumentHandling.Tracked ignored -> buildWithDocumentBlocks(entries, applied);
       case DocumentHandling.Untracked ignored -> buildWithDocumentMessage(entries);
@@ -127,8 +114,7 @@ public class ToolCallResultsInputBuilder {
   private AppliedEffects applyEffects(
       DocumentHandling documentHandling,
       List<ToolCallBatch.Entry> entries,
-      Set<AgentDocumentId> documentIdsWithContent,
-      DocumentFactory documentFactory) {
+      Set<AgentDocumentId> documentIdsWithContent) {
     var handled = DocumentContentDelivery.Handled.of(documentIdsWithContent);
     final var statements = new ArrayList<List<Content>>();
     final var delivered = new ArrayList<AgentDocumentContent>();
@@ -152,8 +138,7 @@ public class ToolCallResultsInputBuilder {
             case DocumentHandling.Untracked ignored -> AgentDocuments.empty();
           };
       final var entryStatements = new ArrayList<Content>();
-      final var decision =
-          contentDelivery.deliver(known, requestedContent, handled, documentFactory);
+      final var decision = contentDelivery.deliver(known, requestedContent, handled);
       handled = decision.handled();
       for (final var outcome : decision.outcomes()) {
         switch (outcome) {
@@ -161,10 +146,6 @@ public class ToolCallResultsInputBuilder {
             delivered.add(delivery.withContent());
             entryStatements.add(
                 textContent(contentFollows(documentRef(known, delivery.withContent().id()))));
-          }
-          case DocumentContentDelivery.Outcome.Withheld withheld -> {
-            entryStatements.add(
-                textContent(contentNotLoaded(documentRef(known, withheld.id()), withheld.note())));
           }
           case DocumentContentDelivery.Outcome.AlreadyInConversation already ->
               entryStatements.add(

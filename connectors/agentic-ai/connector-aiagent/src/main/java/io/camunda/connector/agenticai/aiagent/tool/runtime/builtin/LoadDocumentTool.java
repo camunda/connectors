@@ -32,8 +32,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A call for a known document returns no text of its own: it asks the agent to add the content
  * of the document ({@link RuntimeToolResult.Success#withDocumentContent}), and the agent writes
- * into the tool result what happens to the content: it follows in the next message, it is not
- * loaded and why, or it is in the conversation already. The agent decides, the tool does not.
+ * into the tool result what happens to the content: it follows in the next message, or it is in the
+ * conversation already. The agent decides, the tool does not.
  */
 public final class LoadDocumentTool implements RuntimeTool {
 
@@ -48,10 +48,8 @@ public final class LoadDocumentTool implements RuntimeTool {
           NAME,
           "Loads the content of a document that you see as a handle in the conversation: a JSON"
               + " object with \"type\": \"camunda.agenticai.document\" and an \"id\" that starts"
-              + " with \"doc_\". Do not call it when the conversation has no such handle. Only text,"
-              + " PDF and image documents that are not too large can be loaded; the result tells you"
-              + " when a document is not loaded and why. A document that is already in the"
-              + " conversation is not loaded again.",
+              + " with \"doc_\". Do not call it when the conversation has no such handle. A document that"
+              + " is already in the conversation is not loaded again.",
           schema());
 
   /** The arguments of a call: the document to load. */
