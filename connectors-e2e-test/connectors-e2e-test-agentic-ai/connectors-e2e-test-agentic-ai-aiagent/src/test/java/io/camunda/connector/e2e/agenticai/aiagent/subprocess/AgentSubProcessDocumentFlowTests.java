@@ -18,7 +18,6 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentInstanceHistoryAudit.assertHistoryCoversEveryModelRequest;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentInstanceHistoryAudit.awaitCommittedHistory;
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOADED_FILE;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOAD_CALL_ID;
@@ -73,10 +72,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.json.JSONException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 
@@ -350,7 +352,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
    * @param contentBlockAssertion the check of the wire form of the document content
    */
   private static void assertContentReturnedOnceAndPassedByIdFlow(
-      List<RecordedChatRequest> requests, Consumer<JsonNode> contentBlockAssertion) {
+      List<RecordedChatRequest> requests, Consumer<JsonNode> contentBlockAssertion)
+      throws JSONException {
     // the download shows the handle only
     final var afterDownload = messagesAfter(requests, DOWNLOAD);
     assertThat(afterDownload)
@@ -395,7 +398,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
             "assistant",
             "tool");
     assertThat(afterUpload.getLast().toolCallId()).isEqualTo(UPLOAD_CALL_ID);
-    assertJson(afterUpload.getLast().content(), "{\"status\":200}");
+    JSONAssert.assertEquals(
+        "{\"status\":200}", afterUpload.getLast().content(), JSONCompareMode.STRICT);
   }
 
   private static ToolDefinition toolDefinition(RecordedChatRequest request, String name) {
