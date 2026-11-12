@@ -362,7 +362,7 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 ### Add a runtime tool
 
-> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolDocuments`,
+> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`,
 > `RuntimeToolResult`, and `RuntimeToolException`, package `aiagent.api.tool` of
 > `aiagent-api`) is experimental since 8.11 and may change in an incompatible way in a minor release.
 
@@ -401,7 +401,7 @@ example.
 - *Bounded execution time.* A call is executed in the thread of the job, without a timeout: stay well below the job timeout.
 - *Order and concurrency.* The results of a batch are applied in call order. `call` and `isEnabled` may be called from different
   threads, and a `RuntimeToolContext` is safe to read concurrently.
-  The calls of one message see the same `documents()`: the documents known when the batch starts.
+  The calls of one message see the same agent context, the one when the batch starts, and so the same documents.
 - *Mixed batches.* Runtime calls of a message that also calls process tools are executed in the job that composes the next turn
   ([What Happens When Tools Complete](agentic-loop.md#what-happens-when-tools-complete)); a message that calls runtime tools only has them executed in the same job and calls the model again.
 - *Failures.* A call of a tool that is not offered in the job is rejected and gets the error result "does not exist" from the
@@ -412,11 +412,16 @@ example.
 **Document parameters.** A parameter that carries a document is declared with `DocumentParameter.documentSchema(...)`. The agent
 resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, which `argumentsAs` binds to a
 property typed `AgentDocumentId`. A call with a value that is not the handle of a known document is rejected at admission,
-and the tool is not called. `RuntimeTools` resolves the call again against the definition the tool is registered with; an
-invalid value gets a `RuntimeToolResult.error` with the resolution message, and the tool is not called.
+and the tool is not called. A tool does not look up the document to check it: the id it receives is the one of a known
+document. `RuntimeTools` resolves the call again against the definition the tool is registered with, which can differ from
+the one of the admission when the call runs in a later job; an invalid value gets a `RuntimeToolResult.error` with the
+resolution message, and the tool is not called.
 
-**Documents.** `RuntimeToolContext#documents()` is a read-only view of the documents the agent knows. `find` returns the
-`AgentDocument` (`aiagent-model`) or nothing. A result holds a new document as a `DocumentContent` block. After the calls
+**Documents.** `RuntimeToolContext#document(AgentDocumentId)` returns the `Document` of the connector SDK for a document
+the agent knows, restored with the document factory of the job, or nothing. Its content is read only when the tool reads
+it. A result holds a document as the `Document` of the connector SDK, never as the `AgentDocument` of the agent context:
+an `AgentDocument` carries the store details of the document, which never go to the model, and one in a result fails the
+job. A result holds a new document as a `DocumentContent` block. After the calls
 ran, the agent registers it with the tool call as origin, and the model reads its handle only
 ([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). A result holds a known
 document as an `AgentDocumentContent` block with the delivery `reference`. An error result registers nothing.

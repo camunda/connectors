@@ -24,9 +24,9 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  *       RuntimeToolResult effects} of the result are discarded with the attempt.
  *   <li><b>Concurrency.</b> The calls of one assistant message may be executed concurrently, their
  *       results are applied in call order. {@link #call} and {@link #isEnabled} may be called from
- *       different threads. The calls of one message see the same {@link
- *       RuntimeToolContext#documents() documents}, the ones known when the first of them starts: a
- *       call must not depend on a document another call of the same message returned. The agent
+ *       different threads. The calls of one message see the same agent context, the one when the
+ *       first of them starts, and so the same {@link RuntimeToolContext#document documents}: a call
+ *       must not depend on a document another call of the same message returned. The agent
  *       registers the documents the results contain and applies their {@link RuntimeToolResult
  *       effects} after all calls were executed, in call order. A tool changes the agent only
  *       through these effects.

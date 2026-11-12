@@ -233,7 +233,8 @@ class LoadDocumentToolTest {
 
   @Test
   void answersAMissingIdWithAnErrorWithoutEffects() {
-    final var context = RuntimeToolContextImpl.of(withConfiguration(CONFIGURATION), WITH_DOCUMENTS);
+    final var context =
+        new RuntimeToolContextImpl(withConfiguration(CONFIGURATION), WITH_DOCUMENTS);
     final var arguments =
         new RuntimeToolCallImpl("1", LoadDocumentTool.NAME, Map.of(), objectMapper);
 
@@ -242,8 +243,7 @@ class LoadDocumentToolTest {
     assertThat(result)
         .isEqualTo(
             RuntimeToolResult.error(
-                "Parameter 'id' must be the handle of a document from the conversation: a JSON"
-                    + " object such as {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}."));
+                "Parameter 'id' is required: pass the handle of a document from the conversation."));
   }
 
   private static ToolCall call(String id, String documentId) {

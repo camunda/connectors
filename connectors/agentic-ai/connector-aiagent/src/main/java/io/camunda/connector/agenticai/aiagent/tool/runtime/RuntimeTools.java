@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -28,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.api.document.Document;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.UncheckedIOException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -36,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +76,12 @@ public class RuntimeTools {
     this.registrationsByName = register(tools);
     this.argumentsMapper = RuntimeToolCallImpl.argumentsMapper(objectMapper);
     this.resultMapper =
-        objectMapper.copy().registerModule(new SimpleModule().addSerializer(new DocumentAsItIs()));
+        objectMapper
+            .copy()
+            .registerModule(
+                new SimpleModule()
+                    .addSerializer(new DocumentAsItIs())
+                    .addSerializer(new NoAgentDocument()));
     this.documentParameterResolver = documentParameterResolver;
   }
 
@@ -83,7 +91,7 @@ public class RuntimeTools {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return List.of();
     }
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext);
+    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
     return registrationsByName.values().stream()
         .filter(registration -> registration.tool().isEnabled(context))
         .map(Registration::definition)
@@ -106,7 +114,7 @@ public class RuntimeTools {
    */
   public List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext);
+    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
     return calls.stream().map(call -> execute(context, call)).toList();
   }
 
@@ -160,7 +168,8 @@ public class RuntimeTools {
         result, "The runtime tool '%s' returned no result".formatted(toolCall.name()));
     return result instanceof RuntimeToolResult.Success success
         ? new RuntimeToolResult.Success(
-            success.content().stream().map(this::plainContent).toList(), success.effects())
+            success.content().stream().map(content -> plainContent(toolCall, content)).toList(),
+            success.effects())
         : result;
   }
 
@@ -169,8 +178,12 @@ public class RuntimeTools {
    * and its documents at any depth, also those in a record or another object. The agent finds the
    * documents of plain JSON values, and the object is the one a later job reads from the
    * conversation.
+   *
+   * <p>A result holds a document as the {@link Document} of the connector SDK ({@link
+   * RuntimeToolContext#document}). An {@link AgentDocument} holds the store details of a document,
+   * which never go to the model, so one in a result is a defect of the tool and fails the job.
    */
-  private Content plainContent(Content content) {
+  private Content plainContent(ToolCall toolCall, Content content) {
     if (!(content instanceof ObjectContent objectContent)) {
       return content;
     }
@@ -179,6 +192,13 @@ public class RuntimeTools {
       final Object plain = PLAIN_READER.readValue(buffer.asParser(), Object.class);
       return new ObjectContent(plain, objectContent.metadata());
     } catch (IOException e) {
+      final var agentDocument = ExceptionUtils.throwableOfType(e, AgentDocumentInResult.class);
+      if (agentDocument != null) {
+        throw new IllegalArgumentException(
+            "The runtime tool '%s' returned the agent document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
+                .formatted(toolCall.name(), agentDocument.getMessage()),
+            e);
+      }
       throw new UncheckedIOException(e);
     }
   }
@@ -217,6 +237,30 @@ public class RuntimeTools {
     public void serialize(Document document, JsonGenerator gen, SerializerProvider provider)
         throws IOException {
       gen.writeEmbeddedObject(document);
+    }
+  }
+
+  /** Fails the serialization of an agent document, see {@link #plainContent}. */
+  private static final class NoAgentDocument extends JsonSerializer<AgentDocument> {
+
+    @Override
+    public Class<AgentDocument> handledType() {
+      return AgentDocument.class;
+    }
+
+    @Override
+    public void serialize(AgentDocument document, JsonGenerator gen, SerializerProvider provider) {
+      throw new AgentDocumentInResult(document.id().value());
+    }
+  }
+
+  /** An agent document in a result; the message is its id. */
+  private static final class AgentDocumentInResult extends RuntimeException {
+
+    @Serial private static final long serialVersionUID = 1L;
+
+    private AgentDocumentInResult(String id) {
+      super(id);
     }
   }
 }
