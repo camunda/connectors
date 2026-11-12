@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
@@ -245,8 +246,8 @@ class LegacyDocumentConversationTest {
                 conversation.persistedContext().documentHandling(),
                 TestDocuments.documentFactory());
 
-    // the chat request holds the content of every user message as it is
-    assertThat(expansion.messages()).hasSize(snapshot.size());
+    // the chat request holds every window message in order, with the user content as it is
+    assertThat(expansion).isEqualTo(ChatConversation.of(snapshot, window.toolDefinitions()));
     assertThat(
             expansion.messages().stream()
                 .filter(ChatUserMessage.class::isInstance)
