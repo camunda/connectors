@@ -307,18 +307,15 @@ Before claiming a change is complete:
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Each Javadoc and each document that names a changed method agrees with the code at the last commit of the PR.
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
-  The build does not check this yet: the API compatibility check skips `aiagent-api` and
-  `aiagent-model` until 8.11.0 is its baseline. From then on, a break of these modules fails the build
-  until it is accepted in the module's `api-changes.json` with a link to its `breaking-changes.md`
-  anchor ([API compatibility check](../../docs/api-compatibility.md)).
+  The [API compatibility check](../../docs/api-compatibility.md) states from when it gates `aiagent-api`
+  and `aiagent-model`. Accept a break that it reports in the module's `api-changes.json` with a link to
+  its `breaking-changes.md` anchor.
 
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
-tool (a tool the connector runtime executes itself, without activating a BPMN element; a process tool must not have its name)
-by implementing the SPI and registering a Spring bean. A runtime tool is the three-method interface `RuntimeTool`
-(`definition`, `isEnabled`, `call`), an experimental SPI in 8.11. Where to start (SPI + reference implementation per
-type): [Extension Points](docs/architecture/extension-points.md#extension-points) (gateway tools:
+tool by implementing the SPI and registering a Spring bean. A process tool must not have the name of a runtime tool.
+Where to start (SPI + reference implementation per type): [Extension Points](docs/architecture/extension-points.md#extension-points) (gateway tools:
 [Gateway Tool Pattern](docs/architecture/extension-points.md#gateway-tool-pattern); runtime tools:
 [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool) and [ADR 016](docs/adr/016-runtime-tools.md)).
 
@@ -405,12 +402,8 @@ carried an unrelated legacy `"deprecated": true` boolean flag and were left unto
 
 ## Key entry points
 
-| File                                        | Purpose                                    |
-| ------------------------------------------- | ------------------------------------------ |
-| `AgentTaskV1Function.java`                  | Connector (Task) entry point               |
-| `AgentSubProcessV1Function.java`            | Job worker (Sub-process) entry point       |
-| `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
-| `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                         |
+The connector functions of both flavors, the shared orchestrator and the Spring wiring are listed in
+the [key types of `connector-aiagent`](connector-aiagent/README.md#key-types).
 
 ## Architecture decision records
 
