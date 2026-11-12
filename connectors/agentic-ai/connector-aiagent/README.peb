@@ -43,6 +43,7 @@ the agent instance client.
 - [Extension points](../docs/architecture/extension-points.md)
 - [Spring auto-configuration](../docs/architecture/spring-auto-configuration.md)
 - [Element templates](element-templates/README.md)
+- [Element template generation](docs/element-template-generation.md)
 
 ## Examples Directory Reference
 
