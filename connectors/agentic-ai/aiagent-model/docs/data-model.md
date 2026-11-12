@@ -122,9 +122,7 @@ Neither is produced or consumed by the LangChain4j path yet; they exist so the s
 ready for chat model implementations that need them.
 
 `AgentDocumentContent` (content type `agent_document`) is the persisted form of a known document for an agent instance
-that tracks its documents: the `AgentDocumentId`, a `delivery`, `reference` or `content`, an optional `note` (a sentence
-for the model about the document, omitted when absent and set only on a block with the delivery `reference`) and the
-content `metadata`. The file name, content type and size the model reads are those of the agent document of the
+that tracks its documents: the `AgentDocumentId`, a `delivery`, `reference` or `content`, and the content `metadata`. The file name, content type and size the model reads are those of the agent document of the
 id: `AgentDocumentHandle.of(agentDocuments, id)` builds the handle the model sees. A document that is a whole tool result is
 persisted as such a block, which is rendered as its handle (`ToolCallResultContent.withDocumentsAsReferences`).
 `DocumentExpander.expand` expands it before a request is built (see [Conversation Memory](../../connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter)): in a user message to the handle text and, with the
