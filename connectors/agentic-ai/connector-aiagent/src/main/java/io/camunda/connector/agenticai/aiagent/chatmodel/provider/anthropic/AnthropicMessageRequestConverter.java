@@ -22,17 +22,16 @@ import com.anthropic.models.messages.ThinkingConfigParam;
 import com.anthropic.models.messages.Tool;
 import com.anthropic.models.messages.ToolResultBlockParam;
 import com.anthropic.models.messages.ToolUseBlockParam;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
-import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatAssistantMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequestMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatSystemMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
@@ -55,9 +54,9 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Maps a windowed {@link ConversationSnapshot} plus the resolved Anthropic model configuration to
- * an Anthropic SDK {@link MessageCreateParams} request, translating the domain {@link Message} /
- * {@link ToolCall} / {@link ToolCallResultContent} model into the wire shape via the {@link
+ * Maps a {@link ChatConversation} plus the resolved Anthropic model configuration to an Anthropic
+ * SDK {@link MessageCreateParams} request, translating the {@link ChatRequestMessage} / {@link
+ * ToolCall} / {@link ChatToolCallResult} model into the wire shape via the {@link
  * AnthropicContentConverter} built for content blocks.
  */
 public class AnthropicMessageRequestConverter {
@@ -71,7 +70,7 @@ public class AnthropicMessageRequestConverter {
   public MessageCreateParams toMessageCreateParams(
       AnthropicChatModelConfiguration configuration,
       @Nullable ResponseConfiguration response,
-      ConversationSnapshot snapshot) {
+      ChatConversation conversation) {
     final var connection = configuration.anthropic();
     final var params = connection.model().parameters();
     final String modelId = connection.model().model();
@@ -81,9 +80,9 @@ public class AnthropicMessageRequestConverter {
 
     applyModelParameters(builder, params);
     applyThinking(builder, params, modelId);
-    applySystemPrompt(builder, snapshot);
-    applyMessages(builder, snapshot.messages());
-    applyTools(builder, snapshot.toolDefinitions());
+    applySystemPrompt(builder, conversation);
+    applyMessages(builder, conversation.messages());
+    applyTools(builder, conversation.toolDefinitions());
     applyOutputConfig(builder, params, response);
     applyPromptCaching(builder, params);
     applyRequestCustomizations(builder, connection);
@@ -178,12 +177,12 @@ public class AnthropicMessageRequestConverter {
   }
 
   private void applySystemPrompt(
-      MessageCreateParams.Builder builder, ConversationSnapshot snapshot) {
-    final var systemMessage = MessageUtil.leadingSystemMessage(snapshot.messages());
+      MessageCreateParams.Builder builder, ChatConversation conversation) {
+    final var systemMessage = conversation.leadingSystemMessage();
     if (systemMessage.isEmpty()) {
       return;
     }
-    final String system = MessageUtil.contentText(systemMessage.get());
+    final String system = systemMessage.get().text();
     if (!system.isBlank()) {
       builder.system(system);
     }
@@ -262,30 +261,27 @@ public class AnthropicMessageRequestConverter {
     }
   }
 
-  private void applyMessages(MessageCreateParams.Builder builder, List<Message> messages) {
-    // Seed an empty list so build() doesn't throw for an all-system/empty snapshot
+  private void applyMessages(
+      MessageCreateParams.Builder builder, List<ChatRequestMessage> messages) {
+    // Seed an empty list so build() doesn't throw for an all-system/empty conversation
     builder.messages(List.of());
-    for (final Message message : messages) {
-      if (message instanceof SystemMessage) {
-        continue; // hoisted to top-level system
-      }
+    for (final ChatRequestMessage message : messages) {
       switch (message) {
-        case UserMessage user ->
+        case ChatSystemMessage ignored -> {} // hoisted to top-level system
+        case ChatUserMessage user ->
             builder.addMessage(
                 MessageParam.builder()
                     .role(MessageParam.Role.USER)
                     .contentOfBlockParams(contentConverter.toContentBlockParams(user.content()))
                     .build());
-        case AssistantMessage assistant -> builder.addMessage(assistantParam(assistant));
-        case ToolCallResultMessage toolResults -> builder.addMessage(toolResultParam(toolResults));
-        default ->
-            throw new IllegalArgumentException(
-                "Unsupported message type: " + message.getClass().getSimpleName());
+        case ChatAssistantMessage assistant -> builder.addMessage(assistantParam(assistant));
+        case ChatToolCallResultMessage toolResults ->
+            builder.addMessage(toolResultParam(toolResults));
       }
     }
   }
 
-  private MessageParam assistantParam(AssistantMessage assistant) {
+  private MessageParam assistantParam(ChatAssistantMessage assistant) {
     final List<ContentBlockParam> blocks =
         new ArrayList<>(contentConverter.toContentBlockParams(assistant.content()));
     for (final ToolCall toolCall : assistant.toolCalls()) {
@@ -302,9 +298,9 @@ public class AnthropicMessageRequestConverter {
         .build();
   }
 
-  private MessageParam toolResultParam(ToolCallResultMessage message) {
+  private MessageParam toolResultParam(ChatToolCallResultMessage message) {
     final List<ContentBlockParam> blocks = new ArrayList<>();
-    for (final ToolCallResultContent result : message.results()) {
+    for (final ChatToolCallResult result : message.results()) {
       blocks.add(
           ContentBlockParam.ofToolResult(
               ToolResultBlockParam.builder()

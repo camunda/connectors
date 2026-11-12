@@ -15,11 +15,11 @@ import com.google.genai.JsonSerializable;
 import com.google.genai.types.Blob;
 import com.google.genai.types.FunctionResponse;
 import com.google.genai.types.Part;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
-import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ChatContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -73,13 +73,12 @@ public class GeminiContentConverter {
     this.objectMapper = objectMapper;
   }
 
-  public List<Part> toParts(List<Content> content) {
+  public List<Part> toParts(List<? extends ChatContent> content) {
     final List<Part> parts = new ArrayList<>();
-    for (final Content c : content) {
+    for (final ChatContent c : content) {
       switch (c) {
         case TextContent text -> parts.add(toTextPart(text));
         case DocumentContent doc -> parts.add(toDocumentPart(doc));
-        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj -> parts.add(Part.fromText(writeAsJson(obj.content())));
         // Content tagged for a different provider is dropped rather than replayed: a Gemini part
         // built from an Anthropic/OpenAI-native payload can fail conversion or send invalid
@@ -100,13 +99,13 @@ public class GeminiContentConverter {
    * Converts tool-result {@link Content} into {@link Part}s carrying the result payload.
    *
    * <p>The {@code functionResponse} parts built here deliberately omit {@code name}/{@code id}:
-   * that correlating identity lives on the wrapping {@code ToolCallResultContent}, one level above
-   * the individual {@link Content} items this method receives. The caller is expected to rebuild
-   * each returned {@link FunctionResponse} via {@code toBuilder()} to add {@code name}/{@code id}
-   * before sending the request. This assumes one {@link Part} per tool call (the current shape of
-   * {@code ToolCallResultContent.content()}); if that list ever becomes multi-element for a single
-   * tool call, the caller must merge the results into a single {@code functionResponse} rather than
-   * emit sibling parts sharing one name/id.
+   * that correlating identity lives on the wrapping {@code ChatToolCallResult}, one level above the
+   * individual {@link Content} items this method receives. The caller is expected to rebuild each
+   * returned {@link FunctionResponse} via {@code toBuilder()} to add {@code name}/{@code id} before
+   * sending the request. This assumes one {@link Part} per tool call (the current shape of {@code
+   * ChatToolCallResult.content()}); if that list ever becomes multi-element for a single tool call,
+   * the caller must merge the results into a single {@code functionResponse} rather than emit
+   * sibling parts sharing one name/id.
    *
    * <p>Unlike {@link #toParts(List)}, a document here is flattened to a JSON reference rather than
    * embedded natively as {@code inlineData}: the document's actual bytes are already delivered to
@@ -115,18 +114,15 @@ public class GeminiContentConverter {
    * OpenAiContentConverter#toResponsesToolResultOutputItems}. Every branch still wraps its payload
    * in a {@code functionResponse}, the reference-only document included: a plain text {@link Part}
    * would carry no {@code name}/{@code id} to correlate with the preceding {@code functionCall}, so
-   * a tool result whose only content is a document (or reasoning/provider content) would never
-   * close out that call.
+   * a tool result whose only content is a document would never close out that call.
    */
-  public List<Part> toFunctionResponseParts(List<Content> content) {
+  public List<Part> toFunctionResponseParts(List<PortableContent> content) {
     final List<Part> parts = new ArrayList<>();
-    for (final Content c : content) {
+    for (final PortableContent c : content) {
       switch (c) {
         case TextContent text -> parts.add(toFunctionResponsePart(text.text()));
-        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj -> parts.add(toFunctionResponsePart(writeAsJson(obj.content())));
         case DocumentContent doc -> parts.add(toFunctionResponsePart(writeAsJson(doc.document())));
-        default -> parts.add(toFunctionResponsePart(writeAsJson(c)));
       }
     }
     return parts;

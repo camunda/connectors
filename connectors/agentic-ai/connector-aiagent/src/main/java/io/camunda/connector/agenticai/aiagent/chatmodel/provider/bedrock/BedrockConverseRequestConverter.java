@@ -12,18 +12,17 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
-import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatAssistantMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequestMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatSystemMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
@@ -54,17 +53,15 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolSpecification;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
 /**
- * Maps a windowed {@link ConversationSnapshot} plus the resolved Bedrock model configuration to a
- * Bedrock Converse SDK {@link ConverseStreamRequest}, translating the domain {@code Message} /
- * {@link ToolCall} / {@link ToolCallResultContent} model into the wire shape via the {@link
+ * Maps a {@link ChatConversation} plus the resolved Bedrock model configuration to a Bedrock
+ * Converse SDK {@link ConverseStreamRequest}, translating the {@link ChatRequestMessage} / {@link
+ * ToolCall} / {@link ChatToolCallResult} model into the wire shape via the {@link
  * BedrockConverseContentConverter} built for content blocks.
  *
  * <p>Note: {@code software.amazon.awssdk.core.document.Document} (the generic AWS "any JSON value"
  * type used for tool input schemas and {@code additionalModelRequestFields}) is always fully
  * qualified below, and {@code software.amazon.awssdk.services.bedrockruntime.model.Message} (this
- * converter's wire-level output) is imported unqualified, since both the AWS SDK and this module's
- * domain model each have a type literally named {@code Message}; the domain type is never
- * referenced by name here (only via {@link ConversationSnapshot#messages()} and {@code var}).
+ * converter's wire-level output) is imported unqualified.
  */
 public class BedrockConverseRequestConverter {
 
@@ -80,7 +77,7 @@ public class BedrockConverseRequestConverter {
   public ConverseStreamRequest toConverseStreamRequest(
       BedrockConverseChatModelConfiguration configuration,
       @Nullable ResponseConfiguration response,
-      ConversationSnapshot snapshot) {
+      ChatConversation conversation) {
     final var connection = configuration.bedrock();
     final var model = connection.model();
     final var params = model.parameters();
@@ -89,9 +86,9 @@ public class BedrockConverseRequestConverter {
 
     applyInferenceConfig(builder, params);
 
-    final List<SystemContentBlock> system = buildSystemPrompt(snapshot);
-    final List<Message> messages = buildMessages(snapshot);
-    final List<Tool> tools = buildTools(snapshot.toolDefinitions());
+    final List<SystemContentBlock> system = buildSystemPrompt(conversation);
+    final List<Message> messages = buildMessages(conversation);
+    final List<Tool> tools = buildTools(conversation.toolDefinitions());
 
     // Mutates system/tools/messages in place before they're attached to the builder below, so the
     // checkpoint placement can inspect the fully-built prefix - a single
@@ -140,20 +137,14 @@ public class BedrockConverseRequestConverter {
     }
   }
 
-  private List<SystemContentBlock> buildSystemPrompt(ConversationSnapshot snapshot) {
-    final var systemMessage = MessageUtil.leadingSystemMessage(snapshot.messages());
+  private List<SystemContentBlock> buildSystemPrompt(ChatConversation conversation) {
+    final var systemMessage = conversation.leadingSystemMessage();
     if (systemMessage.isEmpty()) {
       return List.of();
     }
 
     final List<SystemContentBlock> system = new ArrayList<>();
-    for (final Content content : systemMessage.get().content()) {
-      if (!(content instanceof TextContent text)) {
-        throw new ConnectorException(
-            ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
-            "Unsupported content type '%s' for system message"
-                .formatted(content.getClass().getSimpleName()));
-      }
+    for (final TextContent text : systemMessage.get().content()) {
       if (!text.text().isBlank()) {
         system.add(SystemContentBlock.fromText(text.text()));
       }
@@ -161,31 +152,25 @@ public class BedrockConverseRequestConverter {
     return system;
   }
 
-  private List<Message> buildMessages(ConversationSnapshot snapshot) {
+  private List<Message> buildMessages(ChatConversation conversation) {
     final List<Message> messages = new ArrayList<>();
-    for (final var message : snapshot.messages()) {
-      if (message instanceof SystemMessage) {
-        continue; // hoisted to top-level system
-      }
+    for (final ChatRequestMessage message : conversation.messages()) {
       switch (message) {
-        case UserMessage user ->
+        case ChatSystemMessage ignored -> {} // hoisted to top-level system
+        case ChatUserMessage user ->
             messages.add(
                 Message.builder()
                     .role(ConversationRole.USER)
                     .content(contentConverter.toContentBlocks(user.content()))
                     .build());
-        case AssistantMessage assistant -> messages.add(assistantMessage(assistant));
-        case ToolCallResultMessage toolResults -> messages.add(toolResultMessage(toolResults));
-        default ->
-            throw new ConnectorException(
-                ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
-                "Unsupported message type: " + message.getClass().getSimpleName());
+        case ChatAssistantMessage assistant -> messages.add(assistantMessage(assistant));
+        case ChatToolCallResultMessage toolResults -> messages.add(toolResultMessage(toolResults));
       }
     }
     return messages;
   }
 
-  private Message assistantMessage(AssistantMessage assistant) {
+  private Message assistantMessage(ChatAssistantMessage assistant) {
     final List<ContentBlock> blocks =
         new ArrayList<>(contentConverter.toContentBlocks(assistant.content()));
     for (final ToolCall toolCall : assistant.toolCalls()) {
@@ -220,9 +205,9 @@ public class BedrockConverseRequestConverter {
     return bedrock.get(key);
   }
 
-  private Message toolResultMessage(ToolCallResultMessage message) {
+  private Message toolResultMessage(ChatToolCallResultMessage message) {
     final List<ContentBlock> blocks = new ArrayList<>();
-    for (final ToolCallResultContent result : message.results()) {
+    for (final ChatToolCallResult result : message.results()) {
       blocks.add(
           ContentBlock.fromToolResult(
               ToolResultBlock.builder()

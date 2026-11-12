@@ -21,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
@@ -86,7 +85,7 @@ public class AnthropicChatModel implements ChatModel {
         requestConverter.toMessageCreateParams(
             configuration,
             request.executionContext().configuration().response(),
-            ChatConversationBridge.toSnapshot(request.conversation()));
+            request.conversation());
     if (LOG.isTraceEnabled()) {
       LOG.trace(
           "Anthropic Messages API request: {}", LoggingSupport.toJson(MAPPER, params._body()));

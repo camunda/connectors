@@ -27,7 +27,6 @@ import com.openai.services.blocking.chat.ChatCompletionService;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -115,8 +114,7 @@ class OpenAiCompletionsStrategyTest {
             null,
             new OpenAiRequestCustomizations(null, null, null));
 
-    when(requestConverter.toRequest(
-            eq(expectedSpec), any(), eq(ChatConversationBridge.toSnapshot(request.conversation()))))
+    when(requestConverter.toRequest(eq(expectedSpec), any(), eq(request.conversation())))
         .thenReturn(params);
     when(client.chat()).thenReturn(chatService);
     when(chatService.completions()).thenReturn(chatCompletionService);

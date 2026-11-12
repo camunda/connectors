@@ -14,9 +14,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.genai.types.FunctionCall;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -270,7 +270,7 @@ class GeminiContentConverterTest {
     @Test
     void mapsMultipleContentItemsInOrder() {
       final var doc = mockDocument("image/png", "ABC".getBytes(StandardCharsets.UTF_8));
-      final List<Content> content =
+      final List<PortableContent> content =
           List.of(new TextContent("first", null), new DocumentContent(doc, null));
 
       final var parts = converter.toParts(content);
@@ -340,31 +340,6 @@ class GeminiContentConverterTest {
 
       assertThat(parts).hasSize(1);
       assertThat(parts.get(0).functionResponse()).isPresent();
-    }
-
-    @Test
-    void mapsReasoningContentToFunctionResponsePartWithJsonFallback() {
-      final var parts =
-          converter.toFunctionResponseParts(
-              List.of(
-                  new ReasoningContent(
-                      GOOGLE_GEMINI_ID, Map.of("thinking", "some reasoning"), null, null)));
-
-      assertThat(parts).hasSize(1);
-      final var response = parts.get(0).functionResponse().orElseThrow();
-      assertThat(response.response().orElseThrow().get("output").toString())
-          .contains("some reasoning");
-    }
-
-    @Test
-    void mapsProviderContentToFunctionResponsePartWithJsonFallback() {
-      final var parts =
-          converter.toFunctionResponseParts(
-              List.of(new ProviderContent(GOOGLE_GEMINI_ID, Map.of("foo", "bar"), null)));
-
-      assertThat(parts).hasSize(1);
-      final var response = parts.get(0).functionResponse().orElseThrow();
-      assertThat(response.response().orElseThrow().get("output").toString()).contains("bar");
     }
   }
 }

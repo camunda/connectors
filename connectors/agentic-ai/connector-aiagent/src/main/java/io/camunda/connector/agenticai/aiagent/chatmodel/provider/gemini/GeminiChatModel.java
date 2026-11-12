@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedExc
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
@@ -71,9 +70,8 @@ public class GeminiChatModel implements ChatModel {
         requestConverter.toGenerateContentConfig(
             configuration,
             request.executionContext().configuration().response(),
-            ChatConversationBridge.toSnapshot(request.conversation()));
-    final List<Content> contents =
-        requestConverter.toContents(ChatConversationBridge.toSnapshot(request.conversation()));
+            request.conversation());
+    final List<Content> contents = requestConverter.toContents(request.conversation());
 
     if (LOG.isTraceEnabled()) {
       LOG.trace(

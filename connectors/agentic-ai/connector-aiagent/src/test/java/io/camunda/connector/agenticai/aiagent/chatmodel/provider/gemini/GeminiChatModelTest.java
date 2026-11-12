@@ -32,7 +32,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -110,11 +109,8 @@ class GeminiChatModelTest {
 
     assertThat(result).isSameAs(expected);
     verify(requestConverter)
-        .toGenerateContentConfig(
-            configuration,
-            responseConfiguration,
-            ChatConversationBridge.toSnapshot(request.conversation()));
-    verify(requestConverter).toContents(ChatConversationBridge.toSnapshot(request.conversation()));
+        .toGenerateContentConfig(configuration, responseConfiguration, request.conversation());
+    verify(requestConverter).toContents(request.conversation());
     verify(models).generateContentStream(configuration.model(), contents, config);
     verify(streamAssembler).assemble(responseStream);
     verify(responseStream).close();

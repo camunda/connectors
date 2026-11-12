@@ -24,7 +24,6 @@ import com.openai.services.blocking.ResponseService;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -96,10 +95,7 @@ class OpenAiResponsesStrategyTest {
         new ChatResult.Completed(
             AssistantMessage.builder().build(), AgentMetrics.builder().build());
 
-    when(requestConverter.toRequest(
-            eq(configuration),
-            any(),
-            eq(ChatConversationBridge.toSnapshot(request.conversation()))))
+    when(requestConverter.toRequest(eq(configuration), any(), eq(request.conversation())))
         .thenReturn(params);
     when(client.responses()).thenReturn(responseService);
     when(responseService.createStreaming(params)).thenReturn(stream);

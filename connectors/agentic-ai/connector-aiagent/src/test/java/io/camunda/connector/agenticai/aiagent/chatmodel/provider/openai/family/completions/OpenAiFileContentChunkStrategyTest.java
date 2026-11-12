@@ -11,11 +11,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -63,7 +61,8 @@ class OpenAiFileContentChunkStrategyTest {
   void mapsImageDocumentToImageUrlPart() {
     final var doc = mockDocument("image/png", "QUJD");
 
-    final var parts = strategy.toContentParts(List.of((Content) new DocumentContent(doc, null)));
+    final var parts =
+        strategy.toContentParts(List.of((PortableContent) new DocumentContent(doc, null)));
 
     assertThat(parts).hasSize(1);
     assertThat(parts.get(0).isImageUrl()).isTrue();
@@ -75,7 +74,7 @@ class OpenAiFileContentChunkStrategyTest {
     final var document = pdfDocument();
 
     final var parts =
-        strategy.toContentParts(List.of((Content) new DocumentContent(document, null)));
+        strategy.toContentParts(List.of((PortableContent) new DocumentContent(document, null)));
 
     assertThat(parts).hasSize(1);
     assertThat(parts.get(0).isFile()).isTrue();
@@ -93,7 +92,7 @@ class OpenAiFileContentChunkStrategyTest {
     when(document.asByteArray()).thenReturn("plain text content".getBytes(StandardCharsets.UTF_8));
 
     final var parts =
-        strategy.toContentParts(List.of((Content) new DocumentContent(document, null)));
+        strategy.toContentParts(List.of((PortableContent) new DocumentContent(document, null)));
 
     assertThat(parts).hasSize(1);
     assertThat(parts.get(0).isText()).isTrue();
@@ -104,8 +103,8 @@ class OpenAiFileContentChunkStrategyTest {
   void throwsForUnsupportedDocumentContentType() {
     final var document = mockDocument("audio/mpeg", "QUJD");
 
-    assertThatThrownBy(
-            () -> strategy.toContentParts(List.of((Content) new DocumentContent(document, null))))
+    assertThatThrownBy(() ->
+            strategy.toContentParts(List.of((PortableContent) new DocumentContent(document, null))))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("audio/mpeg");
   }
@@ -113,32 +112,11 @@ class OpenAiFileContentChunkStrategyTest {
   @Test
   void mapsObjectContentToTextPart() {
     final var parts =
-        strategy.toContentParts(List.of((Content) new ObjectContent(Map.of("key", "value"), null)));
+        strategy.toContentParts(
+            List.of((PortableContent) new ObjectContent(Map.of("key", "value"), null)));
 
     assertThat(parts).hasSize(1);
     assertThat(parts.get(0).isText()).isTrue();
     assertThat(parts.get(0).asText().text()).isEqualTo("{\"key\":\"value\"}");
-  }
-
-  @Test
-  void mapsReasoningContentToTextPartFallback() {
-    final var parts =
-        strategy.toContentParts(
-            List.of(
-                (Content) new ReasoningContent("openai", Map.of("type", "reasoning"), null, null)));
-
-    assertThat(parts).hasSize(1);
-    assertThat(parts.get(0).isText()).isTrue();
-  }
-
-  @Test
-  void mapsProviderContentToTextPartFallback() {
-    final var payload = Map.<String, Object>of("type", "server_tool_use", "id", "srvtoolu_01ABC");
-
-    final var parts =
-        strategy.toContentParts(List.of((Content) new ProviderContent("openai", payload, null)));
-
-    assertThat(parts).hasSize(1);
-    assertThat(parts.get(0).isText()).isTrue();
   }
 }

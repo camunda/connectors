@@ -32,7 +32,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -102,9 +101,7 @@ class AnthropicChatModelTest {
     assertThat(result).isSameAs(expected);
     verify(requestConverter)
         .toMessageCreateParams(
-            configuration,
-            executionContext.configuration().response(),
-            ChatConversationBridge.toSnapshot(request.conversation()));
+            configuration, executionContext.configuration().response(), request.conversation());
     verify(messageService).createStreaming(params);
     verify(streamAssembler).assemble(streamResponse);
     verify(streamResponse).close();

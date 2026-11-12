@@ -7,16 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
@@ -30,7 +27,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatMode
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConversePromptCaching;
-import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -92,7 +88,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void mapsMaxTokensTemperatureAndTopPWhenSet() {
       final var parameters = new BedrockConverseModelParameters(null, 2048, 0.5, 0.9);
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
 
@@ -104,7 +100,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void omitsInferenceConfigWhenParametersUnset() {
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
 
@@ -114,7 +110,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void appliesMaxTokensIndependentlyOfTemperatureAndTopP() {
       final var parameters = new BedrockConverseModelParameters(null, 100, null, null);
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
 
@@ -126,7 +122,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void appliesTemperatureIndependentlyOfMaxTokensAndTopP() {
       final var parameters = new BedrockConverseModelParameters(null, null, 0.3, null);
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
 
@@ -138,7 +134,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void appliesTopPIndependentlyOfMaxTokensAndTemperature() {
       final var parameters = new BedrockConverseModelParameters(null, null, null, 0.8);
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
 
@@ -154,7 +150,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void mapsLeadingSystemMessageToTopLevelSystemAndRemainingToMessages() {
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   SystemMessage.builder().content(List.of(TextContent.textContent("sys"))).build(),
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
@@ -173,7 +169,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void omitsSystemWhenNoLeadingSystemMessage() {
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
               List.of());
@@ -186,7 +182,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void omitsSystemWhenLeadingSystemMessageHasNoTextContent() {
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(SystemMessage.builder().content(List.of()).build()), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
@@ -197,7 +193,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void mapsEachTextContentBlockToItsOwnSystemContentBlock() {
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   SystemMessage.builder()
                       .content(
@@ -213,22 +209,6 @@ class BedrockConverseRequestConverterTest {
       assertThat(request.system().get(0).text()).isEqualTo("sys one");
       assertThat(request.system().get(1).text()).isEqualTo("sys two");
     }
-
-    @Test
-    void throwsOnNonTextContentInSystemMessage() {
-      final var snapshot =
-          new ConversationSnapshot(
-              List.of(
-                  SystemMessage.builder()
-                      .content(List.of(ObjectContent.objectContent(Map.of("k", "v"))))
-                      .build()),
-              List.of());
-
-      assertThatThrownBy(() -> converter.toConverseStreamRequest(model(null), null, snapshot))
-          .isInstanceOf(ConnectorException.class)
-          .extracting(e -> ((ConnectorException) e).getErrorCode())
-          .isEqualTo(AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION);
-    }
   }
 
   @Nested
@@ -237,7 +217,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void mapsUserAssistantToolCallsAndToolResultMessages() {
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   UserMessage.builder()
                       .content(List.of(TextContent.textContent("please call the tool")))
@@ -287,7 +267,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void mapsMultipleToolCallsOnASingleAssistantMessage() {
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   AssistantMessage.builder()
                       .content(List.of(TextContent.textContent("working")))
@@ -318,7 +298,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void replaysBedrockToolUseTypeMetadataOnToolCall() {
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   AssistantMessage.builder()
                       .toolCalls(
@@ -353,7 +333,7 @@ class BedrockConverseRequestConverterTest {
               "required",
               List.of("quantity"));
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
               List.of(
@@ -391,7 +371,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void omitsToolConfigWhenNoToolDefinitions() {
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
 
@@ -409,7 +389,7 @@ class BedrockConverseRequestConverterTest {
       final var response =
           new AgentTaskResponseConfiguration(
               new JsonResponseFormatConfiguration(schema, "Answer"), null);
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), response, snapshot);
 
@@ -430,7 +410,7 @@ class BedrockConverseRequestConverterTest {
     void jsonResponseFormatWithoutSchemaEmitsNoOutputConfig() {
       final var response =
           new AgentTaskResponseConfiguration(new JsonResponseFormatConfiguration(null, null), null);
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), response, snapshot);
 
@@ -442,7 +422,7 @@ class BedrockConverseRequestConverterTest {
       final var response =
           new AgentTaskResponseConfiguration(
               new JsonResponseFormatConfiguration(Map.of(), null), null);
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), response, snapshot);
 
@@ -453,7 +433,7 @@ class BedrockConverseRequestConverterTest {
     void textResponseFormatEmitsNoOutputConfig() {
       final var response =
           new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), null);
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), response, snapshot);
 
@@ -462,7 +442,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void nullResponseConfigurationEmitsNoOutputConfig() {
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
 
@@ -485,7 +465,7 @@ class BedrockConverseRequestConverterTest {
     void bodyPropertiesMapToAdditionalModelRequestFields() {
       final var config =
           connectionOverridesModel(null, null, Map.of("thinking", Map.of("type", "enabled")));
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(config, null, snapshot);
 
@@ -497,7 +477,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void omitsAdditionalModelRequestFieldsWhenBodyPropertiesUnset() {
-      final var snapshot = new ConversationSnapshot(List.of(), List.of());
+      final var snapshot = ChatConversation.of(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
 
@@ -515,7 +495,7 @@ class BedrockConverseRequestConverterTest {
 
       final var request =
           converter.toConverseStreamRequest(
-              config, null, new ConversationSnapshot(List.of(), List.of()));
+              config, null, ChatConversation.of(List.of(), List.of()));
 
       assertThat(request.overrideConfiguration()).isPresent();
       assertThat(request.overrideConfiguration().get().headers())
@@ -528,7 +508,7 @@ class BedrockConverseRequestConverterTest {
 
       final var request =
           converter.toConverseStreamRequest(
-              config, null, new ConversationSnapshot(List.of(), List.of()));
+              config, null, ChatConversation.of(List.of(), List.of()));
 
       assertThat(request.overrideConfiguration()).isPresent();
       assertThat(request.overrideConfiguration().get().rawQueryParameters())
@@ -539,7 +519,7 @@ class BedrockConverseRequestConverterTest {
     void noOverrideConfigurationWhenNeitherHeadersNorQueryParametersPresent() {
       final var request =
           converter.toConverseStreamRequest(
-              model(null), null, new ConversationSnapshot(List.of(), List.of()));
+              model(null), null, ChatConversation.of(List.of(), List.of()));
 
       assertThat(request.overrideConfiguration()).isEmpty();
     }
@@ -559,7 +539,7 @@ class BedrockConverseRequestConverterTest {
                   .inputSchema(Map.of("type", "object"))
                   .build());
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   SystemMessage.builder().content(List.of(TextContent.textContent("sys"))).build(),
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
@@ -594,7 +574,7 @@ class BedrockConverseRequestConverterTest {
                   .inputSchema(Map.of("type", "object"))
                   .build());
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
               tools);
@@ -618,7 +598,7 @@ class BedrockConverseRequestConverterTest {
     void neitherSystemNorToolsPlacesNoCachePointInEitherButStillAtLastMessage() {
       final var parameters = promptCachingParams(true);
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
               List.of());
@@ -638,7 +618,7 @@ class BedrockConverseRequestConverterTest {
     void noMessagesEmitsNoCachePointAtAllEvenWhenSystemPresent() {
       final var parameters = promptCachingParams(true);
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   SystemMessage.builder().content(List.of(TextContent.textContent("sys"))).build()),
               List.of());
@@ -667,7 +647,7 @@ class BedrockConverseRequestConverterTest {
                 : new BedrockConverseModelParameters(
                     new BedrockConversePromptCaching(flag), null, null, null);
         final var snapshot =
-            new ConversationSnapshot(
+            ChatConversation.of(
                 List.of(
                     SystemMessage.builder()
                         .content(List.of(TextContent.textContent("sys")))

@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -163,16 +164,14 @@ class ToolResultDocumentRenderingTest {
 
     for (int i = 0; i < results.size(); i++) {
       final var fileName = i == 0 ? "bare.pdf" : "nested.txt";
-      final var rendered =
-          renderedByEveryProvider(List.copyOf(windowed.results().get(i).content()));
+      final var rendered = renderedByEveryProvider(windowed.results().get(i).content());
       // the document is in the request as a tag, not as its reference
       assertThat(rendered)
           .allSatisfy(text -> assertThat(text).contains(fileName).doesNotContain("storeId"));
     }
   }
 
-  private static List<String> renderedByEveryProvider(
-      List<io.camunda.connector.agenticai.aiagent.model.message.content.Content> content) {
+  private static List<String> renderedByEveryProvider(List<PortableContent> content) {
     final var mapper = TestObjectMapperSupplier.INSTANCE;
     return List.of(
         new AnthropicContentConverter(mapper).toToolResultBlocks(content).toString(),
