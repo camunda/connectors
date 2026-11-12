@@ -20,6 +20,13 @@ Read this document before you plan a structural change. A structural change adds
 6. **The tests follow the structure.** Use pure tests for the domain. Use contract tests for adapters. Use e2e tests for wiring and engine behavior.
 7. **The build enforces stable traits.** Prose rules cover only the decisions that need judgment. When a review finds a problem that a build check can find, add the check, or open a follow-up issue under #9591.
 
+## Module depth and extension points
+
+The [code design rules](implementation-rules.md#code-design) "Narrow surface, deep module" and "One owner per invariant" apply within a module. This section applies them across modules.
+
+- **The extension points of one concept live together.** The extension points of a concept are its public SPI interfaces, the beans that users can replace, the classes that users can extend, and the exceptions that their contracts require. For AI Agent concepts, the contract lives in one `aiagent-api` package. The default implementation lives in one package in its owning connector, integration or provider module, respecting the module boundaries in [ADR 015](adr/015-split-agentic-ai-into-modules.md). Within each owning module, a concept does not spread its extension points over many packages. Example to avoid: one feature puts its SPI interface in `api.tool`, the exception that the SPI requires in `chatmodel.provider`, and the bean that users replace in `aiagent.agent`.
+- **A typical next change is cheap.** A typical next change touches few files. Examples: a new input source, a new provider, a new content type, a change of a wire format. The correctness rules for the change live in one place, so the change cannot miss them. When a design makes such a change touch many files that each repeat the same rules, the design has a defect, even when each file is correct. A new sealed subtype that the compiler routes to each `switch` is acceptable, because the compiler finds each location.
+
 ## How this document changes
 
 An agent MAY propose a change to this document in a PR. A team member approves each change. When a plan must deviate from a trait, or this document is missing information or out of date, the agent stops and asks. It does not decide the target alone.
