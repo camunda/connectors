@@ -291,6 +291,11 @@ A `ChatRequest` holds the messages typed by role, with only the content a provid
 - A test that builds a `ChatRequest` from persisted messages uses `ChatConversation.of(messages, toolDefinitions)`. It
   fails with an `IllegalArgumentException` for an `AgentDocumentContent`, for a `ReasoningContent` or a
   `ProviderContent` outside an assistant message, and for a block other than `TextContent` in a system message.
+- A request message does not carry these persisted fields: `Message.id`, `UserMessage.name`, the metadata of system,
+  user and tool call result messages, the `properties`, `elementId` and `completedAt` of a tool call result, and the
+  `modelId` and `stopReason` of an `AssistantMessage`.
+- A custom LangChain4j `ChatMessageConverter` bean gets messages that the chat model rebuilds from the request
+  messages, so these fields are not set.
 - A runtime tool returns text, documents and objects only. A runtime tool that returned another content block does not
   compile; return the text or the object instead.
 
