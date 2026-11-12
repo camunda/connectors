@@ -12,8 +12,9 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Immutable snapshot of the windowed conversation sent to the LLM. Carries the filtered message
- * list and the tool definitions for this invocation.
+ * Immutable snapshot of the windowed conversation: the persisted messages in the context window and
+ * the tool definitions for this invocation. The agent builds the {@code ChatConversation} of a chat
+ * request from it.
  */
 public record ConversationSnapshot(List<Message> messages, List<ToolDefinition> toolDefinitions) {
 

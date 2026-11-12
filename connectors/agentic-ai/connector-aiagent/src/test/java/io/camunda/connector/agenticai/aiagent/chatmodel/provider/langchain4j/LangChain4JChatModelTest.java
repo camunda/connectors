@@ -13,6 +13,8 @@ import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupp
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -30,10 +32,10 @@ import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -59,6 +61,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -92,8 +95,8 @@ class LangChain4JChatModelTest {
               .description("Returns the current time")
               .build());
 
-  private static final ConversationSnapshot SNAPSHOT =
-      new ConversationSnapshot(INPUT_MESSAGES, TOOL_DEFINITIONS);
+  private static final ChatConversation SNAPSHOT =
+      ChatConversation.of(INPUT_MESSAGES, TOOL_DEFINITIONS);
 
   private static final ProviderConfiguration PROVIDER_CONFIGURATION =
       new AnthropicProviderConfiguration(null);
@@ -141,7 +144,8 @@ class LangChain4JChatModelTest {
   // stubbed per-test rather than in setUp() (not every test calls execute(), e.g.
   // closeClosesTheUnderlyingChatModel), so a strict, non-lenient stub is used only where needed
   private void mockChatMessageConverterMapsInputMessages() {
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(argThat(sameAsInputMessages()), eq(PROVIDER_CONFIGURATION)))
+        .thenReturn(L4J_MESSAGES);
   }
 
   @Test
@@ -166,7 +170,8 @@ class LangChain4JChatModelTest {
   @Test
   void throwsContentFilteredExceptionForContentFilteredResponse() {
     reset(chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(argThat(sameAsInputMessages()), eq(PROVIDER_CONFIGURATION)))
+        .thenReturn(L4J_MESSAGES);
     when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
 
     final var filteredAssistantMessage =
@@ -189,7 +194,8 @@ class LangChain4JChatModelTest {
   @Test
   void wrapsUnderlyingExceptionsInConnectorException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(argThat(sameAsInputMessages()), eq(PROVIDER_CONFIGURATION)))
+        .thenReturn(L4J_MESSAGES);
 
     final var cause = new ModelNotFoundException("Model 'dummy' was not found");
     doThrow(cause).when(chatModel).chat(any(dev.langchain4j.model.chat.request.ChatRequest.class));
@@ -208,7 +214,8 @@ class LangChain4JChatModelTest {
   @Test
   void usesExceptionClassIfNoMessageIncludedInException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(argThat(sameAsInputMessages()), eq(PROVIDER_CONFIGURATION)))
+        .thenReturn(L4J_MESSAGES);
 
     final var cause = new UnresolvedModelServerException((String) null);
     doThrow(cause).when(chatModel).chat(any(dev.langchain4j.model.chat.request.ChatRequest.class));
@@ -378,5 +385,11 @@ class LangChain4JChatModelTest {
             new AgentConfiguration(null, null, null, null, null, null, responseConfiguration));
 
     return executionContext;
+  }
+
+  /** The input messages as the chat request holds them; the message ids are not compared. */
+  private static ArgumentMatcher<List<Message>> sameAsInputMessages() {
+    return messages ->
+        ChatConversation.of(messages, List.of()).messages().equals(SNAPSHOT.messages());
   }
 }

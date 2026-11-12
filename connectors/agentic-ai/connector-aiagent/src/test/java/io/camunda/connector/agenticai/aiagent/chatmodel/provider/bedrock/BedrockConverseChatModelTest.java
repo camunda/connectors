@@ -21,10 +21,11 @@ import static org.mockito.Mockito.when;
 import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -77,7 +78,7 @@ class BedrockConverseChatModelTest {
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
 
   private final ChatRequest request =
-      new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
+      new ChatRequest(executionContext, ChatConversation.of(List.of(), List.of()));
 
   private BedrockConverseChatModel api;
 
@@ -118,7 +119,9 @@ class BedrockConverseChatModelTest {
     assertThat(result).isSameAs(expected);
     verify(requestConverter)
         .toConverseStreamRequest(
-            configuration, executionContext.configuration().response(), request.snapshot());
+            configuration,
+            executionContext.configuration().response(),
+            ChatConversationBridge.toSnapshot(request.conversation()));
     verify(client)
         .converseStream(eq(converseStreamRequest), any(ConverseStreamResponseHandler.class));
 

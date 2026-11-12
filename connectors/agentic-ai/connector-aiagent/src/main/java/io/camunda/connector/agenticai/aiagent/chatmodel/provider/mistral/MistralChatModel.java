@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedExc
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.CompletionsRequestSpec;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
@@ -80,7 +81,9 @@ public class MistralChatModel implements ChatModel {
       final CompletionsRequestSpec spec = toSpec(configuration);
       final ChatCompletionCreateParams params =
           requestConverter.toRequest(
-              spec, request.executionContext().configuration().response(), request.snapshot());
+              spec,
+              request.executionContext().configuration().response(),
+              ChatConversationBridge.toSnapshot(request.conversation()));
 
       final long startNanos = System.nanoTime();
       final ChatCompletion completion;

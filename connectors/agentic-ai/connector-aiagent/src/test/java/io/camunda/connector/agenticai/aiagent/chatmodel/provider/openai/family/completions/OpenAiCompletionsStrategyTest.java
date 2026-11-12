@@ -24,9 +24,10 @@ import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.services.blocking.ChatService;
 import com.openai.services.blocking.chat.ChatCompletionService;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -86,7 +87,7 @@ class OpenAiCompletionsStrategyTest {
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
   private final ChatRequest request =
-      new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
+      new ChatRequest(executionContext, ChatConversation.of(List.of(), List.of()));
 
   private OpenAiCompletionsStrategy strategy;
 
@@ -114,7 +115,8 @@ class OpenAiCompletionsStrategyTest {
             null,
             new OpenAiRequestCustomizations(null, null, null));
 
-    when(requestConverter.toRequest(eq(expectedSpec), any(), eq(request.snapshot())))
+    when(requestConverter.toRequest(
+            eq(expectedSpec), any(), eq(ChatConversationBridge.toSnapshot(request.conversation()))))
         .thenReturn(params);
     when(client.chat()).thenReturn(chatService);
     when(chatService.completions()).thenReturn(chatCompletionService);

@@ -15,6 +15,7 @@ import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
@@ -52,7 +53,9 @@ public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
     final CompletionsRequestSpec spec = toSpec(configuration);
     final ChatCompletionCreateParams params =
         requestConverter.toRequest(
-            spec, request.executionContext().configuration().response(), request.snapshot());
+            spec,
+            request.executionContext().configuration().response(),
+            ChatConversationBridge.toSnapshot(request.conversation()));
     if (LOG.isTraceEnabled()) {
       LOG.trace(
           "OpenAI Chat Completions API request: {}", LoggingSupport.toJson(MAPPER, params._body()));

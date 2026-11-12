@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -925,7 +926,7 @@ class AgentInstanceHistoryMapperTest {
           ((AgentInstanceHistoryContent.ObjectContent) item.content().getFirst()).getObject();
       assertThat(reported).isEqualTo(Map.of("file", handleObject));
       final var modelFacing =
-          (ToolCallResultMessage)
+          (ChatToolCallResultMessage)
               TestDocuments.documentExpander()
                   .expand(
                       new ConversationSnapshot(List.of(message), List.of()),

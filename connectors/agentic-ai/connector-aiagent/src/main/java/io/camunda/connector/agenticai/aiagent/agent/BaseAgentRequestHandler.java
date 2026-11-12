@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
@@ -20,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredExcep
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
@@ -365,12 +365,12 @@ public abstract class BaseAgentRequestHandler<
     LOGGER.debug(
         "Sending turn (iterationKey={}) to the model", conversation.currentTurn().iterationKey());
 
-    final var snapshot =
+    final var chatConversation =
         documentExpander.expand(
             conversation.window(agentConfiguration.contextWindowSize()),
             conversation.persistedContext().documentHandling(),
             executionContext.documentFactory());
-    final var chatResult = executeChatModel(chatModel, executionContext, snapshot);
+    final var chatResult = executeChatModel(chatModel, executionContext, chatConversation);
 
     final var assistantMessage =
         toolCallAdmission.admit(
@@ -450,9 +450,11 @@ public abstract class BaseAgentRequestHandler<
    * fails to compile here until handled.
    */
   private ChatResult executeChatModel(
-      ChatModel chatModel, AgentExecutionContext executionContext, ConversationSnapshot snapshot) {
+      ChatModel chatModel,
+      AgentExecutionContext executionContext,
+      ChatConversation chatConversation) {
     try {
-      return chatModel.execute(new ChatRequest(executionContext, snapshot));
+      return chatModel.execute(new ChatRequest(executionContext, chatConversation));
     } catch (ChatModelRejectedException e) {
       throw switch (e) {
         case ContentFilteredException cfe ->

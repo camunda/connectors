@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException.PartialResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -76,7 +77,7 @@ public class LangChain4JChatModel implements ChatModel {
   public ChatResult execute(
       io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest request) {
     final var executionContext = request.executionContext();
-    final var snapshot = request.snapshot();
+    final var snapshot = ChatConversationBridge.toSnapshot(request.conversation());
 
     final var messages = chatMessageConverter.map(snapshot.messages(), providerConfiguration);
     final var toolSpecifications =

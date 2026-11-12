@@ -15,6 +15,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter;
@@ -147,8 +148,8 @@ class ToolResultDocumentRenderingTest {
                 TestDocuments.documentFactory())
             .messages()
             .stream()
-            .filter(ToolCallResultMessage.class::isInstance)
-            .map(ToolCallResultMessage.class::cast)
+            .filter(ChatToolCallResultMessage.class::isInstance)
+            .map(ChatToolCallResultMessage.class::cast)
             .findFirst()
             .orElseThrow();
 
@@ -162,7 +163,8 @@ class ToolResultDocumentRenderingTest {
 
     for (int i = 0; i < results.size(); i++) {
       final var fileName = i == 0 ? "bare.pdf" : "nested.txt";
-      final var rendered = renderedByEveryProvider(windowed.results().get(i).content());
+      final var rendered =
+          renderedByEveryProvider(List.copyOf(windowed.results().get(i).content()));
       // the document is in the request as a tag, not as its reference
       assertThat(rendered)
           .allSatisfy(text -> assertThat(text).contains(fileName).doesNotContain("storeId"));

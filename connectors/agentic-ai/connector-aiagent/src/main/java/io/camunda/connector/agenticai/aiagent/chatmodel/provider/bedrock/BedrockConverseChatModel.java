@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
@@ -71,7 +72,7 @@ public class BedrockConverseChatModel implements ChatModel {
         requestConverter.toConverseStreamRequest(
             configuration,
             request.executionContext().configuration().response(),
-            request.snapshot());
+            ChatConversationBridge.toSnapshot(request.conversation()));
     logTrace("request", converseStreamRequest);
 
     final long startNanos = System.nanoTime();

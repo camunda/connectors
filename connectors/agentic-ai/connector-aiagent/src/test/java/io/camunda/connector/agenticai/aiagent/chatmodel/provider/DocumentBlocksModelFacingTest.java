@@ -125,11 +125,12 @@ class DocumentBlocksModelFacingTest {
             .withDocuments(agentDocuments);
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, List.of(answer));
-    return TestDocuments.documentExpander()
-        .expand(
-            conversation.window(100),
-            conversation.persistedContext().documentHandling(),
-            TestDocuments.documentFactory())
+    return ChatConversationBridge.toSnapshot(
+            TestDocuments.documentExpander()
+                .expand(
+                    conversation.window(100),
+                    conversation.persistedContext().documentHandling(),
+                    TestDocuments.documentFactory()))
         .messages();
   }
 

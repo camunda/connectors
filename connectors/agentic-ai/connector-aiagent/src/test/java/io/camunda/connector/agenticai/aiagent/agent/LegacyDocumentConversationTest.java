@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
@@ -234,13 +235,17 @@ class LegacyDocumentConversationTest {
 
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());
-    final var snapshot =
-        TestDocuments.documentExpander()
-            .expand(
-                conversation.window(100),
-                conversation.persistedContext().documentHandling(),
-                TestDocuments.documentFactory())
-            .messages();
+    final var window = conversation.window(100);
+    final var snapshot = window.messages();
+
+    // the chat request holds the windowed messages as they are
+    assertThat(
+            TestDocuments.documentExpander()
+                .expand(
+                    window,
+                    conversation.persistedContext().documentHandling(),
+                    TestDocuments.documentFactory()))
+        .isEqualTo(ChatConversation.of(snapshot, window.toolDefinitions()));
 
     // no tag is inserted or rewritten: the window holds the stored messages and the new input as
     // they are
@@ -277,13 +282,17 @@ class LegacyDocumentConversationTest {
             null,
             List.of(TestMessagesFixture.userMessage("Next")));
 
-    final var snapshot =
-        TestDocuments.documentExpander()
-            .expand(
-                conversation.window(100),
-                conversation.persistedContext().documentHandling(),
-                TestDocuments.documentFactory())
-            .messages();
+    final var window = conversation.window(100);
+    final var snapshot = window.messages();
+
+    // the chat request holds the windowed messages as they are
+    assertThat(
+            TestDocuments.documentExpander()
+                .expand(
+                    window,
+                    conversation.persistedContext().documentHandling(),
+                    TestDocuments.documentFactory()))
+        .isEqualTo(ChatConversation.of(snapshot, window.toolDefinitions()));
 
     final var toolResult =
         snapshot.stream()

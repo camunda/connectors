@@ -15,6 +15,7 @@ import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseStreamEvent;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
@@ -54,7 +55,7 @@ public class OpenAiResponsesStrategy implements OpenAiApiFamilyStrategy {
         requestConverter.toRequest(
             configuration,
             request.executionContext().configuration().response(),
-            request.snapshot());
+            ChatConversationBridge.toSnapshot(request.conversation()));
     if (LOG.isTraceEnabled()) {
       LOG.trace("OpenAI Responses API request: {}", LoggingSupport.toJson(MAPPER, params._body()));
     }
