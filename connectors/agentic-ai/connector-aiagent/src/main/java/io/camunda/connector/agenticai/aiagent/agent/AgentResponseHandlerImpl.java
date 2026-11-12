@@ -141,12 +141,19 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   private Map<String, ReturnedDocument> responseDocuments(AgentContext agentContext) {
     final var returned = new LinkedHashMap<String, ReturnedDocument>();
-    for (final var selected : agentContext.selectedResponseDocuments()) {
+    for (final var selection : agentContext.responseDocuments()) {
+      final var document =
+          agentContext
+              .documents()
+              .find(selection.document())
+              .orElseThrow(() ->
+                  new IllegalStateException(
+                      "The response document '%s' is the document '%s', which the agent does not know"
+                          .formatted(selection.key(), selection.document())));
       returned.put(
-          selected.key(),
+          selection.key(),
           new ReturnedDocument(
-              documentParameterResolver.referenceJson(selected.document()),
-              selected.description()));
+              documentParameterResolver.referenceJson(document), selection.description()));
     }
     return returned;
   }
