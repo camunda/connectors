@@ -223,7 +223,10 @@ class AdHocToolSchemaGeneratorTest {
         Map.of("type", "object", "additionalProperties", document),
         Map.of("type", "array", "prefixItems", List.of(document)),
         Map.of("$defs", Map.of("file", document)),
-        itemsNextToProperties);
+        itemsNextToProperties,
+        object("default", Map.of("anyOf", List.of(string, document))),
+        object("enum", Map.of("type", List.of("string", "document"))),
+        Map.of("$defs", Map.of("examples", document)));
   }
 
   @ParameterizedTest
@@ -566,6 +569,21 @@ class AdHocToolSchemaGeneratorTest {
                     object("file", document(), "note", Map.of("type", "string"))),
                 "nested",
                 object("inner", object("file", document()))));
+  }
+
+  @Test
+  void mapsTheDocumentTypeOfAPropertyNamedLikeADataKeyword() {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.request",
+                    null,
+                    null,
+                    object("default", Map.of("type", "document")))));
+
+    assertThat(generator.generateToolSchema(element).get("properties"))
+        .isEqualTo(Map.of("request", object("default", document())));
   }
 
   @Test

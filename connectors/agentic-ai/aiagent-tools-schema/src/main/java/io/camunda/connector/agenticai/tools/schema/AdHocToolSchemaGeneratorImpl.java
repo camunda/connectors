@@ -36,6 +36,10 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
   // keywords whose values are data, not schemas
   private static final Set<String> DATA_KEYWORDS = Set.of("const", "enum", "default", "examples");
 
+  // keywords whose values map names to schemas: a name is no keyword
+  private static final Set<String> NAMED_SCHEMA_KEYWORDS =
+      Set.of("properties", "patternProperties", "dependentSchemas", "$defs", "definitions");
+
   private final String expectedParameterNamespace;
   private final List<String> restrictedParamNames;
 
@@ -159,9 +163,17 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
         return true;
       }
       return map.entrySet().stream()
-          .anyMatch(entry ->
-              !DATA_KEYWORDS.contains(String.valueOf(entry.getKey()))
-                  && containsShorthand(entry.getValue()));
+          .anyMatch(entry -> {
+            final var keyword = String.valueOf(entry.getKey());
+            if (DATA_KEYWORDS.contains(keyword)) {
+              return false;
+            }
+            if (NAMED_SCHEMA_KEYWORDS.contains(keyword)
+                && entry.getValue() instanceof Map<?, ?> named) {
+              return named.values().stream().anyMatch(this::containsShorthand);
+            }
+            return containsShorthand(entry.getValue());
+          });
     }
     if (node instanceof List<?> list) {
       return list.stream().anyMatch(this::containsShorthand);
