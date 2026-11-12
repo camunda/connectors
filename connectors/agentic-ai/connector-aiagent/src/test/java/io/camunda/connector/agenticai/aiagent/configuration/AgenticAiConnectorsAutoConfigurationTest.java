@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
@@ -141,6 +142,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentConversationTurnInputComposer.class,
           ToolCallResultsInputBuilder.class,
           AgentResponseHandler.class,
+          AgentExecutionContextFactory.class,
           AgentTaskRequestHandler.class,
           AgentTaskV1Function.class,
           AgentTaskV2Function.class,

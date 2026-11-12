@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
@@ -281,6 +282,18 @@ public class AgenticAiConnectorsAutoConfiguration {
   public V1ToV2ProviderConfigurationMapper aiAgentV1ToV2ProviderConfigurationMapper(
       AgenticAiConnectorsConfigurationProperties configuration) {
     return new V1ToV2ProviderConfigurationMapperImpl(configuration.aiagent().chatModel());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgentExecutionContextFactory aiAgentExecutionContextFactory(
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
+      AgenticAiConnectorsConfigurationProperties configuration) {
+    return new AgentExecutionContextFactory(
+        toolElementsResolver,
+        v1ProviderConfigurationMapper,
+        configuration.aiagent().rewriteV1ProviderConfigToV2());
   }
 
   @Bean
