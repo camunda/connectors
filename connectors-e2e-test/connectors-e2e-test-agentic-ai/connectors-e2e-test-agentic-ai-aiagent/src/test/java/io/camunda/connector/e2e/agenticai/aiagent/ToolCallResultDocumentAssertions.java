@@ -21,8 +21,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import java.util.HashSet;
 import java.util.List;
@@ -72,7 +75,42 @@ public final class ToolCallResultDocumentAssertions {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+  private static final ObjectHandleRenderer HANDLE_RENDERER =
+      new ObjectHandleRenderer(OBJECT_MAPPER);
+
   private ToolCallResultDocumentAssertions() {}
+
+  /**
+   * Asserts that the handle the model saw is the whole handle of the one document the agent
+   * registered: the agent documents hold exactly this document, the handle built from it is the
+   * expected one (every field), and the handle the model read is this handle as compact JSON, so
+   * that no store id or content hash reaches the model. The id is not a parameter: it is the hash
+   * of the identity of the document and comes from the registered document.
+   *
+   * @param fileName the expected file name, or {@code null} if the handle has none
+   * @param size the expected size, or {@code null} if the handle has none: the document store of
+   *     the e2e tests keeps no size in the metadata of a document
+   * @return the registered agent document, for assertions on its origin and reference
+   */
+  public static AgentDocument assertHandleOfTheOnlyRegisteredDocument(
+      ParsedDocumentHandle seen,
+      AgentDocuments documents,
+      @Nullable String fileName,
+      String contentType,
+      @Nullable Long size) {
+    assertThat(documents.all()).as("the registered agent documents").hasSize(1);
+    final var registered = documents.all().getFirst();
+    final var expected =
+        new AgentDocumentHandle(
+            AgentDocumentHandle.TYPE, registered.id().value(), fileName, contentType, size);
+    assertThat(AgentDocumentHandle.of(registered))
+        .as("the handle of the registered document")
+        .isEqualTo(expected);
+    assertThat(seen.text())
+        .as("the handle the model read")
+        .isEqualTo(HANDLE_RENDERER.text(expected));
+    return registered;
+  }
 
   /**
    * Parses the first document handle out of a serialized tool call result (a bare handle, a handle
