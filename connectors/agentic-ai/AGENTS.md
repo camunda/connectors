@@ -68,51 +68,16 @@ Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
 
 ### Architecture tests
 
-`agentic-ai-archunit-tests` holds the ArchUnit rules (`archunit-junit5`) for the production classes of
-all modules, in package `io.camunda.connector.agenticai.archunit`:
+`agentic-ai-archunit-tests` holds the ArchUnit rules for the production classes of all modules. Its
+[README](agentic-ai-archunit-tests/README.md#key-types) lists each test and what it checks.
 
-- `ModuleLayersArchTest`: the dependency direction between the package roots (layers) of the modules.
-- `ModulePackageOwnershipArchTest`: every class of a package root is loaded from the module owning it,
-  and every module contains only classes of its own package root.
-- `NullMarkedPackagesArchTest`: every package has a `@NullMarked` `package-info`.
-- `ProxySupportArchTest`: the HTTP proxy support depends only on itself and the common library.
-- `ChatModelProviderIndependenceArchTest`: the vendor chat model providers (packages below `aiagent.chatmodel.provider`,
-  except `azure` and `configuration`) do not depend on each other, except for the allowed
-  dependencies listed in the test (today: Mistral on OpenAI). The rest of the AI agent (outside `aiagent.chatmodel.provider`
-  and `aiagent.configuration`) does not depend on the providers.
-- `VendorSdkArchTest`: one table row per vendor SDK: each SDK (Anthropic, OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
-  LangChain4j, A2A, MCP) is only used by the packages that integrate it.
-- `AutoConfigurationArchTest`: every `@AutoConfiguration` class lives in a `configuration` package, is switched by
-  `@ConditionalOnBooleanProperty` on `camunda.connector.agenticai.enabled` with `matchIfMissing = true`, and is listed
-  in the `AutoConfiguration.imports` of the module it is loaded from; every Agentic AI entry of an `imports` resource
-  resolves to an `@AutoConfiguration` class.
-- `ConfigurationPropertyNamesArchTest`: property keys in `@ConfigurationProperties` prefixes,
-  `@ConditionalOnProperty`, `@ConditionalOnBooleanProperty` and `@Value` placeholders are kebab-case.
-  Every `@ConfigurationProperties` prefix is `camunda.connector.agenticai` or below it.
-- `NoFieldInjectionArchTest`: no field injection (`@Autowired`, `@Value`, `@Resource`, `@Inject` on fields).
-- `SpringFreeModelAndApiArchTest`: `aiagent.model` and `aiagent.api` do not depend on `org.springframework`.
-- `PolymorphicJsonArchTest`: no `@JsonTypeInfo(use = Id.CLASS | Id.MINIMAL_CLASS)`, and every concrete
-  `ConversationContext` implementation is annotated with `@JsonTypeName`.
-- `OutboundConnectorBeanScopeArchTest`: `@Bean` methods returning an outbound connector function (annotated with
-  `@OutboundConnector` or implementing `OutboundConnectorFunction`) are annotated `@Scope("prototype")`.
-- `PackageCyclesArchTest`: no package cycles between the chat model providers, between the conversation stores,
-  and between the sub-packages of the A2A client and of the tools schema. The first-level packages of the AI Agent
-  connector and of the MCP client have no cycles except the known ones in `KNOWN_CYCLES` (the ADR 015 follow-up).
-  When you break a cycle, delete its entry; never add one.
-- `ElementTemplateAnnotationsArchTest`: the library modules do not use the element template generator annotations,
-  except the records listed in the test (the ADR 015 follow-up). The list must only shrink.
-- `RegistryEncapsulationArchTest`: concrete `ConversationStore` implementations are only used by
-  `aiagent.memory.conversation` and `aiagent.configuration`; concrete `ChatModelFactory` implementations are only
-  used by `aiagent.chatmodel` and `aiagent.configuration`.
-- `GeneralCodingRulesArchTest`: no access to the standard streams, no `java.util.logging`.
-- `NamingConventionsArchTest`: a class named `FooImpl` implements the interface `Foo`.
-- `ModuleInventoryTest` (plain JUnit): every Maven module of `connectors/agentic-ai` is registered in
-  `AgenticAiModules` and the other way round, and `agentic-ai-bundle` depends on exactly the connector and
-  integration modules.
+- `PackageCyclesArchTest` allows the package cycles in `KNOWN_CYCLES`. When you break a cycle, delete its entry;
+  never add one.
+- `ElementTemplateAnnotationsArchTest` allows the records listed in the test. The list must only shrink.
+- `AgenticAiModules` maps modules to package roots and kinds. When you add a module, a package root or a dependency
+  between modules, update it and the layer rules; a new connector or integration also goes into `agentic-ai-bundle`.
 
-`AgenticAiModules` maps modules to package roots and kinds (library, connector, integration). When you add
-a module, a package root or a dependency between modules, update it and the layer rules; a new connector or
-integration also goes into `agentic-ai-bundle`. Run only the architecture tests with:
+Run only the architecture tests with:
 
 ```bash
 ./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests -am \
