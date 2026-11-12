@@ -70,9 +70,10 @@ Change only what the task needs. Clean up only your own changes.
 - Each claim in a Javadoc MUST be true for the code of the same commit, on each path, also for a job
   that runs again. Example: a job that runs again creates new message IDs, so a Javadoc must not claim
   that it computes the same result. A claim that the code does not enforce is a defect.
-- A commit that changes the behavior or the signature of a method updates, in the same commit, the
-  Javadoc of the method, the Javadoc of its class, and each Javadoc and document that names the
-  method. This also applies to a later commit in the same PR.
+- A commit that changes the behavior or the signature of a method updates, in the same commit, all
+  affected Javadoc (including the method and its class) and current-state reference documentation that
+  names the method. This also applies to a later commit in the same PR. Merged ADRs and historical
+  migration entries retain their historical descriptions.
 - In a review, flag a Javadoc or comment that tells about a change, that claims behavior that the code
   does not have, or that does not agree with the code or the docs.
 
