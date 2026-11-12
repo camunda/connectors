@@ -85,7 +85,7 @@ public class AnthropicChatModel implements ChatModel {
         requestConverter.toMessageCreateParams(
             configuration,
             request.executionContext().configuration().response(),
-            request.snapshot());
+            request.conversation());
     if (LOG.isTraceEnabled()) {
       LOG.trace(
           "Anthropic Messages API request: {}", LoggingSupport.toJson(MAPPER, params._body()));

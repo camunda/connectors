@@ -29,11 +29,11 @@ import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.services.blocking.ChatService;
 import com.openai.services.blocking.chat.ChatCompletionService;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.CompletionsRequestSpec;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
@@ -83,7 +83,7 @@ class MistralChatModelTest {
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
   private final ChatRequest request =
-      new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
+      new ChatRequest(executionContext, ChatConversation.of(List.of(), List.of()));
 
   private MistralChatModel model;
 

@@ -72,8 +72,9 @@ untyped payload, so later stages can inspect the shape of a tool result (documen
 reasoning, provider-native blocks) without stringifying it. The lift (`ToolCallResultContent.from`)
 maps a `String` to `TextContent`, a `Document` to `DocumentContent`, and anything else to
 `ObjectContent`; for a result of a process tool it produces a singleton list. A runtime tool ([Add a runtime tool](../../docs/architecture/extension-points.md#add-a-runtime-tool)) returns a
-`RuntimeToolResult` whose content is a list of typed blocks (`RuntimeToolResult.success(String)` is the one text block of
-`contentFromObject`), so such a result is typed from the start. `RuntimeTools` turns the object of an `ObjectContent` block
+`RuntimeToolResult` whose content is a list of `PortableContent` blocks (text, documents and objects;
+`RuntimeToolResult.success(String)` gives one text block, or none for a blank text), so such a result is typed from the
+start. `RuntimeTools` turns the object of an `ObjectContent` block
 into plain JSON values (maps, lists, strings, numbers, booleans) when the tool returns it and keeps the documents in it,
 also those in a record, as they are. The documents of the result are found in plain JSON values, and the object is the
 one a later job reads from the conversation.
@@ -108,9 +109,9 @@ delivery `content`, the document content; in a tool result to the handle text of
 the connector SDK), at the input boundaries (the user prompt, events, the results of process tools, a runtime tool that
 returns a new document), everywhere for an `Untracked` instance, and as the only document block a provider sees after the
 expansion; a known document is an `AgentDocumentContent`. The content for the model comes only from the agent, through
-the delivery, never from a block a tool authors. An `AgentDocumentContent` never reaches a provider: every provider
-content converter fails with an `UnexpandedAgentDocumentException` (an `IllegalStateException`, in
-`aiagent.chatmodel.provider`) when it is handed one. The delivery is stored on each block, so earlier messages keep their
+the delivery, never from a block a tool authors. An `AgentDocumentContent` never reaches a provider: the chat request
+holds only `ChatContent` (`PortableContent`, which is text, a document or an object, plus `ReasoningContent` and
+`ProviderContent`), and `AgentDocumentContent` is not a `ChatContent` ([ADR 019](../../docs/adr/019-typed-chat-request-messages.md)). The delivery is stored on each block, so earlier messages keep their
 bytes when the same document gets another delivery later (prompt caching).
 
 **Backward compatibility (Camunda 8.9):** before `ToolCallResultContent` existed, a persisted tool

@@ -189,7 +189,7 @@ conversation and turn types (everything else below).
 | **ConversationContext**               | pointer inside `AgentContext` to where messages live (in-process holds the messages, other stores hold only the pointer) |
 | **AgentExecutionContext**             | transient per-invocation request context (job metadata, provider config, prompts, limits); not persisted                 |
 | **AgentConversation**                 | immutable in-process turn aggregate, built per invocation                                                                |
-| **Snapshot** (`ConversationSnapshot`) | transient windowed read-only view sent to the LLM                                                                        |
+| **Snapshot** (`ConversationSnapshot`) | transient windowed read-only view of the persisted messages; the LLM gets the `ChatConversation` built from it           |
 | **Window**                            | sliding message limit (`MessageWindowFilter`) applied to the snapshot; full history is always persisted                  |
 
 ## Gotchas
@@ -257,7 +257,7 @@ High-frequency traps (detail behind each link):
   its `AgentDocumentId`, its `AgentDocumentOrigin` (sealed: user message or event with the id of the message, or tool call, persisted with the
   discriminator `type`) and its document reference in the format of the connector SDK. A new document is a `DocumentContent` (the user
   prompt, events, tool results, and every document of an `Untracked` instance; the only document a provider sees), a known
-  one an `AgentDocumentContent` (it never reaches a provider, which fails loudly on it). The id is `doc_` and 12 hex
+  one an `AgentDocumentContent` (it never reaches a provider: the `ChatRequest` holds only `ChatContent`, which it is not). The id is `doc_` and 12 hex
   characters of a SHA-256 over the identity of the document (`AgentDocumentId.of`), never the id in the store; registering
   a different document under a known id, also within one batch, fails with `DOCUMENT_ID_COLLISION`. A block holds no file
   name, size or origin: the record `AgentDocumentHandle` is what the model reads (JSON with the keys `type`, `id`,

@@ -27,25 +27,25 @@ import com.openai.models.responses.ResponseOutputMessage;
 import com.openai.models.responses.ResponseOutputText;
 import com.openai.models.responses.ResponseTextConfig;
 import com.openai.models.responses.Tool;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatAssistantMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequestMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatSystemMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiStrictJsonSchemas;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
-import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ChatContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
@@ -63,10 +63,10 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Maps a windowed {@link ConversationSnapshot} plus the resolved OpenAI Responses model
- * configuration to an OpenAI SDK {@link ResponseCreateParams} request, translating the domain
- * {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire shape via
- * the {@link OpenAiContentConverter} built for content parts.
+ * Maps a {@link ChatConversation} plus the resolved OpenAI Responses model configuration to an
+ * OpenAI SDK {@link ResponseCreateParams} request, translating the {@link ChatRequestMessage} /
+ * {@link ToolCall} / {@link ChatToolCallResult} model into the wire shape via the {@link
+ * OpenAiContentConverter} built for content parts.
  */
 public class OpenAiResponsesRequestConverter {
 
@@ -82,7 +82,7 @@ public class OpenAiResponsesRequestConverter {
   public ResponseCreateParams toRequest(
       OpenAiChatModelConfiguration configuration,
       @Nullable ResponseConfiguration response,
-      ConversationSnapshot snapshot) {
+      ChatConversation conversation) {
     final OpenAiConnection connection = configuration.openai();
     final String modelId = connection.model().model();
     final ResponsesParameters params = responsesParameters(connection);
@@ -95,9 +95,9 @@ public class OpenAiResponsesRequestConverter {
 
     applyModelParameters(builder, params);
     applyReasoning(builder, params);
-    applySystemPrompt(builder, snapshot.messages());
-    applyMessages(builder, snapshot.messages());
-    applyTools(builder, snapshot.toolDefinitions());
+    applySystemPrompt(builder, conversation);
+    applyMessages(builder, conversation.messages());
+    applyTools(builder, conversation.toolDefinitions());
     applyStructuredOutput(builder, response);
     applyRequestCustomizations(builder, connection);
 
@@ -161,30 +161,31 @@ public class OpenAiResponsesRequestConverter {
     return ReasoningEffort.of(effort.name().toLowerCase(Locale.ROOT));
   }
 
-  private void applySystemPrompt(ResponseCreateParams.Builder builder, List<Message> messages) {
-    MessageUtil.leadingSystemMessage(messages)
-        .map(MessageUtil::contentText)
+  private void applySystemPrompt(
+      ResponseCreateParams.Builder builder, ChatConversation conversation) {
+    conversation
+        .leadingSystemMessage()
+        .map(ChatSystemMessage::text)
         .filter(system -> !system.isBlank())
         .ifPresent(builder::instructions);
   }
 
-  private void applyMessages(ResponseCreateParams.Builder builder, List<Message> messages) {
+  private void applyMessages(
+      ResponseCreateParams.Builder builder, List<ChatRequestMessage> messages) {
     final List<ResponseInputItem> items = new ArrayList<>();
-    for (final Message message : messages) {
+    for (final ChatRequestMessage message : messages) {
       switch (message) {
-        case SystemMessage ignored -> {} // hoisted to top-level instructions
-        case UserMessage user -> items.add(userInputItem(user));
-        case AssistantMessage assistant -> items.addAll(assistantInputItems(assistant));
-        case ToolCallResultMessage toolResults -> items.addAll(toolResultInputItems(toolResults));
-        default ->
-            throw new IllegalArgumentException(
-                "Unsupported message type: " + message.getClass().getSimpleName());
+        case ChatSystemMessage ignored -> {} // hoisted to top-level instructions
+        case ChatUserMessage user -> items.add(userInputItem(user));
+        case ChatAssistantMessage assistant -> items.addAll(assistantInputItems(assistant));
+        case ChatToolCallResultMessage toolResults ->
+            items.addAll(toolResultInputItems(toolResults));
       }
     }
     builder.inputOfResponse(items);
   }
 
-  private ResponseInputItem userInputItem(UserMessage user) {
+  private ResponseInputItem userInputItem(ChatUserMessage user) {
     return ResponseInputItem.ofEasyInputMessage(
         EasyInputMessage.builder()
             .role(EasyInputMessage.Role.USER)
@@ -207,12 +208,12 @@ public class OpenAiResponsesRequestConverter {
    * EasyInputMessage}'s part-list shape (built from {@link
    * OpenAiContentConverter#toResponsesContentParts}) is exclusively {@code input_text}/{@code
    * input_image}/{@code input_file}, which the API rejects for that role. See {@link
-   * #assistantContentInputItem(AssistantMessage, List)} for the item's exact shape.
+   * #assistantContentInputItem(ChatAssistantMessage, List)} for the item's exact shape.
    */
-  private List<ResponseInputItem> assistantInputItems(AssistantMessage assistant) {
+  private List<ResponseInputItem> assistantInputItems(ChatAssistantMessage assistant) {
     final List<ResponseInputItem> items = new ArrayList<>();
-    final List<Content> plainContent = new ArrayList<>();
-    for (final Content content : assistant.content()) {
+    final List<PortableContent> plainContent = new ArrayList<>();
+    for (final ChatContent content : assistant.content()) {
       switch (content) {
         // The SDK's own mapper (not the injected app ObjectMapper) is required here: it is the only
         // one that round-trips these captured payloads' absent-vs-null field tracking correctly.
@@ -226,7 +227,7 @@ public class OpenAiResponsesRequestConverter {
                 ObjectMappers.jsonMapper()
                     .convertValue(providerContent.payload(), ResponseInputItem.class));
         case ProviderContent ignored -> {}
-        default -> plainContent.add(content); // Text/Object/Document: replayed as a message below
+        case PortableContent portable -> plainContent.add(portable); // replayed as a message below
       }
     }
     if (!plainContent.isEmpty()) {
@@ -246,13 +247,13 @@ public class OpenAiResponsesRequestConverter {
 
   /**
    * Builds the assistant-role input item: a {@link ResponseOutputMessage} with one {@code
-   * output_text} part per {@link Content} block. {@link DocumentContent}/{@link ObjectContent}
-   * become an {@code output_text} part carrying their JSON serialization, since that part type
-   * carries text only. Refusals never reach here -- the response converter turns them into a thrown
-   * exception, not assistant content.
+   * output_text} part per {@link PortableContent} block. {@link DocumentContent}/{@link
+   * ObjectContent} become an {@code output_text} part carrying their JSON serialization, since that
+   * part type carries text only. Refusals never reach here -- the response converter turns them
+   * into a thrown exception, not assistant content.
    */
   private ResponseInputItem assistantContentInputItem(
-      AssistantMessage assistant, List<Content> plainContent) {
+      ChatAssistantMessage assistant, List<PortableContent> plainContent) {
     final List<ResponseOutputMessage.Content> parts =
         plainContent.stream().map(this::outputTextPart).toList();
     return ResponseInputItem.ofResponseOutputMessage(
@@ -268,7 +269,7 @@ public class OpenAiResponsesRequestConverter {
    * The {@code phase} the response converter recorded for the answer text; empty for unphased and
    * foreign-provider history so no phase is sent for it.
    */
-  private Optional<ResponseOutputMessage.Phase> assistantPhase(AssistantMessage assistant) {
+  private Optional<ResponseOutputMessage.Phase> assistantPhase(ChatAssistantMessage assistant) {
     final Map<String, Object> metadata = assistant.metadata();
     if (metadata != null
         && metadata.get(OPENAI_ID) instanceof Map<?, ?> openAi
@@ -278,17 +279,12 @@ public class OpenAiResponsesRequestConverter {
     return Optional.empty();
   }
 
-  private ResponseOutputMessage.Content outputTextPart(Content content) {
+  private ResponseOutputMessage.Content outputTextPart(PortableContent content) {
     final String text =
         switch (content) {
           case TextContent t -> t.text();
           case ObjectContent obj -> contentConverter.writeAsJson(obj.content());
           case DocumentContent doc -> contentConverter.writeAsJson(doc.document());
-          default ->
-              throw new IllegalStateException(
-                  "Reasoning/provider content is routed by assistantInputItems before reaching "
-                      + "plain-content handling and must never appear here: "
-                      + content.getClass().getSimpleName());
         };
     return ResponseOutputMessage.Content.ofOutputText(
         ResponseOutputText.builder().text(text).annotations(List.of()).build());
@@ -296,7 +292,7 @@ public class OpenAiResponsesRequestConverter {
 
   /**
    * The {@code id} to replay an assistant message under. A genuine Responses-origin turn's {@link
-   * AssistantMessage#messageId()} is the {@code msg_*} output-item id {@code
+   * ChatAssistantMessage#messageId()} is the {@code msg_*} output-item id {@code
    * OpenAiResponsesResponseConverter} captured from the real response, so it is passed through
    * verbatim. Any other value -- absent (e.g. v1 LangChain4j-sourced history, a legacy record) or
    * foreign-namespaced (e.g. Completions' {@code chatcmpl_*}, or another provider's own id scheme
@@ -304,7 +300,7 @@ public class OpenAiResponsesRequestConverter {
    * with msg"}), so a fresh {@code msg_}-namespaced id is synthesized instead; {@code id} is
    * required to build a {@link ResponseOutputMessage} at all, so replay can't simply omit it here.
    */
-  private String assistantMessageId(AssistantMessage assistant) {
+  private String assistantMessageId(ChatAssistantMessage assistant) {
     final String messageId = assistant.messageId();
     return messageId != null && messageId.startsWith("msg_")
         ? messageId
@@ -335,9 +331,9 @@ public class OpenAiResponsesRequestConverter {
     return merged;
   }
 
-  private List<ResponseInputItem> toolResultInputItems(ToolCallResultMessage message) {
+  private List<ResponseInputItem> toolResultInputItems(ChatToolCallResultMessage message) {
     final List<ResponseInputItem> items = new ArrayList<>();
-    for (final ToolCallResultContent result : message.results()) {
+    for (final ChatToolCallResult result : message.results()) {
       // OpenAiContentConverter#toResponsesToolResultOutputItems always produces a list of typed
       // items, even for a single plain-text result, so this always uses the SDK's item-list output
       // shape (FunctionCallOutput.Output.ofResponseFunctionCallOutputItemList) rather than its

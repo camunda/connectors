@@ -13,8 +13,6 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -137,27 +135,6 @@ class OpenAiContentConverterTest {
       assertThat(parts).hasSize(1);
       assertThat(parts.get(0).isInputText()).isTrue();
       assertThat(parts.get(0).asInputText().text()).isEqualTo("{\"key\":\"value\"}");
-    }
-
-    @Test
-    void mapsReasoningContentToInputTextPartFallback() {
-      final var parts =
-          converter.toResponsesContentParts(
-              List.of(new ReasoningContent("openai", Map.of("type", "reasoning"), null, null)));
-
-      assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).isInputText()).isTrue();
-    }
-
-    @Test
-    void mapsProviderContentToInputTextPartFallback() {
-      final var payload = Map.<String, Object>of("type", "server_tool_use", "id", "srvtoolu_01ABC");
-
-      final var parts =
-          converter.toResponsesContentParts(List.of(new ProviderContent("openai", payload, null)));
-
-      assertThat(parts).hasSize(1);
-      assertThat(parts.get(0).isInputText()).isTrue();
     }
   }
 

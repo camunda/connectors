@@ -12,9 +12,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.anthropic.models.messages.Base64ImageSource;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -237,7 +237,7 @@ class AnthropicContentConverterTest {
     @Test
     void mapsMultipleContentItemsInOrder() {
       final var doc = mockDocument("image/png", "QUJD");
-      final List<Content> content =
+      final List<PortableContent> content =
           List.of(new TextContent("first", null), new DocumentContent(doc, null));
 
       final var blocks = converter.toContentBlockParams(content);
@@ -285,19 +285,6 @@ class AnthropicContentConverterTest {
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isText()).isTrue();
       assertThat(blocks.get(0).text().orElseThrow().text()).isEqualTo("{\"a\":1}");
-    }
-
-    @Test
-    void mapsReasoningContentToJsonTextBlockFallback() {
-      final var blocks =
-          converter.toToolResultBlocks(
-              List.of(
-                  new ReasoningContent(
-                      "anthropic", Map.of("thinking", "some reasoning"), null, null)));
-
-      assertThat(blocks).hasSize(1);
-      assertThat(blocks.get(0).isText()).isTrue();
-      assertThat(blocks.get(0).text().orElseThrow().text()).contains("some reasoning");
     }
   }
 }

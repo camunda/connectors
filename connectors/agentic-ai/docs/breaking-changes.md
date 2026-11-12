@@ -26,6 +26,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Agent instance client and mappers](#agent-instance-client-and-mappers)      | Custom `AgentInstanceClient`, `AgentInstanceHistoryMapper`, `AgentInstanceToolMapper` |
 | [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers |
 | [Conversation window](#conversation-window)                                  | Code that calls `AgentConversation.window`                      |
+| [Chat request messages](#chat-request-messages)                              | Custom `ChatModel` implementations, code that builds a `ChatRequest`, custom runtime tools |
 | [Runtime tools and tool names](#runtime-tools-and-tool-names)                | Processes with a tool element named like a runtime tool        |
 | [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records (`AgentContext`, `ToolCall`), switches over `Content` |
 | [Persisted data](#persisted-data-8-11)                                       | Custom `ConversationStore` implementations, code reading stored messages, the agent context, stored tool calls or the `CONFIGURATION` items of the agent instance history, rollbacks |
@@ -261,9 +262,42 @@ arguments; inject them as beans.
 
 `AgentConversation.window(int size)` keeps its signature. The request handler hands the snapshot to
 `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before it calls the model, with the document
-factory of the job.
+factory of the job. `expand` returns the `ChatConversation` of the request (see
+[Chat request messages](#chat-request-messages)).
 `AgentConversation.nextRuntimeToolRound` takes a `UnaryOperator<AgentContext>` as a second parameter. The conversation
 applies it to its persisted context, and the next round continues with the context that it returns.
+
+### Chat request messages
+
+A `ChatRequest` holds the messages typed by role, with only the content a provider can receive
+([ADR 019](adr/019-typed-chat-request-messages.md), [Chat model provider SPI](../aiagent-api/docs/chat-model-spi.md#request-messages)).
+
+| Before                                                                                     | From 8.11                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChatRequest(executionContext, ConversationSnapshot snapshot)`, `request.snapshot()`       | `ChatRequest(executionContext, ChatConversation conversation)`, `request.conversation()`                                                                   |
+| `snapshot.messages()`: `List<Message>`                                                     | `conversation.messages()`: `List<ChatRequestMessage>`, sealed: `ChatSystemMessage`, `ChatUserMessage`, `ChatAssistantMessage`, `ChatToolCallResultMessage` |
+| `ToolCallResultMessage.results()`: `List<ToolCallResultContent>`                           | `ChatToolCallResultMessage.results()`: `List<ChatToolCallResult>` (`id`, `name`, `content`)                                                                |
+| `List<Content>` in every message                                                           | `List<TextContent>` in a system message, `List<PortableContent>` in a user message and a tool call result, `List<ChatContent>` in an assistant message     |
+| `MessageUtil.leadingSystemMessage(snapshot.messages())`, `MessageUtil.contentText(system)` | `conversation.leadingSystemMessage()`, `ChatSystemMessage.text()`                                                                                          |
+| `RuntimeToolResult.success(List<Content>)`, `RuntimeToolResult.content()`: `List<Content>` | `RuntimeToolResult.success(List<PortableContent>)`, `content()`: `List<PortableContent>`                                                                   |
+
+- `ChatContent` (`PortableContent`, `ReasoningContent`, `ProviderContent`) and `PortableContent` (`TextContent`,
+  `DocumentContent`, `ObjectContent`) are new sealed sub-interfaces of `Content` in `aiagent.model.message.content`.
+  `Content` permits `ChatContent` and `AgentDocumentContent`. A `switch` over `Content` that matches the records stays
+  exhaustive. The persisted JSON does not change.
+- Migration for a custom `ChatModel`: read `request.conversation()` and switch over `ChatRequestMessage` and over the
+  content type of each message. Drop the arms for `AgentDocumentContent`, and for `ReasoningContent` and
+  `ProviderContent` in user messages and tool call results: the types exclude them.
+- A test that builds a `ChatRequest` from persisted messages uses `ChatConversation.of(messages, toolDefinitions)`. It
+  fails with an `IllegalArgumentException` for an `AgentDocumentContent`, for a `ReasoningContent` or a
+  `ProviderContent` outside an assistant message, and for a block other than `TextContent` in a system message.
+- A request message does not carry these persisted fields: `Message.id`, `UserMessage.name`, the metadata of system,
+  user and tool call result messages, the `properties`, `elementId` and `completedAt` of a tool call result, and the
+  `modelId` and `stopReason` of an `AssistantMessage`.
+- A custom LangChain4j `ChatMessageConverter` bean gets messages that the chat model rebuilds from the request
+  messages, so these fields are not set.
+- A runtime tool returns text, documents and objects only. A runtime tool that returned another content block does not
+  compile; return the text or the object instead.
 
 ### Runtime tools and tool names
 
@@ -305,9 +339,9 @@ applies it to its persisted context, and the next round continues with the conte
   rejection of the tool calls of an assistant message once, when it receives the message. `ToolCall.resultSource()`
   (`PROCESS`, `RUNTIME` or `REJECTED`) and `ToolCall.isLocal()` derive who produces the tool call result; neither is
   written to JSON.
-- The sealed `Content` interface permits `AgentDocumentContent` (content type `agent_document`). A `switch` over
-  `Content` must handle it. A custom chat model provider never receives it: the agent expands it before the request is
-  built.
+- The sealed `Content` interface has the subtype `AgentDocumentContent` (content type `agent_document`). A `switch` over
+  `Content` must handle it. A custom chat model provider never receives it: the types of the chat request exclude it
+  (see [Chat request messages](#chat-request-messages)).
 - For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
   document goes out as content, as before. A document in a tool result is text, its handle, instead of a `DocumentContent` or
   the reference JSON, and its content is not added. A custom `ChatModel` that handles `DocumentContent` in tool results

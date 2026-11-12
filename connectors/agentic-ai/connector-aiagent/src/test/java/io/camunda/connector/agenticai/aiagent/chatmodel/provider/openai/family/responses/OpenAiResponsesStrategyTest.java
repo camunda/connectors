@@ -21,9 +21,9 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseStreamEvent;
 import com.openai.services.blocking.ResponseService;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -76,7 +76,7 @@ class OpenAiResponsesStrategyTest {
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
   private final ChatRequest request =
-      new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
+      new ChatRequest(executionContext, ChatConversation.of(List.of(), List.of()));
 
   private OpenAiResponsesStrategy strategy;
 
@@ -95,7 +95,7 @@ class OpenAiResponsesStrategyTest {
         new ChatResult.Completed(
             AssistantMessage.builder().build(), AgentMetrics.builder().build());
 
-    when(requestConverter.toRequest(eq(configuration), any(), eq(request.snapshot())))
+    when(requestConverter.toRequest(eq(configuration), any(), eq(request.conversation())))
         .thenReturn(params);
     when(client.responses()).thenReturn(responseService);
     when(responseService.createStreaming(params)).thenReturn(stream);

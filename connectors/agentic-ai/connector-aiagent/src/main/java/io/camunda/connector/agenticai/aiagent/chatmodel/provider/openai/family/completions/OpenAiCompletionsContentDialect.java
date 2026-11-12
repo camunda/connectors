@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
+import io.camunda.connector.agenticai.aiagent.model.message.content.ChatContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +29,7 @@ public interface OpenAiCompletionsContentDialect {
    * OpenAiCompletionsRequestConverter#assistantMessage}), the chunk to replay it as; empty if this
    * dialect doesn't recognize it, so the caller falls back to a generic text chunk.
    */
-  Optional<Map<String, Object>> toReplayableChunk(Content content, String providerId);
+  Optional<Map<String, Object>> toReplayableChunk(ChatContent content, String providerId);
 
   /**
    * Maps one decoded chunk of a response's chunked {@code content} array (see {@link
@@ -48,7 +49,7 @@ public interface OpenAiCompletionsContentDialect {
     INSTANCE;
 
     @Override
-    public Optional<Map<String, Object>> toReplayableChunk(Content content, String providerId) {
+    public Optional<Map<String, Object>> toReplayableChunk(ChatContent content, String providerId) {
       return Optional.empty();
     }
 
