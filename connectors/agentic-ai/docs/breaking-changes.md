@@ -261,11 +261,6 @@ The constructors of `AgentTaskV1Function` and `AgentTaskV2Function` take an `Age
 the request handler. The constructors of `AgentSubProcessV1Function` and `AgentSubProcessV2Function` take an
 `AgentSubProcessExecutionContextFactory` and the request handler.
 
-The constructors of `AgentTaskExecutionContext` and `AgentSubProcessExecutionContext` that take an
-`AgentTaskV1Request` or an `AgentSubProcessV1Request` are removed. Migration: call
-`AgentTaskExecutionContextFactory.taskContext` or `AgentSubProcessExecutionContextFactory.subProcessContext`, or the
-remaining constructor with the request data and the chat model configuration.
-
 ### Conversation window
 
 `AgentConversation.window(int size)` keeps its signature. The request handler hands the snapshot to
@@ -305,6 +300,9 @@ applies it to its persisted context, and the next round continues with the conte
   creates documents in the document store of the physical tenant of the job. The constructors of
   `AgentSubProcessExecutionContext` and `AgentTaskExecutionContext` take it after the `JobContext`. Migration: a custom
   implementation returns the `OutboundConnectorContext` of the job, which is a `DocumentFactory`.
+- The constructors of `AgentTaskExecutionContext` and `AgentSubProcessExecutionContext` that take an
+  `AgentTaskV1Request` or an `AgentSubProcessV1Request` are removed. Migration: call the remaining constructor with the
+  request data and the chat model configuration.
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builder, or for `ToolCall` the constructors with three or four arguments and for `ToolDefinition` the constructor with
   three arguments: `AgentContext` (`documents`, the `AgentDocuments`, and `features`, a list), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`
