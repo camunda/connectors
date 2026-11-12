@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
@@ -116,11 +115,10 @@ public final class ReturnDocumentTool implements RuntimeTool {
       return invalidKey();
     }
     final var document = arguments.document();
-    if (document == null || context.documents().find(document).isEmpty()) {
+    if (document == null) {
       return RuntimeToolResult.error(
-          ("Parameter '%s' must be the handle of a document from the conversation: a JSON object"
-                  + " such as {\"type\":\"%s\",\"id\":\"doc_…\"}.")
-              .formatted(PARAMETER_DOCUMENT, AgentDocumentHandle.TYPE));
+          "Parameter '%s' is required: pass the handle of a document from the conversation."
+              .formatted(PARAMETER_DOCUMENT));
     }
 
     final var description =

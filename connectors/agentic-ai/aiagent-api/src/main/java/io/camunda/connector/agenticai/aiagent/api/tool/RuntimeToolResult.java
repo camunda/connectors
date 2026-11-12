@@ -110,11 +110,13 @@ public sealed interface RuntimeToolResult {
      * used, by this result, an earlier call or an earlier turn, replaces the earlier selection and
      * keeps its position.
      *
-     * <p>The id is the one of a document in {@link RuntimeToolDocuments}, or of a document this
-     * result returns. An id of a document the agent does not know is a defect of the tool: the
-     * agent throws an {@link IllegalArgumentException} and the job fails. The agent knows documents
-     * only with the documents feature, so a tool that selects response documents is enabled for
-     * agents that have it (see {@link RuntimeTool#isEnabled}).
+     * <p>The id is the one of a document the agent knows at the start of the batch of calls ({@code
+     * AgentContext#documents()}), such as the value of a document parameter of the call, or of a
+     * document this result returns. A document another call of the same batch returns is not known
+     * yet. An id of a document the agent does not know is a defect of the tool: the agent throws an
+     * {@link IllegalArgumentException} and the job fails. The agent knows documents only with the
+     * documents feature, so a tool that selects response documents is enabled for agents that have
+     * it (see {@link RuntimeTool#isEnabled}).
      *
      * @param key the key of the document in the response, see {@link
      *     ResponseDocumentSelection#KEY_PATTERN}
