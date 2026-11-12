@@ -19,10 +19,8 @@ public interface AgentResponseHandler {
 
   /**
    * Creates the response for the last assistant message of the conversation. Its tool calls are the
-   * process tool calls of that message: the runtime tool calls are answered by the agent and are
-   * not handed to the process. For an agent instance that tracks its documents, the documents of
-   * their document parameters are resolved to Camunda document references; for one that does not,
-   * the arguments are the ones the model sent.
+   * process tool calls of that message: the runtime tool calls are executed by the agent and are
+   * not handed to the process.
    */
   AgentResponse createResponse(AgentConversation conversation);
 }

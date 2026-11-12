@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -21,11 +20,6 @@ import java.util.List;
  *
  * <p>A single handler is expected to handle gateway tools identified by a specific {@link
  * GatewayToolDefinitionResolver}.
- *
- * <p>A handler that defines its tools itself can declare document parameters in the {@link
- * ToolDefinition}s it returns from {@link #handleToolDiscoveryResults} (see {@link
- * DocumentParameter}). {@link #transformToolCalls} receives the Camunda document references in
- * their place.
  */
 public interface GatewayToolHandler extends GatewayToolCallTransformer {
   String type();

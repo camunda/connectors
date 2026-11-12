@@ -11,8 +11,7 @@ import java.util.Map;
 
 /**
  * Generates a JSON schema from an identified ad-hoc tool element including parameter definitions
- * resolved from tagging functions such as fromAi(). A parameter of type {@code document} becomes
- * the object schema of a document handle.
+ * resolved from tagging functions such as fromAi().
  */
 public interface AdHocToolSchemaGenerator {
   Map<String, Object> generateToolSchema(AdHocToolElement element);
