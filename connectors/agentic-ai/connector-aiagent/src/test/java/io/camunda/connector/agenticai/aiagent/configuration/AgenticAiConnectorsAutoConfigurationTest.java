@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContextFactory;
@@ -143,6 +144,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentConversationTurnInputComposer.class,
           ToolCallResultsInputBuilder.class,
           AgentResponseHandler.class,
+          AgentExecutionContextFactory.class,
+          AgentTaskExecutionContextFactory.class,
+          AgentSubProcessExecutionContextFactory.class,
           AgentTaskRequestHandler.class,
           AgentTaskV1Function.class,
           AgentTaskV2Function.class,
@@ -241,17 +245,21 @@ class AgenticAiConnectorsAutoConfigurationTest {
   }
 
   @Test
-  void
-      whenAgenticAiConfigurationEnabled_thenFunctionsAreCreatedWithoutExecutionContextFactoryBean() {
-    contextRunner.run(context -> {
-      assertThat(context)
-          .doesNotHaveBean(AgentTaskExecutionContextFactory.class)
-          .doesNotHaveBean(AgentSubProcessExecutionContextFactory.class);
-      assertThat(context.getBean(AgentTaskV1Function.class)).isNotNull();
-      assertThat(context.getBean(AgentTaskV2Function.class)).isNotNull();
-      assertThat(context.getBean(AgentSubProcessV1Function.class)).isNotNull();
-      assertThat(context.getBean(AgentSubProcessV2Function.class)).isNotNull();
-    });
+  void whenCustomExecutionContextFactoryProvided_thenReplacesDefaultForBothFlavors() {
+    var customFactory = mock(AgentExecutionContextFactory.class);
+    contextRunner
+        .withBean(AgentExecutionContextFactory.class, () -> customFactory)
+        .run(context -> {
+          assertThat(context).doesNotHaveBean("aiAgentExecutionContextFactory");
+          assertThat(context.getBean(AgentTaskExecutionContextFactory.class))
+              .isSameAs(customFactory);
+          assertThat(context.getBean(AgentSubProcessExecutionContextFactory.class))
+              .isSameAs(customFactory);
+          assertThat(context.getBean(AgentTaskV1Function.class)).isNotNull();
+          assertThat(context.getBean(AgentTaskV2Function.class)).isNotNull();
+          assertThat(context.getBean(AgentSubProcessV1Function.class)).isNotNull();
+          assertThat(context.getBean(AgentSubProcessV2Function.class)).isNotNull();
+        });
   }
 
   @Test
