@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
-import static io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments.createDocument;
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;

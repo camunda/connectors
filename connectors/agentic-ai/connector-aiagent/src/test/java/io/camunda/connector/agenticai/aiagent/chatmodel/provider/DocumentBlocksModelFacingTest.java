@@ -40,12 +40,11 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
-import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
@@ -126,7 +125,7 @@ class DocumentBlocksModelFacingTest {
             .withDocuments(agentDocuments);
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, List.of(answer));
-    return TestDocumentHandles.documentExpander()
+    return TestDocuments.documentExpander()
         .expand(
             conversation.window(100),
             conversation.persistedContext().documentHandling(),

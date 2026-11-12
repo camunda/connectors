@@ -49,7 +49,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -97,7 +97,7 @@ class AgentConversationTurnInputComposerImplTest {
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
             new ToolCallResultsInputBuilder(),
-            TestDocumentHandles.objectHandleRenderer());
+            TestDocuments.objectHandleRenderer());
   }
 
   private CompositionResult resolve(
@@ -268,7 +268,7 @@ class AgentConversationTurnInputComposerImplTest {
         .containsExactly(
             AgentDocument.of(document, AgentDocumentOrigin.userMessage(userMessage.id())));
     assertThat(
-            TestDocumentHandles.handleText(
+            TestDocuments.handleText(
                 AgentDocuments.empty().register(ingested), AgentDocumentId.of(document)))
         .isEqualTo(
             "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\",\"fileName\":\"notes.txt\",\"contentType\":\"text/plain\"}"

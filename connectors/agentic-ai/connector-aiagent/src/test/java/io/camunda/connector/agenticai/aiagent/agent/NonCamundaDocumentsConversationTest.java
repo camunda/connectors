@@ -31,11 +31,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.InlineDocument;
@@ -84,7 +83,7 @@ class NonCamundaDocumentsConversationTest {
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
             new ToolCallResultsInputBuilder(),
-            TestDocumentHandles.objectHandleRenderer());
+            TestDocuments.objectHandleRenderer());
   }
 
   private static PreviousConversation firstTurn() {

@@ -23,7 +23,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.A
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.versioning.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;

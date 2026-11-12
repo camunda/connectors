@@ -35,13 +35,12 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectConten
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -75,8 +74,7 @@ class AgentInstanceHistoryMapperTest {
 
   private final AgentInstanceHistoryMapper mapper =
       new AgentInstanceHistoryMapper(
-          Mockito.mock(GatewayToolHandlerRegistry.class),
-          TestDocumentHandles.objectHandleRenderer());
+          Mockito.mock(GatewayToolHandlerRegistry.class), TestDocuments.objectHandleRenderer());
 
   private static HistoryDocuments historyDocuments(DocumentHandling handling) {
     return new HistoryDocuments(handling, new DocumentRestorer(TestDocuments.documentFactory()));
@@ -173,7 +171,7 @@ class AgentInstanceHistoryMapperTest {
         .satisfies(item -> {
           assertThat(item.content()).hasSize(1);
           assertThat(objectJson(item.content().getFirst()))
-              .isEqualTo(TestDocumentHandles.unknownHandleText(tag.id()));
+              .isEqualTo(TestDocuments.unknownHandleText(tag.id()));
         });
   }
 
@@ -622,9 +620,9 @@ class AgentInstanceHistoryMapperTest {
                 .contentType("text/plain")
                 .fileName("other.txt")
                 .build());
-    private final String handle = TestDocumentHandles.handleText(document);
-    private final Map<String, Object> handleObject = TestDocumentHandles.handleObject(document);
-    private final String otherHandle = TestDocumentHandles.handleText(otherDocument);
+    private final String handle = TestDocuments.handleText(document);
+    private final Map<String, Object> handleObject = TestDocuments.handleObject(document);
+    private final String otherHandle = TestDocuments.handleText(otherDocument);
 
     private final AgentDocuments agentDocuments =
         AgentDocuments.empty()
@@ -887,7 +885,7 @@ class AgentInstanceHistoryMapperTest {
 
       assertThat(item.content()).hasSize(1);
       assertThat(described(item))
-          .containsExactly("OBJECT " + TestDocumentHandles.unknownHandleText(unknown.id()));
+          .containsExactly("OBJECT " + TestDocuments.unknownHandleText(unknown.id()));
     }
 
     @Test
@@ -928,7 +926,7 @@ class AgentInstanceHistoryMapperTest {
       assertThat(reported).isEqualTo(Map.of("file", handleObject));
       final var modelFacing =
           (ToolCallResultMessage)
-              TestDocumentHandles.documentExpander()
+              TestDocuments.documentExpander()
                   .expand(
                       new ConversationSnapshot(List.of(message), List.of()),
                       new DocumentHandling.Tracked(AgentDocuments.empty()),

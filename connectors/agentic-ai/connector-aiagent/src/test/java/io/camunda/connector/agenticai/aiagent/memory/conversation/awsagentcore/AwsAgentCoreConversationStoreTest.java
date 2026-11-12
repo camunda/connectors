@@ -43,14 +43,13 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumen
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
-import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -969,7 +968,7 @@ class AwsAgentCoreConversationStoreTest {
             null,
             List.of(userMessage("next")));
     final var windowed =
-        TestDocumentHandles.documentExpander()
+        TestDocuments.documentExpander()
             .expand(
                 conversation.window(20),
                 conversation.persistedContext().documentHandling(),
@@ -985,8 +984,7 @@ class AwsAgentCoreConversationStoreTest {
                   .containsExactly(
                       TextContent.textContent("see"),
                       TextContent.textContent(
-                          TestDocumentHandles.handleText(
-                              AgentDocuments.of(List.of(entry)), tag.id())));
+                          TestDocuments.handleText(AgentDocuments.of(List.of(entry)), tag.id())));
               // the document block holds the document restored from the stored reference
               assertThat(expanded.content().get(2))
                   .isInstanceOfSatisfying(

@@ -25,9 +25,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;

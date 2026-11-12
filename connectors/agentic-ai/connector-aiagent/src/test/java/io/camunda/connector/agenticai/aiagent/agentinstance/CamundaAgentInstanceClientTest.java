@@ -57,7 +57,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -75,7 +74,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
-import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
@@ -152,8 +151,7 @@ class CamundaAgentInstanceClientTest {
   void setUp() {
     recordedSleeps = new ArrayList<>();
     var historyMapper =
-        new AgentInstanceHistoryMapper(
-            gatewayToolHandlers, TestDocumentHandles.objectHandleRenderer());
+        new AgentInstanceHistoryMapper(gatewayToolHandlers, TestDocuments.objectHandleRenderer());
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
@@ -185,7 +183,7 @@ class CamundaAgentInstanceClientTest {
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
                 new AgentInstanceHistoryMapper(
-                    gatewayToolHandlers, TestDocumentHandles.objectHandleRenderer()),
+                    gatewayToolHandlers, TestDocuments.objectHandleRenderer()),
                 new AgentInstanceToolMapper(gatewayToolHandlers))
             .create(executionContext);
 

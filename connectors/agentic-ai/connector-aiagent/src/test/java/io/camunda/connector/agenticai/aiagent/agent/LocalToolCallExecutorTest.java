@@ -21,13 +21,12 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
-import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -57,7 +56,7 @@ class LocalToolCallExecutorTest {
   void setUp() {
     runtimeTools = mock(RuntimeTools.class);
     executionContext = mock(AgentExecutionContext.class);
-    executor = new LocalToolCallExecutor(runtimeTools, TestDocumentHandles.objectHandleRenderer());
+    executor = new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer());
   }
 
   private static ToolCallBatch.Entry entryOf(List<ToolCallBatch.Entry> entries, ToolCall call) {

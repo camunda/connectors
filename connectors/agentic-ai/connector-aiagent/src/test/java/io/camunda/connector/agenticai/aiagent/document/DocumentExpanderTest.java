@@ -25,11 +25,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference;
@@ -72,7 +71,7 @@ class DocumentExpanderTest {
 
   private static TextContent handleOf(
       AgentDocuments agentDocuments, AgentDocumentContent reference) {
-    return textContent(TestDocumentHandles.handleText(agentDocuments, reference.id()));
+    return textContent(TestDocuments.handleText(agentDocuments, reference.id()));
   }
 
   private static Map<?, ?> referenceOf(Document document) {
@@ -345,9 +344,9 @@ class DocumentExpanderTest {
                     List.of(toolResultMessage(reference)), AgentDocuments.empty(), documentFactory)
                 .getFirst());
 
-    assertThat(expanded).containsExactly(textContent(TestDocumentHandles.handleText(document)));
+    assertThat(expanded).containsExactly(textContent(TestDocuments.handleText(document)));
     assertThat(withoutAgentDocuments)
-        .containsExactly(textContent(TestDocumentHandles.unknownHandleText(reference.id())));
+        .containsExactly(textContent(TestDocuments.unknownHandleText(reference.id())));
   }
 
   @Test
@@ -406,7 +405,7 @@ class DocumentExpanderTest {
                     "status",
                     200,
                     "files",
-                    List.of(Map.of("file", TestDocumentHandles.handleObject(document)))),
+                    List.of(Map.of("file", TestDocuments.handleObject(document)))),
                 metadata));
     assertThat(resultContent(message).getFirst())
         .isInstanceOfSatisfying(
@@ -428,8 +427,7 @@ class DocumentExpanderTest {
 
     assertThat(((UserMessage) expanded.getFirst()).content())
         .containsExactly(
-            ObjectContent.objectContent(
-                Map.of("file", TestDocumentHandles.handleObject(document))));
+            ObjectContent.objectContent(Map.of("file", TestDocuments.handleObject(document))));
   }
 
   @Test

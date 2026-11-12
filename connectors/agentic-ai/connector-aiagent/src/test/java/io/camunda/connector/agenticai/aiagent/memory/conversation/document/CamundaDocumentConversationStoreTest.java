@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessageWithMixedToolKinds;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
-import static io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments.createDocument;
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

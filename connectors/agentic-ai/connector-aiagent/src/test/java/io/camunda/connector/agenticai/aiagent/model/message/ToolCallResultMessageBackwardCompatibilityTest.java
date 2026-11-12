@@ -18,8 +18,8 @@ import io.camunda.connector.agenticai.aiagent.memory.versioning.AgentContextSche
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
