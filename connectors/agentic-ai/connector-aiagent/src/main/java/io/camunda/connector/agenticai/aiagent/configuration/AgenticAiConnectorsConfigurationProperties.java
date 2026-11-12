@@ -45,8 +45,9 @@ public record AgenticAiConnectorsConfigurationProperties(
       /**
        * The size limits of the content the agent adds to the conversation. A document above the
        * limit of its kind is not loaded: the model gets its handle only. The defaults are the ones
-       * of {@link DocumentContentLimits#defaults()}: the limits of the most restrictive supported
-       * model provider, which apply to every provider. Every limit must be positive.
+       * of {@link DocumentContentLimits#defaults()}: below the limits of Amazon Bedrock Converse,
+       * the most restrictive supported model provider, and they apply to every provider. Every
+       * limit must be positive.
        *
        * @param text the limit of a text-based document
        * @param pdf the limit of a PDF document
