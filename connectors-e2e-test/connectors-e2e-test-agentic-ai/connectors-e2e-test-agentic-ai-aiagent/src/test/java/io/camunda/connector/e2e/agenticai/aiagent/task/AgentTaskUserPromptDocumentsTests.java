@@ -22,15 +22,19 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GE
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentAlreadyInConversationSentence;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentBlockType;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.mimeType;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
@@ -159,8 +163,9 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
   /**
    * The model loads the document of the user prompt with {@code c8__load_document}: the call is the
    * only one of its message and a runtime tool, so the agent answers it in the same job and calls
-   * the model again. The content of the document is in the conversation already, so the result says
-   * so and no message with the content follows.
+   * the model again. With the default document delivery {@code reference} the first request shows
+   * the handle only, so the result says that the content follows, and the message after the tool
+   * result holds it.
    */
   @Test
   void loadsADocumentOfTheUserPromptWithTheLoadDocumentTool() throws Exception {
@@ -182,25 +187,28 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
-    // the first request: the prompt, the handle and the content of the document
+    // the first request: the prompt and the handle of the document
     final var firstMessages = recorded.requests().get(0).messages();
     assertThat(firstMessages).extracting(m -> m.role()).containsExactly("system", "user");
     final var promptParts = firstMessages.get(1).contentParts();
-    assertThat(promptParts).as("prompt text + handle + content").hasSize(3);
+    assertThat(promptParts).as("prompt text + handle").hasSize(2);
     assertThat(promptParts.get(0).path("text").asText()).isEqualTo(initialUserPrompt);
-    final var handle = assertDocumentHandlePart(promptParts.get(1), "test.txt");
-    assertDocumentContentBlockJson(promptParts.get(2), "test.txt");
+    assertDocumentHandlePart(promptParts.get(1));
+    final var handle = parseDocumentHandle(promptParts.get(1).path("text").asText());
 
-    // the second request: the user message as before, the call and its result, no further message
+    // the second request: the user message as before, the call, its result and the content
     final var secondMessages = recorded.requests().get(1).messages();
     assertThat(secondMessages)
         .extracting(m -> m.role())
-        .containsExactly("system", "user", "assistant", "tool");
+        .containsExactly("system", "user", "assistant", "tool", "user");
     assertThat(secondMessages.get(0).content()).isEqualTo(SYSTEM_PROMPT);
     assertThat(secondMessages.get(1).contentParts()).isEqualTo(promptParts);
     assertThat(secondMessages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
-    assertThat(secondMessages.get(3).content())
-        .isEqualTo(contentAlreadyInConversationSentence(handle));
+    assertThat(secondMessages.get(3).content()).isEqualTo(contentFollowsSentence(handle));
+    assertDocumentContentUserMessage(
+        secondMessages.get(4),
+        DocumentWithContent.of(
+            handle, block -> assertDocumentContentBlockJson(block, "text", "text/plain")));
 
     assertAgentResponse(
         zeebeTest,
