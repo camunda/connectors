@@ -208,8 +208,9 @@ High-frequency traps (detail behind each link):
 - **Documents are persisted as references and expanded for the model**: for a `Tracked` instance the conversation holds
   document blocks (`AgentDocumentContent`), and `AgentContext.documents` holds the agent documents they stand for.
   `DocumentExpander` turns the blocks into handles and content after the window, so the providers have no document
-  specific code. A provider never receives an `AgentDocumentContent`. A `Tracked` instance accepts only Camunda
-  documents. The document id, the handle, the expansion, the history and the error codes are in
+  specific code. A provider never receives an `AgentDocumentContent`: every provider content converter fails with
+  `UnexpandedAgentDocumentException` on one. A `Tracked` instance accepts only Camunda documents
+  (`AgentDocument.isSupported`). The document id, the handle, the expansion, the history and the error codes are in
   [`data-model.md`](aiagent-model/docs/data-model.md),
   [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results),
   [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter)
