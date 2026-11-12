@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.testutil;
+package io.camunda.connector.agenticai.aiagent.model.testutil;
 
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.api.document.Document;

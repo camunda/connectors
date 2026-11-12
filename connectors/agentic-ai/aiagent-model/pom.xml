@@ -156,7 +156,7 @@
             </goals>
             <configuration>
               <includes>
-                <include>io/camunda/connector/agenticai/testutil/**</include>
+                <include>io/camunda/connector/agenticai/aiagent/model/testutil/**</include>
               </includes>
             </configuration>
           </execution>

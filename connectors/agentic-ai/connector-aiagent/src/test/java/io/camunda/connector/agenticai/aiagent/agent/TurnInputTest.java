@@ -7,14 +7,14 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
-import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
+import static io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.aiagent.model.testutil.TestDocuments;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
