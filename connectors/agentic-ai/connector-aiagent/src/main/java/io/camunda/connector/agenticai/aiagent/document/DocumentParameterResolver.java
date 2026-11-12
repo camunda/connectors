@@ -192,7 +192,7 @@ public class DocumentParameterResolver {
     }
 
     private @Nullable Object resolveDocument(@Nullable Object value, String path) {
-      if (documents.all().isEmpty()) {
+      if (documents.isEmpty()) {
         problems.add(
             ("Parameter '%s' takes a document, but the conversation has no documents."
                     + " Do not pass a document.")
