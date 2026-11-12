@@ -33,12 +33,19 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
   /** Type that an authored schema uses as a shorthand for a document parameter. */
   private static final String TYPE_DOCUMENT = "document";
 
-  // keywords whose values are data, not schemas
-  private static final Set<String> DATA_KEYWORDS = Set.of("const", "enum", "default", "examples");
+  // keywords whose values are data or property names, not schemas
+  private static final Set<String> DATA_KEYWORDS =
+      Set.of("const", "enum", "default", "examples", "dependentRequired");
 
   // keywords whose values map names to schemas: a name is no keyword
   private static final Set<String> NAMED_SCHEMA_KEYWORDS =
-      Set.of("properties", "patternProperties", "dependentSchemas", "$defs", "definitions");
+      Set.of(
+          "properties",
+          "patternProperties",
+          "dependentSchemas",
+          "dependencies",
+          "$defs",
+          "definitions");
 
   private final String expectedParameterNamespace;
   private final List<String> restrictedParamNames;

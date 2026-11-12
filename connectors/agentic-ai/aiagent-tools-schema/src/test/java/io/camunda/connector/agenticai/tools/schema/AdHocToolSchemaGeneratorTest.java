@@ -226,7 +226,8 @@ class AdHocToolSchemaGeneratorTest {
         itemsNextToProperties,
         object("default", Map.of("anyOf", List.of(string, document))),
         object("enum", Map.of("type", List.of("string", "document"))),
-        Map.of("$defs", Map.of("examples", document)));
+        Map.of("$defs", Map.of("examples", document)),
+        Map.of("type", "object", "dependencies", Map.of("type", document)));
   }
 
   @ParameterizedTest
@@ -584,6 +585,26 @@ class AdHocToolSchemaGeneratorTest {
 
     assertThat(generator.generateToolSchema(element).get("properties"))
         .isEqualTo(Map.of("request", object("default", document())));
+  }
+
+  @Test
+  void leavesPropertyNamesInDependenciesAsTheyAre() {
+    final var dependentRequired = new LinkedHashMap<String, Object>();
+    dependentRequired.put("type", "object");
+    dependentRequired.put("dependentRequired", Map.of("type", List.of("document")));
+    final var dependencies = new LinkedHashMap<String, Object>();
+    dependencies.put("type", "object");
+    dependencies.put("dependencies", Map.of("type", List.of("document")));
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter("toolCall.first", null, null, dependentRequired),
+                new AdHocToolElementParameter("toolCall.second", null, null, dependencies)));
+
+    final var schema = generator.generateToolSchema(element);
+
+    assertThat(propertyOf(schema, "first")).isEqualTo(dependentRequired);
+    assertThat(propertyOf(schema, "second")).isEqualTo(dependencies);
   }
 
   @Test
