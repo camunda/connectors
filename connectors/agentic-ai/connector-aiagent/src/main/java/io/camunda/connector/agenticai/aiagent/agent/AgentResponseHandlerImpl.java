@@ -97,15 +97,9 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       AgentContext agentContext, List<ToolCall> processToolCalls) {
     return processToolCalls.stream()
         .map(toolCall ->
-            switch (documentParameterResolver.resolve(
-                agentContext, definitionOf(agentContext, toolCall), toolCall)) {
-              case DocumentParameterResolver.Resolution.Resolved resolved ->
-                  toolCall.withArguments(resolved.arguments());
-              case DocumentParameterResolver.Resolution.Invalid invalid ->
-                  throw new IllegalStateException(
-                      "The call '%s' of the tool '%s' goes to the process, but its document parameters are invalid: %s"
-                          .formatted(toolCall.id(), toolCall.name(), invalid.message()));
-            })
+            toolCall.withArguments(
+                documentParameterResolver.resolveArguments(
+                    agentContext, definitionOf(agentContext, toolCall), toolCall)))
         .toList();
   }
 

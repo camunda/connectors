@@ -546,7 +546,7 @@ class AgentResponseHandlerTest {
       assertThatThrownBy(() -> responseHandler.createResponse(conversation(call)))
           .isInstanceOf(IllegalStateException.class)
           .hasMessage(
-              "The call 'u1' of the tool 'upload' goes to the process, but its document parameters are invalid: "
+              "The call 'u1' of the tool 'upload' was admitted, but its document parameters are invalid: "
                   + "Parameter 'doc' has the id 'doc_000000000000', but the conversation has no document with this id."
                   + " Pass the handle of a document from the conversation: a JSON object such as "
                   + "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.");
@@ -631,7 +631,7 @@ class AgentResponseHandlerTest {
       assertThatThrownBy(() -> responseHandler.createResponse(conversation(call)))
           .isInstanceOf(IllegalStateException.class)
           .hasMessage(
-              "The call 'u1' of the tool 'upload' goes to the process, but its document parameters are invalid: "
+              "The call 'u1' of the tool 'upload' was admitted, but its document parameters are invalid: "
                   + "Parameter 'doc' must be the handle of a document from the conversation: a JSON object such as "
                   + "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.");
       verify(gatewayToolHandlers, never()).transformToolCalls(any(), any());

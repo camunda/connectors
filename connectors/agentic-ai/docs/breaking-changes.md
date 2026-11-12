@@ -217,7 +217,7 @@ client in its properties does not start.
 process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent produces the tool call
 results of the other calls (`AgentConversationTurn.localToolCalls()`) itself and never hands them to the process. The
 response carries the Camunda document references in place of the document handles in the arguments of these calls
-(`DocumentParameterResolver.resolve` with the tool definition of the agent context), and the stored assistant message keeps the arguments as the model sent
+(`DocumentParameterResolver.resolveArguments` with the tool definition of the agent context), and the stored assistant message keeps the arguments as the model sent
 them. The constructor of `AgentResponseHandlerImpl` takes the `DocumentParameterResolver`, a bean of the
 auto-configuration.
 

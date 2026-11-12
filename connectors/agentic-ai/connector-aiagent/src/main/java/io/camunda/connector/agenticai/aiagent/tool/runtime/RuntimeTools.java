@@ -98,6 +98,11 @@ public class RuntimeTools {
    * with the definition the tool is registered with before the tool is called. A call of a tool
    * that is not enabled when it is executed gets an error result, and so does a call with an
    * invalid document parameter, and a {@link RuntimeToolException}. Any other exception propagates.
+   *
+   * <p>The admission checked the document parameters against the definition offered in the job of
+   * the assistant message. When the message also has calls of process tools, the runtime calls are
+   * executed in a later job, and the definition of a tool can differ there, such as after an update
+   * of the connector runtime. That is when a call has an invalid document parameter here.
    */
   public List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {

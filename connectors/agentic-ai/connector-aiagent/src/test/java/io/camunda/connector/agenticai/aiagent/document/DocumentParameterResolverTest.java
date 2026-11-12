@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.document;
 
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -380,6 +381,30 @@ class DocumentParameterResolverTest {
     final var result = resolveProcess(agentContext(), call);
 
     assertThat(result).isEqualTo(new Resolution.Invalid(List.of(unknownId("doc", "nope"))));
+  }
+
+  @Test
+  void resolvesTheArgumentsOfAnAdmittedCall() {
+    final var call = new ToolCall("call", "upload", Map.of("doc", firstHandle, "other", "kept"));
+
+    final var arguments =
+        resolver.resolveArguments(agentContext(), definition("upload", object("doc", DOC)), call);
+
+    assertThat(arguments).isEqualTo(Map.of("doc", reference(firstId), "other", "kept"));
+  }
+
+  @Test
+  void failsToResolveTheArgumentsOfACallWithAnInvalidDocumentParameter() {
+    final var call =
+        new ToolCall("call", "upload", Map.of("doc", handle(AgentDocumentId.of("nope"))));
+
+    assertThatThrownBy(() ->
+            resolver.resolveArguments(
+                agentContext(), definition("upload", object("doc", DOC)), call))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The call 'call' of the tool 'upload' was admitted, but its document parameters are invalid: "
+                + unknownId("doc", "nope"));
   }
 
   @Test

@@ -71,5 +71,10 @@ conversation and the history keep what the model sent.
 - **Admission.** `ToolCallAdmission` rejects a call with an invalid value: the call gets the sentences as its
   `ToolCall.rejection` and is never executed or activated (see
   [What Happens When Tools Complete](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete)).
-- **Process tools.** `AgentResponseHandlerImpl` replaces the handles of the calls that go to the process.
-- **Runtime tools.** `RuntimeTools` replaces the handles before it calls the tool.
+- **Process tools.** `AgentResponseHandlerImpl` replaces the handles of the calls that go to the process with
+  `DocumentParameterResolver.resolveArguments`. It runs in the job of the admission, so an invalid value there is a
+  defect and fails the job.
+- **Runtime tools.** `RuntimeTools` replaces the handles before it calls the tool. When the assistant message also has
+  calls of process tools, the runtime calls run in a later job, and the definition of a tool can differ there, such as
+  after an update of the connector runtime. A call with an invalid value then gets the sentences as an error result,
+  and the tool does not run.

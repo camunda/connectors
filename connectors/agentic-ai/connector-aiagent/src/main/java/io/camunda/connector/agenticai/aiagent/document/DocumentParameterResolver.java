@@ -91,8 +91,9 @@ public class DocumentParameterResolver {
    * as they are when the agent instance does not track its documents or the tool has no document
    * parameters.
    *
-   * <p>The admission of a call, the call that goes to the process and the execution of a runtime
-   * call all use this method, so they agree on whether a call is valid.
+   * <p>The admission of a call decides with this method whether the call is valid. The execution of
+   * a runtime call uses it too: it can run in a later job than the admission, with the definition
+   * the tool is registered with then.
    */
   public Resolution resolve(
       AgentContext agentContext, ToolDefinition definition, ToolCall toolCall) {
@@ -105,6 +106,24 @@ public class DocumentParameterResolver {
       case DocumentHandling.Tracked tracked ->
           new CallResolution(tracked.documents(), replacement(definition.kind()))
               .resolve(parameters, toolCall);
+    };
+  }
+
+  /**
+   * The arguments of an admitted call with its document parameters resolved, see {@link #resolve}.
+   * The admission rejects a call with an invalid document parameter, so a call that was admitted
+   * against the same agent context and definition resolves.
+   *
+   * @throws IllegalStateException if a document parameter of the call is invalid
+   */
+  public Map<String, Object> resolveArguments(
+      AgentContext agentContext, ToolDefinition definition, ToolCall toolCall) {
+    return switch (resolve(agentContext, definition, toolCall)) {
+      case Resolution.Resolved resolved -> resolved.arguments();
+      case Resolution.Invalid invalid ->
+          throw new IllegalStateException(
+              "The call '%s' of the tool '%s' was admitted, but its document parameters are invalid: %s"
+                  .formatted(toolCall.id(), toolCall.name(), invalid.message()));
     };
   }
 
