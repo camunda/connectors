@@ -30,7 +30,6 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.app.TestPrototypeOutboundConnector;
 import io.camunda.connector.runtime.app.TestSingletonOutboundConnector;
-import io.camunda.connector.runtime.outbound.job.ColdStartPlatformThreadJobHandler;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import java.lang.reflect.Field;
 import org.junit.jupiter.api.BeforeAll;
@@ -98,7 +97,7 @@ class MultiClientOutboundConnectorInstanceIsolationTest {
    * otherwise see zero interactions in every test after the first.
    */
   @BeforeAll
-  void startBothPhysicalTenantsAndCaptureJobHandlers() throws Exception {
+  void startBothPhysicalTenantsAndCaptureJobHandlers() {
     clientA = camundaClientRegistry.get("engine-a");
     clientB = camundaClientRegistry.get("engine-b");
     outboundConnectorManager.onStart(clientA, "engine-a");
@@ -115,7 +114,7 @@ class MultiClientOutboundConnectorInstanceIsolationTest {
    * given client and connector type, and builds the resulting {@link JobHandler} from its {@code
    * JobHandlerFactory} — mirroring what {@code JobWorkerManager} would normally do internally.
    */
-  private JobHandler jobHandlerFor(CamundaClient client, String connectorType) throws Exception {
+  private JobHandler jobHandlerFor(CamundaClient client, String connectorType) {
     var clientCaptor = ArgumentCaptor.forClass(CamundaClient.class);
     var workerCaptor = ArgumentCaptor.forClass(ManagedJobWorker.class);
     verify(jobWorkerManager, atLeastOnce())
@@ -126,16 +125,10 @@ class MultiClientOutboundConnectorInstanceIsolationTest {
     for (int i = 0; i < clients.size(); i++) {
       if (clients.get(i) == client
           && workers.get(i).jobWorkerValue().getType().value().equals(connectorType)) {
-        var handler =
-            workers
-                .get(i)
-                .jobHandlerFactory()
-                .getJobHandler(
-                    new JobHandlerFactoryContext(workers.get(i).jobWorkerValue(), client));
-        // unwrap the cold-start decorator to reach the SpringConnectorJobHandler fields
-        return handler instanceof ColdStartPlatformThreadJobHandler
-            ? (JobHandler) privateField(handler, "delegate")
-            : handler;
+        return workers
+            .get(i)
+            .jobHandlerFactory()
+            .getJobHandler(new JobHandlerFactoryContext(workers.get(i).jobWorkerValue(), client));
       }
     }
     throw new AssertionError(
