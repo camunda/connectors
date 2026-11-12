@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Named.named;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -80,17 +81,17 @@ public class OrchestrationTemplateMappingTests extends BaseOrchestrationTest {
 
   static Stream<Arguments> keys() {
     return Stream.of(
-        Arguments.of("text key", KEY, Map.of()),
-        Arguments.of("FEEL number", "=" + KEY, Map.of()),
+        Arguments.of(named("text key", KEY), Map.of()),
+        Arguments.of(named("FEEL number", "=" + KEY), Map.of()),
         Arguments.of(
-            "variable holding a number", "=incidentKey", Map.of("incidentKey", 2251799813685249L)),
-        Arguments.of("variable holding text", "=incidentKey", Map.of("incidentKey", KEY)));
+            named("variable holding a number", "=incidentKey"),
+            Map.of("incidentKey", 2251799813685249L)),
+        Arguments.of(named("variable holding text", "=incidentKey"), Map.of("incidentKey", KEY)));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("keys")
-  void getByKeyAppendsTheKeyToTheUrl(
-      String description, String key, Map<String, Object> processVariables) {
+  void getByKeyAppendsTheKeyToTheUrl(String key, Map<String, Object> processVariables) {
     var template =
         saasTemplate("/incidents", GET_BY_KEY).propertyByBinding("input.internal_key", key);
 
