@@ -399,7 +399,8 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 
 - **`AGENTS.md`** (this file): rules and links (mental model, navigation, glossary, gotchas,
   build/test commands). Each fact has one home: a module doc, a doc in `docs/`, or a Javadoc. Do not
-  restate a format, a field list, a class list, a flow or an error code here. Link to its home.
+  restate its details here (values, formats, field lists, order, steps or semantics). Link to its home.
+  A rule may name a type, a field or an error code as a pointer to that home.
   Design rules live in `docs/design-guidelines.md`; testing rules live in `docs/acceptance-testing.md`;
   ADR authoring rules live in `docs/adr/README.md`.
 - **`<module>/README.md`** and **`<module>/docs/`**: the purpose and key types of a module, and the docs
