@@ -291,11 +291,6 @@ applies it to its persisted context, and the next round continues with the conte
   calls of the message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
   call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
   error result from `RuntimeTools`; neither goes to the process.
-- A tool parameter that carries a document is declared with the `fromAi` type `document`, or with
-  `DocumentParameter.documentSchema(...)` for a runtime tool or a gateway tool. A process tool receives the Camunda
-  document reference, a runtime tool the `AgentDocumentId`. A call whose value is not the handle of a known document is
-  rejected when the model response arrives and never runs. Only agent instances with the `documents` feature have
-  document parameters ([Document parameters](../aiagent-tools-schema/docs/tool-resolution.md#document-parameters)).
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
@@ -342,11 +337,6 @@ applies it to its persisted context, and the next round continues with the conte
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
   `RuntimeToolContext`, `RuntimeToolResult`, `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
-- A document parameter in a tool definition is the object schema of a document handle
-  (`DocumentParameter.documentSchema(...)`, listed by `ToolDefinition#documentParameters()`), sent to the model provider
-  as it is. It is the parameter, the items of an array or an object property; the type `document` anywhere else fails the
-  tool schema generation. Its value is the handle, `{"type":"camunda.agenticai.document","id":"doc_…"}`, or a string with
-  its JSON; a bare id is not.
 
 <a id="persisted-data-8-11"></a>
 
