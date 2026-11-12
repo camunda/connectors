@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV2Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
@@ -13,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskV2Request;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import java.util.List;
 
 /**
  * Builds the execution context of one agent job from the connector context of the job and the bound
@@ -24,6 +26,9 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
  * its v2 equivalent. A v2 request keeps its provider configuration.
  */
 public class AgentExecutionContextFactory {
+
+  /** The deprecated v1 connector gives a new agent instance no agent instance feature. */
+  private static final List<String> V1_NEW_INSTANCE_FEATURES = List.of();
 
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
@@ -44,18 +49,28 @@ public class AgentExecutionContextFactory {
     if (rewriteV1ProviderConfigToV2) {
       var nativeConfig = providerConfigurationMapper.map(request.provider());
       return new AgentTaskExecutionContext(
-          context.getJobContext(), context, request.data(), nativeConfig, toolElementsResolver);
+          context.getJobContext(),
+          context,
+          request.data(),
+          nativeConfig,
+          toolElementsResolver,
+          V1_NEW_INSTANCE_FEATURES);
     }
 
     return new AgentTaskExecutionContext(
-        context.getJobContext(), context, request, toolElementsResolver);
+        context.getJobContext(), context, request, toolElementsResolver, V1_NEW_INSTANCE_FEATURES);
   }
 
   /** Returns the AI Agent Task execution context for a v2 request. */
   public AgentTaskExecutionContext taskContext(
       OutboundConnectorContext context, AgentTaskV2Request request) {
     return new AgentTaskExecutionContext(
-        context.getJobContext(), context, request.data(), request.provider(), toolElementsResolver);
+        context.getJobContext(),
+        context,
+        request.data(),
+        request.provider(),
+        toolElementsResolver,
+        AgentFeatures.ofNewInstance());
   }
 
   /** Returns the AI Agent Sub-process execution context for a v1 request. */
@@ -70,10 +85,12 @@ public class AgentExecutionContextFactory {
           request.agentContext(),
           request.toolCallResults(),
           request.toolElements(),
-          nativeConfig);
+          nativeConfig,
+          V1_NEW_INSTANCE_FEATURES);
     }
 
-    return new AgentSubProcessExecutionContext(context.getJobContext(), context, request);
+    return new AgentSubProcessExecutionContext(
+        context.getJobContext(), context, request, V1_NEW_INSTANCE_FEATURES);
   }
 
   /** Returns the AI Agent Sub-process execution context for a v2 request. */
@@ -86,6 +103,7 @@ public class AgentExecutionContextFactory {
         request.agentContext(),
         request.toolCallResults(),
         request.toolElements(),
-        request.provider());
+        request.provider(),
+        AgentFeatures.ofNewInstance());
   }
 }
