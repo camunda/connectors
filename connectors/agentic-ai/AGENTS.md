@@ -379,7 +379,7 @@ When you write or change help text in `@TemplateProperty` annotations (`label`, 
 
 The transform scripts add the hidden `zeebe:agentDefinition` marker to every AI Agent template and the
 `deprecated` block to the current v1 templates. Which templates carry them and how the scripts add them:
-[Markers added by the transform scripts](connector-aiagent/element-templates/README.md#markers-added-by-the-transform-scripts).
+[Markers added by the transform scripts](connector-aiagent/docs/element-template-generation.md#markers-added-by-the-transform-scripts).
 
 ## Key entry points
 
