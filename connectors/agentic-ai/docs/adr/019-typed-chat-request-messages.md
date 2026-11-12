@@ -22,7 +22,8 @@ The sealed `Content` model is used for two jobs: the conversation that the store
   each converter still match them, and the converters disagree: some drop them, some replay them, some write them as
   JSON, and Bedrock and LangChain4j throw. A runtime tool can return them in its result (`RuntimeToolResult` accepts any
   `Content`), so the tool result case is reachable.
-* A system message holds only text. Bedrock throws for other content, the other providers drop it.
+* A system message holds only text. For other content, Bedrock and LangChain4j throw, Gemini sends it as parts, and the
+  other providers drop it.
 
 Compaction ([ADR 018](018-document-flow.md#follow-up)) will likely add more blocks that only the agent core uses. With one
 content model, each such block adds an arm that can only throw to every converter. This breaks the rule that a new
