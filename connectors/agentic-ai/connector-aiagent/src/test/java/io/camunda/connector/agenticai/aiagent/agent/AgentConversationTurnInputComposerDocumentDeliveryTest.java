@@ -529,8 +529,9 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         composer.assemble(
             ready.withResults(
                 List.of(
-                    ToolCallBatch.Entry.from(
+                    new ToolCallBatch.Entry(
                         execution.toolCallResult(),
+                        List.of(),
                         ((RuntimeToolResult.Success) execution.result()).effects()))));
 
     assertThat(((UserMessage) turn.messages().get(1)).content())

@@ -9,6 +9,9 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -152,7 +155,7 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      * result; a document of another kind has no agent document id, and {@link
      * #requireCamundaDocuments()} reports it.
      */
-    public static Entry withRenderedDocuments(
+    static Entry withRenderedDocuments(
         ToolCallResultContent result,
         ObjectHandleRenderer objectHandleRenderer,
         DocumentDelivery documentDelivery) {

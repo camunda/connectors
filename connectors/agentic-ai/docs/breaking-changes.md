@@ -226,8 +226,8 @@ auto-configuration.
 `ToolCallBatch`, for the composer. It reports the documents of the results for registration and applies the effects of
 the results of runtime tools (the content of a known document and the response documents, see "Runtime tools and tool
 names"). The composer gives the entry of a process tool whose tool definition has the document delivery `content` an
-`AddDocumentContent` effect for every document of the result (`ToolCallBatch.Entry.from(result, extractor, delivery)`;
-`AgentContext.documentDeliveryOf(toolName)` is the delivery of a tool, `REFERENCE` for a tool without one), so the builder
+`AddDocumentContent` effect for every document of the result (the delivery of the stored tool definition, `REFERENCE`
+for a tool without one), so the builder
 treats such a document like one a runtime tool asks to load.
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you

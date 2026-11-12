@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfigu
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
@@ -124,24 +125,25 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               previousTurn.processToolCalls(),
               agentInput.toolCallResults(),
               interruptMissingToolCalls);
-      // the delivery is the one of the tool the model called: a result is correlated by its id and
-      // can come without a name
-      final var toolNamesByCallId =
-          previousTurn.processToolCalls().stream()
-              .collect(Collectors.toMap(ToolCall::id, ToolCall::name, (first, second) -> first));
       final var processEntries =
-          processResults.arrivedResults().stream()
-              .map(result ->
-                  processEntry(
-                      result,
-                      documentHandling,
-                      agentContext.documentDeliveryOf(toolNamesByCallId.get(result.id()))))
-              .toList();
-      switch (documentHandling) {
-        case DocumentHandling.Tracked ignored ->
-            processEntries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
-        case DocumentHandling.Untracked ignored -> {}
-      }
+          switch (documentHandling) {
+            case DocumentHandling.Tracked ignored -> {
+              // the delivery is the one of the tool the model called: a result is correlated by its
+              // id and can come without a name
+              final var toolNamesByCallId =
+                  previousTurn.processToolCalls().stream()
+                      .collect(
+                          Collectors.toMap(ToolCall::id, ToolCall::name, (first, second) -> first));
+              yield processResults.arrivedResults().stream()
+                  .map(result ->
+                      trackedProcessEntry(agentContext, result, toolNamesByCallId.get(result.id())))
+                  .toList();
+            }
+            case DocumentHandling.Untracked ignored ->
+                processResults.arrivedResults().stream()
+                    .map(result -> ToolCallBatch.Entry.from(result, documentExtractor))
+                    .toList();
+          };
 
       // either we have all results or we interrupted the missing tool calls
       // if incomplete, we wait on further tool call results to be added
@@ -314,19 +316,28 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * The entry of a process tool result. An agent instance that tracks its documents takes the
-   * documents the model reads as handles, for the agent to register; an instance that does not adds
-   * the documents its gateway tool handler extracts in a message of their own.
+   * The entry of a process tool result for an agent instance that tracks its documents: it
+   * registers the documents the model reads as handles, which must be Camunda documents, with the
+   * document delivery of the tool the model called. That is the delivery of the stored definition
+   * of the tool, and {@code reference} when the definition sets none or the tool is unknown. An
+   * instance that does not track its documents adds the documents its gateway tool handler extracts
+   * in a message of their own instead.
+   *
+   * @throws UnsupportedDocumentReferenceException if a document of the result is not a Camunda
+   *     document
    */
-  private ToolCallBatch.Entry processEntry(
-      ToolCallResult result, DocumentHandling documentHandling, DocumentDelivery documentDelivery) {
-    return switch (documentHandling) {
-      case DocumentHandling.Tracked ignored ->
-          ToolCallBatch.Entry.withRenderedDocuments(
-              ToolCallResultContent.from(result), objectHandleRenderer, documentDelivery);
-      case DocumentHandling.Untracked ignored ->
-          ToolCallBatch.Entry.from(result, documentExtractor);
-    };
+  private ToolCallBatch.Entry trackedProcessEntry(
+      AgentContext agentContext, ToolCallResult result, @Nullable String toolName) {
+    final var documentDelivery =
+        Optional.ofNullable(toolName)
+            .flatMap(agentContext::toolDefinition)
+            .map(ToolDefinition::documentDelivery)
+            .orElse(DocumentDelivery.REFERENCE);
+    final var entry =
+        ToolCallBatch.Entry.withRenderedDocuments(
+            ToolCallResultContent.from(result), objectHandleRenderer, documentDelivery);
+    entry.requireCamundaDocuments();
+    return entry;
   }
 
   private ToolCallBatch.Entry cancelled(ToolCall toolCall) {

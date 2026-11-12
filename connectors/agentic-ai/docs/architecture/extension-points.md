@@ -233,8 +233,8 @@ templates of version 5 have it, the frozen v1 templates leave it out; the migrat
 `content` for an element updated with `c8ctl element-template update` that has no value), and for the documents a process tool returns, with the extension
 property `io.camunda.agenticai.documents.delivery` on the tool activity ([Tool Resolution](../../aiagent-tools-schema/docs/tool-resolution.md#job-worker-flavor)), which takes `reference` or `content`
 (`AdHocToolsSchemaResolverImpl` reads it; another value fails the tool discovery with a message that names the element). The
-composer reads the delivery of a tool from the stored tool definitions (`AgentContext.documentDeliveryOf`, `reference` for a
-tool without one) and gives the entry of the result of a tool with the delivery `content` an `AddDocumentContent` effect for
+composer reads the delivery of a tool from its stored tool definition (`AgentContext.toolDefinition(name)`, `reference` for
+a tool without one) and gives the entry of the result of a tool with the delivery `content` an `AddDocumentContent` effect for
 every document of the result: the same effect a runtime tool adds to ask for content, so `ToolCallResultsInputBuilder`
 applies it in the order of the calls, with the rule that a document whose content the model reads or that an
 earlier request of the turn handled is not added twice, and the sentences about the content that the builder writes at
