@@ -124,14 +124,17 @@ records of the element templates in the connector. The native providers follow w
   conditions:
   * The providers read a provider configuration instead of the v2 records, or the team decides that the provider module
     owns the records of its providers and the template generation of `connector-aiagent` scans it.
-  * LangChain4j is removed ([#8408](https://github.com/camunda/connectors/issues/8408)). This removes the shared timeouts,
-    properties, metadata helper and exception, and the LangChain4j use of the proxy support.
+  * The native providers share no helper with LangChain4j. [#8408](https://github.com/camunda/connectors/issues/8408)
+    removes the LangChain4j provider factories, and with them their use of the shared timeouts and properties. It keeps
+    `LangChain4JChatModel` and its converters, which still use `AssistantMessageMetadata` and the proxy support. Each of
+    these helpers moves with the native providers, gets an owner that both can depend on, or the LangChain4j bridge stops
+    using it.
   * The error codes of model calls move to `aiagent-chatmodel-api` (the ADR 015 follow-up).
   * The chat model properties get their own `@ConfigurationProperties` class with the same prefix, and the AWS and Azure
     proxy support gets an owner that the AgentCore conversation store can also depend on.
 
-  Done when `connector-aiagent` has no class below `aiagent.chatmodel.provider` and does not import the configuration of
-  the providers.
+  Done when `connector-aiagent` has no native provider class below `aiagent.chatmodel.provider`, and does not import the
+  configuration of the native providers. The LangChain4j bridge in `aiagent.chatmodel.provider.langchain4j` can stay.
 * **A narrow chat request.** `ChatRequest` carries the full `AgentExecutionContext`, but the native providers and
   LangChain4j read only `configuration().response()`. Decide which parts belong to the API (the ADR 015 follow-up) before
   the API baseline of `aiagent-chatmodel-api` moves to 8.11.0. After that, a narrower `ChatRequest` is a gated break.
