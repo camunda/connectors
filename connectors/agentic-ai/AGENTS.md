@@ -396,9 +396,11 @@ When writing or revising an ADR, read the [authoring rules](docs/adr/README.md).
 When a change touches documented structure (classes, interfaces, data-model records, config
 properties, error codes, behavioral contracts), update the matching doc in the same change:
 
-- **`AGENTS.md`** (this file): high-level orientation (mental model, navigation, glossary, gotchas,
-  build/test commands, entry points). Design rules live in `docs/design-guidelines.md`; testing rules
-  live in `docs/acceptance-testing.md`; ADR authoring rules live in `docs/adr/README.md`.
+- **`AGENTS.md`** (this file): rules and links (mental model, navigation, glossary, gotchas,
+  build/test commands). Each fact has one home: a module doc, a doc in `docs/`, or a Javadoc. Do not
+  restate a format, a field list, a class list, a flow or an error code here. Link to its home.
+  Design rules live in `docs/design-guidelines.md`; testing rules live in `docs/acceptance-testing.md`;
+  ADR authoring rules live in `docs/adr/README.md`.
 - **`<module>/README.md`** and **`<module>/docs/`**: the purpose and key types of a module, and the docs
   about its types (data model, memory, tools, converters, providers, error codes, MCP, A2A). The
   `## Docs` section of the README links every file in `<module>/docs/`.
