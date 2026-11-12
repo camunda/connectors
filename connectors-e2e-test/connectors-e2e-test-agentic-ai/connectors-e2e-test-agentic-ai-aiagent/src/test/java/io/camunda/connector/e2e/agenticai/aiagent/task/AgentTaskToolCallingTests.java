@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.SUPERFLUX_PRODUCT_TOOL_NAME;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
@@ -103,7 +104,6 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
     assertRole(lastMessages.get(3), "tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
     final var documentHandle = parseDocumentHandle(lastMessages.get(3).content());
-    assertThat(documentHandle.contentType()).isEqualTo(mimeType);
 
     // the content of the document is not part of the conversation
     assertRole(lastMessages.get(4), "assistant"); // response after tool
@@ -112,13 +112,16 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
 
     assertAgentResponse(
         zeebeTest,
-        agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 1))
-                .hasResponseMessageText(aiFinalResponseText)
-                .hasResponseText(aiFinalResponseText));
+        agentResponse -> {
+          AgentResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasNoToolCalls()
+              .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 1))
+              .hasResponseMessageText(aiFinalResponseText)
+              .hasResponseText(aiFinalResponseText);
+          assertHandleOfTheOnlyRegisteredDocument(
+              documentHandle, agentResponse.context().documents(), null, mimeType, null);
+        });
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }

@@ -20,6 +20,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,13 +29,14 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
@@ -46,8 +48,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -68,19 +72,38 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
   private static final String UPLOAD_CALL_ID = "call_upload_report";
   private static final String REPORT_TOOL = "acme_create_report";
   private static final String REPORT_FILE = "report.txt";
+  private static final byte[] REPORT_BYTES = "quarterly numbers".getBytes(StandardCharsets.UTF_8);
 
   /** Registers the runtime tool of the test next to the built-in tools. */
   @TestConfiguration
   static class ReportRuntimeToolConfiguration {
 
     @Bean
-    RuntimeTool acmeCreateReportRuntimeTool(DocumentFactory documentFactory) {
+    ReportRuntimeTool acmeCreateReportRuntimeTool(DocumentFactory documentFactory) {
       return new ReportRuntimeTool(documentFactory);
     }
   }
 
-  /** Creates a new document on every call and returns it with a sentence. */
-  private record ReportRuntimeTool(DocumentFactory documentFactory) implements RuntimeTool {
+  /**
+   * Creates a new document on every call and returns it with a sentence. It keeps the documents it
+   * created, in call order.
+   */
+  static class ReportRuntimeTool implements RuntimeTool {
+
+    private final DocumentFactory documentFactory;
+    private final List<Document> created = new CopyOnWriteArrayList<>();
+
+    ReportRuntimeTool(DocumentFactory documentFactory) {
+      this.documentFactory = documentFactory;
+    }
+
+    List<Document> created() {
+      return List.copyOf(created);
+    }
+
+    void reset() {
+      created.clear();
+    }
 
     @Override
     public ToolDefinition definition() {
@@ -94,10 +117,11 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
     public RuntimeToolResult call(RuntimeToolContext context, RuntimeToolCall call) {
       final var report =
           documentFactory.create(
-              DocumentCreationRequest.from("quarterly numbers".getBytes(StandardCharsets.UTF_8))
+              DocumentCreationRequest.from(REPORT_BYTES)
                   .contentType("text/plain")
                   .fileName(REPORT_FILE)
                   .build());
+      created.add(report);
       return RuntimeToolResult.success(
           List.of(
               TextContent.textContent("Created the report."),
@@ -113,9 +137,12 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
     return documentsProcess;
   }
 
+  @Autowired private ReportRuntimeTool reportRuntimeTool;
+
   @BeforeEach
   void setUpUploadEndpoint() {
     DocumentFlowFixtures.stubUploadEndpoint();
+    reportRuntimeTool.reset();
   }
 
   @Test
@@ -157,8 +184,6 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
     assertThat(resultLines).hasSize(2);
     assertThat(resultLines[0]).isEqualTo("Created the report.");
     final var handle = parseDocumentHandle(resultLines[1]);
-    assertThat(handle.fileName()).isEqualTo(REPORT_FILE);
-    assertThat(handle.contentType()).isEqualTo("text/plain");
     // no store id, content hash or URL, in no request
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
 
@@ -173,18 +198,17 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
           AgentSubProcessResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasResponseText(FINAL_TEXT);
-          assertThat(agentResponse.context().documents().all())
-              .singleElement()
-              .satisfies(entry -> {
-                assertThat(entry.id()).isEqualTo(handle.id());
-                assertThat(entry.origin())
-                    .isEqualTo(AgentDocumentOrigin.toolCall(REPORT_TOOL, CREATE_CALL_ID));
-                // the reference stays in the agent documents, the model never reads it
-                assertThat(entry.reference())
-                    .isInstanceOfSatisfying(
-                        CamundaDocumentReference.class,
-                        reference -> assertThat(reference.getStoreId()).isNotNull());
-              });
+          // the registry holds the document the tool created, with the tool call as its origin,
+          // and the model read the handle of that document, nothing else
+          assertThat(reportRuntimeTool.created()).singleElement();
+          final var expectedEntry =
+              AgentDocument.of(
+                  reportRuntimeTool.created().getFirst(),
+                  AgentDocumentOrigin.toolCall(REPORT_TOOL, CREATE_CALL_ID));
+          final var registered =
+              assertHandleOfTheOnlyRegisteredDocument(
+                  handle, agentResponse.context().documents(), REPORT_FILE, "text/plain", null);
+          assertThat(registered).isEqualTo(expectedEntry);
         });
   }
 }

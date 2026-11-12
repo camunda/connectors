@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.common.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_TEXT;
@@ -364,16 +365,18 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
     final var documentHandle = parseDocumentHandle(toolResultText);
     assertThat(lastMessages.get(3).role()).isEqualTo("tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("img111");
-    assertThat(documentHandle.contentType()).isEqualTo("image/png");
 
     assertAgentResponse(
         zeebeTest,
-        agentResponse ->
-            AgentSubProcessResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220), 1))
-                .hasResponseMessageText(aiFinalResponseText)
-                .hasResponseText(aiFinalResponseText));
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220), 1))
+              .hasResponseMessageText(aiFinalResponseText)
+              .hasResponseText(aiFinalResponseText);
+          assertHandleOfTheOnlyRegisteredDocument(
+              documentHandle, agentResponse.context().documents(), null, "image/png", null);
+        });
   }
 
   protected McpSchema.CallToolResult mcpCallToolResult(String resultText) {
