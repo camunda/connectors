@@ -131,8 +131,6 @@ that caused it.
    - The help text of a new provider shows the value format that the runtime accepts.
    - When a change stops calling a method of an extension point for some agent instances, the same
      change updates the Javadoc of the method or deprecates the method. (the review of #9631)
-   - A class that users can extend has no two overridable methods whose results must agree.
-     (the review of #9631)
    - Why: a missing part fails at runtime without an error. (#7129)
 5. **Claim only the guarantees that the other system enforces.**
    - In this module: send the job key and the job lease token on every agent instance command. The
