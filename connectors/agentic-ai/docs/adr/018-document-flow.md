@@ -124,7 +124,7 @@ The model sees each document as a handle:
 {"type":"camunda.agenticai.document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}
 ```
 
-The model passes `type` and `id` to a tool. The other fields are information only. Only the agent writes `note`. No
+The model passes `type` and `id` to a tool. The other fields are information only. No
 other data about a document goes to the model, to a tool argument or to an error text. The handle has a fixed key order,
 so the bytes are the same in every request. The handle has no origin, because the message that holds it shows the
 origin.
