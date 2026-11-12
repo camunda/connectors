@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
@@ -508,7 +509,7 @@ class RuntimeToolsTest {
   }
 
   @Test
-  void aToolReadsTheDocumentsTheAgentKnowsAndRestoresThem() {
+  void aToolReadsADocumentTheAgentKnowsByItsId() {
     final var report = createDocument("report", "report.txt");
     final var seen = new ArrayList<Object>();
     final var reading =
@@ -519,12 +520,10 @@ class RuntimeToolsTest {
                   context.agentContext().documents().all().stream()
                       .map(AgentDocument::id)
                       .toList());
-              final var found = context.documents().find(AgentDocumentId.of(report)).orElseThrow();
-              seen.add(
-                  new String(
-                      found.toDocument(context.executionContext().documentFactory()).asByteArray(),
-                      StandardCharsets.UTF_8));
-              seen.add(found.origin());
+              final var found = context.document(AgentDocumentId.of(report)).orElseThrow();
+              seen.add(new String(found.asByteArray(), StandardCharsets.UTF_8));
+              seen.add(found.metadata().getFileName());
+              seen.add(context.document(AgentDocumentId.of("unknown")));
               return RuntimeToolResult.success("read");
             });
 
@@ -534,9 +533,55 @@ class RuntimeToolsTest {
 
     assertThat(seen)
         .containsExactly(
-            List.of(AgentDocumentId.of(report)),
-            "report",
-            AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+            List.of(AgentDocumentId.of(report)), "report", "report.txt", Optional.empty());
+  }
+
+  @Test
+  void anAgentWithoutTheDocumentsFeatureHasNoDocumentForAnId() {
+    final var seen = new ArrayList<Object>();
+    final var reading =
+        StubRuntimeTool.of(
+            "acme_reading",
+            (context, call) -> {
+              seen.add(context.document(AgentDocumentId.of("doc_000000000000")));
+              return RuntimeToolResult.success("read");
+            });
+
+    toolsOf(reading)
+        .execute(
+            WITH_MEMORY,
+            AgentContext.empty().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
+            List.of(runtimeCall("r1", "acme_reading", Map.of())));
+
+    assertThat(seen).containsExactly(Optional.empty());
+  }
+
+  @Test
+  void anAgentDocumentInAResultFailsTheJob() {
+    final var report = createDocument("report", "report.txt");
+    final var leaking =
+        StubRuntimeTool.of(
+            "acme_leaking",
+            (context, call) ->
+                RuntimeToolResult.success(
+                    List.of(
+                        ObjectContent.objectContent(
+                            Map.of(
+                                "file",
+                                context
+                                    .agentContext()
+                                    .documents()
+                                    .find(AgentDocumentId.of(report))
+                                    .orElseThrow())))));
+    final var tools = toolsOf(leaking);
+    final var agentContext = knowing(report);
+    final var calls = List.of(runtimeCall("l1", "acme_leaking", Map.of()));
+
+    assertThatThrownBy(() -> tools.execute(WITH_MEMORY, agentContext, calls))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'acme_leaking' returned the agent document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
+                .formatted(AgentDocumentId.of(report).value()));
   }
 
   @Test

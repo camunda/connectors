@@ -15,7 +15,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
@@ -82,16 +81,13 @@ public final class LoadDocumentTool implements RuntimeTool {
 
   @Override
   public RuntimeToolResult call(RuntimeToolContext context, RuntimeToolCall call) {
-    final var documents = context.documents();
     final var id = call.argumentsAs(Arguments.class).id();
-    final var document = id == null ? null : documents.find(id).orElse(null);
-    if (document == null) {
+    if (id == null) {
       return RuntimeToolResult.error(
-          ("Parameter '%s' must be the handle of a document from the conversation: a JSON object"
-                  + " such as {\"type\":\"%s\",\"id\":\"doc_…\"}.")
-              .formatted(PARAMETER_ID, AgentDocumentHandle.TYPE));
+          "Parameter '%s' is required: pass the handle of a document from the conversation."
+              .formatted(PARAMETER_ID));
     }
 
-    return RuntimeToolResult.success(List.of()).withDocumentContent(document.id());
+    return RuntimeToolResult.success(List.of()).withDocumentContent(id);
   }
 }

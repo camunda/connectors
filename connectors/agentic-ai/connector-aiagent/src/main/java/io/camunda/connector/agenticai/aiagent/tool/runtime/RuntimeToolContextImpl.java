@@ -7,23 +7,27 @@
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
-import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.api.document.Document;
+import java.util.Optional;
 
 public record RuntimeToolContextImpl(
-    AgentExecutionContext executionContext,
-    AgentContext agentContext,
-    RuntimeToolDocuments documents)
+    AgentExecutionContext executionContext, AgentContext agentContext)
     implements RuntimeToolContext {
 
-  /**
-   * The context of the given agent state. Its documents are the agent documents of {@code
-   * agentContext}.
-   */
-  public static RuntimeToolContextImpl of(
-      AgentExecutionContext executionContext, AgentContext agentContext) {
-    return new RuntimeToolContextImpl(
-        executionContext, agentContext, new RuntimeToolDocumentsImpl(agentContext.documents()));
+  /** Restores a document of the agent context with the document factory of the job. */
+  @Override
+  public Optional<Document> document(AgentDocumentId id) {
+    return switch (agentContext.documentHandling()) {
+      case DocumentHandling.Untracked ignored -> Optional.empty();
+      case DocumentHandling.Tracked tracked ->
+          tracked
+              .documents()
+              .find(id)
+              .map(document -> document.toDocument(executionContext.documentFactory()));
+    };
   }
 }

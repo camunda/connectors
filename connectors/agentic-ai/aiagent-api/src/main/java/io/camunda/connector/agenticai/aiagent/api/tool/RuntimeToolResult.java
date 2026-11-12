@@ -104,8 +104,11 @@ public sealed interface RuntimeToolResult {
 
     /**
      * Returns a copy that also asks the agent to add the content of a known document to the request
-     * that follows the tool results. {@code id} is a document of {@link RuntimeToolDocuments} or
-     * one this result returns ({@link AgentDocumentId#of(Document)}).
+     * that follows the tool results. {@code id} is the id of a document the agent knows at the
+     * start of the batch of calls ({@code AgentContext#documents()}), such as the value of a
+     * document parameter of the call, or of a document this result returns ({@link
+     * AgentDocumentId#of(Document)}). A document another call of the same batch returns is not
+     * known yet.
      *
      * <p>The agent adds the content once per document, whatever its type and size, and ends the
      * result with one sentence per document that tells the model whether the content follows or is
