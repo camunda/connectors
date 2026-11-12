@@ -96,16 +96,12 @@ public class GeminiContentConverter {
   }
 
   /**
-   * Converts tool-result {@link Content} into {@link Part}s carrying the result payload.
+   * Converts the content of a tool call result into {@link Part}s: one {@code functionResponse}
+   * part per block.
    *
-   * <p>The {@code functionResponse} parts built here deliberately omit {@code name}/{@code id}:
-   * that correlating identity lives on the wrapping {@code ChatToolCallResult}, one level above the
-   * individual {@link Content} items this method receives. The caller is expected to rebuild each
-   * returned {@link FunctionResponse} via {@code toBuilder()} to add {@code name}/{@code id} before
-   * sending the request. This assumes one {@link Part} per tool call (the current shape of {@code
-   * ChatToolCallResult.content()}); if that list ever becomes multi-element for a single tool call,
-   * the caller must merge the results into a single {@code functionResponse} rather than emit
-   * sibling parts sharing one name/id.
+   * <p>The parts carry no {@code name} or {@code id}, because the content does not know its tool
+   * call. The caller MUST set the name and id of the {@code ChatToolCallResult}, and MUST merge the
+   * parts of one tool call into one {@code functionResponse}.
    *
    * <p>Unlike {@link #toParts(List)}, a document here is flattened to a JSON reference rather than
    * embedded natively as {@code inlineData}: the document's actual bytes are already delivered to
