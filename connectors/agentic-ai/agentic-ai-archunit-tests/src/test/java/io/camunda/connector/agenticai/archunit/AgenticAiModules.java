@@ -22,7 +22,13 @@ import java.util.regex.Pattern;
 enum AgenticAiModules {
   COMMON("agentic-ai-common", "Common", Kind.LIBRARY, under("common")),
   MODEL("aiagent-model", "Model", Kind.LIBRARY, under("aiagent.model")),
-  API("aiagent-api", "Api", Kind.LIBRARY, under("aiagent.api")),
+  API(
+      "aiagent-api",
+      "Api",
+      Kind.LIBRARY,
+      under("aiagent.api").and(resideOutsideOfPackages(pkg("aiagent.api.chatmodel..")))),
+  CHAT_MODEL_API(
+      "aiagent-chatmodel-api", "ChatModelApi", Kind.LIBRARY, under("aiagent.api.chatmodel")),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
       "connector-ad-hoc-tools-schema", "AdHocConnector", Kind.CONNECTOR, under("adhoctoolsschema")),

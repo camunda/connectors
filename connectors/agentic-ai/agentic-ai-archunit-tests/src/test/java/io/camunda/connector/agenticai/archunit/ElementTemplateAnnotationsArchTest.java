@@ -17,8 +17,9 @@ import java.util.Arrays;
 import java.util.Set;
 
 /**
- * Enforces that the library modules (common, model, api and tools schema) carry no element template
- * annotations: the element template generator belongs to the connectors, which own the templates.
+ * Enforces that the library modules (common, model, api, chat model api and tools schema) carry no
+ * element template annotations: the element template generator belongs to the connectors, which own
+ * the templates.
  *
  * <p>The allow list names the records that still carry element template annotations. It is the
  * follow-up of ADR 015, moving the annotated records to the connector, and must only shrink.
