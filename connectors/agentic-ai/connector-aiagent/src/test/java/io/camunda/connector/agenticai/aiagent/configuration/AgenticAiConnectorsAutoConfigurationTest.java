@@ -56,10 +56,6 @@ import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsA
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomGoogleVertexAiProviderConfig.CustomGoogleVertexAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiCompatibleProviderConfig.CustomOpenAiCompatibleChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiProviderConfig.CustomOpenAiChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard.Rejection;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard.Verdict;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -110,12 +106,8 @@ import io.camunda.connector.agenticai.tools.schema.processdefinition.CachingProc
 import io.camunda.connector.agenticai.tools.schema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.feel.AdHocToolElementParameterExtractor;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
-import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -305,56 +297,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
   }
 
   @Test
-  void whenNoContentLimitsAreConfigured_thenTheDocumentContentGuardUsesTheDefaultLimits() {
-    contextRunner.run(context -> {
-      assertThat(
-              context
-                  .getBean(AgenticAiConnectorsConfigurationProperties.class)
-                  .aiagent()
-                  .document()
-                  .contentLimits()
-                  .toLimits())
-          .isEqualTo(DocumentContentLimits.defaults());
-      assertThat(context.getBean(DocumentContentGuard.class).check(textOf(256 * 1024)))
-          .isEqualTo(new Verdict.Allowed());
-      assertThat(context.getBean(DocumentContentGuard.class).check(textOf(256 * 1024 + 1)))
-          .isEqualTo(new Verdict.Rejected(new Rejection.TooLarge(null, 256 * 1024)));
-    });
-  }
-
-  @Test
-  void whenContentLimitsAreConfigured_thenTheDocumentContentGuardUsesThem() {
-    contextRunner
-        .withPropertyValues(
-            "camunda.connector.agenticai.aiagent.document.content-limits.text=1KB",
-            "camunda.connector.agenticai.aiagent.document.content-limits.pdf=2MB",
-            "camunda.connector.agenticai.aiagent.document.content-limits.image=512KB")
-        .run(context -> {
-          assertThat(
-                  context
-                      .getBean(AgenticAiConnectorsConfigurationProperties.class)
-                      .aiagent()
-                      .document()
-                      .contentLimits()
-                      .toLimits())
-              .isEqualTo(new DocumentContentLimits(1024, 2 * 1024 * 1024, 512 * 1024));
-          assertThat(context.getBean(DocumentContentGuard.class).check(textOf(1024)))
-              .isEqualTo(new Verdict.Allowed());
-          assertThat(context.getBean(DocumentContentGuard.class).check(textOf(1025)))
-              .isEqualTo(new Verdict.Rejected(new Rejection.TooLarge(null, 1024)));
-        });
-  }
-
-  private static Document textOf(int bytes) {
-    return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
-        .create(
-            DocumentCreationRequest.from(new byte[bytes])
-                .contentType("text/plain")
-                .fileName("a.txt")
-                .build());
-  }
-
-  @Test
   void theBuiltInLoadDocumentToolIsRegisteredAsARuntimeTool() {
     contextRunner.run(context ->
         assertThat(context.getBeansOfType(RuntimeTool.class).values())
@@ -393,34 +335,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
                 .rootCause()
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("More than one runtime tool is named 'c8__load_document'"));
-  }
-
-  @Test
-  void whenAContentLimitIsNotPositive_thenFailsTheBinding() {
-    contextRunner
-        .withPropertyValues("camunda.connector.agenticai.aiagent.document.content-limits.pdf=0KB")
-        .run(context ->
-            assertThat(context)
-                .hasFailed()
-                .getFailure()
-                .hasRootCauseInstanceOf(BindValidationException.class)
-                .rootCause()
-                .isInstanceOfSatisfying(
-                    BindValidationException.class,
-                    e ->
-                        assertThat(e.getValidationErrors().getAllErrors())
-                            .hasSize(1)
-                            .first(InstanceOfAssertFactories.type(FieldError.class))
-                            .extracting(
-                                FieldError::getObjectName,
-                                FieldError::getField,
-                                FieldError::getRejectedValue,
-                                FieldError::getDefaultMessage)
-                            .containsExactly(
-                                "camunda.connector.agenticai",
-                                "aiagent.document.contentLimits.pdfPositive",
-                                false,
-                                "pdf must be positive")));
   }
 
   @Test

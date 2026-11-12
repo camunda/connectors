@@ -118,11 +118,6 @@ class LoadDocumentToolTest {
     return textContent("The content of " + refOf(entry) + " follows in the next message.");
   }
 
-  /** The sentence the agent writes into the tool result for a document that is not loaded. */
-  private static Content notLoaded(AgentDocument entry, String reason) {
-    return textContent("The content of " + refOf(entry) + " is not loaded. " + reason);
-  }
-
   /** What the agent does with a load_document call: the entry and the input of the next turn. */
   private record Run(ToolCallBatch.Entry entry, TurnInput input) {
 
@@ -139,7 +134,7 @@ class LoadDocumentToolTest {
   }
 
   @Test
-  void definitionHasASingleRequiredDocumentParameterAndSaysTheResultTellsWhyADocumentIsNotLoaded() {
+  void definitionHasASingleRequiredDocumentParameter() {
     final var definition = tool.definition();
 
     assertThat(LoadDocumentTool.NAME).isEqualTo("c8__load_document");
@@ -148,9 +143,7 @@ class LoadDocumentToolTest {
             "Loads the content of a document that you see as a handle in the conversation: a JSON"
                 + " object with \"type\": \"camunda.agenticai.document\" and an \"id\" that"
                 + " starts with \"doc_\". Do not call it when the conversation has no such handle."
-                + " Only text, PDF and image documents that are not too large can be loaded; the"
-                + " result tells you when a document is not loaded and why. A document that is"
-                + " already in the conversation is not loaded again.");
+                + " A document that is already in the conversation is not loaded again.");
     // the stored schema is the schema of a document handle
     assertThat(definition.inputSchema())
         .isEqualTo(
@@ -239,32 +232,6 @@ class LoadDocumentToolTest {
   }
 
   @Test
-  void theResultSaysWhyADocumentAboveTheTextLimitIsNotLoaded() {
-    final var entry = camundaEntry("doc-1", "text/csv", 300L * 1024);
-
-    final var run = run(List.of(entry), Set.of(), call("1", "doc-1"));
-
-    assertThat(run.result().content())
-        .containsExactly(
-            notLoaded(
-                entry,
-                "The document is too large to load (300 KB, limit 256 KB). If one of your tools can process the document, pass the handle to it."));
-    assertThat(run.addedContent()).isEmpty();
-  }
-
-  @Test
-  void theResultSaysAnUnreadableDocumentOfUnknownSizeIsNotLoaded() {
-    // the store holds no content for the document
-    final var entry = camundaEntry("doc-1", "text/plain", null);
-
-    final var run = run(List.of(entry), Set.of(), call("1", "doc-1"));
-
-    assertThat(run.result().content())
-        .containsExactly(notLoaded(entry, "The document could not be read."));
-    assertThat(run.addedContent()).isEmpty();
-  }
-
-  @Test
   void answersAMissingIdWithAnErrorWithoutEffects() {
     final var context = RuntimeToolContextImpl.of(withConfiguration(CONFIGURATION), WITH_DOCUMENTS);
     final var arguments =
@@ -293,8 +260,7 @@ class LoadDocumentToolTest {
     final var batchEntries =
         executor.execute(withConfiguration(CONFIGURATION), agentContext, List.of(call));
     final var batch = ToolCallBatch.of(List.of(call)).withEntries(batchEntries);
-    final var input =
-        inputBuilder.build(agentContext, batch, idsWithContent, TestDocuments.documentFactory());
+    final var input = inputBuilder.build(agentContext, batch, idsWithContent);
     return new Run(batchEntries.getFirst(), input);
   }
 }

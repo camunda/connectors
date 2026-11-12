@@ -203,40 +203,22 @@ result. `{ref}` is the file name and the id (`document1.pdf (doc_3a1d3166fe56)`)
 
 | Decision | Sentence |
 |----------|----------|
-| the guard accepts the document | `The content of {ref} follows in the next message.` |
-| the guard rejects the document | `The content of {ref} is not loaded. ` and the note below |
+| the content is added | `The content of {ref} follows in the next message.` |
 | the model has the content already, or an earlier result of the message asked for it | `The content of {ref} is already in the conversation.` |
 
-A rejected document stays a reference. The note is a fixed sentence without the id:
-
-| Check | Note |
-|-------|------|
-| the content type is missing or no model provider renders it | `Documents of type X cannot be loaded. If one of your tools can process the document, pass the handle to it.` |
-| the size exceeds the limit of the kind of content | `The document is too large to load (S, limit L). If one of your tools can process the document, pass the handle to it.` |
-| the size cannot be read | `The document could not be read.` |
+The agent adds the content of a known document whatever its type and size. It does not check the content type or the size
+against the limits of a model provider.
 
 When at least one document is loaded, the builder adds a user message after the tool results. It starts with the preamble
 `Document content from tool calls (added by the system):`. For each loaded document it holds the handle and the document.
 Its metadata `toolCallDocuments` makes it leave the context window together with its tool results. A document parameter
 (`fromAi(..., "document")`) never adds content.
 
-**The guard.** `DocumentContentGuard` checks the content that a runtime tool asks for with `AddDocumentContent`.
-`DocumentContentDelivery` runs it. It applies only in an instance with the `documents` feature. It does not apply to the
-documents of the user prompt.
-
-The guard classifies the content type with `DocumentMimeTypes`: text, PDF, or image. Other types are rejected. Then it
-compares the size with the limit of the kind. The limits are configurable
-([Document content limits](spring-auto-configuration.md#document-content-limits)). The defaults are 256 KB for text,
-3.5 MB for PDF and 3.5 MB for images.
-
-The note for a rejected document has at most the content type, or the size and the limit. The cause of a failure goes to
-the log only, because the note is part of the persisted conversation.
-
 **The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
-document goes out with the prompt without the guard, with no size limit and no type check, and a document the provider
+document goes out with the prompt, with no size limit and no type check, and a document the provider
 cannot read fails the model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
 In an instance without the `documents` feature every document, also those of the user prompt, events and tool results,
-is added as content without the guard.
+is added as content.
 
 **Only Camunda documents.** An instance with the `documents` feature accepts only Camunda documents
 (`AgentDocument.isSupported`). A document with an external reference (a URL) or an inline reference (the content is in the
@@ -441,7 +423,7 @@ document as an `AgentDocumentContent` block with the delivery `reference`. An er
 
 **Effects.** `RuntimeToolResult.success(...)` returns a `Success`. `Success.withDocumentContent(AgentDocumentId)` adds the
 effect `ToolCallEffect.AddDocumentContent` (`AgentDocumentId.of(document)` names a document the result returns). The agent
-adds the content to the request after the tool results, after it applied the content guard. The agent writes the outcome
+adds the content to the request after the tool results, once for each document. The agent writes the outcome
 sentence into the result, so a tool does not. `LoadDocumentTool` is the reference.
 
 Content comes only through the effect. These cases fail the job with an `IllegalArgumentException`: a reference block with the

@@ -150,7 +150,7 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 | Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern)                                                                  |
 | Agent documents (registry, handles, expansion for the model, only Camunda documents) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`data-model.md`](aiagent-model/docs/data-model.md), [ADR 018](docs/adr/018-document-flow.md) |
 | Document parameters of tools (`fromAi` type `document`, resolution, rejection) | [`document-parameters.md`](connector-aiagent/docs/document-parameters.md), [`extension-points.md`](docs/architecture/extension-points.md#documents-and-gateway-tools), [ADR 018](docs/adr/018-document-flow.md) |
-| Loading document content (`c8__load_document`, the content guard, document content limits) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`spring-auto-configuration.md`](docs/architecture/spring-auto-configuration.md#document-content-limits), [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 018](docs/adr/018-document-flow.md) |
+| Loading document content (`c8__load_document`) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 018](docs/adr/018-document-flow.md) |
 | MCP integration                                                          | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md)                       |
 | A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
 | Example BPMN processes & configurations                                  | the `Examples` section of the connector module READMEs, [`examples/`](examples/)                                                                     |
@@ -287,11 +287,8 @@ High-frequency traps (detail behind each link):
   the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
   a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
   and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
-  `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` (with the document factory of the job) runs the content guard
-  (`DocumentContentGuard`, limits in `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document
-  whose content a tool asks for. A document that fails it (a type no provider renders, a size above
-  the limit, a document that cannot be read) stays a reference, no incident: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
-  asks for content with one sentence per document (the content follows in the next message, it is not loaded and why, or it is in
+  `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` decides for every document whose content a tool asks for, without a check of its type or size, only whether the model reads the content already or an earlier request of the batch asked for it: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
+  asks for content with one sentence per document (the content follows in the next message, or it is in
   the conversation already), and the message that follows the tool results holds the loaded documents only; a tool writes none of it. A new document in a tool result is a `DocumentContent`, a known one an
   `AgentDocumentContent`, and content comes only through the effect; `LocalToolCallExecutor` fails the job when a result
   breaks this. Passing a handle to a tool never adds content.

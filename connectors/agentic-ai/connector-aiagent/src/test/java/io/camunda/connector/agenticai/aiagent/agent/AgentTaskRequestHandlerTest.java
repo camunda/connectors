@@ -457,16 +457,13 @@ class AgentTaskRequestHandlerTest {
                 Set.of(),
                 ToolCallBatch.of(List.of())));
     lenient()
-        .when(agentInputComposer.assemble(any(), any()))
+        .when(agentInputComposer.assemble(any()))
         .thenAnswer(invocation -> {
           final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
           return ready.toolCallBatch().toolCalls().isEmpty()
               ? new TurnInput(List.of(inputMessages))
               : resultsInputBuilder.build(
-                  ready.agentContext(),
-                  ready.toolCallBatch(),
-                  ready.documentIdsWithContent(),
-                  TestDocuments.documentFactory());
+                  ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
         });
   }
 

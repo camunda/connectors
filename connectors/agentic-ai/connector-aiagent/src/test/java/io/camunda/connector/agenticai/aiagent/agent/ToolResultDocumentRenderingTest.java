@@ -122,8 +122,8 @@ class ToolResultDocumentRenderingTest {
                     CONFIGURATION,
                     CONTEXT,
                     previous,
-                    AgentInput.from(new UserPromptConfiguration("user input", List.of()), results)),
-            TestDocuments.documentFactory());
+                    AgentInput.from(
+                        new UserPromptConfiguration("user input", List.of()), results)));
 
     // the stored message holds the bare document as a reference and the nested one as it is
     final var stored = (ToolCallResultMessage) nextTurn.messages().getFirst();

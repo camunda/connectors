@@ -203,8 +203,7 @@ client in its properties does not start.
 
 - `compose(configuration, agentContext, previousConversation, agentInput)` is replaced by two steps. `resolve` with the
   same parameters resolves only the results of the process tool calls of the previous turn and returns a
-  `CompositionResult`. `assemble(CompositionResult.Ready, DocumentFactory)` builds the input of the next turn and returns
-  a `TurnInput`; the document factory is the one of the job (`AgentExecutionContext.documentFactory()`).
+  `CompositionResult`. `assemble(CompositionResult.Ready)` builds the input of the next turn and returns a `TurnInput`.
   Between the two, the request handler produces the tool call results of the local tool calls (calls of runtime tools and
   rejected calls) and adds them to the `Ready`. The composer executes no tool.
 - `CompositionResult` has the variants `Deferred`, `NoInput` and `Ready`. `NextTurn` is removed; its messages are in
@@ -263,11 +262,9 @@ The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler
 `RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`. The constructor of
 `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`, the
 constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandleRenderer`, and the
-`ToolCallResultsInputBuilder` takes the `DocumentContentDelivery`, which decides whether the content of a document is added and takes the
-`DocumentContentGuard`, the check of the documents whose content the agent adds. The content delivery and the runtime
-tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`), never with a
-`DocumentFactory` bean. The size limits of the guard are set by the properties
-`camunda.connector.agenticai.aiagent.document.content-limits.*` (see [Document content limits](architecture/spring-auto-configuration.md#document-content-limits)). The
+`ToolCallResultsInputBuilder` takes the `DocumentContentDelivery`, which decides whether the content of a document is added.
+The runtime tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`),
+never with a `DocumentFactory` bean. The
 auto-configuration provides these beans and the built-in runtime tool, each `@ConditionalOnMissingBean`. A custom bean
 built with `new` needs the extra arguments; inject them as beans.
 
@@ -303,7 +300,7 @@ applies it to its persisted context, and the next round continues with the conte
   ask the agent to add the content of a known document to the request that follows the tool results
   (`withDocumentContent(AgentDocumentId)`, which adds a variant of the sealed
   `ToolCallEffect`, listed by `Success.effects()`), which the agent applies after all calls of the message ran, in call
-  order, and after its content guard accepted the document; a document the guard rejects stays a reference, and the agent writes into the tool result that the content is not loaded and why. The agent
+  order, without a check of the type or the size of the document. The agent
   also writes, after the content a result returned, one sentence per document whose content the result asks for; a tool
   needs no text of its own for it. An error result has no effects. A reference block with the delivery `content` in a result, and
   a reference block or an effect that names a document neither known to the agent nor returned by the result, fail the job.

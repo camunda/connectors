@@ -45,32 +45,10 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 
 ## Key Configuration Defaults
 
-Configurable under the `camunda.connector.agenticai.*` prefix, in four main areas: process-definition
-fetch retries and the BPMN-resolution Caffeine cache (`tools.processDefinition.*`), the chat-model
-API timeout (`aiagent.chatModel.api.*`), and the size limits of the document content (below). For the current defaults, see
+Configurable under the `camunda.connector.agenticai.*` prefix, in three main areas: process-definition
+fetch retries and the BPMN-resolution Caffeine cache (`tools.processDefinition.*`), and the chat-model
+API timeout (`aiagent.chatModel.api.*`). For the current defaults, see
 [`ToolsSchemaProperties`](../../aiagent-tools-schema/src/main/java/io/camunda/connector/agenticai/tools/schema/configuration/ToolsSchemaProperties.java)
 (`tools.*`) and
 [`AgenticAiConnectorsConfigurationProperties`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsConfigurationProperties.java)
 (`aiagent.*`); each property carries its own `@DefaultValue`.
-
-## Document content limits
-
-The content guard checks the content that a runtime tool asks for (`c8__load_document`) in an agent instance with the
-`documents` feature: the agent adds the content of such a document to the conversation only when the document passes the
-guard (see "The guard" under [Document Extraction from Tool Call Results](extension-points.md#document-extraction-from-tool-call-results)).
-The limits do not bound the other content the model receives: the documents of the user prompt, and every document of an
-instance without the `documents` feature, are added without the guard. The size limits of the guard are properties of the
-connector, not of a job: the operator sets them for every agent of the runtime, and they are not FEEL expressions. A value
-is a Spring `DataSize` such as `256KB` or `4MB` and must be positive: a value that is not positive fails the binding of
-the properties. A limit that is not set has the default of the table below, which `DocumentContentLimits.defaults()` repeats. A bean of type
-`DocumentContentGuard` replaces the configuration.
-
-| Property                                                            | Default           | Limit of                        |
-|---------------------------------------------------------------------|-------------------|---------------------------------|
-| `camunda.connector.agenticai.aiagent.document.content-limits.text`  | `256KB`           | a text-based document           |
-| `camunda.connector.agenticai.aiagent.document.content-limits.pdf`   | `3584KB` (3.5 MB) | a PDF document                  |
-| `camunda.connector.agenticai.aiagent.document.content-limits.image` | `3584KB` (3.5 MB) | an image (PNG, JPEG, GIF, WebP) |
-
-The defaults stay below the limits of the most restrictive supported model provider (Amazon Bedrock Converse: 4.5 MB for a
-document, 3.75 MB for an image) and apply to every provider: raise a limit only when every provider of the runtime accepts
-the larger document.

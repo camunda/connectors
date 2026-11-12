@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.api.document.DocumentFactory;
 
 /**
  * Composes the input of the next conversation turn from the history and the current invocation, in
@@ -38,9 +37,7 @@ public interface AgentConversationTurnInputComposer {
    * the {@link TurnInput#documents() input}, and the caller registers them in the agent context it
    * persists.
    *
-   * @param documentFactory the document factory of the job, which restores the documents whose
-   *     content a tool call result asks for
    * @throws IllegalStateException if a call of the batch has no result
    */
-  TurnInput assemble(CompositionResult.Ready ready, DocumentFactory documentFactory);
+  TurnInput assemble(CompositionResult.Ready ready);
 }

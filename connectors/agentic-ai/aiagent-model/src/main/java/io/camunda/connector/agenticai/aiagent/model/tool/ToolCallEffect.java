@@ -18,7 +18,7 @@ public sealed interface ToolCallEffect {
 
   /**
    * The content of a known document is added to the request that follows the tool results, unless
-   * the model reads it already or the content guard rejects it.
+   * the model reads it already.
    *
    * @param id the id of a document the agent knows, or of a document the same result returns
    */

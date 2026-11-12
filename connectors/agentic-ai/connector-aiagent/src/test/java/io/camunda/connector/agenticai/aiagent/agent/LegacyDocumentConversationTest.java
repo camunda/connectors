@@ -113,8 +113,7 @@ class LegacyDocumentConversationTest {
       PreviousConversation previous,
       AgentInput input) {
     return composer.assemble(
-        (CompositionResult.Ready) composer.resolve(configuration, context, previous, input),
-        TestDocuments.documentFactory());
+        (CompositionResult.Ready) composer.resolve(configuration, context, previous, input));
   }
 
   @org.junit.jupiter.api.BeforeEach
