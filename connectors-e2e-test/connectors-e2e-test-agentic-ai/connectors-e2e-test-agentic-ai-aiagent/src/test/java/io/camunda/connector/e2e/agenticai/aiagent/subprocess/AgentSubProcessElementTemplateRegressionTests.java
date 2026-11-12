@@ -55,6 +55,7 @@ public class AgentSubProcessElementTemplateRegressionTests extends BaseAgentSubP
   @ParameterizedTest
   @ValueSource(
       strings = {
+        "ai-agent-process-8.11.0.bpmn",
         "ai-agent-process-8.10.0.bpmn",
         "ai-agent-process-8.9.0.bpmn",
         "ai-agent-process-8.8.0.bpmn"

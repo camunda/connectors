@@ -32,8 +32,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     keywords = {"AI", "Agent", "agentic orchestration", "LLM"},
     documentationRef =
         "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-    engineVersion = "^8.10",
-    version = 1,
+    engineVersion = "^8.11",
+    version = 5,
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = AgentTaskV2Request.class,
     outputDataClass = AgentResponse.class,

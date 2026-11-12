@@ -55,6 +55,7 @@ public class AgentTaskElementTemplateRegressionTests extends BaseAgentTaskTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
+        "ai-agent-task-8.11.0.bpmn",
         "ai-agent-task-8.10.0.bpmn",
         "ai-agent-task-8.9.0.bpmn",
         "ai-agent-task-8.8.0.bpmn"
