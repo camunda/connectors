@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.api.chatmodel;
 
 import io.camunda.connector.agenticai.aiagent.model.message.content.ChatContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -36,6 +38,7 @@ public record ChatAssistantMessage(
     this.content = List.copyOf(content);
     this.toolCalls = List.copyOf(toolCalls);
     this.messageId = messageId;
-    this.metadata = metadata == null ? Map.of() : metadata;
+    this.metadata =
+        metadata == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(metadata));
   }
 }
