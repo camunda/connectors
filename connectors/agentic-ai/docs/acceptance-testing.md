@@ -30,6 +30,30 @@ the principle: does correctness depend on the engine and BPMN wiring?
     - prompt composition, schema generation, content/tool conversion
     - response formatting, error messages, pure transformations
 
+## Unit tests
+
+These rules apply [P4](implementation-rules.md#principles): each test protects one behavior that a
+plausible change can break. Pin the whole outcome ([domain rule 6](implementation-rules.md#domain-rules))
+at the level of the unit that owns it. The test level decision above stays mandatory.
+
+- **A test lives in the test of the unit that it exercises.** A test class tests the unit it is named
+  after: a domain type, a step or an adapter. Put a test of a different type into the test of that
+  type. A component test stays at its component level and tests use cases.
+  ([P4](implementation-rules.md#principles))
+- **A test that only reads back its input has no purpose.** Do not assert that an accessor returns its
+  constructor argument. Test derived values, validation and decisions.
+  ([P4](implementation-rules.md#principles))
+- **Mock only the edges.** Mock I/O collaborators, SPIs and clients. Build records and domain values
+  with their constructors or builders. Test a core decision without mocks. Example:
+  `AgentConversationTest`. A build check can find a mock of a record or a domain type.
+  ([P4](implementation-rules.md#principles))
+- **Test shared behavior once.** Test the behavior of a base class in one place. A flavor test covers
+  only what the flavor changes. A PR can delete a duplicate test when it names the test that keeps the
+  coverage. ([P4](implementation-rules.md#principles))
+- **Assert outcomes. Verify only interactions with the edges.** Assert the returned value or state.
+  Use `verify` and `inOrder` only for calls to an external system, where domain rule 6 needs the
+  number of calls. ([P4](implementation-rules.md#principles))
+
 ## Test suites
 
 Unit and component/integration tests that do not require a Camunda cluster belong in the connector
