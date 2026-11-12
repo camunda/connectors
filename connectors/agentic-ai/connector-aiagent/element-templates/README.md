@@ -73,9 +73,10 @@ Backend IDs and labels come from the generated dropdowns. Edit preset defaults i
 
 ### Agent definition marker
 
-All AI Agent Task and Sub-process templates (v1 and v2, all flavors, including hybrid) carry a
-hidden `zeebe:agentDefinition` property so the engine detects a native agent at deploy time
-(camunda/connectors#8176). `../bin/transform-ai-agent-task-template.groovy` adds it to each task template
+The generated AI Agent Task and Sub-process templates in this directory and in `hybrid/` (v1 and
+v2) carry a hidden `zeebe:agentDefinition` property so the engine detects a native agent at deploy
+time (camunda/connectors#8176). The snapshots in `versioned/` do not carry it. A job from such a
+template has no agent definition key header, so the connector creates no agent instance for it. `../bin/transform-ai-agent-task-template.groovy` adds it to each task template
 (`agentType=aiAgentTask`); `../bin/transform-ai-agent-sub-process-template.groovy` adds its own
 (`agentType=aiAgentSubProcess`) to the derived sub-process template. Both take `agentType` as a
 Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
