@@ -19,7 +19,9 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputCo
 import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallExecutor;
@@ -112,6 +114,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.boot.LazyInitializationBeanFactoryPostProcessor;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -143,6 +147,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           ToolCallResultsInputBuilder.class,
           AgentResponseHandler.class,
           AgentExecutionContextFactory.class,
+          AgentTaskExecutionContextFactory.class,
+          AgentSubProcessExecutionContextFactory.class,
           AgentTaskRequestHandler.class,
           AgentTaskV1Function.class,
           AgentTaskV2Function.class,
@@ -237,6 +243,29 @@ class AgenticAiConnectorsAutoConfigurationTest {
               .doesNotHaveBean(AgentSubProcessRequestHandler.class)
               .doesNotHaveBean(AgentSubProcessV1Function.class)
               .doesNotHaveBean(AgentSubProcessV2Function.class);
+        });
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "camunda.connector.agenticai.enabled=true",
+        "camunda.connector.agenticai.aiagent.outbound-connector.enabled=false",
+        "camunda.connector.agenticai.aiagent.job-worker.enabled=false"
+      })
+  void oneExecutionContextFactoryBeanServesBothFlavorInterfaces(String property) {
+    contextRunner
+        .withBean(LazyInitializationBeanFactoryPostProcessor.class)
+        .withPropertyValues(property)
+        .run(context -> {
+          assertThat(context.getBeanNamesForType(AgentTaskExecutionContextFactory.class))
+              .containsExactly("aiAgentExecutionContextFactory");
+          assertThat(context.getBeanNamesForType(AgentSubProcessExecutionContextFactory.class))
+              .containsExactly("aiAgentExecutionContextFactory");
+          var factory = context.getBean(AgentExecutionContextFactory.class);
+          assertThat(context.getBean(AgentTaskExecutionContextFactory.class)).isSameAs(factory);
+          assertThat(context.getBean(AgentSubProcessExecutionContextFactory.class))
+              .isSameAs(factory);
         });
   }
 

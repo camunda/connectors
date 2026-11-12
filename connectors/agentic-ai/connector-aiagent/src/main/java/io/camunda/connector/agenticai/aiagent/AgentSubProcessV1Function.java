@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
-import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -42,11 +42,11 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
   public static final String JOB_WORKER_NAME = "AI Agent Job Worker";
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent-job-worker:1";
 
-  private final AgentExecutionContextFactory executionContextFactory;
+  private final AgentSubProcessExecutionContextFactory executionContextFactory;
   private final AgentSubProcessRequestHandler agentRequestHandler;
 
   public AgentSubProcessV1Function(
-      AgentExecutionContextFactory executionContextFactory,
+      AgentSubProcessExecutionContextFactory executionContextFactory,
       AgentSubProcessRequestHandler agentRequestHandler) {
     this.executionContextFactory = executionContextFactory;
     this.agentRequestHandler = agentRequestHandler;

@@ -18,7 +18,9 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
@@ -290,7 +292,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
       V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
       AgenticAiConnectorsConfigurationProperties configuration) {
-    return new AgentExecutionContextFactory(
+    return AgentExecutionContextFactory.create(
         toolElementsResolver,
         v1ProviderConfigurationMapper,
         configuration.aiagent().rewriteV1ProviderConfigToV2());
@@ -335,7 +337,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       matchIfMissing = true)
   @SuppressWarnings("deprecation")
   public AgentTaskV1Function aiAgentTaskV1Function(
-      AgentExecutionContextFactory executionContextFactory,
+      AgentTaskExecutionContextFactory executionContextFactory,
       AgentTaskRequestHandler agentRequestHandler) {
     return new AgentTaskV1Function(executionContextFactory, agentRequestHandler);
   }
@@ -379,7 +381,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       matchIfMissing = true)
   @SuppressWarnings("deprecation")
   public AgentSubProcessV1Function aiAgentSubProcessV1Function(
-      AgentExecutionContextFactory executionContextFactory,
+      AgentSubProcessExecutionContextFactory executionContextFactory,
       AgentSubProcessRequestHandler agentRequestHandler) {
     return new AgentSubProcessV1Function(executionContextFactory, agentRequestHandler);
   }
@@ -392,7 +394,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
   public AgentTaskV2Function aiAgentTaskV2Function(
-      AgentExecutionContextFactory executionContextFactory,
+      AgentTaskExecutionContextFactory executionContextFactory,
       AgentTaskRequestHandler agentRequestHandler) {
     return new AgentTaskV2Function(executionContextFactory, agentRequestHandler);
   }
@@ -405,7 +407,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
   public AgentSubProcessV2Function aiAgentSubProcessV2Function(
-      AgentExecutionContextFactory executionContextFactory,
+      AgentSubProcessExecutionContextFactory executionContextFactory,
       AgentSubProcessRequestHandler agentRequestHandler) {
     return new AgentSubProcessV2Function(executionContextFactory, agentRequestHandler);
   }

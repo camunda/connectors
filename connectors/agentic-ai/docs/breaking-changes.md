@@ -257,17 +257,18 @@ constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandle
 auto-configuration provides these beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra
 arguments; inject them as beans.
 
-The constructors of `AgentTaskV1Function`, `AgentTaskV2Function`, `AgentSubProcessV1Function` and
-`AgentSubProcessV2Function` take an `AgentExecutionContextFactory` and the request handler. The
-`AgentExecutionContextFactory` bean (`aiAgentExecutionContextFactory`, `@ConditionalOnMissingBean`) takes the
+The constructors of `AgentTaskV1Function` and `AgentTaskV2Function` take an `AgentTaskExecutionContextFactory` and
+the request handler. The constructors of `AgentSubProcessV1Function` and `AgentSubProcessV2Function` take an
+`AgentSubProcessExecutionContextFactory` and the request handler. One bean implements both interfaces:
+`aiAgentExecutionContextFactory` of type `AgentExecutionContextFactory`, `@ConditionalOnMissingBean`. It takes the
 `ProcessDefinitionAdHocToolElementsResolver`, the `V1ToV2ProviderConfigurationMapper` and the
-`rewrite-v1-provider-config-to-v2` setting that the functions took before. Migration: inject the
-`AgentExecutionContextFactory` bean in a custom function bean.
+`rewrite-v1-provider-config-to-v2` setting that the functions took before. Migration: inject the interface of the
+flavor in a custom function bean. To build the default factory yourself, call `AgentExecutionContextFactory.create`.
 
 The constructors of `AgentTaskExecutionContext` and `AgentSubProcessExecutionContext` that take an
 `AgentTaskV1Request` or an `AgentSubProcessV1Request` are removed. Migration: call
-`AgentExecutionContextFactory.taskContext` or `subProcessContext`, or the remaining constructor with the request data
-and the chat model configuration.
+`AgentTaskExecutionContextFactory.taskContext` or `AgentSubProcessExecutionContextFactory.subProcessContext`, or the
+remaining constructor with the request data and the chat model configuration.
 
 ### Conversation window
 

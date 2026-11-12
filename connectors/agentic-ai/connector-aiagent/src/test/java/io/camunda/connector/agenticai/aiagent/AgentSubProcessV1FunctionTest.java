@@ -86,7 +86,7 @@ class AgentSubProcessV1FunctionTest {
     when(providerConfigurationMapper.map(V1_PROVIDER)).thenReturn(V2_PROVIDER);
     var function =
         new AgentSubProcessV1Function(
-            new AgentExecutionContextFactory(null, providerConfigurationMapper, true),
+            AgentExecutionContextFactory.create(null, providerConfigurationMapper, true),
             agentRequestHandler);
 
     function.execute(context);
@@ -100,7 +100,7 @@ class AgentSubProcessV1FunctionTest {
   void keepsV1ProviderConfigurationWhenSwitchIsDisabled() throws Exception {
     var function =
         new AgentSubProcessV1Function(
-            new AgentExecutionContextFactory(null, providerConfigurationMapper, false),
+            AgentExecutionContextFactory.create(null, providerConfigurationMapper, false),
             agentRequestHandler);
 
     function.execute(context);

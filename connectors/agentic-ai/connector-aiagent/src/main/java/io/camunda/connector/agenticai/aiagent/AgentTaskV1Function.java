@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
-import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -104,11 +104,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     },
     icon = "aiagent.svg")
 public class AgentTaskV1Function implements AgentConnectorFunction {
-  private final AgentExecutionContextFactory executionContextFactory;
+  private final AgentTaskExecutionContextFactory executionContextFactory;
   private final AgentTaskRequestHandler agentRequestHandler;
 
   public AgentTaskV1Function(
-      AgentExecutionContextFactory executionContextFactory,
+      AgentTaskExecutionContextFactory executionContextFactory,
       AgentTaskRequestHandler agentRequestHandler) {
     this.executionContextFactory = executionContextFactory;
     this.agentRequestHandler = agentRequestHandler;
