@@ -6,11 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV2Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV2Request;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
+import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
@@ -41,14 +43,12 @@ public class AgentExecutionContextFactory {
   /** Returns the AI Agent Task execution context for a v1 request. */
   public AgentTaskExecutionContext taskContext(
       OutboundConnectorContext context, AgentTaskV1Request request) {
-    if (rewriteV1ProviderConfigToV2) {
-      var nativeConfig = providerConfigurationMapper.map(request.provider());
-      return new AgentTaskExecutionContext(
-          context.getJobContext(), context, request.data(), nativeConfig, toolElementsResolver);
-    }
-
     return new AgentTaskExecutionContext(
-        context.getJobContext(), context, request, toolElementsResolver);
+        context.getJobContext(),
+        context,
+        request.data(),
+        v1ChatModel(request.provider()),
+        toolElementsResolver);
   }
 
   /** Returns the AI Agent Task execution context for a v2 request. */
@@ -61,19 +61,14 @@ public class AgentExecutionContextFactory {
   /** Returns the AI Agent Sub-process execution context for a v1 request. */
   public AgentSubProcessExecutionContext subProcessContext(
       OutboundConnectorContext context, AgentSubProcessV1Request request) {
-    if (rewriteV1ProviderConfigToV2) {
-      var nativeConfig = providerConfigurationMapper.map(request.provider());
-      return new AgentSubProcessExecutionContext(
-          context.getJobContext(),
-          context,
-          request.data(),
-          request.agentContext(),
-          request.toolCallResults(),
-          request.toolElements(),
-          nativeConfig);
-    }
-
-    return new AgentSubProcessExecutionContext(context.getJobContext(), context, request);
+    return new AgentSubProcessExecutionContext(
+        context.getJobContext(),
+        context,
+        request.data(),
+        request.agentContext(),
+        request.toolCallResults(),
+        request.toolElements(),
+        v1ChatModel(request.provider()));
   }
 
   /** Returns the AI Agent Sub-process execution context for a v2 request. */
@@ -87,5 +82,9 @@ public class AgentExecutionContextFactory {
         request.toolCallResults(),
         request.toolElements(),
         request.provider());
+  }
+
+  private ChatModelConfiguration v1ChatModel(ProviderConfiguration provider) {
+    return rewriteV1ProviderConfigToV2 ? providerConfigurationMapper.map(provider) : provider;
   }
 }
