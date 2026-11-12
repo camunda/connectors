@@ -39,8 +39,9 @@ Two kinds of implementation exist:
   provider. See [`langchain4j-chat-model.md`](langchain4j-chat-model.md).
 
 A configuration is either a v1 or a v2 type, so only one kind of factory can match it. By default,
-`AgentTaskV1Function` and `AgentSubProcessV1Function` rewrite the v1 provider configuration to its v2
-equivalent with `V1ToV2ProviderConfigurationMapper`, so v1 requests run on the native providers. The
+`AgentExecutionContextFactory` rewrites the v1 provider configuration to its v2 equivalent with
+`V1ToV2ProviderConfigurationMapper` when it builds the execution context of a v1 request, so v1 requests
+run on the native providers. The
 LangChain4j factories are used only when
 `camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is `false`. A
 `CustomProviderConfiguration` is served by a user-supplied factory, see

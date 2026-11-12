@@ -24,7 +24,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Turn input composer and response handler](#turn-input-composer-and-response-handler) | Custom `AgentConversationTurnInputComposer` and `AgentResponseHandler` |
 | [Gateway tool handlers](#gateway-tool-handlers)              | Custom `GatewayToolHandler` that overrides `extractDocuments` |
 | [Agent instance client and mappers](#agent-instance-client-and-mappers)      | Custom `AgentInstanceClient`, `AgentInstanceHistoryMapper`, `AgentInstanceToolMapper` |
-| [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers |
+| [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers or the AI Agent connector functions |
 | [Conversation window](#conversation-window)                                  | Code that calls `AgentConversation.window`                      |
 | [Runtime tools and tool names](#runtime-tools-and-tool-names)                | Processes with a tool element named like a runtime tool        |
 | [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records (`AgentContext`, `ToolCall`), switches over `Content` |
@@ -256,6 +256,13 @@ The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler
 constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandleRenderer`. The
 auto-configuration provides these beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra
 arguments; inject them as beans.
+
+The constructors of `AgentTaskV1Function`, `AgentTaskV2Function`, `AgentSubProcessV1Function` and
+`AgentSubProcessV2Function` take an `AgentExecutionContextFactory` and the request handler. The
+`AgentExecutionContextFactory` bean (`aiAgentExecutionContextFactory`, `@ConditionalOnMissingBean`) takes the
+`ProcessDefinitionAdHocToolElementsResolver`, the `V1ToV2ProviderConfigurationMapper` and the
+`rewrite-v1-provider-config-to-v2` setting that the functions took before. Migration: inject the
+`AgentExecutionContextFactory` bean in a custom function bean.
 
 ### Conversation window
 

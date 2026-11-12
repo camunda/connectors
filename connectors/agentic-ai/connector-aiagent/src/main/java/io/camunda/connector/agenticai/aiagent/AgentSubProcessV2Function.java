@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
-import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV2Request;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -29,9 +29,13 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
   public static final String JOB_WORKER_NAME = "AI Agent Sub-process";
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent:subprocess:2";
 
+  private final AgentExecutionContextFactory executionContextFactory;
   private final AgentSubProcessRequestHandler agentRequestHandler;
 
-  public AgentSubProcessV2Function(AgentSubProcessRequestHandler agentRequestHandler) {
+  public AgentSubProcessV2Function(
+      AgentExecutionContextFactory executionContextFactory,
+      AgentSubProcessRequestHandler agentRequestHandler) {
+    this.executionContextFactory = executionContextFactory;
     this.agentRequestHandler = agentRequestHandler;
   }
 
@@ -39,15 +43,7 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
   public AgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(AgentSubProcessV2Request.class);
-    var executionContext =
-        new AgentSubProcessExecutionContext(
-            context.getJobContext(),
-            context,
-            request.data(),
-            request.agentContext(),
-            request.toolCallResults(),
-            request.toolElements(),
-            request.provider());
+    var executionContext = executionContextFactory.subProcessContext(context, request);
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

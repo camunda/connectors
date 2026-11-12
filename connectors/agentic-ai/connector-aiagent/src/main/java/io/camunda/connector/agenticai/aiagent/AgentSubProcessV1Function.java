@@ -6,10 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
-import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
-import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
@@ -43,41 +42,21 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
   public static final String JOB_WORKER_NAME = "AI Agent Job Worker";
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent-job-worker:1";
 
+  private final AgentExecutionContextFactory executionContextFactory;
   private final AgentSubProcessRequestHandler agentRequestHandler;
-  private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
-  private final boolean rewriteV1ProviderConfigToV2;
 
   public AgentSubProcessV1Function(
-      AgentSubProcessRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper providerConfigurationMapper,
-      boolean rewriteV1ProviderConfigToV2) {
+      AgentExecutionContextFactory executionContextFactory,
+      AgentSubProcessRequestHandler agentRequestHandler) {
+    this.executionContextFactory = executionContextFactory;
     this.agentRequestHandler = agentRequestHandler;
-    this.providerConfigurationMapper = providerConfigurationMapper;
-    this.rewriteV1ProviderConfigToV2 = rewriteV1ProviderConfigToV2;
   }
 
   @Override
   public AgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(AgentSubProcessV1Request.class);
-    var executionContext = buildExecutionContext(context, request);
+    var executionContext = executionContextFactory.subProcessContext(context, request);
     return agentRequestHandler.handleRequest(executionContext);
-  }
-
-  private AgentSubProcessExecutionContext buildExecutionContext(
-      OutboundConnectorContext context, AgentSubProcessV1Request request) {
-    if (rewriteV1ProviderConfigToV2) {
-      var nativeConfig = providerConfigurationMapper.map(request.provider());
-      return new AgentSubProcessExecutionContext(
-          context.getJobContext(),
-          context,
-          request.data(),
-          request.agentContext(),
-          request.toolCallResults(),
-          request.toolElements(),
-          nativeConfig);
-    }
-
-    return new AgentSubProcessExecutionContext(context.getJobContext(), context, request);
   }
 }
