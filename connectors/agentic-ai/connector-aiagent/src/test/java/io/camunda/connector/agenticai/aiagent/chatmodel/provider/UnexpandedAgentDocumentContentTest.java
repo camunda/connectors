@@ -26,8 +26,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
- * A document reference is expanded to its tag text and document content before a request is built,
- * so no provider converter accepts it.
+ * The LangChain4j converters read the persisted content types, so they fail loudly for a document
+ * reference.
  */
 class UnexpandedAgentDocumentContentTest {
 

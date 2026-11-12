@@ -15,21 +15,33 @@ import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatAssistantMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException.PartialResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequestMessage;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatSystemMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatConversationBridge;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
@@ -77,11 +89,12 @@ public class LangChain4JChatModel implements ChatModel {
   public ChatResult execute(
       io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest request) {
     final var executionContext = request.executionContext();
-    final var snapshot = ChatConversationBridge.toSnapshot(request.conversation());
+    final var conversation = request.conversation();
 
-    final var messages = chatMessageConverter.map(snapshot.messages(), providerConfiguration);
+    final var messages =
+        chatMessageConverter.map(persistedMessages(conversation), providerConfiguration);
     final var toolSpecifications =
-        toolSpecificationConverter.asToolSpecifications(snapshot.toolDefinitions());
+        toolSpecificationConverter.asToolSpecifications(conversation.toolDefinitions());
 
     final var configuration = executionContext.configuration();
     final var chatRequestBuilder =
@@ -172,5 +185,38 @@ public class LangChain4JChatModel implements ChatModel {
     } catch (Exception e) {
       LOG.error("Failed to close CloseableChatModel", e);
     }
+  }
+
+  /** The messages of the conversation as the persisted message types the converters read. */
+  private static List<Message> persistedMessages(ChatConversation conversation) {
+    return conversation.messages().stream().map(LangChain4JChatModel::persistedMessage).toList();
+  }
+
+  private static Message persistedMessage(ChatRequestMessage message) {
+    return switch (message) {
+      case ChatSystemMessage system ->
+          SystemMessage.builder().content(List.<Content>copyOf(system.content())).build();
+      case ChatUserMessage user ->
+          UserMessage.builder().content(List.<Content>copyOf(user.content())).build();
+      case ChatAssistantMessage assistant ->
+          AssistantMessage.builder()
+              .content(List.<Content>copyOf(assistant.content()))
+              .toolCalls(assistant.toolCalls())
+              .messageId(assistant.messageId())
+              .metadata(assistant.metadata())
+              .build();
+      case ChatToolCallResultMessage results ->
+          ToolCallResultMessage.builder()
+              .results(
+                  results.results().stream()
+                      .map(result ->
+                          ToolCallResultContent.builder()
+                              .id(result.id())
+                              .name(result.name())
+                              .content(List.<Content>copyOf(result.content()))
+                              .build())
+                      .toList())
+              .build();
+    };
   }
 }
