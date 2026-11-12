@@ -87,7 +87,7 @@ class AgentTaskV1FunctionTest {
     when(providerConfigurationMapper.map(V1_PROVIDER)).thenReturn(V2_PROVIDER);
     var function =
         new AgentTaskV1Function(
-            AgentExecutionContextFactory.create(
+            new AgentExecutionContextFactory(
                 toolElementsResolver, providerConfigurationMapper, true),
             agentRequestHandler);
 
@@ -102,7 +102,7 @@ class AgentTaskV1FunctionTest {
   void keepsV1ProviderConfigurationWhenSwitchIsDisabled() {
     var function =
         new AgentTaskV1Function(
-            AgentExecutionContextFactory.create(
+            new AgentExecutionContextFactory(
                 toolElementsResolver, providerConfigurationMapper, false),
             agentRequestHandler);
 

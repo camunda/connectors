@@ -18,8 +18,7 @@ public interface AgentTaskExecutionContextFactory {
 
   /**
    * Returns the execution context for a v1 request. Its provider configuration is the v1
-   * configuration of the request or its v2 equivalent, see {@link
-   * AgentExecutionContextFactory#create}.
+   * configuration of the request or its v2 equivalent, see {@link AgentExecutionContextFactory}.
    */
   AgentTaskExecutionContext taskContext(
       OutboundConnectorContext context, AgentTaskV1Request request);

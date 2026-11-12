@@ -16,7 +16,6 @@ import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
-import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContextFactory;
@@ -114,8 +113,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.boot.LazyInitializationBeanFactoryPostProcessor;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -146,9 +143,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentConversationTurnInputComposer.class,
           ToolCallResultsInputBuilder.class,
           AgentResponseHandler.class,
-          AgentExecutionContextFactory.class,
-          AgentTaskExecutionContextFactory.class,
-          AgentSubProcessExecutionContextFactory.class,
           AgentTaskRequestHandler.class,
           AgentTaskV1Function.class,
           AgentTaskV2Function.class,
@@ -246,27 +240,18 @@ class AgenticAiConnectorsAutoConfigurationTest {
         });
   }
 
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "camunda.connector.agenticai.enabled=true",
-        "camunda.connector.agenticai.aiagent.outbound-connector.enabled=false",
-        "camunda.connector.agenticai.aiagent.job-worker.enabled=false"
-      })
-  void oneExecutionContextFactoryBeanServesBothFlavorInterfaces(String property) {
-    contextRunner
-        .withBean(LazyInitializationBeanFactoryPostProcessor.class)
-        .withPropertyValues(property)
-        .run(context -> {
-          assertThat(context.getBeanNamesForType(AgentTaskExecutionContextFactory.class))
-              .containsExactly("aiAgentExecutionContextFactory");
-          assertThat(context.getBeanNamesForType(AgentSubProcessExecutionContextFactory.class))
-              .containsExactly("aiAgentExecutionContextFactory");
-          var factory = context.getBean(AgentExecutionContextFactory.class);
-          assertThat(context.getBean(AgentTaskExecutionContextFactory.class)).isSameAs(factory);
-          assertThat(context.getBean(AgentSubProcessExecutionContextFactory.class))
-              .isSameAs(factory);
-        });
+  @Test
+  void
+      whenAgenticAiConfigurationEnabled_thenFunctionsAreCreatedWithoutExecutionContextFactoryBean() {
+    contextRunner.run(context -> {
+      assertThat(context)
+          .doesNotHaveBean(AgentTaskExecutionContextFactory.class)
+          .doesNotHaveBean(AgentSubProcessExecutionContextFactory.class);
+      assertThat(context.getBean(AgentTaskV1Function.class)).isNotNull();
+      assertThat(context.getBean(AgentTaskV2Function.class)).isNotNull();
+      assertThat(context.getBean(AgentSubProcessV1Function.class)).isNotNull();
+      assertThat(context.getBean(AgentSubProcessV2Function.class)).isNotNull();
+    });
   }
 
   @Test

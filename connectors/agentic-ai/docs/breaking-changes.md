@@ -259,11 +259,7 @@ arguments; inject them as beans.
 
 The constructors of `AgentTaskV1Function` and `AgentTaskV2Function` take an `AgentTaskExecutionContextFactory` and
 the request handler. The constructors of `AgentSubProcessV1Function` and `AgentSubProcessV2Function` take an
-`AgentSubProcessExecutionContextFactory` and the request handler. One bean implements both interfaces:
-`aiAgentExecutionContextFactory` of type `AgentExecutionContextFactory`, `@ConditionalOnMissingBean`. It takes the
-`ProcessDefinitionAdHocToolElementsResolver`, the `V1ToV2ProviderConfigurationMapper` and the
-`rewrite-v1-provider-config-to-v2` setting that the functions took before. Migration: inject the interface of the
-flavor in a custom function bean. To build the default factory yourself, call `AgentExecutionContextFactory.create`.
+`AgentSubProcessExecutionContextFactory` and the request handler.
 
 The constructors of `AgentTaskExecutionContext` and `AgentSubProcessExecutionContext` that take an
 `AgentTaskV1Request` or an `AgentSubProcessV1Request` are removed. Migration: call
