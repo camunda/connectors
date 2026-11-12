@@ -175,7 +175,7 @@ SpringConnectorJobHandler.handle(jobClient, job)
   │
   ├─ AgentSubProcessV1Function.execute(context)
   │    ├─ Binds variables to AgentSubProcessV1Request
-  │    ├─ AgentExecutionContextFactory.subProcessContext(context, request)
+  │    ├─ AgentSubProcessExecutionContextFactory.subProcessContext(context, request)
   │    └─ agentRequestHandler.handleRequest(executionContext)
   │         └─ Returns AgentSubProcessConnectorResponse (AdHocSubProcessConnectorResponse)
   │

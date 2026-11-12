@@ -185,7 +185,7 @@ class AgentExecutionContextFactoryTest {
   }
 
   private AgentExecutionContextFactory factory(boolean rewriteV1ProviderConfigToV2) {
-    return new AgentExecutionContextFactory(
+    return AgentExecutionContextFactory.create(
         toolElementsResolver,
         new V1ToV2ProviderConfigurationMapperImpl(
             new ChatModelProperties(new ApiProperties(DEFAULT_TIMEOUT), null)),
