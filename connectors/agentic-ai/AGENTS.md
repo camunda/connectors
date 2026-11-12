@@ -374,31 +374,11 @@ fixtures for the new template generation in the same change, as described in
 When you write or change help text in `@TemplateProperty` annotations (`label`, `tooltip`,
 `placeholder`, `description`), follow [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md).
 
-### Agent definition marker
+### Template markers
 
-All AI Agent Task and Sub-process templates (v1 and v2, all flavors, including hybrid) carry a
-hidden `zeebe:agentDefinition` property so the engine detects a native agent at deploy time
-(camunda/connectors#8176). `transform-ai-agent-task-template.groovy` adds it to each task template
-(`agentType=aiAgentTask`); `transform-ai-agent-sub-process-template.groovy` adds its own
-(`agentType=aiAgentSubProcess`) to the derived sub-process template. Both take `agentType` as a
-Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
-execution order does not matter — the sub-process transformer cannot carry the task marker into the
-derived template regardless of when the task-marker script runs.
-
-### Deprecation marker (v1 only)
-
-Only the current main/hybrid v1 AI Agent Task and Sub-process templates (version 13, minimum Camunda
-8.10) carry a top-level `deprecated` block pointing modelers to the v2 template, and have `(Deprecated)`
-appended to their `name`. Their `versioned/` snapshots at versions 10–12 do not: Web Modeler never
-offers an Update action on a deprecated template, so deprecating those older versions too would strand
-anyone still on them with no click-path to version 13 (see #8431's follow-up revert). Earlier v1
-versions (8.8/8.9-minimum, versions 0–7) carry neither, and neither do v2 templates. For the generated
-main/hybrid templates, both transform scripts accept optional `deprecationMessage` /
-`deprecationDocumentationRef` Maven properties — wired only into the v1 executions in `pom.xml` — and
-each script strips any inherited `deprecated` block before deciding its own and appending `(Deprecated)`
-to `name` if not already present, the same pattern used for the agent definition marker above.
-`versioned/` snapshots are static and are patched by hand instead (three pre-8.10 snapshots already
-carried an unrelated legacy `"deprecated": true` boolean flag and were left untouched).
+The transform scripts add the hidden `zeebe:agentDefinition` marker to every AI Agent template and the
+`deprecated` block to the current v1 templates. Which templates carry them and how the scripts add them:
+[Markers added by the transform scripts](connector-aiagent/element-templates/README.md#markers-added-by-the-transform-scripts).
 
 ## Key entry points
 
