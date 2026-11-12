@@ -560,12 +560,29 @@ class RuntimeToolsTest {
                 runtimeCall("n2", SaveNoteTool.NAME, Map.of("text", "b"))));
 
     // the second note is numbered like the first one: neither call saw the document of the other
-    assertThat(executions.get(0).result().content().getFirst())
-        .isEqualTo(TextContent.textContent("Saved note #1"));
-    assertThat(executions.get(1).result().content())
-        .containsExactly(TextContent.textContent("documents: 1"));
-    assertThat(executions.get(2).result().content().getFirst())
-        .isEqualTo(TextContent.textContent("Saved note #1"));
+    assertThat(executions).hasSize(3);
+    assertSavedNoteOne(executions.get(0), "a");
+    assertThat(executions.get(1).result())
+        .isEqualTo(RuntimeToolResult.success(List.of(TextContent.textContent("documents: 1"))));
+    assertSavedNoteOne(executions.get(2), "b");
+  }
+
+  private static void assertSavedNoteOne(RuntimeToolExecution execution, String text) {
+    assertThat(execution.result()).isInstanceOf(RuntimeToolResult.Success.class);
+    assertThat(((RuntimeToolResult.Success) execution.result()).effects()).isEmpty();
+    final var content = execution.result().content();
+    assertThat(content).hasSize(2);
+    assertThat(content.get(0)).isEqualTo(TextContent.textContent("Saved note #1"));
+    assertThat(content.get(1))
+        .isInstanceOfSatisfying(
+            DocumentContent.class,
+            block -> {
+              assertThat(block.metadata()).isNull();
+              assertThat(block.document().metadata().getFileName()).isEqualTo("note-1.txt");
+              assertThat(block.document().metadata().getContentType()).isEqualTo("text/plain");
+              assertThat(new String(block.document().asByteArray(), StandardCharsets.UTF_8))
+                  .isEqualTo(text);
+            });
   }
 
   @Test
@@ -609,9 +626,10 @@ class RuntimeToolsTest {
                     runtimeCall("l1", "acme_load", Map.of()),
                     runtimeCall("f1", "acme_fail", Map.of())));
 
-    assertThat(executions.get(0).result())
-        .isEqualTo(RuntimeToolResult.success("ok").withDocumentContent(id));
-    assertThat(executions.get(1).result()).isInstanceOf(RuntimeToolResult.Error.class);
+    assertThat(executions)
+        .extracting(RuntimeToolExecution::result)
+        .containsExactly(
+            RuntimeToolResult.success("ok").withDocumentContent(id), RuntimeToolResult.error("no"));
   }
 
   // document parameters
