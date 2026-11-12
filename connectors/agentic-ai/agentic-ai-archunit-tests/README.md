@@ -9,6 +9,7 @@ Architecture tests for the production classes of all agentic AI modules. Test-on
 The tests use ArchUnit (`archunit-junit5`) and are in package `io.camunda.connector.agenticai.archunit`.
 
 - `AgenticAiModules`: maps the modules to their package roots and kinds (library, connector, integration).
+- `AgenticAiModulesTest` (plain JUnit): unit test of the module location lookup in `AgenticAiModules.isLocatedIn`.
 - `ModuleLayersArchTest`: the dependency direction between the package roots (layers) of the modules.
 - `ModulePackageOwnershipArchTest`: every class of a package root is loaded from the module owning it,
   and every module contains only classes of its own package root.
