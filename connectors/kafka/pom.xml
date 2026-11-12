@@ -142,9 +142,13 @@ except in compliance with the proprietary license.</license.inlineheader>
               <regex>^8\.4\.1$</regex>
               <regexMessage>
 version.schema-registry was changed! Check if the org.json CVE-2026-59171 override can be removed.
-If the new kafka-json-schema-provider resolves org.json &gt;= 20260719 (confirm with
-`mvn dependency:tree -Dincludes=org.json:json`, not just the property), remove the version.json property
-and the org.json dependencyManagement entry from parent/pom.xml, and this enforcer rule.
+1. Temporarily delete the org.json dependencyManagement entry from parent/pom.xml. While it is present,
+   dependency:tree only reports the pinned version, so it cannot show what the Confluent artifacts request.
+2. Run `mvn dependency:tree -Dincludes=org.json:json -pl :connector-runtime-bundle,:connector-runtime-bundle-saas -am`.
+3. If org.json now resolves to &gt;= 20260719,
+   remove the org.json dependencyManagement entry and the version.json property from parent/pom.xml,
+   and this enforcer rule.
+   If it resolves to a lower version, restore the entry and update the regex of this rule.
 See: https://github.com/stleary/JSON-java/security/advisories/GHSA-ghc9-756g-vrcv
               </regexMessage>
             </requireProperty>
