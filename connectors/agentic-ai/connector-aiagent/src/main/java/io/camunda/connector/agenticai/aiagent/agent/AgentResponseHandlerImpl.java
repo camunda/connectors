@@ -104,9 +104,8 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
   }
 
   private static ToolDefinition definitionOf(AgentContext agentContext, ToolCall toolCall) {
-    return agentContext.toolDefinitions().stream()
-        .filter(definition -> definition.name().equals(toolCall.name()))
-        .findFirst()
+    return agentContext
+        .toolDefinition(toolCall.name())
         .orElseThrow(() ->
             new IllegalStateException(
                 "The call '%s' of the tool '%s' goes to the process, but the agent context has no tool of this name"
