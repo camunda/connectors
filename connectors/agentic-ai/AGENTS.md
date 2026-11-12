@@ -45,14 +45,15 @@ The module is split into Maven modules with a fixed dependency direction
 | ------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | `agentic-ai-common`             | `common`                             | Shared helpers grouped by topic (`json`, `retry`, `http`, `validation`, ...), common properties | none                                                                  |
 | `aiagent-model`                 | `aiagent.model`                      | Agent model referenced by the extension points                                                  | common                                                                |
-| `aiagent-api`                   | `aiagent.api`                        | Extension points (gateway tools, chat model, storage, prompts)                                  | model, common                                                         |
+| `aiagent-api`                   | `aiagent.api` (except `chatmodel`)   | Extension points (gateway tools, runtime tools, storage, prompts)                               | model, common                                                         |
+| `aiagent-chatmodel-api`         | `aiagent.api.chatmodel`              | Chat model provider SPI ([ADR 020](docs/adr/020-chat-model-spi-module.md))                      | model                                                                 |
 | `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                                                  | api, model, common                                                    |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                                                   | tools-schema                                                          |
 | `connector-mcp`                 | `mcp.client`                         | MCP client connectors                                                                           | common                                                                |
 | `aiagent-mcp-integration`       | `mcp.integration`                    | MCP client as AI Agent gateway tool                                                             | connector-mcp, api, model, common                                     |
 | `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                                                           | common                                                                |
 | `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                                                             | connector-a2a, api, model, common                                     |
-| `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client                                   | tools-schema, api, model, common                                      |
+| `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client                                   | tools-schema, api, chatmodel-api, model, common                       |
 | `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes                                      | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped                                           | all modules, in test scope                                            |
 
@@ -139,7 +140,7 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 | Tool completion, partial results, no-op completion                       | [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete)                                                              |
 | Concurrency & race conditions (supersession, store-ahead-of-Zeebe)       | [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions)                                                       |
 | Event handling (sub-process only)                                        | [`agentic-loop.md`](docs/architecture/agentic-loop.md#event-handling)                                                                                |
-| Chat model provider SPI, provider selection, LangChain4j converter chain | [`chat-model-spi.md`](aiagent-api/docs/chat-model-spi.md), [`chat-model.md`](connector-aiagent/docs/chat-model.md), [`langchain4j-chat-model.md`](connector-aiagent/docs/langchain4j-chat-model.md) |
+| Chat model provider SPI, provider selection, LangChain4j converter chain | [`chat-model-spi.md`](aiagent-chatmodel-api/docs/chat-model-spi.md), [`chat-model.md`](connector-aiagent/docs/chat-model.md), [`langchain4j-chat-model.md`](connector-aiagent/docs/langchain4j-chat-model.md) |
 | System prompt composition / contributors                                 | [`system-prompt-contributor.md`](aiagent-api/docs/system-prompt-contributor.md), [`system-prompt.md`](connector-aiagent/docs/system-prompt.md)       |
 | Response handling (text / JSON / full message)                           | [`response-handling.md`](connector-aiagent/docs/response-handling.md)                                                                                |
 | Error codes                                                              | [`error-codes.md`](connector-aiagent/docs/error-codes.md)                                                                                            |
@@ -367,8 +368,8 @@ Before claiming a change is complete:
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Each Javadoc and each document that names a changed method agrees with the code at the last commit of the PR.
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
-  The build does not check this yet: the API compatibility check skips `aiagent-api` and
-  `aiagent-model` until 8.11.0 is its baseline. From then on, a break of these modules fails the build
+  The build does not check this yet: the API compatibility check skips `aiagent-api`,
+  `aiagent-chatmodel-api` and `aiagent-model` until 8.11.0 is its baseline. From then on, a break of these modules fails the build
   until it is accepted in the module's `api-changes.json` with a link to its `breaking-changes.md`
   anchor ([API compatibility check](../../docs/api-compatibility.md)).
 

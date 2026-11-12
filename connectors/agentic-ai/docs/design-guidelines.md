@@ -24,7 +24,7 @@ review and the tests of the stores and SPIs enforce them.
   - **Rule**: nothing outside `io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.**` may
     import `dev.langchain4j.*`.
   - **Why**: the LLM provider is an SPI (`ChatModel` / `ChatModelFactory`, see
-    [`chat-model-spi.md`](../aiagent-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)). Keeping LangChain4j behind the SPI means it can be replaced or
+    [`chat-model-spi.md`](../aiagent-chatmodel-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)). Keeping LangChain4j behind the SPI means it can be replaced or
     extended per provider without touching orchestration, memory, or the data model.
   - **Verify**: `grep -rl "import dev.langchain4j" --include="*.java"
     connector-aiagent/src/main/java/io/camunda/connector/agenticai | grep -v /chatmodel/provider/langchain4j/` returns nothing.

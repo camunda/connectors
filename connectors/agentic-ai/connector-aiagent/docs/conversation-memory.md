@@ -63,7 +63,7 @@ detection described above.
 `ConversationSnapshot` (record, `...aiagent.api.conversation`) is the transient, windowed, read-only view of the
 persisted messages: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. `DocumentExpander.expand` builds
 the `ChatConversation` the model is called with from it, through `ChatConversation.of` (see
-[Chat model provider SPI](../../aiagent-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)). For an agent instance with the
+[Chat model provider SPI](../../aiagent-chatmodel-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)). For an agent instance with the
 `documents` feature `DocumentExpander.expand` expands the document blocks
 (`AgentDocumentContent`, a typed content block with the delivery `reference` or `content`) with the agent documents
 (see [Document Extraction from Tool Call Results](../../docs/architecture/extension-points.md#document-extraction-from-tool-call-results)).

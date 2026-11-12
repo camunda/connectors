@@ -45,7 +45,8 @@ new group `io.camunda.connector.agenticai`:
 | Artifact | Package root | Contents |
 | ------------------------------- | --- | ------------------------------------------------------------------------- |
 | `connector-aiagent` | `aiagent` (except `model`, `api`) | AI Agent connectors, chat model providers, conversation stores |
-| `aiagent-api` | `aiagent.api` | Extension points: gateway tools, chat model, conversation storage, system prompt contributors |
+| `aiagent-api` | `aiagent.api` (except `chatmodel`) | Extension points: gateway tools, runtime tools, conversation storage, system prompt contributors |
+| `aiagent-chatmodel-api` | `aiagent.api.chatmodel` | Chat model provider SPI ([ADR 020](adr/020-chat-model-spi-module.md)) |
 | `aiagent-model` | `aiagent.model` | Agent model used by the extension points |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |
@@ -57,9 +58,9 @@ new group `io.camunda.connector.agenticai`:
 | `agentic-ai-bundle` | – | All of the above (`pom` packaging, depend on it with `<type>pom</type>`) |
 
 An extension that replaces beans of the AI Agent connector depends on `connector-aiagent`, which
-brings the API, model, tools schema and common libraries. It does not bring the Ad-hoc tools schema
+brings the API, chat model API, model, tools schema and common libraries. It does not bring the Ad-hoc tools schema
 connector. Add `connector-ad-hoc-tools-schema`, or use the bundle, when processes use that connector. An extension that only implements an
-extension point can depend on `aiagent-api` alone. The MCP and A2A modules are separate
+extension point can depend on `aiagent-api` alone, and a custom chat model provider on `aiagent-chatmodel-api` alone. The MCP and A2A modules are separate
 dependencies. A custom runtime that runs all agentic AI connectors, like the previous
 `connector-agentic-ai` dependency did, depends on the bundle:
 
@@ -84,7 +85,7 @@ dependencies. A custom runtime that runs all agentic AI connectors, like the pre
 | `mcp.discovery.*`                                                            | `mcp.integration.*`                            |
 | `mcp.discovery.configuration.McpDiscoveryConfiguration`                      | `mcp.integration.configuration.McpClientAgenticToolAutoConfiguration` |
 | `aiagent.tool`: `GatewayToolHandler`, `GatewayToolCallTransformer`, `GatewayToolDefinitionUpdates`, `GatewayToolDiscoveryInitiationResult`, `GatewayToolDiscoveryResult`; `adhoctoolsschema.schema`: `GatewayToolDefinitionResolver`, `TypePropertyBasedGatewayToolDefinitionResolver` | `aiagent.api.tool.*` |
-| `aiagent.chatmodel`: `ChatModel`, `ChatModelFactory`, `ChatRequest`, `ChatResult`, `ChatModelRejectedException`, `ContentFilteredException`, `ContextWindowExceededException`, `GuardrailInterventionException` | `aiagent.api.chatmodel.*` |
+| `aiagent.chatmodel`: `ChatModel`, `ChatModelFactory`, `ChatRequest`, `ChatResult`, `ChatModelRejectedException`, `ContentFilteredException`, `ContextWindowExceededException`, `GuardrailInterventionException` | `aiagent.api.chatmodel.*` (artifact `aiagent-chatmodel-api`) |
 | `aiagent.memory.conversation`: `ConversationStore`, `ConversationSession`, `ConversationLoadResult`, `ConversationStoreRequest`; `aiagent.memory`: `ConversationSnapshot` | `aiagent.api.conversation.*` |
 | `aiagent.systemprompt`: `SystemPromptContributor`                            | `aiagent.api.systemprompt.*`                   |
 | `aiagent.agent`: `ContentTreeDocumentWalker`                                 | `aiagent.api.document.*`                       |
@@ -270,7 +271,7 @@ applies it to its persisted context, and the next round continues with the conte
 ### Chat request messages
 
 A `ChatRequest` holds the messages typed by role, with only the content a provider can receive
-([ADR 019](adr/019-typed-chat-request-messages.md), [Chat model provider SPI](../aiagent-api/docs/chat-model-spi.md#request-messages)).
+([ADR 019](adr/019-typed-chat-request-messages.md), [Chat model provider SPI](../aiagent-chatmodel-api/docs/chat-model-spi.md#request-messages)).
 
 | Before                                                                                     | From 8.11                                                                                                                                                  |
 | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
