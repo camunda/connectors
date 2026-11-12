@@ -54,9 +54,8 @@ class ReturnDocumentToolTest {
   private static final String INVALID_KEY_ERROR =
       "Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*: it starts with a letter or an"
           + " underscore and continues with letters, digits, underscores or hyphens.";
-  private static final String INVALID_DOCUMENT_ERROR =
-      "Parameter 'document' must be the handle of a document from the conversation: a JSON object"
-          + " such as {\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.";
+  private static final String MISSING_DOCUMENT_ERROR =
+      "Parameter 'document' is required: pass the handle of a document from the conversation.";
 
   private static final AgentConfiguration CONFIGURATION =
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
@@ -249,7 +248,7 @@ class ReturnDocumentToolTest {
         List.of(
             Map.entry(Map.<String, Object>of("document", reportHandle), INVALID_KEY_ERROR),
             Map.entry((Map<String, Object>) nullKey, INVALID_KEY_ERROR),
-            Map.entry(Map.<String, Object>of("key", "k"), INVALID_DOCUMENT_ERROR));
+            Map.entry(Map.<String, Object>of("key", "k"), MISSING_DOCUMENT_ERROR));
     for (final var testCase : cases) {
       final var run = run(call("1", testCase.getKey()));
 
