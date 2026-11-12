@@ -3,10 +3,8 @@
 # (camunda/connectors#10102); the exploded layout gives every library its own JarFile.
 # The extracted files are platform-independent, so run this stage natively (no QEMU on multi-arch builds)
 FROM --platform=$BUILDPLATFORM reg.mini.dev/1212/openjre-base:v27.0.1-dev@sha256:208f8507e0637ab4341b41e06c109687d44a4ddb8b268bedc25bdcca3893e661 AS extract
-USER 0
-WORKDIR /extract
-COPY target/*-with-dependencies.jar runtime.jar
-RUN java -Djarmode=tools -jar runtime.jar extract --launcher --destination runtime
+COPY target/*-with-dependencies.jar /tmp/runtime.jar
+RUN java -Djarmode=tools -jar /tmp/runtime.jar extract --launcher --destination /tmp/runtime
 
 FROM reg.mini.dev/1212/openjre-base:v27.0.1-dev@sha256:208f8507e0637ab4341b41e06c109687d44a4ddb8b268bedc25bdcca3893e661
 
@@ -32,7 +30,7 @@ RUN sed -i 's|^mozilla/emSign_Root_CA_-_G1\.crt$|!&|' /etc/ca-certificates.conf 
 # Use the /opt/custom to mount your own connectors, secret providers, or include other jars into the classpath
 RUN mkdir /opt/app && mkdir /opt/custom
 
-COPY --from=extract /extract/runtime /opt/app/runtime
+COPY --from=extract /tmp/runtime /opt/app/runtime
 
 # Using the start script from the base connector runtime image
 COPY start.sh /start.sh

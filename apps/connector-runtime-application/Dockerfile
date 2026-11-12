@@ -3,10 +3,8 @@
 # (camunda/connectors#10102); the exploded layout gives every library its own JarFile.
 # The extracted files are platform-independent, so run this stage natively (no QEMU on multi-arch builds)
 FROM --platform=$BUILDPLATFORM reg.mini.dev/1212/openjre-base:v27.0.1-dev@sha256:208f8507e0637ab4341b41e06c109687d44a4ddb8b268bedc25bdcca3893e661 AS extract
-USER 0
-WORKDIR /extract
-COPY target/*-with-dependencies.jar runtime.jar
-RUN java -Djarmode=tools -jar runtime.jar extract --launcher --destination runtime
+COPY target/*-with-dependencies.jar /tmp/runtime.jar
+RUN java -Djarmode=tools -jar /tmp/runtime.jar extract --launcher --destination /tmp/runtime
 
 FROM reg.mini.dev/1212/openjre-base:v27.0.1-dev@sha256:208f8507e0637ab4341b41e06c109687d44a4ddb8b268bedc25bdcca3893e661
 
@@ -36,7 +34,7 @@ COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
 # Copy the exploded Connector runtime from the extract stage
-COPY --from=extract /extract/runtime /opt/app/runtime
+COPY --from=extract /tmp/runtime /opt/app/runtime
 
 # Create an unprivileged user / group and switch to that user
 RUN addgroup --gid 1001 camunda && adduser -S -G camunda -u 1001 --no-create-home camunda
