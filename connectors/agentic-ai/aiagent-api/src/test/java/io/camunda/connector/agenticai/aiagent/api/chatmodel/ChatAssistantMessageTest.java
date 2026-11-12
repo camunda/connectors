@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.api.chatmodel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +26,7 @@ class ChatAssistantMessageTest {
     final var message = new ChatAssistantMessage(List.of(), List.of(), null, metadata);
     metadata.put("key", "changed");
 
-    assertThat(message.metadata()).containsEntry("key", "value").containsEntry("empty", null);
+    assertThat(message.metadata()).containsOnly(entry("key", "value"), entry("empty", null));
     assertThatThrownBy(() -> message.metadata().put("other", "value"))
         .isInstanceOf(UnsupportedOperationException.class);
   }
