@@ -1,0 +1,61 @@
+---
+applyTo: "connectors/agentic-ai/**,connectors-e2e-test/connectors-e2e-test-agentic-ai/**"
+excludeAgent: "coding-agent"
+---
+
+# Agentic AI code review
+
+This is how to review a change in `connectors/agentic-ai` and
+`connectors-e2e-test/connectors-e2e-test-agentic-ai`. It applies to human reviewers, Copilot and the
+AI PR review bot. Find problems. Do not fix them.
+
+Report a finding only when you can point to the code. Prefer a few findings with evidence over many
+guesses. Report only on code that the diff adds or changes. The one exception is a consolidation
+finding (step 5).
+
+## Rules to read
+
+These documents are the only rules. Do not invent rules. Read the parts that apply to the change.
+
+1. [`implementation-rules.md`](implementation-rules.md): all sections.
+2. [`design-guidelines.md`](design-guidelines.md)
+3. [`target-architecture.md`](target-architecture.md)
+4. [`AGENTS.md`](../AGENTS.md): Gotchas, Architectural invariants, Null safety, Definition of Done,
+   Extension points.
+5. The repo-root [`AGENTS.md`](../../../AGENTS.md), where the module docs do not cover a topic.
+6. The e2e [`AGENTS.md`](../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md), when
+   the change touches e2e tests.
+7. The `README.md` and `docs/` of each module that the change touches.
+
+## Steps
+
+1. **Reuse.** For each new type, method, helper, constant or converter, search for existing code with
+   the same purpose. Search by the domain concept, then in sibling packages. If existing code does
+   the job, or does it with a small change, report it with the `file:line` of the existing symbol.
+2. **Simplicity.** Find code that the task does not need: a speculative feature, configuration nobody
+   asked for, error handling for a value that types or validation already exclude, an abstraction
+   with one use, an interface with one implementation.
+3. **Rules.** Check the change against each rule. Name the rule by its heading or its bold label, for
+   example `Code design / Tell, don't ask` or `Domain rules / 3`.
+4. **Locations.** Check the list in `implementation-rules.md` under "Before you plan": both flavors,
+   all element template versions, all conversation stores, all providers, running process instances.
+   Report a location that the change must reach but does not.
+5. **Consolidation.** When the change makes existing code redundant or inconsistent, report it with
+   the risk of keeping it and the risk of changing it. A human decides.
+6. **Build checks.** When a build check (ArchUnit, ErrorProne, NullAway, Spotless, a docs test) can
+   find the problem, name the check.
+
+## Human review required
+
+A human reviewer must approve the change when any of these applies. Say so in the review, and name the
+number:
+
+1. The change reads, stores, logs or forwards a credential, a token or an API key.
+2. The change affects running process instances or released element templates. Examples: the stored
+   conversation format, variable names, template IDs, job types.
+3. The change modifies a public API or an extension point.
+4. The change misses a location from step 4.
+5. The change weakens or removes a rule in the module docs.
+
+A review that finds none of these does not need a human because of this section. It can still need one
+for other reasons, such as a blocking finding or low confidence.
