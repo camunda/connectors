@@ -6,12 +6,15 @@
  */
 package io.camunda.connector.agenticai.tools.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -196,18 +199,31 @@ class AdHocToolSchemaGeneratorTest {
 
   static Stream<Map<String, Object>> schemasWithTheDocumentTypeWhereNoParameterCanSit() {
     final var document = Map.<String, Object>of("type", "document");
+    final var string = Map.<String, Object>of("type", "string");
+    final var itemsNextToProperties = new LinkedHashMap<String, Object>();
+    itemsNextToProperties.put("type", "object");
+    itemsNextToProperties.put("properties", Map.of("file", document));
+    itemsNextToProperties.put("items", document);
     return Stream.of(
-        Map.of("anyOf", List.of(Map.of("type", "string"), document)),
+        Map.of("anyOf", List.of(string, document)),
         Map.of("oneOf", List.of(Map.of("type", "number"), document)),
         Map.of("anyOf", List.of(document)),
-        Map.of("type", List.of("string", "document")),
-        Map.of("allOf", List.of(document)),
-        Map.of("type", "object", "additionalProperties", document),
         Map.of(
-            "anyOf",
-            List.of(
-                Map.of("type", "string"),
-                Map.of("type", "object", "properties", Map.of("file", document)))));
+            "anyOf", List.of(Map.of("type", "number"), Map.of("oneOf", List.of(string, document)))),
+        Map.of("anyOf", List.of(string, object("file", document))),
+        Map.of("type", "array", "items", Map.of("anyOf", List.of(string, document))),
+        object("file", Map.of("anyOf", List.of(document, string))),
+        Map.of("type", List.of("string", "document")),
+        Map.of("type", List.of("document")),
+        Map.of("type", List.of("string", "document"), "anyOf", List.of(string)),
+        Map.of("type", "array", "items", Map.of("type", List.of("string", "document"))),
+        Map.of("allOf", List.of(document)),
+        Map.of("allOf", List.of(Map.of("type", List.of("string", "document")))),
+        Map.of("not", document),
+        Map.of("type", "object", "additionalProperties", document),
+        Map.of("type", "array", "prefixItems", List.of(document)),
+        Map.of("$defs", Map.of("file", document)),
+        itemsNextToProperties);
   }
 
   @ParameterizedTest
@@ -519,7 +535,82 @@ class AdHocToolSchemaGeneratorTest {
   }
 
   @Test
-  void leavesTheDocumentTypeInEnumAndDefaultValuesAsItIs() throws Exception {
+  void mapsTheDocumentTypeAtAnyDepthToTheDocumentFormat() {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.rows",
+                    null,
+                    null,
+                    Map.of(
+                        "type",
+                        "array",
+                        "items",
+                        object(
+                            "file", Map.of("type", "document"), "note", Map.of("type", "string")))),
+                new AdHocToolElementParameter(
+                    "toolCall.nested",
+                    null,
+                    null,
+                    object("inner", object("file", Map.of("type", "document"))))));
+
+    assertThat(generator.generateToolSchema(element).get("properties"))
+        .isEqualTo(
+            Map.of(
+                "rows",
+                Map.of(
+                    "type",
+                    "array",
+                    "items",
+                    object("file", document(), "note", Map.of("type", "string"))),
+                "nested",
+                object("inner", object("file", document()))));
+  }
+
+  @Test
+  void keepsTheOtherAuthoredEntriesOfTheDocumentTypeAfterTheDocumentFormat() {
+    final var authored = new LinkedHashMap<String, Object>();
+    authored.put("title", "Doc");
+    authored.put("type", "document");
+    authored.put("description", "A document");
+    final var element =
+        createToolElement(
+            List.of(new AdHocToolElementParameter("toolCall.doc", null, null, authored)));
+
+    final var doc = propertyOf(generator.generateToolSchema(element), "doc");
+
+    final var expected = new LinkedHashMap<>(DocumentParameter.documentSchema("A document"));
+    expected.put("title", "Doc");
+    assertThat(doc).isEqualTo(expected);
+    assertThat(List.copyOf(doc.keySet()))
+        .containsExactly("type", "description", "properties", "required", "title");
+  }
+
+  @Test
+  void leavesATypeArrayWithoutTheDocumentTypeAsItIs() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.value", null, null, Map.of("type", List.of("string", "null")))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "value": {"type": ["string", "null"]}
+          },
+          "required": ["value"]
+        }
+        """);
+  }
+
+  @Test
+  void leavesTheDocumentTypeInDataKeywordsAsItIs() throws Exception {
+    final var document = Map.<String, Object>of("type", "document");
     final var element =
         createToolElement(
             List.of(
@@ -527,12 +618,16 @@ class AdHocToolSchemaGeneratorTest {
                     "toolCall.kind",
                     null,
                     null,
-                    Map.of("type", "string", "enum", List.of("a", Map.of("type", "document")))),
+                    Map.of("type", "string", "enum", List.of("a", document))),
                 new AdHocToolElementParameter(
-                    "toolCall.payload",
+                    "toolCall.payload", null, null, Map.of("type", "object", "default", document)),
+                new AdHocToolElementParameter(
+                    "toolCall.fixed", null, null, Map.of("type", "object", "const", document)),
+                new AdHocToolElementParameter(
+                    "toolCall.sample",
                     null,
                     null,
-                    Map.of("type", "object", "default", Map.of("type", "document")))));
+                    Map.of("type", "object", "examples", List.of(document)))));
 
     assertJsonSchema(
         element,
@@ -541,9 +636,11 @@ class AdHocToolSchemaGeneratorTest {
           "type": "object",
           "properties": {
             "kind": {"type": "string", "enum": ["a", {"type": "document"}]},
-            "payload": {"type": "object", "default": {"type": "document"}}
+            "payload": {"type": "object", "default": {"type": "document"}},
+            "fixed": {"type": "object", "const": {"type": "document"}},
+            "sample": {"type": "object", "examples": [{"type": "document"}]}
           },
-          "required": ["kind", "payload"]
+          "required": ["kind", "payload", "fixed", "sample"]
         }
         """);
   }
@@ -591,5 +688,26 @@ class AdHocToolSchemaGeneratorTest {
 
   private AdHocToolElement createToolElement(List<AdHocToolElementParameter> parameters) {
     return AdHocToolElement.builder().elementId(TOOL_ELEMENT_ID).parameters(parameters).build();
+  }
+
+  private static Map<String, Object> document() {
+    return DocumentParameter.documentSchema(null);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> propertyOf(Map<String, Object> schema, String property) {
+    return (Map<String, Object>) ((Map<String, Object>) schema.get("properties")).get(property);
+  }
+
+  /** An object schema from alternating property names and schemas, in declaration order. */
+  private static Map<String, Object> object(Object... namesAndSchemas) {
+    final var properties = new LinkedHashMap<String, Object>();
+    for (int i = 0; i + 1 < namesAndSchemas.length; i += 2) {
+      properties.put((String) namesAndSchemas[i], namesAndSchemas[i + 1]);
+    }
+    final var schema = new LinkedHashMap<String, Object>();
+    schema.put("type", "object");
+    schema.put("properties", properties);
+    return schema;
   }
 }
