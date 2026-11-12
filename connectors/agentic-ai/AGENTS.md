@@ -315,7 +315,7 @@ Before claiming a change is complete:
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
-tool by implementing the SPI and registering a Spring bean. A process tool must not have the name of a runtime tool.
+tool by implementing the SPI and registering a Spring bean. A process tool must not have the name of a runtime tool that is enabled.
 Where to start (SPI + reference implementation per type): [Extension Points](docs/architecture/extension-points.md#extension-points) (gateway tools:
 [Gateway Tool Pattern](docs/architecture/extension-points.md#gateway-tool-pattern); runtime tools:
 [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool) and [ADR 016](docs/adr/016-runtime-tools.md)).
