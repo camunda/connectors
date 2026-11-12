@@ -13,12 +13,17 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 /**
  * Builds the AI Agent Sub-process execution context of one job from the connector context of the
  * job and the bound request. The connector context gives the job context and the document factory.
+ *
+ * <p>The auto-configuration registers a default bean that implements this interface and {@link
+ * AgentTaskExecutionContextFactory}. A bean of either interface replaces the default, so a
+ * replacement must provide both interfaces.
  */
 public interface AgentSubProcessExecutionContextFactory {
 
   /**
-   * Returns the execution context for a v1 request. Its provider configuration is the v1
-   * configuration of the request or its v2 equivalent, see {@link AgentExecutionContextFactory}.
+   * Returns the execution context for a v1 request. Its chat model configuration is the v1 provider
+   * configuration of the request, or its v2 equivalent when the connector rewrites v1 provider
+   * configurations to v2.
    */
   AgentSubProcessExecutionContext subProcessContext(
       OutboundConnectorContext context, AgentSubProcessV1Request request);
