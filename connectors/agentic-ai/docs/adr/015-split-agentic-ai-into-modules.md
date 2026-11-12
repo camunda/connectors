@@ -5,7 +5,8 @@
 
 ## Status
 
-**Accepted**.
+**Accepted**. Extended by [ADR 020](020-chat-model-spi-module.md), which moves the chat model SPI into
+`aiagent-chatmodel-api`.
 
 ## Context and Problem Statement
 
