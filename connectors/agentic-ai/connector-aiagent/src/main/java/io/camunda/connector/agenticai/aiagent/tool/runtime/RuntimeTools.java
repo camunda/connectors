@@ -20,8 +20,8 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -144,7 +144,7 @@ public class RuntimeTools {
    * documents of plain JSON values, and the object is the one a later job reads from the
    * conversation.
    */
-  private Content plainContent(Content content) {
+  private PortableContent plainContent(PortableContent content) {
     if (!(content instanceof ObjectContent objectContent)) {
       return content;
     }

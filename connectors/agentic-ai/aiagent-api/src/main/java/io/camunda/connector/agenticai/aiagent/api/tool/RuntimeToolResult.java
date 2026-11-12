@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 import java.util.List;
 import java.util.Objects;
@@ -40,13 +40,17 @@ public sealed interface RuntimeToolResult {
 
   /** A successful result with a text as its content; a blank text gives no content. */
   static RuntimeToolResult success(String text) {
-    return new Success(ToolCallResultContent.contentFromObject(Objects.requireNonNull(text)));
+    return new Success(
+        Objects.requireNonNull(text).isBlank()
+            ? List.of()
+            : List.of(TextContent.textContent(text)));
   }
 
   /**
    * A successful result with the given blocks as its content, in the order the model reads them.
+   * The blocks are text, documents and objects, the content any chat model provider can receive.
    */
-  static RuntimeToolResult success(List<Content> content) {
+  static RuntimeToolResult success(List<PortableContent> content) {
     return new Success(content);
   }
 
@@ -58,9 +62,9 @@ public sealed interface RuntimeToolResult {
     return new Error(message);
   }
 
-  List<Content> content();
+  List<PortableContent> content();
 
-  record Success(List<Content> content) implements RuntimeToolResult {
+  record Success(List<PortableContent> content) implements RuntimeToolResult {
 
     public Success {
       content = List.copyOf(content);
@@ -78,8 +82,8 @@ public sealed interface RuntimeToolResult {
     }
 
     @Override
-    public List<Content> content() {
-      return ToolCallResultContent.contentFromObject(message.isBlank() ? BLANK_MESSAGE : message);
+    public List<PortableContent> content() {
+      return List.of(TextContent.textContent(message.isBlank() ? BLANK_MESSAGE : message));
     }
   }
 }
