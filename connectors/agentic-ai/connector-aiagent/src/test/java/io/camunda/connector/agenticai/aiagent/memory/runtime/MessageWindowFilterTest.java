@@ -10,9 +10,13 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static io.camunda.connector.agenticai.aiagent.model.message.MessageUtil.singleTextContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -85,5 +89,22 @@ class MessageWindowFilterTest {
     var a2 = assistantMessage("done");
     var result = MessageWindowFilter.apply(List.of(u1, a1, tcr, docMsg, a2), 2);
     assertThat(result).containsExactly(a2);
+  }
+
+  @Test
+  void keepsTheToolCallsOfAKeptAssistantMessageIntact() {
+    var u1 = userMessage("first");
+    var a1 = assistantMessage("first answer");
+    var u2 = userMessage("look up and check the weather");
+    var a2 = assistantMessageWithMixedToolKinds();
+
+    // window=2 evicts u1+a1 and keeps the assistant message with its calls
+    var result = MessageWindowFilter.apply(List.of(u1, a1, u2, a2), 2);
+
+    assertThat(result).containsExactly(u2, a2);
+    assertThat(((AssistantMessage) result.getLast()).toolCalls())
+        .extracting(ToolCall::id, ToolCall::kind)
+        .containsExactly(
+            tuple(RUNTIME_CALL_ID, ToolKind.RUNTIME), tuple(PROCESS_CALL_ID, ToolKind.PROCESS));
   }
 }

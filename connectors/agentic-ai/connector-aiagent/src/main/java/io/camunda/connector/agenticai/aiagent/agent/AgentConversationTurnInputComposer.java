@@ -11,11 +11,33 @@ import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 
-/** Composes the next conversation turn input from raw history and the current invocation state. */
+/**
+ * Composes the input of the next conversation turn from the history and the current invocation, in
+ * two steps around the local tool calls, whose results it does not produce: {@link #resolve} and
+ * {@link #assemble}.
+ */
 public interface AgentConversationTurnInputComposer {
-  CompositionResult compose(
+
+  /**
+   * Resolves the next turn. When the previous turn has tool calls, the results of its process tool
+   * calls must all have arrived (or the missing ones be cancelled by an interrupting event), else
+   * the result is {@link CompositionResult.Deferred}.
+   */
+  CompositionResult resolve(
       AgentConfiguration configuration,
       AgentContext agentContext,
       PreviousConversation previousConversation,
       AgentInput agentInput);
+
+  /**
+   * Assembles the input of the next turn: the tool call results of the batch in call order, or the
+   * user prompt, followed by the event messages.
+   *
+   * <p>The documents of the input are not in the agent context of {@code ready}: they are part of
+   * the {@link TurnInput#documents() input}, and the caller registers them in the agent context it
+   * persists.
+   *
+   * @throws IllegalStateException if a call of the batch has no result
+   */
+  TurnInput assemble(CompositionResult.Ready ready);
 }

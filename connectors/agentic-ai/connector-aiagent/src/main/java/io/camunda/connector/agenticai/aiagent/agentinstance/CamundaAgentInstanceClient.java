@@ -27,7 +27,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.FailureReason;
@@ -214,6 +213,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentExecutionContext executionContext,
       AgentConfiguration configuration,
       @Nullable AgentInstanceKey agentInstanceKey,
+      HistoryDocuments documents,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp) {
@@ -228,7 +228,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
           configurationHistoryItem(configuration, turn.iterationKey(), turnIngestionTimestamp));
     }
     historyItems.addAll(
-        inputHistoryItems(turn, previousTurn, turnIngestionTimestamp, turn.iterationKey()));
+        inputHistoryItems(
+            turn, previousTurn, turnIngestionTimestamp, turn.iterationKey(), documents));
 
     applyBatchedUpdate(
         executionContext,
@@ -265,13 +266,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
-      int iterationKey) {
+      int iterationKey,
+      HistoryDocuments documents) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
-          historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
+          historyMapper.inputHistoryItems(
+              message, toolCallsById, turnIngestionTimestamp, documents)) {
         items.add(toHistoryItem(item, iterationKey));
       }
     }
@@ -330,17 +333,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   public void applyToolCallResults(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      List<ToolCallResult> toolCallResults,
+      HistoryDocuments documents,
+      List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance tool call results: no agent instance key");
       return;
     }
 
-    final var syntheticMessage =
-        ToolCallResultMessage.builder()
-            .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
-            .build();
+    final var syntheticMessage = ToolCallResultMessage.builder().results(toolCallResults).build();
     final var toolCallsById = previousTurn.toolCallsById();
     final var iteration = previousTurn.iterationKey() + 1;
 
@@ -349,7 +350,10 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     // completedAt
     for (final var item :
         historyMapper.inputHistoryItems(
-            syntheticMessage, toolCallsById, OffsetDateTime.now(ZoneId.systemDefault()))) {
+            syntheticMessage,
+            toolCallsById,
+            OffsetDateTime.now(ZoneId.systemDefault()),
+            documents)) {
       items.add(toHistoryItem(item, iteration));
     }
 

@@ -5,7 +5,7 @@
 
 ## Status
 
-**Implemented** (PR #6999).
+**Implemented** (PR #6999). Extended by [ADR 018](018-document-flow.md), which makes the document a reference by default and the content an opt-in.
 
 ## Context and Problem Statement
 

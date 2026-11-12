@@ -1,0 +1,201 @@
+name: Deploy runtime fat jar (nightly)
+
+# Publishes connector-runtime-bundle-<minor>.0-SNAPSHOT-with-dependencies.jar to connectors-snapshots
+# once per day for every maintained branch, for consumers such as the c8Run nightly e2e.
+#
+# DEPLOY_SNAPSHOTS.yaml no longer uploads the ~600 MB fat jars on every push (they used up the
+# Artifactory upload quota), so this is the only place that publishes them on main, stable/8.9 and
+# stable/8.10. Scheduled workflows only run from the default branch, so each job checks out the
+# branch it publishes. Add new stable branches to the matrix and drop them at end of maintenance.
+on:
+  schedule:
+    # 22:17 UTC is 23:17 CET / 00:17 CEST, after Connectors team working hours.
+    - cron: '17 22 * * *'
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    # use bash shell by default to ensure pipefail behavior is the default
+    shell: bash
+
+jobs:
+  deploy-fatjar:
+    name: deploy-fatjar (${{ matrix.ref }})
+    if: github.repository == 'camunda/connectors'
+    runs-on: gcp-core-2-default
+    timeout-minutes: 60
+    # Same group as the push-triggered DEPLOY_SNAPSHOTS.yaml run of that branch, so uploads to one
+    # X.Y.0-SNAPSHOT do not overlap (concurrent uploads can overwrite each other's snapshot metadata).
+    # stable/8.7 is the exception: its push workflow uses cancel-in-progress: true, which would cancel
+    # a nightly upload sharing the group, so it gets its own group and accepts the small overlap risk.
+    concurrency:
+      group: ${{ matrix.ref == 'stable/8.7' && format('fatjar-nightly-{0}', matrix.ref) || format('deploy-snapshots-refs/heads/{0}', matrix.ref) }}
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ref: main
+            java: '25.0.5+8.0.LTS'
+            bundle: apps/bundle/default-bundle
+          - ref: stable/8.10
+            java: '21.0.13+9.0.LTS'
+            bundle: apps/bundle/default-bundle
+          - ref: stable/8.9
+            java: '21.0.13+9.0.LTS'
+            bundle: bundle/default-bundle
+          - ref: stable/8.8
+            java: '21.0.13+9.0.LTS'
+            bundle: bundle/default-bundle
+          - ref: stable/8.7
+            java: '21.0.13+9.0.LTS'
+            bundle: bundle/default-bundle
+    steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ matrix.ref }}
+          persist-credentials: false
+
+      - name: Import Secrets
+        id: secrets # important to refer to it in later steps
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+
+      # Same derivation as WARM_MAVEN_CACHE.yml, inlined because the maven-cache-key action
+      # does not accept a ref on every branch. Restore-only: the cache is written by that workflow.
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        env:
+          REF: ${{ matrix.ref }}
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          if [[ "$REF" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          else
+            line=main
+          fi
+          echo "prefix=${RUNNER_OS}-maven-${line}-" >> "$GITHUB_OUTPUT"
+          echo "key=${RUNNER_OS}-maven-${line}-${HASH}-internal" >> "$GITHUB_OUTPUT"
+
+      - name: Restore cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        continue-on-error: true  # Cache failures should not fail the build
+        with:
+          path: ~/.m2/repository
+          key: ${{ steps.maven-cache-key.outputs.key }}
+          restore-keys: |
+            ${{ steps.maven-cache-key.outputs.prefix }}
+
+      - name: Setup Java Build
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+
+      # Same settings as DEPLOY_SNAPSHOTS.yaml: nexus-mirror pulls dependencies through CI Nexus,
+      # camunda-nexus authenticates the upload to artifacts.camunda.com.
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "nexus-mirror",
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             },
+            {
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      # Same version handling as DEPLOY_SNAPSHOTS.yaml, e.g. 8.9.20-SNAPSHOT becomes 8.9.0-SNAPSHOT.
+      - name: Set snapshot version
+        id: maven_version
+        run: |
+          MINOR_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout | cut -d'.' -f1-2)
+          FINAL_VERSION="${MINOR_VERSION}.0-SNAPSHOT"
+          ./mvnw -B versions:set -DnewVersion="${FINAL_VERSION}" -DgenerateBackupPoms=false -f parent
+          echo "maven_version=${FINAL_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Maven version set to: ${FINAL_VERSION}"
+
+      # Builds the bundle and what it depends on, without tests. The with-dependencies jar is written
+      # to target/ with the default settings on every branch, so no attach or output flag is passed here.
+      - name: Build runtime bundle
+        run: ./mvnw -B -U package -DskipTests -pl "${{ matrix.bundle }}" -am
+
+      # deploy-file uploads only this jar (plus the bundle pom), so none of the other modules
+      # are re-deployed and the attach flag is irrelevant.
+      # -N keeps it to the root project: the goal is not bound to a module, and the paths below are relative to the repo root.
+      - name: Deploy fat jar
+        env:
+          BUNDLE_DIR: ${{ matrix.bundle }}
+          MAVEN_VERSION: ${{ steps.maven_version.outputs.maven_version }}
+        run: |
+          jar="${BUNDLE_DIR}/target/connector-runtime-bundle-${MAVEN_VERSION}-with-dependencies.jar"
+          if [[ ! -f "${jar}" ]]; then
+            echo "::error::Expected ${jar} was not built"
+            ls -l "${BUNDLE_DIR}/target"
+            exit 1
+          fi
+          ls -lh "${jar}"
+          ./mvnw -B -N deploy:deploy-file \
+            -Dmaven.repository.credentialScope=id \
+            -DrepositoryId=camunda-nexus \
+            -Durl=https://artifacts.camunda.com/artifactory/connectors-snapshots/ \
+            -Dfile="${jar}" \
+            -DpomFile="${BUNDLE_DIR}/pom.xml" \
+            -DgroupId=io.camunda.connector \
+            -DartifactId=connector-runtime-bundle \
+            -Dversion="${MAVEN_VERSION}" \
+            -Dclassifier=with-dependencies \
+            -Dpackaging=jar
+          echo "::notice::Deployed connector-runtime-bundle-${MAVEN_VERSION}-with-dependencies.jar from ${{ matrix.ref }}"
+
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
+          job_name_override: deploy-fatjar/${{ matrix.ref }}
+
+  notify-failure:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: deploy-fatjar
+    if: always() && github.repository == 'camunda/connectors' && (needs.deploy-fatjar.result == 'failure' || needs.deploy-fatjar.result == 'cancelled')
+    steps:
+      - name: Send Slack notification on failure
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": "${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}",
+              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} Nightly runtime fat jar deploy failed or was cancelled for at least one branch.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }

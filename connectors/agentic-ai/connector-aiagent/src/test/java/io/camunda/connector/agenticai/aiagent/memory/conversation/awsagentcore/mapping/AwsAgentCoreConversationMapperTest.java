@@ -6,11 +6,17 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.PROCESS_CALL_ID;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.RUNTIME_CALL_ID;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessageWithMixedToolKinds;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
@@ -18,12 +24,15 @@ import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -161,6 +170,58 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.name()).isEqualTo("Alice");
     assertThat(reconstructed.metadata()).isNullOrEmpty();
     assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Hello world");
+  }
+
+  @Test
+  void shouldRoundTripDocumentReferenceContentInOrderAsBlob() {
+    // given - a document reference between plain texts keeps its delivery and its position
+    var reference =
+        new AgentDocumentContent(AgentDocumentId.of("d1"), DocumentDelivery.CONTENT, null);
+    UserMessage original =
+        UserMessage.builder()
+            .content(List.of(textContent("before"), reference, textContent("after")))
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    assertThat(payloads.get(0).conversational()).isNotNull();
+    assertThat(payloads.get(1).blob()).isNotNull();
+    assertThat(payloads.get(2).conversational()).isNotNull();
+    assertThat(((UserMessage) message).content())
+        .containsExactly(textContent("before"), reference, textContent("after"));
+  }
+
+  @Test
+  void shouldSummarizeADocumentBlockInAToolResultAsItsHandleAndKeepItInTheEnvelope() {
+    // given
+    var reference =
+        AgentDocumentContent.of(AgentDocumentId.of(TestDocuments.createDocument("{}", "d.json")));
+    ToolCallResultMessage original =
+        ToolCallResultMessage.builder()
+            .results(
+                List.of(
+                    ToolCallResultContent.builder()
+                        .id("call-1")
+                        .name("tool")
+                        .content(List.of(reference))
+                        .build()))
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then — conversational summary + toolCallResults blob + metadata blob
+    assertThat(payloads).hasSize(3);
+    assertThat(payloads.getFirst().conversational().content().text())
+        .isEqualTo(
+            "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\"}".formatted(reference.id()));
+    assertThat(message).isEqualTo(original);
   }
 
   @Test
@@ -310,6 +371,25 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.toolCalls()).hasSize(1);
     assertThat(reconstructed.toolCalls().get(0).id()).isEqualTo("call-1");
     assertThat(reconstructed.toolCalls().get(0).name()).isEqualTo("search");
+  }
+
+  @Test
+  void shouldRoundTripTheKindOfToolCalls() {
+    // given
+    AssistantMessage original = assistantMessageWithMixedToolKinds();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    AssistantMessage reconstructed = (AssistantMessage) message;
+    assertThat(reconstructed.toolCalls()).containsExactlyElementsOf(original.toolCalls());
+    assertThat(reconstructed.toolCalls())
+        .extracting(ToolCall::id, ToolCall::kind)
+        .containsExactly(
+            tuple(RUNTIME_CALL_ID, ToolKind.RUNTIME), tuple(PROCESS_CALL_ID, ToolKind.PROCESS));
   }
 
   @Test

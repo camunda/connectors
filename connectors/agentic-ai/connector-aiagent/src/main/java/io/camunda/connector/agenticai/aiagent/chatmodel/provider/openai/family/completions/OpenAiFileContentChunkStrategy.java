@@ -12,7 +12,9 @@ import com.openai.models.chat.completions.ChatCompletionContentPart;
 import com.openai.models.chat.completions.ChatCompletionContentPartImage;
 import com.openai.models.chat.completions.ChatCompletionContentPartText;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiDocumentParts;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -45,6 +47,7 @@ public class OpenAiFileContentChunkStrategy implements OpenAiCompletionsContentC
                 ChatCompletionContentPart.ofText(
                     ChatCompletionContentPartText.builder().text(text.text()).build()));
         case DocumentContent doc -> parts.add(documentPart(doc));
+        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj ->
             parts.add(
                 ChatCompletionContentPart.ofText(

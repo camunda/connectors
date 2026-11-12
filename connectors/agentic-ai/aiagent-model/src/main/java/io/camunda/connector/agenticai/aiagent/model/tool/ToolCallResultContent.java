@@ -12,9 +12,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.camunda.connector.agenticai.common.json.FeelOffsetDateTimeDeserializer;
@@ -65,6 +70,25 @@ public record ToolCallResultContent(
   }
 
   /**
+   * The tool call result of a rejected call: its rejection as text.
+   *
+   * @throws IllegalArgumentException if the call is not rejected
+   */
+  public static ToolCallResultContent forRejectedToolCall(
+      ToolCall toolCall, OffsetDateTime completedAt) {
+    if (toolCall.rejection() == null) {
+      throw new IllegalArgumentException(
+          "The tool call '%s' is not rejected".formatted(toolCall.id()));
+    }
+    return builder()
+        .id(toolCall.id())
+        .name(toolCall.name())
+        .content(contentFromObject(toolCall.rejection()))
+        .completedAt(completedAt)
+        .build();
+  }
+
+  /**
    * Forward normalization: lifts a live {@link ToolCallResult}'s untyped {@code content} into the
    * structured {@link Content} list, preserving every other field verbatim.
    */
@@ -80,20 +104,53 @@ public record ToolCallResultContent(
   }
 
   /**
-   * The content-lift mapping for the forward path ({@link #from(ToolCallResult)}, operating on
-   * already-deserialized Java objects). The mirror-image lift for raw JSON nodes read from legacy
-   * (Camunda 8.9) data lives in {@code AgentContextSchemaMigration#liftLegacyContent}. Each branch
-   * produces a singleton list (or an empty one for null/blank) — a multi-element list only ever
-   * arises later once provider-specific chat model implementations emit structured content
-   * directly.
+   * Lifts the value of a tool result, an already-deserialized Java object, into content blocks:
+   * null and blank text give no block, text gives a {@link TextContent}, a document a {@link
+   * DocumentContent}, anything else an {@link ObjectContent}. The results of process tools ({@link
+   * #from(ToolCallResult)}) and of runtime tools take this path. The mirror-image lift for raw JSON
+   * nodes read from legacy (Camunda 8.9) data lives in {@code
+   * AgentContextSchemaMigration#liftLegacyContent}.
    */
-  static List<Content> contentFromObject(@Nullable Object content) {
+  public static List<Content> contentFromObject(@Nullable Object content) {
     return switch (content) {
       case null -> List.of();
       case String s -> s.isBlank() ? List.of() : List.of(TextContent.textContent(s));
       case Document document -> List.of(DocumentContent.documentContent(document));
       default -> List.of(ObjectContent.objectContent(content));
     };
+  }
+
+  /**
+   * The result with every document that is the whole content of the result (a top-level {@link
+   * DocumentContent}) as an {@link AgentDocumentContent}, which the model sees as its handle.
+   * Documents nested in an {@link ObjectContent} stay documents. A result that holds no top-level
+   * document is returned as it is, so applying this twice gives the same result.
+   *
+   * @throws
+   *     io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException
+   *     if the reference type of a document is not supported
+   */
+  public ToolCallResultContent withDocumentsAsReferences() {
+    if (content.stream().noneMatch(DocumentContent.class::isInstance)) {
+      return this;
+    }
+    return withContent(
+        content.stream()
+            .map(block ->
+                switch (block) {
+                  case DocumentContent documentContent ->
+                      (Content)
+                          new AgentDocumentContent(
+                              AgentDocumentId.of(documentContent.document()),
+                              DocumentDelivery.REFERENCE,
+                              documentContent.metadata());
+                  case TextContent ignored -> block;
+                  case AgentDocumentContent ignored -> block;
+                  case ObjectContent ignored -> block;
+                  case ReasoningContent ignored -> block;
+                  case ProviderContent ignored -> block;
+                })
+            .toList());
   }
 
   /**

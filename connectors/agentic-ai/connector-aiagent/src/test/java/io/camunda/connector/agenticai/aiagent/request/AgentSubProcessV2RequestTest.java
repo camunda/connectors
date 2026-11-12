@@ -53,7 +53,7 @@ class AgentSubProcessV2RequestTest {
 
   @Test
   void deserializesLegacyShapedAgentContext() throws Exception {
-    // legacy (pre-8.10, pre-CURRENT_SCHEMA_VERSION) persisted agentContext shape: no
+    // legacy (pre-8.10, unversioned) persisted agentContext shape: no
     // schemaVersion field and flat string tool-call-result content instead of structured
     // List<Content>. Regression coverage for the missing @JsonDeserialize on
     // AgentSubProcessV2Request.agentContext (mirrors AgentSubProcessV1Request's handling of the
@@ -89,7 +89,7 @@ class AgentSubProcessV2RequestTest {
     AgentContext agentContext = request.agentContext();
     assertThat(agentContext).isNotNull();
     // migrated on read despite the missing schemaVersion field
-    assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    assertThat(agentContext.schemaVersion()).isEqualTo(2);
 
     InProcessConversationContext conversation =
         (InProcessConversationContext) agentContext.conversation();

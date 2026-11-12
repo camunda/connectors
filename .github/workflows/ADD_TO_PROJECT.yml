@@ -15,15 +15,18 @@ jobs:
   add-by-label:
     name: Add issue to project if label
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Vault JWT login
     steps:
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
@@ -46,14 +49,14 @@ jobs:
 
       - name: Add to idp project
         if: contains(steps.get-labels.outputs.labels, 'idp')
-        uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2.0.0
+        uses: actions/add-to-project@f2c1f1fa649a891be84948ea89b5dfba1526ef05 # v2.0.1
         with:
           project-url: https://github.com/orgs/camunda/projects/133/views/1
           github-token: ${{ steps.app-token.outputs.token }}
 
       - name: Add to agentic-ai project
         if: contains(steps.get-labels.outputs.labels, 'agentic-ai')
-        uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2.0.0
+        uses: actions/add-to-project@f2c1f1fa649a891be84948ea89b5dfba1526ef05 # v2.0.1
         with:
           project-url: https://github.com/orgs/camunda/projects/155/views/1
           github-token: ${{ steps.app-token.outputs.token }}
@@ -83,15 +86,18 @@ jobs:
       (github.event_name == 'pull_request' &&
        !contains(github.event.pull_request.labels.*.name, 'idp') &&
        !contains(github.event.pull_request.labels.*.name, 'agentic-ai'))
+    permissions:
+      id-token: write  # Vault JWT login
     steps:
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
@@ -101,7 +107,7 @@ jobs:
         with:
           app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
-      - uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2.0.0
+      - uses: actions/add-to-project@f2c1f1fa649a891be84948ea89b5dfba1526ef05 # v2.0.1
         with:
           project-url: https://github.com/orgs/camunda/projects/23/views/1
           github-token: ${{ steps.app-token.outputs.token }}
@@ -110,15 +116,18 @@ jobs:
     name: Add issue to quality board project if its a bug
     runs-on: ubuntu-latest
     if: (contains(github.event.issue.labels.*.name, 'kind/bug') || github.event.issue.type.name == 'Bug') && github.event_name != 'pull_request'
+    permissions:
+      id-token: write  # Vault JWT login
     steps:
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
@@ -128,7 +137,7 @@ jobs:
         with:
           app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
-      - uses: camunda/infra-global-github-actions/add-bug-to-quality-board@9965a08067900e11c602a050b8821ec92f49544b # main
+      - uses: camunda/infra-global-github-actions/add-bug-to-quality-board@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           labels: "component/connectors, kind/bug"

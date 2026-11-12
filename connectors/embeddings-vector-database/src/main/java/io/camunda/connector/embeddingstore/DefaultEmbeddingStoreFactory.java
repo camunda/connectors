@@ -9,7 +9,9 @@ package io.camunda.connector.embeddingstore;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.model.embedding.vector.store.AmazonDynamoDbVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.AmazonS3VectorsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
 import io.camunda.connector.model.embedding.vector.store.ElasticsearchVectorStore;
@@ -22,10 +24,12 @@ public class DefaultEmbeddingStoreFactory {
   private final AzureVectorStoreFactory azureVectorStoreFactory = new AzureVectorStoreFactory();
   private final ElasticsearchVectorStoreFactory elasticsearchVectorStoreFactory;
   private final OpenSearchVectorStoreFactory openSearchVectorStoreFactory;
+  private final AmazonVectorStoreFactory amazonVectorStoreFactory;
 
   public DefaultEmbeddingStoreFactory(ProxyConfiguration proxyConfig) {
     elasticsearchVectorStoreFactory = new ElasticsearchVectorStoreFactory(proxyConfig);
     openSearchVectorStoreFactory = new OpenSearchVectorStoreFactory(proxyConfig);
+    amazonVectorStoreFactory = new AmazonVectorStoreFactory(proxyConfig);
   }
 
   public ClosableEmbeddingStore<TextSegment> initializeVectorStore(
@@ -46,6 +50,10 @@ public class DefaultEmbeddingStoreFactory {
       case AzureAiSearchVectorStore azureAiSearchVectorStore ->
           azureVectorStoreFactory.createAiSearchVectorStore(
               azureAiSearchVectorStore, model, operation);
+      case AmazonS3VectorsVectorStore amazonS3VectorsVectorStore ->
+          amazonVectorStoreFactory.createS3VectorsVectorStore(amazonS3VectorsVectorStore);
+      case AmazonDynamoDbVectorStore amazonDynamoDbVectorStore ->
+          amazonVectorStoreFactory.createDynamoDbVectorStore(amazonDynamoDbVectorStore);
     };
   }
 }

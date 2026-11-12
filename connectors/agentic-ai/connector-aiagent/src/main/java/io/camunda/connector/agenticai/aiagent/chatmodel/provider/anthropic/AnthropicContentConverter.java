@@ -19,6 +19,8 @@ import com.anthropic.models.messages.ToolResultBlockParam;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -55,6 +57,7 @@ public class AnthropicContentConverter {
       switch (c) {
         case TextContent text -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(text)));
         case DocumentContent doc -> blocks.add(toDocumentBlockParam(doc));
+        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(obj)));
         // Content tagged for a different provider is dropped rather than replayed.
         case ReasoningContent rc when ANTHROPIC_ID.equals(rc.provider()) ->
@@ -154,6 +157,7 @@ public class AnthropicContentConverter {
             blocks.add(
                 ToolResultBlockParam.Content.Block.ofText(
                     TextBlockParam.builder().text(writeAsJson(doc.document())).build()));
+        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj ->
             blocks.add(ToolResultBlockParam.Content.Block.ofText(toTextBlockParam(obj)));
         case ReasoningContent reasoning ->

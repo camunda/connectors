@@ -10,24 +10,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.ConnectException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +44,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProviderChain;
+import software.amazon.awssdk.auth.credentials.WebIdentityTokenFileCredentialsProvider;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.SdkBytes;
@@ -72,6 +82,9 @@ class AwsLambdaManagedCodeProviderTest {
       LambdaExecutor.of(ScriptLanguage.PYTHON).functionName(PREFIX);
   private static final String NODE_EXECUTOR =
       LambdaExecutor.of(ScriptLanguage.JAVASCRIPT).functionName(PREFIX);
+
+  private static final String STS_DENIAL =
+      "Not authorized to perform sts:AssumeRoleWithWebIdentity (Service: Sts, Status Code: 403)";
 
   /** 30 s of execution timeout, and the 5 s of the wrapper. */
   private static final int FUNCTION_TIMEOUT = 35;
@@ -210,6 +223,54 @@ class AwsLambdaManagedCodeProviderTest {
         .updateFunctionConfiguration(any(UpdateFunctionConfigurationRequest.class));
     verify(logs, never()).createLogGroup(any(CreateLogGroupRequest.class));
     assertThat(sleeps).isEmpty();
+  }
+
+  @Test
+  void reportsTheExecutorOfItsWrapperPerLanguageWithItsLogGroupWithoutCallingAws() {
+    assertThat(provider.executors())
+        .containsExactlyInAnyOrder(
+            new ExecutorReference(
+                ScriptLanguage.PYTHON, PYTHON_EXECUTOR, "/aws/lambda/" + PYTHON_EXECUTOR),
+            new ExecutorReference(
+                ScriptLanguage.JAVASCRIPT, NODE_EXECUTOR, "/aws/lambda/" + NODE_EXECUTOR));
+    assertThat(PYTHON_EXECUTOR).matches(PREFIX + "py-[0-9a-f]{12}");
+    verifyNoInteractions(lambda, invoker, logs);
+  }
+
+  @Test
+  void createsItsOwnExecutorBesideThatOfAPreviousWrapperAndNeverTouchesIt() {
+    // A runtime instance of the previous release still calls the executor of its own wrapper.
+    final var previous = PREFIX + "py-000000000000";
+    assertThat(previous).isNotEqualTo(PYTHON_EXECUTOR);
+    when(lambda.getFunction(GetFunctionRequest.builder().functionName(PYTHON_EXECUTOR).build()))
+        .thenThrow(notFound())
+        .thenReturn(
+            function(State.ACTIVE, LastUpdateStatus.SUCCESSFUL, 512, FUNCTION_TIMEOUT, ROLE));
+    when(invoker.invoke(any(InvokeRequest.class)))
+        .thenReturn(
+            InvokeResponse.builder()
+                .statusCode(200)
+                .payload(
+                    SdkBytes.fromUtf8String(
+                        "{\"contractVersion\":\"1\",\"outcome\":\"COMPLETED\",\"variables\":{}}"))
+                .build());
+
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+    provider.execute(ScriptLanguage.PYTHON, request("s"));
+
+    final var created = ArgumentCaptor.forClass(CreateFunctionRequest.class);
+    verify(lambda).createFunction(created.capture());
+    assertThat(created.getValue().functionName()).isEqualTo(PYTHON_EXECUTOR);
+    final var read = ArgumentCaptor.forClass(GetFunctionRequest.class);
+    verify(lambda, atLeastOnce()).getFunction(read.capture());
+    assertThat(read.getAllValues())
+        .extracting(GetFunctionRequest::functionName)
+        .containsOnly(PYTHON_EXECUTOR);
+    verify(lambda, never())
+        .updateFunctionConfiguration(any(UpdateFunctionConfigurationRequest.class));
+    final var invoked = ArgumentCaptor.forClass(InvokeRequest.class);
+    verify(invoker).invoke(invoked.capture());
+    assertThat(invoked.getValue().functionName()).isEqualTo(PYTHON_EXECUTOR);
   }
 
   @Test
@@ -364,6 +425,168 @@ class AwsLambdaManagedCodeProviderTest {
         .thenThrow(SdkClientException.create("Unable to execute HTTP request"));
 
     assertThat(ensureFails(ScriptLanguage.PYTHON).code()).isEqualTo(ErrorCode.PLATFORM_UNAVAILABLE);
+  }
+
+  @Test
+  void marksCredentialsThatNeverResolvedAsAPermissionDenialThatNamesTheWebIdentityFailure() {
+    // The chain keeps only the messages of its providers, not their exceptions.
+    final var chain =
+        chain(new ScriptedCredentials().thenThrow(stsError(403, "AccessDenied", STS_DENIAL)));
+
+    final var failure =
+        catchThrowableOfType(
+            ProvisioningException.class,
+            () -> provider(chain).ensureExecutors(ScriptLanguage.PYTHON));
+
+    assertThat(failure.permissionDenied()).isTrue();
+    assertThat(failure.getMessage())
+        .startsWith(
+            "The credentials of the runtime cannot be resolved to make Lambda executor '%s' ready: %s"
+                .formatted(PYTHON_EXECUTOR, STS_DENIAL));
+    verify(lambda, never()).getFunction(any(GetFunctionRequest.class));
+  }
+
+  @Test
+  void namesAMissingTokenFileOfTheSdkWebIdentityProviderFirst() {
+    final var chain =
+        AwsCredentialsProviderChain.of(
+            new ScriptedCredentials("EnvironmentVariableCredentialsProvider()")
+                .thenThrow(SdkClientException.create("Unable to load credentials.")),
+            WebIdentityTokenFileCredentialsProvider.builder()
+                .webIdentityTokenFile(Path.of("/nonexistent/qa/token"))
+                .roleArn("arn:aws:iam::000000000000:role/runtime")
+                .build());
+
+    final var failure =
+        catchThrowableOfType(
+            ProvisioningException.class,
+            () -> provider(chain).ensureExecutors(ScriptLanguage.PYTHON));
+
+    assertThat(failure.permissionDenied()).isTrue();
+    assertThat(failure.getMessage())
+        .startsWith(
+            "The credentials of the runtime cannot be resolved to make Lambda executor '%s' ready: "
+                .formatted(PYTHON_EXECUTOR))
+        .doesNotStartWith(
+            "The credentials of the runtime cannot be resolved to make Lambda executor '%s' ready: Unable to load credentials from any"
+                .formatted(PYTHON_EXECUTOR))
+        .contains("/nonexistent/qa/token");
+  }
+
+  @Test
+  void quotesTheWholeChainWhenNoWebIdentityIsConfigured() {
+    final var chain =
+        chain(
+            new ScriptedCredentials()
+                .thenThrow(
+                    SdkClientException.create(
+                        "Either the environment variable AWS_WEB_IDENTITY_TOKEN_FILE or the"
+                            + " javaproperty aws.webIdentityTokenFile must be set.")));
+
+    final var failure =
+        catchThrowableOfType(
+            ProvisioningException.class,
+            () -> provider(chain).ensureExecutors(ScriptLanguage.PYTHON));
+
+    assertThat(failure.permissionDenied()).isTrue();
+    assertThat(failure.getMessage())
+        .contains(": Unable to load credentials from any of the providers in the chain");
+  }
+
+  @Test
+  void marksADeniedRefreshOfResolvedCredentialsAsAPermissionDenial() {
+    final var chain =
+        chain(
+            new ScriptedCredentials()
+                .thenSucceed()
+                .thenThrow(stsError(403, "AccessDenied", STS_DENIAL)));
+    chain.resolveCredentials();
+    final var provider = provider(chain);
+
+    final var provisioning =
+        catchThrowableOfType(
+            ProvisioningException.class, () -> provider.ensureExecutors(ScriptLanguage.PYTHON));
+    final var invocation =
+        catchThrowableOfType(
+            ProvisioningException.class,
+            () -> provider.execute(ScriptLanguage.PYTHON, request("s")));
+
+    assertThat(provisioning.permissionDenied()).isTrue();
+    assertThat(provisioning.getMessage()).contains(STS_DENIAL);
+    assertThat(invocation.permissionDenied()).isTrue();
+    verify(invoker, never()).invoke(any(InvokeRequest.class));
+  }
+
+  @Test
+  void marksALostTokenFileOfResolvedCredentialsAsAPermissionDenialThatNamesTheFile() {
+    // The SDK reports the token file that its refresh cannot read as an unchecked I/O failure.
+    final var chain =
+        chain(
+            new ScriptedCredentials()
+                .thenSucceed()
+                .thenThrow(
+                    new UncheckedIOException(
+                        new NoSuchFileException("/var/run/secrets/eks/token"))));
+    chain.resolveCredentials();
+    final var provider = provider(chain);
+
+    final var provisioning =
+        catchThrowableOfType(
+            ProvisioningException.class, () -> provider.ensureExecutors(ScriptLanguage.PYTHON));
+    final var invocation =
+        catchThrowableOfType(
+            ProvisioningException.class,
+            () -> provider.execute(ScriptLanguage.PYTHON, request("s")));
+
+    assertThat(provisioning.permissionDenied()).isTrue();
+    assertThat(provisioning.getMessage())
+        .contains("web-identity token file")
+        .contains("/var/run/secrets/eks/token");
+    assertThat(invocation.permissionDenied()).isTrue();
+    assertThat(invocation.getMessage())
+        .contains("web-identity token file")
+        .contains("/var/run/secrets/eks/token");
+    verify(invoker, never()).invoke(any(InvokeRequest.class));
+  }
+
+  @Test
+  void rejectsAnInvalidWebIdentityTokenOfResolvedCredentials() {
+    final var chain =
+        chain(
+            new ScriptedCredentials()
+                .thenSucceed()
+                .thenThrow(stsError(400, "InvalidIdentityToken", "Incorrect token audience")));
+    chain.resolveCredentials();
+
+    final var failure =
+        catchThrowableOfType(
+            ProvisioningException.class,
+            () -> provider(chain).ensureExecutors(ScriptLanguage.PYTHON));
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(failure.permissionDenied()).isFalse();
+    assertThat(failure.getMessage()).contains("Incorrect token audience");
+  }
+
+  @Test
+  void reportsAnUnreachableCredentialsServiceAsRetryable() {
+    final var chain =
+        chain(
+            new ScriptedCredentials()
+                .thenSucceed()
+                .thenThrow(
+                    SdkClientException.create(
+                        "Unable to execute HTTP request",
+                        new SocketTimeoutException("Read timed out"))));
+    chain.resolveCredentials();
+
+    final var failure =
+        catchThrowableOfType(
+            ProvisioningException.class,
+            () -> provider(chain).ensureExecutors(ScriptLanguage.PYTHON));
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_UNAVAILABLE);
+    assertThat(failure.permissionDenied()).isFalse();
   }
 
   @Test
@@ -606,6 +829,15 @@ class AwsLambdaManagedCodeProviderTest {
   }
 
   private AwsLambdaManagedCodeProvider provider(Duration activationTimeout) {
+    return provider(credentials, activationTimeout);
+  }
+
+  private AwsLambdaManagedCodeProvider provider(AwsCredentialsProvider credentials) {
+    return provider(credentials, Duration.ofMinutes(1));
+  }
+
+  private AwsLambdaManagedCodeProvider provider(
+      AwsCredentialsProvider credentials, Duration activationTimeout) {
     return new AwsLambdaManagedCodeProvider(
         lambda,
         invoker,
@@ -618,6 +850,33 @@ class AwsLambdaManagedCodeProviderTest {
         activationTimeout,
         Duration.ofMillis(100),
         sleeps::add);
+  }
+
+  /** The providers of the SDK's default chain around web identity, which never resolve here. */
+  private static AwsCredentialsProviderChain chain(ScriptedCredentials webIdentity) {
+    return AwsCredentialsProviderChain.of(
+        new ScriptedCredentials("EnvironmentVariableCredentialsProvider()")
+            .thenThrow(
+                SdkClientException.create("Unable to load credentials from system settings.")),
+        webIdentity,
+        new ScriptedCredentials("InstanceProfileCredentialsProvider()")
+            .thenThrow(
+                SdkClientException.create(
+                    "Failed to load credentials from IMDS.",
+                    new ConnectException("Connection refused"))));
+  }
+
+  private static AwsServiceException stsError(int status, String code, String message) {
+    return AwsServiceException.builder()
+        .statusCode(status)
+        .awsErrorDetails(
+            AwsErrorDetails.builder()
+                .serviceName("Sts")
+                .errorCode(code)
+                .errorMessage(message)
+                .build())
+        .message(message)
+        .build();
   }
 
   private ProvisioningException ensureFails(ScriptLanguage language) {
@@ -663,6 +922,46 @@ class AwsLambdaManagedCodeProviderTest {
       }
     }
     return entries;
+  }
+
+  /**
+   * A provider of the chain that fails, or succeeds, as scripted, then repeats its last outcome.
+   */
+  private static final class ScriptedCredentials implements AwsCredentialsProvider {
+    private final String name;
+    private final List<RuntimeException> outcomes = new ArrayList<>();
+
+    ScriptedCredentials() {
+      this("WebIdentityTokenFileCredentialsProvider()");
+    }
+
+    ScriptedCredentials(String name) {
+      this.name = name;
+    }
+
+    ScriptedCredentials thenSucceed() {
+      outcomes.add(null);
+      return this;
+    }
+
+    ScriptedCredentials thenThrow(RuntimeException failure) {
+      outcomes.add(failure);
+      return this;
+    }
+
+    @Override
+    public AwsCredentials resolveCredentials() {
+      final var failure = outcomes.size() > 1 ? outcomes.removeFirst() : outcomes.getFirst();
+      if (failure != null) {
+        throw failure;
+      }
+      return AwsBasicCredentials.create("AKIA", "secret");
+    }
+
+    @Override
+    public String toString() {
+      return name;
+    }
   }
 
   /** Named as the pool timeout of the Apache client, which this module does not depend on. */

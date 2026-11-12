@@ -34,6 +34,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      id-token: write  # Vault JWT login
     # Forks get no secrets, so the Vault step would fail rather than skip. Bot
     # branches carry release notes full of issue links and no epic behind them.
     if: >-
@@ -69,7 +70,7 @@ jobs:
             echo "found=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Same Vault path, approle and pin this repository already uses in
+      # Same Vault path, auth method and pin this repository already uses in
       # alwaysgreen-triage.yml to dispatch to the same target repository.
       - name: Generate a GitHub token for the e2e repo
         if: steps.issue.outputs.found == 'true'
@@ -80,9 +81,10 @@ jobs:
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
           github-app-private-key-vault-key: GITHUB_APP_SECRET
           github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-auth-method: jwt
+          vault-auth-jwt-path: ${{ secrets.VAULT_JWT_PATH }}
+          vault-auth-jwt-role: ${{ secrets.VAULT_JWT_ROLE }}
+          vault-auth-jwt-audience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           vault-url: ${{ secrets.VAULT_ADDR }}
           owner: camunda
           repositories: c8-cross-component-e2e-tests

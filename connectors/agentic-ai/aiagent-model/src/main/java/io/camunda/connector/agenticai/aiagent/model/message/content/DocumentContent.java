@@ -12,6 +12,17 @@ import io.camunda.connector.api.document.Document;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
+/**
+ * A document the agent has not seen before: the live document of the connector SDK. It is the
+ * content for a new document at the boundaries where documents enter the conversation (the user
+ * prompt, events, the results of process tools and of a runtime tool that returns a new document),
+ * for every document of an agent instance that does not track its documents, and the only document
+ * block a chat model provider sees. A document the agent already knows is an {@link
+ * AgentDocumentContent}.
+ *
+ * @param document the document
+ * @param metadata the metadata of the content block
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DocumentContent(
     Document document,

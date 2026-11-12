@@ -6,11 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.LinkedHashMap;
@@ -33,6 +37,12 @@ public record AgentContext(
     @RecordBuilder.Initializer(source = AgentMetrics.class, value = "empty") AgentMetrics metrics,
     List<ToolDefinition> toolDefinitions,
     @Nullable ConversationContext conversation,
+    @RecordBuilder.Initializer(source = AgentDocuments.class, value = "empty")
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        AgentDocuments documents,
+    // the features the agent instance was created with, fixed at creation and never added later: an
+    // instance without a feature keeps the behavior it started with
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> features,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
     implements AgentContextBuilder.With {
 
@@ -41,7 +51,7 @@ public record AgentContext(
    * whenever a change to the persisted shape requires migrating previously-persisted state on read
    * (see {@code AgentContextSchemaMigration}).
    */
-  public static final int CURRENT_SCHEMA_VERSION = 1;
+  public static final int CURRENT_SCHEMA_VERSION = 2;
 
   /**
    * Marker for state whose {@code schemaVersion} field was absent (pre-versioning / Camunda 8.9).
@@ -55,10 +65,39 @@ public record AgentContext(
     Objects.requireNonNull(state, "Agent state must not be null");
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
+    requireNoRuntimeTools(toolDefinitions);
+    Objects.requireNonNull(features, "Features must not be null");
+    Objects.requireNonNull(documents, "Documents must not be null");
+  }
+
+  private static void requireNoRuntimeTools(List<ToolDefinition> toolDefinitions) {
+    toolDefinitions.stream()
+        .filter(tool -> tool.kind() == ToolKind.RUNTIME)
+        .findFirst()
+        .ifPresent(tool -> {
+          throw new IllegalArgumentException(
+              "The runtime tool '%s' must not be part of the persisted tool definitions"
+                  .formatted(tool.name()));
+        });
+  }
+
+  public boolean supports(String feature) {
+    return features.contains(feature);
   }
 
   public @Nullable AgentInstanceKey agentInstanceKey() {
     return metadata != null ? metadata.agentInstanceKey() : null;
+  }
+
+  /**
+   * How the agent instance handles the documents of its conversation: it tracks them when it was
+   * created with the {@link AgentFeatures#DOCUMENTS} feature.
+   */
+  @JsonIgnore
+  public DocumentHandling documentHandling() {
+    return supports(AgentFeatures.DOCUMENTS)
+        ? new DocumentHandling.Tracked(documents)
+        : new DocumentHandling.Untracked();
   }
 
   public AgentContext withProperty(String key, Object value) {

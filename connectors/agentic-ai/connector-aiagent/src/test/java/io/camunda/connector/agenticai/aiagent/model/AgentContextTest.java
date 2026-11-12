@@ -14,7 +14,18 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -39,15 +50,16 @@ class AgentContextTest {
   }
 
   @Test
-  void schemaVersionDefaultsToCurrentAndSerializesAsFirstField() throws JsonProcessingException {
+  void aNewAgentContextHasSchemaVersion2AndSerializesItAsFirstField()
+      throws JsonProcessingException {
     final var context = AgentContext.empty();
-    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    assertThat(context.schemaVersion()).isEqualTo(2);
 
     final var serialized = objectMapper.writeValueAsString(context);
-    assertThat(serialized).startsWith("{\"schemaVersion\":" + AgentContext.CURRENT_SCHEMA_VERSION);
+    assertThat(serialized).startsWith("{\"schemaVersion\":2,");
 
     final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
-    assertThat(deserialized.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    assertThat(deserialized.schemaVersion()).isEqualTo(2);
   }
 
   @Test
@@ -150,6 +162,224 @@ class AgentContextTest {
         .containsExactlyInAnyOrderEntriesOf(Map.of("foo", "bar", "baz", "qux"));
   }
 
+  @Test
+  void documentsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty() throws JsonProcessingException {
+    final var context = AgentContext.empty();
+    assertThat(context.documents().all()).isEmpty();
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    assertThat(serialized).doesNotContain("documents");
+  }
+
+  @Test
+  void agentContextWithoutDocumentsFieldBindsToEmptyDocuments() throws JsonProcessingException {
+    final var json =
+        """
+        {
+          "schemaVersion": 2,
+          "state": "READY",
+          "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
+          "toolDefinitions": [],
+          "conversation": {"type": "in-process", "conversationId": "c", "messages": []}
+        }
+        """;
+
+    final var context = objectMapper.readValue(json, AgentContext.class);
+
+    assertThat(context.documents().all()).isEmpty();
+    assertThat(context.state()).isEqualTo(AgentState.READY);
+    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+  }
+
+  @Test
+  void documentsAreSerializedAndDeserialized() throws JsonProcessingException {
+    final var entry =
+        new AgentDocument(
+            AgentDocumentId.of("doc-1"),
+            AgentDocumentOrigin.toolCall("search", "call-1"),
+            new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null));
+    final var context = AgentContext.builder().documents(AgentDocuments.of(List.of(entry))).build();
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
+
+    assertThat(serialized).contains("\"documents\"");
+    assertThat(deserialized.documents().all()).containsExactly(entry);
+    assertThat(deserialized).isEqualTo(context);
+  }
+
+  @Test
+  void documentsArePersistedAsAListOfIdOriginAndReference() throws JsonProcessingException {
+    final var context =
+        AgentContext.builder()
+            .documents(
+                AgentDocuments.of(
+                    List.of(
+                        new AgentDocument(
+                            AgentDocumentId.of("doc_6d97d0f7b602"),
+                            AgentDocumentOrigin.toolCall("search", "call-1"),
+                            new CamundaDocumentReferenceModel(
+                                "in-memory",
+                                "doc-1",
+                                "hash-1",
+                                new CamundaDocumentMetadataModel(
+                                    "application/pdf",
+                                    OffsetDateTime.parse("2030-01-02T03:04:05Z"),
+                                    48213L,
+                                    "report.pdf",
+                                    null,
+                                    null,
+                                    null))))))
+            .build();
+
+    final var json =
+        TestObjectMapperSupplier.INSTANCE
+            .readTree(TestObjectMapperSupplier.INSTANCE.writeValueAsString(context))
+            .get("documents");
+
+    assertThat(json)
+        .isEqualTo(
+            TestObjectMapperSupplier.INSTANCE.readTree(
+                """
+                [{"id":"doc_6d97d0f7b602",
+                  "origin":{"type":"tool_call","toolName":"search","toolCallId":"call-1"},
+                  "reference":{"camunda.document.type":"camunda","storeId":"in-memory",
+                    "documentId":"doc-1","contentHash":"hash-1",
+                    "metadata":{"contentType":"application/pdf","expiresAt":"2030-01-02T03:04:05Z",
+                      "size":48213,"fileName":"report.pdf"}}}]\
+                """));
+    assertThat(
+            TestObjectMapperSupplier.INSTANCE.readValue(
+                TestObjectMapperSupplier.INSTANCE.writeValueAsString(context), AgentContext.class))
+        .isEqualTo(context);
+  }
+
+  @Test
+  void documentsAreReadFromAndWrittenToTheDocumentsOfTheContext() {
+    final var entry =
+        new AgentDocument(
+            AgentDocumentId.of("doc-1"),
+            AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
+            new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null));
+
+    final var context = AgentContext.empty().withDocuments(AgentDocuments.of(List.of(entry)));
+
+    assertThat(context.documents().all()).containsExactly(entry);
+    assertThat(context.documents().find(AgentDocumentId.of("doc-1"))).contains(entry);
+    assertThat(AgentContext.empty().documents().all()).isEmpty();
+  }
+
+  @Test
+  void anAgentInstanceWithTheDocumentsFeatureTracksItsDocuments() {
+    final var documents =
+        AgentDocuments.of(
+            List.of(
+                new AgentDocument(
+                    AgentDocumentId.of("doc-1"),
+                    AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID),
+                    new CamundaDocumentReferenceModel("in-memory", "doc-1", null, null))));
+    final var tracking =
+        AgentContext.builder()
+            .features(List.of(AgentFeatures.DOCUMENTS))
+            .documents(documents)
+            .build();
+
+    assertThat(tracking.documentHandling()).isEqualTo(new DocumentHandling.Tracked(documents));
+    assertThat(AgentContext.empty().documentHandling()).isEqualTo(new DocumentHandling.Untracked());
+    assertThat(AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()).documentHandling())
+        .isEqualTo(new DocumentHandling.Untracked());
+  }
+
+  @Test
+  void theDocumentHandlingIsNotPersisted() throws JsonProcessingException {
+    final var serialized =
+        objectMapper.writeValueAsString(
+            AgentContext.builder().features(List.of(AgentFeatures.DOCUMENTS)).build());
+
+    assertThat(serialized).doesNotContain("documentHandling").doesNotContain("Tracked");
+  }
+
+  @Test
+  void featuresDefaultToEmptyAndAreOmittedFromJsonWhenEmpty() throws JsonProcessingException {
+    final var context = AgentContext.empty();
+
+    assertThat(context.features()).isEmpty();
+    assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isFalse();
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("features");
+  }
+
+  @Test
+  void agentContextWithoutFeaturesFieldBindsToEmptySetAndKeepsTheSchemaVersion()
+      throws JsonProcessingException {
+    final var json =
+        """
+        {
+          "schemaVersion": 2,
+          "state": "READY",
+          "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
+          "toolDefinitions": []
+        }
+        """;
+
+    final var context = objectMapper.readValue(json, AgentContext.class);
+
+    assertThat(context.features()).isEmpty();
+    assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isFalse();
+    assertThat(context.schemaVersion()).isEqualTo(2);
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("features");
+  }
+
+  @Test
+  void newInstanceFeaturesContainTheRuntimeToolsFeature() {
+    final var context = AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+
+    assertThat(context.features()).containsExactly("runtimeTools");
+    assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
+    assertThat(context.supports("other")).isFalse();
+  }
+
+  @Test
+  void featuresAreSerializedAndDeserializedInInsertionOrder() throws JsonProcessingException {
+    final var features = List.of("zeta", "alpha", "runtimeTools", "beta", "omega", "gamma");
+    final var context = AgentContext.builder().features(features).build();
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
+
+    assertThat(serialized)
+        .contains(
+            "\"features\":[\"zeta\",\"alpha\",\"runtimeTools\",\"beta\",\"omega\",\"gamma\"]");
+    assertThat(deserialized.features())
+        .containsExactly("zeta", "alpha", "runtimeTools", "beta", "omega", "gamma");
+    assertThat(deserialized).isEqualTo(context);
+  }
+
+  @Test
+  void featuresSurviveCopiesThatChangeOtherComponents() {
+    final var features = List.of("zeta", "alpha", "runtimeTools", "beta", "omega", "gamma");
+    final var context = AgentContext.builder().features(features).build();
+
+    final var copy =
+        context
+            .withState(AgentState.READY)
+            .withProperty("hello", "world")
+            .withMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0));
+
+    assertThat(copy.features())
+        .containsExactly("zeta", "alpha", "runtimeTools", "beta", "omega", "gamma");
+    assertThat(copy.supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
+  }
+
+  @Test
+  void featuresAreCopiedDefensively() {
+    final var features = new ArrayList<>(List.of("runtimeTools"));
+    final var context = AgentContext.builder().features(features).build();
+
+    features.add("other");
+
+    assertThat(context.features()).containsExactly("runtimeTools");
+  }
+
   @ParameterizedTest
   @MethodSource("invalidConstructorParameters")
   void throwsExceptionOnInvalidConstructorParameters(
@@ -159,15 +389,26 @@ class AgentContextTest {
       String exceptionMessage) {
     assertThatThrownBy(() ->
             new AgentContext(
-                AgentContext.CURRENT_SCHEMA_VERSION,
+                2,
                 state,
                 null,
                 metrics,
                 toolDefinitions,
                 InProcessConversationContext.builder("test-conversation").build(),
+                AgentDocuments.empty(),
+                List.of(),
                 Map.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
+  }
+
+  @Test
+  void rejectsARuntimeToolDefinition() {
+    final var runtime = ToolDefinition.runtime("acme_lookup", null, Map.of());
+
+    assertThatThrownBy(() -> AgentContext.empty().withToolDefinitions(List.of(runtime)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("acme_lookup");
   }
 
   @Test

@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ExecutorWrapper;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
@@ -78,6 +79,22 @@ class LocalManagedCodeProviderTest {
               .contains("trusted development")
               .contains("not a sandbox");
         });
+  }
+
+  @Test
+  void reportsTheDirectoryOfTheWrapperOfEachLanguageBeforePreparingIt() throws IOException {
+    final var provider = provider(List.of());
+
+    assertThat(provider.executors())
+        .containsExactlyInAnyOrder(
+            new ExecutorReference(
+                ScriptLanguage.PYTHON,
+                wrapperOf(ScriptLanguage.PYTHON).executorName("", "local"),
+                null),
+            new ExecutorReference(
+                ScriptLanguage.JAVASCRIPT,
+                wrapperOf(ScriptLanguage.JAVASCRIPT).executorName("", "local"),
+                null));
   }
 
   @Test

@@ -25,9 +25,10 @@ import org.jspecify.annotations.Nullable;
 /**
  * Migrates a persisted {@code agentContext} JSON tree to {@link
  * AgentContext#CURRENT_SCHEMA_VERSION} before it is bound, dispatching by schema version to a named
- * migration step per version gap. Also exposes {@link ToolCallResultUpcaster}, the raw-JSON upcast
- * helper for the one migration step introduced so far, reused by the Camunda document store payload
- * (self-describing with its own {@code schemaVersion}, gated the same way before calling in).
+ * migration step per version gap: unversioned to 1 lifts the flat tool call result content, 1 to 2
+ * leaves the tree unchanged. Also exposes {@link ToolCallResultUpcaster}, the raw-JSON upcast
+ * helper of the unversioned-to-1 step, reused by the Camunda document store payload
+ * (self-describing with its own {@code schemaVersion}, migrated step by step the same way).
  *
  * <p>Operates on raw {@link JsonNode} trees so the transform runs before object binding.
  */
@@ -40,10 +41,10 @@ public final class AgentContextSchemaMigration {
   private AgentContextSchemaMigration() {}
 
   /**
-   * Reads an {@code agentContext} JSON tree, upcasts its in-process conversation messages if the
-   * tree was persisted before {@link AgentContext#CURRENT_SCHEMA_VERSION}, stamps the tree's {@code
-   * schemaVersion} to current so the migration is idempotent-safe on every later read/write cycle,
-   * then binds the (possibly upcasted) tree via {@code AgentContext}'s builder deserializer.
+   * Reads an {@code agentContext} JSON tree, migrates it step by step if it was persisted before
+   * {@link AgentContext#CURRENT_SCHEMA_VERSION}, stamps the tree's {@code schemaVersion} to current
+   * so the migration is idempotent-safe on every later read/write cycle, then binds the (possibly
+   * migrated) tree via {@code AgentContext}'s builder deserializer.
    *
    * <p>Shared by the request-field deserializer ({@code VersionedAgentContextDeserializer}) and the
    * backward-compatibility tests, so both exercise the same migration path. Binding via {@code
@@ -76,16 +77,18 @@ public final class AgentContextSchemaMigration {
   }
 
   /**
-   * Dispatches to the migration step for {@code fromVersion}, returning the resulting version. A
-   * future v1-&gt;v2 step is a plain {@code migrateV1ToV2}; the first step stays named after
-   * "unversioned" rather than "v0" because {@link AgentContext#UNVERSIONED_SCHEMA_VERSION} means no
-   * {@code schemaVersion} field was present at all (pre-8.9 legacy state), not a deliberate schema
-   * version.
+   * Dispatches to the migration step for {@code fromVersion}, returning the resulting version. The
+   * first step is named after "unversioned" rather than "v0" because {@link
+   * AgentContext#UNVERSIONED_SCHEMA_VERSION} means no {@code schemaVersion} field was present at
+   * all (pre-8.9 legacy state), not a deliberate schema version.
    */
   private static int migrate(int fromVersion, ObjectNode agentContextObject, ObjectMapper mapper) {
     return switch (fromVersion) {
       case AgentContext.UNVERSIONED_SCHEMA_VERSION ->
           migrateUnversionedToV1(agentContextObject, mapper);
+      // 1 to 2 adds AgentContext.features and the kind and rejection of a tool call. Each binds to
+      // its empty value when it is missing, so the tree is unchanged.
+      case 1 -> 2;
       default ->
           throw new IllegalStateException(
               "No migration registered from schema version %d".formatted(fromVersion));

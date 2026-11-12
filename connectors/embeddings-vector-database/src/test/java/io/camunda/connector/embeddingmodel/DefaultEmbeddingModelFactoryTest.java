@@ -205,7 +205,6 @@ class DefaultEmbeddingModelFactoryTest {
       OpenAiEmbeddingModelProvider provider =
           new OpenAiEmbeddingModelProvider(
               new OpenAiEmbeddingModelProvider.Configuration(
-                  null,
                   OPEN_AI_API_KEY,
                   OPEN_AI_MODEL_NAME,
                   "test-org-id",
@@ -232,7 +231,7 @@ class DefaultEmbeddingModelFactoryTest {
       OpenAiEmbeddingModelProvider provider =
           new OpenAiEmbeddingModelProvider(
               new OpenAiEmbeddingModelProvider.Configuration(
-                  null, OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
+                  OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
 
       testOpenAiEmbeddingModelBuilder(
           provider,
@@ -261,7 +260,7 @@ class DefaultEmbeddingModelFactoryTest {
       var provider =
           new OpenAiEmbeddingModelProvider(
               new OpenAiEmbeddingModelProvider.Configuration(
-                  null, OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
+                  OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
 
       var builder = spy(OpenAiEmbeddingModel.builder());
 
@@ -306,7 +305,6 @@ class DefaultEmbeddingModelFactoryTest {
           new AzureOpenAiEmbeddingModelProvider(
               new AzureOpenAiEmbeddingModelProvider.Configuration(
                   AZURE_OPENAI_ENDPOINT,
-                  null,
                   new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
                   AZURE_OPENAI_DEPLOYMENT_NAME,
                   1536,
@@ -328,7 +326,6 @@ class DefaultEmbeddingModelFactoryTest {
           new AzureOpenAiEmbeddingModelProvider(
               new AzureOpenAiEmbeddingModelProvider.Configuration(
                   AZURE_OPENAI_ENDPOINT,
-                  null,
                   new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
                   AZURE_OPENAI_DEPLOYMENT_NAME,
                   null,
@@ -352,7 +349,6 @@ class DefaultEmbeddingModelFactoryTest {
           new AzureOpenAiEmbeddingModelProvider(
               new AzureOpenAiEmbeddingModelProvider.Configuration(
                   AZURE_OPENAI_ENDPOINT,
-                  null,
                   new AzureClientCredentialsAuthentication(
                       "client-id", "client-secret", "tenant-id", authorityHost),
                   AZURE_OPENAI_DEPLOYMENT_NAME,
@@ -387,7 +383,6 @@ class DefaultEmbeddingModelFactoryTest {
           new AzureOpenAiEmbeddingModelProvider(
               new AzureOpenAiEmbeddingModelProvider.Configuration(
                   AZURE_OPENAI_ENDPOINT,
-                  null,
                   new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
                   AZURE_OPENAI_DEPLOYMENT_NAME,
                   null,
@@ -456,7 +451,6 @@ class DefaultEmbeddingModelFactoryTest {
               new GoogleVertexAiEmbeddingModelProvider.Configuration(
                   PROJECT_ID,
                   REGION,
-                  null,
                   new ApplicationDefaultCredentialsAuthentication(),
                   MODEL_NAME,
                   DIMENSIONS,
@@ -479,7 +473,6 @@ class DefaultEmbeddingModelFactoryTest {
               new GoogleVertexAiEmbeddingModelProvider.Configuration(
                   PROJECT_ID,
                   REGION,
-                  null,
                   new ServiceAccountCredentialsAuthentication("{}"),
                   MODEL_NAME,
                   DIMENSIONS,
@@ -512,7 +505,6 @@ class DefaultEmbeddingModelFactoryTest {
               new GoogleVertexAiEmbeddingModelProvider.Configuration(
                   PROJECT_ID,
                   REGION,
-                  null,
                   new ApplicationDefaultCredentialsAuthentication(),
                   MODEL_NAME,
                   DIMENSIONS,

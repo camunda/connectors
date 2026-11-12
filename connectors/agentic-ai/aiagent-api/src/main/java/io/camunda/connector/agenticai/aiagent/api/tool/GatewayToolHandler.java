@@ -69,6 +69,10 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
    * after {@link #transformToolCallResults} so the {@code toolCallResult.content()} carries this
    * handler's transformed shape (typically a typed domain object).
    *
+   * <p>The agent calls this method only for agent instances without the {@code documents} feature.
+   * An instance with the feature finds the documents of a result the way it renders them as handles
+   * for the model, at any depth and also inside typed records, and does not call it.
+   *
    * <p>The default implementation delegates to {@link ContentTreeDocumentWalker}, which walks
    * {@link java.util.Map}, {@link java.util.Collection}, {@code Object[]} and {@link Document}
    * nodes. This is sufficient for handlers whose transformed content remains a raw tree.

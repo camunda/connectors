@@ -12,11 +12,19 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +107,38 @@ class ToolCallResultContentTest {
   }
 
   @Nested
+  class ForRejectedToolCall {
+
+    @Test
+    void theRejectionIsTheContent() {
+      OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00");
+      ToolCall toolCall =
+          new ToolCall("call-1", "acme_unknown", Map.of())
+              .withRejection("The tool 'acme_unknown' does not exist.");
+
+      assertThat(ToolCallResultContent.forRejectedToolCall(toolCall, completedAt))
+          .isEqualTo(
+              ToolCallResultContent.builder()
+                  .id("call-1")
+                  .name("acme_unknown")
+                  .content(
+                      List.of(TextContent.textContent("The tool 'acme_unknown' does not exist.")))
+                  .completedAt(completedAt)
+                  .build());
+    }
+
+    @Test
+    void aCallWithoutRejectionIsNotAccepted() {
+      ToolCall toolCall = new ToolCall("call-1", "search", Map.of());
+
+      assertThatThrownBy(
+              () -> ToolCallResultContent.forRejectedToolCall(toolCall, OffsetDateTime.now()))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("The tool call 'call-1' is not rejected");
+    }
+  }
+
+  @Nested
   class JacksonRoundTrip {
 
     @Test
@@ -166,6 +206,72 @@ class ToolCallResultContentTest {
           objectMapper.readValue(json, ToolCallResultContent.class);
 
       assertThat(deserialized.completedAt()).isEqualTo(completedAt);
+    }
+  }
+
+  @Nested
+  class WithDocumentsAsReferences {
+
+    private final Document document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+
+    private ToolCallResultContent result(Content... content) {
+      return ToolCallResultContent.builder()
+          .id("call-1")
+          .name("fetch")
+          .content(List.of(content))
+          .elementId("Fetch_Task")
+          .completedAt(OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00"))
+          .properties(Map.of("custom", "value"))
+          .build();
+    }
+
+    @Test
+    void aTopLevelDocumentBecomesItsReferenceWithoutASource() {
+      final var converted =
+          result(DocumentContent.documentContent(document)).withDocumentsAsReferences();
+
+      assertThat(converted)
+          .isEqualTo(
+              result(
+                  new AgentDocumentContent(
+                      AgentDocumentId.of(document), DocumentDelivery.REFERENCE, null)));
+    }
+
+    @Test
+    void aTopLevelDocumentKeepsTheMetadataOfItsContentBlock() {
+      final var converted =
+          result(new DocumentContent(document, Map.of("source", "crm")))
+              .withDocumentsAsReferences();
+
+      assertThat(converted)
+          .isEqualTo(
+              result(
+                  new AgentDocumentContent(
+                      AgentDocumentId.of(document),
+                      DocumentDelivery.REFERENCE,
+                      Map.of("source", "crm"))));
+    }
+
+    @Test
+    void aNestedDocumentStaysADocument() {
+      final var nested = ObjectContent.objectContent(Map.of("file", document));
+      final var original = result(TextContent.textContent("text"), nested);
+
+      assertThat(original.withDocumentsAsReferences()).isSameAs(original);
+    }
+
+    @Test
+    void convertingTwiceGivesTheSameResult() {
+      final var once =
+          result(DocumentContent.documentContent(document)).withDocumentsAsReferences();
+
+      assertThat(once.withDocumentsAsReferences()).isSameAs(once);
     }
   }
 }

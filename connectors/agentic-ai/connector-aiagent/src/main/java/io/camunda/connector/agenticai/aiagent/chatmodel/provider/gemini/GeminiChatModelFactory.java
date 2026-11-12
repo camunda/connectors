@@ -75,6 +75,12 @@ public class GeminiChatModelFactory implements ChatModelFactory {
   private static final String GOOGLE_CLOUD_PLATFORM_SCOPE =
       "https://www.googleapis.com/auth/cloud-platform";
 
+  /**
+   * The SDK defaults the Gemini API to {@code v1} since 2.0. The provider uses {@code v1beta}, the
+   * version it was built and tested against.
+   */
+  private static final String GEMINI_API_VERSION = "v1beta";
+
   private static final String DEFAULT_GEMINI_API_BASE_URL =
       "https://generativelanguage.googleapis.com";
 
@@ -117,6 +123,9 @@ public class GeminiChatModelFactory implements ChatModelFactory {
     final var httpOptionsBuilder = HttpOptions.builder();
     if (endpointOverride != null) {
       httpOptionsBuilder.baseUrl(endpointOverride);
+    }
+    if (backend instanceof GeminiApiBackend) {
+      httpOptionsBuilder.apiVersion(GEMINI_API_VERSION);
     }
     httpOptionsBuilder.timeout(toGeminiTimeoutMillis(timeout));
 

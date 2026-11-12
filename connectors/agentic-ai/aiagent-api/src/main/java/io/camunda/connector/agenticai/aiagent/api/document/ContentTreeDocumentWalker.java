@@ -18,6 +18,10 @@ import org.jspecify.annotations.Nullable;
  * instances. Handles {@link Document}, {@link Map}, {@link Collection}, and {@code Object[]}; all
  * other types are skipped.
  *
+ * <p>The agent uses it only for agent instances without the {@code documents} feature. An instance
+ * with the feature finds the documents of a result the way it renders them as handles for the
+ * model, at any depth and also inside typed records.
+ *
  * <p>Used as the default extraction strategy by {@link
  * io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler#extractDocuments} and as the
  * fallback in {@code ToolCallResultDocumentExtractor} for tool call results not managed by any

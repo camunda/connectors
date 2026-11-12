@@ -38,7 +38,7 @@ jobs:
     #########################################################################
     # Sanitize the branch name to remove dependabot/,renovate/ and transform the name
     - id: sanitize
-      uses: camunda/infra-global-github-actions/sanitize-branch-name@9965a08067900e11c602a050b8821ec92f49544b # main
+      uses: camunda/infra-global-github-actions/sanitize-branch-name@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
       with:
         branch: ${{ env.BRANCH_NAME }}
         max_length: '15'
@@ -46,12 +46,13 @@ jobs:
     # Setup: import secrets from vault
     - name: Import secrets
       id: secrets
-      uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+      uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
-        method: approle
-        roleId: ${{ secrets.VAULT_ROLE_ID }}
-        secretId: ${{ secrets.VAULT_SECRET_ID }}
+        method: jwt
+        role: ${{ secrets.VAULT_JWT_ROLE }}
+        path: ${{ secrets.VAULT_JWT_PATH }}
+        jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
         secrets: |
           secret/data/products/connectors/ci/common ARGOCD_TOKEN;
     #########################################################################
@@ -85,7 +86,7 @@ jobs:
     #########################################################################
     # Create a preview environment
     - name: Deploy Preview Environment for ${{ matrix.product_context }}
-      uses: camunda/infra-global-github-actions/preview-env/create@9965a08067900e11c602a050b8821ec92f49544b # main
+      uses: camunda/infra-global-github-actions/preview-env/create@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
       with:
         revision: ${{ env.BRANCH_NAME }}
         argocd_token: ${{ steps.secrets.outputs.ARGOCD_TOKEN }}
@@ -125,11 +126,14 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
     - name: Check PR for merge conflicts
-      uses: camunda/infra-global-github-actions/preview-env/conflicts@9965a08067900e11c602a050b8821ec92f49544b # main
+      uses: camunda/infra-global-github-actions/preview-env/conflicts@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
       with:
         pull-request-id: ${{ github.event.pull_request.number }}
   clean:
     if: always() && github.event_name == 'pull_request' && needs.deploy-preview.result != 'skipped'
+    permissions:
+      contents: read
+      id-token: write  # Vault JWT login
     uses: camunda/connectors/.github/workflows/PREVIEW-ENV-CLEAN.yml@main
     needs: [deploy-preview]
     secrets: inherit
@@ -141,4 +145,4 @@ jobs:
     runs-on: ubuntu-26.04
     needs: [deploy-preview]
     steps:
-    - uses: camunda/infra-global-github-actions/preview-env/comment@9965a08067900e11c602a050b8821ec92f49544b # main
+    - uses: camunda/infra-global-github-actions/preview-env/comment@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main

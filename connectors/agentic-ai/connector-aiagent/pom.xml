@@ -19,7 +19,7 @@
 
   <properties>
     <version.anthropic-java>2.75.0</version.anthropic-java>
-    <version.openai-java>4.98.0</version.openai-java>
+    <version.openai-java>4.101.0</version.openai-java>
     <!-- Per-template-id default system prompt deviations, one "templateId=file" tuple per line.
          A template whose id has no entry here keeps the generator's own default
          (PromptConfiguration.DEFAULT_SYSTEM_PROMPT). Today this holds only the v1 deviation: the
@@ -428,8 +428,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                 <file>
                   <templateId>io.camunda.connectors.agenticai.aiagent.v1</templateId>
                   <templateFileName>agenticai-aiagent-outbound-connector.json</templateFileName>
-                  <docTemplatePath>AI_AGENT.peb</docTemplatePath>
-                  <docOutputPath>AI_AGENT.md</docOutputPath>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
@@ -441,6 +439,8 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                 <file>
                   <templateId>io.camunda.connectors.agenticai.ai-agent-task.v2</templateId>
                   <templateFileName>agenticai-ai-agent-task.v2.json</templateFileName>
+                  <docTemplatePath>README.peb</docTemplatePath>
+                  <docOutputPath>README.md</docOutputPath>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>

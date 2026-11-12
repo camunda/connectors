@@ -27,15 +27,20 @@ jobs:
         github.event.comment.user.id != 97796249 &&
         startsWith(github.event.comment.body, '/backport')
       )
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write  # Vault JWT login
     steps:
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
@@ -50,7 +55,7 @@ jobs:
           # PR created by GitHub Action bot will not trigger CI checks
           token: ${{ steps.app-token.outputs.token }}
       - name: Create backport pull requests
-        uses: korthout/backport-action@8560fb503c275d433c56f05a2f64850093baa9f7 # v4
+        uses: korthout/backport-action@ad272ff24e4a8593bf18a951a154ae6af93b26b8 # v5
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           experimental: >

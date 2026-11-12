@@ -11,13 +11,20 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.Objec
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
+import io.camunda.connector.agenticai.aiagent.conversation.AgentInput.UserPrompt;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
@@ -25,16 +32,14 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -56,21 +61,28 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       EVENT_CONTENT_EMPTY
           + " Execution waited for all in-flight tool executions to complete before proceeding.";
 
-  static final String TOOL_CALL_DOCUMENTS_PREAMBLE =
-      "Documents extracted from tool calls (<doc /> tag + content pair):";
-  static final String EVENT_DOCUMENTS_PREAMBLE =
+  static final String TRACKED_EVENT_DOCUMENTS_PREAMBLE = "Documents attached to the event:";
+
+  static final String UNTRACKED_EVENT_DOCUMENTS_PREAMBLE =
       "Documents extracted from event data (<doc /> tag + content pair):";
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
+  private final ToolCallResultsInputBuilder toolCallResultsInputBuilder;
+  private final ObjectHandleRenderer objectHandleRenderer;
 
-  public AgentConversationTurnInputComposerImpl(GatewayToolHandlerRegistry gatewayToolHandlers) {
+  public AgentConversationTurnInputComposerImpl(
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      ToolCallResultsInputBuilder toolCallResultsInputBuilder,
+      ObjectHandleRenderer objectHandleRenderer) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
+    this.toolCallResultsInputBuilder = toolCallResultsInputBuilder;
+    this.objectHandleRenderer = objectHandleRenderer;
   }
 
   @Override
-  public CompositionResult compose(
+  public CompositionResult resolve(
       AgentConfiguration configuration,
       AgentContext agentContext,
       PreviousConversation previousConversation,
@@ -83,64 +95,78 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
+    final var documentHandling = agentContext.documentHandling();
 
-    final List<Message> eventMessages =
+    final var events =
         agentInput.eventMessages().stream()
-            .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
-            .toList();
-
-    List<Message> messages = new ArrayList<>();
+            .map(eventResult ->
+                eventInput(eventResult, interruptToolCallsOnEventResults, documentHandling))
+            .reduce(TurnInput.empty(), TurnInput::followedBy);
 
     boolean expectingToolCallResults =
         !previousConversation.turns().isEmpty()
             && previousConversation.turns().getLast().hasToolCalls();
 
     if (expectingToolCallResults) {
-      boolean interruptMissingToolCalls =
-          interruptToolCallsOnEventResults && !eventMessages.isEmpty();
+      boolean interruptMissingToolCalls = interruptToolCallsOnEventResults && !events.isEmpty();
 
-      final var toolCalls = previousConversation.turns().getLast().toolCalls();
+      final var previousTurn = previousConversation.turns().getLast();
 
-      final var resolution =
-          resolveOrderedToolCallResults(
-              agentContext, toolCalls, agentInput.toolCallResults(), interruptMissingToolCalls);
+      final var processResults =
+          resolveProcessToolCallResults(
+              agentContext,
+              previousTurn.processToolCalls(),
+              agentInput.toolCallResults(),
+              interruptMissingToolCalls);
+      final var processEntries =
+          processResults.arrivedResults().stream()
+              .map(result -> processEntry(result, documentHandling))
+              .toList();
+      switch (documentHandling) {
+        case DocumentHandling.Tracked ignored ->
+            processEntries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
+        case DocumentHandling.Untracked ignored -> {}
+      }
 
       // either we have all results or we interrupted the missing tool calls
       // if incomplete, we wait on further tool call results to be added
-      if (!resolution.complete()) {
-        return new CompositionResult.Deferred(resolution.results());
+      if (!processResults.complete()) {
+        return new CompositionResult.Deferred(processResults.arrivedResults());
       }
 
-      final var toolCallResults = resolution.results();
-      final var toolCallResultMessage =
-          ToolCallResultMessage.builder()
-              .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
-              .metadata(defaultMessageMetadata())
-              .build();
-      messages.add(toolCallResultMessage);
-      final var documentMessage = createDocumentMessageForToolResults(toolCallResults);
-      if (documentMessage != null) {
-        messages.add(documentMessage);
+      var batch = ToolCallBatch.of(previousTurn.toolCalls()).withEntries(processEntries);
+      if (interruptMissingToolCalls) {
+        // every call without a result is cancelled: the missing process calls and the runtime
+        // calls that were not executed yet; a rejected call keeps its rejection
+        batch = batch.withEntries(batch.unanswered().stream().map(this::cancelled).toList());
       }
-      messages.addAll(eventMessages);
-    } else {
-      messages.add(createUserPromptMessage(agentInput.userPrompt()));
-      messages.addAll(eventMessages);
+      return new CompositionResult.Ready(agentContext, batch, TurnInput.empty(), events);
     }
 
-    messages = messages.stream().filter(Objects::nonNull).toList();
-
-    if (messages.isEmpty()) {
+    final var userPrompt = userPromptInput(agentInput.userPrompt(), documentHandling);
+    if (userPrompt.isEmpty() && events.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
     }
-
-    return new CompositionResult.NextTurn(messages);
+    return new CompositionResult.Ready(
+        agentContext, ToolCallBatch.of(List.of()), userPrompt, events);
   }
 
-  private @Nullable UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {
+  @Override
+  public TurnInput assemble(CompositionResult.Ready ready) {
+    final var input =
+        ready.toolCallBatch().toolCalls().isEmpty()
+            ? ready.userPrompt()
+            : toolCallResultsInputBuilder.build(ready.agentContext(), ready.toolCallBatch());
+    return input.followedBy(ready.events());
+  }
 
+  /** The user message of the user prompt and its documents, empty without user content. */
+  private TurnInput userPromptInput(UserPrompt userPrompt, DocumentHandling documentHandling) {
+
+    final var messageId = MessageUtil.generateId();
     final var content = new ArrayList<Content>();
+    final var newDocuments = new ArrayList<AgentDocument>();
 
     // add user prompt text
     final var userPromptText = userPrompt.prompt();
@@ -148,27 +174,55 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       content.add(textContent(userPromptText));
     }
 
-    // add documents
-    userPrompt.documents().stream().map(DocumentContent::documentContent).forEach(content::add);
+    switch (documentHandling) {
+      case DocumentHandling.Tracked ignored -> {
+        // add the documents as blocks with the delivery content: the content is added when the
+        // model is called
+        userPrompt.documents().stream()
+            .filter(doc -> !AgentDocument.isSupported(doc))
+            .findFirst()
+            .ifPresent(doc -> {
+              throw UnsupportedDocumentReferenceException.inUserPrompt(doc);
+            });
+        final var origin = AgentDocumentOrigin.userMessage(messageId);
+        for (var doc : userPrompt.documents()) {
+          content.add(
+              AgentDocumentContent.of(AgentDocumentId.of(doc))
+                  .withDelivery(DocumentDelivery.CONTENT));
+          newDocuments.add(AgentDocument.of(doc, origin));
+        }
+      }
+      case DocumentHandling.Untracked ignored ->
+          userPrompt.documents().stream()
+              .map(DocumentContent::documentContent)
+              .forEach(content::add);
+    }
 
     if (content.isEmpty()) {
       LOGGER.debug("Not adding user message as no user content was found to add.");
-      return null;
+      return TurnInput.empty();
     }
-
-    return UserMessage.builder().content(content).metadata(defaultMessageMetadata()).build();
+    return new TurnInput(
+        List.of(
+            UserMessage.builder()
+                .id(messageId)
+                .content(content)
+                .metadata(MessageMetadata.defaults())
+                .build()),
+        newDocuments);
   }
 
   /**
-   * @param results the currently resolved, correlated and gateway-transformed results, in tool-call
-   *     order; partial (arrived-so-far) when {@code complete} is {@code false}
-   * @param complete whether every tool call has a result (or was cancelled via interrupt)
+   * @param arrivedResults the process results that arrived (correlated and gateway-transformed), in
+   *     tool-call order
+   * @param complete whether every process tool call has a result, or the missing ones are cancelled
+   *     via interrupt
    */
-  private record ToolCallResultsResolution(List<ToolCallResult> results, boolean complete) {}
+  private record ProcessToolCallResults(List<ToolCallResult> arrivedResults, boolean complete) {}
 
-  private ToolCallResultsResolution resolveOrderedToolCallResults(
+  private ProcessToolCallResults resolveProcessToolCallResults(
       AgentContext agentContext,
-      List<ToolCall> toolCalls,
+      List<ToolCall> processToolCalls,
       List<ToolCallResult> toolCallResults,
       boolean interruptMissingToolCalls) {
     final var transformedToolCallResults =
@@ -178,19 +232,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             .collect(Collectors.toMap(ToolCallResult::id, Function.identity()));
 
     final var missingToolCalls = new ArrayList<ToolCall>();
-    final var orderedToolCallResults = new ArrayList<ToolCallResult>();
-    toolCalls.forEach(toolCall -> {
+    final var arrivedToolCallResults = new ArrayList<ToolCallResult>();
+    processToolCalls.forEach(toolCall -> {
       final var result = toolCallResultsById.get(toolCall.id());
       if (result != null) {
-        orderedToolCallResults.add(result);
+        arrivedToolCallResults.add(result);
       } else {
         missingToolCalls.add(toolCall);
-        if (interruptMissingToolCalls) {
-          LOGGER.debug("Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
-          orderedToolCallResults.add(
-              ToolCallResult.forCancelledToolCall(
-                  toolCall.id(), toolCall.name(), OffsetDateTime.now(ZoneId.systemDefault())));
-        }
       }
     });
 
@@ -201,31 +249,43 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             "Not adding tool call result message as tool call IDs {} were missing in tool call results.",
             missingToolCalls.stream().map(ToolCall::id).toList());
       }
-      return new ToolCallResultsResolution(orderedToolCallResults, false);
+      return new ProcessToolCallResults(arrivedToolCallResults, false);
     }
-
-    return new ToolCallResultsResolution(orderedToolCallResults, true);
+    return new ProcessToolCallResults(arrivedToolCallResults, true);
   }
 
-  private @Nullable UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
-    final var toolCallDocuments = documentExtractor.extractDocuments(results);
-    if (toolCallDocuments.isEmpty()) {
-      return null;
-    }
-
-    final var content = new ArrayList<Content>();
-    content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-    content.addAll(createDocumentPairs(toolCallDocuments));
-
-    final var metadata = new HashMap<>(defaultMessageMetadata());
-    metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-
-    return UserMessage.builder().content(content).metadata(metadata).build();
+  /**
+   * The entry of a process tool result. An agent instance that tracks its documents registers the
+   * documents the model reads as handles; an instance that does not adds the documents its gateway
+   * tool handler extracts in a message of their own.
+   */
+  private ToolCallBatch.Entry processEntry(
+      ToolCallResult result, DocumentHandling documentHandling) {
+    return switch (documentHandling) {
+      case DocumentHandling.Tracked ignored ->
+          ToolCallBatch.Entry.withRenderedDocuments(
+              ToolCallResultContent.from(result), objectHandleRenderer);
+      case DocumentHandling.Untracked ignored ->
+          ToolCallBatch.Entry.from(result, documentExtractor);
+    };
   }
 
-  private Message createEventMessage(
-      ToolCallResult eventResult, boolean interruptToolCallsOnEventResults) {
+  private ToolCallBatch.Entry cancelled(ToolCall toolCall) {
+    LOGGER.debug("Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
+    return ToolCallBatch.Entry.from(
+        ToolCallResult.forCancelledToolCall(
+            toolCall.id(), toolCall.name(), OffsetDateTime.now(ZoneId.systemDefault())),
+        documentExtractor);
+  }
+
+  /** The user message of an event and the documents of the event. */
+  private TurnInput eventInput(
+      ToolCallResult eventResult,
+      boolean interruptToolCallsOnEventResults,
+      DocumentHandling documentHandling) {
     Object eventContent = eventResult.content();
+    final var messageId = MessageUtil.generateId();
+    final var newDocuments = new ArrayList<AgentDocument>();
 
     List<Content> userMessageContent = new ArrayList<>();
     if (eventContent == null || isEventContentEmpty(eventContent)) {
@@ -242,33 +302,47 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           });
     }
 
-    // events arrive as ToolCallResult with null id/name — no tool-call attributes
-    // on the rendered tag, but the extraction shape is otherwise the same
-    final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
-    if (!eventDocuments.isEmpty()) {
-      userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
-      userMessageContent.addAll(createDocumentPairs(eventDocuments));
-    }
-
-    return UserMessage.builder()
-        .content(userMessageContent)
-        .metadata(defaultMessageMetadata())
-        .build();
-  }
-
-  private List<Content> createDocumentPairs(
-      List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups) {
-    final var content = new ArrayList<Content>();
-    for (var group : documentGroups) {
-      for (var doc : group.documents()) {
-        content.add(
-            textContent(
-                DocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
-                    .toXml()));
-        content.add(DocumentContent.documentContent(doc));
+    // events arrive as ToolCallResult with null id/name, so their documents have no tool call
+    switch (documentHandling) {
+      case DocumentHandling.Tracked ignored -> {
+        // the documents the model reads as handles
+        final var eventDocuments =
+            eventContent == null
+                ? List.<Document>of()
+                : ToolCallResultDocumentExtractor.renderedDocumentsIn(
+                    eventContent, objectHandleRenderer);
+        if (!eventDocuments.isEmpty()) {
+          eventDocuments.stream()
+              .filter(doc -> !AgentDocument.isSupported(doc))
+              .findFirst()
+              .ifPresent(doc -> {
+                throw UnsupportedDocumentReferenceException.inEvent(doc);
+              });
+          userMessageContent.add(textContent(TRACKED_EVENT_DOCUMENTS_PREAMBLE));
+          final var origin = AgentDocumentOrigin.event(messageId);
+          for (var doc : eventDocuments) {
+            newDocuments.add(AgentDocument.of(doc, origin));
+            userMessageContent.add(AgentDocumentContent.of(AgentDocumentId.of(doc)));
+          }
+        }
+      }
+      case DocumentHandling.Untracked ignored -> {
+        final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
+        if (!eventDocuments.isEmpty()) {
+          userMessageContent.add(textContent(UNTRACKED_EVENT_DOCUMENTS_PREAMBLE));
+          userMessageContent.addAll(ToolCallResultsInputBuilder.documentPairs(eventDocuments));
+        }
       }
     }
-    return content;
+
+    return new TurnInput(
+        List.of(
+            UserMessage.builder()
+                .id(messageId)
+                .content(userMessageContent)
+                .metadata(MessageMetadata.defaults())
+                .build()),
+        newDocuments);
   }
 
   private boolean isEventContentEmpty(@Nullable Object eventContent) {
@@ -288,9 +362,5 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             .orElse(null);
 
     return behavior == EventHandlingConfiguration.EventHandlingBehavior.INTERRUPT_TOOL_CALLS;
-  }
-
-  private Map<String, Object> defaultMessageMetadata() {
-    return Map.of("timestamp", ZonedDateTime.now(ZoneId.systemDefault()));
   }
 }

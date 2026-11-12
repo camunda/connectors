@@ -11,18 +11,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -96,6 +100,10 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
   private static final Duration POLL_INTERVAL = Duration.ofSeconds(1);
   private static final int MAX_MESSAGE_LENGTH = 1024;
 
+  /** The message of the web-identity provider in the one of the chain, up to the next provider. */
+  private static final Pattern WEB_IDENTITY_FAILURE =
+      Pattern.compile("WebIdentityTokenFileCredentialsProvider\\(\\): (.*?)(?:, \\w+\\(|]$)");
+
   private static final Logger LOG = LoggerFactory.getLogger(AwsLambdaManagedCodeProvider.class);
 
   private final Map<ScriptLanguage, LambdaExecutor> executors = new EnumMap<>(ScriptLanguage.class);
@@ -120,7 +128,8 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
    * @param lambda the control-plane client, with the SDK's retries
    * @param invoker the client of the invocations: no SDK retries, and a read timeout longer than
    *     the function timeout
-   * @param credentials the credentials of the invoker, resolved before each invocation
+   * @param credentials the credentials of the three clients, resolved before each provisioning and
+   *     each invocation
    */
   public AwsLambdaManagedCodeProvider(
       LambdaClient lambda,
@@ -185,19 +194,32 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     return NAME;
   }
 
+  /** The executor of each language, with its log group, which the provider creates with it. */
+  @Override
+  public List<ExecutorReference> executors() {
+    return executors.values().stream()
+        .map(executor -> {
+          final var name = executor.functionName(prefix);
+          return new ExecutorReference(executor.language(), name, logGroupName(name));
+        })
+        .toList();
+  }
+
   /**
    * Creates the executor of the language, after its log group, unless it exists. Then waits until
    * it is active, and updates its settings in place if they differ from the configuration.
    *
    * @throws ProvisioningException with a code from the failure of the AWS call; {@link
-   *     ProvisioningException#permissionDenied()} for a denied identity, or a role that Lambda
-   *     cannot assume yet
+   *     ProvisioningException#permissionDenied()} for a denied identity, credentials that cannot be
+   *     resolved, or a role that Lambda cannot assume yet
    */
   @Override
   public void ensureExecutors(ScriptLanguage language) {
     final var executor = executors.get(language);
     final var name = executor.functionName(prefix);
     try {
+      // First, so that a failure of the credentials is not taken for a failure of Lambda.
+      resolveCredentials(name);
       if (read(name) == null) {
         create(executor, name);
       }
@@ -223,8 +245,9 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
   /**
    * Invokes the executor of the language synchronously, without SDK retries.
    *
-   * @throws ProvisioningException only for a denied invocation, marked {@link
-   *     ProvisioningException#permissionDenied()}; every other failure is a {@code FAILED} response
+   * @throws ProvisioningException only for a denied invocation, or denied credentials, marked
+   *     {@link ProvisioningException#permissionDenied()}; every other failure is a {@code FAILED}
+   *     response
    */
   @Override
   public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
@@ -246,7 +269,20 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
       // Before the call, so that a credentials failure is known to have run nothing: within the
       // call, the SDK reports it like a lost request.
       credentials.resolveCredentials();
+    } catch (UncheckedIOException e) {
+      throw tokenFileFailure(
+          "The web-identity token file of the runtime cannot be read to call Lambda executor '%s': %s",
+          name, e);
     } catch (SdkException e) {
+      final var service = serviceError(e);
+      if (service != null && denied(service)) {
+        throw ProvisioningException.permissionDenied(
+            bounded(
+                "AWS denied the credentials of the runtime to call Lambda executor '%s': %s"
+                    .formatted(name, message(service))),
+            e);
+      }
+      // A timeout of the metadata or STS call: passing, unlike a denial.
       return ExecutionResponse.failed(
           ErrorCode.PLATFORM_UNAVAILABLE,
           bounded(
@@ -323,6 +359,81 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     return ExecutionResponse.failed(
         ErrorCode.PLATFORM_EXECUTION_FAILED,
         "Lambda executor '%s' returned no valid contract response".formatted(name));
+  }
+
+  /**
+   * Resolves the credentials that the clients share, so that each failure gets its own code.
+   *
+   * <ul>
+   *   <li>The default chain reports a chain that never resolved with only the messages of its
+   *       providers, without a cause: no identity of the runtime is usable, which a fix of its
+   *       grants or of its configuration ends, as for a denial.
+   *   <li>Once a provider resolved, the chain calls it alone, and its failure comes through: a
+   *       rejection of STS is mapped as any other call, a lost connection is passing.
+   * </ul>
+   */
+  private void resolveCredentials(String name) {
+    try {
+      credentials.resolveCredentials();
+    } catch (UncheckedIOException e) {
+      throw tokenFileFailure(
+          "The web-identity token file of the runtime cannot be read to make Lambda executor '%s' ready: %s",
+          name, e);
+    } catch (SdkException e) {
+      final var service = serviceError(e);
+      if (service != null) {
+        throw failure(name, service);
+      }
+      if (e instanceof SdkClientException && e.getCause() == null) {
+        throw ProvisioningException.permissionDenied(
+            bounded(
+                "The credentials of the runtime cannot be resolved to make Lambda executor '%s' ready: %s"
+                    .formatted(name, chainFailure(e))),
+            e);
+      }
+      throw new ProvisioningException(
+          ErrorCode.PLATFORM_UNAVAILABLE,
+          bounded(
+              "The credentials of the runtime cannot be resolved to make Lambda executor '%s' ready: %s"
+                  .formatted(name, message(e))),
+          e);
+    }
+  }
+
+  /**
+   * A web-identity provider that resolved before reads its token file again when it refreshes, and
+   * the SDK reports a file that is gone or unreadable as an unchecked I/O failure, not as an SDK
+   * exception. As for a token file that was never there, no identity of the runtime is usable until
+   * the mount is fixed, so it is a denial, retried within the grant-propagation window.
+   */
+  private static ProvisioningException tokenFileFailure(
+      String template, String name, UncheckedIOException e) {
+    final var cause = e.getCause() == null ? e : e.getCause();
+    return ProvisioningException.permissionDenied(
+        bounded(template.formatted(name, message(cause))), e);
+  }
+
+  /** The rejection of an AWS service behind the failure, such as STS, if any. */
+  private static AwsServiceException serviceError(Throwable failure) {
+    for (var cause = failure; cause != null; cause = cause.getCause()) {
+      if (cause instanceof AwsServiceException service) {
+        return service;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * The failure of the web-identity provider first, when the runtime has a token file: the chain
+   * lists every provider, and the others only say that they are not configured.
+   */
+  private static String chainFailure(Exception e) {
+    final var message = message(e);
+    final var webIdentity = WEB_IDENTITY_FAILURE.matcher(message);
+    if (webIdentity.find() && !webIdentity.group(1).startsWith("Either the environment variable")) {
+      return webIdentity.group(1) + " (" + message + ")";
+    }
+    return message;
   }
 
   /** Whether the connection failed before the request was sent, so that nothing of it ran. */

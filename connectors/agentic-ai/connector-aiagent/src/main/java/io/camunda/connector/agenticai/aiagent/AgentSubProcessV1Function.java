@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandle
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
 /**
@@ -61,16 +60,17 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
   public AgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(AgentSubProcessV1Request.class);
-    var executionContext = buildExecutionContext(context.getJobContext(), request);
+    var executionContext = buildExecutionContext(context, request);
     return agentRequestHandler.handleRequest(executionContext);
   }
 
   private AgentSubProcessExecutionContext buildExecutionContext(
-      JobContext jobContext, AgentSubProcessV1Request request) {
+      OutboundConnectorContext context, AgentSubProcessV1Request request) {
     if (rewriteV1ProviderConfigToV2) {
       var nativeConfig = providerConfigurationMapper.map(request.provider());
       return new AgentSubProcessExecutionContext(
-          jobContext,
+          context.getJobContext(),
+          context,
           request.data(),
           request.agentContext(),
           request.toolCallResults(),
@@ -78,6 +78,6 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
           nativeConfig);
     }
 
-    return new AgentSubProcessExecutionContext(jobContext, request);
+    return new AgentSubProcessExecutionContext(context.getJobContext(), context, request);
   }
 }

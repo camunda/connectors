@@ -124,6 +124,17 @@ with no user code in it.
   retries, and a job after the backoff tries the creation again.
 - **Readiness per language.** Each language becomes ready on its own, so a failing Python executor
   does not block JavaScript jobs.
+- **Upgrade.** A runtime only calls the executors of its own wrapper and never falls back to the
+  executor of a previous one. After an upgrade to a release with a new wrapper, its instances
+  create the new executors as on a first start, and a job that arrives earlier waits for them as
+  above. During the rolling update, the instances of the previous release keep calling their own
+  executors: the two coexist under different names, and neither release calls the other's. The
+  delay of the first jobs after an upgrade is accepted: the creation time of the executors, 3 to 6
+  seconds on AWS and 37 to 51 seconds on GCP, longer when the creation is throttled. A fallback
+  would need the runtime to know the name of the previous executor, which it can only compute from
+  a record of past wrapper digests kept across release lines, or receive from Controller; neither
+  is worth it while most installations are Self-Managed and upgrade a few times a year. It can be
+  added later without changing executor names or the contract.
 - **Missing executor.** When the provider reports `DEPLOYMENT_MISSING`, the job runs
   `ensureExecutors` once more, within its own provisioning budget, and calls the executor again.
 - **Dependencies.** Dependencies are not supported yet (GAP-004). A job that links a `dependencies`
@@ -164,14 +175,53 @@ generates the cluster's prefix, so it can list the functions under it.
 
 - **Cluster deletion.** Controller deletes every function and log group under the cluster's prefix.
 - **Wrapper upgrade.** Once every runtime instance of the cluster runs the new release, Controller
-  asks every live instance which executors it may still call, through an endpoint
-  ([#9919](https://github.com/camunda/connectors/issues/9919)): those of its own wrapper and, while
-  one of them is not ready yet on that instance, the previous executor it falls back to
-  ([#9912](https://github.com/camunda/connectors/issues/9912)). Instances of one release can be in
-  different states, so Controller deletes only the functions under the prefix that no instance
-  reports. If an instance does not answer, Controller deletes nothing and tries again later, as it
-  does while an instance still reports a previous executor.
+  asks every live instance which executors it calls, through an endpoint
+  ([#9919](https://github.com/camunda/connectors/issues/9919)): the executors of its own wrapper,
+  the only ones it calls ([#9912](https://github.com/camunda/connectors/issues/9912)). Controller
+  deletes the functions under the prefix that no instance reports. If an instance does not answer,
+  Controller deletes nothing and tries again later.
 - Controller retries a deletion that fails.
+
+The endpoint is the actuator endpoint `GET /actuator/managedcode`, served only with managed code
+enabled. It answers with the provider, the prefix and, per language, the name of the executor of
+the running wrapper and, on AWS, its log group, `/aws/lambda/<name>`:
+
+```json
+{
+  "provider": "aws",
+  "deploymentNamePrefix": "ce-0123456789abcdef01234567-",
+  "executors": [
+    { "language": "python", "name": "ce-0123456789abcdef01234567-py-0123456789ab", "logGroup": "/aws/lambda/ce-0123456789abcdef01234567-py-0123456789ab" },
+    { "language": "javascript", "name": "ce-0123456789abcdef01234567-js-ba9876543210", "logGroup": "/aws/lambda/ce-0123456789abcdef01234567-js-ba9876543210" }
+  ]
+}
+```
+
+`logGroup` is `null` on GCP, whose functions have no log group of their own.
+
+- The provider computes the names from the wrapper digest and the prefix, as it does to create
+  the executors, without listing or calling the platform. The endpoint therefore answers before
+  the executors exist, and holds no list rights.
+- A provider reports every executor it may call (`executors()` in the SPI). A failure answers
+  with an error status, never with an empty list, which would let Controller delete every
+  function under the prefix: 501 when the provider does not report its executors, as with a
+  provider written outside this repository that does not override `executors()`, and 500 for any
+  other failure.
+- **An actuator endpoint, without a token.** Controller has to ask every instance, so it calls each
+  pod directly, not through the load balancer. In SaaS, the actuator is served on the management
+  port, 9080, apart from the API port, like health and metrics. A token checked by the runtime would
+  need an OIDC client for Controller and a token per cluster in its reconcile loop. The response
+  changes nothing and holds no secret: the names follow from the prefix and the wrapper digest,
+  which is published in the API module. The SaaS bundle exposes it. The default bundle does not: a
+  Self-Managed operator exposes it with `management.endpoints.web.exposure.include` and secures it
+  like the other actuator endpoints.
+- **Open with Controller.** This assumes that Controller can reach the management port of each
+  runtime pod, that the port is not exposed outside the cluster network, and that network isolation
+  is enough for this endpoint. If one of these does not hold, the endpoint needs a token, on the
+  API port.
+- An instance that answers 404 runs managed code disabled, or a release without the endpoint, or
+  has not exposed it. Controller cannot tell these apart, so it deletes nothing for a 404 either,
+  nor for any other answer than 200.
 
 Listing by prefix also catches the executors of wrappers several releases old, and the functions
 of a runtime that no longer answers. A runtime instance does not delete executors when it shuts
@@ -215,10 +265,10 @@ sequenceDiagram
   Note over Controller,Provider: After a rollout
   par Every live instance
     Controller->>A: Which executors are in use?
-    A-->>Controller: Its own, and the previous one while it falls back to it
+    A-->>Controller: The executors of its own wrapper
   and
     Controller->>B: Which executors are in use?
-    B-->>Controller: Its own, and the previous one while it falls back to it
+    B-->>Controller: The executors of its own wrapper
   end
   Controller->>Provider: Delete the functions under the prefix that no instance reported
   Note over Controller: An instance that does not answer: no deletion, try again later
@@ -321,10 +371,9 @@ field changes. Adding an optional field that older parties ignore does not chang
 - An executor's name carries the digest of its wrapper, for every provider, including one written
   outside this repository. A runtime therefore only calls executors whose wrapper it knows, and a
   mismatch means a bug or a tampered executor, not a normal state.
-- The **runtime** sends each executor the version of that executor's wrapper. While it still
-  invokes the previous executor during an upgrade
-  ([#9912](https://github.com/camunda/connectors/issues/9912)), it sends that executor the previous
-  version.
+- The **runtime** sends the version of its own wrapper, since it calls no other executor, not even
+  during an upgrade ([#9912](https://github.com/camunda/connectors/issues/9912)). A runtime and
+  the executors it calls therefore always agree on the version.
 
 ### Error codes and retries
 
@@ -418,6 +467,11 @@ name.
   contract response. It returns a failure as a `FAILED` response instead of throwing it, and reports
   a missing executor as `DEPLOYMENT_MISSING`. The one exception is a denied invocation, thrown as a
   permission denial, so that the connector waits it out within the grant-propagation window.
+- `executors()`: the executor of each language that the runtime may call, with its log group when
+  the platform has one of its own, computed without calling the platform. The endpoint above
+  reports it. Its default throws `UnsupportedOperationException`, so that a provider written
+  outside this repository need not implement it, and the endpoint then answers 501. It does not
+  default to an empty list, which would have every executor of the cluster deleted.
 
 Every executor runs **our wrapper**, whatever the provider: the wrapper implements the contract,
 calls the script's `execute`, and enforces the child process, the limits and the cleanup. The
@@ -442,17 +496,19 @@ per language.
 |---|---|---|---|
 | `connector-runtime/connector-managed-script-api` | Apache 2.0 | Provider SPI, execution contract and executor wrappers; depends on nothing but Jackson annotations | Wherever a provider is built |
 | `connectors/managed-script` | Camunda proprietary, like the other connectors | Connector, element template, job handler, readiness, `local` provider | Default bundle, disabled by default (`camunda.connector.managed-code.enabled=false`) |
-| `connectors/managed-script-aws` | Camunda proprietary | `aws` provider: one zip Lambda function per language (`python3.13`, `nodejs22.x`) | Not in the default bundle |
-| `connectors/managed-script-gcp` | Camunda proprietary | `gcp` provider: one Cloud Run function per language (`python313`, `nodejs22`), request concurrency 1 | Not in the default bundle |
+| `connectors/managed-script-aws` | Camunda proprietary | `aws` provider: one zip Lambda function per language (`python3.13`, `nodejs22.x`) | Default bundle, inactive unless `provider=aws` |
+| `connectors/managed-script-gcp` | Camunda proprietary | `gcp` provider: one Cloud Run function per language (`python313`, `nodejs22`), request concurrency 1 | Default bundle, inactive unless `provider=gcp` |
 
 The connector lives with the other connectors, so its element template is published with theirs.
 The SPI stays in an Apache 2.0 module of its own, without Spring or the runtime, so that a provider,
 including one a Self-Managed customer writes, depends on that module only. The dependencies go one
 way: the connector and the providers depend on the API, and the runtime depends on none of them.
-The AWS and GCP modules bring the Lambda, CloudWatch Logs and Cloud Run functions clients and the
-permissions to create functions, so the default bundle does not include them; a
-distribution that offers managed scripts, such as the SaaS image, adds the module of its provider
-to the classpath.
+The AWS and GCP modules are in the default bundle, and so in the SaaS image, which builds on it:
+Self-Managed and SaaS enable a provider by configuration, without adding jars. A module grants no
+permission by itself: the runtime creates functions only with managed code enabled, its provider
+selected and a cloud identity allowed to, all set by the operator. The cost is the Lambda,
+CloudWatch Logs and Cloud Functions clients in the bundle; the rest of their dependencies (AWS SDK
+core, Google auth, gRPC) are there already for the AWS and Google connectors.
 
 The `local` provider is for **trusted development only and is not a sandbox**. It runs the same
 wrapper as a local Node.js or Python process, started through an entry point of its own that reads
@@ -472,8 +528,8 @@ It logs a warning at startup. Windows is not supported.
 - The runtime's connector machinery handles activation, variable fetching, result and error
   expressions, retries and secrets, as for every connector.
 - Deployment stays fast and does not depend on the provider being available.
-- With managed code disabled, the ordinary connector workers are unchanged, and the default bundle
-  carries no managed-script provider.
+- With managed code disabled, the ordinary connector workers are unchanged, and no provider bean is
+  created, although the default bundle carries the `aws` and `gcp` providers.
 - A fixed contract, a closed set of error codes and a documented retry behaviour per code let the
   wrappers, the providers and the job handler be built and reviewed in separate PRs.
 
@@ -490,6 +546,20 @@ It logs a warning at startup. Windows is not supported.
 - A script and its input travel in every request: at most 6 MB on AWS and 32 MB on GCP.
 - A wrapper upgrade creates new executors in every cluster. The old ones stay until Controller
   deletes them at the end of the rollout.
+- After a wrapper upgrade, the first jobs of each new runtime instance wait for the new executors,
+  with no fallback to the previous ones: a few seconds on AWS, up to a minute on GCP, longer when
+  the creation is throttled. A job that waits longer than the provisioning timeout fails with
+  `PROVISIONING_PENDING`, its retries unchanged, and runs after the operator's backoff.
+- The runtime does not pace its control-plane writes across clusters (GAP-012). Clusters that
+  share an AWS account or GCP project and create executors at the same time, as in a rollout of a
+  new wrapper, are throttled: 500 clusters on one GCP project need 1,000 creations at 60 writes per
+  minute. Each runtime backs off on its own, so this delays jobs rather than failing them, unless
+  the throttling lasts longer than twice the provisioning timeout: waiting jobs then consume their
+  retries and can end in incidents. Self-Managed is not affected, with usually one cluster per
+  account or project. In SaaS, rollout waves must fit the write limit of the shared account or
+  project and leave enough function-count headroom for old and new executors to coexist until
+  cleanup. At 500 two-language clusters, the stated 1,000-function GCP limit is already full,
+  so write pacing alone cannot unblock a wrapper upgrade.
 - Cleanup depends on Controller, which needs list and delete rights on the functions projects and
   accounts. In Self-Managed, the operator cleans up by hand.
 - A configuration change updates the executors in place. During a rolling update, instances that

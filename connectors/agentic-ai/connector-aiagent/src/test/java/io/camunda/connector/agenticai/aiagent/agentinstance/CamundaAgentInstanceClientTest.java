@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -26,6 +27,7 @@ import io.camunda.client.api.ProblemDetail;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryItem;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
+import io.camunda.client.api.command.AgentTool;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1;
 import io.camunda.client.api.command.CreateAgentInstanceCommandStep1.CreateAgentInstanceCommandStep2;
@@ -43,6 +45,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
@@ -59,6 +62,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
@@ -70,6 +74,8 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -100,6 +106,11 @@ class CamundaAgentInstanceClientTest {
 
   private static final RetriesProperties RETRIES_CONFIGURATION =
       new RetriesProperties(4, Duration.ofSeconds(1));
+
+  private static final HistoryDocuments NEW_INSTANCE =
+      HistoryDocuments.of(
+          TestAgentExecutionContext.withLimits(),
+          AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()));
 
   private static final long ELEMENT_INSTANCE_KEY = 77L;
 
@@ -139,7 +150,8 @@ class CamundaAgentInstanceClientTest {
   @BeforeEach
   void setUp() {
     recordedSleeps = new ArrayList<>();
-    var historyMapper = new AgentInstanceHistoryMapper(gatewayToolHandlers);
+    var historyMapper =
+        new AgentInstanceHistoryMapper(gatewayToolHandlers, TestDocuments.objectHandleRenderer());
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
@@ -170,7 +182,8 @@ class CamundaAgentInstanceClientTest {
                 selector,
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
-                new AgentInstanceHistoryMapper(gatewayToolHandlers),
+                new AgentInstanceHistoryMapper(
+                    gatewayToolHandlers, TestDocuments.objectHandleRenderer()),
                 new AgentInstanceToolMapper(gatewayToolHandlers))
             .create(executionContext);
 
@@ -648,6 +661,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           null,
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
           TURN_INGESTION_TIMESTAMP);
@@ -669,6 +683,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           turn,
           Optional.of(precedingTurn(configuration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -699,6 +714,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLeaseToken("lease-token-abc"),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(configuration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -722,6 +738,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(configuration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -749,6 +766,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.empty(),
           TURN_INGESTION_TIMESTAMP);
@@ -783,6 +801,30 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
+    void reportsTheRuntimeToolsWithoutAnElementIdNextToTheToolsOfTheProcess() {
+      givenUpdateCommand();
+      final var tools =
+          List.of(
+              ToolDefinition.builder().name("getWeather").description("d").build(),
+              ToolDefinition.runtime("acme_lookup", "d", Map.of()));
+      final var configuration = configuration("Be nice.", tools);
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
+          userTurn("hi", configuration.fingerprint()),
+          Optional.empty(),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue().get(0).getTools())
+          .extracting(AgentTool::getName, AgentTool::getElementId)
+          .containsExactly(tuple("getWeather", "getWeather"), tuple("acme_lookup", null));
+    }
+
+    @Test
     void shouldPrependConfigurationItemWhenSystemPromptChanged() {
       givenUpdateCommand();
       final var previousConfiguration = configuration("Be nice.", List.of());
@@ -792,6 +834,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -815,6 +858,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -835,6 +879,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -856,6 +901,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -888,6 +934,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           userTurn("hi", configuration.fingerprint()),
           Optional.of(precedingTurn(previousConfiguration.fingerprint())),
           TURN_INGESTION_TIMESTAMP);
@@ -942,6 +989,7 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           configuration,
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
           turn,
           Optional.of(previousTurn),
           TURN_INGESTION_TIMESTAMP);
@@ -959,6 +1007,101 @@ class CamundaAgentInstanceClientTest {
                     assertThat(tc.getArguments())
                         .containsExactlyEntriesOf(Map.of("city", "Berlin")));
           });
+    }
+
+    @Test
+    void shouldReportRuntimeAndProcessResultsOfOneAssistantMessageAsToolResultsInCallOrder() {
+      givenUpdateCommand();
+      final var configuration = configuration("Be nice.", List.of());
+      final var runtimeCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:40Z");
+      final var processCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:50Z");
+      final var runtimeResult =
+          ToolCallResultContent.builder()
+              .id("runtime")
+              .name("acme_lookup")
+              .content(List.of(TextContent.textContent("Found the customer.")))
+              .completedAt(runtimeCompletedAt)
+              .build();
+      final var processResult =
+          ToolCallResultContent.builder()
+              .id("real")
+              .name("getWeather")
+              .elementId("getWeather")
+              .content(List.of(TextContent.textContent("sunny")))
+              .completedAt(processCompletedAt)
+              .build();
+      final var turn =
+          new AgentConversationTurn(
+              2,
+              List.of(
+                  ToolCallResultMessage.builder()
+                      .results(List.of(runtimeResult, processResult))
+                      .build()),
+              null,
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+      final var previousTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder()
+                  .toolCalls(
+                      List.of(
+                          ToolCall.builder()
+                              .id("runtime")
+                              .name("acme_lookup")
+                              .arguments(Map.of("customerId", "42"))
+                              .kind(ToolKind.RUNTIME)
+                              .build(),
+                          ToolCall.builder()
+                              .id("real")
+                              .name("getWeather")
+                              .arguments(Map.of("city", "Berlin"))
+                              .build()))
+                  .build(),
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
+          turn,
+          Optional.of(previousTurn),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      // the configuration is unchanged; each result is one item correlated to its own call
+      assertThat(historyCaptor.getValue())
+          .satisfiesExactly(
+              runtime -> {
+                assertThat(runtime.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+                assertThat(runtime.getHistoryItemId()).isEqualTo("runtime");
+                assertThat(runtime.getLoopIteration()).isEqualTo(2);
+                assertThat(runtime.getProducedAt()).isEqualTo(runtimeCompletedAt);
+                assertThat(runtime.getToolCalls())
+                    .singleElement()
+                    .satisfies(tc -> {
+                      assertThat(tc.getToolCallId()).isEqualTo("runtime");
+                      assertThat(tc.getToolName()).isEqualTo("acme_lookup");
+                      // a runtime tool call has no BPMN element
+                      assertThat(tc.getElementId()).isNull();
+                      assertThat(tc.getArguments())
+                          .containsExactlyEntriesOf(Map.of("customerId", "42"));
+                    });
+              },
+              real -> {
+                assertThat(real.getRole()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+                assertThat(real.getHistoryItemId()).isEqualTo("real");
+                assertThat(real.getProducedAt()).isEqualTo(processCompletedAt);
+                assertThat(real.getToolCalls())
+                    .singleElement()
+                    .satisfies(tc -> {
+                      assertThat(tc.getToolCallId()).isEqualTo("real");
+                      assertThat(tc.getElementId()).isEqualTo("getWeather");
+                    });
+              });
     }
 
     @Test
@@ -987,6 +1130,7 @@ class CamundaAgentInstanceClientTest {
                   TestAgentExecutionContext.withLimits(),
                   configuration,
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   turn,
                   Optional.empty(),
                   TURN_INGESTION_TIMESTAMP))
@@ -1095,6 +1239,19 @@ class CamundaAgentInstanceClientTest {
 
     @Captor private ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor;
 
+    private AgentConfiguration configuration() {
+      return new AgentConfiguration(
+          new OpenAiProviderConfiguration(
+              new OpenAiProviderConfiguration.OpenAiConnection(
+                  null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
+          new PromptConfiguration.SystemPromptConfiguration("Be nice."),
+          null,
+          null,
+          null,
+          null,
+          null);
+    }
+
     @Test
     void shouldSkipWhenAgentInstanceKeyIsNull() {
       final var previousTurn =
@@ -1108,7 +1265,10 @@ class CamundaAgentInstanceClientTest {
       client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           null,
-          List.of(ToolCallResult.builder().id("a").name("getWeather").build()),
+          NEW_INSTANCE,
+          List.of(
+              ToolCallResultContent.from(
+                  ToolCallResult.builder().id("a").name("getWeather").build())),
           previousTurn);
 
       verifyNoInteractions(camundaClient);
@@ -1144,7 +1304,8 @@ class CamundaAgentInstanceClientTest {
       client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          List.of(arrivedResult),
+          NEW_INSTANCE,
+          List.of(ToolCallResultContent.from(arrivedResult)),
           previousTurn);
 
       verify(updateCommandStep2, never()).status(any());
@@ -1163,6 +1324,86 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
+    void shouldWriteTheResultOfARuntimeToolAsTheSameItemInEveryWriteThatCarriesIt() {
+      givenUpdateCommand();
+      final var configuration = configuration();
+      final var completedAt = OffsetDateTime.parse("2026-07-02T09:59:40Z");
+      final var runtimeResult =
+          ToolCallResultContent.builder()
+              .id("runtime")
+              .name("acme_lookup")
+              .content(List.of(TextContent.textContent("Found the customer.")))
+              .completedAt(completedAt)
+              .build();
+      final var processResult =
+          ToolCallResultContent.builder()
+              .id("real")
+              .name("getWeather")
+              .elementId("getWeather")
+              .content(List.of(TextContent.textContent("sunny")))
+              .completedAt(OffsetDateTime.parse("2026-07-02T09:59:50Z"))
+              .build();
+      final var assistantTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder()
+                  .toolCalls(
+                      List.of(
+                          ToolCall.builder()
+                              .id("runtime")
+                              .name("acme_lookup")
+                              .arguments(Map.of("customerId", "42"))
+                              .kind(ToolKind.RUNTIME)
+                              .build(),
+                          ToolCall.builder()
+                              .id("real")
+                              .name("getWeather")
+                              .arguments(Map.of("city", "Berlin"))
+                              .build()))
+                  .build(),
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+      final var nextTurn =
+          new AgentConversationTurn(
+              2,
+              List.of(
+                  ToolCallResultMessage.builder()
+                      .results(List.of(runtimeResult, processResult))
+                      .build()),
+              null,
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+
+      // one write carries the result of the runtime tool on its own
+      client.applyToolCallResults(
+          TestAgentExecutionContext.withLimits(),
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
+          List.of(runtimeResult),
+          assistantTurn);
+      // the other write carries it together with the result of the process, with the turn start
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          NEW_INSTANCE,
+          nextTurn,
+          Optional.of(assistantTurn),
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+
+      verify(updateCommandStep4, times(2)).history(historyCaptor.capture());
+      final var alone = historyCaptor.getAllValues().get(0).getFirst();
+      final var merged = historyCaptor.getAllValues().get(1).getFirst();
+      // everything the engine's dedup by history item id would otherwise have to pick between
+      // is identical, so it is irrelevant which of the two writes it keeps
+      assertThat(alone.getHistoryItemId()).isEqualTo("runtime");
+      assertThat(alone.getLoopIteration()).isEqualTo(2);
+      assertThat(alone.getProducedAt()).isEqualTo(completedAt);
+      assertThat(merged).usingRecursiveComparison().isEqualTo(alone);
+    }
+
+    @Test
     void shouldThrowWhenArrivedToolCallResultHasNoOriginatingToolCall() {
       final var previousTurn =
           new AgentConversationTurn(
@@ -1176,7 +1417,10 @@ class CamundaAgentInstanceClientTest {
               client.applyToolCallResults(
                   TestAgentExecutionContext.withLimits(),
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                  List.of(ToolCallResult.builder().id("orphan").name("getWeather").build()),
+                  NEW_INSTANCE,
+                  List.of(
+                      ToolCallResultContent.from(
+                          ToolCallResult.builder().id("orphan").name("getWeather").build())),
                   previousTurn))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("No originating tool call found")
@@ -1227,6 +1471,7 @@ class CamundaAgentInstanceClientTest {
                   TestAgentExecutionContext.withLimits(),
                   configuration(),
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   userMessageTurn(),
                   Optional.empty(),
                   TURN_INGESTION_TIMESTAMP))
@@ -1280,12 +1525,14 @@ class CamundaAgentInstanceClientTest {
               client.applyToolCallResults(
                   TestAgentExecutionContext.withLimits(),
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   List.of(
-                      ToolCallResult.builder()
-                          .id("a")
-                          .name("getWeather")
-                          .completedAt(TURN_INGESTION_TIMESTAMP)
-                          .build()),
+                      ToolCallResultContent.from(
+                          ToolCallResult.builder()
+                              .id("a")
+                              .name("getWeather")
+                              .completedAt(TURN_INGESTION_TIMESTAMP)
+                              .build())),
                   previousTurn))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class, e -> assertThat(e.getRetries()).isEqualTo(0));
@@ -1318,6 +1565,7 @@ class CamundaAgentInstanceClientTest {
                   TestAgentExecutionContext.withLimits(),
                   configuration(),
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   userMessageTurn(),
                   Optional.empty(),
                   TURN_INGESTION_TIMESTAMP))
@@ -1339,6 +1587,7 @@ class CamundaAgentInstanceClientTest {
                   TestAgentExecutionContext.withLimits(),
                   configuration(),
                   AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                  NEW_INSTANCE,
                   userMessageTurn(),
                   Optional.empty(),
                   TURN_INGESTION_TIMESTAMP))
@@ -1417,6 +1666,11 @@ class CamundaAgentInstanceClientTest {
     @Override
     public JobContext jobContext() {
       return jobContext;
+    }
+
+    @Override
+    public DocumentFactory documentFactory() {
+      return TestDocuments.documentFactory();
     }
 
     @Override

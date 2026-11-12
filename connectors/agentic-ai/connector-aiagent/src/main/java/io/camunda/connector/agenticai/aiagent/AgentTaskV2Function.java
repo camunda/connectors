@@ -99,7 +99,11 @@ public class AgentTaskV2Function implements AgentConnectorFunction {
     var request = context.bindVariables(AgentTaskV2Request.class);
     var executionContext =
         new AgentTaskExecutionContext(
-            context.getJobContext(), request.data(), request.provider(), toolElementsResolver);
+            context.getJobContext(),
+            context,
+            request.data(),
+            request.provider(),
+            toolElementsResolver);
     return agentRequestHandler.handleRequest(executionContext);
   }
 }
