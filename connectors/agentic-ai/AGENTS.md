@@ -289,9 +289,9 @@ High-frequency traps (detail behind each link):
   and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
   `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` decides for every document whose content a tool asks for, without a check of its type or size, only whether the model reads the content already or an earlier request of the batch asked for it: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
   asks for content with one sentence per document (the content follows in the next message, or it is in
-  the conversation already), and the message that follows the tool results holds the loaded documents only; a tool writes none of it. A new document in a tool result is a `DocumentContent`, a known one an
-  `AgentDocumentContent`, and content comes only through the effect; `LocalToolCallExecutor` fails the job when a result
-  breaks this. Passing a handle to a tool never adds content.
+  the conversation already), and the message that follows the tool results holds the loaded documents only; a tool writes none of it. A document in a tool result, new or known, is a `DocumentContent` with the document of the
+  connector SDK, and content comes only through the effect; `RuntimeTools` fails the job for an `AgentDocument` or an
+  `AgentDocumentContent` block in a result, and `LocalToolCallExecutor` for an effect that names an unknown document. Passing a handle to a tool never adds content.
   A `Tracked` instance accepts only Camunda documents: an external or an inline document of the user prompt, a tool call
   result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`). A tool
   parameter of the `fromAi` type `document` (the parameter, array items or an object property) takes a handle.
