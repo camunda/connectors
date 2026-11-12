@@ -32,6 +32,8 @@ import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
@@ -399,5 +401,51 @@ class ImportSchedulersTest {
 
     verify(stateManager).update(resultFor("physical-tenant-a"));
     verify(importers, times(1)).importLatestVersions(any(), any());
+  }
+
+  /**
+   * The poll loads classes and reads resources from the nested fat jar while parsing BPMN, so it
+   * must not run on a virtual thread, see #8440.
+   */
+  @Test
+  void eachPhysicalTenantIsPolledOnAPlatformThread() {
+    var stateManager = mock(ProcessStateManager.class);
+    var importers = mock(Importers.class);
+    var clientA = mock(SearchQueryClient.class);
+    var clientB = mock(SearchQueryClient.class);
+    Set<Thread> pollingThreads = ConcurrentHashMap.newKeySet();
+    when(importers.importLatestVersions(any(), any()))
+        .thenAnswer(invocation -> {
+          pollingThreads.add(Thread.currentThread());
+          return resultFor(invocation.getArgument(0));
+        });
+    var activeVersionsThread = new AtomicReference<Thread>();
+    when(importers.importActiveVersions(any(), any()))
+        .thenAnswer(invocation -> {
+          activeVersionsThread.set(Thread.currentThread());
+          return resultFor(invocation.getArgument(0));
+        });
+
+    var schedulers =
+        new ImportSchedulers(
+            stateManager,
+            Map.of("physical-tenant-a", clientA, "physical-tenant-b", clientB),
+            IDENTITY_CLIENT_NAMES,
+            UNUSED_CLIENT_FACTORY,
+            importers,
+            true);
+
+    schedulers.scheduleLatestVersionImport();
+    schedulers.scheduleActiveVersionImport();
+    pollingThreads.add(activeVersionsThread.get());
+    schedulers.shutdown();
+
+    assertThat(pollingThreads)
+        .isNotEmpty()
+        .allSatisfy(thread -> {
+          assertThat(thread.isVirtual()).isFalse();
+          assertThat(thread.isDaemon()).isTrue();
+          assertThat(thread.getName()).startsWith(ImportSchedulers.IMPORTER_THREAD_NAME_PREFIX);
+        });
   }
 }
