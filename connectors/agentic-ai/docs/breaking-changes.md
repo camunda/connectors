@@ -271,7 +271,7 @@ request handler:
 
 The auto-configuration provides the `aiAgentExecutionContextFactory` bean of type `AgentExecutionContextFactory`. It
 implements both interfaces and applies the `rewrite-v1-provider-config-to-v2` setting that the v1 functions took before.
-A bean of either interface replaces it, so a replacement must provide both interfaces. Migration: in a custom function
+A bean of either interface replaces it, so each enabled flavor needs a bean of its interface. Migration: in a custom function
 bean, inject the `AgentTaskExecutionContextFactory` or `AgentSubProcessExecutionContextFactory` bean.
 
 ### Conversation window
