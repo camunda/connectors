@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -212,6 +213,24 @@ class LocalToolCallExecutorTest {
     var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL));
 
     assertThat(entries).containsExactly(ToolCallBatch.Entry.from(execution.toolCallResult()));
+  }
+
+  @Test
+  void anAgentThatTracksItsDocumentsRejectsAnExternalDocumentOfAResultWithTheNameOfTheTool() {
+    var external =
+        new ExternalDocument("https://example.com/report.pdf", "report.pdf", url -> null);
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(
+            List.of(
+                runtimeExecution(
+                    RuntimeToolResult.success(
+                        List.of(DocumentContent.documentContent(external))))));
+
+    assertThatThrownBy(
+            () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .isInstanceOf(UnsupportedDocumentReferenceException.class)
+        .hasMessage(
+            "Only Camunda documents can be passed to the AI Agent, but the result of the tool 'getWeather' contains an external document.");
   }
 
   @Test

@@ -38,6 +38,10 @@ public class LocalToolCallExecutor {
    * of a result that the model reads as handles, also those inside a typed record.
    *
    * @throws IllegalStateException if a call is not a call of a runtime tool
+   * @throws
+   *     io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException
+   *     if an agent instance that tracks its documents gets a document that is not a Camunda
+   *     document from a runtime tool
    * @throws IllegalArgumentException if the result of a runtime tool breaks the rules of its
    *     documents, a defect of the tool
    */
