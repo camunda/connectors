@@ -282,8 +282,8 @@ below make this style specific.
   adapter, one test runs each adapter against the guard. A change that adds an adapter adds it to
   that test. When the test does not exist yet, the change adds it. Example of such a guard: the
   provider tag comparison that [domain rule 2](#domain-rules) requires in each converter. (P2)
-- **Exceptions belong to their contract.** When a Javadoc in `aiagent-api` requires an exception, the
-  exception class is in `aiagent-api`.
+- **Exceptions belong to their contract.** When a Javadoc in an API module (`aiagent-api`,
+  `aiagent-chatmodel-api`) requires an exception, the exception class is in that module.
 - **Native providers and LangChain4j share no code.** A native SDK provider and the LangChain4j
   integration do not share helpers or exception types. Why: the two integrations change
   independently, and a shared helper couples them.

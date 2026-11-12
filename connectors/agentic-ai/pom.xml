@@ -37,9 +37,9 @@
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
     <version.archunit>1.5.1</version.archunit>
 
-    <!-- No release before 8.11.0 contains aiagent-api and aiagent-model, so the API compatibility check
-         has no baseline yet. The enforcer rule below fails once the baseline is bumped to 8.11, as a
-         reminder to remove this property and the rule. -->
+    <!-- No release before 8.11.0 contains aiagent-api, aiagent-chatmodel-api and aiagent-model, so the
+         API compatibility check has no baseline yet. The enforcer rule below fails once the baseline is
+         bumped to 8.11, as a reminder to remove this property and the rule. -->
     <revapi.skip>true</revapi.skip>
   </properties>
 
@@ -47,6 +47,7 @@
     <module>agentic-ai-common</module>
     <module>aiagent-model</module>
     <module>aiagent-api</module>
+    <module>aiagent-chatmodel-api</module>
     <module>aiagent-tools-schema</module>
     <module>connector-ad-hoc-tools-schema</module>
     <module>connector-mcp</module>
@@ -141,9 +142,9 @@
                   <property>api.baseline.version</property>
                   <regex>^8\.10\.\d+$</regex>
                   <regexMessage>
-api.baseline.version was bumped past 8.10! The baseline now contains aiagent-api and aiagent-model,
-so enable their API compatibility check: remove the revapi.skip property and this enforcer rule from
-connectors/agentic-ai/pom.xml. See docs/api-compatibility.md.
+api.baseline.version was bumped past 8.10! The baseline now contains aiagent-api, aiagent-chatmodel-api
+and aiagent-model, so enable their API compatibility check: remove the revapi.skip property and this
+enforcer rule from connectors/agentic-ai/pom.xml. See docs/api-compatibility.md.
                   </regexMessage>
                 </requireProperty>
               </rules>

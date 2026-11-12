@@ -23,9 +23,9 @@ per-invocation resources without a shared singleton lifecycle. A `ChatModelFacto
 request. It exposes just `provider()` (the provider discriminator) and `model()` (the model
 identifier) — enough for routing and agent-instance reporting — and is the type carried through
 `AgentConfiguration` (`chatModel()`) and dispatched on by the registry, so a provider can supply its
-own configuration through the SPI rather than being confined to the module's built-in provider union.
+own configuration through the SPI rather than being confined to the built-in provider union of `connector-aiagent`.
 The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
-etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
+etc.) is the concrete implementation contributed by `connector-aiagent`. Today the v1 request supplies
 configurations through this sealed union only; request-side binding for a custom/native
 `ChatModelConfiguration` is delivered incrementally by the v2 request types (`ProviderConfiguration`
 in `request/v2`), which is the extension point for both built-in native providers and

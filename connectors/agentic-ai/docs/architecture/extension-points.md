@@ -258,9 +258,9 @@ reference implementation and its wiring for the current exact procedure, and res
 ### Add an LLM provider
 
 **The SPI.** Implement `ChatModelFactory` (`supports(ChatModelConfiguration)` /
-`create(ChatModelConfiguration)`) and register it as a Spring bean; `ChatModelRegistryImpl`
+`create(ChatModelConfiguration)`, artifact `aiagent-chatmodel-api`) and register it as a Spring bean; `ChatModelRegistryImpl`
 auto-collects every `ChatModelFactory` bean and routes each request to the one whose `supports`
-returns true ([`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)).
+returns true ([`chat-model-spi.md`](../../aiagent-chatmodel-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)).
 
 **Native providers (v2).** A provider is a `ChatModelFactory` bean plus a `ChatModel`. Implement both
 with your own `ChatModelConfiguration` type from `request/v2`. Reference implementation:

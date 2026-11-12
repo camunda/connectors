@@ -94,7 +94,7 @@ everything else → `STOP`. Unrecognized values fall back to `UnknownStopReason`
 preserved. `refusal` and `model_context_window_exceeded` never reach this mapping: `toResult` throws
 `ContentFilteredException`/`ContextWindowExceededException` for them directly, carrying the
 assistant message and metrics already built for the turn as the exception's `PartialResult` (see
-[`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#normalized-stop-reasons--chatmodelrejectedexception)).
+[`chat-model-spi.md`](../../aiagent-chatmodel-api/docs/chat-model-spi.md#normalized-stop-reasons--chatmodelrejectedexception)).
 
 ## Bedrock Converse
 
@@ -200,7 +200,7 @@ Four stop reasons never reach that mapping's result, because `toResult` throws b
 `content_filtered`, `guardrail_intervened` and `model_context_window_exceeded` throw
 `ContentFilteredException`/`GuardrailInterventionException`/`ContextWindowExceededException`,
 carrying the assistant message and metrics already built for the turn as the exception's
-`PartialResult` (see [`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#normalized-stop-reasons--chatmodelrejectedexception)).
+`PartialResult` (see [`chat-model-spi.md`](../../aiagent-chatmodel-api/docs/chat-model-spi.md#normalized-stop-reasons--chatmodelrejectedexception)).
 `malformed_model_output` and `malformed_tool_use` are a generation failure rather than a policy
 decision, so they fail the call with `ERROR_CODE_FAILED_MODEL_CALL` instead.
 
@@ -336,7 +336,7 @@ normal completion maps to `STOP`, tool calls to `TOOL_USE`. Unrecognized `finish
 back to `StopReason.UnknownStopReason` with the raw value preserved. `content_filter` never reaches
 this mapping on either API family: `toResult` throws `ContentFilteredException` directly, carrying
 the assistant message and metrics already built for the turn as the exception's `PartialResult` (see
-[`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#normalized-stop-reasons--chatmodelrejectedexception)). A refusal (Responses' message-content
+[`chat-model-spi.md`](../../aiagent-chatmodel-api/docs/chat-model-spi.md#normalized-stop-reasons--chatmodelrejectedexception)). A refusal (Responses' message-content
 `refusal` item, Completions' `message.refusal` field) is detected separately from `hasRefusal` and
 throws the same exception, since neither API surfaces it as a stop/finish reason - it's a normal
 completed turn whose content happens to be a declination. `LENGTH` never fails the job.
