@@ -16,12 +16,12 @@ import org.junit.jupiter.api.Test;
 class ToolCallTest {
 
   @Test
-  void withResolvedArgumentsReplacesTheArgumentsAndKeepsEverythingElse() {
+  void withArgumentsReplacesTheArgumentsAndKeepsEverythingElse() {
     final var call =
         new ToolCall(
             "call-1", "upload", Map.of("doc", "tag"), Map.of("k", "v"), ToolKind.RUNTIME, "no");
 
-    final var resolved = call.withResolvedArguments(Map.of("doc", "reference"));
+    final var resolved = call.withArguments(Map.of("doc", "reference"));
 
     assertThat(resolved)
         .isEqualTo(
@@ -35,12 +35,11 @@ class ToolCallTest {
   }
 
   @Test
-  void withResolvedArgumentsKeepsAnExplicitNullValue() {
+  void withArgumentsKeepsAnExplicitNullValue() {
     final var arguments = new HashMap<String, Object>();
     arguments.put("note", null);
 
-    final var resolved =
-        new ToolCall("call-1", "upload", Map.of()).withResolvedArguments(arguments);
+    final var resolved = new ToolCall("call-1", "upload", Map.of()).withArguments(arguments);
 
     assertThat(resolved.arguments()).isEqualTo(Collections.singletonMap("note", null));
   }

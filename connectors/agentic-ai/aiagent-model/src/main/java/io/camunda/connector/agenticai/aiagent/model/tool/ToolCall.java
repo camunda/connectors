@@ -86,15 +86,15 @@ public record ToolCall(
   }
 
   /**
-   * The call with the given arguments. Unlike {@link #withArguments}, it keeps a {@code null} value
-   * in the arguments, which a model can send explicitly and the immutable copy of the builder
-   * rejects.
+   * The call with the given arguments. Keeps a {@code null} value in the arguments, which a model
+   * can send explicitly and the immutable copy of the generated wither rejects.
    */
-  public ToolCall withResolvedArguments(Map<String, Object> resolvedArguments) {
+  @Override
+  public ToolCall withArguments(Map<String, Object> arguments) {
     return new ToolCall(
         id,
         name,
-        Collections.unmodifiableMap(new LinkedHashMap<>(resolvedArguments)),
+        Collections.unmodifiableMap(new LinkedHashMap<>(arguments)),
         metadata,
         kind,
         rejection);
