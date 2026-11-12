@@ -1,0 +1,67 @@
+# Team config of the Agentic AI team for camunda/pr-review-agent
+# (see its docs/configuration.md). Read from main: changes take effect once merged.
+# Caller: .github/workflows/AI_PR_REVIEW_AGENTIC_AI.yml
+schema_version: 1
+
+# Comment only, never approve.
+shadow_mode: true
+
+vault:
+  anthropic_api_key:
+    path: secret/data/products/connectors/ci/ai-pr-review
+    field: AGENTIC_AI_ANTHROPIC_API_KEY
+
+agent:
+  model: claude-opus-5-5
+  timeout_minutes: 20
+
+triggers:
+  opt_in_label: ai-review
+  review_drafts: false
+  skip_authors:
+    - renovate[bot]
+    - dependabot[bot]
+  max_auto_reviews: 5
+
+policy:
+  # Read from the PR base commit, never the PR head.
+  skills:
+    - path: connectors/agentic-ai/docs/code-review.md
+  instructions: |
+    - This review covers connectors/agentic-ai and
+      connectors-e2e-test/connectors-e2e-test-agentic-ai. Other teams own the
+      rest of the repository. Focus findings on this scope.
+    - Each criterion in the section "Human review required" of code-review.md
+      is an escalation criterion. If one applies, the verdict is NEEDS_HUMAN.
+    - Unit tests live in src/test of the same Maven module. End-to-end tests live
+      in connectors-e2e-test/connectors-e2e-test-agentic-ai.
+    - element-templates/*.json, including hybrid/, are generated from the
+      @ElementTemplate annotations. Edit the Java source, never the JSON.
+
+escalation:
+  # Changed paths that always need a human, whatever the agent says.
+  # `*` also matches `/`.
+  rules:
+    - reason: released element templates
+      paths: ["connectors/agentic-ai/*/element-templates/versioned/*"]
+    - reason: public API
+      paths: ["connectors/agentic-ai/aiagent-api/*"]
+    - reason: build config and dependencies
+      paths:
+        - "connectors/agentic-ai/*pom.xml"
+        - "connectors-e2e-test/connectors-e2e-test-agentic-ai/*pom.xml"
+    - reason: review rules
+      paths:
+        - "connectors/agentic-ai/docs/*"
+        - "connectors/agentic-ai/AGENTS.md"
+    - reason: authentication and credentials
+      paths:
+        - "connectors/agentic-ai/*/src/main/*Auth*"
+        - "connectors/agentic-ai/*/src/main/*/auth/*"
+        - "connectors/agentic-ai/*/src/main/*Credential*"
+    - reason: outbound proxy
+      paths: ["connectors/agentic-ai/*/src/main/*Proxy*"]
+
+notifications:
+  # Tagged when the agent's session transcript could not be captured.
+  capture_alert_mentions: ["@camunda/connectors-agentic-ai"]
