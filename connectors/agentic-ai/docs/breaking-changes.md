@@ -264,6 +264,11 @@ The constructors of `AgentTaskV1Function`, `AgentTaskV2Function`, `AgentSubProce
 `rewrite-v1-provider-config-to-v2` setting that the functions took before. Migration: inject the
 `AgentExecutionContextFactory` bean in a custom function bean.
 
+The constructors of `AgentTaskExecutionContext` and `AgentSubProcessExecutionContext` that take an
+`AgentTaskV1Request` or an `AgentSubProcessV1Request` are removed. Migration: call
+`AgentExecutionContextFactory.taskContext` or `subProcessContext`, or the remaining constructor with the request data
+and the chat model configuration.
+
 ### Conversation window
 
 `AgentConversation.window(int size)` keeps its signature. The request handler hands the snapshot to
