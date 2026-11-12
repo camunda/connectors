@@ -281,8 +281,6 @@ built with `new` needs the extra arguments; inject them as beans.
 factory of the job.
 `AgentConversation.nextRuntimeToolRound` takes a `UnaryOperator<AgentContext>` as a second parameter. The conversation
 applies it to its persisted context, and the next round continues with the context that it returns.
-The tool definitions of the snapshot are the ones the model provider gets: without the document delivery of a tool
-(`ToolDefinition.withoutDocumentDelivery()`).
 
 ### Runtime tools and tool names
 
@@ -318,25 +316,6 @@ The tool definitions of the snapshot are the ones the model provider gets: witho
   The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A
   rejected call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is
   executed gets an error result from `RuntimeTools`; neither goes to the process.
-- A tool activity can opt its documents into the delivery `content` with the extension property
-  `io.camunda.agenticai.documents.delivery` = `content`. The agent then adds the content of the documents the tool returns
-  to the request that follows the tool results, without a check of the type or the size of the document, and ends the tool
-  result with one sentence per document that says whether the content follows or is in the conversation already. The MCP
-  and A2A gateway tools keep the delivery `reference`. The result of a runtime tool is never affected: it
-  names the documents whose content it wants. The property takes `reference` or `content`; any other value fails the tool
-  discovery of the agent with a message that names the element. A tool without the property has the delivery `reference`
-  (`AdHocToolsSchemaResolverImpl` stores no delivery for an absent or blank property or the value `reference`).
-- The v2 AI Agent templates have the dropdown *Document delivery* next to the documents of the user prompt
-  (`data.userPrompt.documentDelivery`, `reference` by default), so a process modeled with them gives the model the handles of
-  the prompt documents, which it loads with `c8__load_document`, unless the dropdown is set to `content`. A process that has
-  no value, such as one deployed before the dropdown existed and every v1 template, keeps the content of every prompt
-  document. The v2 templates that have the dropdown are the template version 5 for Camunda 8.11 (the versions 2 to 4 are
-  left to patches of the 8.10 templates). A new element and an element updated to version 5 in the Modeler gets the
-  default `reference`: from then on the prompt documents of an agent instance that tracks its documents are handles, and so
-  are the documents of a tool result, which no option could turn into content before. `c8ctl element-template update`
-  applies the migration recipe of the version 5 templates (`metadata.migratesFrom`), which sets the dropdown to `content`
-  for an element that has no value, so an element updated from the v2 version 1 template or from the v1 template keeps
-  the content of its prompt documents, and the content guard checks each document. Select `reference` to change that.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
@@ -366,13 +345,9 @@ The tool definitions of the snapshot are the ones the model provider gets: witho
 - The sealed `Content` interface permits `AgentDocumentContent` (content type `agent_document`). A `switch` over
   `Content` must handle it. A custom chat model provider never receives it: the agent expands it before the request is
   built.
-- For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
-  document goes out as content, as before, unless the process sets the delivery `reference` (the v2 templates preset it):
-  then the content is added on request. A document in a tool
-  result is text, its handle, instead of a `DocumentContent` or the reference JSON, and the content of a document follows
-  in a user message only when the model loaded it with `c8__load_document` or the tool has the delivery `content`. A
-  custom `ChatModel` that handles `DocumentContent` in tool results therefore sees text for these instances; instances
-  without the feature keep the earlier form.
+- For an agent instance with the `documents` feature, a document in a tool result reaches a chat model provider as text,
+  its handle, instead of a `DocumentContent` or the reference JSON. A custom `ChatModel` that handles `DocumentContent` in
+  tool results therefore sees text for these instances; instances without the feature keep the earlier form.
 - New in the model: `AgentDocumentId`, the value type of a document id (persisted as a plain string), used by the agent
   documents and `AgentDocumentContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the
   identity of the document (the store and the id in the store of a Camunda document), so it is no longer the id of the
