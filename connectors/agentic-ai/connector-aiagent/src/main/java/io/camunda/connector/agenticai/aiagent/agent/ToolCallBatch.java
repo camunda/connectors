@@ -217,10 +217,13 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      * content comes only through an effect. A result that breaks this is a defect of its tool.
      *
      * @param known the documents the agent knows as of the start of the batch
+     * @throws UnsupportedDocumentReferenceException if a document of the result is not a Camunda
+     *     document
      * @throws IllegalArgumentException if the result holds a block with the delivery content, or
      *     refers to a document that is neither known nor returned by the result
      */
     public void requireWellFormed(AgentDocuments known) {
+      requireCamundaDocuments();
       final var tool = result.name();
       final var returned = documents.stream().map(AgentDocumentId::of).collect(Collectors.toSet());
       final Consumer<AgentDocumentId> requireKnown =
