@@ -30,9 +30,21 @@ import org.slf4j.LoggerFactory;
  * DocumentContentGuard} and the rule that content the model reads already, or that an earlier
  * request asked for, is not added again.
  */
-public final class DocumentContentDelivery {
+public class DocumentContentDelivery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DocumentContentDelivery.class);
+
+  private static final String CONTENT_LIMITS_PROPERTY =
+      "camunda.connector.agenticai.aiagent.document.content-limits.<text|pdf|image>";
+
+  private final DocumentContentGuard contentGuard;
+
+  /**
+   * @param contentGuard the check of the content of a document
+   */
+  public DocumentContentDelivery(DocumentContentGuard contentGuard) {
+    this.contentGuard = contentGuard;
+  }
 
   /** What happens to the content of a document that was asked for. */
   public sealed interface Outcome {
@@ -118,18 +130,6 @@ public final class DocumentContentDelivery {
     }
   }
 
-  private static final String CONTENT_LIMITS_PROPERTY =
-      "camunda.connector.agenticai.aiagent.document.content-limits.<text|pdf|image>";
-
-  private final DocumentContentGuard contentGuard;
-
-  /**
-   * @param contentGuard the check of the content of a document
-   */
-  public DocumentContentDelivery(DocumentContentGuard contentGuard) {
-    this.contentGuard = contentGuard;
-  }
-
   /**
    * Decides for each document that was asked for, in the order of the first request, whether its
    * content is added. A document that is {@link Handled#inConversation} is {@link
@@ -143,41 +143,32 @@ public final class DocumentContentDelivery {
    * @param documentFactory the document factory of the job, which restores the documents from the
    *     document store of the physical tenant of the job
    * @throws IllegalArgumentException if a requested id is not the one of a known document
-   * @throws IllegalStateException if the document of a requested id cannot be restored
    */
   public Decision deliver(
       AgentDocuments known,
       Collection<AgentDocumentId> requested,
       Handled handled,
       DocumentFactory documentFactory) {
-    final var restorer = new DocumentRestorer(documentFactory);
     final var outcomes = new ArrayList<Outcome>();
     var state = handled;
     for (final var id : new LinkedHashSet<>(requested)) {
-      if (known.find(id).isEmpty()) {
-        throw new IllegalArgumentException(
-            "The content of the document '%s' is asked for, but the agent does not know it"
-                .formatted(id));
-      }
+      final var agentDocument =
+          known
+              .find(id)
+              .orElseThrow(() ->
+                  new IllegalArgumentException(
+                      "The content of the document '%s' is asked for, but the agent does not know it"
+                          .formatted(id)));
       final var outcome =
           state.withheld().containsKey(id)
               ? new Outcome.Withheld(id, state.withheld().get(id))
               : state.inConversation().contains(id)
                   ? new Outcome.AlreadyInConversation(id)
-                  : check(id, restore(known, id, restorer));
+                  : check(id, agentDocument.toDocument(documentFactory));
       outcomes.add(outcome);
       state = state.after(outcome);
     }
     return new Decision(outcomes, state);
-  }
-
-  private static Document restore(
-      AgentDocuments known, AgentDocumentId id, DocumentRestorer restorer) {
-    return restorer
-        .restore(known, id)
-        .orElseThrow(() ->
-            new IllegalStateException(
-                "The document %s cannot be restored from its reference".formatted(id)));
   }
 
   private Outcome check(AgentDocumentId id, Document document) {

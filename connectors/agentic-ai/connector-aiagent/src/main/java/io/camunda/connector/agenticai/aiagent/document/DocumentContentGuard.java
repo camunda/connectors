@@ -28,7 +28,10 @@ import org.jspecify.annotations.Nullable;
  * <p>A runtime tool asks for content by naming a document (see {@code
  * RuntimeToolResult.Success#withDocumentContent}) and the agent checks it with this guard.
  */
-public final class DocumentContentGuard {
+public class DocumentContentGuard {
+
+  private static final String PASS_THE_HANDLE =
+      " If one of your tools can process the document, pass the handle to it.";
 
   private final DocumentContentLimits limits;
 
@@ -110,9 +113,6 @@ public final class DocumentContentGuard {
       }
     }
   }
-
-  private static final String PASS_THE_HANDLE =
-      " If one of your tools can process the document, pass the handle to it.";
 
   /** The kinds of content the providers tell apart. */
   private enum Kind {
