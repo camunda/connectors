@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 import java.util.List;
 import java.util.Objects;
@@ -40,10 +41,7 @@ public sealed interface RuntimeToolResult {
 
   /** A successful result with a text as its content; a blank text gives no content. */
   static RuntimeToolResult success(String text) {
-    return new Success(
-        Objects.requireNonNull(text).isBlank()
-            ? List.of()
-            : List.of(TextContent.textContent(text)));
+    return new Success(ToolCallResultContent.contentFromObject(Objects.requireNonNull(text)));
   }
 
   /**
