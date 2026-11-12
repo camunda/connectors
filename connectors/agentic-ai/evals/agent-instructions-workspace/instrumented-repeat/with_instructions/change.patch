@@ -1,0 +1,101 @@
+diff --git a/connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java b/connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java
+index 506a349..7b94ce6 100644
+--- a/connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java
++++ b/connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java
+@@ -59,10 +59,16 @@ public class AnthropicContentConverter {
+         case DocumentContent doc -> blocks.add(toDocumentBlockParam(doc));
+         case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
+         case ObjectContent obj -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(obj)));
+-        case ReasoningContent rc ->
++        case ReasoningContent rc -> {
++          if (ANTHROPIC_ID.equals(rc.provider())) {
+             blocks.add(toReasoningContentBlockParam(rc));
+-        case ProviderContent pc ->
++          }
++        }
++        case ProviderContent pc -> {
++          if (ANTHROPIC_ID.equals(pc.provider())) {
+             blocks.add(toProviderContentBlockParam(pc));
++          }
++        }
+       }
+     }
+     return blocks;
+diff --git a/connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverterTest.java b/connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverterTest.java
+index e1703ca..77c8e2e 100644
+--- a/connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverterTest.java
++++ b/connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverterTest.java
+@@ -12,6 +12,11 @@ import static org.mockito.Mockito.mock;
+ import static org.mockito.Mockito.when;
+ 
+ import com.anthropic.models.messages.Base64ImageSource;
++import com.anthropic.models.messages.ContainerUploadBlockParam;
++import com.anthropic.models.messages.ContentBlockParam;
++import com.anthropic.models.messages.ImageBlockParam;
++import com.anthropic.models.messages.TextBlockParam;
++import com.anthropic.models.messages.ThinkingBlockParam;
+ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+ import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+@@ -234,6 +239,61 @@ class AnthropicContentConverterTest {
+       assertThat(blocks).isEmpty();
+     }
+ 
++    @Test
++    void dropsForeignProviderBlocksWithoutLosingOtherContent() {
++      final var doc = mockDocument("image/png", "QUJD");
++      final List<Content> content =
++          List.of(
++              new TextContent("saved answer", null),
++              new ReasoningContent(
++                  "openai", Map.of("type", "reasoning", "id", "rs_1"), "OpenAI summary", null),
++              new DocumentContent(doc, null),
++              new ProviderContent(
++                  "openai", Map.of("type", "text", "text", "foreign provider content"), null),
++              new ReasoningContent(
++                  "anthropic",
++                  Map.of("type", "thinking", "signature", "sig-123"),
++                  "Anthropic thinking",
++                  null),
++              new ObjectContent(Map.of("key", "value"), null),
++              new ProviderContent(
++                  "anthropic", Map.of("type", "container_upload", "file_id", "file_abc123"), null));
++
++      final var blocks = converter.toContentBlockParams(content);
++
++      assertThat(blocks)
++          .containsExactly(
++              ContentBlockParam.ofText(TextBlockParam.builder().text("saved answer").build()),
++              ContentBlockParam.ofImage(
++                  ImageBlockParam.builder()
++                      .source(
++                          Base64ImageSource.builder()
++                              .data("QUJD")
++                              .mediaType(Base64ImageSource.MediaType.IMAGE_PNG)
++                              .build())
++                      .build()),
++              ContentBlockParam.ofThinking(
++                  ThinkingBlockParam.builder()
++                      .thinking("Anthropic thinking")
++                      .signature("sig-123")
++                      .build()),
++              ContentBlockParam.ofText(
++                  TextBlockParam.builder().text("{\"key\":\"value\"}").build()),
++              ContentBlockParam.ofContainerUpload(
++                  ContainerUploadBlockParam.builder().fileId("file_abc123").build()));
++    }
++
++    @Test
++    void dropsForeignProviderBlocksBeforeValidatingTheirPayloads() {
++      final var blocks =
++          converter.toContentBlockParams(
++              List.of(
++                  new ReasoningContent("openai", "opaque reasoning", "OpenAI summary", null),
++                  new ProviderContent("openai", "opaque provider content", null)));
++
++      assertThat(blocks).isEmpty();
++    }
++
+     @Test
+     void mapsMultipleContentItemsInOrder() {
+       final var doc = mockDocument("image/png", "QUJD");

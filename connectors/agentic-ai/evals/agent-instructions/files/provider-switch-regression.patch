@@ -1,0 +1,19 @@
+diff --git a/connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java b/connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java
+--- a/connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java
++++ b/connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java
+@@ -60,13 +60,10 @@ public class AnthropicContentConverter {
+         case DocumentContent doc -> blocks.add(toDocumentBlockParam(doc));
+         case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
+         case ObjectContent obj -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(obj)));
+-        // Content tagged for a different provider is dropped rather than replayed.
+-        case ReasoningContent rc when ANTHROPIC_ID.equals(rc.provider()) ->
++        case ReasoningContent rc ->
+             blocks.add(toReasoningContentBlockParam(rc));
+-        case ReasoningContent ignored -> {}
+-        case ProviderContent pc when ANTHROPIC_ID.equals(pc.provider()) ->
++        case ProviderContent pc ->
+             blocks.add(toProviderContentBlockParam(pc));
+-        case ProviderContent ignored -> {}
+       }
+     }
+     return blocks;

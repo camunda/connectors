@@ -1,0 +1,74 @@
+{
+  "kind": "independent matched red/green verification",
+  "focused_command": "mvn -o -B -ntp -Daether.priority.org.eclipse.aether.internal.impl.SimpleLocalRepositoryManagerFactory=100 -Dmaven.build.cache.enabled=false -pl connectors/agentic-ai/connector-aiagent -am -Dtest=AnthropicContentConverterTest -Dsurefire.failIfNoSpecifiedTests=false -Dspotless.skip=true test",
+  "combined_command": "mvn -o -B -ntp -Daether.priority.org.eclipse.aether.internal.impl.SimpleLocalRepositoryManagerFactory=100 -Dmaven.build.cache.enabled=false -pl connectors/agentic-ai/connector-aiagent -am -Dtest=AnthropicContentConverterTest,AnthropicMessageRequestConverterTest,AnthropicMessageResponseConverterTest -Dsurefire.failIfNoSpecifiedTests=false -Dspotless.skip=true test",
+  "method": "In fresh snapshots of each synthetic baseline, apply the agent patch and run the focused suite. Restore only the seeded converter while retaining each candidate's tests, rerun to confirm red, then restore and byte-compare the exact candidate patch.",
+  "test_count_note": "The instructed patch adds two regression tests; the control patch adds one. Their focused totals differ by one for this reason.",
+  "results": {
+    "without_instructions": {
+      "focused_candidate": {
+        "exit_code": 0,
+        "testcase_entries": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "focused_seeded_baseline_with_candidate_tests": {
+        "exit_code": 1,
+        "testcase_entries": 20,
+        "failures": 2,
+        "errors": 1,
+        "failed_existing_tests": [
+          "dropsProviderContentFromAForeignProvider",
+          "dropsReasoningContentFromAForeignProvider"
+        ],
+        "new_regression_failure": "preservesSharedAndAnthropicContentWhenSwitchingProviders (error: foreign reasoning payload was decoded before provider filtering)"
+      },
+      "combined_candidate": {
+        "exit_code": 0,
+        "tests": 73,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "saved_patch_matches_replayed_patch": true
+    },
+    "with_instructions": {
+      "focused_candidate": {
+        "exit_code": 0,
+        "testcase_entries": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "focused_seeded_baseline_with_candidate_tests": {
+        "exit_code": 1,
+        "testcase_entries": 21,
+        "failures": 3,
+        "errors": 1,
+        "failed_existing_tests": [
+          "dropsProviderContentFromAForeignProvider",
+          "dropsReasoningContentFromAForeignProvider"
+        ],
+        "new_regression_failures": [
+          "dropsForeignProviderBlocksWithoutLosingOtherContent",
+          "dropsForeignProviderBlocksBeforeValidatingTheirPayloads (error: foreign reasoning payload was decoded before provider filtering)"
+        ]
+      },
+      "combined_candidate": {
+        "exit_code": 0,
+        "tests": 74,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "saved_patch_matches_replayed_patch": true
+    }
+  },
+  "report_note": "Counts use Maven aggregate summaries and the number of Surefire <testcase> entries. The outer XML tests attribute is one lower for the nested converter test classes.",
+  "limits": [
+    "No engine/BPMN or deployed saved-conversation test was run.",
+    "No live-provider API was called.",
+    "The independent commands used the same offline Maven options in both arms."
+  ]
+}

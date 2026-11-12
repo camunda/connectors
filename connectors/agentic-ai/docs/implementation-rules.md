@@ -17,35 +17,6 @@ In a review, flag a problem that a build check can find, and name the check. In 
 that conflicts with the change or that a build check in the change now enforces. A maintainer decides
 the follow-up.
 
-## Principles
-
-The rules below apply four principles. A rule that applies a principle ends with it, for example
-`(P2)`. When no rule names a case, reason from the principle and cite it. A principle wins over a
-specific rule. When they conflict, the review names the rule for revision.
-
-- **P1. A reader predicts the behavior from the name.**
-  - Why: a reviewer reads the diff and the call sites, and the bodies only sometimes. A name that
-    hides a decision hides a defect.
-  - Test: cover the body. From the name, the parameter types and the return type, write down what the
-    method does with each input. If the body does more, or something different, the name fails.
-- **P2. Each piece of logic has one home. The home hides its steps.**
-  - Why: a copy of a step drifts from the original. A caller that must order the steps can order them
-    wrongly.
-  - Test: for each rule that the change adds, count the functions that implement it. The answer is
-    one. A caller can use the home without knowing the order of its internal steps.
-- **P3. A typical next change touches few files, and the compiler finds each one.**
-  - Why: a change that must edit many files, each repeating the same rule, misses one of them sooner
-    or later.
-  - Test: name the typical next change (a new input source, a new provider, a new content type, a
-    wire format change) and count the production files that it edits. Do not count sealed `switch`
-    arms, because the compiler finds them.
-- **P4. Each test protects one behavior that a plausible change can break.**
-  - Why: a test without a purpose costs review time and refactor time and finds nothing. A test that
-    mirrors the implementation breaks on every refactor and lets a behavior change pass.
-  - Test: name a plausible production regression that this test detects. Overlap with tests at
-    other levels or with other scenarios does not make it redundant. The test rules are in
-    [Unit tests](acceptance-testing.md#unit-tests).
-
 ## Before you plan
 
 A change in this module often has more than one location to change. Before you plan, find each
@@ -61,9 +32,6 @@ location that the change must reach:
   instance migration. See [domain rule 1](#domain-rules).
 
 The plan names each location, or says why the change does not apply to it.
-
-**State the change footprint.** For each concept that the change adds, the plan lists its production
-files. It names the typical next change and the files that this change will touch. (P3)
 
 ## Simplicity first
 
@@ -84,47 +52,16 @@ Change only what the task needs. Clean up only your own changes.
 - When the change leaves related code redundant or inconsistent, name it in the plan with the risk of
   keeping it and the risk of changing it, and ask.
 
-## Names
-
-The name predicts the behavior. The Javadoc states the edges: the inputs, the exceptions and the side
-effects. A good name does not replace a Javadoc that the rules below require.
-
-- **Same name, same behavior.** Overloads of one name do the same thing for different input types.
-  When two factories or methods compute different things, give them different names. (P1)
-- **Name the outcome.** The name of a new method states the result or the decision that the caller
-  gets. Do not give a new method that makes a decision a generic verb such as `handle`, `process` or
-  `do`. Existing names keep their name. Example: `AgentConfiguration.withToolDefinitions` returns the
-  configuration with these tool definitions. (P1)
-- **One level of abstraction per method.** A method either calls named steps in order, or does one
-  step. Do not mix calls to domain methods with field-level construction and loops. (P1)
-- **A test name states the scenario and the expected outcome.** Example:
-  `CompositionResultTest.readyRejectsToolCallsTogetherWithAUserPrompt`. (P1)
-
 ## Code comments and Javadoc
 
 - Write a comment only when it makes a contract or a constraint clear that the code does not show.
-  Do not describe what the code does. When a comment names what the next lines do, extract a method
-  with that name, or delete the comment. (P1)
-- A Javadoc states the contract of its own code as input and output behavior: what the method returns
-  for which input, the requirements for its parameters, each exception and the input that causes it,
-  each side effect that a caller can see, and the exact triggers that a caller can see. Link to a type
-  in the same package when it helps. Example: `handleNoInput` links to `CompositionResult.NoInput`.
+  Do not describe what the code does.
+- A Javadoc states the contract of its own code: what the method does, the requirements for its
+  parameters, and the exact triggers that a caller can see. Link to a type in the same package when it
+  helps. Example: `handleNoInput` links to `CompositionResult.NoInput`.
 - Do not use the internals or the decision history of a different package or module to justify a
   precondition. When a reader must read a caller across that boundary to understand a precondition,
   document the coupling in an ADR or a reference doc, not in the Javadoc.
-- A Javadoc describes the code as it is. It does not tell about a change or an intent. Do not write
-  "now", "no longer", "the new behavior", "previously", "instead of", "replaces", "after this change", "for the
-  time being" or "until". Do not name a PR, an issue, a stack step or future work. Put the history in
-  the commit message, the PR, an ADR or [`docs/breaking-changes.md`](breaking-changes.md).
-- Each claim in a Javadoc MUST be true for the code of the same commit, on each path, also for a job
-  that runs again. Example: a job that runs again creates new message IDs, so a Javadoc must not claim
-  that it computes the same result. A claim that the code does not enforce is a defect.
-- A commit that changes the behavior or the signature of a method updates, in the same commit, all
-  affected Javadoc (including the method and its class) and current-state reference documentation that
-  names the method. This also applies to a later commit in the same PR. Merged ADRs and historical
-  migration entries retain their historical descriptions.
-- In a review, flag a Javadoc or comment that tells about a change, that claims behavior that the code
-  does not have, or that does not agree with the code or the docs.
 
 ## Domain rules
 
@@ -149,10 +86,6 @@ that caused it.
      and `AgentContextSchemaMigration` migrates older stored agent contexts. (#8318)
    - Keep the agent state through a process instance migration. Example: the agent kept its
      `agentInstanceKey` only after the fix in #9164.
-   - Text that users or stored state can see is a wire format. Examples: the text of the agent
-     instance history, the format of a timestamp, the JSON of a document handle. Gate a change of it
-     on an agent instance feature, or record it in [`docs/breaking-changes.md`](breaking-changes.md).
-     (#9631)
    - Why: a running process instance continues on the new connector version without a redeployment.
 2. **Check the source before you use vendor-specific data.** Data is valid only in the system that
    made it. An ID keeps its meaning.
@@ -179,8 +112,6 @@ that caused it.
      unsupported value. A test covers the error. Examples: `GeminiContentConverter` for an unsupported
      document type, `BedrockConverseRequestConverter` for unsupported content in a system message.
    - The help text of a new provider shows the value format that the runtime accepts.
-   - When a change stops calling a method of an extension point for some agent instances, the same
-     change updates the Javadoc of the method or deprecates the method. (#9631)
    - Why: a missing part fails at runtime without an error. (#7129)
 5. **Claim only the guarantees that the other system enforces.**
    - In this module: send the job key and the job lease token on every agent instance command. The
@@ -203,7 +134,7 @@ that caused it.
    - In this module: compare the full input schema of a tool definition. Assert the number of model
      requests in an agentic loop test, for example `modelCallCount()`.
    - Why: a partial assertion lets a regression pass. A schema regression and an extra loop iteration
-     passed this way. (#7463, #6999) (P4)
+     passed this way. (#7463, #6999)
 
 ## Code design
 
@@ -217,10 +148,10 @@ below make this style specific.
 
 - **Rich domain models.** Put behavior on the type that owns the data. Example: `AgentConversation`.
   A service is a class without domain state: a handler, composer, converter, registry, store or
-  client. Add a service only for I/O, for orchestration across domain types, or for an SPI. (P2)
+  client. Add a service only for I/O, for orchestration across domain types, or for an SPI.
 - **Tell, don't ask.** Do not read getters and make the decision outside the model. Call a domain
   method. The method returns the new state as a new instance. Example:
-  `conversation.ingest(message, metrics)`. (P2)
+  `conversation.ingest(message, metrics)`.
 - **Immutable by default.** Use records for values. When a record does not fit, use a final class
   without side effects. Example: the canonical constructor is too large, and the type needs named
   factory methods such as `of`, `fromFoo` or `fromBar`. A change makes a new instance.
@@ -231,14 +162,10 @@ below make this style specific.
 - **Sealed and exhaustive.** Make a closed hierarchy `sealed`. Match it with a pattern `switch` that has
   no `default` branch. Then a new subtype causes a compile error at each location that does not handle
   it. Do not write a chain of `instanceof` checks. Example: `AgentInitializationResult` and its
-  `switch` in `BaseAgentRequestHandler.handleRequest`. (P3)
-- **A new sealed subtype is one that most `switch` sites handle.** Before you add a subtype to a sealed type that
-  many locations match, count the arms that can only throw. When most of them throw, carry the value
-  in a narrower type. Sealed types stay the default. The question is whether a value that most
-  consumers reject belongs in the hierarchy. (P3)
+  `switch` in `BaseAgentRequestHandler.handleRequest`.
 - **Outcomes as types.** When a step has more than one expected outcome, return a sealed outcome type.
   Do not use a flag, `null` or an exception for an expected outcome. Use an exception only for an
-  error. Example: `CompositionResult` with `Ready`, `NoInput` and `Deferred`.
+  error. Example: `CompositionResult` with `NextTurn`, `NoInput` and `Deferred`.
 - **Null-marked code.** All code is `@NullMarked`. Mark each value that can be absent with `@Nullable`.
   See [Null safety in `connectors/agentic-ai/AGENTS.md`](../AGENTS.md#null-safety).
 - **`Optional` only as a return type.** Use `@Nullable` for fields and parameters.
@@ -254,40 +181,6 @@ below make this style specific.
   interface.
 - **One reason to change per class.** When an orchestrator gets a new responsibility, move it into a
   named step. Do not add one more method to the orchestrator. Example: `BaseAgentRequestHandler` calls
-  `AgentInitializer` and `AgentConversationTurnInputComposer` as steps. A named step hides a decision
-  or I/O. Do not add a class that only forwards to another class. A framework entry point, such as a
-  connector function that hands the job to its handler, is exempt. (P3)
-- **Narrow surface, deep module.** Keep the public types and the extension points of one concept in
-  one package per module. Make a type or a member public only when code in a different package calls
-  it, or when user code extends or replaces it. Do not add a public member that only tests call.
-  A public method of a domain type does the whole job that its name promises. The caller does not
-  call a precondition method first. Depth is the work that a type hides per public method. This rule
-  never requires a new interface. (P2)
-- **One owner per invariant.** When a rule must be true on more than one entry path, one function
-  enforces it. Example: when each input that enters the conversation must be validated, the user
-  prompt, event and tool result paths call the same validation function. A caller
-  does not call the steps in sequence, and does not choose between two implementations of the same
-  step. (P2)
-  - A change that adds such a rule adds one function and one call to it per path.
-  - Do not add a second copy of a sequence of domain steps. Put the sequence on the domain type that
-    owns the data, as "Rich domain models" says, and call it from each path. The home is never a
-    helper class.
-  - An owner exists only when two callers need it now (see [Simplicity first](#simplicity-first)).
-  - When the only way to avoid a copy is to refactor existing code, name it in the plan and ask, as
-    [Surgical changes](#surgical-changes) says. In a review, report existing copies as an advisory
-    consolidation.
-- **Decide a mode once.** Resolve a per-instance mode, such as an agent instance feature, at one point
-  into a value or a strategy. The steps below that point do not switch on the mode again. (P2)
-- **A required guard has one shared test.** When a domain rule requires the same guard in each
-  adapter, one test runs each adapter against the guard. A change that adds an adapter adds it to
-  that test. When the test does not exist yet, the change adds it. Example of such a guard: the
-  provider tag comparison that [domain rule 2](#domain-rules) requires in each converter. (P2)
-- **Exceptions belong to their contract.** When a Javadoc in `aiagent-api` requires an exception, the
-  exception class is in `aiagent-api`.
-- **Native providers and LangChain4j share no code.** A native SDK provider and the LangChain4j
-  integration do not share helpers or exception types. Why: the two integrations change
-  independently, and a shared helper couples them.
-- **Code agrees with the accepted ADRs.** When code diverges from an accepted ADR, the same change
-  supersedes or extends the ADR with a new ADR, as the [ADR authoring rules](adr/README.md) say.
+  `AgentInitializer` and `AgentConversationTurnInputComposer` as steps.
 
 For interfaces, follow the convention in [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md#architectural-invariants) (#9539).

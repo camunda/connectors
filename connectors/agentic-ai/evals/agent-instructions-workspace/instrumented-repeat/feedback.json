@@ -1,0 +1,13 @@
+{
+  "human_review": {
+    "status": "pending",
+    "feedback": null
+  },
+  "author_observations": [
+    "The two arms had identical source outside the complete repository instruction and skill manifest, identical prompts and the same explicitly configured model and reasoning level.",
+    "Both agents repaired the seeded behavior. Only the instructed run pinned the full ordered SDK output and supplied the complete product-scope and test-level rationale required by the rubric.",
+    "The control used a good ordering assertion but checked selected fields instead of complete SDK block values. The control explanation omitted storage and running-instance applicability.",
+    "The observed score difference is useful for this case but is not a general estimate from one paired sample."
+  ],
+  "next_iteration": "This was the requested final repeat. Keep the case and evidence. Do not expand the pilot or change repository instructions from this single pair; review the result with a human first."
+}

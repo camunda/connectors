@@ -1,0 +1,56 @@
+{
+  "name": "instrumented-repeat",
+  "kind": "single matched repeat; descriptive comparison, not a general uplift estimate",
+  "eval_cases": 1,
+  "model_runs": 2,
+  "configured_model": "gpt-6.1-sol",
+  "reasoning_effort": "high",
+  "with_instructions": "with_instructions",
+  "without_instructions": "without_instructions",
+  "instruction_uplift": null,
+  "timing": {
+    "without_instructions_duration_seconds": 706,
+    "with_instructions_duration_seconds": 462,
+    "total_tokens": null,
+    "reason": "Elapsed durations are from task-runtime metadata. Token counts are not exposed. The tool does not expose temperature or a random seed."
+  },
+  "control_summary": [
+    {
+      "id": "without_instructions",
+      "task_outcome": {
+        "pass": 3,
+        "fail": 1,
+        "not_run": 0
+      },
+      "instruction_interpretation": {
+        "pass": 1,
+        "fail": 2,
+        "not_run": 0
+      },
+      "overall": "fail"
+    },
+    {
+      "id": "with_instructions",
+      "task_outcome": {
+        "pass": 4,
+        "fail": 0,
+        "not_run": 0
+      },
+      "instruction_interpretation": {
+        "pass": 3,
+        "fail": 0,
+        "not_run": 0
+      },
+      "overall": "pass"
+    }
+  ],
+  "directional_observation": "In this pair, the instructed run passed the complete-output, scope-applicability and test-level rationale assertions that the control missed. Both runs fixed the seeded bug and passed their focused tests.",
+  "finding": "The fixed-model pair provides a positive directional signal for repository instructions in this case. It does not establish a general causal uplift: there is one run per arm, the runtime does not expose every generation parameter, and common platform/user policies remain in both arms.",
+  "gaps": [
+    "One task per arm does not estimate run-to-run variance.",
+    "Temperature and random seed are not exposed by the task-agent tool.",
+    "Token counts and provider-side model telemetry are not exposed.",
+    "Common platform/developer/user-level instructions remain active in both arms.",
+    "No engine/BPMN, live store or real-provider integration test was run."
+  ]
+}

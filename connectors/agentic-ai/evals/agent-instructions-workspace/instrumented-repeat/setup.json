@@ -1,0 +1,93 @@
+{
+  "name": "instrumented-repeat",
+  "kind": "instrumented paired agent run",
+  "source_revision": "0539bc97bbbfc2037e1e7518e6e60b66da41cfbf",
+  "seed_patch": "connectors/agentic-ai/evals/agent-instructions/files/provider-switch-regression.patch",
+  "seed_patch_sha256": "d1b25b1953c913026ab6b441069bec893372c88da9bd6538de35f10499140d74",
+  "seeded_converter_sha256_both_arms": "cdf8c3c52c5e4f716ba5b0a24ae770e005f7c0005879c53d80da929f2868edad",
+  "shared_source_tree_sha256_excluding_removed_instruction_paths": "5b1e7ba358da7288656ec93fb619fca6bd224b3fc8e3de67242ef63dfa909fae",
+  "shared_source_tree_hash_method": "Hash sorted git-archive HEAD entries as path, NUL, file bytes or symlink target, NUL. Exclude .git and the removed instruction paths/prefixes.",
+  "start_time_utc": "2026-11-12T11:44:23Z",
+  "configured_agent": {
+    "tool": "functions.task",
+    "agent_type": "general-purpose",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "high",
+    "launch_mode": "background",
+    "common_tool_defaults": "Same for both arms."
+  },
+  "agent_runtime_observations": {
+    "subject-01": {
+      "model_reported_by_task_runtime": "gpt-6.1-sol",
+      "elapsed_seconds": 706,
+      "turns": 1
+    },
+    "subject-02": {
+      "model_reported_by_task_runtime": "gpt-6.1-sol",
+      "elapsed_seconds": 462,
+      "turns": 1
+    },
+    "token_counts": "Not exposed."
+  },
+  "blind_subject_mapping": {
+    "subject-01": "without_instructions",
+    "subject-02": "with_instructions"
+  },
+  "synthetic_baseline_heads": {
+    "subject-01": "6b3aede",
+    "subject-02": "49adccf"
+  },
+  "instruction_files_present_in_subject_02": [
+    ".github/copilot-instructions.md",
+    ".github/instructions/agentic-ai-implementation-rules.instructions.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "connectors/agentic-ai/AGENTS.md",
+    "connectors/agentic-ai/CLAUDE.md",
+    "connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md",
+    "connectors-e2e-test/connectors-e2e-test-agentic-ai/CLAUDE.md",
+    "connectors/agentic-ai/docs/implementation-rules.md",
+    "connectors/agentic-ai/docs/acceptance-testing.md",
+    ".agents/skills/**",
+    ".claude/skills/**"
+  ],
+  "instruction_sources_removed_from_subject_01": [
+    ".github/copilot-instructions.md",
+    ".github/instructions/agentic-ai-implementation-rules.instructions.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "connectors/agentic-ai/AGENTS.md",
+    "connectors/agentic-ai/CLAUDE.md",
+    "connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md",
+    "connectors-e2e-test/connectors-e2e-test-agentic-ai/CLAUDE.md",
+    "connectors/agentic-ai/docs/implementation-rules.md",
+    "connectors/agentic-ai/docs/acceptance-testing.md",
+    ".agents/skills/**",
+    ".claude/skills/**"
+  ],
+  "instruction_file_sha256_in_subject_02": {
+    ".github/copilot-instructions.md": "8ec24809d7a7e9132c05e27875df7bbd0eb2d1b56741f78d36a109dde0feed30",
+    ".github/instructions/agentic-ai-implementation-rules.instructions.md": "7e5b0413cc45e32a331bd74bab97ce9382c6956afbe476b2717fd964d67f4432",
+    "AGENTS.md": "8ec24809d7a7e9132c05e27875df7bbd0eb2d1b56741f78d36a109dde0feed30",
+    "CLAUDE.md": "d5e23b65af33c244a88d19b0ee5b495ed842b9a83b310faf2f20c34c88008f2e",
+    "connectors/agentic-ai/AGENTS.md": "94b8ea78afc4ed1d0fe12942f31919b7e3f5441ca4395950f39c6944bbf64acb",
+    "connectors/agentic-ai/CLAUDE.md": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
+    "connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md": "4793145a4083a02f3480f47bba7e581f1005deff17be8bd0adc52f632a6d2f6f",
+    "connectors-e2e-test/connectors-e2e-test-agentic-ai/CLAUDE.md": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
+    "connectors/agentic-ai/docs/implementation-rules.md": "7e5b0413cc45e32a331bd74bab97ce9382c6956afbe476b2717fd964d67f4432",
+    "connectors/agentic-ai/docs/acceptance-testing.md": "0275a62d4eef5727c4f463d08081d934a67ae41f69ed8e0c4f6dfb0d7c22557a"
+  },
+  "shared_user_task": "A customer continues a saved conversation after switching from OpenAI to Anthropic. In this checkout, the Anthropic request conversion can fail or replay content belonging to the previous provider. Please fix the conversion issue and add a focused regression test. Keep useful conversation content intact and don't change unrelated behavior. Start with connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java. Include a short explanation of the affected product paths, why your chosen tests are sufficient, and what you actually verified. Work locally; do not open a PR or call paid provider APIs.",
+  "run_instructions_shared_by_both": "Work only in your assigned workspace. Do not inspect other workspaces or evaluation artifacts. Do not commit or open a PR. Record commands and exit codes. Save a source/test patch, explanation and command record.",
+  "workspace_controls": {
+    "checkout": "Separate full source snapshots with one synthetic baseline commit and no remotes.",
+    "seed": "Applied identically before the synthetic baseline commit.",
+    "scoring_material": "Not present in either workspace or agent prompt.",
+    "common_environment": "Repository contents are identical outside the listed instruction paths. Platform/developer policies and user-level guidance available to both task agents are not controlled."
+  },
+  "unavailable_parameters": [
+    "The tool does not expose temperature or a random seed.",
+    "The task-agent runtime does not expose per-run token counts or a trustworthy model telemetry record beyond the explicitly configured model.",
+    "Inherited platform or user-level policies cannot be removed from the no-repository-instructions arm."
+  ]
+}

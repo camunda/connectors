@@ -1,0 +1,117 @@
+{
+  "kind": "manual grading of one fixed-model pair",
+  "grading_method": "Score the unchanged evals.json assertions against each saved patch, explanation and independent red/green test evidence. A quotation or claimed test is not evidence without the corresponding artifact.",
+  "eval_id": 1,
+  "controls": [
+    {
+      "id": "without_instructions",
+      "assertion_results": [
+        {
+          "id": "T1",
+          "status": "pass",
+          "evidence": "without_instructions/change.patch guards both ReasoningContent and ProviderContent using ANTHROPIC_ID. The mixed test retains surrounding content while foreign blocks are excluded."
+        },
+        {
+          "id": "T2",
+          "status": "pass",
+          "evidence": "The converter diff changes only the two provider-specific cases. The new mixed test retains document, object, Anthropic reasoning/signature and native provider content; existing tests cover the older reasoning payload. No storage or unrelated code changed."
+        },
+        {
+          "id": "T3",
+          "status": "fail",
+          "evidence": "The added test uses satisfiesExactly to pin count and order, but checks selected fields rather than comparing each complete SDK block/payload. Existing tests remain unchanged."
+        },
+        {
+          "id": "T4",
+          "status": "pass",
+          "evidence": "verification.json: the 20-test candidate passes. With the candidate test retained and the converter reset to the seed, 2 existing foreign-content tests fail and the new mixed test errors during foreign payload decoding."
+        },
+        {
+          "id": "I1",
+          "status": "pass",
+          "evidence": "The patch filters at Anthropic conversion by each content item's provider tag. It neither relabels foreign content nor removes stored history; the explanation says tool-result handling is unchanged."
+        },
+        {
+          "id": "I2",
+          "status": "fail",
+          "evidence": "The explanation names Task/Sub-process and v1-to-native paths, but does not assess the three conversation stores or explain compatibility for running instances. It therefore does not complete the required applicability map."
+        },
+        {
+          "id": "I3",
+          "status": "fail",
+          "evidence": "The explanation lists focused coverage and says deployed/live-provider behavior is unverified, but does not justify why this pure converter change needs no engine/BPMN test. Its new assertions are also not full-result comparisons."
+        }
+      ],
+      "summary": {
+        "task_outcome": {
+          "pass": 3,
+          "fail": 1,
+          "not_run": 0,
+          "total": 4
+        },
+        "instruction_interpretation": {
+          "pass": 1,
+          "fail": 2,
+          "not_run": 0,
+          "total": 3
+        },
+        "overall": "fail"
+      }
+    },
+    {
+      "id": "with_instructions",
+      "assertion_results": [
+        {
+          "id": "T1",
+          "status": "pass",
+          "evidence": "with_instructions/change.patch guards both provider-specific variants by ANTHROPIC_ID. The mixed test includes a foreign block with an Anthropic-shaped payload and preserves the other blocks."
+        },
+        {
+          "id": "T2",
+          "status": "pass",
+          "evidence": "The patch preserves shared text, image/document content, object content, and Anthropic thinking/signature/provider payloads. Existing converter tests retain coverage for older payloads. No storage or unrelated code changed."
+        },
+        {
+          "id": "T3",
+          "status": "pass",
+          "evidence": "The mixed-content regression uses containsExactly with complete expected ContentBlockParam values in order. Existing converter tests are retained, and a second case verifies foreign opaque payloads are discarded before decoding."
+        },
+        {
+          "id": "T4",
+          "status": "pass",
+          "evidence": "verification.json: all 21 candidate testcases pass. Against the seed, both new regression tests fail along with the two existing foreign-content tests. The related request/response converter tests also pass in the 74-test combined run."
+        },
+        {
+          "id": "I1",
+          "status": "pass",
+          "evidence": "The patch checks provenance at the target provider boundary and drops foreign blocks without relabeling or clearing saved history. The explanation notes that stored formats and tool-result handling remain unchanged."
+        },
+        {
+          "id": "I2",
+          "status": "pass",
+          "evidence": "The explanation distinguishes Task/Sub-process, v2 configuration and the v1-to-native rewrite, native Anthropic backends versus LangChain4j/Bedrock Converse, all three stores, and existing saved conversations. It names affected and unaffected paths; source evidence is in commands.txt."
+        },
+        {
+          "id": "I3",
+          "status": "pass",
+          "evidence": "The explanation identifies a pure transformation with no engine/BPMN dependency, uses complete ordered output assertions, distinguishes pre-fix red from completed local tests, and explicitly excludes live-provider and deployed-conversation claims."
+        }
+      ],
+      "summary": {
+        "task_outcome": {
+          "pass": 4,
+          "fail": 0,
+          "not_run": 0,
+          "total": 4
+        },
+        "instruction_interpretation": {
+          "pass": 3,
+          "fail": 0,
+          "not_run": 0,
+          "total": 3
+        },
+        "overall": "pass"
+      }
+    }
+  ]
+}

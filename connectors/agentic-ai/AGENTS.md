@@ -365,7 +365,6 @@ Before claiming a change is complete:
   check the JSON diff.
 - [ ] The change follows the [implementation rules](docs/implementation-rules.md).
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
-- [ ] Each Javadoc and each document that names a changed method agrees with the code at the last commit of the PR.
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
   The build does not check this yet: the API compatibility check skips `aiagent-api` and
   `aiagent-model` until 8.11.0 is its baseline. From then on, a break of these modules fails the build

@@ -1,0 +1,84 @@
+{
+  "instruction_set": "connectors-agentic-ai",
+  "source_revision": "0539bc97bbbfc2037e1e7518e6e60b66da41cfbf",
+  "method": "https://agentskills.io/skill-creation/evaluating-skills",
+  "instruction_files": [
+    ".github/copilot-instructions.md",
+    "connectors/agentic-ai/AGENTS.md",
+    "connectors/agentic-ai/docs/implementation-rules.md",
+    "connectors/agentic-ai/docs/acceptance-testing.md"
+  ],
+  "instruction_aliases": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "connectors/agentic-ai/CLAUDE.md",
+    ".github/instructions/agentic-ai-implementation-rules.instructions.md"
+  ],
+  "reference_files": [
+    "connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java",
+    "connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicMessageRequestConverter.java",
+    "connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/langchain4j/factory/LangChain4JChatModelFactory.java",
+    "connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverterTest.java"
+  ],
+  "evals": [
+    {
+      "id": 1,
+      "name": "continue-conversation-after-provider-switch",
+      "prompt": "A customer continues a saved conversation after switching from OpenAI to Anthropic. In this checkout, the Anthropic request conversion can fail or replay content belonging to the previous provider. Please fix the conversion issue and add a focused regression test. Keep useful conversation content intact and don't change unrelated behavior. Start with connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicContentConverter.java. Include a short explanation of the affected product paths, why your chosen tests are sufficient, and what you actually verified. Work locally; do not open a PR or call paid provider APIs.",
+      "expected_output": "A narrow converter repair and regression tests. Anthropic requests exclude foreign provider-native and reasoning blocks while preserving supported content, native payloads and their order. Older saved Anthropic reasoning still works. The explanation accurately applies the provider-boundary, compatibility, scope and testing rules to this case, without claiming that every flavor, provider or store needs editing. Report executed checks separately from unverified behavior.",
+      "files": [
+        "connectors/agentic-ai/evals/agent-instructions/files/provider-switch-regression.patch"
+      ],
+      "setup": "Apply the regression patch to a disposable copy at source_revision before either run. The real source revision already handles provider filtering; this is a deliberately introduced evaluation defect. Do not expose this JSON, the patch history, reference repair or grading materials to the executor.",
+      "output_contract": [
+        "A patch relative to the seeded checkout, including regression tests",
+        "A short task-specific explanation with repository evidence",
+        "The commands executed and their results, including blockers"
+      ],
+      "assertions": [
+        {
+          "id": "T1",
+          "dimension": "task_outcome",
+          "text": "The repair excludes both foreign reasoning and foreign provider-native blocks based on their source tags, including foreign blocks with Anthropic-compatible payload shapes, while retaining ordinary content in its original order.",
+          "evidence": "Inspect the patch and the complete expected mixed-content SDK output. Runtime confirmation is graded separately in T4."
+        },
+        {
+          "id": "T2",
+          "dimension": "task_outcome",
+          "text": "The repair preserves Anthropic-native payloads, reasoning text and signature, including the older payload shape without a separate text field; it neither deletes stored history nor changes unrelated behavior.",
+          "evidence": "Compare the full source patch and expected native/older-payload outputs against the seeded source."
+        },
+        {
+          "id": "T3",
+          "dimension": "task_outcome",
+          "text": "Regression tests compare the complete ordered result and native payloads, and keep the existing converter checks rather than weakening them.",
+          "evidence": "Inspect test code for strict full-result comparisons and review the test diff. Merely mentioning a test or checking a list size is insufficient."
+        },
+        {
+          "id": "T4",
+          "dimension": "task_outcome",
+          "text": "The regression tests demonstrably fail on the seeded defect and pass with the repair, and the existing converter tests pass with the repair.",
+          "evidence": "Require command logs and fresh test reports with positive test counts for both runs. Missing build prerequisites mean not_run, never pass."
+        },
+        {
+          "id": "I1",
+          "dimension": "instruction_interpretation",
+          "text": "The explanation and patch apply provider provenance at the request boundary and preserve compatibility with stored conversations; they do not justify relabeling foreign data, clearing history or suppressing conversion errors.",
+          "evidence": "Cross-check the task-specific rationale against implementation-rules.md domain rules 1 and 2 and the actual patch. Rule quotations alone are insufficient."
+        },
+        {
+          "id": "I2",
+          "dimension": "instruction_interpretation",
+          "text": "The explanation assesses Task/Sub-process, v1/v2, native/LangChain4j providers, all three stores and running instances using repository evidence, and distinguishes affected paths from locations needing no edits.",
+          "evidence": "Require concrete code/document references supporting applicability. Do not require changes in every location or reward a blanket 'all unaffected' claim."
+        },
+        {
+          "id": "I3",
+          "dimension": "instruction_interpretation",
+          "text": "The explanation correctly justifies converter-level checks for this non-BPMN change, applies full-outcome assertions, and distinguishes attempted, completed and real-provider verification.",
+          "evidence": "Cross-check the rationale, tests and command log against acceptance-testing.md and implementation-rules.md domain rule 6. Do not accept claims of live interoperability based on local SDK tests."
+        }
+      ]
+    }
+  ]
+}
