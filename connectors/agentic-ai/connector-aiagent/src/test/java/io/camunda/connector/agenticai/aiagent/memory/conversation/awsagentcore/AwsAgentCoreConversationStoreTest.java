@@ -48,6 +48,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
+import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -968,7 +969,7 @@ class AwsAgentCoreConversationStoreTest {
             null,
             List.of(userMessage("next")));
     final var windowed =
-        TestDocuments.documentExpander()
+        TestDocumentHandles.documentExpander()
             .expand(
                 conversation.window(20),
                 conversation.persistedContext().documentHandling(),
@@ -984,7 +985,8 @@ class AwsAgentCoreConversationStoreTest {
                   .containsExactly(
                       TextContent.textContent("see"),
                       TextContent.textContent(
-                          TestDocuments.handleText(AgentDocuments.of(List.of(entry)), tag.id())));
+                          TestDocumentHandles.handleText(
+                              AgentDocuments.of(List.of(entry)), tag.id())));
               // the document block holds the document restored from the stored reference
               assertThat(expanded.content().get(2))
                   .isInstanceOfSatisfying(

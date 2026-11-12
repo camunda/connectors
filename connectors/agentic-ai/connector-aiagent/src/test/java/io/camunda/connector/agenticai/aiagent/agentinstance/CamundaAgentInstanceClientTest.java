@@ -74,6 +74,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
+import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
@@ -151,7 +152,8 @@ class CamundaAgentInstanceClientTest {
   void setUp() {
     recordedSleeps = new ArrayList<>();
     var historyMapper =
-        new AgentInstanceHistoryMapper(gatewayToolHandlers, TestDocuments.objectHandleRenderer());
+        new AgentInstanceHistoryMapper(
+            gatewayToolHandlers, TestDocumentHandles.objectHandleRenderer());
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers);
     client =
         new CamundaAgentInstanceClient(
@@ -183,7 +185,7 @@ class CamundaAgentInstanceClientTest {
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
                 new AgentInstanceHistoryMapper(
-                    gatewayToolHandlers, TestDocuments.objectHandleRenderer()),
+                    gatewayToolHandlers, TestDocumentHandles.objectHandleRenderer()),
                 new AgentInstanceToolMapper(gatewayToolHandlers))
             .create(executionContext);
 

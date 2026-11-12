@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -125,7 +126,7 @@ class LegacyDocumentConversationTest {
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
             new ToolCallResultsInputBuilder(),
-            TestDocuments.objectHandleRenderer());
+            TestDocumentHandles.objectHandleRenderer());
   }
 
   @Test
@@ -235,7 +236,7 @@ class LegacyDocumentConversationTest {
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());
     final var snapshot =
-        TestDocuments.documentExpander()
+        TestDocumentHandles.documentExpander()
             .expand(
                 conversation.window(100),
                 conversation.persistedContext().documentHandling(),
@@ -278,7 +279,7 @@ class LegacyDocumentConversationTest {
             List.of(TestMessagesFixture.userMessage("Next")));
 
     final var snapshot =
-        TestDocuments.documentExpander()
+        TestDocumentHandles.documentExpander()
             .expand(
                 conversation.window(100),
                 conversation.persistedContext().documentHandling(),

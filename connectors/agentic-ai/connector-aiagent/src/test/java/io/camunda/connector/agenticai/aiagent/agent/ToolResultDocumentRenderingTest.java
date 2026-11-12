@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -74,7 +75,7 @@ class ToolResultDocumentRenderingTest {
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-  private final DocumentExpander expander = TestDocuments.documentExpander();
+  private final DocumentExpander expander = TestDocumentHandles.documentExpander();
 
   private AgentConversationTurnInputComposerImpl composer;
 
@@ -88,7 +89,7 @@ class ToolResultDocumentRenderingTest {
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
             new ToolCallResultsInputBuilder(),
-            TestDocuments.objectHandleRenderer());
+            TestDocumentHandles.objectHandleRenderer());
   }
 
   private Document document(String content, String fileName, String contentType) {
@@ -154,11 +155,11 @@ class ToolResultDocumentRenderingTest {
 
     // the providers never see a reference: the windowed result holds the handle of the document
     assertThat(windowed.results().get(0).content())
-        .containsExactly(TextContent.textContent(TestDocuments.handleText(bare)));
+        .containsExactly(TextContent.textContent(TestDocumentHandles.handleText(bare)));
     assertThat(windowed.results().get(1).content())
         .containsExactly(
             ObjectContent.objectContent(
-                Map.of("status", 200, "file", TestDocuments.handleObject(nested))));
+                Map.of("status", 200, "file", TestDocumentHandles.handleObject(nested))));
 
     for (int i = 0; i < results.size(); i++) {
       final var fileName = i == 0 ? "bare.pdf" : "nested.txt";

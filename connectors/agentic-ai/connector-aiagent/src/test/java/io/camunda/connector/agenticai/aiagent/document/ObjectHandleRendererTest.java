@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -53,8 +53,8 @@ class ObjectHandleRendererTest {
                 200,
                 "files",
                 List.of(
-                    Map.of("file", TestDocuments.handleObject(first)),
-                    Map.of("file", TestDocuments.handleObject(second)))));
+                    Map.of("file", TestDocumentHandles.handleObject(first)),
+                    Map.of("file", TestDocumentHandles.handleObject(second)))));
     assertThat(rendered.documents()).containsExactly(first, second);
   }
 

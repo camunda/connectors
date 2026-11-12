@@ -95,6 +95,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -150,7 +151,7 @@ class AgentSubProcessRequestHandlerTest {
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
 
-  @Spy private DocumentExpander documentExpander = TestDocuments.documentExpander();
+  @Spy private DocumentExpander documentExpander = TestDocumentHandles.documentExpander();
 
   /** The document a runtime tool of the test returns without the agent knowing it before. */
   private static final Document NEW_REPORT = createDocument("new report", "new-report.txt");
@@ -207,7 +208,7 @@ class AgentSubProcessRequestHandlerTest {
             agentInstanceClient,
             runtimeTools,
             new ToolCallAdmission(),
-            new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer()),
+            new LocalToolCallExecutor(runtimeTools, TestDocumentHandles.objectHandleRenderer()),
             documentExpander);
     TOGGLE_ENABLED.set(true);
     ConversationStore conversationStore = spy(new InProcessConversationStore());
@@ -1901,7 +1902,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
                         TextContent.textContent("Created the report."),
-                        TextContent.textContent(TestDocuments.handleText(NEW_REPORT))));
+                        TextContent.textContent(TestDocumentHandles.handleText(NEW_REPORT))));
 
     // the history of the second round is written with the agent documents that holds the document
     final var startDocuments = ArgumentCaptor.forClass(HistoryDocuments.class);
@@ -1938,7 +1939,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
                         TextContent.textContent("Created the report."),
-                        TextContent.textContent(TestDocuments.handleText(NEW_REPORT))));
+                        TextContent.textContent(TestDocumentHandles.handleText(NEW_REPORT))));
   }
 
   @Test
@@ -2110,7 +2111,7 @@ class AgentSubProcessRequestHandlerTest {
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
             new ToolCallResultsInputBuilder(),
-            TestDocuments.objectHandleRenderer());
+            TestDocumentHandles.objectHandleRenderer());
     lenient()
         .when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenAnswer(i ->

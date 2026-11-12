@@ -61,7 +61,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
-import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
@@ -108,7 +108,7 @@ class AgentTaskRequestHandlerTest {
           List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
           TestObjectMapperSupplier.INSTANCE);
 
-  @Spy private DocumentExpander documentExpander = TestDocuments.documentExpander();
+  @Spy private DocumentExpander documentExpander = TestDocumentHandles.documentExpander();
 
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 
@@ -129,7 +129,7 @@ class AgentTaskRequestHandlerTest {
             agentInstanceClient,
             runtimeTools,
             new ToolCallAdmission(),
-            new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer()),
+            new LocalToolCallExecutor(runtimeTools, TestDocumentHandles.objectHandleRenderer()),
             documentExpander);
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)

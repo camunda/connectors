@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.testutil.TestDocumentHandles;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
@@ -44,7 +45,7 @@ import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
 
-  private static final DocumentExpander DOCUMENT_EXPANDER = TestDocuments.documentExpander();
+  private static final DocumentExpander DOCUMENT_EXPANDER = TestDocumentHandles.documentExpander();
 
   private static final AgentContext BASE_CONTEXT =
       AgentContext.builder()
@@ -276,7 +277,7 @@ class AgentConversationTest {
                   .containsExactly(
                       textContent("see"),
                       textContent(
-                          TestDocuments.handleText(
+                          TestDocumentHandles.handleText(
                               AgentDocuments.of(List.of(entry)), reference.id())));
               assertThat(expanded.content().get(2))
                   .isInstanceOfSatisfying(
@@ -327,7 +328,7 @@ class AgentConversationTest {
                   .containsExactly(
                       textContent("see"),
                       textContent(
-                          TestDocuments.handleText(
+                          TestDocumentHandles.handleText(
                               AgentDocuments.of(List.of(entry)), reference.id())));
             });
     assertThat(storedMessage.content()).containsExactly(textContent("see"), reference);
