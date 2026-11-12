@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -57,6 +58,23 @@ import org.jspecify.annotations.Nullable;
  */
 public record DocumentParameter(List<Step> path) {
 
+  /** The type with which an authored schema declares a document parameter. */
+  public static final String TYPE_DOCUMENT = "document";
+
+  // keywords whose values are data or property names, not schemas
+  private static final Set<String> DATA_KEYWORDS =
+      Set.of("const", "enum", "default", "examples", "dependentRequired");
+
+  // keywords whose values map names to schemas: a name is no keyword
+  private static final Set<String> NAMED_SCHEMA_KEYWORDS =
+      Set.of(
+          "properties",
+          "patternProperties",
+          "dependentSchemas",
+          "dependencies",
+          "$defs",
+          "definitions");
+
   public DocumentParameter {
     path = List.copyOf(path);
   }
@@ -84,6 +102,33 @@ public record DocumentParameter(List<Step> path) {
           return child;
         });
     return List.copyOf(parameters);
+  }
+
+  /**
+   * The input schema of a tool with each authored type {@value #TYPE_DOCUMENT} turned into the
+   * {@link #documentSchema schema of a document parameter}. The description of the authored node
+   * becomes the description of the document schema, and its other entries follow unless the
+   * document schema defines them.
+   *
+   * <p>The type is allowed where a document parameter can sit: as the type of a parameter, of the
+   * {@code items} of an array or of an object property, at any depth (see {@link #mapChildren}).
+   * The values of {@code const}, {@code enum}, {@code default}, {@code examples} and {@code
+   * dependentRequired} are data, so a type there is left as it is.
+   *
+   * @throws MisplacedDocumentTypeException if a parameter has the type anywhere else, such as in an
+   *     {@code anyOf} alternative or in a {@code type} array: the model provider does not know it
+   */
+  public static Map<String, Object> fromDocumentType(Map<String, Object> inputSchema) {
+    return mapChildren(
+        inputSchema,
+        (step, parameterSchema) -> {
+          final var mapped = mapDocumentType(parameterSchema);
+          if (containsDocumentType(mapped)) {
+            throw new MisplacedDocumentTypeException(
+                step instanceof Step.Property(var name) ? name : "items");
+          }
+          return mapped;
+        });
   }
 
   /**
@@ -151,6 +196,46 @@ public record DocumentParameter(List<Step> path) {
       result.put(PROPERTY_ITEMS, mapper.apply(new Step.Items(), cast(items)));
     }
     return result;
+  }
+
+  private static Map<String, Object> mapDocumentType(Map<String, Object> node) {
+    if (TYPE_DOCUMENT.equals(node.get(PROPERTY_TYPE))) {
+      final var result =
+          new LinkedHashMap<>(
+              documentSchema(
+                  node.get(PROPERTY_DESCRIPTION) instanceof String description
+                      ? description
+                      : null));
+      node.forEach(result::putIfAbsent);
+      return result;
+    }
+    return mapChildren(node, (step, child) -> mapDocumentType(child));
+  }
+
+  private static boolean containsDocumentType(@Nullable Object node) {
+    if (node instanceof Map<?, ?> map) {
+      final var type = map.get(PROPERTY_TYPE);
+      if (TYPE_DOCUMENT.equals(type)
+          || (type instanceof List<?> types && types.contains(TYPE_DOCUMENT))) {
+        return true;
+      }
+      return map.entrySet().stream()
+          .anyMatch(entry -> {
+            final var keyword = String.valueOf(entry.getKey());
+            if (DATA_KEYWORDS.contains(keyword)) {
+              return false;
+            }
+            if (NAMED_SCHEMA_KEYWORDS.contains(keyword)
+                && entry.getValue() instanceof Map<?, ?> named) {
+              return named.values().stream().anyMatch(DocumentParameter::containsDocumentType);
+            }
+            return containsDocumentType(entry.getValue());
+          });
+    }
+    if (node instanceof List<?> list) {
+      return list.stream().anyMatch(DocumentParameter::containsDocumentType);
+    }
+    return false;
   }
 
   /**

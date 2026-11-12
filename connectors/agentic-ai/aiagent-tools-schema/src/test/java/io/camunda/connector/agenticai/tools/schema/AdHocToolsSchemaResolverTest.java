@@ -12,8 +12,6 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.api.tool.TypePropertyBasedGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,24 +55,6 @@ class AdHocToolsSchemaResolverTest {
           assertThat(toolDefinition.description()).isEqualTo("This is a test tool.");
           assertThat(toolDefinition.inputSchema()).isEqualTo(DUMMY_SCHEMA);
         });
-  }
-
-  @Test
-  void keepsTheDocumentParametersOfTheGeneratedSchemaAsAuthored() {
-    final var element =
-        AdHocToolElement.builder().elementId("Test_Tool").documentation("A tool.").build();
-    final var schema =
-        Map.<String, Object>of(
-            "type",
-            "object",
-            "properties",
-            Map.of("doc", DocumentParameter.documentSchema("The invoice")));
-
-    when(schemaGenerator.generateToolSchema(element)).thenReturn(schema);
-
-    final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
-    assertThat(schemaResponse.toolDefinitions())
-        .containsExactly(new ToolDefinition("Test_Tool", "A tool.", schema));
   }
 
   @ParameterizedTest

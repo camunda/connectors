@@ -116,7 +116,7 @@ The loop operates as a distributed state machine between the connector runtime a
      `execute(ChatRequest)` with the windowed `ConversationSnapshot` after `DocumentExpander.expand`; `ingest` the assistant response
      into the turn. Before the ingest, `ToolCallAdmission` admits the tool calls of the assistant message: each gets the kind
      of its tool, or a rejection when the tool is not offered or a document parameter is not a known document
-     (see [What Happens When Tools Complete](#what-happens-when-tools-complete) and [Document parameters](../../aiagent-tools-schema/docs/tool-resolution.md#document-parameters)). If the result is a `ChatResult.Continuation`
+     (see [What Happens When Tools Complete](#what-happens-when-tools-complete) and [Document parameters](../../connector-aiagent/docs/document-parameters.md)). If the result is a `ChatResult.Continuation`
      rather than `Completed`, the handler loops — persisting the round as its own turn and re-calling the model with no new
      input — until a `Completed` result ends the turn (see [`chat-model.md`](../../connector-aiagent/docs/chat-model.md#turn-based-continuation-loop)). The same happens when every
      tool call of the message is a local tool call: the handler checks the model-call limit, produces their tool call
@@ -324,7 +324,7 @@ call to the kind of the tool of its name in the tool list of the job (the tools 
 tools; for an instance without the feature, the tools of the process). A call whose name is not in the list gets a
 `rejection`, the error text that is its tool call result (`The tool '<name>' does not exist.`); its kind stays
 `PROCESS`. For an agent instance with the `documents` feature, a call of a tool of either kind with a document parameter
-([Document parameters](../../aiagent-tools-schema/docs/tool-resolution.md#document-parameters)) whose value is not the handle of a known document is rejected the same way, with an error message that names
+([Document parameters](../../connector-aiagent/docs/document-parameters.md)) whose value is not the handle of a known document is rejected the same way, with an error message that names
 the parameter, and keeps its kind. A rejection can apply to a call of any kind. The agent admits the calls once, between the model result and
 `AgentConversation.ingest`, for every agent instance, with or without the `runtimeTools` feature, persists
 them with the message and never computes them again, so they may appear in the state of any agent instance. The JSON of a

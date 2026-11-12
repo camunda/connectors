@@ -68,7 +68,7 @@ response settings that shape the turn. Authoritative definition:
 `ToolDefinition` holds the `name`, the `description`, the JSON `inputSchema` and the `kind` (`ToolKind`: a BPMN element of
 the process or a runtime tool) of one tool. `ToolDefinition.documentParameters()` lists the document parameters of the
 input schema (`DocumentParameter`); see
-[Document parameters](../../aiagent-tools-schema/docs/tool-resolution.md#document-parameters).
+[Document parameters](../../connector-aiagent/docs/document-parameters.md).
 
 ## ToolCallResultContent (persisted tool-call-result content)
 

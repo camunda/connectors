@@ -81,7 +81,7 @@ batched `update()` mechanism).
   placeholder block.
 
 **Local tool calls.** Calls of runtime tools (see [ADR 016](../../docs/adr/016-runtime-tools.md)) and rejected calls appear
-in history like any other tool call, also a call of a process tool rejected for its document parameters ([Document parameters](../../aiagent-tools-schema/docs/tool-resolution.md#document-parameters)). The `ASSISTANT` item lists every call the model issued and its metrics count every
+in history like any other tool call, also a call of a process tool rejected for its document parameters ([Document parameters](document-parameters.md)). The `ASSISTANT` item lists every call the model issued and its metrics count every
 one of them in `toolCalls`, whatever its kind. Their `TOOL_RESULT` items are written with the `applyTurnStart` that
 carries them: the one of the round of the local tool call results of the same job when every call of the message is a local tool
 call, or, in a mixed batch, the one of the job that composes the next turn from the process results and the local tool

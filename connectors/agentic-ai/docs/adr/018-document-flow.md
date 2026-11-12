@@ -191,8 +191,13 @@ because models often send nested objects as strings. The agent does not accept a
 to an id must not become a document. For a document parameter, the agent answers an incorrect value with an error
 result. The tool does not run.
 
-A document parameter is the parameter itself, the items of an array or a property of an object, at any depth. The tool
-schema generation fails for a `document` anywhere else, such as in an `anyOf` or `oneOf` alternative or in a type array.
+A document parameter is the parameter itself, the items of an array or a property of an object, at any depth. The agent
+fails the job for a `document` anywhere else, such as in an `anyOf` or `oneOf` alternative or in a type array.
+
+The tool schema generation keeps the type `document` as authored. The agent maps it to the handle schema when it loads
+the tools of the process, and only for an instance with the `documents` feature. A handle schema means something only
+next to the document registry and the resolution of the agent. The output of the ad-hoc tools schema connector has
+neither, so it keeps the authored schema.
 
 Union types are not supported. Supporting them is a large step in complexity for a small gain. The agent would have to
 match a value against each alternative to find the handles, decide what an ambiguous value is, and report a problem per

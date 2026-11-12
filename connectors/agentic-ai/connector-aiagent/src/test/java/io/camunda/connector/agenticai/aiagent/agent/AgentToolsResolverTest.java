@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -43,6 +44,89 @@ class AgentToolsResolverTest {
   @BeforeEach
   void setUp() {
     agentToolsResolver = new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+  }
+
+  private static AgentContext withDocumentsFeature() {
+    return AgentContext.empty().withFeatures(List.of(AgentFeatures.DOCUMENTS));
+  }
+
+  private static Map<String, Object> inputSchemaWithDocumentType() {
+    return Map.of("type", "object", "properties", Map.of("doc", Map.of("type", "document")));
+  }
+
+  @Nested
+  class LoadAdHocToolsSchema {
+
+    private static final ToolDefinition TOOL =
+        ToolDefinition.builder()
+            .name("tool")
+            .description("A tool")
+            .inputSchema(inputSchemaWithDocumentType())
+            .build();
+
+    private static final GatewayToolDefinition GATEWAY_TOOL =
+        GatewayToolDefinition.builder().type("mcpClient").name("gateway").build();
+
+    @Test
+    void mapsTheDocumentTypeForAnInstanceWithTheDocumentsFeature() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(TOOL), List.of(GATEWAY_TOOL)));
+
+      final var result =
+          agentToolsResolver.loadAdHocToolsSchema(executionContext, withDocumentsFeature());
+
+      assertThat(result.toolDefinitions())
+          .containsExactly(
+              TOOL.withInputSchema(
+                  Map.of(
+                      "type",
+                      "object",
+                      "properties",
+                      Map.of("doc", DocumentParameter.documentSchema(null)))));
+      assertThat(result.gatewayToolDefinitions()).containsExactly(GATEWAY_TOOL);
+    }
+
+    @Test
+    void keepsTheAuthoredSchemaForAnInstanceWithoutTheDocumentsFeature() {
+      final var schema = new AdHocToolsSchemaResponse(List.of(TOOL), List.of(GATEWAY_TOOL));
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any())).thenReturn(schema);
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, AgentContext.empty()))
+          .isEqualTo(schema);
+    }
+
+    @Test
+    void failsOnTheDocumentTypeWhereNoDocumentParameterCanSit() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(
+              new AdHocToolsSchemaResponse(
+                  List.of(
+                      TOOL.withInputSchema(
+                          Map.of(
+                              "type",
+                              "object",
+                              "properties",
+                              Map.of(
+                                  "body",
+                                  Map.of(
+                                      "anyOf",
+                                      List.of(
+                                          Map.of("type", "string"),
+                                          Map.of("type", "document"))))))),
+                  List.of()));
+
+      assertThatThrownBy(() ->
+              agentToolsResolver.loadAdHocToolsSchema(executionContext, withDocumentsFeature()))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> {
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_DOCUMENT_PARAMETER_SCHEMA_INVALID);
+                assertThat(e.getMessage())
+                    .isEqualTo(
+                        "Invalid tool 'tool'. Parameter 'body': The type 'document' can only be the type of a parameter, of the items of an array or of an object property. Use a separate parameter for a document.");
+              });
+    }
   }
 
   @Nested
@@ -123,51 +207,50 @@ class AgentToolsResolverTest {
 
     @Test
     void doesNotTreatUnchangedToolWithDocumentParametersAsChanged() {
-      final var toolWithDocuments =
-          ToolDefinition.builder()
-              .name("tool1")
-              .description("Tool 1 description")
-              .inputSchema(
-                  Map.of(
-                      "type",
-                      "object",
-                      "properties",
-                      Map.of("doc", DocumentParameter.documentSchema(null))))
-              .build();
-      final var agentContext = AgentContext.empty().withToolDefinitions(List.of(toolWithDocuments));
-
-      final var regenerated = toolWithDocuments.withDescription(toolWithDocuments.description());
-      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
-          .thenReturn(new AdHocToolsSchemaResponse(List.of(regenerated), List.of()));
-      when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
-          .thenReturn(Map.of());
-      when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
-
-      final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
-
-      assertThat(result.toolDefinitions()).containsExactly(toolWithDocuments);
-    }
-
-    @Test
-    void updatesToolDefinitionWhenDocumentParametersChange() {
-      final var agentContext = AgentContext.empty().withToolDefinitions(List.of(TOOL_1));
-      final var withDocuments =
+      final var stored =
           TOOL_1.withInputSchema(
               Map.of(
                   "type",
                   "object",
                   "properties",
                   Map.of("doc", DocumentParameter.documentSchema(null))));
+      final var agentContext = withDocumentsFeature().withToolDefinitions(List.of(stored));
 
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
-          .thenReturn(new AdHocToolsSchemaResponse(List.of(withDocuments), List.of()));
+          .thenReturn(
+              new AdHocToolsSchemaResponse(
+                  List.of(TOOL_1.withInputSchema(inputSchemaWithDocumentType())), List.of()));
       when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
           .thenReturn(Map.of());
       when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
 
       final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
 
-      assertThat(result.toolDefinitions()).containsExactly(withDocuments);
+      assertThat(result.toolDefinitions()).containsExactly(stored);
+    }
+
+    @Test
+    void updatesToolDefinitionWhenDocumentParametersChange() {
+      final var agentContext = withDocumentsFeature().withToolDefinitions(List.of(TOOL_1));
+
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(
+              new AdHocToolsSchemaResponse(
+                  List.of(TOOL_1.withInputSchema(inputSchemaWithDocumentType())), List.of()));
+      when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
+          .thenReturn(Map.of());
+      when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
+
+      final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
+
+      assertThat(result.toolDefinitions())
+          .containsExactly(
+              TOOL_1.withInputSchema(
+                  Map.of(
+                      "type",
+                      "object",
+                      "properties",
+                      Map.of("doc", DocumentParameter.documentSchema(null)))));
     }
 
     @Test
