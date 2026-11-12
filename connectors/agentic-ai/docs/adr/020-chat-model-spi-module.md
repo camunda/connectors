@@ -6,8 +6,9 @@
 ## Status
 
 **Proposed**. Extends [ADR 015](015-split-agentic-ai-into-modules.md), which puts the chat model SPI into
-`aiagent-api` (D1, D3) and keeps the providers in `connector-aiagent`, and [ADR 019](019-typed-chat-request-messages.md),
-which adds the request messages to the chat model SPI package of `aiagent-api`.
+`aiagent-api` (D1, D3) and keeps the providers in `connector-aiagent`. Amends [ADR 019](019-typed-chat-request-messages.md),
+which adds the request messages to the chat model SPI package of `aiagent-api`. The request messages move with the
+package into `aiagent-chatmodel-api`.
 
 ## Context and Problem Statement
 

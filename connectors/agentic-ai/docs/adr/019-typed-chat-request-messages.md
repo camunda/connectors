@@ -8,6 +8,8 @@
 **Proposed**. Extends [ADR 009](009-chat-model-provider-spi.md), which defines one sealed content model for the
 conversation and the chat request, and [ADR 018](018-document-flow.md), which expands the document blocks before the
 model call.
+Amended by [ADR 020](020-chat-model-spi-module.md), which moves the chat model SPI package with the request
+messages into `aiagent-chatmodel-api`.
 
 ## Context and Problem Statement
 
