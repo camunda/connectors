@@ -6,11 +6,12 @@ baseline version, unless the change is explicitly accepted.
 
 ## Gated modules
 
-| Module                                  | API                                                                 |
-|-----------------------------------------|---------------------------------------------------------------------|
-| `connector-sdk/core`                    | All public types in `io.camunda.connector.api`                      |
-| `connectors/agentic-ai/aiagent-api`     | All public types, the AI Agent extension points                     |
-| `connectors/agentic-ai/aiagent-model`   | All public types, the agent model used by the extension points      |
+| Module                                        | API                                                            |
+|-----------------------------------------------|----------------------------------------------------------------|
+| `connector-sdk/core`                          | All public types in `io.camunda.connector.api`                 |
+| `connectors/agentic-ai/aiagent-api`           | All public types, the AI Agent extension points                |
+| `connectors/agentic-ai/aiagent-chatmodel-api` | All public types, the chat model provider SPI                  |
+| `connectors/agentic-ai/aiagent-model`         | All public types, the agent model used by the extension points |
 
 The AI Agent modules are skipped until their first release (8.11.0) is the baseline, see
 `revapi.skip` in `connectors/agentic-ai/pom.xml`. Their element templates, request models and
