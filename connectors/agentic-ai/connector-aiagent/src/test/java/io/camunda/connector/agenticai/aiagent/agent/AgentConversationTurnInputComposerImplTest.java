@@ -47,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfigu
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -1123,7 +1124,7 @@ class AgentConversationTurnInputComposerImplTest {
   private static ToolCallBatch.Entry loadingEntry(AgentDocumentId id) {
     final var result = RuntimeToolResult.success("Loaded the document.").withDocumentContent(id);
     final var execution = new RuntimeToolExecution(MIXED_CALLS.getFirst(), result, NOW, NOW);
-    return ToolCallBatch.Entry.from(execution.toolCallResult(), result.effects());
+    return entryWithEffects(execution.toolCallResult(), result.effects());
   }
 
   @Test
@@ -1373,5 +1374,12 @@ class AgentConversationTurnInputComposerImplTest {
             CONFIG, contextKnowing(document), historyWith(List.of(call)), inputWith(forged));
 
     assertThat(messagesOf(result)).singleElement().isInstanceOf(ToolCallResultMessage.class);
+  }
+
+  /** An entry with the documents the generic walker finds and the given effects. */
+  private static ToolCallBatch.Entry entryWithEffects(
+      ToolCallResultContent result, List<ToolCallEffect> effects) {
+    return new ToolCallBatch.Entry(
+        result, ToolCallResultDocumentExtractor.documentsOf(result.content()), effects);
   }
 }

@@ -246,8 +246,9 @@ class NonCamundaDocumentsConversationTest {
         ToolCallBatch.of(TOOL_CALLS)
             .withEntries(
                 List.of(
-                    ToolCallBatch.Entry.from(
+                    new ToolCallBatch.Entry(
                         runtimeResult,
+                        ToolCallResultDocumentExtractor.documentsOf(runtimeResult.content()),
                         List.of(
                             new ToolCallEffect.AddDocumentContent(AgentDocumentId.of("doc_1")))),
                     ToolCallBatch.Entry.from(ToolCallResultContent.from(dateTime()))));

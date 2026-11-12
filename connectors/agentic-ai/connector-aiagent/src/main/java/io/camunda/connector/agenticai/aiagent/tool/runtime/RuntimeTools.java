@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -106,6 +107,8 @@ public class RuntimeTools {
    * with the definition the tool is registered with before the tool is called. A call of a tool
    * that is not enabled when it is executed gets an error result, and so does a call with an
    * invalid document parameter, and a {@link RuntimeToolException}. Any other exception propagates.
+   * A result that holds an {@link AgentDocument} or an {@link AgentDocumentContent} block fails the
+   * job with an {@link IllegalArgumentException}, a defect of the tool.
    *
    * <p>The admission checked the document parameters against the definition offered in the job of
    * the assistant message. When the message also has calls of process tools, the runtime calls are
@@ -166,11 +169,21 @@ public class RuntimeTools {
     }
     Objects.requireNonNull(
         result, "The runtime tool '%s' returned no result".formatted(toolCall.name()));
-    return result instanceof RuntimeToolResult.Success success
-        ? new RuntimeToolResult.Success(
-            success.content().stream().map(content -> plainContent(toolCall, content)).toList(),
-            success.effects())
-        : result;
+    if (!(result instanceof RuntimeToolResult.Success success)) {
+      return result;
+    }
+    success.content().stream()
+        .filter(AgentDocumentContent.class::isInstance)
+        .map(AgentDocumentContent.class::cast)
+        .findFirst()
+        .ifPresent(reference -> {
+          throw new IllegalArgumentException(
+              "The runtime tool '%s' returned a reference to the document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
+                  .formatted(toolCall.name(), reference.id().value()));
+        });
+    return new RuntimeToolResult.Success(
+        success.content().stream().map(content -> plainContent(toolCall, content)).toList(),
+        success.effects());
   }
 
   /**
@@ -181,7 +194,8 @@ public class RuntimeTools {
    *
    * <p>A result holds a document as the {@link Document} of the connector SDK ({@link
    * RuntimeToolContext#document}). An {@link AgentDocument} holds the store details of a document,
-   * which never go to the model, so one in a result is a defect of the tool and fails the job.
+   * which never go to the model, so one in a result is a defect of the tool and fails the job, as
+   * does an {@link AgentDocumentContent} block, the reference of the conversation.
    */
   private Content plainContent(ToolCall toolCall, Content content) {
     if (!(content instanceof ObjectContent objectContent)) {

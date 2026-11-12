@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -582,6 +583,50 @@ class RuntimeToolsTest {
         .hasMessage(
             "The runtime tool 'acme_leaking' returned the agent document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
                 .formatted(AgentDocumentId.of(report).value()));
+  }
+
+  @Test
+  void aReferenceBlockInAResultFailsTheJob() {
+    final var report = createDocument("report", "report.txt");
+    final var id = AgentDocumentId.of(report);
+    final var referencing =
+        StubRuntimeTool.of(
+            "acme_referencing",
+            (context, call) -> RuntimeToolResult.success(List.of(AgentDocumentContent.of(id))));
+    final var tools = toolsOf(referencing);
+    final var agentContext = knowing(report);
+    final var calls = List.of(runtimeCall("r1", "acme_referencing", Map.of()));
+
+    assertThatThrownBy(() -> tools.execute(WITH_MEMORY, agentContext, calls))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'acme_referencing' returned a reference to the document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
+                .formatted(id.value()));
+  }
+
+  @Test
+  void aKnownDocumentInAResultKeepsItsEntry() {
+    final var report = createDocument("report", "report.txt");
+    final var id = AgentDocumentId.of(report);
+    final var returning =
+        StubRuntimeTool.of(
+            "acme_returning",
+            (context, call) ->
+                RuntimeToolResult.success(
+                    List.of(DocumentContent.documentContent(context.document(id).orElseThrow()))));
+
+    final var executions =
+        toolsOf(returning)
+            .execute(
+                WITH_MEMORY,
+                knowing(report),
+                List.of(runtimeCall("r1", "acme_returning", Map.of())));
+
+    assertThat(executions.getFirst().toolCallResult().content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            DocumentContent.class,
+            content -> assertThat(AgentDocumentId.of(content.document())).isEqualTo(id));
   }
 
   @Test

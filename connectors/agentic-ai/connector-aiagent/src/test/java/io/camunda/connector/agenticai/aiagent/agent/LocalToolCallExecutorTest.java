@@ -24,9 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
-import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -130,8 +128,9 @@ class LocalToolCallExecutorTest {
 
     assertThat(entries)
         .containsExactly(
-            ToolCallBatch.Entry.from(
+            new ToolCallBatch.Entry(
                 execution.toolCallResult(),
+                List.of(),
                 List.of(new ToolCallEffect.AddDocumentContent(KNOWN_ID))));
   }
 
@@ -146,14 +145,13 @@ class LocalToolCallExecutorTest {
   }
 
   @Test
-  void aResultMayNameAndReferenceTheDocumentsItReturns() {
+  void aResultMayNameTheDocumentsItReturns() {
     var returned = createDocument("returned", "returned.txt");
     var id = AgentDocumentId.of(returned);
     var execution =
         runtimeExecution(
-            RuntimeToolResult.success(
-                    List.of(DocumentContent.documentContent(returned), AgentDocumentContent.of(id)))
-                .withDocumentContent(AgentDocumentId.of(returned)));
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
+                .withDocumentContent(id));
     when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(execution));
 
@@ -171,22 +169,6 @@ class LocalToolCallExecutorTest {
         .thenReturn(
             List.of(
                 runtimeExecution(RuntimeToolResult.success("a").withDocumentContent(KNOWN_ID))));
-
-    assertThatThrownBy(
-            () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "The runtime tool 'getWeather' refers to the document '%s', which the agent does not know and the result does not return"
-                .formatted(KNOWN_ID));
-  }
-
-  @Test
-  void aReferenceToAnUnknownDocumentIsADefectOfTheTool() {
-    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
-        .thenReturn(
-            List.of(
-                runtimeExecution(
-                    RuntimeToolResult.success(List.of(AgentDocumentContent.of(KNOWN_ID))))));
 
     assertThatThrownBy(
             () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
@@ -234,25 +216,6 @@ class LocalToolCallExecutorTest {
   }
 
   @Test
-  void aReferenceInTheResultOfAnAgentThatDoesNotTrackItsDocumentsIsADefectOfTheTool() {
-    var returned = createDocument("returned", "returned.txt");
-    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
-        .thenReturn(
-            List.of(
-                runtimeExecution(
-                    RuntimeToolResult.success(
-                        List.of(
-                            DocumentContent.documentContent(returned),
-                            AgentDocumentContent.of(AgentDocumentId.of(returned)))))));
-
-    assertThatThrownBy(
-            () -> executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "The runtime tool 'getWeather' refers to a document by its id, which an agent instance that does not track its documents does not support");
-  }
-
-  @Test
   void anEffectInTheResultOfAnAgentThatDoesNotTrackItsDocumentsIsADefectOfTheTool() {
     var returned = createDocument("returned", "returned.txt");
     when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
@@ -267,20 +230,6 @@ class LocalToolCallExecutorTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'getWeather' refers to a document by its id, which an agent instance that does not track its documents does not support");
-  }
-
-  @Test
-  void aBlockWithTheDeliveryContentIsADefectOfTheTool() {
-    var block = AgentDocumentContent.of(KNOWN_ID).withDelivery(DocumentDelivery.CONTENT);
-    when(runtimeTools.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL)))
-        .thenReturn(List.of(runtimeExecution(RuntimeToolResult.success(List.of(block)))));
-
-    assertThatThrownBy(() ->
-            executor.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL)))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "The runtime tool 'getWeather' returned the content of the document '%s'; the content of a document is added with an effect only"
-                .formatted(KNOWN_ID));
   }
 
   @Test

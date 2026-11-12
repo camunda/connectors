@@ -235,7 +235,7 @@ High-frequency traps (detail behind each link):
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
   `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
   keeps the previous document handling (bare content and the older XML tag format, no agent documents, no document
-  parameters, and no `c8__load_document`), a `Tracked` one holds its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
+  parameters, and no `c8__load_document`), a `Tracked` one holds its `AgentDocuments`. Resolve it once per step with an exhaustive `switch` (for example into a tracked and an untracked method), and let the code below take the result; never branch on `supports(AgentFeatures.DOCUMENTS)` or a
   `boolean` parameter. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
   and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
   behavior that changes the wire format or the persisted shape on a feature and keep the legacy
