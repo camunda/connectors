@@ -23,8 +23,10 @@ public interface RuntimeToolCall {
 
   /**
    * The arguments, with an unmodifiable top level. The values are JSON values: a {@link String}, a
-   * {@link Number}, a {@link Boolean}, a {@link java.util.List}, a {@link Map} or {@code null}. A
-   * document parameter holds the {@link AgentDocumentId} of the document.
+   * {@link Number}, a {@link Boolean}, a {@link java.util.List}, a {@link Map} or {@code null}. In
+   * an agent instance with the {@code documents} feature, a document parameter holds the {@link
+   * AgentDocumentId} of the document instead; in an instance without the feature, it holds the JSON
+   * value the model sent.
    */
   Map<String, Object> arguments();
 
