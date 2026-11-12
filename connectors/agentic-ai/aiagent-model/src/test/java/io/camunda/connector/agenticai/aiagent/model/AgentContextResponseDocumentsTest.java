@@ -7,13 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
-import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -46,22 +43,22 @@ class AgentContextResponseDocumentsTest {
   }
 
   @Test
-  void hasNoSelectedResponseDocumentsWithoutSelections() {
-    assertThat(CONTEXT.selectedResponseDocuments()).isEmpty();
+  void hasNoResponseDocumentsWithoutSelections() {
+    assertThat(CONTEXT.responseDocuments()).isEmpty();
   }
 
   @Test
-  void pairsTheSelectionsInTheOrderTheyWereMadeWithTheirAgentDocuments() {
+  void keepsTheSelectionsInTheOrderTheyWereMade() {
     final var context =
         CONTEXT
             .withResponseDocument(new ResponseDocumentSelection("second", SUMMARY.id(), null))
             .withResponseDocument(
                 new ResponseDocumentSelection("first", REPORT.id(), "The report"));
 
-    assertThat(context.selectedResponseDocuments())
+    assertThat(context.responseDocuments())
         .containsExactly(
-            new ResponseDocument("second", SUMMARY, null),
-            new ResponseDocument("first", REPORT, "The report"));
+            new ResponseDocumentSelection("second", SUMMARY.id(), null),
+            new ResponseDocumentSelection("first", REPORT.id(), "The report"));
   }
 
   @Test
@@ -72,22 +69,9 @@ class AgentContextResponseDocumentsTest {
             .withResponseDocument(new ResponseDocumentSelection("b", REPORT.id(), null))
             .withResponseDocument(new ResponseDocumentSelection("a", SUMMARY.id(), "Replaced"));
 
-    assertThat(context.selectedResponseDocuments())
+    assertThat(context.responseDocuments())
         .containsExactly(
-            new ResponseDocument("a", SUMMARY, "Replaced"),
-            new ResponseDocument("b", REPORT, null));
-  }
-
-  @Test
-  void failsForASelectionOfADocumentTheAgentDoesNotKnow() {
-    final var unknown = AgentDocumentId.of("gone");
-    final var context =
-        CONTEXT.withResponseDocument(new ResponseDocumentSelection("lost", unknown, null));
-
-    assertThatThrownBy(context::selectedResponseDocuments)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessage(
-            "The response document 'lost' is the document '%s', which the agent does not know"
-                .formatted(unknown));
+            new ResponseDocumentSelection("a", SUMMARY.id(), "Replaced"),
+            new ResponseDocumentSelection("b", REPORT.id(), null));
   }
 }

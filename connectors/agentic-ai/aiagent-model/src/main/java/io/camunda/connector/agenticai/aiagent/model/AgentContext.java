@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
-import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -131,29 +130,6 @@ public record AgentContext(
       selections.add(selection);
     }
     return withResponseDocuments(selections);
-  }
-
-  /**
-   * The documents selected for the final response in the order they were selected, each with the
-   * agent document it points to.
-   *
-   * @throws IllegalStateException if a selection points to a document that {@link #documents()}
-   *     does not hold
-   */
-  @JsonIgnore
-  public List<ResponseDocument> selectedResponseDocuments() {
-    return responseDocuments.stream()
-        .map(selection ->
-            new ResponseDocument(
-                selection.key(),
-                documents
-                    .find(selection.document())
-                    .orElseThrow(() ->
-                        new IllegalStateException(
-                            "The response document '%s' is the document '%s', which the agent does not know"
-                                .formatted(selection.key(), selection.document()))),
-                selection.description()))
-        .toList();
   }
 
   public AgentContext withProperty(String key, Object value) {
