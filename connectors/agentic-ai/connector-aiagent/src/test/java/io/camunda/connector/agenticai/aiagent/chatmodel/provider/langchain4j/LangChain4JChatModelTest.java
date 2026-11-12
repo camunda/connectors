@@ -43,10 +43,18 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
@@ -109,6 +117,7 @@ class LangChain4JChatModelTest {
   @Mock private ChatResponse chatResponse;
 
   @Captor private ArgumentCaptor<dev.langchain4j.model.chat.request.ChatRequest> chatRequestCaptor;
+  @Captor private ArgumentCaptor<List<Message>> messagesCaptor;
 
   private LangChain4JChatModel api;
 
@@ -156,6 +165,58 @@ class LangChain4JChatModelTest {
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.messages()).containsExactlyElementsOf(L4J_MESSAGES);
     assertThat(chatRequest.toolSpecifications()).containsExactlyElementsOf(L4J_TOOL_SPECIFICATIONS);
+  }
+
+  @Test
+  void passesAssistantAndToolCallResultMessagesToTheConverterWithAllRequestFields() {
+    final List<Message> messages =
+        List.of(
+            AssistantMessage.builder()
+                .content(
+                    List.of(
+                        new ReasoningContent(
+                            "anthropic",
+                            Map.of("signature", "sig-1"),
+                            "Thinking",
+                            Map.of("k", "v")),
+                        new TextContent("Let me check.", Map.of("cache", "ephemeral"))))
+                .toolCalls(
+                    List.of(
+                        new ToolCall(
+                            "call-1",
+                            "GetTime",
+                            Map.of("zone", "UTC"),
+                            Map.of("thoughtSignature", "ts-1")),
+                        new ToolCall("call-2", "GetWeather", Map.of("city", "Berlin"))))
+                .messageId("msg-provider-1")
+                .metadata(Map.of("framework", "langchain4j"))
+                .build(),
+            ToolCallResultMessage.builder()
+                .results(
+                    List.of(
+                        ToolCallResultContent.builder()
+                            .id("call-1")
+                            .name("GetTime")
+                            .content(List.<Content>of(TextContent.textContent("12:00")))
+                            .build(),
+                        ToolCallResultContent.builder()
+                            .id("call-2")
+                            .name("GetWeather")
+                            .content(
+                                List.<Content>of(
+                                    ObjectContent.objectContent(Map.of("temperature", 21))))
+                            .build()))
+                .build());
+    when(chatMessageConverter.map(messagesCaptor.capture(), eq(PROVIDER_CONFIGURATION)))
+        .thenReturn(L4J_MESSAGES);
+
+    api.execute(
+        new ChatRequest(createExecutionContext(), ChatConversation.of(messages, TOOL_DEFINITIONS)));
+
+    assertThat(messagesCaptor.getValue())
+        .usingRecursiveComparison()
+        .ignoringFieldsOfTypes(MessageId.class)
+        .isEqualTo(messages);
   }
 
   @Test
