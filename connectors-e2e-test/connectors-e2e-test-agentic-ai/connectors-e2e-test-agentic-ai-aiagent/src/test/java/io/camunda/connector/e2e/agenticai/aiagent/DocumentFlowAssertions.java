@@ -18,7 +18,6 @@ package io.camunda.connector.e2e.agenticai.aiagent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
@@ -56,15 +55,6 @@ public final class DocumentFlowAssertions {
                 .as("schema of tool '%s' in LLM request %d", tool.name(), requestNumber)
                 .doesNotContain("camunda-document-id");
           });
-    }
-  }
-
-  /** Asserts that the text is the JSON of the expected value, compared as a whole. */
-  public static void assertJson(String actual, String expected) {
-    try {
-      assertThat(OBJECT_MAPPER.readTree(actual)).isEqualTo(OBJECT_MAPPER.readTree(expected));
-    } catch (JsonProcessingException e) {
-      throw new AssertionError("Not JSON: " + actual, e);
     }
   }
 
