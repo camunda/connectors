@@ -221,7 +221,8 @@ document. The reason is in [ADR 018](../adr/018-document-flow.md).
 - `documents` stays empty; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
 - Without the `runtimeTools` feature there are no runtime tools, no mixed-batch handling and no tool name check ([Add a runtime tool](#add-a-runtime-tool)).
 - The document parameters of tool calls are not resolved or checked: the process gets the value the model sent as it is.
-- The schema of a document parameter is the handle schema for every instance; it is sent to the provider as it is.
+- A document parameter keeps the type `document` as authored; the tool schema is sent to the provider as it is. Only an
+  instance with the feature gets the handle schema ([Document parameters](../../connector-aiagent/docs/document-parameters.md)).
 - The history reports the messages as stored.
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
