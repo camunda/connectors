@@ -257,9 +257,22 @@ constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandle
 auto-configuration provides these beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra
 arguments; inject them as beans.
 
-The constructors of `AgentTaskV1Function` and `AgentTaskV2Function` take an `AgentTaskExecutionContextFactory` and
-the request handler. The constructors of `AgentSubProcessV1Function` and `AgentSubProcessV2Function` take an
-`AgentSubProcessExecutionContextFactory` and the request handler.
+The constructors of the AI Agent connector functions take the execution context factory of their flavor and the
+request handler:
+
+- `AgentTaskV1Function(ProcessDefinitionAdHocToolElementsResolver, AgentTaskRequestHandler, V1ToV2ProviderConfigurationMapper, boolean)`
+  is now `AgentTaskV1Function(AgentTaskExecutionContextFactory, AgentTaskRequestHandler)`.
+- `AgentTaskV2Function(ProcessDefinitionAdHocToolElementsResolver, AgentTaskRequestHandler)` is now
+  `AgentTaskV2Function(AgentTaskExecutionContextFactory, AgentTaskRequestHandler)`.
+- `AgentSubProcessV1Function(AgentSubProcessRequestHandler, V1ToV2ProviderConfigurationMapper, boolean)` is now
+  `AgentSubProcessV1Function(AgentSubProcessExecutionContextFactory, AgentSubProcessRequestHandler)`.
+- `AgentSubProcessV2Function(AgentSubProcessRequestHandler)` is now
+  `AgentSubProcessV2Function(AgentSubProcessExecutionContextFactory, AgentSubProcessRequestHandler)`.
+
+The auto-configuration provides the `aiAgentExecutionContextFactory` bean of type `AgentExecutionContextFactory`. It
+implements both interfaces and applies the `rewrite-v1-provider-config-to-v2` setting that the v1 functions took before.
+A bean of either interface replaces it, so a replacement must provide both interfaces. Migration: in a custom function
+bean, inject the `AgentTaskExecutionContextFactory` or `AgentSubProcessExecutionContextFactory` bean.
 
 ### Conversation window
 
