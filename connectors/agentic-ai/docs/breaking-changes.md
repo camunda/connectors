@@ -232,7 +232,7 @@ implement the response handler interface directly, hand only the process tool ca
 ### Gateway tool handlers
 
 `GatewayToolHandler.extractDocuments(ToolCallResult)` is called only for agent instances without the `documents` feature.
-An instance with the feature (every instance created from 8.11 on) finds the documents of a result the way it renders
+An instance with the feature (every instance created by a v2 connector from 8.11 on) finds the documents of a result the way it renders
 them as handles for the model, at any depth and also inside typed records, whatever handler manages the result.
 
 Migration: none for the handler of an instance without the feature. A handler whose typed content holds a
@@ -276,12 +276,13 @@ applies it to its persisted context, and the next round continues with the conte
 
 ### Runtime tools and tool names
 
-- Agent instances created from 8.11 on have the `runtimeTools` and the `documents` feature and are offered the built-in
-  runtime tool `c8__load_document`, which the agent runs itself. An agent job fails with the error code
+- Agent instances created by a v2 connector from 8.11 on have the `runtimeTools` and the `documents` feature and are
+  offered the built-in runtime tool `c8__load_document`, which the agent runs itself. An agent job fails with the error code
   `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime tool that is
   not enabled reserves no name. Give the runtime tools of your own runtime a name with a prefix of your own. The prefix
   `c8__` is for the tools the connector ships; no prefix is checked or reserved, only the exact name. Agent instances
-  created before keep their behavior: they are offered no runtime tool and no name is checked.
+  created before, and new instances of the deprecated v1 connectors, keep their behavior: they are offered no runtime
+  tool and no name is checked.
 - Behavior change for every agent instance, with or without the `runtimeTools` feature, in both flavors: every tool call
   is matched against the tools offered in the job. A call of a tool name that is not offered, for example a name the model
   invented, no longer reaches the process. The agent rejects it once, when the model response arrives, and adds the tool
@@ -331,7 +332,8 @@ applies it to its persisted context, and the next round continues with the conte
   document goes out as content, as before. A document in a tool result is text, its handle, instead of a `DocumentContent` or
   the reference JSON, and the content of a document follows in a user message only when the model loaded it with
   `c8__load_document`. A custom `ChatModel` that handles `DocumentContent` in tool results
-  therefore sees text for these instances; instances without the feature keep the earlier form.
+  therefore sees text for these instances; instances without the feature, also the new instances of the v1 connectors,
+  keep the earlier form.
 - New in the model: `AgentDocumentId`, the value type of a document id (persisted as a plain string), used by the agent
   documents and `AgentDocumentContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the
   identity of the document (the store and the id in the store of a Camunda document), so it is no longer the id of the

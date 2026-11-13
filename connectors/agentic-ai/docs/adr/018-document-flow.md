@@ -285,12 +285,14 @@ hold Camunda documents only. The message names the kind of the document and the 
 
 A tool result and an event cannot change. The incident repeats on each retry until the process passes a Camunda document.
 
-An instance without the `documents` feature keeps its behavior and accepts external and inline documents.
+An instance without the `documents` feature keeps its behavior and accepts external and inline documents. This
+includes a new instance of a v1 connector.
 
 ### Instance features and the legacy path
 
 The agent context lists the features of the agent instance: `runtimeTools` and `documents`. The agent sets the features
-when it creates the instance and does not add features later. The `documents` feature selects the document handling:
+when it creates the instance and does not add features later. A new instance of a v2 connector gets both features. A new
+instance of a deprecated v1 connector gets none, so a deployed process keeps its behavior. The `documents` feature selects the document handling:
 `Untracked` without the feature, `Tracked` with it. Each step that treats documents matches both variants once and hands
 the result to the code below it.
 
@@ -304,7 +306,8 @@ running instances at the same time.
 Consequences accepted:
 
 * A running instance cannot use document parameters. It must start again.
-* The legacy path is a second code path. It stays while instances without the feature exist.
+* The legacy path is a second code path. It stays while instances without the feature exist, and the v1 connectors
+  create such instances.
 * A rollback is not supported. An earlier runtime removes the new fields and cannot read a document block.
 
 ### History
@@ -327,7 +330,7 @@ the SDK reference that a tool received.
   follow-up exists.
 * The content goes to the model only in a user message. It stays in each request until its message leaves the window.
 * The legacy path is a second code path.
-* Each new instance gets both document tools. This costs input tokens in each call.
+* Each new instance of a v2 connector gets both document tools. This costs input tokens in each call.
 
 ## Follow-up
 

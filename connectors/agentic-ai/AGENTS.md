@@ -233,6 +233,9 @@ High-frequency traps (detail behind each link):
   [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
+  features of a new instance come from the connector function through `AgentExecutionContext.newInstanceFeatures()`:
+  the v2 connectors give `AgentFeatures.ofNewInstance()`, the deprecated v1 connectors give none. A new v1 instance
+  therefore behaves like an instance created before the features. The
   `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
   keeps the previous document handling (bare content and the older XML tag format, no agent documents, no document
   parameters, and no `c8__load_document`), a `Tracked` one holds its `AgentDocuments`. Resolve it once per step with an exhaustive `switch` (for example into a tracked and an untracked method), and let the code below take the result; never branch on `supports(AgentFeatures.DOCUMENTS)` or a
