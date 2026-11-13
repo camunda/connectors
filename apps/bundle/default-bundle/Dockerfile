@@ -1,10 +1,11 @@
 # Unpack the Spring Boot fat jar into an exploded directory (same layout, launcher included).
 # Running from the nested jar makes virtual threads deadlock on the jar's shared lock on JDK 24+
 # (camunda/connectors#10102); the exploded layout gives every library its own JarFile.
-# The extracted files are platform-independent, so run this stage natively (no QEMU on multi-arch builds)
-FROM --platform=$BUILDPLATFORM reg.mini.dev/1212/openjre-base:v27.0.1-dev@sha256:208f8507e0637ab4341b41e06c109687d44a4ddb8b268bedc25bdcca3893e661 AS extract
+# The jar is only ever treated as data here (unzip), never executed: the PR image workflow builds
+# this Dockerfile on a privileged runner with PR-supplied jars. Platform-independent, so run natively.
+FROM --platform=$BUILDPLATFORM alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f AS extract
 COPY target/*-with-dependencies.jar /tmp/runtime.jar
-RUN java -Djarmode=tools -jar /tmp/runtime.jar extract --launcher --destination /tmp/runtime
+RUN unzip -q /tmp/runtime.jar -d /tmp/runtime
 
 FROM reg.mini.dev/1212/openjre-base:v27.0.1-dev@sha256:208f8507e0637ab4341b41e06c109687d44a4ddb8b268bedc25bdcca3893e661
 
