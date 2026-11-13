@@ -30,8 +30,7 @@ invocation and transformed through copy-on-write methods.
   call, from the blocks with the delivery `content` in the windowed messages, with the messages added before that call
   counted (the tool call result message of a local round). `PreviousConversation` computes it
   (`documentIdsWithContent(contextWindowSize, addedMessages)`) for the conversation before the invocation, which
-  `AgentConversation` delegates to; the window keeps a place for a system message whether or not the conversation has one,
-  because the system message of the next call is composed in the invocation.
+  `AgentConversation` delegates to; the window keeps a place for the system message of the conversation only when it has one.
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
   `AgentContext.metrics` by the current turn's delta and, once the current turn has been `ingest`ed,
   stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).

@@ -33,9 +33,8 @@ public record PreviousConversation(
   /**
    * Returns the ids of the documents whose content the model reads in the conversation of the next
    * model call: the messages of the turns that stay within the context window once the messages
-   * this invocation adds are counted. The window keeps a place for a system message whether or not
-   * the conversation has one, so the result never holds a document whose content the model may no
-   * longer read; a document missing from it only has its content added again.
+   * this invocation adds are counted. The window keeps a place for the system message of the
+   * conversation, if it has one.
    *
    * @param contextWindowSize the maximum number of messages the model call reads
    * @param addedMessages the number of messages this invocation adds that the window counts
@@ -48,7 +47,9 @@ public record PreviousConversation(
         messages.add(turn.assistantMessage());
       }
     }
-    final int windowOfPreviousMessages = Math.max(0, contextWindowSize - addedMessages - 1);
+    final int systemMessageSlots = systemMessage.isPresent() ? 1 : 0;
+    final int windowOfPreviousMessages =
+        Math.max(0, contextWindowSize - addedMessages - systemMessageSlots);
     return documentIdsWithContentIn(MessageWindowFilter.apply(messages, windowOfPreviousMessages));
   }
 

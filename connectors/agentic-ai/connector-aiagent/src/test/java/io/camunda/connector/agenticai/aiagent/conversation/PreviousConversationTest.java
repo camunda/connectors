@@ -58,14 +58,14 @@ class PreviousConversationTest {
   @Test
   void
       documentIdsWithContent_keepsTheDocumentsOfTheOldestMessageThatFitsTheWindowWithTheAddedMessages() {
-    // four messages and a place for the system message: the loaded document is in the oldest one
-    assertThat(conversationWithTheLoadedDocumentFirst().documentIdsWithContent(6, 1))
+    // four messages and one added message fit the window: the loaded document is in the oldest one
+    assertThat(conversationWithTheLoadedDocumentFirst().documentIdsWithContent(5, 1))
         .containsExactly(LOADED);
   }
 
   @Test
   void documentIdsWithContent_leavesOutTheDocumentsOfTheOldestMessageThatTheAddedMessagesPushOut() {
-    assertThat(conversationWithTheLoadedDocumentFirst().documentIdsWithContent(6, 2)).isEmpty();
+    assertThat(conversationWithTheLoadedDocumentFirst().documentIdsWithContent(5, 2)).isEmpty();
   }
 
   @Test
@@ -90,8 +90,22 @@ class PreviousConversationTest {
   }
 
   @Test
-  void documentIdsWithContent_keepsAPlaceForTheSystemMessageOfTheNextCall() {
-    // the previous call had no system message; the next one can have one, which the window keeps
+  void documentIdsWithContent_keepsAPlaceForTheSystemMessageOfTheConversation() {
+    final var conversation =
+        TurnReconstructor.reconstruct(
+            List.of(
+                systemMessage("system"),
+                UserMessage.builder()
+                    .content(List.of(block(LOADED, DocumentDelivery.CONTENT)))
+                    .build(),
+                assistantMessage("one")));
+
+    assertThat(conversation.documentIdsWithContent(3, 1)).isEmpty();
+    assertThat(conversation.documentIdsWithContent(4, 1)).containsExactly(LOADED);
+  }
+
+  @Test
+  void documentIdsWithContent_keepsNoPlaceForASystemMessageTheConversationDoesNotHave() {
     final var conversation =
         TurnReconstructor.reconstruct(
             List.of(
@@ -100,7 +114,7 @@ class PreviousConversationTest {
                     .build(),
                 assistantMessage("one")));
 
-    assertThat(conversation.documentIdsWithContent(3, 1)).isEmpty();
-    assertThat(conversation.documentIdsWithContent(4, 1)).containsExactly(LOADED);
+    assertThat(conversation.documentIdsWithContent(3, 1)).containsExactly(LOADED);
+    assertThat(conversation.documentIdsWithContent(2, 1)).isEmpty();
   }
 }
