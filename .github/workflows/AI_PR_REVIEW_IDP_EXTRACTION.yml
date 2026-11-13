@@ -38,7 +38,7 @@ jobs:
       # Vault login in the config job (needed with AppRole too).
       id-token: write
     # HARDENING TEST ONLY (camunda/pr-review-agent#7). Do not merge.
-    uses: camunda/pr-review-agent/.github/workflows/pr-review.yml@cd20bf0f63a0b4555da1f44402c58a0d2fce15cd # feat/harden-public-repos
+    uses: camunda/pr-review-agent/.github/workflows/pr-review.yml@0cc74b4bae618b1c2750b06a28ba740d9121ed8c # feat/harden-public-repos
     with:
       config: idp-extraction
       force_shadow_mode: true
