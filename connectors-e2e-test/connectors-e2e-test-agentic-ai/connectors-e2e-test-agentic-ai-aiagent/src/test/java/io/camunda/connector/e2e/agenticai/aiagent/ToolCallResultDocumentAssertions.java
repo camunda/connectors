@@ -27,6 +27,8 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
@@ -216,26 +218,33 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
-   * Asserts a wire-format content block node (OpenAI JSON) based on a coarse type/mime
-   * classification used by user-prompt document tests.
+   * Asserts that a wire-format content block node (OpenAI JSON) holds exactly the content of the
+   * test file ({@code test.<ext>} of the served files): the text of a text file, the {@code
+   * file_data} data URL of a PDF or the {@code image_url} data URL of an image.
    */
-  public static void assertDocumentContentBlockJson(
-      JsonNode block, String expectedType, String expectedMimeType) {
-    if ("text".equals(expectedType)) {
+  public static void assertDocumentContentBlockJson(JsonNode block, String filename) {
+    final var bytes = DocumentFlowFixtures.servedFile(filename);
+    final var mimeType = mimeType(filename);
+    if ("text".equals(contentBlockType(filename))) {
       assertThat(block.path("type").asText()).as("content block type for text").isEqualTo("text");
-      assertThat(block.path("text").asText()).as("text content").isNotBlank();
-    } else if ("application/pdf".equals(expectedMimeType)) {
+      assertThat(block.path("text").asText())
+          .as("text content")
+          .isEqualTo(new String(bytes, StandardCharsets.UTF_8));
+      return;
+    }
+    final var dataUrl = "data:" + mimeType + ";base64," + Base64.getEncoder().encodeToString(bytes);
+    if ("application/pdf".equals(mimeType)) {
       assertThat(block.path("type").asText()).as("content block type for PDF").isEqualTo("file");
       assertThat(block.path("file").path("file_data").asText())
           .as("PDF file_data")
-          .startsWith("data:application/pdf;base64,");
+          .isEqualTo(dataUrl);
     } else {
       assertThat(block.path("type").asText())
           .as("content block type for image")
           .isEqualTo("image_url");
       assertThat(block.path("image_url").path("url").asText())
           .as("image data URL")
-          .startsWith("data:" + expectedMimeType + ";base64,");
+          .isEqualTo(dataUrl);
     }
   }
 

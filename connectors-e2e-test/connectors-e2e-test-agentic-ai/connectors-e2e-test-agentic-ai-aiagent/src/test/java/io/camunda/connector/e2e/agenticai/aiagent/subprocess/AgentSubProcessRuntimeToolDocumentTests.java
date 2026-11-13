@@ -18,10 +18,13 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_TOOL;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withUploadTool;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
+import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,6 +47,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,11 +56,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.io.Resource;
 
 /**
  * A runtime tool of a custom extension returns a document the agent did not know: in a batch of
@@ -129,12 +131,9 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
     }
   }
 
-  @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
-  private Resource documentsProcess;
-
   @Override
-  protected Resource testProcess() {
-    return documentsProcess;
+  protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
+    return withUploadTool(model, AI_AGENT_ELEMENT_ID);
   }
 
   @Autowired private ReportRuntimeTool reportRuntimeTool;
@@ -143,6 +142,7 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
   void setUpUploadEndpoint() {
     DocumentFlowFixtures.stubUploadEndpoint();
     reportRuntimeTool.reset();
+    enqueueUserFeedback(userSatisfiedFeedback());
   }
 
   @Test
@@ -156,7 +156,7 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
             20,
             ToolCall.of(
                 UPLOAD_CALL_ID,
-                "Upload_A_File",
+                UPLOAD_TOOL,
                 "{\"document\": %s}".formatted(DocumentFlowFixtures.handle(documentId(0))))),
         finalTurn());
 

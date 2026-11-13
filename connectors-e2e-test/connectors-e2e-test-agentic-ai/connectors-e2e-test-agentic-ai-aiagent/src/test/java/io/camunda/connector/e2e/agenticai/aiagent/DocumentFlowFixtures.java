@@ -27,14 +27,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.springframework.core.io.ClassPathResource;
 
 /**
  * Building blocks shared by the document flow e2e tests of both agent flavors: the scripted model
- * turns, the upload endpoint the {@code Upload_A_File} tool posts to and the assertions on what it
- * received.
+ * turns, the {@code Upload_A_File} tool that is added to the process, the upload endpoint this tool
+ * posts to and the assertions on what it received.
  *
  * <p>The scripted model learns document ids through {@link
  * io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer}: {@code
@@ -42,16 +45,53 @@ import org.springframework.core.io.ClassPathResource;
  */
 public final class DocumentFlowFixtures {
 
+  public static final String UPLOAD_TOOL = "Upload_A_File";
   public static final String UPLOAD_PATH = "/upload";
   public static final String DOWNLOADED_FILE = "test.pdf";
   public static final String DOWNLOAD_CALL_ID = "call_download";
   public static final String UPLOAD_CALL_ID = "call_upload";
   public static final String GET_CALL_ID = "call_get";
   public static final String GET_AGAIN_CALL_ID = "call_get_again";
-  public static final String PING_CALL_ID = "call_ping";
+  public static final String SUPERFLUX_CALL_ID = "call_superflux";
+  public static final String SUPERFLUX_RESULT = "24";
   public static final String FINAL_TEXT = "I uploaded the document and return it.";
 
   private DocumentFlowFixtures() {}
+
+  /**
+   * Adds the {@code Upload_A_File} tool to the ad-hoc sub-process. The tool takes a document as its
+   * {@code document} parameter and posts it as multipart form data to the process variable {@code
+   * uploadUrl}.
+   */
+  public static BpmnModelInstance withUploadTool(
+      BpmnModelInstance model, String adHocSubProcessId) {
+    final var upload = model.newInstance(ServiceTask.class, UPLOAD_TOOL);
+    upload.setName("Upload a file");
+    upload
+        .builder()
+        .zeebeJobType("io.camunda:http-json:1")
+        .zeebeJobRetries("0")
+        .zeebeInput("noAuth", "authentication.type")
+        .zeebeInput("POST", "method")
+        .zeebeInput("=uploadUrl", "url")
+        .zeebeInput("={\"Content-Type\": \"multipart/form-data\"}", "headers")
+        .zeebeInput(
+            "={\n  file: fromAi(toolCall.document, \"The document to upload.\", \"document\"),\n"
+                + "  label: \"from-agent\"\n}",
+            "body")
+        .zeebeInput("=20", "connectionTimeoutInSeconds")
+        .zeebeInput("=20", "readTimeoutInSeconds")
+        .zeebeInput("=false", "ignoreNullValues")
+        .zeebeTaskHeader("elementTemplateVersion", "12")
+        .zeebeTaskHeader("elementTemplateId", "io.camunda.connectors.HttpJson.v2")
+        .zeebeTaskHeader(
+            "resultExpression", "={\n  toolCallResult: {\n    status: response.status\n  }\n}")
+        .documentation("Upload a known document to the archive");
+
+    final AdHocSubProcess adHocSubProcess = model.getModelElementById(adHocSubProcessId);
+    adHocSubProcess.addChildElement(upload);
+    return model;
+  }
 
   /** Stubs the endpoint the {@code Upload_A_File} tool posts the document to. */
   public static void stubUploadEndpoint() {
@@ -115,23 +155,23 @@ public final class DocumentFlowFixtures {
         10,
         20,
         ToolCall.of(
-            UPLOAD_CALL_ID, "Upload_A_File", "{\"document\": %s}".formatted(handle(documentId))));
+            UPLOAD_CALL_ID, UPLOAD_TOOL, "{\"document\": %s}".formatted(handle(documentId))));
   }
 
   /**
-   * One assistant message with an upload with the handle of an unknown document and a {@code Ping}
-   * call.
+   * One assistant message with an upload with the handle of an unknown document and a {@code
+   * SuperfluxProduct} call, which answers {@value #SUPERFLUX_RESULT}.
    */
-  public static Turn unknownUploadWithPingTurn() {
+  public static Turn unknownUploadWithSuperfluxTurn() {
     return Turn.toolCalls(
-        "I will upload the document and check that the tools work.",
+        "I will upload the document and calculate the superflux product.",
         10,
         20,
         ToolCall.of(
             UPLOAD_CALL_ID,
-            "Upload_A_File",
+            UPLOAD_TOOL,
             "{\"document\": %s}".formatted(handle("doc_000000000000"))),
-        ToolCall.of(PING_CALL_ID, "Ping", "{}"));
+        ToolCall.of(SUPERFLUX_CALL_ID, "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"));
   }
 
   public static Turn finalTurn() {

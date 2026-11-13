@@ -100,8 +100,8 @@ public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentContentBlockJson(userMessage.contentParts().get(1), "text", "text/plain");
-    assertDocumentContentBlockJson(userMessage.contentParts().get(2), "base64", "image/jpeg");
+    assertDocumentContentBlockJson(userMessage.contentParts().get(1), "test.txt");
+    assertDocumentContentBlockJson(userMessage.contentParts().get(2), "test.jpg");
 
     assertAgentResponse(
         zeebeTest,
