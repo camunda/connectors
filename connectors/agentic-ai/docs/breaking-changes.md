@@ -223,9 +223,10 @@ them. The constructor of `AgentResponseHandlerImpl` takes the `DocumentParameter
 auto-configuration.
 
 `ToolCallResultsInputBuilder` builds the tool call result message and the messages that follow it from the results of a
-`ToolCallBatch`, for the composer. It reports the documents of the results for registration and applies the effects of
-the results of runtime tools (the content of a known document and the response documents, see "Runtime tools and tool
-names").
+`ToolCallBatch`, for the composer. It returns the documents of the results and the response documents they select in the
+`TurnInput`, which the caller applies with `TurnInput.applyTo`, and it applies the effects that add content (see
+"Runtime tools and tool names"). It fails the job for an effect that names a document that is neither known when the
+batch starts nor returned by the result.
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
@@ -278,12 +279,13 @@ applies it to its persisted context, and the next round continues with the conte
 
 ### Runtime tools and tool names
 
-- Agent instances created from 8.11 on have the `runtimeTools` and the `documents` feature and are offered the built-in
-  runtime tools `c8__load_document` and `c8__return_document`, which the agent runs itself. An agent job fails with the
-  error code `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime
-  tool that is not enabled reserves no name. Give the runtime tools of your own runtime a name with a prefix of your own.
-  The prefix `c8__` is for the tools the connector ships; no prefix is checked or reserved, only the exact name. Agent
-  instances created before keep their behavior: they are offered no runtime tool and no name is checked.
+- Agent instances created by a v2 connector from 8.11 on have the `runtimeTools` and the `documents` feature and are
+  offered the built-in runtime tools `c8__load_document` and `c8__return_document`, which the agent runs itself. An
+  agent job fails with the error code `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an
+  enabled runtime tool; a runtime tool that is not enabled reserves no name. Give the runtime tools of your own runtime
+  a name with a prefix of your own. The prefix `c8__` is for the tools the connector ships; no prefix is checked or
+  reserved, only the exact name. Agent instances created before, and new instances of the deprecated v1 connectors,
+  keep their behavior: they are offered no runtime tool and no name is checked.
 - Behavior change for every agent instance, with or without the `runtimeTools` feature, in both flavors: every tool call
   is matched against the tools offered in the job. A call of a tool name that is not offered, for example a name the model
   invented, no longer reaches the process. The agent rejects it once, when the model response arrives, and adds the tool

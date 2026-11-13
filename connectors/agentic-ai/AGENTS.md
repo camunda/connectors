@@ -293,7 +293,7 @@ High-frequency traps (detail behind each link):
   and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
   `AddDocumentContent` of its `RuntimeToolResult.Success`, and selects a document for the final response with
   `SelectResponseDocument` (`AgentContext.responseDocuments`, which every final response carries as `responseDocuments`;
-  `TurnInput.applyTo(agentContext)` applies the selections), and `DocumentContentDelivery` decides for every document whose content a tool asks for, without a check of its type or size, only whether the model reads the content already or an earlier request of the batch asked for it: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
+  `ToolCallResultsInputBuilder` returns the selections in `TurnInput.responseDocuments()`, and `TurnInput.applyTo(agentContext)` adds them to the agent context), and the value `DocumentContentDelivery` (the documents the model reads or receives) decides for every document whose content a tool asks for, without a check of its type or size, only whether the model reads the content already or an earlier request of the batch asked for it: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
   asks for content with one sentence per document (the content follows in the next message, or it is in
   the conversation already), and the message that follows the tool results holds the loaded documents only; a tool writes none of it. A document in a tool result, new or known, is a `DocumentContent` with the document of the
   connector SDK, and content comes only through the effect; `RuntimeTools` fails the job for an `AgentDocument` or an

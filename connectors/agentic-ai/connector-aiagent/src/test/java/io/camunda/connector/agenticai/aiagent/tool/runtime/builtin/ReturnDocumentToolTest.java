@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.agent.ToolCallAdmission;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallBatch;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agent.TurnInput;
+import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -32,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
@@ -69,8 +69,7 @@ class ReturnDocumentToolTest {
       new RuntimeTools(List.of(tool), TestObjectMapperSupplier.INSTANCE, resolver);
   private final LocalToolCallExecutor executor =
       new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer());
-  private final ToolCallResultsInputBuilder inputBuilder =
-      new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery());
+  private final ToolCallResultsInputBuilder inputBuilder = new ToolCallResultsInputBuilder();
 
   private final Document report = createDocument("report", "report.txt");
   private final Document summary = createDocument("summary", "summary.txt");

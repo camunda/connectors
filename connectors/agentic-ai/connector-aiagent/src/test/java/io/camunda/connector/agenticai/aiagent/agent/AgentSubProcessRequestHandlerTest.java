@@ -2557,6 +2557,8 @@ class AgentSubProcessRequestHandlerTest {
                             CREATE_REPORT_TOOL,
                             COUNT_DOCUMENTS_TOOL,
                             LOAD_DOCUMENT_TOOL,
+                            SELECT_DOCUMENT_TOOL,
+                            new ReturnDocumentTool(),
                             new LoadDocumentTool())
                         .map(RuntimeTool::definition))
                 .toList());
