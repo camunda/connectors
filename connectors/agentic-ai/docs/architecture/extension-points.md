@@ -232,7 +232,8 @@ A tool result and an event cannot change, so the incident repeats on each retry 
 document. The reason is in [ADR 018](../adr/018-document-flow.md).
 
 **Instances without the `documents` feature.** An agent instance created before the feature (no `features` in its
-`agentContext`) keeps the document handling of Camunda 8.10:
+`agentContext`) or created by a v1 connector (`AgentTaskV1Function`, `AgentSubProcessV1Function`, which give a new
+instance no feature) keeps the document handling of Camunda 8.10:
 
 - A user prompt document is a bare `DocumentContent`. The documents of tool results and events go into a synthetic
   user message with a preamble (also for an external or an inline document), then per document the tag in the older attribute format

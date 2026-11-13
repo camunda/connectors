@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import java.util.List;
 
 /**
  * AI Agent job worker implementation (acting on an ad-hoc sub-process).
@@ -42,6 +43,9 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
 
   public static final String JOB_WORKER_NAME = "AI Agent Job Worker";
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent-job-worker:1";
+
+  /** The deprecated v1 connector gives a new agent instance no agent instance feature. */
+  private static final List<String> NEW_INSTANCE_FEATURES = List.of();
 
   private final AgentSubProcessRequestHandler agentRequestHandler;
   private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
@@ -75,9 +79,11 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
           request.agentContext(),
           request.toolCallResults(),
           request.toolElements(),
-          nativeConfig);
+          nativeConfig,
+          NEW_INSTANCE_FEATURES);
     }
 
-    return new AgentSubProcessExecutionContext(context.getJobContext(), context, request);
+    return new AgentSubProcessExecutionContext(
+        context.getJobContext(), context, request, NEW_INSTANCE_FEATURES);
   }
 }

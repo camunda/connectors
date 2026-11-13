@@ -9,12 +9,13 @@ on every completion. Authoritative definition:
 
 **Features.** `AgentContext.features` is the set of features (an insertion-ordered JSON array of strings, omitted
 when empty) the agent instance was created with. A new agent instance gets the
-current features when its context is created at its first job (`AgentInitializerImpl`, both flavors,
-`AgentFeatures.ofNewInstance()`). The features are `runtimeTools` (`AgentFeatures.RUNTIME_TOOLS`, the runtime tool
+features of its execution when its context is created at its first job (`AgentInitializerImpl`, both flavors,
+`AgentExecutionContext.newInstanceFeatures()`). The v2 connectors give `AgentFeatures.ofNewInstance()` and the
+deprecated v1 connectors give no feature. The features are `runtimeTools` (`AgentFeatures.RUNTIME_TOOLS`, the runtime tool
 facility) and `documents` (`AgentFeatures.DOCUMENTS`, the agent documents); a feature is read with
 `AgentContext.supports(String)`, and the document handling of the instance with `AgentContext.documentHandling()`.
-A context that exists without `features` belongs to an instance created before the features and never gets features
-added later, so its behavior stays as it was created. The reasons are in [ADR 016](../../docs/adr/016-runtime-tools.md)
+A context that exists without `features` belongs to an instance created before the features, or by a v1 connector, and
+never gets features added later, so its behavior stays as it was created. The reasons are in [ADR 016](../../docs/adr/016-runtime-tools.md)
 and [ADR 018](../../docs/adr/018-document-flow.md); in short, an instance without
 `runtimeTools` has no runtime tool and no tool element checked against runtime tool names, and an instance without
 `documents` keeps documents as stored content with the older XML tag format and has no agent documents. The kind and the rejection of a tool call ([`agentic-loop.md`](../../docs/architecture/agentic-loop.md#what-happens-when-tools-complete)) are set for every
@@ -58,7 +59,8 @@ variants exhaustively; none of them reads the feature or takes a `boolean`.
 
 The transient per-invocation request context, assembled fresh for each job activation and never
 persisted. It carries the job metadata, the document factory of the job (the document store of the physical tenant of
-the job), the inbound `AgentContext` and tool-call results, the LLM
+the job), the inbound `AgentContext` and tool-call results, the features of a new agent instance
+(`newInstanceFeatures()`, `AgentFeatures.ofNewInstance()` by default), the LLM
 provider configuration, the system- and user-prompt configurations, and the memory, limits, event, and
 response settings that shape the turn. Authoritative definition:
 [`AgentExecutionContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).

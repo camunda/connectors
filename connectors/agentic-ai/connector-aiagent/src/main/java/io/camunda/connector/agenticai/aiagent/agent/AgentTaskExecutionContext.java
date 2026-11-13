@@ -31,6 +31,7 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
   private final AgentTaskRequestData data;
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentConfiguration configuration;
+  private final List<String> newInstanceFeatures;
 
   @Nullable private List<AdHocToolElement> toolElements;
 
@@ -38,8 +39,15 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
       JobContext jobContext,
       DocumentFactory documentFactory,
       AgentTaskV1Request request,
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
-    this(jobContext, documentFactory, request.data(), request.provider(), toolElementsResolver);
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      List<String> newInstanceFeatures) {
+    this(
+        jobContext,
+        documentFactory,
+        request.data(),
+        request.provider(),
+        toolElementsResolver,
+        newInstanceFeatures);
   }
 
   public AgentTaskExecutionContext(
@@ -47,11 +55,13 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
       DocumentFactory documentFactory,
       AgentTaskRequestData data,
       ChatModelConfiguration chatModel,
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      List<String> newInstanceFeatures) {
     this.jobContext = jobContext;
     this.documentFactory = documentFactory;
     this.data = data;
     this.toolElementsResolver = toolElementsResolver;
+    this.newInstanceFeatures = newInstanceFeatures;
     this.configuration =
         new AgentConfiguration(
             chatModel,
@@ -72,6 +82,11 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
   @Override
   public DocumentFactory documentFactory() {
     return documentFactory;
+  }
+
+  @Override
+  public List<String> newInstanceFeatures() {
+    return newInstanceFeatures;
   }
 
   @Override
