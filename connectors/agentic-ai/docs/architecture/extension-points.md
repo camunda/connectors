@@ -191,28 +191,22 @@ its parts, each as a 4-byte big-endian length and its UTF-8 bytes. The content h
 so the same document always gets the same id. An absent part is hashed as such, never as the text `null`. The id never
 exposes a store id or the id of the document in its store.
 
-**Loading content: `c8__load_document`.** The model calls it with the handle of a document (`id`, a document parameter).
-Every agent instance with the `documents` feature offers it. It cannot be switched off. A switch is a follow-up of
-[ADR 018](../adr/018-document-flow.md).
+**Loading content: `c8__load_document`.** The model calls the tool with the handle of a document (`id`). Every agent
+instance with the `documents` feature offers it. The tool returns the effect `AddDocumentContent`
+(`Success.withDocumentContent`). It writes no text. A missing or unknown id gives an error result.
 
-The tool returns no content. For a known document it returns `RuntimeToolResult.Success.withDocumentContent`, which carries
-the effect `ToolCallEffect.AddDocumentContent`. A missing or unknown id gives an error result. The agent applies the effect,
-not the tool: after all calls of the message ran, in call order, `ToolCallResultsInputBuilder` asks
-`DocumentContentDelivery` to decide for each requested document. The builder then appends one sentence per document to the
-result. `{ref}` is the file name and the id (`document1.pdf (doc_3a1d3166fe56)`), or the id alone without a file name.
+After all calls of the message ran, `ToolCallResultsInputBuilder` applies the effects in call order.
+`DocumentContentDelivery` decides for each document. The builder adds one sentence per document to the tool result:
 
 | Decision | Sentence |
 |----------|----------|
 | the content is added | `The content of {ref} follows in the next message.` |
-| the model has the content already, or an earlier result of the message asked for it | `The content of {ref} is already in the conversation.` |
+| the model has the content, or an earlier call of the message asked for it | `The content of {ref} is already in the conversation.` |
 
-The agent adds the content of a known document whatever its type and size. It does not check the content type or the size
-against the limits of a model provider.
-
-When at least one document is loaded, the builder adds a user message after the tool results. It starts with the preamble
-`Document content from tool calls (added by the system):`. For each loaded document it holds the handle and the document.
-Its metadata `toolCallDocuments` makes it leave the context window together with its tool results. A document parameter
-(`fromAi(..., "document")`) never adds content.
+`{ref}` is the file name and the id (`a.pdf (doc_3a1d3166fe56)`). The agent does not check the type or the size of the
+content. The loaded documents follow the tool results in one user message with the preamble
+`Document content from tool calls (added by the system):`. Its metadata `toolCallDocuments` makes it leave the context
+window together with the tool results. A document parameter never adds content.
 
 **The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
 document goes out with the prompt, with no size limit and no type check, and a document the provider
@@ -417,23 +411,16 @@ document. `RuntimeTools` resolves the call again against the definition the tool
 the one of the admission when the call runs in a later job; an invalid value gets a `RuntimeToolResult.error` with the
 resolution message, and the tool is not called.
 
-**Documents.** `RuntimeToolContext#document(AgentDocumentId)` returns the `Document` of the connector SDK for a document
-the agent knows, restored with the document factory of the job, or nothing. Its content is read only when the tool reads
-it. A result holds a document as the `Document` of the connector SDK, never as the `AgentDocument` of the agent context:
-an `AgentDocument` carries the store details of the document, which never go to the model, and one in a result fails the
-job, as does an `AgentDocumentContent` block, the reference the conversation stores. A result holds a document, new or
-known, as a `DocumentContent` block or nested in an object. After the calls ran, the agent registers a new document with
-the tool call as origin, a known one keeps its entry, and the model reads its handle only
-([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). An error result registers
-nothing.
+**Documents.** `RuntimeToolContext#document(AgentDocumentId)` returns the `Document` of the connector SDK for a known
+document, or nothing. A result holds a document, new or known, as the `Document` of the connector SDK, in a
+`DocumentContent` block or in an object. The agent registers a new document after the calls ran, and the model reads its
+handle ([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). An `AgentDocument` or
+an `AgentDocumentContent` block in a result fails the job. An error result registers nothing.
 
-**Effects.** `RuntimeToolResult.success(...)` returns a `Success`. `Success.withDocumentContent(AgentDocumentId)` adds the
-effect `ToolCallEffect.AddDocumentContent` (`AgentDocumentId.of(document)` names a document the result returns). The agent
-adds the content to the request after the tool results, once for each document. The agent writes the outcome
-sentence into the result, so a tool does not. `LoadDocumentTool` is the reference.
-
-Content comes only through the effect. An effect with an id that the agent did not know when the batch started and the result
-does not return fails the job with an `IllegalArgumentException`.
+**Effects.** `Success.withDocumentContent(AgentDocumentId)` adds the effect `AddDocumentContent`: the agent adds the
+content to the next request, once per document, and writes the outcome sentence into the result. `LoadDocumentTool` is the
+reference. Content comes only through this effect. An effect with an id that the agent does not know when the batch starts,
+and that the result does not return, fails the job.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the

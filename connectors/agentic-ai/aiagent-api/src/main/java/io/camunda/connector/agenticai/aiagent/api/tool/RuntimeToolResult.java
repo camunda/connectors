@@ -18,44 +18,33 @@ import java.util.Objects;
 
 /**
  * The outcome of a runtime tool call: a {@link Success} or an {@link Error}. The model reads {@link
- * #content()} as the tool result; an error is plain text, as the tool result has no error flag. A
- * result is immutable; a {@code with} method returns a changed copy. {@link Experimental}, see
- * {@link RuntimeTool}.
+ * #content()} as the tool result. An error is plain text. A result is immutable: a {@code with}
+ * method returns a changed copy. {@link Experimental}, see {@link RuntimeTool}.
  *
- * <p>The content is handled like the result of a tool of the process: text is shown as it is, an
- * {@link io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent object} as
- * JSON. The agent turns an object into plain JSON values (maps, lists, strings, numbers, booleans)
- * when the tool returns it, the object a later job reads from the conversation; a document in the
- * object, also one in a record, stays the document.
+ * <p>The agent shows text as it is and an {@link
+ * io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent object} as JSON. It
+ * turns an object into plain JSON values when the tool returns it. A document in the object stays a
+ * document.
  *
- * <p>How the model reads a {@link
- * io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent document}, also one
- * nested in an object, depends on the agent instance. For an instance that tracks its documents
- * (one created with the {@link
- * io.camunda.connector.agenticai.aiagent.model.AgentFeatures#DOCUMENTS} feature), the agent
- * registers the document, and the model reads its handle, never its content, store id, content hash
- * or URL. A document the agent knows already, such as one of {@link RuntimeToolContext#document},
- * keeps its entry. Such an instance accepts Camunda documents only: a result with an external or
- * inline document, also one nested in an object, fails the job with the error code {@code
- * UNSUPPORTED_DOCUMENT_REFERENCE}. For an instance without the feature, the model reads the
- * document reference in the tool result and the content of the document in a message after the tool
- * results, as for a tool of the process.
+ * <h2>Documents</h2>
+ *
+ * <p>A result holds a document as the {@link Document} of the connector SDK, also in an object. For
+ * an agent instance with the {@link
+ * io.camunda.connector.agenticai.aiagent.model.AgentFeatures#DOCUMENTS} feature, the agent
+ * registers the document and the model reads its handle. Such an instance accepts Camunda documents
+ * only: an external or inline document fails the job with {@code UNSUPPORTED_DOCUMENT_REFERENCE}.
+ * For an instance without the feature, the model reads the document as for a tool of the process.
+ * An {@code AgentDocument} or an {@code AgentDocumentContent} block in a result fails the job.
  *
  * <h2>Effects</h2>
  *
- * <p>A {@link Success} can carry effects. The agent applies them after all calls of the assistant
- * message ran, in call order: a call neither sees nor depends on the effects of another call. An
- * {@link Error} has no effects, and a tool changes the agent in no other way. A job that fails
- * discards the effects, and the retry applies them again.
+ * <p>A {@link Success} can carry effects. The agent applies them in call order after all calls of
+ * the assistant message ran. An {@link Error} has no effects. A failed job discards the effects,
+ * and the retry applies them again.
  *
  * <ul>
- *   <li>{@link Success#withDocumentContent}: the agent adds the content of a known document to the
- *       request that follows the tool results.
+ *   <li>{@link Success#withDocumentContent}: adds the content of a document to the next request.
  * </ul>
- *
- * <p>A document in a result, new or known, is the {@link Document} of the connector SDK, and its
- * content comes only through an effect. A result that holds an {@code AgentDocument} or an {@code
- * AgentDocumentContent} block, the forms of the agent context and the conversation, fails the job.
  */
 @Experimental
 public sealed interface RuntimeToolResult {
@@ -102,17 +91,11 @@ public sealed interface RuntimeToolResult {
     }
 
     /**
-     * Returns a copy that also asks the agent to add the content of a known document to the request
-     * that follows the tool results. {@code id} is the id of a document the agent knows at the
-     * start of the batch of calls ({@code AgentContext#documents()}), such as the value of a
-     * document parameter of the call, or of a document this result returns ({@link
-     * AgentDocumentId#of(Document)}). A document another call of the same batch returns is not
-     * known yet.
+     * Returns a copy that asks the agent to add the content of a document to the next request.
      *
-     * <p>The agent adds the content once per document, whatever its type and size, and ends the
-     * result with one sentence per document that tells the model whether the content follows or is
-     * in the conversation already. An unknown id fails the job. Only an agent with the documents
-     * feature knows documents (see {@link RuntimeTool#isEnabled}).
+     * <p>{@code id} identifies a document that the agent knows when the batch starts, or a document
+     * that this result returns ({@link AgentDocumentId#of(Document)}). The agent adds the content
+     * once and tells the model in the result. An unknown id fails the job.
      */
     public Success withDocumentContent(AgentDocumentId id) {
       return withEffect(new ToolCallEffect.AddDocumentContent(Objects.requireNonNull(id)));
