@@ -357,7 +357,7 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 ### Add a runtime tool
 
 > **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`,
-> `RuntimeToolResult`, and `RuntimeToolException`, package `aiagent.api.tool` of
+> `RuntimeToolResult`, `ToolCallEffect` and `RuntimeToolException`, package `aiagent.api.tool` of
 > `aiagent-api`) is experimental since 8.11 and may change in an incompatible way in a minor release.
 
 A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
