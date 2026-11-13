@@ -11,28 +11,41 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class GenericRecordConverterUnionTest {
 
   private static final String CREATE_TASK =
       """
       {"type":"record","name":"CreateTask","namespace":"test",
-       "fields":[{"name":"taskId","type":"string"},{"name":"title","type":"string"}]}
+       "fields":[{"name":"taskId","type":"string"},{"name":"title","type":"string"},
+                 {"name":"note","type":["null","string"],"default":null}]}
       """;
   private static final String CANCEL_TASK =
       """
       {"type":"record","name":"CancelTask","namespace":"test",
        "fields":[{"name":"taskId","type":"string"},{"name":"reason","type":"string"}]}
       """;
+  private static final String DELETE_TASK =
+      """
+      {"type":"record","name":"DeleteTask","namespace":"test",
+       "fields":[{"name":"taskId","type":"string"}]}
+      """;
+
+  private static final Schema TASK_UNION =
+      new Schema.Parser().parse("[" + CREATE_TASK + "," + CANCEL_TASK + "]");
 
   private final GenericRecordConverter converter = new GenericRecordConverter();
 
@@ -47,20 +60,156 @@ public class GenericRecordConverterUnionTest {
   }
 
   @Test
-  void nullableRecord_isConverted() {
-    var schema = envelopeWith("[\"null\"," + CREATE_TASK + "]");
-
+  void topLevelUnion_wrappedInFullName() throws Exception {
     var record =
         converter.toGenericRecord(
-            schema, Map.of("command", Map.of("taskId", "1", "title", "Write tests")));
+            TASK_UNION, Map.of("test.CancelTask", Map.of("taskId", "1", "reason", "duplicate")));
 
-    var command = (GenericRecord) record.get("command");
-    assertThat(command.getSchema().getFullName()).isEqualTo("test.CreateTask");
-    assertThat(GenericData.get().validate(schema, record)).isTrue();
+    assertThat(record.getSchema().getFullName()).isEqualTo("test.CancelTask");
+    assertThat(record.get("reason")).isEqualTo("duplicate");
+    assertWritableAs(TASK_UNION, record);
   }
 
   @Test
-  void unionOfSeveralRecords_firstMemberIsUsedWhateverTheValueLooksLike() {
+  void topLevelUnion_wrappedInUniqueShortName() throws Exception {
+    var record =
+        converter.toGenericRecord(
+            TASK_UNION, Map.of("CancelTask", Map.of("taskId", "1", "reason", "duplicate")));
+
+    assertThat(record.getSchema().getFullName()).isEqualTo("test.CancelTask");
+    assertWritableAs(TASK_UNION, record);
+  }
+
+  @Test
+  void topLevelUnion_shortNameSharedByTwoMembersIsNotAWrapper() {
+    var union =
+        new Schema.Parser()
+            .parse(
+                "["
+                    + CANCEL_TASK
+                    + ","
+                    + CANCEL_TASK.replace("\"namespace\":\"test\"", "\"namespace\":\"legacy\"")
+                    + "]");
+
+    assertThatThrownBy(() ->
+            converter.toGenericRecord(
+                union, Map.of("CancelTask", Map.of("taskId", "1", "reason", "duplicate"))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("[test.CancelTask, legacy.CancelTask]");
+  }
+
+  @Test
+  void topLevelUnion_inferredFromFields() throws Exception {
+    var create =
+        converter.toGenericRecord(TASK_UNION, Map.of("taskId", "1", "title", "Write tests"));
+    var cancel =
+        converter.toGenericRecord(TASK_UNION, Map.of("taskId", "1", "reason", "duplicate"));
+
+    assertThat(create.getSchema().getFullName()).isEqualTo("test.CreateTask");
+    assertThat(cancel.getSchema().getFullName()).isEqualTo("test.CancelTask");
+    assertWritableAs(TASK_UNION, create);
+    assertWritableAs(TASK_UNION, cancel);
+  }
+
+  @Test
+  void topLevelUnion_optionalFieldsMayBeOmittedOrSet() throws Exception {
+    var withNote =
+        converter.toGenericRecord(
+            TASK_UNION, Map.of("taskId", "1", "title", "Write tests", "note", "today"));
+
+    assertThat(withNote.getSchema().getFullName()).isEqualTo("test.CreateTask");
+    assertThat(withNote.get("note")).isEqualTo("today");
+    assertWritableAs(TASK_UNION, withNote);
+  }
+
+  @Test
+  void topLevelUnion_ambiguousValueIsRejected() {
+    var ambiguous =
+        new Schema.Parser()
+            .parse(
+                "[" + DELETE_TASK + "," + DELETE_TASK.replace("DeleteTask", "ArchiveTask") + "]");
+
+    assertThatThrownBy(() -> converter.toGenericRecord(ambiguous, Map.of("taskId", "1")))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The value matches several types of the union [test.DeleteTask, test.ArchiveTask]."
+                + " Wrap it with the type name as the only key, for example"
+                + " {\"test.DeleteTask\": {...}}.");
+  }
+
+  @Test
+  void topLevelUnion_valueMatchingNoMemberIsRejected() {
+    assertThatThrownBy(() -> converter.toGenericRecord(TASK_UNION, Map.of("taskId", "1")))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The value matches none of the types of the union [test.CreateTask, test.CancelTask]."
+                + " Wrap it with the type name as the only key, for example"
+                + " {\"test.CreateTask\": {...}}.");
+  }
+
+  @Test
+  void topLevelUnion_unknownFieldsAreIgnoredWhenNoMemberHasAllOfThem() throws Exception {
+    var record =
+        converter.toGenericRecord(
+            TASK_UNION, Map.of("taskId", "1", "reason", "duplicate", "other", "x"));
+
+    assertThat(record.getSchema().getFullName()).isEqualTo("test.CancelTask");
+    assertWritableAs(TASK_UNION, record);
+  }
+
+  @Test
+  void topLevelUnion_wrapperKeyWhoseValueDoesNotFitTheMemberIsInferred() throws Exception {
+    var union =
+        new Schema.Parser()
+            .parse(
+                """
+                [{"type":"record","name":"A","namespace":"test",
+                  "fields":[{"name":"x","type":"string"}]},
+                 {"type":"record","name":"B","namespace":"test",
+                  "fields":[{"name":"A","type":"string"}]}]
+                """);
+
+    var record = converter.toGenericRecord(union, Map.of("A", "v"));
+
+    assertThat(record.getSchema().getFullName()).isEqualTo("test.B");
+    assertThat(record.get("A")).isEqualTo("v");
+    assertWritableAs(union, record);
+  }
+
+  @Test
+  void topLevelUnion_missingFieldWithDefaultGetsTheDefault() throws Exception {
+    var union =
+        new Schema.Parser()
+            .parse(
+                """
+                [{"type":"record","name":"Prioritize","namespace":"test",
+                  "fields":[{"name":"id","type":"string"},
+                            {"name":"prio","type":"int","default":0}]},
+                 %s]
+                """
+                    .formatted(CANCEL_TASK));
+
+    var record = converter.toGenericRecord(union, Map.of("id", "1"));
+
+    assertThat(record.getSchema().getFullName()).isEqualTo("test.Prioritize");
+    assertThat(record.get("prio")).isEqualTo(0);
+    assertWritableAs(union, record);
+  }
+
+  @Test
+  void topLevelUnion_wrappedNonRecordMemberIsRejected() {
+    var union = new Schema.Parser().parse("[\"string\"," + CREATE_TASK + "]");
+
+    assertThatThrownBy(() -> converter.toGenericRecord(union, Map.of("string", "text")))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The message value must be one of the records of the union [string, test.CreateTask]."
+                + " Wrap it with the type name as the only key, for example"
+                + " {\"test.CreateTask\": {...}}.");
+  }
+
+  @Test
+  void nestedUnion_picksTheMemberMatchingTheValue() throws Exception {
     var schema = envelopeWith("[" + CREATE_TASK + "," + CANCEL_TASK + "]");
 
     var record =
@@ -68,24 +217,78 @@ public class GenericRecordConverterUnionTest {
             schema, Map.of("command", Map.of("taskId", "1", "reason", "duplicate")));
 
     var command = (GenericRecord) record.get("command");
-    assertThat(command.getSchema().getFullName()).isEqualTo("test.CreateTask");
-    assertThat(command.get("title")).isNull();
-    assertThat(command.getSchema().getField("reason")).isNull();
-    assertThat(GenericData.get().validate(schema, record)).isFalse();
+    assertThat(command.getSchema().getFullName()).isEqualTo("test.CancelTask");
+    assertThat(command.get("reason")).isEqualTo("duplicate");
+    assertWritableAs(schema, record);
   }
 
   @Test
-  void unionOfSeveralRecords_wrongMemberFailsAtSerialization() {
+  void nestedUnion_wrappedValueIsUnwrapped() throws Exception {
     var schema = envelopeWith("[" + CREATE_TASK + "," + CANCEL_TASK + "]");
+
     var record =
         converter.toGenericRecord(
-            schema, Map.of("command", Map.of("taskId", "1", "reason", "duplicate")));
+            schema,
+            Map.of("command", Map.of("test.CreateTask", Map.of("taskId", "1", "title", "Write"))));
 
-    assertThatThrownBy(() -> serialize(record)).isInstanceOf(RuntimeException.class);
+    var command = (GenericRecord) record.get("command");
+    assertThat(command.getSchema().getFullName()).isEqualTo("test.CreateTask");
+    assertWritableAs(schema, record);
   }
 
   @Test
-  void arrayOfUnionElements_objectsAreNotConverted() {
+  void nestedUnion_unknownFieldsAreIgnoredWhenNoMemberHasAllOfThem() throws Exception {
+    var schema = envelopeWith("[\"null\"," + CREATE_TASK + "," + CANCEL_TASK + "]");
+
+    var record =
+        converter.toGenericRecord(
+            schema, Map.of("command", Map.of("taskId", "1", "reason", "duplicate", "other", "x")));
+
+    var command = (GenericRecord) record.get("command");
+    assertThat(command.getSchema().getFullName()).isEqualTo("test.CancelTask");
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void unionOfRecordsAndMap_recordIsPreferredDespiteUnknownFields() throws Exception {
+    var schema =
+        envelopeWith(
+            "[" + CREATE_TASK + "," + CANCEL_TASK + ",{\"type\":\"map\",\"values\":\"string\"}]");
+
+    var record =
+        converter.toGenericRecord(
+            schema, Map.of("command", Map.of("taskId", "1", "reason", "duplicate", "other", "x")));
+
+    var command = (GenericRecord) record.get("command");
+    assertThat(command.getSchema().getFullName()).isEqualTo("test.CancelTask");
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void unionOfRecordsAndMap_valueMatchingNoRecordIsTheMap() throws Exception {
+    var schema =
+        envelopeWith(
+            "[" + CREATE_TASK + "," + CANCEL_TASK + ",{\"type\":\"map\",\"values\":\"string\"}]");
+
+    var record = converter.toGenericRecord(schema, Map.of("command", Map.of("color", "red")));
+
+    assertThat(record.get("command")).isEqualTo(Map.of("color", "red"));
+    assertWritableAs(schema, record);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"null", "map"})
+  void nullableMap_keyNamedAfterAMemberIsAnEntry(String key) throws Exception {
+    var schema = envelopeWith("[\"null\",{\"type\":\"map\",\"values\":\"string\"}]");
+
+    var record = converter.toGenericRecord(schema, Map.of("command", Map.of(key, "v")));
+
+    assertThat(record.get("command")).isEqualTo(Map.of(key, "v"));
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void arrayOfUnionItems_eachItemIsConvertedToItsMember() throws Exception {
     var schema =
         new Schema.Parser()
             .parse(
@@ -97,20 +300,58 @@ public class GenericRecordConverterUnionTest {
 
     var record =
         converter.toGenericRecord(
-            schema, Map.of("commands", List.of(Map.of("taskId", "1", "title", "Write tests"))));
+            schema,
+            Map.of(
+                "commands",
+                List.of(
+                    Map.of("taskId", "1", "title", "Write tests"),
+                    Map.of("taskId", "2", "reason", "duplicate"))));
 
-    assertThat(((List<?>) record.get("commands")).get(0)).isInstanceOf(Map.class);
-    assertThat(GenericData.get().validate(schema, record)).isFalse();
+    var commands = (List<?>) record.get("commands");
+    assertThat(commands)
+        .map(command -> ((GenericRecord) command).getSchema().getFullName())
+        .containsExactly("test.CreateTask", "test.CancelTask");
+    assertWritableAs(schema, record);
   }
 
   @Test
-  void topLevelUnion_isRejected() {
-    var schema = new Schema.Parser().parse("[" + CREATE_TASK + "," + CANCEL_TASK + "]");
+  void mapOfRecords_valuesAreConverted() throws Exception {
+    var schema = envelopeWith("{\"type\":\"map\",\"values\":" + CANCEL_TASK + "}");
 
-    assertThatThrownBy(
-            () -> converter.toGenericRecord(schema, Map.of("taskId", "1", "title", "Write tests")))
-        .isInstanceOf(AvroRuntimeException.class)
-        .hasMessageContaining("Not a record schema");
+    var record =
+        converter.toGenericRecord(
+            schema,
+            Map.of("command", Map.of("first", Map.of("taskId", "1", "reason", "duplicate"))));
+
+    var commands = (Map<?, ?>) record.get("command");
+    assertThat(commands.get("first")).isInstanceOf(GenericRecord.class);
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void nullableRecord_isConvertedEvenWithUnknownFields() throws Exception {
+    var schema = envelopeWith("[\"null\"," + CREATE_TASK + "]");
+
+    var record =
+        converter.toGenericRecord(
+            schema,
+            Map.of("command", Map.of("taskId", "1", "title", "Write tests", "other", "ignored")));
+
+    var command = (GenericRecord) record.get("command");
+    assertThat(command.getSchema().getFullName()).isEqualTo("test.CreateTask");
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void nullableRecord_acceptsNull() throws Exception {
+    var schema = envelopeWith("[\"null\"," + CREATE_TASK + "]");
+    var value = new HashMap<String, Object>();
+    value.put("command", null);
+
+    var record = converter.toGenericRecord(schema, value);
+
+    assertThat(record.get("command")).isNull();
+    assertWritableAs(schema, record);
   }
 
   @Test
@@ -119,11 +360,15 @@ public class GenericRecordConverterUnionTest {
         .hasMessageContaining("Undefined schema");
   }
 
-  private static byte[] serialize(GenericRecord record) throws Exception {
+  private static void assertWritableAs(Schema schema, GenericRecord record) throws Exception {
+    assertThat(GenericData.get().validate(schema, record)).isTrue();
     var out = new ByteArrayOutputStream();
     var encoder = EncoderFactory.get().binaryEncoder(out, null);
-    new GenericDatumWriter<GenericRecord>(record.getSchema()).write(record, encoder);
+    new GenericDatumWriter<Object>(schema).write(record, encoder);
     encoder.flush();
-    return out.toByteArray();
+    var read =
+        new GenericDatumReader<GenericRecord>(schema)
+            .read(null, DecoderFactory.get().binaryDecoder(out.toByteArray(), null));
+    assertThat(read.getSchema().getFullName()).isEqualTo(record.getSchema().getFullName());
   }
 }

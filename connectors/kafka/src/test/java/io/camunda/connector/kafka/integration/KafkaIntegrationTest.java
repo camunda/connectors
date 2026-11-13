@@ -28,6 +28,7 @@ import io.camunda.connector.kafka.inbound.KafkaExecutable;
 import io.camunda.connector.kafka.inbound.KafkaInboundMessage;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
+import io.camunda.connector.kafka.model.SchemaSource;
 import io.camunda.connector.kafka.model.SchemaType;
 import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
 import io.camunda.connector.kafka.model.schema.InboundSchemaRegistryStrategy;
@@ -42,6 +43,8 @@ import io.camunda.connector.runtime.test.inbound.InboundConnectorDefinitionBuild
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.test.utils.DockerImages;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -84,6 +87,8 @@ public class KafkaIntegrationTest {
       "schema-registry-avro-test-topic-" + UUID.randomUUID();
   private static final String SCHEMA_REGISTRY_JSON_TOPIC =
       "schema-registry-json-test-topic-" + UUID.randomUUID();
+  private static final String SCHEMA_REGISTRY_UNION_TOPIC =
+      "schema-registry-union-test-topic-" + UUID.randomUUID();
   private static final Map<String, String> HEADERS =
       Map.of("header1", "value1", "header2", "value2");
   private static final Network NETWORK = Network.newNetwork();
@@ -112,7 +117,7 @@ public class KafkaIntegrationTest {
   public static void init() throws Exception {
     kafkaContainer.start();
     SCHEMA_REGISTRY_CONTAINER.start();
-    createTopics(TOPIC, AVRO_TOPIC);
+    createTopics(TOPIC, AVRO_TOPIC, SCHEMA_REGISTRY_UNION_TOPIC);
     BOOTSTRAP_SERVERS = kafkaContainer.getBootstrapServers().replace("PLAINTEXT://", "");
     var avroSchema = getSchema("nested-avro-schema.json");
     var jsonSchema = getSchema("nested-json-schema.json");
@@ -763,5 +768,100 @@ public class KafkaIntegrationTest {
     assertEquals("theNickname", map.get("nickname"));
     assertEquals("Colleague1", ((Map) ((List) map.get("colleagues")).get(0)).get("name"));
     assertEquals(30, ((Map) ((List) map.get("colleagues")).get(0)).get("age"));
+  }
+
+  @Test
+  @Order(14)
+  void publishAndConsumeTopLevelUnionOfReferencedRecordsFromRegistry() throws Exception {
+    // Given
+    var registryUrl =
+        "http://"
+            + SCHEMA_REGISTRY_CONTAINER.getHost()
+            + ":"
+            + SCHEMA_REGISTRY_CONTAINER.getFirstMappedPort();
+    var registry = new CachedSchemaRegistryClient(registryUrl, 10);
+    var valueSubject = SCHEMA_REGISTRY_UNION_TOPIC + "-value";
+    registerAvro(
+        registry,
+        "test.CreateTask",
+        "{\"type\":\"record\",\"name\":\"CreateTask\",\"namespace\":\"test\",\"fields\":["
+            + "{\"name\":\"taskId\",\"type\":\"string\"},{\"name\":\"title\",\"type\":\"string\"}]}");
+    registerAvro(
+        registry,
+        "test.CancelTask",
+        "{\"type\":\"record\",\"name\":\"CancelTask\",\"namespace\":\"test\",\"fields\":["
+            + "{\"name\":\"taskId\",\"type\":\"string\"},{\"name\":\"reason\",\"type\":\"string\"}]}");
+    registerAvro(
+        registry,
+        valueSubject,
+        "[\"test.CreateTask\",\"test.CancelTask\"]",
+        new SchemaReference("test.CreateTask", "test.CreateTask", 1),
+        new SchemaReference("test.CancelTask", "test.CancelTask", 1));
+
+    var strategy =
+        new OutboundSchemaRegistryStrategy(
+            null, registryUrl, SchemaType.AVRO, SchemaSource.REGISTRY, null, null, null);
+    var kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, SCHEMA_REGISTRY_UNION_TOPIC);
+    var kafkaAuthentication = new KafkaAuthentication(null, null);
+    OutboundConnectorFunction function = new KafkaConnectorFunction();
+
+    // When
+    for (var value :
+        List.of(
+            Map.of("taskId", "t-1", "title", "Write docs"),
+            Map.of("test.CancelTask", Map.of("taskId", "t-2", "reason", "duplicate")))) {
+      var request =
+          new KafkaConnectorRequest(
+              kafkaAuthentication, kafkaTopic, new KafkaMessage(null, value), strategy, null, null);
+      var outboundContext =
+          OutboundConnectorContextBuilder.create()
+              .variables(KafkaConnectorConsumer.objectMapper.writeValueAsString(request))
+              .build();
+      var result = function.execute(outboundContext);
+      assertInstanceOf(KafkaConnectorResponse.class, result);
+    }
+
+    var inboundContext =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                new KafkaConnectorProperties(
+                    KafkaConnectorProperties.AuthenticationType.custom,
+                    kafkaAuthentication,
+                    kafkaTopic,
+                    null,
+                    null,
+                    null,
+                    KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
+                    new InboundSchemaRegistryStrategy(registryUrl, SchemaType.AVRO)))
+            .definition(InboundConnectorDefinitionBuilder.create().build())
+            .build();
+    KafkaExecutable executable = new KafkaExecutable();
+    executable.activate(inboundContext);
+    await()
+        .atMost(Duration.ofSeconds(15))
+        .until(() -> inboundContext.getCorrelations().size() >= 2);
+    executable.deactivate();
+
+    // Then
+    var values =
+        inboundContext.getCorrelations().stream()
+            .map(message -> ((KafkaInboundMessage) message).getValue())
+            .map(value -> ConnectorsObjectMapperSupplier.getCopy().convertValue(value, Map.class))
+            .toList();
+    assertThat(values)
+        .containsExactlyInAnyOrder(
+            Map.of("taskId", "t-1", "title", "Write docs"),
+            Map.of("taskId", "t-2", "reason", "duplicate"));
+    assertThat(registry.getAllVersions(valueSubject)).containsExactly(1);
+  }
+
+  private static void registerAvro(
+      CachedSchemaRegistryClient registry,
+      String subject,
+      String schema,
+      SchemaReference... references)
+      throws Exception {
+    var parsed = registry.parseSchema("AVRO", schema, List.of(references)).orElseThrow();
+    registry.register(subject, parsed);
   }
 }
