@@ -64,6 +64,23 @@ sealed interface ProviderWireFormatExpectedMessage {
         ExpectedContentPart.attachment());
   }
 
+  /**
+   * A user message with the preamble, the older XML tag and the content of a document of an agent
+   * instance without the {@code documents} feature.
+   */
+  static ProviderWireFormatExpectedMessage userWithTaggedDocument(
+      String preamble, String tagRegex) {
+    return user(
+        ExpectedContentPart.text(preamble),
+        ExpectedContentPart.textMatching(tagRegex),
+        ExpectedContentPart.attachment());
+  }
+
+  /** A user message with the text and the content of a document, without a handle. */
+  static ProviderWireFormatExpectedMessage userWithDocumentContent(String text) {
+    return user(ExpectedContentPart.text(text), ExpectedContentPart.attachment());
+  }
+
   static ProviderWireFormatExpectedMessage assistant(String text) {
     return new AssistantMessage(text, List.of());
   }
@@ -196,6 +213,10 @@ sealed interface ProviderWireFormatExpectedMessage {
       return new Text(text);
     }
 
+    static ExpectedContentPart textMatching(String textRegex) {
+      return new TextMatching(textRegex);
+    }
+
     static ExpectedContentPart documentHandle() {
       return new AgentDocumentHandlePart();
     }
@@ -214,6 +235,19 @@ sealed interface ProviderWireFormatExpectedMessage {
         assertThat(actual.text())
             .as("text of content part %d of message %d", partIndex, messageIndex)
             .isEqualTo(text);
+      }
+    }
+
+    record TextMatching(String textRegex) implements ExpectedContentPart {
+
+      @Override
+      public void assertMatches(int messageIndex, int partIndex, RecordedContentPart actual) {
+        assertThat(actual.isText())
+            .as("content part %d of message %d is text", partIndex, messageIndex)
+            .isTrue();
+        assertThat(actual.text())
+            .as("text of content part %d of message %d", partIndex, messageIndex)
+            .matches(textRegex);
       }
     }
 

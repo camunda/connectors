@@ -42,6 +42,17 @@ public interface ProviderWireFormatFixture {
    */
   String apiName();
 
+  /**
+   * Whether a new agent instance of this fixture has the {@code documents} feature. The v2
+   * templates give it to a new instance: the model reads a handle for each document, and the
+   * content of a tool result document comes through {@code c8__load_document}. The v1 templates do
+   * not give it: the documents reach the model as content, and a tool result document follows the
+   * tool results in the older XML tag format.
+   */
+  default boolean documentsFeature() {
+    return true;
+  }
+
   /** Configures the element template to point the connector at this fixture's WireMock server. */
   Function<ElementTemplate, ElementTemplate> configureProvider(WireMockRuntimeInfo wireMock);
 

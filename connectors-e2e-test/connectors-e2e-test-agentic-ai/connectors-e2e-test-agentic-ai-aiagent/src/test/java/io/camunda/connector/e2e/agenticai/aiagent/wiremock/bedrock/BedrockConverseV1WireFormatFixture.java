@@ -57,6 +57,11 @@ public final class BedrockConverseV1WireFormatFixture
   }
 
   @Override
+  public boolean documentsFeature() {
+    return false;
+  }
+
+  @Override
   public String elementTemplatePath(String defaultElementTemplatePath) {
     return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
   }
