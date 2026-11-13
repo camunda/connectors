@@ -36,8 +36,9 @@ public class LocalToolCallExecutor {
   /**
    * Returns one entry per call, with the documents and the effects of its result. An agent instance
    * that tracks its documents takes the documents of a result that the model reads as handles, also
-   * those inside a typed record. The agent registers the documents and applies the effects later,
-   * when it builds the input of the next turn (see {@link ToolCallResultsInputBuilder}).
+   * those inside a typed record. The entries only hold the documents and the effects; {@link
+   * ToolCallResultsInputBuilder} returns the documents in the input of the next turn and applies
+   * the effects.
    *
    * @throws IllegalStateException if a call is not a call of a runtime tool
    * @throws

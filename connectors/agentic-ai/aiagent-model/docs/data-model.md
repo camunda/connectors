@@ -111,6 +111,11 @@ persisted as such a block, which is rendered as its handle (`ToolCallResultConte
 `DocumentExpander.expand` expands it before a request is built (see [Conversation Memory](../../connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter)): in a user message to the handle text and, with the
 delivery `content`, the document content; in a tool result to the handle text of the document. Only the agent sets the block.
 
+`DocumentContentDelivery` is the record of the ids of the documents whose content the model reads or receives while the
+results of a batch of tool calls are applied. `deliver(requested)` gives, for each requested document, `Delivered` (the
+content is added) or `AlreadyInConversation`, and the `DocumentContentDelivery` for the next request. It does not check
+that the ids are known.
+
 `DocumentContent` and `AgentDocumentContent` follow one rule: a new document is a `DocumentContent` (the live document of
 the connector SDK), at the input boundaries (the user prompt, events, the results of process tools, a runtime tool that
 returns a new document), everywhere for an `Untracked` instance, and as the only document block a provider sees after the

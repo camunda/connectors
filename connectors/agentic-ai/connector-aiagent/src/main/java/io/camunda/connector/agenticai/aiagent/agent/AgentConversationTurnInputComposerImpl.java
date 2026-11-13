@@ -262,9 +262,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * The entry of a process tool result. An agent instance that tracks its documents registers the
-   * documents the model reads as handles; an instance that does not adds the documents its gateway
-   * tool handler extracts in a message of their own.
+   * The entry of a process tool result. An agent instance that tracks its documents takes the
+   * documents the model reads as handles, for the agent to register; an instance that does not adds
+   * the documents its gateway tool handler extracts in a message of their own.
    */
   private ToolCallBatch.Entry processEntry(
       ToolCallResult result, DocumentHandling documentHandling) {

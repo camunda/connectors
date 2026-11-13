@@ -4,10 +4,8 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.document;
+package io.camunda.connector.agenticai.aiagent.model.document;
 
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,7 +78,7 @@ public record DocumentContentDelivery(Set<AgentDocumentId> inConversation) {
    * Outcome.AlreadyInConversation}: the model reads its content already, or an earlier request of
    * the same batch delivers it. The content of every other document is {@link Outcome.Delivered}.
    *
-   * <p>The ids must be the ones of documents the agent knows. The caller checks this.
+   * <p>The ids must be the ones of documents the agent knows.
    *
    * @param requested the ids of the documents whose content is asked for
    */
