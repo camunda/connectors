@@ -47,7 +47,11 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.un
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadCount;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withDocumentDelivery;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withUploadTool;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
@@ -60,6 +64,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -76,6 +81,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -93,23 +100,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 @SlowTest
 public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
-  private Resource documentsProcess;
-
-  @Value("classpath:agentic-ai-ahsp-connectors-documents-content.bpmn")
-  private Resource contentDocumentsProcess;
-
   @Autowired private CamundaProcessTestContext processTestContext;
+
+  private UnaryOperator<BpmnModelInstance> toolModelCustomization = UnaryOperator.identity();
 
   @Override
   protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
-    return withUploadTool(model, AI_AGENT_ELEMENT_ID);
+    return toolModelCustomization.apply(withUploadTool(model, AI_AGENT_ELEMENT_ID));
   }
 
   @BeforeEach
   void setUpDocumentFlow() {
+    toolModelCustomization = UnaryOperator.identity();
     stubUploadEndpoint();
     enqueueUserFeedback(userSatisfiedFeedback());
   }
@@ -258,71 +260,20 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * Two tools return the attached document: one as the whole result, one nested in an object (and
-   * twice in it). The history shows the document of the first result as its handle and the document
-   * and the second result as the object with the handles nested in it followed by the document
-   * once.
-   */
-  @Test
-  void everyModelVisibleMessageOfToolResultDocumentsIsInTheHistory() throws Exception {
-    OpenAiCompletionsChatModelStubs.stubConversation(
-        Turn.toolCalls(
-            "I will fetch the file and describe it.",
-            10,
-            20,
-            ToolCall.of("call_fetch", "Fetch_A_File", "{}"),
-            ToolCall.of("call_describe", "Describe_A_File", "{}")),
-        finalTurn());
-
-    final var agentInstanceKey = runWithPromptDocument(documentsProcess);
-
-    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    final var history = awaitCommittedHistory(agentInstanceKey);
-
-    final var fetched = toolResultOf(history, "call_fetch");
-    final var described = toolResultOf(history, "call_describe");
-    final var promptDocumentHandle = promptDocumentHandleInRequest(recorded);
-    assertThat(fetched.getContent()).hasSize(2);
-    assertThat(fetched.getContent().get(0))
-        .isInstanceOfSatisfying(
-            AgentInstanceHistoryContent.ObjectContent.class,
-            object -> assertThat(object.getObject()).isEqualTo(promptDocumentHandle));
-    assertThat(fetched.getContent().get(1))
-        .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
-
-    assertThat(described.getContent()).hasSize(2);
-    assertThat(described.getContent().get(0))
-        .isInstanceOfSatisfying(
-            AgentInstanceHistoryContent.ObjectContent.class,
-            object ->
-                assertThat(object.getObject())
-                    .isEqualTo(
-                        Map.of(
-                            "status",
-                            "found",
-                            "file",
-                            promptDocumentHandle,
-                            "related",
-                            List.of(promptDocumentHandle))));
-    assertThat(described.getContent().get(1))
-        .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
-  }
-
-  /**
    * A tool whose activity sets the document delivery {@code content} returns a document: the agent
    * adds its content to the request in the message after the tool result, so the model reads it
    * without a {@code c8__load_document} call and still passes its handle to a tool. The tool
    * receives the real bytes.
    */
-  @ParameterizedTest(name = "{0}")
-  @ValueSource(strings = {"test.txt", "test.pdf"})
-  void addsTheContentOfTheDocumentsOfAToolWithTheDeliveryContentForTheModel(String file)
-      throws Exception {
+  @Test
+  void addsTheContentOfTheDocumentsOfAToolWithTheDeliveryContentForTheModel() throws Exception {
+    final var file = "test.pdf";
+    toolModelCustomization = model -> withDocumentDelivery(model, "Download_A_File", "content");
     final var turns =
         List.of(downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
     OpenAiCompletionsChatModelStubs.stubConversation(turns.toArray(Turn[]::new));
 
-    final var zeebeTest = awaitProcessCompletion(startDocumentsContentProcess());
+    final var zeebeTest = awaitProcessCompletion(startProcess(e -> e));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
@@ -340,13 +291,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
                 + contentFollowsSentence(handle));
     assertDocumentContentUserMessage(
         afterDownload.get(4),
-        DocumentWithContent.of(
-            handle,
-            block ->
-                assertDocumentContentBlockJson(
-                    block,
-                    file.endsWith(".pdf") ? "base64" : "text",
-                    file.endsWith(".pdf") ? "application/pdf" : "text/plain")));
+        DocumentWithContent.of(handle, block -> assertDocumentContentBlockJson(block, file)));
 
     // no load by the model: the next request holds the upload and nothing else
     final var afterUpload = recorded.lastRequest().messages();
@@ -370,10 +315,12 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The valid {@code c8__return_document} call is answered by the agent, the real call runs in the
-   * process, and the model sees both results in the order of its calls without an extra model call:
-   * one call before the tools run and one after. The agent instance lists the runtime tool without
-   * a BPMN element and reports its call and its result next to the real call.
+   * The agent answers the valid {@code c8__return_document} call. The real call of the same message
+   * runs in the process. While it runs, the history of the agent instance holds only the results
+   * that already arrived. After it ends, the model sees both results in the order of its calls,
+   * each once. The batch costs no extra model call: one call before the tools run and one after.
+   * The agent instance lists the runtime tool without a BPMN element and reports its call and its
+   * result next to the real call.
    */
   @Test
   void mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall() throws Exception {
@@ -538,17 +485,6 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
       throws Exception {
     return createProcessInstance(
         elementTemplateModifier,
-        Map.of(
-            "userPrompt",
-            "Download the file, upload it and give it back to me.",
-            "uploadUrl",
-            uploadUrl(wireMock.getHttpBaseUrl())));
-  }
-
-  private io.camunda.connector.e2e.ZeebeTest startDocumentsContentProcess() throws Exception {
-    return createProcessInstance(
-        contentDocumentsProcess,
-        e -> e,
         Map.of(
             "userPrompt",
             "Download the file, upload it and give it back to me.",

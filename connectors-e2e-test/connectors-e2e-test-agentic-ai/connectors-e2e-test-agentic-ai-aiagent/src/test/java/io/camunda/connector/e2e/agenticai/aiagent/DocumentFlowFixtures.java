@@ -36,7 +36,11 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
+import io.camunda.zeebe.model.bpmn.instance.BaseElement;
+import io.camunda.zeebe.model.bpmn.instance.ExtensionElements;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
@@ -72,6 +76,7 @@ public final class DocumentFlowFixtures {
   public static final String SUPERFLUX_RESULT = "24";
   public static final String COMPLEX_TOOL = "A_Complex_Tool";
   public static final String COMPLEX_TOOL_CALL_ID = "call_complex";
+  public static final String DOCUMENT_DELIVERY_PROPERTY = "io.camunda.agenticai.documents.delivery";
   public static final String FINAL_TEXT = "I uploaded the document and return it.";
 
   private static final String UNSUPPORTED_ZIP_MESSAGE =
@@ -113,6 +118,68 @@ public final class DocumentFlowFixtures {
         + alternatives
         + ")"
         + Pattern.quote("}}");
+  }
+
+  /**
+   * Adds the {@code Upload_A_File} tool to the ad-hoc sub-process. The tool takes a document as its
+   * {@code document} parameter and posts it as multipart form data to the process variable {@code
+   * uploadUrl}.
+   */
+  public static BpmnModelInstance withUploadTool(
+      BpmnModelInstance model, String adHocSubProcessId) {
+    final var upload = model.newInstance(ServiceTask.class, UPLOAD_TOOL);
+    upload.setName("Upload a file");
+    upload
+        .builder()
+        .zeebeJobType("io.camunda:http-json:1")
+        .zeebeJobRetries("0")
+        .zeebeInput("noAuth", "authentication.type")
+        .zeebeInput("POST", "method")
+        .zeebeInput("=uploadUrl", "url")
+        .zeebeInput("={\"Content-Type\": \"multipart/form-data\"}", "headers")
+        .zeebeInput(
+            "={\n  file: fromAi(toolCall.document, \"The document to upload.\", \"document\"),\n"
+                + "  label: \"from-agent\"\n}",
+            "body")
+        .zeebeInput("=20", "connectionTimeoutInSeconds")
+        .zeebeInput("=20", "readTimeoutInSeconds")
+        .zeebeInput("=false", "ignoreNullValues")
+        .zeebeTaskHeader("elementTemplateVersion", "12")
+        .zeebeTaskHeader("elementTemplateId", "io.camunda.connectors.HttpJson.v2")
+        .zeebeTaskHeader(
+            "resultExpression", "={\n  toolCallResult: {\n    status: response.status\n  }\n}")
+        .documentation("Upload a known document to the archive");
+
+    final AdHocSubProcess adHocSubProcess = model.getModelElementById(adHocSubProcessId);
+    adHocSubProcess.addChildElement(upload);
+    return model;
+  }
+
+  /**
+   * Sets the document delivery of a tool element of the ad-hoc sub-process. The tool element gets
+   * the extension property {@value #DOCUMENT_DELIVERY_PROPERTY} with the given value.
+   */
+  public static BpmnModelInstance withDocumentDelivery(
+      BpmnModelInstance model, String toolElementId, String delivery) {
+    final BaseElement tool = model.getModelElementById(toolElementId);
+    var extensionElements = tool.getExtensionElements();
+    if (extensionElements == null) {
+      extensionElements = model.newInstance(ExtensionElements.class);
+      tool.setExtensionElements(extensionElements);
+    }
+    var properties =
+        extensionElements.getElementsQuery().filterByType(ZeebeProperties.class).list().stream()
+            .findFirst()
+            .orElse(null);
+    if (properties == null) {
+      properties = model.newInstance(ZeebeProperties.class);
+      extensionElements.addChildElement(properties);
+    }
+    final var property = model.newInstance(ZeebeProperty.class);
+    property.setName(DOCUMENT_DELIVERY_PROPERTY);
+    property.setValue(delivery);
+    properties.addChildElement(property);
+    return model;
   }
 
   /** Stubs the endpoint the {@code Upload_A_File} tool posts the document to. */

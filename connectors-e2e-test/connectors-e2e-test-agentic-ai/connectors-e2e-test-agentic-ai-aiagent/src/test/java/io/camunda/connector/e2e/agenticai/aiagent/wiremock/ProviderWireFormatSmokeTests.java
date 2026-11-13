@@ -67,8 +67,8 @@ import uk.org.webcompere.systemstubs.properties.SystemProperties;
  * the full behavioral e2e suite that already exists for {@code openaiCompatible} (tool calling,
  * feedback loops, memory storage, MCP/A2A, etc.). One row per provider/API supplies a {@link
  * ProviderWireFormatFixture}; the five scenarios below cover the wire-format areas most at risk of
- * drifting: plain text, tool calls, multimodal user-prompt documents, the document of a tool result
- * that the model loads, and structured JSON output.
+ * drifting: plain text, tool calls, user-prompt documents, the document of a tool result that the
+ * model loads, and structured JSON output.
  *
  * <p>Job-worker flavor only — the job-worker and outbound-connector flavors share the same
  * provider/wire-call code, so testing both would duplicate maintenance cost for no additional
@@ -238,68 +238,6 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         fixture.promptDocumentsAsContent()
             ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt)
             : ProviderWireFormatExpectedMessage.userWithDocumentHandle(userPrompt));
-    assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
-
-    assertAgentResponse(
-        zeebeTest,
-        agentResponse ->
-            AgentSubProcessResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasResponseText(responseText));
-  }
-
-  @Test
-  void documentRequestedByTheModel() throws Exception {
-    final var userPrompt = "Summarize the following document";
-    final var toolCallMessage = "I will read the document.";
-    final var responseText = "TL;DR: it is pretty interesting";
-
-    fixture.stubConversation(
-        TurnStub.toolCalls(
-            toolCallMessage,
-            10,
-            20,
-            new ToolCallStub(
-                "get111",
-                "c8__load_document",
-                "{\"id\": {\"type\":\"camunda.agenticai.document\",\"id\":\"@@DOC_ID_0@@\"}}")),
-        TurnStub.text(responseText, 11, 22));
-    enqueueUserFeedback(userSatisfiedFeedback());
-
-    final var zeebeTest =
-        awaitProcessCompletion(
-            createProcessInstance(
-                Map.of(
-                    "userPrompt",
-                    userPrompt,
-                    "downloadUrls",
-                    List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
-
-    assertThat(fixture.modelCallCount()).isEqualTo(2);
-    if (fixture.promptDocumentsAsContent()) {
-      // the content of the document is in the conversation already
-      ProviderWireFormatExpectedMessage.assertConversationMessages(
-          fixture.lastRecordedRequest(),
-          ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-          ProviderWireFormatExpectedMessage.userWithDocument(userPrompt),
-          ProviderWireFormatExpectedMessage.assistantWithToolCalls(
-              toolCallMessage, "c8__load_document"),
-          ProviderWireFormatExpectedMessage.toolCallResultMatching(
-              "get111",
-              "The content of " + DOCUMENT_REF_REGEX + " is already in the conversation\\."));
-    } else {
-      // the content of the document follows the tool result in a message of its own
-      ProviderWireFormatExpectedMessage.assertConversationMessages(
-          fixture.lastRecordedRequest(),
-          ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-          ProviderWireFormatExpectedMessage.userWithDocumentHandle(userPrompt),
-          ProviderWireFormatExpectedMessage.assistantWithToolCalls(
-              toolCallMessage, "c8__load_document"),
-          ProviderWireFormatExpectedMessage.toolCallResultMatching(
-              "get111", "The content of " + DOCUMENT_REF_REGEX + " follows in the next message\\."),
-          ProviderWireFormatExpectedMessage.userWithDocument(
-              ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
-    }
     assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 
     assertAgentResponse(

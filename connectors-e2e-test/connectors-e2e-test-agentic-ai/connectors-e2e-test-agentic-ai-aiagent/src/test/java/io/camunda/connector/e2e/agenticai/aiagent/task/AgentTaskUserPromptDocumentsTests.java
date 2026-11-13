@@ -26,7 +26,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentBlockType;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.mimeType;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
@@ -44,59 +43,12 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @SlowTest
 public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
-
-  @ParameterizedTest
-  @ValueSource(strings = {"test.pdf", "test.txt"})
-  void handlesDocumentType(String filename) throws Exception {
-    final var initialUserPrompt = "Summarize the following document";
-    final var responseText = "TL;DR: it is pretty interesting";
-
-    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
-    enqueueUserFeedback(userSatisfiedFeedback());
-
-    final var zeebeTest =
-        awaitProcessCompletion(
-            createProcessInstance(
-                elementTemplate ->
-                    elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
-                Map.of(
-                    "userPrompt",
-                    initialUserPrompt,
-                    "downloadUrls",
-                    List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
-
-    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
-    assertThat(recorded.modelCallCount()).isEqualTo(1);
-    assertThat(recorded.lastRequest().messages()).hasSize(2);
-
-    assertThat(recorded.lastRequest().messages().get(0).role()).isEqualTo("system");
-    assertThat(recorded.lastRequest().messages().get(0).content()).isEqualTo(SYSTEM_PROMPT);
-
-    // user message: the prompt text and the handle of the document, not its content
-    final var userMessage = recorded.lastRequest().messages().get(1);
-    assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.contentParts()).as("prompt text + handle").hasSize(2);
-    assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
-    assertThat(userMessage.contentParts().get(0).path("text").asText())
-        .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1), mimeType(filename));
-
-    assertAgentResponse(
-        zeebeTest,
-        agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
-                .hasResponseMessageText(responseText)
-                .hasResponseText(responseText));
-
-    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
-  }
 
   @Test
   void handlesMultipleDocuments() throws Exception {
@@ -128,15 +80,16 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(recorded.lastRequest().messages().get(0).role()).isEqualTo("system");
     assertThat(recorded.lastRequest().messages().get(0).content()).isEqualTo(SYSTEM_PROMPT);
 
-    // user message: prompt text + the handles of the two documents
+    // user message: prompt text + the handles of the three documents
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.contentParts()).as("prompt text + 2 handles").hasSize(3);
+    assertThat(userMessage.contentParts()).as("prompt text + 3 handles").hasSize(4);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
     assertDocumentHandlePart(userMessage.contentParts().get(1), "text/plain");
-    assertDocumentHandlePart(userMessage.contentParts().get(2), "image/jpeg");
+    assertDocumentHandlePart(userMessage.contentParts().get(2), "application/pdf");
+    assertDocumentHandlePart(userMessage.contentParts().get(3), "image/jpeg");
 
     assertAgentResponse(
         zeebeTest,
@@ -198,8 +151,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(secondMessages.get(3).content()).isEqualTo(contentFollowsSentence(handle));
     assertDocumentContentUserMessage(
         secondMessages.get(4),
-        DocumentWithContent.of(
-            handle, block -> assertDocumentContentBlockJson(block, "text", "text/plain")));
+        DocumentWithContent.of(handle, block -> assertDocumentContentBlockJson(block, "test.txt")));
 
     assertAgentResponse(
         zeebeTest,
@@ -220,12 +172,14 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
   }
 
   /**
-   * With the document delivery {@code content} of the user prompt the content of the document is
-   * part of the user message of the first request, next to its handle: no {@code c8__load_document}
-   * call is needed.
+   * The document delivery {@code content} puts the content of the prompt document in the user
+   * message of the first request, next to its handle. A process without a delivery, as modeled
+   * before the option existed, does the same. The model needs no {@code c8__load_document} call.
    */
-  @Test
-  void addsTheContentOfPromptDocumentsWithTheDeliveryContent() throws Exception {
+  @ParameterizedTest(name = "delivery: {0}")
+  @NullSource
+  @ValueSource(strings = "content")
+  void addsTheContentOfPromptDocuments(String delivery) throws Exception {
     final var filename = "test.pdf";
     final var initialUserPrompt = "Summarize the following document";
     final var responseText = "TL;DR: it is pretty interesting";
@@ -236,11 +190,13 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     final var zeebeTest =
         awaitProcessCompletion(
             createProcessInstance(
-                elementTemplate ->
-                    elementTemplate
-                        .property("retryCount", "3")
-                        .property("retryBackoff", "PT2S")
-                        .property("data.userPrompt.documentDelivery", "content"),
+                elementTemplate -> {
+                  final var configured =
+                      elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S");
+                  return delivery == null
+                      ? configured.withoutProperty("data.userPrompt.documentDelivery")
+                      : configured.property("data.userPrompt.documentDelivery", delivery);
+                },
                 Map.of(
                     "userPrompt",
                     initialUserPrompt,
@@ -258,57 +214,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
     assertDocumentHandlePart(userMessage.contentParts().get(1), mimeType(filename));
-    assertDocumentContentBlockJson(
-        userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
-
-    assertAgentResponse(
-        zeebeTest,
-        agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasNoToolCalls()
-                .hasResponseText(responseText));
-  }
-
-  /**
-   * Without a document delivery, as in a process modeled before the option existed, the content of
-   * every prompt document is part of the user message of the first request, next to its handle.
-   */
-  @Test
-  void addsTheContentOfPromptDocumentsWithoutADelivery() throws Exception {
-    final var filename = "test.txt";
-    final var initialUserPrompt = "Summarize the following document";
-    final var responseText = "TL;DR: it is pretty interesting";
-
-    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
-    enqueueUserFeedback(userSatisfiedFeedback());
-
-    final var zeebeTest =
-        awaitProcessCompletion(
-            createProcessInstance(
-                elementTemplate ->
-                    elementTemplate
-                        .property("retryCount", "3")
-                        .property("retryBackoff", "PT2S")
-                        .withoutProperty("data.userPrompt.documentDelivery"),
-                Map.of(
-                    "userPrompt",
-                    initialUserPrompt,
-                    "downloadUrls",
-                    List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
-
-    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
-    assertThat(recorded.modelCallCount()).isEqualTo(1);
-
-    final var userMessage = recorded.lastRequest().messages().get(1);
-    assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.contentParts()).as("prompt text + handle + content").hasSize(3);
-    assertThat(userMessage.contentParts().get(0).path("text").asText())
-        .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1), mimeType(filename));
-    assertDocumentContentBlockJson(
-        userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
+    assertDocumentContentBlockJson(userMessage.contentParts().get(2), filename);
 
     assertAgentResponse(
         zeebeTest,

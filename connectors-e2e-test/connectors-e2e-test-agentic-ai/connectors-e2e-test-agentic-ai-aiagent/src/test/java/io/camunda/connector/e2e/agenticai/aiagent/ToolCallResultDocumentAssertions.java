@@ -262,8 +262,9 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
-   * Asserts a wire-format content block node (OpenAI JSON) based on a coarse type/mime
-   * classification used by user-prompt document tests.
+   * Asserts that a wire-format content block node (OpenAI JSON) holds exactly the content of the
+   * test file ({@code test.<ext>} of the served files): the text of a text file, the {@code
+   * file_data} data URL of a PDF or the {@code image_url} data URL of an image.
    */
   public static void assertDocumentContentBlockJson(JsonNode block, String filename) {
     final var bytes = DocumentFlowFixtures.servedFile(filename);
