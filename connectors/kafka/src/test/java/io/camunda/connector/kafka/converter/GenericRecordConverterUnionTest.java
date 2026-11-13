@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -425,6 +426,29 @@ public class GenericRecordConverterUnionTest {
     var record = converter.toGenericRecord(schema, Map.of("command", Map.of("long", 2.0)));
 
     assertThat(record.get("command")).isEqualTo(2L);
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void nullableLong_wrappedLargeWholeDoubleKeepsItsExactValue() throws Exception {
+    var schema = envelopeWith("[\"null\",\"long\"]");
+
+    var record =
+        converter.toGenericRecord(schema, Map.of("command", Map.of("long", (double) (1L << 60))));
+
+    assertThat(record.get("command")).isEqualTo(1L << 60);
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void nullableLong_wrappedBigDecimalIsALong() throws Exception {
+    var schema = envelopeWith("[\"null\",\"long\"]");
+
+    var record =
+        converter.toGenericRecord(
+            schema, Map.of("command", Map.of("long", new BigDecimal("42.000"))));
+
+    assertThat(record.get("command")).isEqualTo(42L);
     assertWritableAs(schema, record);
   }
 
