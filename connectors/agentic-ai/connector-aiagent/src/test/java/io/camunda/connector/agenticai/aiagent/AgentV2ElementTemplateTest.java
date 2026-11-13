@@ -26,6 +26,15 @@ class AgentV2ElementTemplateTest {
 
   private static final String ELEMENT_KIND_TAG = "^AI Agent (Task|Sub-process): ";
   private static final String DOCUMENT_DELIVERY_ID = "data.userPrompt.documentDelivery";
+  private static final String KEEP_DOCUMENT_CONTENT_RULE =
+      """
+      {
+        "to": "data.userPrompt.documentDelivery",
+        "set": "content",
+        "when": {"path": "data.userPrompt.documentDelivery", "exists": false},
+        "note": "The element keeps adding the content of the user prompt documents to the model call. Select Reference in the Document delivery dropdown to let the model load the content of a document when it needs it."
+      }
+      """;
 
   @ParameterizedTest
   @ValueSource(
@@ -178,7 +187,7 @@ class AgentV2ElementTemplateTest {
     "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json,ai-agent-subprocess.v2-hybrid.migrates-from.json,io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid"
   })
   void migratesFromRecipe(String file, String recipeFile, String sourceTemplateId)
-      throws IOException {
+      throws Exception {
     final var recipe =
         (ObjectNode)
             ConnectorsObjectMapperSupplier.getCopy()
@@ -188,9 +197,27 @@ class AgentV2ElementTemplateTest {
     final var migratesFrom = template(file).path("metadata").path("migratesFrom");
     assertThat(migratesFrom).isEqualTo(recipe);
     assertThat(migratesFrom.has("$schema")).isFalse();
-    assertThat(migratesFrom.get("sources")).hasSize(1);
-    assertThat(migratesFrom.get("sources").get(0).get("sourceTemplateId").asText())
-        .isEqualTo(sourceTemplateId);
+    final var sources = migratesFrom.get("sources");
+    assertThat(sources).hasSize(2);
+
+    final var change = sources.get(0);
+    assertThat(change.get("kind").asText()).isEqualTo("change");
+    assertThat(change.get("sourceTemplateId").asText()).isEqualTo(sourceTemplateId);
+    assertThat(change.get("minSourceVersion").asInt()).isEqualTo(12);
+    JSONAssert.assertEquals(
+        KEEP_DOCUMENT_CONTENT_RULE,
+        change.get("paths").get(change.get("paths").size() - 1).toString(),
+        JSONCompareMode.STRICT);
+
+    final var upgrade = sources.get(1);
+    assertThat(upgrade.get("kind").asText()).isEqualTo("upgrade");
+    assertThat(upgrade.get("sourceTemplateId").asText())
+        .isEqualTo(template(file).get("id").asText());
+    assertThat(upgrade.get("toVersion").asInt()).isEqualTo(5);
+    assertThat(upgrade.has("minSourceVersion")).isFalse();
+    assertThat(upgrade.get("paths")).hasSize(1);
+    JSONAssert.assertEquals(
+        KEEP_DOCUMENT_CONTENT_RULE, upgrade.get("paths").get(0).toString(), JSONCompareMode.STRICT);
   }
 
   private static JsonNode withoutElementKindTags(JsonNode template) {

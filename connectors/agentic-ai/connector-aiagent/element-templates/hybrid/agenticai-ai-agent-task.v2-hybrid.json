@@ -351,6 +351,27 @@
             "from" : "provider.googleVertexAi.model.parameters.topK",
             "to" : "provider.googleGemini.model.parameters.topK"
           } ]
+        }, {
+          "to" : "data.userPrompt.documentDelivery",
+          "set" : "content",
+          "when" : {
+            "path" : "data.userPrompt.documentDelivery",
+            "exists" : false
+          },
+          "note" : "The element keeps adding the content of the user prompt documents to the model call. Select Reference in the Document delivery dropdown to let the model load the content of a document when it needs it."
+        } ]
+      }, {
+        "kind" : "upgrade",
+        "sourceTemplateId" : "io.camunda.connectors.agenticai.ai-agent-task.v2-hybrid",
+        "toVersion" : 5,
+        "paths" : [ {
+          "to" : "data.userPrompt.documentDelivery",
+          "set" : "content",
+          "when" : {
+            "path" : "data.userPrompt.documentDelivery",
+            "exists" : false
+          },
+          "note" : "The element keeps adding the content of the user prompt documents to the model call. Select Reference in the Document delivery dropdown to let the model load the content of a document when it needs it."
         } ]
       } ]
     }
