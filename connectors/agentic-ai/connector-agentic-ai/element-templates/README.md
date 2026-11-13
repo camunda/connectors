@@ -22,8 +22,7 @@ live in its `versioned/` folder.
 Pick the row with the highest minimum Camunda version that is not higher than the Camunda version you
 run. A template also works on later Camunda minor versions: the `engines.camunda` field `^8.9` means
 "Camunda 8.9 or later". For example, on Camunda 8.9 use the AI Agent Task (v1) template version `7`,
-on Camunda 8.10 use the AI Agent Task (v2) template version `1`, and on Camunda 8.11 use the AI Agent
-Task (v2) template version `5`.
+and on Camunda 8.10 use the AI Agent Task (v2) template version `1`.
 
 ## AI Agent connectors
 

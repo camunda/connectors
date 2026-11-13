@@ -15,9 +15,8 @@ run. A template also works on later Camunda minor versions: the `engines.camunda
 "Camunda 8.9 or later".
 
 For example, on Camunda 8.9 use the AI Agent Task (v1) template version `7`. On Camunda 8.10 use the
-AI Agent Task (v2) template version `1`. On Camunda 8.11 use the AI Agent Task (v2) template version
-`5`. The AI Agent Task (v1) template version `13` also runs on Camunda 8.10 and later, but it is
-deprecated.
+AI Agent Task (v2) template version `1`. The AI Agent Task (v1) template version `13` also runs on
+Camunda 8.10, but it is deprecated.
 
 ## AI Agent connectors
 
