@@ -288,6 +288,69 @@ public class GenericRecordConverterUnionTest {
   }
 
   @Test
+  void stringOrMap_keyNamedAfterThePrimitiveIsAMapEntry() throws Exception {
+    var schema = envelopeWith("[\"string\",{\"type\":\"map\",\"values\":\"string\"}]");
+
+    var record = converter.toGenericRecord(schema, Map.of("command", Map.of("string", "v")));
+
+    assertThat(record.get("command")).isEqualTo(Map.of("string", "v"));
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void nullableMapOfMaps_outerKeyNamedMapIsKept() throws Exception {
+    var schema =
+        envelopeWith(
+            "[\"null\",{\"type\":\"map\",\"values\":{\"type\":\"map\",\"values\":\"string\"}}]");
+
+    var record =
+        converter.toGenericRecord(schema, Map.of("command", Map.of("map", Map.of("a", "b"))));
+
+    assertThat(record.get("command")).isEqualTo(Map.of("map", Map.of("a", "b")));
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void recordOrMap_valueWithoutTheRecordsRequiredFieldsIsTheMap() throws Exception {
+    var schema = envelopeWith("[" + CREATE_TASK + ",{\"type\":\"map\",\"values\":\"string\"}]");
+
+    var record = converter.toGenericRecord(schema, Map.of("command", Map.of("color", "red")));
+
+    assertThat(record.get("command")).isEqualTo(Map.of("color", "red"));
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void recordOrMap_valueWithTheRecordsFieldsIsTheRecord() throws Exception {
+    var schema = envelopeWith("[" + CREATE_TASK + ",{\"type\":\"map\",\"values\":\"string\"}]");
+
+    var record =
+        converter.toGenericRecord(
+            schema, Map.of("command", Map.of("taskId", "1", "title", "Write tests")));
+
+    var command = (GenericRecord) record.get("command");
+    assertThat(command.getSchema().getFullName()).isEqualTo("test.CreateTask");
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void recordOrMap_wrappedRecordIsUnwrapped() throws Exception {
+    var schema = envelopeWith("[" + CREATE_TASK + ",{\"type\":\"map\",\"values\":\"string\"}]");
+
+    var record =
+        converter.toGenericRecord(
+            schema,
+            Map.of(
+                "command",
+                Map.of("test.CreateTask", Map.of("taskId", "1", "title", "Write tests"))));
+
+    var command = (GenericRecord) record.get("command");
+    assertThat(command.getSchema().getFullName()).isEqualTo("test.CreateTask");
+    assertThat(command.get("taskId")).hasToString("1");
+    assertWritableAs(schema, record);
+  }
+
+  @Test
   void arrayOfUnionItems_eachItemIsConvertedToItsMember() throws Exception {
     var schema =
         new Schema.Parser()
