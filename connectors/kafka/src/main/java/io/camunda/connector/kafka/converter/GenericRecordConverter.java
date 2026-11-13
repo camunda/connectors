@@ -82,10 +82,12 @@ public class GenericRecordConverter {
   private Object convert(Schema schema, Object value) {
     return switch (schema.getType()) {
       case RECORD -> value instanceof Map<?, ?> map ? toRecord(schema, map) : value;
-      case UNION ->
-          resolveUnionMember(schema, value)
-              .map(member -> convert(member.schema(), member.value()))
-              .orElse(value);
+      case UNION -> {
+        var member = resolveUnionMember(schema, value);
+        yield member.isPresent()
+            ? toBranch(member.get().schema(), convert(member.get().schema(), member.get().value()))
+            : value;
+      }
       case ARRAY -> {
         if (!(value instanceof List<?> items)) {
           yield value;
@@ -150,7 +152,24 @@ public class GenericRecordConverter {
       case RECORD, MAP -> value instanceof Map;
       case ARRAY -> value instanceof List;
       case NULL -> value == null;
-      default -> value != null && !(value instanceof Map) && !(value instanceof List);
+      case INT, LONG, FLOAT, DOUBLE -> value instanceof Number;
+      case STRING -> value instanceof CharSequence;
+      case BOOLEAN -> value instanceof Boolean;
+      case ENUM -> value instanceof String symbol && member.hasEnumSymbol(symbol);
+      case BYTES, FIXED, UNION -> false;
+    };
+  }
+
+  // Avro picks the union branch from the runtime type, so a JSON number must match the wrapped one
+  private static Object toBranch(Schema member, Object value) {
+    return switch (member.getType()) {
+      case INT -> value instanceof Number n ? n.intValue() : value;
+      case LONG -> value instanceof Number n ? n.longValue() : value;
+      case FLOAT -> value instanceof Number n ? n.floatValue() : value;
+      case DOUBLE -> value instanceof Number n ? n.doubleValue() : value;
+      case ENUM ->
+          value instanceof String symbol ? new GenericData.EnumSymbol(member, symbol) : value;
+      default -> value;
     };
   }
 
