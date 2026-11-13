@@ -16,7 +16,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
@@ -42,6 +41,7 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -269,16 +269,11 @@ class AgentResponseHandlerDocumentsTest {
     final var response = handler.createResponse(conversation);
 
     assertThat(response.responseDocuments())
-        .containsExactly(
-            Map.entry(
-                "data", new ReturnedDocument(TestDocuments.referenceJson(agentDocument), null)));
+        .containsExactly(Map.entry("data", new ReturnedDocument(agentDocument.reference(), null)));
   }
 
-  /** The document reference in the JSON format it is persisted in. */
-  private Map<String, Object> referenceOf(AgentDocumentId id) {
-    return objectMapper.convertValue(
-        objectMapper.valueToTree(agentDocuments.find(id).orElseThrow()).path("reference"),
-        new TypeReference<>() {});
+  private CamundaDocumentReferenceModel referenceOf(AgentDocumentId id) {
+    return agentDocuments.find(id).orElseThrow().reference();
   }
 
   private AgentResponse createResponse(AgentConversation conversation) {

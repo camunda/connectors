@@ -7,31 +7,48 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.HashMap;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 class ReturnedDocumentTest {
 
   @Test
-  void keepsTheReferenceItWasCreatedWith() {
-    final var reference = new HashMap<String, Object>();
-    reference.put("camunda.document.type", "camunda");
-    reference.put("documentId", "a");
-    reference.put("contentHash", null);
+  void writesTheDocumentAsItsCamundaDocumentReferenceAndReadsItBack() throws Exception {
+    final var reference = TestDocuments.reference("report", "report.pdf");
+    final var returned = new ReturnedDocument(reference, "The report");
+    final var mapper = TestObjectMapperSupplier.INSTANCE;
 
-    final var returned = new ReturnedDocument(reference, null);
-    reference.put("documentId", "b");
+    final var json = mapper.writeValueAsString(returned);
 
-    final var expected = new HashMap<String, Object>();
-    expected.put("camunda.document.type", "camunda");
-    expected.put("documentId", "a");
-    expected.put("contentHash", null);
-    assertThat(returned.document()).isEqualTo(expected);
-    assertThatThrownBy(() -> returned.document().put("documentId", "c"))
-        .isInstanceOf(UnsupportedOperationException.class);
-    assertThatThrownBy(() -> returned.document().clear())
-        .isInstanceOf(UnsupportedOperationException.class);
+    JSONAssert.assertEquals(
+        """
+        {
+          "document": {
+            "camunda.document.type": "camunda",
+            "storeId": "in-memory",
+            "documentId": "%s",
+            "contentHash": "%s",
+            "metadata": {"contentType": "text/plain", "fileName": "report.pdf"}
+          },
+          "description": "The report"
+        }
+        """
+            .formatted(reference.documentId(), reference.contentHash()),
+        json,
+        JSONCompareMode.STRICT);
+    assertThat(mapper.readValue(json, ReturnedDocument.class)).isEqualTo(returned);
+  }
+
+  @Test
+  void leavesOutAMissingDescription() throws Exception {
+    final var json =
+        TestObjectMapperSupplier.INSTANCE.writeValueAsString(
+            new ReturnedDocument(TestDocuments.reference("report", "report.pdf"), null));
+
+    assertThat(json).doesNotContain("description");
   }
 }

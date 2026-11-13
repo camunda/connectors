@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import java.util.Map;
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
@@ -27,10 +26,6 @@ public record AgentSubProcessResponse(
     // the response documents by key
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, ReturnedDocument> responseDocuments)
     implements AgentSubProcessResponseBuilder.With {
-
-  public AgentSubProcessResponse {
-    responseDocuments = Objects.requireNonNullElse(responseDocuments, Map.of());
-  }
 
   public static AgentSubProcessResponseBuilder builder() {
     return AgentSubProcessResponseBuilder.builder();

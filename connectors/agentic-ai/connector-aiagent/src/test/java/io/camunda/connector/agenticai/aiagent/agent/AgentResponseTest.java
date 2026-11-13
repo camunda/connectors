@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
 class AgentResponseTest {
 
   private static final ReturnedDocument RETURNED =
-      new ReturnedDocument(Map.of("camunda.document.type", "camunda"), "Report");
+      new ReturnedDocument(TestDocuments.reference("report", "report.pdf"), "Report");
 
   @Test
   void aResponseWithoutResponseDocumentsHasNoneAndTheFieldIsLeftOutOfItsJson() throws Exception {
@@ -50,8 +51,9 @@ class AgentResponseTest {
     assertThat(response.responseDocuments()).containsExactly(Map.entry("report", RETURNED));
     JSONAssert.assertEquals(
         """
-        {"report": {"document": {"camunda.document.type": "camunda"}, "description": "Report"}}
-        """,
+        {"report": {"document": %s, "description": "Report"}}
+        """
+            .formatted(TestObjectMapperSupplier.INSTANCE.writeValueAsString(RETURNED.document())),
         json(response).get("responseDocuments").toString(),
         true);
   }

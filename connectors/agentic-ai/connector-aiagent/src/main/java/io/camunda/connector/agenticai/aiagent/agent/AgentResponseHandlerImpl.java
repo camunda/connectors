@@ -151,9 +151,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
                       "The response document '%s' is the document '%s', which the agent does not know"
                           .formatted(selection.key(), selection.document())));
       returned.put(
-          selection.key(),
-          new ReturnedDocument(
-              documentParameterResolver.referenceJson(document), selection.description()));
+          selection.key(), new ReturnedDocument(document.reference(), selection.description()));
     }
     return returned;
   }

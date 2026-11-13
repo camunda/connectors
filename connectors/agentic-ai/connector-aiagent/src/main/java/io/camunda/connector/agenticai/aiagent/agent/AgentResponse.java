@@ -20,10 +20,11 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.generator.java.annotation.DataExample;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
@@ -37,10 +38,6 @@ public record AgentResponse(
     // the response documents by key
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, ReturnedDocument> responseDocuments)
     implements AgentResponseBuilder.With {
-
-  public AgentResponse {
-    responseDocuments = Objects.requireNonNullElse(responseDocuments, Map.of());
-  }
 
   public static AgentResponseBuilder builder() {
     return AgentResponseBuilder.builder();
@@ -144,14 +141,12 @@ public record AgentResponse(
             Map.of(
                 "report",
                 new ReturnedDocument(
-                    Map.ofEntries(
-                        Map.entry("camunda.document.type", "camunda"),
-                        Map.entry("storeId", "in-memory"),
-                        Map.entry("documentId", "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10"),
-                        Map.entry("contentHash", "9f86d081884c7d659a2feaa0c55ad015"),
-                        Map.entry(
-                            "metadata",
-                            Map.of("contentType", "application/pdf", "fileName", "report.pdf"))),
+                    new CamundaDocumentReferenceModel(
+                        "in-memory",
+                        "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10",
+                        "9f86d081884c7d659a2feaa0c55ad015",
+                        new CamundaDocumentMetadataModel(
+                            "application/pdf", null, null, "report.pdf", null, null, null)),
                     "The quarterly report")))
         .build();
   }
