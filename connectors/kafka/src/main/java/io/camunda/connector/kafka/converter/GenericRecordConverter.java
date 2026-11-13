@@ -168,8 +168,8 @@ public class GenericRecordConverter {
       case INT -> value instanceof Number n ? exactInteger(n, Schema.Type.INT).intValue() : value;
       case LONG ->
           value instanceof Number n ? exactInteger(n, Schema.Type.LONG).longValue() : value;
-      case FLOAT -> value instanceof Number n ? n.floatValue() : value;
-      case DOUBLE -> value instanceof Number n ? n.doubleValue() : value;
+      case FLOAT -> value instanceof Number n ? withinRange(n, n.floatValue(), "float") : value;
+      case DOUBLE -> value instanceof Number n ? withinRange(n, n.doubleValue(), "double") : value;
       case ENUM ->
           value instanceof String symbol ? new GenericData.EnumSymbol(member, symbol) : value;
       default -> value;
@@ -200,6 +200,23 @@ public class GenericRecordConverter {
               + ".",
           e);
     }
+  }
+
+  private static <T extends Number> T withinRange(Number number, T converted, String type) {
+    var finite =
+        !(number instanceof Double d && d.isInfinite())
+            && !(number instanceof Float f && f.isInfinite());
+    if (finite && Double.isInfinite(converted.doubleValue())) {
+      throw new IllegalArgumentException(
+          "The value "
+              + number
+              + " can't be written as the union type "
+              + type
+              + ": it is outside the range of "
+              + type
+              + ".");
+    }
+    return converted;
   }
 
   // a double's shortest decimal string can differ from its value, for example for 2^60
