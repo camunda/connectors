@@ -6,28 +6,17 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
+import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A document the agent returns with its final response, found in {@code responseDocuments} of the
- * response under the key the model chose.
+ * A document that the agent returns with its final response, in {@code responseDocuments} under its
+ * key.
  *
- * @param document the Camunda document reference of the document, resolved from the agent documents
- * @param description what the model said about the document, if anything
+ * @param document the Camunda document reference of the document
+ * @param description a short description of the document, or {@code null}
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
-public record ReturnedDocument(Map<String, Object> document, @Nullable String description) {
-
-  public ReturnedDocument {
-    Objects.requireNonNull(document, "document must not be null");
-    // a copy that keeps the order of the keys and allows null values, which Map.copyOf rejects
-    document = Collections.unmodifiableMap(new LinkedHashMap<>(document));
-  }
-}
+@AgenticAiRecord
+public record ReturnedDocument(CamundaDocumentReferenceModel document, @Nullable String description)
+    implements ReturnedDocumentBuilder.With {}

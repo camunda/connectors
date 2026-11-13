@@ -288,7 +288,7 @@ public final class DocumentFlowFixtures {
    * document with the given id, the id the model reads in the handle of the document.
    */
   public static void assertCamundaDocumentReference(
-      AgentContext context, Map<String, Object> reference, String expectedDocumentId) {
+      AgentContext context, Object reference, String expectedDocumentId) {
     final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     final var registered =
         context

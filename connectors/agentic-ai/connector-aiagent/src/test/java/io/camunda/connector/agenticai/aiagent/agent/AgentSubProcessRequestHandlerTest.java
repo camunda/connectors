@@ -2762,9 +2762,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
                         TextContent.textContent(
-                            "Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*: it starts with a"
-                                + " letter or an underscore and continues with letters, digits,"
-                                + " underscores or hyphens.")));
+                            "Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*.")));
   }
 
   @Test
@@ -2826,7 +2824,7 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
     mockChatModelExecution(assistantMessage("here you go"));
     final var returned =
-        new ReturnedDocument(Map.<String, Object>of("camunda.document.type", "camunda"), "Report");
+        new ReturnedDocument(TestDocuments.reference("report", "report.pdf"), "Report");
     when(responseHandler.createResponse(any(AgentConversation.class)))
         .thenAnswer(i ->
             AgentResponse.builder()

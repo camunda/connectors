@@ -333,14 +333,14 @@ leading to the following result
     "report" : {
       "description" : "The quarterly report",
       "document" : {
-        "camunda.document.type" : "camunda",
         "contentHash" : "9f86d081884c7d659a2feaa0c55ad015",
         "documentId" : "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10",
         "metadata" : {
           "contentType" : "application/pdf",
           "fileName" : "report.pdf"
         },
-        "storeId" : "in-memory"
+        "storeId" : "in-memory",
+        "camunda.document.type" : "camunda"
       }
     }
   },

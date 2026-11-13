@@ -134,11 +134,8 @@ public class DocumentParameterResolver {
     };
   }
 
-  /**
-   * The document reference in the JSON format it is persisted in, converted as data only: the
-   * custom properties of a document stay as they are and are never read as documents or functions.
-   */
-  public Map<String, Object> referenceJson(AgentDocument document) {
+  /** The document reference in the JSON format it is persisted in. */
+  private Object referenceJson(AgentDocument document) {
     return DATA_MAPPER.convertValue(
         referenceMapper.valueToTree(document).path("reference"),
         new TypeReference<Map<String, Object>>() {});
