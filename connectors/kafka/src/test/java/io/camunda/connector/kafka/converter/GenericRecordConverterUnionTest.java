@@ -453,6 +453,51 @@ public class GenericRecordConverterUnionTest {
   }
 
   @Test
+  void nullableFloat_wrappedNumberOutOfRangeIsRejected() {
+    var schema = envelopeWith("[\"null\",\"float\"]");
+
+    assertThatThrownBy(
+            () -> converter.toGenericRecord(schema, Map.of("command", Map.of("float", 1e39))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The value 1.0E39 can't be written as the union type float: it is outside the range"
+                + " of float.");
+  }
+
+  @Test
+  void nullableDouble_wrappedBigDecimalOutOfRangeIsRejected() {
+    var schema = envelopeWith("[\"null\",\"double\"]");
+
+    assertThatThrownBy(() ->
+            converter.toGenericRecord(
+                schema, Map.of("command", Map.of("double", new BigDecimal("1e400")))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The value 1E+400 can't be written as the union type double: it is outside the range"
+                + " of double.");
+  }
+
+  @Test
+  void nullableFloat_wrappedDoubleIsRoundedToAFloat() throws Exception {
+    var schema = envelopeWith("[\"null\",\"float\"]");
+
+    var record = converter.toGenericRecord(schema, Map.of("command", Map.of("float", 0.1)));
+
+    assertThat(record.get("command")).isEqualTo(0.1f);
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void nullableDouble_wrappedNaNIsKept() throws Exception {
+    var schema = envelopeWith("[\"null\",\"double\"]");
+
+    var record = converter.toGenericRecord(schema, Map.of("command", Map.of("double", Double.NaN)));
+
+    assertThat((Double) record.get("command")).isNaN();
+    assertWritableAs(schema, record);
+  }
+
+  @Test
   void nullableLong_wrappedIntegerIsALong() throws Exception {
     var schema = envelopeWith("[\"null\",\"long\"]");
 
