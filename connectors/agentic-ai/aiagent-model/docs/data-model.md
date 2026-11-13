@@ -29,8 +29,9 @@ fingerprint.
 order they were selected (omitted when empty; a missing field binds to an empty list). An entry is
 `{key, document, description?}`: the key the process finds the document by, the `AgentDocumentId` of one of the agent
 documents and an optional description. A selection under a key that is already used replaces that selection in place
-(`AgentContext.withResponseDocument`). The final response carries each selection as a `ReturnedDocument` with the Camunda
-document reference of its agent document, in that order. The runtime tool `c8__return_document` selects them ([Add a runtime tool](../../docs/architecture/extension-points.md#add-a-runtime-tool)); the list stays in the
+(`AgentContext.withResponseDocument`). The final response carries each selection under its key as a `ReturnedDocument` with
+the Camunda document reference of its agent document; the order of its entries is not specified, only this list keeps
+the order of selection. The runtime tool `c8__return_document` selects them ([Add a runtime tool](../../docs/architecture/extension-points.md#add-a-runtime-tool)); the list stays in the
 context for the lifetime of the agent instance, so every final response carries all of them. It is part of `agentContext`
 like the agent documents, so it is independent of the conversation store.
 
