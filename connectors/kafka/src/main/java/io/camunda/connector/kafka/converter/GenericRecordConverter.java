@@ -130,10 +130,15 @@ public class GenericRecordConverter {
     }
     var entry = map.entrySet().iterator().next();
     var key = String.valueOf(entry.getKey());
-    var byFullName =
-        union.getTypes().stream().filter(member -> member.getFullName().equals(key)).toList();
-    var byShortName =
-        union.getTypes().stream().filter(member -> member.getName().equals(key)).toList();
+    // with a map member, {"string": "v"} or {"map": {...}} is an ordinary map entry
+    var targets =
+        memberOfType(union, Schema.Type.MAP).isPresent()
+            ? union.getTypes().stream()
+                .filter(member -> member.getType() == Schema.Type.RECORD)
+                .toList()
+            : union.getTypes();
+    var byFullName = targets.stream().filter(member -> member.getFullName().equals(key)).toList();
+    var byShortName = targets.stream().filter(member -> member.getName().equals(key)).toList();
     var matches = byFullName.isEmpty() ? byShortName : byFullName;
     return matches.size() == 1 && fitsType(matches.getFirst(), entry.getValue())
         ? Optional.of(new UnionMember(matches.getFirst(), entry.getValue()))
@@ -152,7 +157,9 @@ public class GenericRecordConverter {
   private Schema inferMember(Schema union, Map<?, ?> map) {
     var records =
         union.getTypes().stream().filter(member -> member.getType() == Schema.Type.RECORD).toList();
-    if (records.size() == 1) {
+    if (records.size() == 1
+        && (memberOfType(union, Schema.Type.MAP).isEmpty()
+            || hasRequiredFieldsOf(records.getFirst(), map))) {
       return records.getFirst();
     }
     var candidates =
