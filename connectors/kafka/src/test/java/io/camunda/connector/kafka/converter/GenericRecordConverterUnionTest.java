@@ -385,6 +385,50 @@ public class GenericRecordConverterUnionTest {
   }
 
   @Test
+  void nullableLong_wrappedFractionIsRejected() {
+    var schema = envelopeWith("[\"null\",\"long\"]");
+
+    assertThatThrownBy(
+            () -> converter.toGenericRecord(schema, Map.of("command", Map.of("long", 1.5))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The value 1.5 can't be written as the union type long: it must be a whole number"
+                + " from -9223372036854775808 to 9223372036854775807.");
+  }
+
+  @Test
+  void nullableInt_wrappedNumberOutOfRangeIsRejected() {
+    var schema = envelopeWith("[\"null\",\"int\"]");
+
+    assertThatThrownBy(() ->
+            converter.toGenericRecord(schema, Map.of("command", Map.of("int", 3_000_000_000L))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The value 3000000000 can't be written as the union type int: it must be a whole"
+                + " number from -2147483648 to 2147483647.");
+  }
+
+  @Test
+  void nullableLong_wrappedNaNIsRejected() {
+    var schema = envelopeWith("[\"null\",\"long\"]");
+
+    assertThatThrownBy(
+            () -> converter.toGenericRecord(schema, Map.of("command", Map.of("long", Double.NaN))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageStartingWith("The value NaN can't be written as the union type long");
+  }
+
+  @Test
+  void nullableLong_wrappedWholeDoubleIsALong() throws Exception {
+    var schema = envelopeWith("[\"null\",\"long\"]");
+
+    var record = converter.toGenericRecord(schema, Map.of("command", Map.of("long", 2.0)));
+
+    assertThat(record.get("command")).isEqualTo(2L);
+    assertWritableAs(schema, record);
+  }
+
+  @Test
   void nullableLong_wrappedIntegerIsALong() throws Exception {
     var schema = envelopeWith("[\"null\",\"long\"]");
 

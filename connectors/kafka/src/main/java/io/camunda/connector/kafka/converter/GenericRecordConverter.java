@@ -12,6 +12,7 @@ import com.fasterxml.jackson.dataformat.avro.AvroFactory;
 import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -163,14 +164,41 @@ public class GenericRecordConverter {
   // Avro picks the union branch from the runtime type, so a JSON number must match the wrapped one
   private static Object toBranch(Schema member, Object value) {
     return switch (member.getType()) {
-      case INT -> value instanceof Number n ? n.intValue() : value;
-      case LONG -> value instanceof Number n ? n.longValue() : value;
+      case INT -> value instanceof Number n ? exactInteger(n, Schema.Type.INT).intValue() : value;
+      case LONG ->
+          value instanceof Number n ? exactInteger(n, Schema.Type.LONG).longValue() : value;
       case FLOAT -> value instanceof Number n ? n.floatValue() : value;
       case DOUBLE -> value instanceof Number n ? n.doubleValue() : value;
       case ENUM ->
           value instanceof String symbol ? new GenericData.EnumSymbol(member, symbol) : value;
       default -> value;
     };
+  }
+
+  private static BigDecimal exactInteger(Number number, Schema.Type type) {
+    try {
+      var exact = new BigDecimal(number.toString());
+      if (type == Schema.Type.INT) {
+        exact.intValueExact();
+      } else {
+        exact.longValueExact();
+      }
+      return exact;
+    } catch (ArithmeticException | NumberFormatException e) {
+      var min = type == Schema.Type.INT ? Integer.MIN_VALUE : Long.MIN_VALUE;
+      var max = type == Schema.Type.INT ? Integer.MAX_VALUE : Long.MAX_VALUE;
+      throw new IllegalArgumentException(
+          "The value "
+              + number
+              + " can't be written as the union type "
+              + type.getName()
+              + ": it must be a whole number from "
+              + min
+              + " to "
+              + max
+              + ".",
+          e);
+    }
   }
 
   private Schema inferMember(Schema union, Map<?, ?> map) {
@@ -228,13 +256,13 @@ public class GenericRecordConverter {
   }
 
   private static String wrapperHint(Schema union, List<Schema> preferred) {
-    var example =
-        preferred.stream()
-            .findFirst()
-            .or(() -> memberOfType(union, Schema.Type.RECORD))
-            .orElse(union.getTypes().getFirst())
-            .getFullName();
-    return "Wrap it with the type name as the only key, for example {\"" + example + "\": {...}}.";
+    var example = preferred.stream().findFirst().or(() -> memberOfType(union, Schema.Type.RECORD));
+    return example
+        .map(member ->
+            "Wrap it with the type name as the only key, for example {\""
+                + member.getFullName()
+                + "\": {...}}.")
+        .orElse("Use a value compatible with one of the union's types.");
   }
 
   private record UnionMember(Schema schema, Object value) {}
