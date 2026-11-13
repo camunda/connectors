@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
+import io.camunda.connector.agenticai.common.annotation.Experimental;
 
 /**
  * What the result of a local tool call asks of the agent besides its content. The agent applies the

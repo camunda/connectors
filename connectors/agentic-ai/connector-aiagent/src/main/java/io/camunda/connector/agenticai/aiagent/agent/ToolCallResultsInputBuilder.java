@@ -35,9 +35,11 @@ import java.util.Set;
 
 /**
  * Builds the input of the turn that follows a batch of tool calls from its results, in call order.
- * It applies what the results ask of the agent after all calls ran: the documents they return are
- * registered, the effects of the results are applied, and the response documents they select are
- * handed on in call order.
+ * It applies what the results ask of the agent after all calls ran: it returns the documents of the
+ * results in the {@link TurnInput}, which {@link TurnInput#applyTo} registers, it applies the
+ * effects of the results, and it returns the response documents that the results select in the
+ * {@link TurnInput}, in call order, which {@link TurnInput#applyTo} adds to the agent context. It
+ * is the one place that checks that an effect names a known document.
  *
  * <p>An agent instance that tracks its documents shows a document as its handle inside the tool
  * result and reports it in the {@link TurnInput} to be registered in its documents. For every
@@ -74,10 +76,9 @@ public class ToolCallResultsInputBuilder {
    * @throws IllegalStateException if a call of the batch has no result
    * @throws UnsupportedDocumentReferenceException if a result of an agent instance that tracks its
    *     documents holds a document that is not a Camunda document
-   * @throws IllegalArgumentException if a result asks for the content of a document that is neither
+   * @throws IllegalArgumentException if an effect of a result names a document that is neither
    *     known to {@code agentContext} as of the start of the batch nor returned by the result, or
-   *     if a result of an agent instance that does not track its documents asks anything of the
-   *     agent
+   *     if a result of an agent instance that does not track its documents has an effect
    * @throws AgentDocumentIdCollisionException if a document of a result gets the id of a different
    *     document that the agent knows, or of another document of the batch
    */
@@ -96,7 +97,6 @@ public class ToolCallResultsInputBuilder {
       AgentDocuments documents,
       List<ToolCallBatch.Entry> entries,
       Set<AgentDocumentId> documentIdsWithContent) {
-    entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
     final var applied = applyEffects(documents, entries, documentIdsWithContent);
     final var input = buildWithDocumentBlocks(entries, applied);
     return new TurnInput(input.messages(), input.documents(), applied.responseDocuments());
@@ -130,6 +130,13 @@ public class ToolCallResultsInputBuilder {
     final var responseDocuments = new ArrayList<ResponseDocumentSelection>();
 
     for (final var entry : entries) {
+      if (entry.effects().isEmpty()) {
+        statements.add(List.of());
+        continue;
+      }
+
+      final var known = documents.register(newDocumentsOf(entry));
+      requireKnown(entry, known);
       final var requestedContent = new ArrayList<AgentDocumentId>();
       for (final var effect : entry.effects()) {
         switch (effect) {
@@ -138,13 +145,6 @@ public class ToolCallResultsInputBuilder {
               responseDocuments.add(select.selection());
         }
       }
-      if (requestedContent.isEmpty()) {
-        statements.add(List.of());
-        continue;
-      }
-
-      final var known = documents.register(newDocumentsOf(entry));
-      requireKnown(entry, requestedContent, known);
       final var entryStatements = new ArrayList<Content>();
       final var decision = delivery.deliver(requestedContent);
       delivery = decision.next();
@@ -166,9 +166,17 @@ public class ToolCallResultsInputBuilder {
         List.copyOf(statements), List.copyOf(delivered), List.copyOf(responseDocuments));
   }
 
-  private static void requireKnown(
-      ToolCallBatch.Entry entry, List<AgentDocumentId> requested, AgentDocuments known) {
-    requested.stream()
+  /** The id of the document that an effect names. */
+  private static AgentDocumentId documentOf(ToolCallEffect effect) {
+    return switch (effect) {
+      case ToolCallEffect.AddDocumentContent add -> add.id();
+      case ToolCallEffect.SelectResponseDocument select -> select.selection().document();
+    };
+  }
+
+  private static void requireKnown(ToolCallBatch.Entry entry, AgentDocuments known) {
+    entry.effects().stream()
+        .map(ToolCallResultsInputBuilder::documentOf)
         .filter(id -> known.find(id).isEmpty())
         .findFirst()
         .ifPresent(id -> {

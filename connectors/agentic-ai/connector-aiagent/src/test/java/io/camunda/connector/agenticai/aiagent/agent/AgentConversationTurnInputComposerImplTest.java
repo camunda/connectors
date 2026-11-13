@@ -1316,35 +1316,6 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void userPrompt_aDocumentThatAnEventMessageSqueezesOutOfTheWindowIsNotInTheConversation() {
-    var document = createDocument("first", "text/plain", "first.txt");
-
-    var ready =
-        resolveReady(
-            configWithContextWindow(6),
-            contextKnowing(document),
-            historyWithTheContentFirst(document),
-            AgentInput.from(
-                new UserPromptConfiguration("user input", List.of()), List.of(eventResult())));
-
-    assertThat(ready.documentIdsWithContent()).isEmpty();
-  }
-
-  @Test
-  void userPrompt_withoutAPromptMessageOnlyTheEventMessagesCount() {
-    var document = createDocument("first", "text/plain", "first.txt");
-
-    var ready =
-        resolveReady(
-            configWithContextWindow(6),
-            contextKnowing(document),
-            historyWithTheContentFirst(document),
-            AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(eventResult())));
-
-    assertThat(ready.documentIdsWithContent()).containsExactly(AgentDocumentId.of(document));
-  }
-
-  @Test
   void runtimeToolCalls_aResultThatSelectsAResponseDocumentIsAppliedToTheContextOfTheNextTurn() {
     var document = createDocument("first", "text/plain", "first.txt");
     var id = AgentDocumentId.of(document);

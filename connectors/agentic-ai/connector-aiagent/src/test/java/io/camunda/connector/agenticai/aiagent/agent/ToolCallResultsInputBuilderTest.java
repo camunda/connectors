@@ -438,6 +438,55 @@ class ToolCallResultsInputBuilderTest {
             "The runtime tool 'alpha' refers to a document by its id, which an agent instance that does not track its documents does not support");
   }
 
+  @Test
+  void aSelectionOfADocumentTheAgentDoesNotKnowIsADefectOfTheTool() {
+    final var unknown = AgentDocumentId.of("unknown");
+    final var entry =
+        runtimeEntry(
+            "c1", "alpha", RuntimeToolResult.success("a").withResponseDocument("k", unknown, null));
+
+    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'alpha' refers to the document '%s', which the agent does not know and the result does not return"
+                .formatted(unknown));
+  }
+
+  @Test
+  void aCallNeverSelectsADocumentAnotherCallReturned() {
+    final var returning =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(first))));
+    final var selecting =
+        runtimeEntry(
+            "c2",
+            "beta",
+            RuntimeToolResult.success("a").withResponseDocument("k", idOf(first), null));
+
+    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(returning, selecting), Set.of()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'beta' refers to the document '%s', which the agent does not know and the result does not return"
+                .formatted(idOf(first)));
+  }
+
+  @Test
+  void aResultOfAnAgentThatDoesNotTrackItsDocumentsThatSelectsADocumentIsADefectOfTheTool() {
+    final var entry =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
+                .withResponseDocument("k", idOf(first), null));
+
+    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry), Set.of()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'alpha' refers to a document by its id, which an agent instance that does not track its documents does not support");
+  }
+
   /** An entry with the documents the generic walker finds and the given effects. */
   private static ToolCallBatch.Entry entryWithEffects(
       ToolCallResultContent result, List<ToolCallEffect> effects) {

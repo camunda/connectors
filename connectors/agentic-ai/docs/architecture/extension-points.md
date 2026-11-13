@@ -212,9 +212,10 @@ window together with the tool results. A document parameter never adds content.
 **Returning documents: `c8__return_document`.** The model calls the tool once per document with `key`, `document` (a
 handle) and an optional `description`. The tool returns the effect `SelectResponseDocument`
 (`Success.withResponseDocument`). An invalid key, a missing parameter or an unknown document gives an error result.
-`ToolCallResultsInputBuilder` applies the effect in call order: it adds the selection to
-`AgentContext.responseDocuments`. A key that is already used replaces its selection. The selections stay for the lifetime
-of the agent instance, so every final response carries all of them as `responseDocuments`
+`ToolCallResultsInputBuilder.build` returns the selections in call order in `TurnInput.responseDocuments()`, and the
+caller adds them to `AgentContext.responseDocuments` with `TurnInput.applyTo`. The builder fails the job for a selection
+of a document that the agent does not know when the batch starts and that the result does not return. A key that is
+already used replaces its selection. The selections stay for the lifetime of the agent instance, so every final response carries all of them as `responseDocuments`
 ([Response Handling](../../connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl)). A sub-process agent
 shows them as `agent.responseDocuments.<key>.document`.
 
@@ -435,8 +436,9 @@ an `AgentDocumentContent` block in a result fails the job. An error result regis
 **Effects.** `Success.withDocumentContent(AgentDocumentId)` adds the effect `AddDocumentContent`: the agent adds the
 content to the next request, once per document, and writes the outcome sentence into the result. `LoadDocumentTool` is the
 reference. `Success.withResponseDocument(key, AgentDocumentId, description)` adds the effect `SelectResponseDocument`: the
-agent adds the document to `AgentContext.responseDocuments`. A key that is already used replaces its selection.
-`ReturnDocumentTool` is the reference. Content comes only through an effect. An effect with an id that the agent does not
+the builder returns the selection in `TurnInput.responseDocuments()`, and `TurnInput.applyTo` adds the document to
+`AgentContext.responseDocuments`. A key that is already used replaces its selection. `ReturnDocumentTool` is the
+reference. Content comes only through an effect. An effect with an id that the agent does not
 know when the batch starts, and that the result does not return, fails the job.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
