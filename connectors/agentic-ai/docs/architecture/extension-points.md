@@ -248,11 +248,11 @@ delivery of a tool: `AgentConversation.window(int)` drops it from the definition
 
 **The user prompt.** The delivery of the documents of the user prompt is one of three cases (`UserPromptDocumentDelivery`),
 translated from the optional property of the request at the edge (`AgentInput`). `UNSET`, a process modeled before the
-dropdown existed and every v1 template, behaves as before: the content of every document goes out with the prompt, and a
+dropdown existed, behaves as before: the content of every document goes out with the prompt, and a
 document the provider cannot read fails the model call. `CONTENT` adds the content of every document through
 `DocumentContentDelivery`, and `REFERENCE` gives the handles. A document whose content is already in the conversation is not
 added twice. Documents of events stay references, and so do those of the MCP and A2A gateway tools. In an instance without the `documents` feature every document,
-also those of the user prompt, events and tool results, is added as content. See [ADR 018](../adr/018-document-flow.md).
+also those of the user prompt, events and tool results, is added as content, and the delivery has no effect; the v1 templates have no delivery property. See [ADR 018](../adr/018-document-flow.md).
 
 **Only Camunda documents.** An instance with the `documents` feature accepts only Camunda documents
 (`AgentDocument.isSupported`). A document with an external reference (a URL) or an inline reference (the content is in the

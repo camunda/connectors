@@ -131,7 +131,7 @@ persisted as such a block, which is rendered as its handle (`ToolCallResultConte
 delivery `content`, the document content; in a tool result to the handle text of the document. Only the agent sets the block.
 
 `DocumentContentDelivery` is the record of the ids of the documents whose content the model reads or receives while the
-results of a batch of tool calls are applied. `deliver(requested)` gives, for each requested document, `Delivered` (the
+results of a batch of tool calls or the documents of the user prompt are applied. `deliver(requested)` gives, for each requested document, `Delivered` (the
 content is added) or `AlreadyInConversation`, and the `DocumentContentDelivery` for the next request. It does not check
 that the ids are known.
 

@@ -256,13 +256,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AgentConversationTurnInputComposer aiAgentConversationTurnInputComposer(
       GatewayToolHandlerRegistry gatewayToolHandlers,
       ToolCallResultsInputBuilder toolCallResultsInputBuilder,
-      DocumentContentDelivery documentContentDelivery,
       ObjectHandleRenderer objectHandleRenderer) {
     return new AgentConversationTurnInputComposerImpl(
-        gatewayToolHandlers,
-        toolCallResultsInputBuilder,
-        documentContentDelivery,
-        objectHandleRenderer);
+        gatewayToolHandlers, toolCallResultsInputBuilder, objectHandleRenderer);
   }
 
   @Bean

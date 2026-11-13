@@ -31,7 +31,7 @@ public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
    * The extension property of a tool activity that sets the document delivery of the documents the
    * tool returns: {@code reference} or {@code content}.
    */
-  public static final String DOCUMENT_DELIVERY_PROPERTY = "io.camunda.agenticai.documents.delivery";
+  static final String DOCUMENT_DELIVERY_PROPERTY = "io.camunda.agenticai.documents.delivery";
 
   private final List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers;
   private final AdHocToolSchemaGenerator schemaGenerator;

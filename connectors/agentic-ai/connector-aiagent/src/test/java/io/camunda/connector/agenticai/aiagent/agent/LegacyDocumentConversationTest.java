@@ -125,8 +125,7 @@ class LegacyDocumentConversationTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
-            TestDocuments.documentContentDelivery(),
+            new ToolCallResultsInputBuilder(),
             TestDocuments.objectHandleRenderer());
   }
 

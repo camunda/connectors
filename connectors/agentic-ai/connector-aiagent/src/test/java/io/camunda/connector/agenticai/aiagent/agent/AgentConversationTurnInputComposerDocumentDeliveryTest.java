@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.MIXED_K
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.PROCESS_CALL_ID;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
@@ -57,6 +58,7 @@ import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,8 +101,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
-            TestDocuments.documentContentDelivery(),
+            new ToolCallResultsInputBuilder(),
             TestDocuments.objectHandleRenderer());
   }
 
@@ -266,8 +267,15 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
     return composer.resolve(
         configuration,
         CTX_WITH_CONVERSATION,
-        TurnReconstructor.reconstruct(previousMessages),
+        TurnReconstructor.reconstruct(withSystemMessage(previousMessages)),
         input);
+  }
+
+  private static List<Message> withSystemMessage(List<Message> messages) {
+    final var all = new ArrayList<Message>();
+    all.add(systemMessage("system"));
+    all.addAll(messages);
+    return all;
   }
 
   @Test

@@ -292,9 +292,9 @@ High-frequency traps (detail behind each link):
   templates leave it out through `v1OmittedPropertyIds` in the pom): `UserPromptDocumentDelivery`, `UNSET` for a process
   without a value, adds the content of every document, `REFERENCE` gives handles, `CONTENT` adds the content of every
   document the model does not read yet. `TurnInput.applyTo(agentContext)` registers the
-  documents of a turn input, also those a runtime tool returns; the documents a runtime tool returns are registered, and
-  the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
-  a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
+  documents of a turn input, also those a runtime tool returns. After the calls of a message ran, `ToolCallResultsInputBuilder`
+  returns the documents of the results in the `TurnInput`, in call order, and applies the effects of the results; a tool
+  reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
   and gets content only through `c8__load_document` or the delivery `content` of the tool (the extension property
   `io.camunda.agenticai.documents.delivery` on the tool activity, `ToolDefinition.documentDelivery`, which providers never
   see; the composer turns it into an `AddDocumentContent` effect for every document of the result): a tool asks for content with the sealed `ToolCallEffect`

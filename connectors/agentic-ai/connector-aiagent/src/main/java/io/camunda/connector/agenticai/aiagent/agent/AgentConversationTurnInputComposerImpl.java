@@ -13,14 +13,13 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput.UserPrompt;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
@@ -73,16 +72,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
   private final ToolCallResultsInputBuilder toolCallResultsInputBuilder;
-  private final DocumentContentDelivery contentDelivery;
   private final ObjectHandleRenderer objectHandleRenderer;
 
   public AgentConversationTurnInputComposerImpl(
       GatewayToolHandlerRegistry gatewayToolHandlers,
       ToolCallResultsInputBuilder toolCallResultsInputBuilder,
-      DocumentContentDelivery contentDelivery,
       ObjectHandleRenderer objectHandleRenderer) {
     this.gatewayToolHandlers = gatewayToolHandlers;
-    this.contentDelivery = contentDelivery;
     this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
     this.toolCallResultsInputBuilder = toolCallResultsInputBuilder;
     this.objectHandleRenderer = objectHandleRenderer;
@@ -210,9 +206,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     switch (documentHandling) {
-      case DocumentHandling.Tracked tracked -> {
-        // add the documents as blocks with the delivery content: the content is added when the
-        // model is called
+      case DocumentHandling.Tracked ignored -> {
+        // add the documents as blocks: the delivery of the user prompt decides which blocks add
+        // the content when the model is called
         userPrompt.documents().stream()
             .filter(doc -> !AgentDocument.isSupported(doc))
             .findFirst()
@@ -221,9 +217,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             });
         final var origin = AgentDocumentOrigin.userMessage(messageId);
         userPrompt.documents().forEach(doc -> newDocuments.add(AgentDocument.of(doc, origin)));
-        content.addAll(
-            trackedPromptDocuments(
-                userPrompt, tracked.documents().register(newDocuments), idsWithContent));
+        content.addAll(trackedPromptDocuments(userPrompt, idsWithContent));
       }
       case DocumentHandling.Untracked ignored ->
           userPrompt.documents().stream()
@@ -247,8 +241,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
    * delivery the content of every document is added.
    */
   private List<Content> trackedPromptDocuments(
-      UserPrompt userPrompt, AgentDocuments known, Set<AgentDocumentId> idsWithContent) {
-    var handled = DocumentContentDelivery.Handled.of(idsWithContent);
+      UserPrompt userPrompt, Set<AgentDocumentId> idsWithContent) {
+    var delivery = DocumentContentDelivery.of(idsWithContent);
     final var blocks = new ArrayList<Content>();
     for (final var doc : userPrompt.documents()) {
       final var reference = AgentDocumentContent.of(AgentDocumentId.of(doc));
@@ -257,8 +251,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         case UNSET -> blocks.add(withContent);
         case REFERENCE -> blocks.add(reference);
         case CONTENT -> {
-          final var decision = contentDelivery.deliver(known, List.of(reference.id()), handled);
-          handled = decision.handled();
+          final var decision = delivery.deliver(List.of(reference.id()));
+          delivery = decision.next();
           for (final var outcome : decision.outcomes()) {
             switch (outcome) {
               case DocumentContentDelivery.Outcome.Delivered delivered ->
@@ -316,12 +310,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * The entry of a process tool result for an agent instance that tracks its documents: it
-   * registers the documents the model reads as handles, which must be Camunda documents, with the
-   * document delivery of the tool the model called. That is the delivery of the stored definition
-   * of the tool, and {@code reference} when the definition sets none or the tool is unknown. An
-   * instance that does not track its documents adds the documents its gateway tool handler extracts
-   * in a message of their own instead.
+   * The entry of a process tool result for an agent instance that tracks its documents. It takes
+   * the documents the model reads as handles, for the agent to register; they must be Camunda
+   * documents. The entry carries the document delivery of the tool the model called: the delivery
+   * of the stored definition of the tool, and {@code reference} when the definition sets none or
+   * the tool is unknown. An instance that does not track its documents adds the documents its
+   * gateway tool handler extracts in a message of their own instead.
    *
    * @throws UnsupportedDocumentReferenceException if a document of the result is not a Camunda
    *     document

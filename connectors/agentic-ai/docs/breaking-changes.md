@@ -211,8 +211,8 @@ client in its properties does not start.
   select; the request handler applies it to the agent context it persists (`TurnInput.applyTo`). `Ready` holds the agent context, the ids of the documents whose content the model reads, the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
   of a turn without tool call results, and the event messages. `Deferred.arrivedResults` holds only the results that
   arrived from the process.
-- The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`, a
-  `DocumentContentDelivery` and an `ObjectHandleRenderer`, beans of the auto-configuration.
+- The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an
+  `ObjectHandleRenderer`, beans of the auto-configuration.
 
 `AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
 process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent produces the tool call
@@ -223,12 +223,13 @@ them. The constructor of `AgentResponseHandlerImpl` takes the `DocumentParameter
 auto-configuration.
 
 `ToolCallResultsInputBuilder` builds the tool call result message and the messages that follow it from the results of a
-`ToolCallBatch`, for the composer. It reports the documents of the results for registration and applies the effects of
-the results of runtime tools (the content of a known document and the response documents, see "Runtime tools and tool
-names"). The composer gives the entry of a process tool whose tool definition has the document delivery `content` an
-`AddDocumentContent` effect for every document of the result (the delivery of the stored tool definition, `REFERENCE`
-for a tool without one), so the builder
-treats such a document like one a runtime tool asks to load.
+`ToolCallBatch`, for the composer. It returns the documents of the results and the response documents they select in the
+`TurnInput`, which the caller applies with `TurnInput.applyTo`, and it applies the effects that add content (see
+"Runtime tools and tool names"). It fails the job for an effect that names a document that is neither known when the
+batch starts nor returned by the result. The composer gives the entry of a process tool whose tool definition has the
+document delivery `content` an `AddDocumentContent` effect for every document of the result (the delivery of the stored
+tool definition, `REFERENCE` for a tool without one), so the builder treats such a document like one a runtime tool asks to
+load.
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
@@ -265,11 +266,8 @@ extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate
 
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take
 `RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`. The constructor of
-`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`, the `DocumentContentDelivery` (for the
-documents of the user prompt) and an `ObjectHandleRenderer`, the constructor of `LocalToolCallExecutor` takes
-`RuntimeTools` and an `ObjectHandleRenderer`, and the `ToolCallResultsInputBuilder` takes the `DocumentContentDelivery`,
-which decides whether the content of a document is added.
-The runtime tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`),
+`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`, the
+constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandleRenderer`. The runtime tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`),
 never with a `DocumentFactory` bean. The
 auto-configuration provides these beans and the two built-in runtime tools, each `@ConditionalOnMissingBean`. A custom bean
 built with `new` needs the extra arguments; inject them as beans.
@@ -345,9 +343,15 @@ applies it to its persisted context, and the next round continues with the conte
 - The sealed `Content` interface permits `AgentDocumentContent` (content type `agent_document`). A `switch` over
   `Content` must handle it. A custom chat model provider never receives it: the agent expands it before the request is
   built.
-- For an agent instance with the `documents` feature, a document in a tool result reaches a chat model provider as text,
-  its handle, instead of a `DocumentContent` or the reference JSON. A custom `ChatModel` that handles `DocumentContent` in
-  tool results therefore sees text for these instances; instances without the feature keep the earlier form.
+- For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
+  document goes out as its handle and its content when the process sets no delivery for the user prompt or the delivery
+  `content`, and as its handle only with the delivery `reference` (`data.userPrompt.documentDelivery`, v2 templates
+  only, which preset `reference` from version 5). A document in a tool
+  result is text, its handle, instead of a `DocumentContent` or the reference JSON, and the content of a document follows
+  in a user message only when the model loaded it with `c8__load_document` or the tool has the delivery `content`
+  (the extension property `io.camunda.agenticai.documents.delivery`). A custom `ChatModel` that handles `DocumentContent`
+  in tool results therefore sees text for these instances; instances without the feature, also the new instances of the v1
+  connectors, keep the earlier form.
 - New in the model: `AgentDocumentId`, the value type of a document id (persisted as a plain string), used by the agent
   documents and `AgentDocumentContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the
   identity of the document (the store and the id in the store of a Camunda document), so it is no longer the id of the

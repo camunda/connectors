@@ -27,8 +27,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.mimeType;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -87,9 +85,9 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1), "text/plain");
-    assertDocumentHandlePart(userMessage.contentParts().get(2), "application/pdf");
-    assertDocumentHandlePart(userMessage.contentParts().get(3), "image/jpeg");
+    assertDocumentHandlePart(userMessage.contentParts().get(1), "test.txt");
+    assertDocumentHandlePart(userMessage.contentParts().get(2), "test.pdf");
+    assertDocumentHandlePart(userMessage.contentParts().get(3), "test.jpg");
 
     assertAgentResponse(
         zeebeTest,
@@ -137,8 +135,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     final var promptParts = firstMessages.get(1).contentParts();
     assertThat(promptParts).as("prompt text + handle").hasSize(2);
     assertThat(promptParts.get(0).path("text").asText()).isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(promptParts.get(1));
-    final var handle = parseDocumentHandle(promptParts.get(1).path("text").asText());
+    final var handle = assertDocumentHandlePart(promptParts.get(1), "test.txt");
 
     // the second request: the user message as before, the call, its result and the content
     final var secondMessages = recorded.requests().get(1).messages();
@@ -213,7 +210,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(userMessage.contentParts()).as("prompt text + handle + content").hasSize(3);
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1), mimeType(filename));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), filename);
     assertDocumentContentBlockJson(userMessage.contentParts().get(2), filename);
 
     assertAgentResponse(

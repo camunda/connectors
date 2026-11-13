@@ -45,9 +45,9 @@ public interface ProviderWireFormatFixture {
   /**
    * Whether a new agent instance of this fixture has the {@code documents} feature. The v2
    * templates give it to a new instance: the model reads a handle for each document, and the
-   * content of a tool result document comes through {@code c8__load_document}. The v1 templates do
-   * not give it: the documents reach the model as content, and a tool result document follows the
-   * tool results in the older XML tag format.
+   * content of a document comes through the document delivery or {@code c8__load_document}. The v1
+   * templates do not give it: the documents reach the model as content, and a tool result document
+   * follows the tool results in the older XML tag format.
    */
   default boolean documentsFeature() {
     return true;
@@ -73,16 +73,6 @@ public interface ProviderWireFormatFixture {
   default Map<String, String> elementTemplateBaselineProperties(
       Map<String, String> defaultProperties) {
     return defaultProperties;
-  }
-
-  /**
-   * Whether the documents of the user prompt go out as content. A template that has no document
-   * delivery property for the user prompt (the v1 templates) leaves the delivery unset, and an
-   * unset delivery adds the content of every prompt document; the v2 templates preset the delivery
-   * to {@code reference}.
-   */
-  default boolean promptDocumentsAsContent() {
-    return false;
   }
 
   /**

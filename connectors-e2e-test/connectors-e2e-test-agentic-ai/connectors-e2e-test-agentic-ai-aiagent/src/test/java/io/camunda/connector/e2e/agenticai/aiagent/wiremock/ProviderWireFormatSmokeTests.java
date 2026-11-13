@@ -229,15 +229,15 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
-    // the document is referenced by its handle; its content is sent only for a template without a
-    // delivery of the prompt documents
+    // an instance with the documents feature gives the model the handle of the document, an
+    // instance without it the content only
     assertThat(fixture.modelCallCount()).isEqualTo(1);
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-        fixture.promptDocumentsAsContent()
-            ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt)
-            : ProviderWireFormatExpectedMessage.userWithDocumentHandle(userPrompt));
+        fixture.documentsFeature()
+            ? ProviderWireFormatExpectedMessage.userWithDocumentHandle(userPrompt)
+            : ProviderWireFormatExpectedMessage.userWithDocumentContent(userPrompt));
     assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 
     assertAgentResponse(
