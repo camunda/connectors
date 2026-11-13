@@ -140,10 +140,9 @@ class LoadDocumentToolTest {
     assertThat(LoadDocumentTool.NAME).isEqualTo("c8__load_document");
     assertThat(definition.description())
         .isEqualTo(
-            "Loads the content of a document that you see as a handle in the conversation: a JSON"
-                + " object with \"type\": \"camunda.agenticai.document\" and an \"id\" that"
-                + " starts with \"doc_\". Do not call it when the conversation has no such handle."
-                + " A document that is already in the conversation is not loaded again.");
+            "Loads the content of a document from the conversation. Pass its handle. Do not call"
+                + " it when the conversation has no document handle. Content that is already in the"
+                + " conversation is not loaded again.");
     // the stored schema is the schema of a document handle
     assertThat(definition.inputSchema())
         .isEqualTo(
