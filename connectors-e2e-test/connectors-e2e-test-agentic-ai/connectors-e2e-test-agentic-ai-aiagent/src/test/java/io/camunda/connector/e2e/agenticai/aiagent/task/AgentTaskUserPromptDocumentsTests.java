@@ -25,7 +25,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentAlreadyInConversationSentence;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -85,11 +84,11 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), "test.txt");
     assertDocumentContentBlockJson(userMessage.contentParts().get(2), "test.txt");
-    assertDocumentHandlePart(userMessage.contentParts().get(3));
+    assertDocumentHandlePart(userMessage.contentParts().get(3), "test.pdf");
     assertDocumentContentBlockJson(userMessage.contentParts().get(4), "test.pdf");
-    assertDocumentHandlePart(userMessage.contentParts().get(5));
+    assertDocumentHandlePart(userMessage.contentParts().get(5), "test.jpg");
     assertDocumentContentBlockJson(userMessage.contentParts().get(6), "test.jpg");
 
     assertAgentResponse(
@@ -137,8 +136,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     final var promptParts = firstMessages.get(1).contentParts();
     assertThat(promptParts).as("prompt text + handle + content").hasSize(3);
     assertThat(promptParts.get(0).path("text").asText()).isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(promptParts.get(1));
-    final var handle = parseDocumentHandle(promptParts.get(1).path("text").asText());
+    final var handle = assertDocumentHandlePart(promptParts.get(1), "test.txt");
     assertDocumentContentBlockJson(promptParts.get(2), "test.txt");
 
     // the second request: the user message as before, the call and its result, no further message
