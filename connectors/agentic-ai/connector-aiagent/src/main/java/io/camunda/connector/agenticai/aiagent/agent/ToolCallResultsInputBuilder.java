@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
@@ -18,7 +17,9 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentIdCollisionException;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -70,6 +71,8 @@ public class ToolCallResultsInputBuilder {
    * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
    *     start of the batch
    * @throws IllegalStateException if a call of the batch has no result
+   * @throws UnsupportedDocumentReferenceException if a result of an agent instance that tracks its
+   *     documents holds a document that is not a Camunda document
    * @throws IllegalArgumentException if a result asks for the content of a document that is neither
    *     known to {@code agentContext} as of the start of the batch nor returned by the result, or
    *     if a result of an agent instance that does not track its documents asks anything of the
@@ -178,9 +181,9 @@ public class ToolCallResultsInputBuilder {
 
   /**
    * A document that is a whole result is persisted as a document block, like the documents that are
-   * not a whole result. The documents of every result are registered with the tool call as their
-   * origin. A result that asks for the content of documents ends with a sentence per document. The
-   * content of the documents that are loaded follows in a message of its own.
+   * not a whole result. The {@link TurnInput} holds the documents of every result, with the tool
+   * call as their origin. A result that asks for the content of documents ends with a sentence per
+   * document. The content of the documents that are loaded follows in a message of its own.
    */
   private static TurnInput buildWithDocumentBlocks(
       List<ToolCallBatch.Entry> entries, AppliedEffects applied) {
