@@ -56,7 +56,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class RuntimeToolsTest {
 
@@ -598,6 +602,35 @@ class RuntimeToolsTest {
     final var calls = List.of(runtimeCall("r1", "acme_referencing", Map.of()));
 
     assertThatThrownBy(() -> tools.execute(WITH_MEMORY, agentContext, calls))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'acme_referencing' returned a reference to the document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
+                .formatted(id.value()));
+  }
+
+  record Reference(String name, AgentDocumentContent file) {}
+
+  static Stream<Arguments> nestedReferences() {
+    final var id = AgentDocumentId.of("doc_000000000001");
+    return Stream.of(
+        Arguments.argumentSet(
+            "in a map", id, Map.of("files", List.of(Map.of("file", AgentDocumentContent.of(id))))),
+        Arguments.argumentSet(
+            "in a record", id, new Reference("report", AgentDocumentContent.of(id))));
+  }
+
+  @ParameterizedTest
+  @MethodSource("nestedReferences")
+  void aReferenceBlockNestedInAnObjectOfAResultFailsTheJob(AgentDocumentId id, Object object) {
+    final var referencing =
+        StubRuntimeTool.of(
+            "acme_referencing",
+            (context, call) ->
+                RuntimeToolResult.success(List.of(ObjectContent.objectContent(object))));
+    final var tools = toolsOf(referencing);
+    final var calls = List.of(runtimeCall("r1", "acme_referencing", Map.of()));
+
+    assertThatThrownBy(() -> tools.execute(WITH_MEMORY, NEW_INSTANCE, calls))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'acme_referencing' returned a reference to the document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"

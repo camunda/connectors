@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +84,8 @@ public class RuntimeTools {
             .registerModule(
                 new SimpleModule()
                     .addSerializer(new DocumentAsItIs())
-                    .addSerializer(new NoAgentDocument()));
+                    .addSerializer(new NoAgentDocument())
+                    .addSerializer(new NoAgentDocumentContent()));
     this.documentParameterResolver = documentParameterResolver;
   }
 
@@ -177,9 +180,7 @@ public class RuntimeTools {
         .map(AgentDocumentContent.class::cast)
         .findFirst()
         .ifPresent(reference -> {
-          throw new IllegalArgumentException(
-              "The runtime tool '%s' returned a reference to the document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
-                  .formatted(toolCall.name(), reference.id().value()));
+          throw documentOfTheAgentInResult(toolCall, AgentDocumentInResult.of(reference), null);
         });
     return new RuntimeToolResult.Success(
         success.content().stream().map(content -> plainContent(toolCall, content)).toList(),
@@ -195,7 +196,8 @@ public class RuntimeTools {
    * <p>A result holds a document as the {@link Document} of the connector SDK ({@link
    * RuntimeToolContext#document}). An {@link AgentDocument} holds the store details of a document,
    * which never go to the model, so one in a result is a defect of the tool and fails the job, as
-   * does an {@link AgentDocumentContent} block, the reference of the conversation.
+   * does an {@link AgentDocumentContent} block, the reference of the conversation, also one nested
+   * in the object.
    */
   private Content plainContent(ToolCall toolCall, Content content) {
     if (!(content instanceof ObjectContent objectContent)) {
@@ -206,15 +208,20 @@ public class RuntimeTools {
       final Object plain = PLAIN_READER.readValue(buffer.asParser(), Object.class);
       return new ObjectContent(plain, objectContent.metadata());
     } catch (IOException e) {
-      final var agentDocument = ExceptionUtils.throwableOfType(e, AgentDocumentInResult.class);
-      if (agentDocument != null) {
-        throw new IllegalArgumentException(
-            "The runtime tool '%s' returned the agent document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
-                .formatted(toolCall.name(), agentDocument.getMessage()),
-            e);
+      final var inResult = ExceptionUtils.throwableOfType(e, AgentDocumentInResult.class);
+      if (inResult != null) {
+        throw documentOfTheAgentInResult(toolCall, inResult, e);
       }
       throw new UncheckedIOException(e);
     }
+  }
+
+  private static IllegalArgumentException documentOfTheAgentInResult(
+      ToolCall toolCall, AgentDocumentInResult inResult, @Nullable Throwable cause) {
+    return new IllegalArgumentException(
+        "The runtime tool '%s' returned %s in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
+            .formatted(toolCall.name(), inResult.getMessage()),
+        cause);
   }
 
   private static Map<String, Registration> register(List<RuntimeTool> tools) {
@@ -264,17 +271,62 @@ public class RuntimeTools {
 
     @Override
     public void serialize(AgentDocument document, JsonGenerator gen, SerializerProvider provider) {
-      throw new AgentDocumentInResult(document.id().value());
+      throw AgentDocumentInResult.of(document);
+    }
+
+    @Override
+    public void serializeWithType(
+        AgentDocument document,
+        JsonGenerator gen,
+        SerializerProvider provider,
+        TypeSerializer typeSerializer) {
+      serialize(document, gen, provider);
     }
   }
 
-  /** An agent document in a result; the message is its id. */
+  /**
+   * Fails the serialization of a document block of the conversation nested in an object, see {@link
+   * #plainContent}.
+   */
+  private static final class NoAgentDocumentContent extends JsonSerializer<AgentDocumentContent> {
+
+    @Override
+    public Class<AgentDocumentContent> handledType() {
+      return AgentDocumentContent.class;
+    }
+
+    @Override
+    public void serialize(
+        AgentDocumentContent reference, JsonGenerator gen, SerializerProvider provider) {
+      throw AgentDocumentInResult.of(reference);
+    }
+
+    @Override
+    public void serializeWithType(
+        AgentDocumentContent reference,
+        JsonGenerator gen,
+        SerializerProvider provider,
+        TypeSerializer typeSerializer) {
+      serialize(reference, gen, provider);
+    }
+  }
+
+  /** A document of the agent in a result; the message names it. */
   private static final class AgentDocumentInResult extends RuntimeException {
 
     @Serial private static final long serialVersionUID = 1L;
 
-    private AgentDocumentInResult(String id) {
-      super(id);
+    private AgentDocumentInResult(String message) {
+      super(message);
+    }
+
+    static AgentDocumentInResult of(AgentDocument document) {
+      return new AgentDocumentInResult("the agent document '%s'".formatted(document.id().value()));
+    }
+
+    static AgentDocumentInResult of(AgentDocumentContent reference) {
+      return new AgentDocumentInResult(
+          "a reference to the document '%s'".formatted(reference.id().value()));
     }
   }
 }
