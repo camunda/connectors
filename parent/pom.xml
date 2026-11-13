@@ -138,7 +138,7 @@ limitations under the License.</license.inlineheader>
     <version.google-auth-library-oauth2-http>1.57.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
     <version.google-libraries-bom>26.93.0</version.google-libraries-bom>
-    <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
+    <version.google-api-services-sheets>v4-rev20261109-2.9.2</version.google-api-services-sheets>
     <!-- keep in sync with langchain4j-google-genai -->
     <version.google-genai>2.3.0</version.google-genai>
     <!-- overrides the Google libraries BOM for the whole Vertex AI family -->
