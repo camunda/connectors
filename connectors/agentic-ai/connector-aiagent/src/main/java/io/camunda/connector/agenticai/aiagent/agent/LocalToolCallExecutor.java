@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
@@ -35,16 +34,16 @@ public class LocalToolCallExecutor {
   }
 
   /**
-   * Returns one entry per call. An agent instance that tracks its documents registers the documents
-   * of a result that the model reads as handles, also those inside a typed record.
+   * Returns one entry per call, with the documents and the effects of its result. An agent instance
+   * that tracks its documents takes the documents of a result that the model reads as handles, also
+   * those inside a typed record. The agent registers the documents and applies the effects later,
+   * when it builds the input of the next turn (see {@link ToolCallResultsInputBuilder}).
    *
    * @throws IllegalStateException if a call is not a call of a runtime tool
    * @throws
    *     io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException
    *     if an agent instance that tracks its documents gets a document that is not a Camunda
    *     document from a runtime tool
-   * @throws IllegalArgumentException if the result of a runtime tool breaks the rules of its
-   *     documents, a defect of the tool
    */
   public List<ToolCallBatch.Entry> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
@@ -60,10 +59,7 @@ public class LocalToolCallExecutor {
     }
     final var executions = runtimeTools.execute(executionContext, agentContext, calls);
     return switch (agentContext.documentHandling()) {
-      case DocumentHandling.Tracked tracked ->
-          executions.stream()
-              .map(execution -> trackedEntry(execution, tracked.documents()))
-              .toList();
+      case DocumentHandling.Tracked ignored -> executions.stream().map(this::trackedEntry).toList();
       case DocumentHandling.Untracked ignored ->
           executions.stream().map(LocalToolCallExecutor::untrackedEntry).toList();
     };
@@ -71,28 +67,23 @@ public class LocalToolCallExecutor {
 
   /**
    * The entry of an execution for an agent instance that tracks its documents, with the effects of
-   * a successful result. The documents are the ones the model reads as handles.
+   * a successful result. The documents are the ones the model reads as handles, and all of them are
+   * Camunda documents.
    */
-  private ToolCallBatch.Entry trackedEntry(RuntimeToolExecution execution, AgentDocuments known) {
+  private ToolCallBatch.Entry trackedEntry(RuntimeToolExecution execution) {
     final var entry =
         ToolCallBatch.Entry.withRenderedDocuments(
             execution.toolCallResult(), objectHandleRenderer, effectsOf(execution));
-    entry.requireWellFormed(known);
+    entry.requireCamundaDocuments();
     return entry;
   }
 
   /**
-   * The entry of an execution for an agent instance that does not track its documents. Such an
-   * instance gives no document an id, so a result asks nothing of the agent; the documents are the
-   * ones the generic walker finds.
+   * The entry of an execution for an agent instance that does not track its documents, with the
+   * effects of a successful result; the documents are the ones the generic walker finds.
    */
   private static ToolCallBatch.Entry untrackedEntry(RuntimeToolExecution execution) {
-    if (!effectsOf(execution).isEmpty()) {
-      throw new IllegalArgumentException(
-          "The runtime tool '%s' refers to a document by its id, which an agent instance that does not track its documents does not support"
-              .formatted(execution.call().name()));
-    }
-    return ToolCallBatch.Entry.from(execution.toolCallResult());
+    return ToolCallBatch.Entry.from(execution.toolCallResult(), effectsOf(execution));
   }
 
   private static List<ToolCallEffect> effectsOf(RuntimeToolExecution execution) {

@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.testutil;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
@@ -16,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -42,9 +42,16 @@ public final class TestDocuments {
     return new DocumentRestorer(documentFactory());
   }
 
-  /** Decides which of the documents whose content is asked for are added to the conversation. */
-  public static DocumentContentDelivery documentContentDelivery() {
-    return new DocumentContentDelivery();
+  /**
+   * The metadata of the user message that holds the documents of tool calls: the timestamp of the
+   * message and the marker for the documents.
+   */
+  public static Map<String, Object> toolCallDocumentsMetadata(UserMessage message) {
+    return Map.of(
+        "timestamp",
+        message.metadata().get("timestamp"),
+        UserMessage.METADATA_TOOL_CALL_DOCUMENTS,
+        true);
   }
 
   public static ObjectHandleRenderer objectHandleRenderer() {

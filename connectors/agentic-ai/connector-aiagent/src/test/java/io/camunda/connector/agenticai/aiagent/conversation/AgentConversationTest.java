@@ -796,8 +796,8 @@ class AgentConversationTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"3, true", "2, false"})
-  void documentIdsWithContent_keepAPlaceForTheSystemMessageOfTheNextCallAlsoWithoutOne(
+  @CsvSource({"2, true", "1, false"})
+  void documentIdsWithContent_keepNoPlaceForASystemMessageTheConversationDoesNotHave(
       int windowSize, boolean withContent) {
     var document = TestDocuments.createDocument("content", "a.txt");
     var userMessage =
@@ -824,8 +824,8 @@ class AgentConversationTest {
                 List.of(userMessage))
             .ingest(assistantMessage("one"), AgentMetrics.empty());
 
-    // the user message and the assistant message fit into a window of two, but a place stays
-    // free for a system message the next call may compose
+    // the conversation has no system message, so the user message and the assistant message fill a
+    // window of two
     assertThat(conv.documentIdsWithContent(0))
         .isEqualTo(withContent ? Set.of(AgentDocumentId.of(document)) : Set.of());
   }

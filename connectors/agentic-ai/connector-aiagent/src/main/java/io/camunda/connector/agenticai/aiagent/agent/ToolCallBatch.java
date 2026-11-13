@@ -9,8 +9,6 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -162,8 +160,16 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      * the ones the generic walker finds in its content.
      */
     public static Entry from(ToolCallResultContent result) {
+      return from(result, List.of());
+    }
+
+    /**
+     * The entry of a result that asks something of the agent, for an agent instance that does not
+     * track its documents; the documents are the ones the generic walker finds in its content.
+     */
+    static Entry from(ToolCallResultContent result, List<ToolCallEffect> effects) {
       return new Entry(
-          result, ToolCallResultDocumentExtractor.documentsOf(result.content()), List.of());
+          result, ToolCallResultDocumentExtractor.documentsOf(result.content()), effects);
     }
 
     /**
@@ -180,33 +186,6 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
           .ifPresent(document -> {
             throw UnsupportedDocumentReferenceException.inToolCallResult(result.name(), document);
           });
-    }
-
-    /**
-     * Checks a result of a runtime tool for an agent instance that tracks its documents: its
-     * documents are Camunda documents, and its effects name documents the agent knows or the result
-     * returns. A result that breaks this is a defect of its tool.
-     *
-     * @param known the documents the agent knows as of the start of the batch
-     * @throws UnsupportedDocumentReferenceException if a document of the result is not a Camunda
-     *     document
-     * @throws IllegalArgumentException if an effect names a document that is neither known nor
-     *     returned by the result
-     */
-    void requireWellFormed(AgentDocuments known) {
-      requireCamundaDocuments();
-      final var returned = documents.stream().map(AgentDocumentId::of).collect(Collectors.toSet());
-      for (final var effect : effects) {
-        final var id =
-            switch (effect) {
-              case ToolCallEffect.AddDocumentContent add -> add.id();
-            };
-        if (known.find(id).isEmpty() && !returned.contains(id)) {
-          throw new IllegalArgumentException(
-              "The runtime tool '%s' refers to the document '%s', which the agent does not know and the result does not return"
-                  .formatted(result.name(), id));
-        }
-      }
     }
   }
 }

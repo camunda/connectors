@@ -283,15 +283,15 @@ High-frequency traps (detail behind each link):
   (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
-  documents of a turn input, also those a runtime tool returns; the documents a runtime tool returns are registered, and
-  the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
-  a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
+  documents of a turn input, also those a runtime tool returns. After the calls of a message ran, `ToolCallResultsInputBuilder`
+  returns the documents of the results in the `TurnInput`, in call order, and applies the effects of the results; a tool
+  reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
   and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
-  `AddDocumentContent` of its `RuntimeToolResult.Success`, and `DocumentContentDelivery` decides for every document whose content a tool asks for, without a check of its type or size, only whether the model reads the content already or an earlier request of the batch asked for it: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
+  `AddDocumentContent` of its `RuntimeToolResult.Success`, and the value `DocumentContentDelivery` (the documents the model reads or receives) decides for every document whose content a tool asks for, without a check of its type or size, only whether the model reads the content already or an earlier request of the batch asked for it: the builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
   asks for content with one sentence per document (the content follows in the next message, or it is in
   the conversation already), and the message that follows the tool results holds the loaded documents only; a tool writes none of it. A document in a tool result, new or known, is a `DocumentContent` with the document of the
   connector SDK, and content comes only through the effect; `RuntimeTools` fails the job for an `AgentDocument` or an
-  `AgentDocumentContent` block in a result, and `LocalToolCallExecutor` for an effect that names an unknown document. Passing a handle to a tool never adds content.
+  `AgentDocumentContent` block in a result, and `ToolCallResultsInputBuilder`, the one owner of this rule, for an effect that names a document neither known when the batch starts nor returned by the result, and for every effect of a result of an `Untracked` instance. Passing a handle to a tool never adds content.
   A `Tracked` instance accepts only Camunda documents: an external or an inline document of the user prompt, a tool call
   result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`). A tool
   parameter of the `fromAi` type `document` (the parameter, array items or an object property) takes a handle.

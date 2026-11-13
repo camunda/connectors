@@ -41,6 +41,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -153,13 +154,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
     }
-    // the model call reads the user prompt message and the event messages as well
-    final var documentIdsWithContent =
-        previousConversation.documentIdsWithContent(
-            configuration.contextWindowSize(),
-            userPrompt.messages().size() + events.messages().size());
     return new CompositionResult.Ready(
-        agentContext, documentIdsWithContent, ToolCallBatch.of(List.of()), userPrompt, events);
+        agentContext, Set.of(), ToolCallBatch.of(List.of()), userPrompt, events);
   }
 
   @Override

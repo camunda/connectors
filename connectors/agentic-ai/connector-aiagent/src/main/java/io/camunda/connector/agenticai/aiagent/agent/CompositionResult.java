@@ -42,7 +42,7 @@ public sealed interface CompositionResult {
    *
    * @param agentContext the agent context the next turn is composed with
    * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
-   *     start of the batch
+   *     start of the batch; empty for a turn without a batch
    * @param toolCallBatch the calls of the previous turn, none when the next turn has no tool call
    *     results
    * @param userPrompt the input of the user prompt of a turn without tool call results

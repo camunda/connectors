@@ -17,7 +17,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
@@ -27,7 +26,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -43,7 +41,6 @@ import io.camunda.connector.runtime.core.document.InlineDocument;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -85,7 +82,7 @@ class NonCamundaDocumentsConversationTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
+            new ToolCallResultsInputBuilder(),
             TestDocuments.objectHandleRenderer());
   }
 
@@ -210,54 +207,6 @@ class NonCamundaDocumentsConversationTest {
     assertFailsWith(
         entry::requireCamundaDocuments,
         PREFIX + "the result of a tool contains an external document.");
-  }
-
-  @Test
-  void aRuntimeToolResultWithADocumentThatIsNotACamundaDocumentFailsTheJob() {
-    final var runtimeResult =
-        ToolCallResultContent.builder()
-            .id("abcdef")
-            .name("acme_create_report")
-            .content(List.of(objectContent(Map.of("file", INLINE))))
-            .build();
-    final var batch =
-        ToolCallBatch.of(TOOL_CALLS)
-            .withEntries(
-                List.of(
-                    ToolCallBatch.Entry.from(runtimeResult),
-                    ToolCallBatch.Entry.from(ToolCallResultContent.from(dateTime()))));
-
-    assertFailsWith(
-        () ->
-            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery())
-                .build(TRACKED, batch, Set.of()),
-        PREFIX + "the result of the tool 'acme_create_report' contains an inline document.");
-  }
-
-  @Test
-  void aRuntimeToolResultThatAsksForTheContentOfADocumentThatIsNotACamundaDocumentFailsTheJob() {
-    final var runtimeResult =
-        ToolCallResultContent.builder()
-            .id("abcdef")
-            .name("acme_create_report")
-            .content(List.of(objectContent(Map.of("file", EXTERNAL))))
-            .build();
-    final var batch =
-        ToolCallBatch.of(TOOL_CALLS)
-            .withEntries(
-                List.of(
-                    new ToolCallBatch.Entry(
-                        runtimeResult,
-                        ToolCallResultDocumentExtractor.documentsOf(runtimeResult.content()),
-                        List.of(
-                            new ToolCallEffect.AddDocumentContent(AgentDocumentId.of("doc_1")))),
-                    ToolCallBatch.Entry.from(ToolCallResultContent.from(dateTime()))));
-
-    assertFailsWith(
-        () ->
-            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery())
-                .build(TRACKED, batch, Set.of()),
-        PREFIX + "the result of the tool 'acme_create_report' contains an external document.");
   }
 
   @Test

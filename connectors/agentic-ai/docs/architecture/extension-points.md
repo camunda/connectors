@@ -164,10 +164,11 @@ behavior of [ADR-004](../adr/004-document-handling-in-tool-call-results.md): the
 `UserMessage` with native `DocumentContent` blocks so LLMs can interpret them. Design rationale:
 [ADR 018](../adr/018-document-flow.md), which extends [ADR 004](../adr/004-document-handling-in-tool-call-results.md).
 The documents of the result of a runtime tool ([Add a runtime tool](#add-a-runtime-tool)), in a batch of local tool calls only or in a mixed one, are collected from its
-content with the renderer for an instance with the feature (`LocalToolCallExecutor`) and with `ContentTreeDocumentWalker` for one without it, and are handled the same way. They are registered after all calls
-of the message ran, in the order of the calls and together with the documents of the process results, by
-`ToolCallResultsInputBuilder`, which the composer and the request handler's rounds of local tool call results share; the result of a
-call that failed has none. The same place applies the effects of the results (below).
+content with the renderer for an instance with the feature (`LocalToolCallExecutor`) and with `ContentTreeDocumentWalker` for one without it, and are handled the same way. They are returned
+after all calls of the message ran, in the order of the calls and together with the documents of the process results, in the
+`TurnInput` that `ToolCallResultsInputBuilder` builds, which the composer and the request handler's rounds of local tool call
+results share, and `TurnInput.applyTo` registers them; the result of a call that failed has none. The same builder applies the effects of the
+results (below) and checks that each effect names a document the agent knows when the batch starts or the result returns.
 
 **The handle.** `{"type":"camunda.agenticai.document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}`,
 the keys in the order `type`, `id`, `fileName`, `contentType`, `size`, written as compact JSON by Jackson from the
@@ -196,7 +197,7 @@ instance with the `documents` feature offers it. The tool returns the effect `Ad
 (`Success.withDocumentContent`). It writes no text. A missing or unknown id gives an error result.
 
 After all calls of the message ran, `ToolCallResultsInputBuilder` applies the effects in call order.
-`DocumentContentDelivery` decides for each document. The builder adds one sentence per document to the tool result:
+The value `DocumentContentDelivery` decides for each document. The builder adds one sentence per document to the tool result:
 
 | Decision | Sentence |
 |----------|----------|

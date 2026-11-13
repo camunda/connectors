@@ -261,9 +261,7 @@ extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take
 `RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`. The constructor of
 `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`, the
-constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandleRenderer`, and the
-`ToolCallResultsInputBuilder` takes the `DocumentContentDelivery`, which decides whether the content of a document is added.
-The runtime tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`),
+constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandleRenderer`. The runtime tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`),
 never with a `DocumentFactory` bean. The
 auto-configuration provides these beans and the built-in runtime tool, each `@ConditionalOnMissingBean`. A custom bean
 built with `new` needs the extra arguments; inject them as beans.
