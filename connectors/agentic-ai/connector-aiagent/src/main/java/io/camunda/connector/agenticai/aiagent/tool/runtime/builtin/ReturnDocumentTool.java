@@ -49,18 +49,8 @@ public final class ReturnDocumentTool implements RuntimeTool {
   private static final ToolDefinition DEFINITION =
       ToolDefinition.runtime(
           NAME,
-          "Adds one document to your final response, so that the process receives it. Use it only"
-              + " for a document that you see as a handle in the conversation: a JSON object with"
-              + " \"type\": \"camunda.agenticai.document\" and an \"id\" that starts with"
-              + " \"doc_\". This tool does not return text or values; put them in your final"
-              + " response. Do not call it when the conversation has no such handle, and do not use"
-              + " it for a document that you only pass to other tools. Call it once per document."
-              + " The key is a stable identifier the process uses to find the document; it starts"
-              + " with a letter or an underscore and continues with letters, digits, underscores or"
-              + " hyphens. The description is optional. Calling it again with the same key replaces"
-              + " the document returned under that key. Documents you returned earlier stay"
-              + " attached to your later final responses too, so you do not need to return them"
-              + " again.",
+          "Adds a document from the conversation to your final response. Call it once per"
+              + " document. A returned document stays in all later final responses.",
           schema());
 
   /** The arguments of a call: the key, the document and its description. */
@@ -72,13 +62,12 @@ public final class ReturnDocumentTool implements RuntimeTool {
     properties.put(
         PARAMETER_KEY,
         text(
-            "A stable identifier the process uses to find the document, matching "
+            "Key of the document in the response. Pattern: "
                 + ResponseDocumentSelection.KEY_PATTERN
                 + "."));
     properties.put(
-        PARAMETER_DOCUMENT,
-        DocumentParameter.documentSchema("The handle of the document to return."));
-    properties.put(PARAMETER_DESCRIPTION, text("An optional short description of the document."));
+        PARAMETER_DOCUMENT, DocumentParameter.documentSchema("Handle of the document to return."));
+    properties.put(PARAMETER_DESCRIPTION, text("Optional short description of the document."));
     final var schema = new LinkedHashMap<String, Object>();
     schema.put("type", "object");
     schema.put("properties", properties);
@@ -131,8 +120,7 @@ public final class ReturnDocumentTool implements RuntimeTool {
 
   private static RuntimeToolResult invalidKey() {
     return RuntimeToolResult.error(
-        "Parameter '%s' must match %s: it starts with a letter or an"
-                .formatted(PARAMETER_KEY, ResponseDocumentSelection.KEY_PATTERN)
-            + " underscore and continues with letters, digits, underscores or hyphens.");
+        "Parameter '%s' must match %s."
+            .formatted(PARAMETER_KEY, ResponseDocumentSelection.KEY_PATTERN));
   }
 }

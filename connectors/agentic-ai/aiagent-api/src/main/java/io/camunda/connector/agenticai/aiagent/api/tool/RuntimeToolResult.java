@@ -104,24 +104,26 @@ public sealed interface RuntimeToolResult {
     }
 
     /**
-     * Returns a copy that also asks the agent to select a known document for the final response
-     * under {@code key}, which is the key the process finds the document by. Every final response
-     * of the agent instance carries all selected documents. A selection under a key that is already
-     * used, by this result, an earlier call or an earlier turn, replaces the earlier selection and
-     * keeps its position.
+     * Returns a copy that asks the agent to select a document for the final response, without a
+     * description. See {@link #withResponseDocument(String, AgentDocumentId, String)}.
      *
-     * <p>The id is the one of a document the agent knows at the start of the batch of calls ({@code
-     * AgentContext#documents()}), such as the value of a document parameter of the call, or of a
-     * document this result returns. A document another call of the same batch returns is not known
-     * yet. An id of a document the agent does not know is a defect of the tool: the agent throws an
-     * {@link IllegalArgumentException} and the job fails. The agent knows documents only with the
-     * documents feature, so a tool that selects response documents is enabled for agents that have
-     * it (see {@link RuntimeTool#isEnabled}).
+     * @throws IllegalArgumentException if the key does not match the pattern
+     */
+    public Success withResponseDocument(String key, AgentDocumentId id) {
+      return withResponseDocument(key, id, null);
+    }
+
+    /**
+     * Returns a copy that asks the agent to select a document for the final response.
+     *
+     * <p>{@code id} identifies a document that the agent knows when the batch starts, or a document
+     * that this result returns. Every later final response carries the selection. A selection with
+     * a key that is already used replaces the earlier selection. An unknown id fails the job.
      *
      * @param key the key of the document in the response, see {@link
      *     ResponseDocumentSelection#KEY_PATTERN}
      * @param id the id of the document
-     * @param description what the response says about the document, or {@code null}
+     * @param description a short description of the document, or {@code null}
      * @throws IllegalArgumentException if the key does not match the pattern
      */
     public Success withResponseDocument(

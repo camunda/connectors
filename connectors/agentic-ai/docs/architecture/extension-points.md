@@ -209,25 +209,17 @@ content. The loaded documents follow the tool results in one user message with t
 `Document content from tool calls (added by the system):`. Its metadata `toolCallDocuments` makes it leave the context
 window together with the tool results. A document parameter never adds content.
 
-**Returning documents: `c8__return_document`.** Its description says that it adds a document to the final response, what a
-handle looks like, that it returns no text or values and that it is not to be called without a handle, because the tool is
-offered also when the conversation holds no document. The model calls it once per document with `key` (required, matching
-`[A-Za-z_][A-Za-z0-9_-]*`), `document` (required, the handle of a known document, a document parameter) and `description`
-(optional, a blank one is left out). A valid call is answered `Returned the document under the key 'k'.` and asks the
-agent to select the document for the final response (`RuntimeToolResult.Success.withResponseDocument`; the key rule is
-checked by `ResponseDocumentSelection`, which every selection passes through). The agent applies
-the effect after all calls of the message ran, in call order, in `ToolCallResultsInputBuilder`: the selection goes into
-`AgentContext.responseDocuments` (`{key, document, description?}`, in the order of selection); a key that is already used,
-by an earlier call or an earlier turn, is replaced in place and keeps its position. An invalid key, a missing parameter or
-an unknown document is answered with an error result, and an error result changes nothing. A document the tool does not know when the batch starts cannot be selected by it, also when another call of
-the same message returned it (a defect of the tool, the job fails): the next turn knows it. The selections stay in the
-context for the lifetime of the agent instance, so every final response (a response without tool calls) carries all of them
-as `responseDocuments` ([Response Handling](../../connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl)), for example after a user feedback turn. There is no tool to remove a key. A sub-process agent
-exposes them as `agent.responseDocuments.<key>.document`.
+**Returning documents: `c8__return_document`.** The model calls the tool once per document with `key`, `document` (a
+handle) and an optional `description`. The tool returns the effect `SelectResponseDocument`
+(`Success.withResponseDocument`). An invalid key, a missing parameter or an unknown document gives an error result.
+`ToolCallResultsInputBuilder` applies the effect in call order: it adds the selection to
+`AgentContext.responseDocuments`. A key that is already used replaces its selection. The selections stay for the lifetime
+of the agent instance, so every final response carries all of them as `responseDocuments`
+([Response Handling](../../connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl)). A sub-process agent
+shows them as `agent.responseDocuments.<key>.document`.
 
-`c8__load_document` and `c8__return_document` are offered to every agent instance with the `documents` feature (every
-instance created from this version on) and cannot be switched off; an instance created before the feature is not offered
-them. A switch for them is a follow-up of [ADR 018](../adr/018-document-flow.md).
+Every agent instance with the `documents` feature offers `c8__load_document` and `c8__return_document`. They cannot be
+switched off. A switch is a follow-up of [ADR 018](../adr/018-document-flow.md).
 
 **The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
 document goes out with the prompt, with no size limit and no type check, and a document the provider

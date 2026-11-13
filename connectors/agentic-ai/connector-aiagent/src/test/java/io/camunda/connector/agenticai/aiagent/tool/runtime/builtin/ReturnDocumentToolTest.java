@@ -52,8 +52,7 @@ import org.junit.jupiter.api.Test;
 class ReturnDocumentToolTest {
 
   private static final String INVALID_KEY_ERROR =
-      "Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*: it starts with a letter or an"
-          + " underscore and continues with letters, digits, underscores or hyphens.";
+      "Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*.";
   private static final String MISSING_DOCUMENT_ERROR =
       "Parameter 'document' is required: pass the handle of a document from the conversation.";
 
@@ -117,18 +116,8 @@ class ReturnDocumentToolTest {
     assertThat(ReturnDocumentTool.NAME).isEqualTo("c8__return_document");
     assertThat(definition.description())
         .isEqualTo(
-            "Adds one document to your final response, so that the process receives it. Use it only"
-                + " for a document that you see as a handle in the conversation: a JSON object with"
-                + " \"type\": \"camunda.agenticai.document\" and an \"id\" that starts with"
-                + " \"doc_\". This tool does not return text or values; put them in your final"
-                + " response. Do not call it when the conversation has no such handle, and do not"
-                + " use it for a document that you only pass to other tools. Call it once per"
-                + " document. The key is a stable identifier the process uses to find the document;"
-                + " it starts with a letter or an underscore and continues with letters, digits,"
-                + " underscores or hyphens. The description is optional. Calling it again with the"
-                + " same key replaces the document returned under that key. Documents you returned"
-                + " earlier stay attached to your later final responses too, so you do not need to"
-                + " return them again.");
+            "Adds a document from the conversation to your final response. Call it once per"
+                + " document. A returned document stays in all later final responses.");
     assertThat(definition.inputSchema())
         .isEqualTo(
             Map.of(
@@ -141,16 +130,15 @@ class ReturnDocumentToolTest {
                         "type",
                         "string",
                         "description",
-                        "A stable identifier the process uses to find the document, matching"
-                            + " [A-Za-z_][A-Za-z0-9_-]*."),
+                        "Key of the document in the response. Pattern: [A-Za-z_][A-Za-z0-9_-]*."),
                     "document",
-                    DocumentParameter.documentSchema("The handle of the document to return."),
+                    DocumentParameter.documentSchema("Handle of the document to return."),
                     "description",
                     Map.of(
                         "type",
                         "string",
                         "description",
-                        "An optional short description of the document.")),
+                        "Optional short description of the document.")),
                 "required",
                 List.of("key", "document")));
   }
