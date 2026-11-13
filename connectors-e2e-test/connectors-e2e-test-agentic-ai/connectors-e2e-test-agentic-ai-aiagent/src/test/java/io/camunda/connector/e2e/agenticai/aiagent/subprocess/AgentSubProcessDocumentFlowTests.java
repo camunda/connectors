@@ -437,6 +437,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
             .and(JobSelectors.byProcessInstanceKey(processInstance.getProcessInstanceKey())),
         Map.of("toolCallResult", "slow tool done"));
     awaitProcessCompletion(zeebeTest);
+    assertThat(OpenAiCompletionsRecordedConversation.recorded().modelCallCount()).isEqualTo(3);
 
     // the next job reports the results of the batch together: call order kept
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
