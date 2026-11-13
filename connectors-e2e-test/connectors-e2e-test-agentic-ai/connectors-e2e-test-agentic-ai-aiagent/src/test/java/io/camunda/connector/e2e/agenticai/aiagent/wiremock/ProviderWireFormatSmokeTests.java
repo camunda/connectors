@@ -238,6 +238,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         fixture.promptDocumentsAsContent()
             ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt)
             : ProviderWireFormatExpectedMessage.userWithDocumentHandle(userPrompt));
+    assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 
     assertAgentResponse(
         zeebeTest,
@@ -299,6 +300,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
           ProviderWireFormatExpectedMessage.userWithDocument(
               ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
     }
+    assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 
     assertAgentResponse(
         zeebeTest,
