@@ -42,7 +42,7 @@ jobs:
     with:
       config: idp-extraction
       force_shadow_mode: true
-      egress_policy: audit
+      egress_policy: block
     secrets:
       VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
       VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
