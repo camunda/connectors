@@ -351,6 +351,73 @@ public class GenericRecordConverterUnionTest {
   }
 
   @Test
+  void nestedUnion_wrappedNullIsNull() throws Exception {
+    var schema = envelopeWith("[\"null\",\"string\"]");
+    var wrappedNull = new HashMap<String, Object>();
+    wrappedNull.put("null", null);
+
+    var record = converter.toGenericRecord(schema, Map.of("command", wrappedNull));
+
+    assertThat(record.get("command")).isNull();
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void arrayOfNullableItems_wrappedNullItemIsNull() throws Exception {
+    var schema = envelopeWith("{\"type\":\"array\",\"items\":[\"null\",\"string\"]}");
+    var wrappedNull = new HashMap<String, Object>();
+    wrappedNull.put("null", null);
+
+    var record = converter.toGenericRecord(schema, Map.of("command", List.of(wrappedNull, "a")));
+
+    assertThat((List<Object>) record.get("command")).containsExactly(null, "a");
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void nestedUnion_wrappedLongIsWrittenAsLong() throws Exception {
+    var schema = envelopeWith("[\"int\",\"long\"]");
+
+    var record = converter.toGenericRecord(schema, Map.of("command", Map.of("long", 1)));
+
+    assertThat(record.get("command")).isEqualTo(1L);
+    assertThat(writeAndRead(schema, record).get("command")).isEqualTo(1L);
+  }
+
+  @Test
+  void nullableLong_wrappedIntegerIsALong() throws Exception {
+    var schema = envelopeWith("[\"null\",\"long\"]");
+
+    var record = converter.toGenericRecord(schema, Map.of("command", Map.of("long", 1)));
+
+    assertThat(record.get("command")).isEqualTo(1L);
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void nullableEnum_wrappedSymbolIsAnEnumSymbol() throws Exception {
+    var schema =
+        envelopeWith(
+            "[\"null\",{\"type\":\"enum\",\"name\":\"Color\",\"namespace\":\"test\","
+                + "\"symbols\":[\"RED\",\"GREEN\"]}]");
+
+    var record = converter.toGenericRecord(schema, Map.of("command", Map.of("test.Color", "RED")));
+
+    assertThat(record.get("command")).isInstanceOf(GenericData.EnumSymbol.class).hasToString("RED");
+    assertWritableAs(schema, record);
+  }
+
+  @Test
+  void nestedUnion_wrapperWithValueOfTheWrongTypeIsNotUnwrapped() {
+    var schema = envelopeWith("[\"null\",\"string\"]");
+
+    assertThatThrownBy(
+            () -> converter.toGenericRecord(schema, Map.of("command", Map.of("string", 5))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageStartingWith("The value matches none of the types of the union [null, string].");
+  }
+
+  @Test
   void arrayOfUnionItems_eachItemIsConvertedToItsMember() throws Exception {
     var schema =
         new Schema.Parser()
@@ -425,13 +492,16 @@ public class GenericRecordConverterUnionTest {
 
   private static void assertWritableAs(Schema schema, GenericRecord record) throws Exception {
     assertThat(GenericData.get().validate(schema, record)).isTrue();
+    var read = writeAndRead(schema, record);
+    assertThat(read.getSchema().getFullName()).isEqualTo(record.getSchema().getFullName());
+  }
+
+  private static GenericRecord writeAndRead(Schema schema, GenericRecord record) throws Exception {
     var out = new ByteArrayOutputStream();
     var encoder = EncoderFactory.get().binaryEncoder(out, null);
     new GenericDatumWriter<Object>(schema).write(record, encoder);
     encoder.flush();
-    var read =
-        new GenericDatumReader<GenericRecord>(schema)
-            .read(null, DecoderFactory.get().binaryDecoder(out.toByteArray(), null));
-    assertThat(read.getSchema().getFullName()).isEqualTo(record.getSchema().getFullName());
+    return new GenericDatumReader<GenericRecord>(schema)
+        .read(null, DecoderFactory.get().binaryDecoder(out.toByteArray(), null));
   }
 }
