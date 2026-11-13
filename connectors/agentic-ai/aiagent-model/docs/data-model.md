@@ -65,7 +65,9 @@ derived from the `documents` feature and not persisted: `Untracked`, or `Tracked
 tool call results input builder, the document expander, the history mapper and the agent instance client match both
 variants exhaustively; none of them reads the feature or takes a `boolean`.
 
-**Tool definitions.** `AgentContext.toolDefinitions` holds the `ToolDefinition` of every tool offered to the model:
+**Tool definitions.** `AgentContext.toolDefinitions` holds the `ToolDefinition` of every tool of the process, including
+the tools of gateway tools. The complete list offered to the model in a job is `AgentConfiguration.toolDefinitions()`:
+these definitions and the runtime tools enabled for the agent, which are never persisted. A `ToolDefinition` has the
 `name`, `description`, `inputSchema`, the `kind` (written only for a `RUNTIME` tool; absent reads as `PROCESS`) and the
 `documentDelivery`, `reference` or `content`, the delivery of the documents the tool returns. `documentDelivery` is
 omitted when absent, and absent reads as `reference`. It is part of the configuration fingerprint when set, and the model

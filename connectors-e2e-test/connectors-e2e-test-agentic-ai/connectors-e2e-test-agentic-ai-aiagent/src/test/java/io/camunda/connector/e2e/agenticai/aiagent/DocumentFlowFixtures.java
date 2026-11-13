@@ -42,6 +42,8 @@ import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.json.JSONException;
 import org.jspecify.annotations.Nullable;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -72,41 +74,45 @@ public final class DocumentFlowFixtures {
   public static final String COMPLEX_TOOL_CALL_ID = "call_complex";
   public static final String FINAL_TEXT = "I uploaded the document and return it.";
 
+  private static final String UNSUPPORTED_ZIP_MESSAGE =
+      "Unsupported content type 'application/zip' for document with reference"
+          + " 'CamundaDocumentReferenceModel\\[storeId=in-memory,"
+          + " documentId=[0-9a-f-]{36}, contentHash=\\d+,"
+          + " metadata=CamundaDocumentMetadataModel\\[contentType=application/zip,"
+          + " expiresAt=null, size=null, fileName=null, processDefinitionId=null,"
+          + " processInstanceKey=null, customProperties=null\\]\\]'";
+
   private DocumentFlowFixtures() {}
 
   /**
-   * Adds the {@code Upload_A_File} tool to the ad-hoc sub-process. The tool takes a document as its
-   * {@code document} parameter and posts it as multipart form data to the process variable {@code
-   * uploadUrl}.
+   * The pattern of the incident message of a user prompt with a ZIP document that the model
+   * provider does not read. The error variables of the message are a map, whose fields come in any
+   * order.
    */
-  public static BpmnModelInstance withUploadTool(
-      BpmnModelInstance model, String adHocSubProcessId) {
-    final var upload = model.newInstance(ServiceTask.class, UPLOAD_TOOL);
-    upload.setName("Upload a file");
-    upload
-        .builder()
-        .zeebeJobType("io.camunda:http-json:1")
-        .zeebeJobRetries("0")
-        .zeebeInput("noAuth", "authentication.type")
-        .zeebeInput("POST", "method")
-        .zeebeInput("=uploadUrl", "url")
-        .zeebeInput("={\"Content-Type\": \"multipart/form-data\"}", "headers")
-        .zeebeInput(
-            "={\n  file: fromAi(toolCall.document, \"The document to upload.\", \"document\"),\n"
-                + "  label: \"from-agent\"\n}",
-            "body")
-        .zeebeInput("=20", "connectionTimeoutInSeconds")
-        .zeebeInput("=20", "readTimeoutInSeconds")
-        .zeebeInput("=false", "ignoreNullValues")
-        .zeebeTaskHeader("elementTemplateVersion", "12")
-        .zeebeTaskHeader("elementTemplateId", "io.camunda.connectors.HttpJson.v2")
-        .zeebeTaskHeader(
-            "resultExpression", "={\n  toolCallResult: {\n    status: response.status\n  }\n}")
-        .documentation("Upload a known document to the archive");
-
-    final AdHocSubProcess adHocSubProcess = model.getModelElementById(adHocSubProcessId);
-    adHocSubProcess.addChildElement(upload);
-    return model;
+  public static String unsupportedZipIncidentMessage() {
+    final var fields =
+        List.of(
+            Pattern.quote("message=") + UNSUPPORTED_ZIP_MESSAGE,
+            Pattern.quote("type=io.camunda.connector.api.error.ConnectorException"),
+            Pattern.quote("code=FAILED_MODEL_CALL"));
+    final var orders =
+        List.of(
+            List.of(0, 1, 2),
+            List.of(0, 2, 1),
+            List.of(1, 0, 2),
+            List.of(1, 2, 0),
+            List.of(2, 0, 1),
+            List.of(2, 1, 0));
+    final var alternatives =
+        orders.stream()
+            .map(order -> order.stream().map(fields::get).collect(Collectors.joining(", ")))
+            .collect(Collectors.joining("|"));
+    return UNSUPPORTED_ZIP_MESSAGE
+        + Pattern.quote(" | Error variables: {error={")
+        + "(?:"
+        + alternatives
+        + ")"
+        + Pattern.quote("}}");
   }
 
   /** Stubs the endpoint the {@code Upload_A_File} tool posts the document to. */
