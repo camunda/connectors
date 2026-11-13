@@ -61,6 +61,27 @@ public class AgentInstanceEngineVerifier {
         .items();
   }
 
+  /**
+   * Awaits the agent instance of a process instance and returns its key, for an agent that has not
+   * finished yet.
+   */
+  public static long awaitAgentInstanceKey(CamundaClient client, long processInstanceKey) {
+    return await()
+        .alias("agent instance of process instance " + processInstanceKey)
+        .atMost(Duration.ofSeconds(30))
+        .ignoreExceptions()
+        .until(
+            () ->
+                client
+                    .newAgentInstanceSearchRequest()
+                    .filter(f -> f.processInstanceKey(processInstanceKey))
+                    .execute()
+                    .items(),
+            items -> !items.isEmpty())
+        .getFirst()
+        .getAgentInstanceKey();
+  }
+
   public AgentInstanceEngineVerifier hasStatus(AgentInstanceStatus status) {
     instanceChecks.add(
         instance -> assertThat(instance.getStatus()).as("agent instance status").isEqualTo(status));
@@ -205,27 +226,6 @@ public class AgentInstanceEngineVerifier {
             .as("committed TOOL_RESULT tool names in history order")
             .containsExactly(toolNames));
     return this;
-  }
-
-  /**
-   * Awaits the agent instance of a process instance and returns its key, for an agent that has not
-   * finished yet.
-   */
-  public static long awaitAgentInstanceKey(CamundaClient client, long processInstanceKey) {
-    return await()
-        .alias("agent instance of process instance " + processInstanceKey)
-        .atMost(Duration.ofSeconds(30))
-        .ignoreExceptions()
-        .until(
-            () ->
-                client
-                    .newAgentInstanceSearchRequest()
-                    .filter(f -> f.processInstanceKey(processInstanceKey))
-                    .execute()
-                    .items(),
-            items -> !items.isEmpty())
-        .getFirst()
-        .getAgentInstanceKey();
   }
 
   /**

@@ -102,7 +102,7 @@ class RuntimeToolResultTest {
   void effectsOfDifferentKindsKeepTheOrderTheyWereAdded() {
     final var result =
         RuntimeToolResult.success("ok")
-            .withResponseDocument("second", DOC_2, null)
+            .withResponseDocument("second", DOC_2)
             .withDocumentContent(DOC_1)
             .withResponseDocument("first", DOC_1, "A document");
 
@@ -121,7 +121,7 @@ class RuntimeToolResultTest {
     final var result = RuntimeToolResult.success("ok");
 
     for (final var key : List.of("", " ", "1abc", "a b")) {
-      assertThatThrownBy(() -> result.withResponseDocument(key, DOC_1, null))
+      assertThatThrownBy(() -> result.withResponseDocument(key, DOC_1))
           .isInstanceOf(IllegalArgumentException.class);
     }
     assertThat(result.effects()).isEmpty();
@@ -132,7 +132,7 @@ class RuntimeToolResultTest {
     final var original = RuntimeToolResult.success("ok");
 
     original.withDocumentContent(DOC_1);
-    original.withResponseDocument("key", DOC_1, null);
+    original.withResponseDocument("key", DOC_1);
 
     assertThat(original.effects()).isEmpty();
   }
@@ -142,7 +142,7 @@ class RuntimeToolResultTest {
     final var result =
         RuntimeToolResult.success("ok")
             .withDocumentContent(DOC_1)
-            .withResponseDocument("key", DOC_1, null);
+            .withResponseDocument("key", DOC_1);
 
     assertThatThrownBy(() -> result.effects().add(new ToolCallEffect.AddDocumentContent(DOC_2)))
         .isInstanceOf(UnsupportedOperationException.class);
