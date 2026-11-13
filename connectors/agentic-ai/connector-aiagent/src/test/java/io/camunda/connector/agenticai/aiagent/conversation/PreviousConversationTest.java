@@ -14,7 +14,9 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class PreviousConversationTest {
@@ -116,5 +118,22 @@ class PreviousConversationTest {
 
     assertThat(conversation.documentIdsWithContent(3, 1)).containsExactly(LOADED);
     assertThat(conversation.documentIdsWithContent(2, 1)).isEmpty();
+  }
+
+  @Test
+  void
+      documentIdsWithContent_countsTheDocumentOfALoadCallAtTheWindowBoundaryWithoutASystemMessage() {
+    // the window of 3 holds the user message with the content, the assistant message with the load
+    // call and the one message the invocation adds
+    final var loadCall = new ToolCall("call-1", "c8__load_document", Map.of());
+    final var conversation =
+        TurnReconstructor.reconstruct(
+            List.of(
+                UserMessage.builder()
+                    .content(List.of(block(LOADED, DocumentDelivery.CONTENT)))
+                    .build(),
+                assistantMessage("loading", List.of(loadCall))));
+
+    assertThat(conversation.documentIdsWithContent(3, 1)).containsExactly(LOADED);
   }
 }
