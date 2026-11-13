@@ -34,6 +34,9 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
@@ -63,8 +66,10 @@ public final class DocumentFlowFixtures {
   public static final String RETURN_CALL_ID = "call_return";
   public static final String GET_CALL_ID = "call_get";
   public static final String GET_AGAIN_CALL_ID = "call_get_again";
-  public static final String PING_CALL_ID = "call_ping";
-  public static final String SLOW_TOOL_CALL_ID = "call_slow";
+  public static final String SUPERFLUX_CALL_ID = "call_superflux";
+  public static final String SUPERFLUX_RESULT = "24";
+  public static final String COMPLEX_TOOL = "A_Complex_Tool";
+  public static final String COMPLEX_TOOL_CALL_ID = "call_complex";
   public static final String FINAL_TEXT = "I uploaded the document and return it.";
 
   private DocumentFlowFixtures() {}
@@ -204,34 +209,35 @@ public final class DocumentFlowFixtures {
   }
 
   /**
-   * One assistant message with a valid {@code c8__return_document} call and a real {@code Ping}.
+   * One assistant message with a valid {@code c8__return_document} call and a {@code
+   * SuperfluxProduct} call, which answers {@value #SUPERFLUX_RESULT}.
    */
-  public static Turn returnDocumentWithPingTurn() {
+  public static Turn returnDocumentWithSuperfluxTurn() {
     return Turn.toolCalls(
-        "I will return the document and check that the tools work.",
+        "I will return the document and calculate the superflux product.",
         10,
         20,
         ToolCall.of(
             RETURN_CALL_ID,
             "c8__return_document",
             RETURN_ARGUMENTS.formatted(handle(documentId(0)))),
-        ToolCall.of(PING_CALL_ID, "Ping", "{}"));
+        ToolCall.of(SUPERFLUX_CALL_ID, "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"));
   }
 
   /**
-   * One assistant message with a valid {@code c8__return_document} call and a real {@code
-   * Slow_Tool} call, which keeps running until the test completes its job.
+   * One assistant message with a valid {@code c8__return_document} call and a call of the complex
+   * tool. The complex tool has no job worker: it runs until the test completes its job.
    */
-  public static Turn returnDocumentWithSlowToolTurn() {
+  public static Turn returnDocumentWithComplexToolTurn() {
     return Turn.toolCalls(
-        "I will return the document and run the slow tool.",
+        "I will return the document and run the complex tool.",
         10,
         20,
         ToolCall.of(
             RETURN_CALL_ID,
             "c8__return_document",
             RETURN_ARGUMENTS.formatted(handle(documentId(0)))),
-        ToolCall.of(SLOW_TOOL_CALL_ID, "Slow_Tool", "{}"));
+        ToolCall.of(COMPLEX_TOOL_CALL_ID, COMPLEX_TOOL, "{}"));
   }
 
   /**
