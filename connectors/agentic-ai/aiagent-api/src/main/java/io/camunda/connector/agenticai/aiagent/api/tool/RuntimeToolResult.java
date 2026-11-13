@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 import io.camunda.connector.api.document.Document;
