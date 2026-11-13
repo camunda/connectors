@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.document;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import java.util.ArrayList;
@@ -18,12 +17,15 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Decides for the documents whose content is asked for whether the content is added to the
- * conversation. It is the one place of the rule that content the model reads already, or that an
- * earlier request of the same batch asked for, is not added again. The content of any other known
- * document is added, whatever its type and size.
+ * The documents whose content the model reads or receives in the next message, as far as the
+ * requests of a batch dealt with them. It decides for the documents whose content is asked for
+ * whether the content is added to the conversation, and returns the delivery for the next request.
+ * Content that the model reads already, or that an earlier request of the same batch asked for, is
+ * not added again. The content of any other document is added, whatever its type and size.
+ *
+ * @param inConversation the ids of the documents whose content is not added again
  */
-public class DocumentContentDelivery {
+public record DocumentContentDelivery(Set<AgentDocumentId> inConversation) {
 
   /** What happens to the content of a document that was asked for. */
   public sealed interface Outcome {
@@ -46,81 +48,65 @@ public class DocumentContentDelivery {
   }
 
   /**
-   * What the requests of a batch dealt with so far: the documents whose content the model reads or
-   * receives in the next message.
-   *
-   * @param inConversation the ids of the documents whose content is not added again
-   */
-  public record Handled(Set<AgentDocumentId> inConversation) {
-
-    public Handled {
-      inConversation = Set.copyOf(inConversation);
-    }
-
-    /**
-     * The state before the first request of a batch.
-     *
-     * @param idsWithContent the ids of the documents whose content the model reads as of the start
-     *     of the batch
-     */
-    public static Handled of(Set<AgentDocumentId> idsWithContent) {
-      return new Handled(idsWithContent);
-    }
-
-    private Handled after(Outcome outcome) {
-      return switch (outcome) {
-        case Outcome.Delivered delivered -> {
-          final var ids = new HashSet<>(inConversation);
-          ids.add(delivered.withContent().id());
-          yield new Handled(ids);
-        }
-        case Outcome.AlreadyInConversation ignored -> this;
-      };
-    }
-  }
-
-  /**
-   * The outcome for every document that was asked for, and the state after the requests.
+   * The outcome for every document that was asked for, and the delivery after the requests.
    *
    * @param outcomes the outcome per document, in the order of the first request
-   * @param handled the state for the next request of the batch
+   * @param next the delivery for the next request of the batch
    */
-  public record Decision(List<Outcome> outcomes, Handled handled) {
+  public record Decision(List<Outcome> outcomes, DocumentContentDelivery next) {
 
     public Decision {
       outcomes = List.copyOf(outcomes);
     }
   }
 
+  public DocumentContentDelivery {
+    inConversation = Set.copyOf(inConversation);
+  }
+
+  /**
+   * The delivery before the first request of a batch.
+   *
+   * @param idsWithContent the ids of the documents whose content the model reads as of the start of
+   *     the batch
+   */
+  public static DocumentContentDelivery of(Set<AgentDocumentId> idsWithContent) {
+    return new DocumentContentDelivery(idsWithContent);
+  }
+
   /**
    * Decides for each document that was asked for, in the order of the first request, whether its
-   * content is added. A document that is {@link Handled#inConversation} is {@link
+   * content is added. A document that is {@link #inConversation} is {@link
    * Outcome.AlreadyInConversation}: the model reads its content already, or an earlier request of
    * the same batch delivers it. The content of every other document is {@link Outcome.Delivered}.
    *
-   * @param known the documents the agent knows
+   * <p>The ids must be the ones of documents the agent knows. The caller checks this.
+   *
    * @param requested the ids of the documents whose content is asked for
-   * @param handled what the earlier requests of the batch dealt with
-   * @throws IllegalArgumentException if a requested id is not the one of a known document
    */
-  public Decision deliver(
-      AgentDocuments known, Collection<AgentDocumentId> requested, Handled handled) {
+  public Decision deliver(Collection<AgentDocumentId> requested) {
     final var outcomes = new ArrayList<Outcome>();
-    var state = handled;
+    var delivery = this;
     for (final var id : new LinkedHashSet<>(requested)) {
-      if (known.find(id).isEmpty()) {
-        throw new IllegalArgumentException(
-            "The content of the document '%s' is asked for, but the agent does not know it"
-                .formatted(id));
-      }
       final var outcome =
-          state.inConversation().contains(id)
+          delivery.inConversation.contains(id)
               ? new Outcome.AlreadyInConversation(id)
               : new Outcome.Delivered(
                   AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT));
       outcomes.add(outcome);
-      state = state.after(outcome);
+      delivery = delivery.after(outcome);
     }
-    return new Decision(outcomes, state);
+    return new Decision(outcomes, delivery);
+  }
+
+  private DocumentContentDelivery after(Outcome outcome) {
+    return switch (outcome) {
+      case Outcome.Delivered delivered -> {
+        final var ids = new HashSet<>(inConversation);
+        ids.add(delivered.withContent().id());
+        yield new DocumentContentDelivery(ids);
+      }
+      case Outcome.AlreadyInConversation ignored -> this;
+    };
   }
 }

@@ -263,9 +263,7 @@ class AgentSubProcessRequestHandlerTest {
           TestObjectMapperSupplier.INSTANCE,
           new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
-  @Spy
-  private ToolCallResultsInputBuilder resultsInputBuilder =
-      new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery());
+  @Spy private ToolCallResultsInputBuilder resultsInputBuilder = new ToolCallResultsInputBuilder();
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
@@ -2523,7 +2521,18 @@ class AgentSubProcessRequestHandlerTest {
         chatModelRequestCaptor.getAllValues().get(0).snapshot().messages();
     assertThat(firstRequestMessages.getLast()).isEqualTo(USER_MESSAGE);
     assertThat(chatModelRequestCaptor.getAllValues().get(0).snapshot().toolDefinitions())
-        .contains(new LoadDocumentTool().definition());
+        .containsExactlyElementsOf(
+            Stream.concat(
+                    TOOL_DEFINITIONS.stream(),
+                    Stream.of(
+                            LOOKUP_TOOL,
+                            TOGGLE_TOOL,
+                            CREATE_REPORT_TOOL,
+                            COUNT_DOCUMENTS_TOOL,
+                            LOAD_DOCUMENT_TOOL,
+                            new LoadDocumentTool())
+                        .map(RuntimeTool::definition))
+                .toList());
 
     // the second request has the tool result followed by the message with the loaded content
     final var secondRequestMessages =

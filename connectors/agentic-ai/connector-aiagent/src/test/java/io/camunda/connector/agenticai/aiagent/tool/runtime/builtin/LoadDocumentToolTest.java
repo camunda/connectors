@@ -77,8 +77,7 @@ class LoadDocumentToolTest {
       new RuntimeTools(List.of(tool), objectMapper, new DocumentParameterResolver(objectMapper));
   private final LocalToolCallExecutor executor =
       new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer());
-  private final ToolCallResultsInputBuilder inputBuilder =
-      new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery());
+  private final ToolCallResultsInputBuilder inputBuilder = new ToolCallResultsInputBuilder();
 
   private static ObjectMapper objectMapperFor(CamundaDocumentStore store) {
     final var copy = ConnectorsObjectMapperSupplier.getCopy();

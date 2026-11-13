@@ -111,9 +111,7 @@ class AgentTaskRequestHandlerTest {
           TestObjectMapperSupplier.INSTANCE,
           new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
-  @Spy
-  private ToolCallResultsInputBuilder resultsInputBuilder =
-      new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery());
+  @Spy private ToolCallResultsInputBuilder resultsInputBuilder = new ToolCallResultsInputBuilder();
 
   @Spy private DocumentExpander documentExpander = TestDocuments.documentExpander();
 

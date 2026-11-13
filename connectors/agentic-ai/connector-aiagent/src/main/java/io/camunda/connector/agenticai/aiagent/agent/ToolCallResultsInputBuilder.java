@@ -15,10 +15,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentIdCollisionException;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
-import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -33,15 +33,18 @@ import java.util.Set;
 
 /**
  * Builds the input of the turn that follows a batch of tool calls from its results, in call order.
- * It applies what the results ask of the agent after all calls ran: the documents they return are
- * registered, and the effects of the results are applied.
+ * It applies what the results ask of the agent after all calls ran: it returns the documents of the
+ * results in the {@link TurnInput}, which {@link TurnInput#applyTo} registers, and it applies the
+ * effects of the results. It is the one place that checks that an effect names a known document.
  *
  * <p>An agent instance that tracks its documents shows a document as its handle inside the tool
- * result and reports it to be registered in its documents. For every document whose content a
- * result asks for, the builder appends a sentence to that result that tells the model what happens:
- * the content follows in the next message, or the content is in the conversation already. The
- * documents whose content is added follow in a message of their own. An agent instance that does
- * not track its documents keeps the document in a message of its own, next to its tag.
+ * result and reports it in the {@link TurnInput} to be registered in its documents. For every
+ * document whose content a result asks for, the builder appends a sentence to that result that
+ * tells the model what happens: the content follows in the next message, or the content is in the
+ * conversation already. The documents whose content is added follow in a message of their own. An
+ * agent instance that does not track its documents keeps the document in a message of its own, next
+ * to its tag. Such an instance gives no document an id, so a result of it must ask nothing of the
+ * agent.
  */
 public class ToolCallResultsInputBuilder {
 
@@ -61,25 +64,18 @@ public class ToolCallResultsInputBuilder {
     return "The content of %s is already in the conversation.".formatted(documentRef);
   }
 
-  private final DocumentContentDelivery contentDelivery;
-
-  /**
-   * @param contentDelivery decides whether the content of a document a result asks for is added
-   */
-  public ToolCallResultsInputBuilder(DocumentContentDelivery contentDelivery) {
-    this.contentDelivery = contentDelivery;
-  }
-
   /**
    * Builds the input of the turn that follows the batch.
    *
    * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
    *     start of the batch
    * @throws IllegalStateException if a call of the batch has no result
-   * @throws UnsupportedDocumentReferenceException if an agent instance that tracks its documents
-   *     gets a document that is not a Camunda document
-   * @throws IllegalArgumentException if a result asks for the content of a document that neither
-   *     {@code agentContext} nor the result knows
+   * @throws IllegalArgumentException if a result asks for the content of a document that is neither
+   *     known to {@code agentContext} as of the start of the batch nor returned by the result, or
+   *     if a result of an agent instance that does not track its documents asks anything of the
+   *     agent
+   * @throws AgentDocumentIdCollisionException if a document of a result gets the id of a different
+   *     document that the agent knows, or of another document of the batch
    */
   public TurnInput build(
       AgentContext agentContext, ToolCallBatch batch, Set<AgentDocumentId> documentIdsWithContent) {
@@ -91,16 +87,11 @@ public class ToolCallResultsInputBuilder {
     };
   }
 
-  /**
-   * The input for an agent instance that tracks its documents. The results of an instance that does
-   * not track its documents ask nothing of the agent (see {@link LocalToolCallExecutor}), so only
-   * this input applies effects.
-   */
+  /** The input for an agent instance that tracks its documents. */
   private TurnInput trackedInput(
       AgentDocuments documents,
       List<ToolCallBatch.Entry> entries,
       Set<AgentDocumentId> documentIdsWithContent) {
-    entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
     return buildWithDocumentBlocks(
         entries, applyEffects(documents, entries, documentIdsWithContent));
   }
@@ -117,13 +108,14 @@ public class ToolCallResultsInputBuilder {
 
   /**
    * Applies the effects in the order of the entries. An entry sees the documents of the agent and
-   * its own documents only, never the ones of another entry.
+   * its own documents only, never the ones of another entry. An effect that names another document
+   * fails.
    */
   private AppliedEffects applyEffects(
       AgentDocuments documents,
       List<ToolCallBatch.Entry> entries,
       Set<AgentDocumentId> documentIdsWithContent) {
-    var handled = DocumentContentDelivery.Handled.of(documentIdsWithContent);
+    var delivery = DocumentContentDelivery.of(documentIdsWithContent);
     final var statements = new ArrayList<List<Content>>();
     final var delivered = new ArrayList<AgentDocumentContent>();
 
@@ -140,15 +132,16 @@ public class ToolCallResultsInputBuilder {
       }
 
       final var known = documents.register(newDocumentsOf(entry));
+      requireKnown(entry, requestedContent, known);
       final var entryStatements = new ArrayList<Content>();
-      final var decision = contentDelivery.deliver(known, requestedContent, handled);
-      handled = decision.handled();
+      final var decision = delivery.deliver(requestedContent);
+      delivery = decision.next();
       for (final var outcome : decision.outcomes()) {
         switch (outcome) {
-          case DocumentContentDelivery.Outcome.Delivered delivery -> {
-            delivered.add(delivery.withContent());
+          case DocumentContentDelivery.Outcome.Delivered added -> {
+            delivered.add(added.withContent());
             entryStatements.add(
-                textContent(contentFollows(documentRef(known, delivery.withContent().id()))));
+                textContent(contentFollows(documentRef(known, added.withContent().id()))));
           }
           case DocumentContentDelivery.Outcome.AlreadyInConversation already ->
               entryStatements.add(
@@ -158,6 +151,18 @@ public class ToolCallResultsInputBuilder {
       statements.add(List.copyOf(entryStatements));
     }
     return new AppliedEffects(List.copyOf(statements), List.copyOf(delivered));
+  }
+
+  private static void requireKnown(
+      ToolCallBatch.Entry entry, List<AgentDocumentId> requested, AgentDocuments known) {
+    requested.stream()
+        .filter(id -> known.find(id).isEmpty())
+        .findFirst()
+        .ifPresent(id -> {
+          throw new IllegalArgumentException(
+              "The runtime tool '%s' refers to the document '%s', which the agent does not know and the result does not return"
+                  .formatted(entry.result().name(), id));
+        });
   }
 
   /** The file name and the id of a document, or the id alone when it has no file name. */
@@ -214,6 +219,14 @@ public class ToolCallResultsInputBuilder {
   }
 
   private static TurnInput buildWithDocumentMessage(List<ToolCallBatch.Entry> entries) {
+    entries.stream()
+        .filter(entry -> !entry.effects().isEmpty())
+        .findFirst()
+        .ifPresent(entry -> {
+          throw new IllegalArgumentException(
+              "The runtime tool '%s' refers to a document by its id, which an agent instance that does not track its documents does not support"
+                  .formatted(entry.result().name()));
+        });
     final var messages = new ArrayList<Message>();
     messages.add(
         ToolCallResultMessage.builder()

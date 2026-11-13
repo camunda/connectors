@@ -164,21 +164,6 @@ class LocalToolCallExecutorTest {
   }
 
   @Test
-  void anEffectThatNamesAnUnknownDocumentIsADefectOfTheTool() {
-    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
-        .thenReturn(
-            List.of(
-                runtimeExecution(RuntimeToolResult.success("a").withDocumentContent(KNOWN_ID))));
-
-    assertThatThrownBy(
-            () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "The runtime tool 'getWeather' refers to the document '%s', which the agent does not know and the result does not return"
-                .formatted(KNOWN_ID));
-  }
-
-  @Test
   void anAgentThatDoesNotTrackItsDocumentsTakesEveryKindOfDocumentFromAResult() {
     var inline = new InlineDocument("inline", "inline.txt", "text/plain");
     var external =
@@ -216,20 +201,57 @@ class LocalToolCallExecutorTest {
   }
 
   @Test
-  void anEffectInTheResultOfAnAgentThatDoesNotTrackItsDocumentsIsADefectOfTheTool() {
-    var returned = createDocument("returned", "returned.txt");
-    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+  void anAgentThatTracksItsDocumentsRejectsAnInlineDocumentNestedInAnObjectOfAResult() {
+    var inline = new InlineDocument("inline", "inline.txt", "text/plain");
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(
             List.of(
                 runtimeExecution(
-                    RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
-                        .withDocumentContent(AgentDocumentId.of(returned)))));
+                    RuntimeToolResult.success(
+                        List.of(ObjectContent.objectContent(Map.of("file", inline)))))));
 
     assertThatThrownBy(
-            () -> executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
-        .isInstanceOf(IllegalArgumentException.class)
+            () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .isInstanceOf(UnsupportedDocumentReferenceException.class)
         .hasMessage(
-            "The runtime tool 'getWeather' refers to a document by its id, which an agent instance that does not track its documents does not support");
+            "Only Camunda documents can be passed to the AI Agent, but the result of the tool 'getWeather' contains an inline document.");
+  }
+
+  @Test
+  void anAgentThatTracksItsDocumentsRejectsAnExternalDocumentOfAResultThatAsksForContent() {
+    var external =
+        new ExternalDocument("https://example.com/report.pdf", "report.pdf", url -> null);
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(
+            List.of(
+                runtimeExecution(
+                    RuntimeToolResult.success(List.of(DocumentContent.documentContent(external)))
+                        .withDocumentContent(AgentDocumentId.of("doc_1")))));
+
+    assertThatThrownBy(
+            () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .isInstanceOf(UnsupportedDocumentReferenceException.class)
+        .hasMessage(
+            "Only Camunda documents can be passed to the AI Agent, but the result of the tool 'getWeather' contains an external document.");
+  }
+
+  @Test
+  void keepsTheEffectsOfAResultOfAnAgentThatDoesNotTrackItsDocuments() {
+    var returned = createDocument("returned", "returned.txt");
+    var id = AgentDocumentId.of(returned);
+    var execution =
+        runtimeExecution(
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
+                .withDocumentContent(id));
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(execution));
+
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL));
+
+    assertThat(entries)
+        .containsExactly(
+            ToolCallBatch.Entry.from(
+                execution.toolCallResult(), List.of(new ToolCallEffect.AddDocumentContent(id))));
   }
 
   @Test

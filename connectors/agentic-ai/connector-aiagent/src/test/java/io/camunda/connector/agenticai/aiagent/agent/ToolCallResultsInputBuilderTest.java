@@ -54,8 +54,7 @@ class ToolCallResultsInputBuilderTest {
   private static final AgentContext WITH_DOCUMENTS =
       AgentContext.empty().withFeatures(List.of(AgentFeatures.DOCUMENTS));
 
-  private final ToolCallResultsInputBuilder builder =
-      new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery());
+  private final ToolCallResultsInputBuilder builder = new ToolCallResultsInputBuilder();
 
   private final Document first = createDocument("first", "first.txt");
   private final Document nested = createDocument("nested", "nested.txt");
@@ -183,7 +182,7 @@ class ToolCallResultsInputBuilderTest {
             UserMessage.class,
             message -> {
               assertThat(message.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+                  .isEqualTo(TestDocuments.toolCallDocumentsMetadata(message));
               assertThat(message.content())
                   .containsExactly(
                       textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE),
@@ -221,7 +220,7 @@ class ToolCallResultsInputBuilderTest {
             UserMessage.class,
             message -> {
               assertThat(message.metadata())
-                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+                  .isEqualTo(TestDocuments.toolCallDocumentsMetadata(message));
               assertThat(message.content())
                   .containsExactly(
                       textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
@@ -389,7 +388,9 @@ class ToolCallResultsInputBuilderTest {
 
     assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(returning, naming), Set.of()))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("does not know");
+        .hasMessage(
+            "The runtime tool 'beta' refers to the document '%s', which the agent does not know and the result does not return"
+                .formatted(idOf(first)));
   }
 
   @Test
@@ -402,7 +403,38 @@ class ToolCallResultsInputBuilderTest {
 
     assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of()))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("unknown");
+        .hasMessage(
+            "The runtime tool 'alpha' refers to the document '%s', which the agent does not know and the result does not return"
+                .formatted(AgentDocumentId.of("unknown")));
+  }
+
+  @Test
+  void aResultOfAProcessToolThatNamesAnUnknownDocumentIsADefectToo() {
+    final var processEntry =
+        entryWithEffects(
+            result("c1", "process_tool", textContent("done")),
+            List.of(new ToolCallEffect.AddDocumentContent(idOf(known))));
+
+    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(processEntry), Set.of()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'process_tool' refers to the document '%s', which the agent does not know and the result does not return"
+                .formatted(idOf(known)));
+  }
+
+  @Test
+  void aResultOfAnAgentThatDoesNotTrackItsDocumentsThatAsksForContentIsADefectOfTheTool() {
+    final var entry =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
+                .withDocumentContent(idOf(first)));
+
+    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry), Set.of()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'alpha' refers to a document by its id, which an agent instance that does not track its documents does not support");
   }
 
   /** An entry with the documents the generic walker finds and the given effects. */

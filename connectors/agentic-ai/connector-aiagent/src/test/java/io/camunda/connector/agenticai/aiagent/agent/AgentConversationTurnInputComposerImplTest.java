@@ -103,7 +103,7 @@ class AgentConversationTurnInputComposerImplTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
+            new ToolCallResultsInputBuilder(),
             TestDocuments.objectHandleRenderer());
   }
 
@@ -1142,7 +1142,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     assertThat(messages).hasSize(2);
     assertThat(messages.get(1).metadata())
-        .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+        .isEqualTo(TestDocuments.toolCallDocumentsMetadata((UserMessage) messages.get(1)));
     assertThat(((UserMessage) messages.get(1)).content())
         .containsExactly(
             textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
@@ -1225,12 +1225,11 @@ class AgentConversationTurnInputComposerImplTest {
 
   @Test
   void runtimeToolCalls_aDocumentInTheOldestMessageOfTheWindowIsInTheConversationOfTheModelCall() {
-    // 4 previous messages, the tool call result message and the place of the system message fill
-    // the window of 6
+    // 4 previous messages and the tool call result message fill the window of 5
     var document = createDocument("first", "text/plain", "first.txt");
     var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
 
-    assertThat(contentOfTheLoadingResult(configWithContextWindow(6), document))
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(5), document))
         .containsExactly(
             textContent("Loaded the document."),
             textContent("The content of " + ref + " is already in the conversation."));
@@ -1241,7 +1240,7 @@ class AgentConversationTurnInputComposerImplTest {
     var document = createDocument("first", "text/plain", "first.txt");
     var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
 
-    assertThat(contentOfTheLoadingResult(configWithContextWindow(5), document))
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(4), document))
         .containsExactly(
             textContent("Loaded the document."),
             textContent("The content of " + ref + " follows in the next message."));
@@ -1253,7 +1252,7 @@ class AgentConversationTurnInputComposerImplTest {
     var document = createDocument("first", "text/plain", "first.txt");
     var ref = "first.txt (" + AgentDocumentId.of(document).value() + ")";
 
-    assertThat(contentOfTheLoadingResult(configWithContextWindow(6), document, eventResult()))
+    assertThat(contentOfTheLoadingResult(configWithContextWindow(5), document, eventResult()))
         .containsExactly(
             textContent("Loaded the document."),
             textContent("The content of " + ref + " follows in the next message."));
@@ -1266,7 +1265,7 @@ class AgentConversationTurnInputComposerImplTest {
     var id = AgentDocumentId.of(document);
     var ready =
         resolveReady(
-            configWithContextWindow(5),
+            configWithContextWindow(4),
             contextKnowing(document),
             historyWithTheContentFirstAndTheToolCallsLast(document),
             inputWith(TOOL_CALL_RESULTS.get(1)));
@@ -1281,77 +1280,26 @@ class AgentConversationTurnInputComposerImplTest {
             AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT));
   }
 
-  private static PreviousConversation historyWithTheContentFirst(Document document) {
-    return TurnReconstructor.reconstruct(
-        List.of(
-            UserMessage.builder()
-                .content(
-                    List.of(
-                        AgentDocumentContent.of(AgentDocumentId.of(document))
-                            .withDelivery(DocumentDelivery.CONTENT)))
-                .build(),
-            assistantMessage("one"),
-            userMessage("two"),
-            assistantMessage("three")));
-  }
-
   @Test
-  void userPrompt_aDocumentInTheOldestMessageOfTheWindowIsInTheConversationOfTheModelCall() {
-    // 4 previous messages, the user prompt message and the place of the system message fill the
-    // window of 6
+  void userPrompt_readyHasNoDocumentIdsWithContentAsTheTurnHasNoBatch() {
     var document = createDocument("first", "text/plain", "first.txt");
 
     var ready =
         resolveReady(
             configWithContextWindow(6),
             contextKnowing(document),
-            historyWithTheContentFirst(document),
-            AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of()));
-
-    assertThat(ready.documentIdsWithContent()).containsExactly(AgentDocumentId.of(document));
-  }
-
-  @Test
-  void userPrompt_aDocumentThatTheUserPromptMessageSqueezesOutOfTheWindowIsNotInTheConversation() {
-    var document = createDocument("first", "text/plain", "first.txt");
-
-    var ready =
-        resolveReady(
-            configWithContextWindow(5),
-            contextKnowing(document),
-            historyWithTheContentFirst(document),
+            TurnReconstructor.reconstruct(
+                List.of(
+                    UserMessage.builder()
+                        .content(
+                            List.of(
+                                AgentDocumentContent.of(AgentDocumentId.of(document))
+                                    .withDelivery(DocumentDelivery.CONTENT)))
+                        .build(),
+                    assistantMessage("one"))),
             AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of()));
 
     assertThat(ready.documentIdsWithContent()).isEmpty();
-  }
-
-  @Test
-  void userPrompt_aDocumentThatAnEventMessageSqueezesOutOfTheWindowIsNotInTheConversation() {
-    var document = createDocument("first", "text/plain", "first.txt");
-
-    var ready =
-        resolveReady(
-            configWithContextWindow(6),
-            contextKnowing(document),
-            historyWithTheContentFirst(document),
-            AgentInput.from(
-                new UserPromptConfiguration("user input", List.of()), List.of(eventResult())));
-
-    assertThat(ready.documentIdsWithContent()).isEmpty();
-  }
-
-  @Test
-  void userPrompt_withoutAPromptMessageOnlyTheEventMessagesCount() {
-    var document = createDocument("first", "text/plain", "first.txt");
-
-    var ready =
-        resolveReady(
-            configWithContextWindow(6),
-            contextKnowing(document),
-            historyWithTheContentFirst(document),
-            AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(eventResult())));
-
-    assertThat(ready.documentIdsWithContent()).containsExactly(AgentDocumentId.of(document));
   }
 
   @Test
