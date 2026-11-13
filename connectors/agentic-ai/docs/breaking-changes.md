@@ -356,8 +356,8 @@ applies it to its persisted context, and the next round continues with the conte
   the format described above.
 - New in the libraries: the persisted document state (`AgentDocuments`, `AgentDocument`, the sealed `AgentDocumentOrigin`,
   persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, the sealed `DocumentHandling` of an
-  agent instance, `Untracked` or `Tracked`, `ResponseDocumentSelection`, a document selected for the final response, and
-  `ResponseDocument`, a selection with its agent document) is in `aiagent.model.document` of `aiagent-model`, which depends on the
+  agent instance, `Untracked` or `Tracked`, and `ResponseDocumentSelection`, a document selected for the final
+  response) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
   `RuntimeToolContext`, `RuntimeToolResult`, `ToolCallEffect`, `RuntimeToolException`) are in `aiagent.api.tool` of `aiagent-api`. A
   `RuntimeToolExecution` carries the `RuntimeToolResult` the tool returned (`result()`); the
