@@ -76,11 +76,11 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1));
+    assertDocumentHandlePart(userMessage.contentParts().get(1), "test.txt");
     assertDocumentContentBlockJson(userMessage.contentParts().get(2), "test.txt");
-    assertDocumentHandlePart(userMessage.contentParts().get(3));
+    assertDocumentHandlePart(userMessage.contentParts().get(3), "test.pdf");
     assertDocumentContentBlockJson(userMessage.contentParts().get(4), "test.pdf");
-    assertDocumentHandlePart(userMessage.contentParts().get(5));
+    assertDocumentHandlePart(userMessage.contentParts().get(5), "test.jpg");
     assertDocumentContentBlockJson(userMessage.contentParts().get(6), "test.jpg");
 
     assertAgentResponse(

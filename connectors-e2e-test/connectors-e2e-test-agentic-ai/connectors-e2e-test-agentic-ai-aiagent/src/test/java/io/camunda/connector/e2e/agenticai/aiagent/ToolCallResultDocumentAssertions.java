@@ -29,7 +29,6 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
@@ -117,7 +116,9 @@ public final class ToolCallResultDocumentAssertions {
   /**
    * Parses the first document handle out of a serialized tool call result (a bare handle, a handle
    * followed by a sentence or a JSON value embedding one) into a {@link ParsedDocumentHandle}. Also
-   * asserts that the text does not carry any document reference field.
+   * asserts that the text does not carry any document reference field, that the handle has no field
+   * other than the ones of an {@link AgentDocumentHandle}, and that the handle is written as the
+   * agent writes it.
    *
    * <p>Throws {@link AssertionError} if no handle is present.
    */
@@ -138,23 +139,22 @@ public final class ToolCallResultDocumentAssertions {
       throw new AssertionError("Unparseable document handle in: " + toolResultText, e);
     }
 
-    final var fieldNames = new HashSet<String>();
-    node.fieldNames().forEachRemaining(fieldNames::add);
-    assertThat(fieldNames)
-        .as("handle fields")
-        .isSubsetOf("type", "id", "fileName", "contentType", "size", "note")
-        .contains("type", "id");
+    final AgentDocumentHandle handle;
+    try {
+      // fails for a field that an AgentDocumentHandle does not have
+      handle = OBJECT_MAPPER.treeToValue(node, AgentDocumentHandle.class);
+    } catch (JsonProcessingException e) {
+      throw new AssertionError("Not a document handle: " + node, e);
+    }
+    assertThat(node.toString())
+        .as("the handle as the agent writes it")
+        .isEqualTo(HANDLE_RENDERER.text(handle));
     return new ParsedDocumentHandle(
-        AgentDocumentId.of(node.path("id").asText()),
-        textOrNull(node, "fileName"),
-        textOrNull(node, "contentType"),
-        node.has("size") ? node.path("size").asLong() : null,
-        textOrNull(node, "note"),
+        AgentDocumentId.of(handle.id()),
+        handle.fileName(),
+        handle.contentType(),
+        handle.size(),
         node.toString());
-  }
-
-  private static @Nullable String textOrNull(JsonNode node, String field) {
-    return node.has(field) ? node.path(field).asText() : null;
   }
 
   /**
@@ -204,17 +204,29 @@ public final class ToolCallResultDocumentAssertions {
   }
 
   /**
-   * Asserts that a wire-format content part (OpenAI JSON) is a text part holding the handle of a
-   * user prompt document that exposes the document id and its file information only: no store id,
-   * content hash, URL or origin.
+   * Asserts that a wire-format content part (OpenAI JSON) is a text part holding exactly the handle
+   * of a document that a process step downloaded from the test file ({@code test.<ext>} of the
+   * served files): the content type of the file, no file name and no size (the download has no file
+   * name and the document store of the e2e tests keeps no size), and an id the agent derived. The
+   * id is not a parameter: it is the hash of the identity of the document.
+   *
+   * @return the handle the model read
    */
-  public static void assertDocumentHandlePart(JsonNode part) {
+  public static ParsedDocumentHandle assertDocumentHandlePart(JsonNode part, String servedFile) {
     assertThat(part.path("type").asText()).as("document handle part type").isEqualTo("text");
-    assertThat(part.path("text").asText())
+    final var seen = parseDocumentHandle(part.path("text").asText());
+    assertThat(seen.id().value()).as("document id").matches("doc_[0-9a-f]{12}");
+    assertThat(seen.text())
         .as("document handle text")
-        .startsWith(HANDLE_START + ",\"id\":\"doc_")
-        .endsWith("}")
-        .doesNotContain("storeId", "contentHash", "documentId", "http", "source", "toolName");
+        .isEqualTo(
+            HANDLE_RENDERER.text(
+                new AgentDocumentHandle(
+                    AgentDocumentHandle.TYPE,
+                    seen.id().value(),
+                    null,
+                    mimeType(servedFile),
+                    null)));
+    return seen;
   }
 
   /**
@@ -298,7 +310,6 @@ public final class ToolCallResultDocumentAssertions {
    * @param fileName the file name, or {@code null} if the handle has none
    * @param contentType the content type, or {@code null} if the handle has none
    * @param size the size, or {@code null} if the handle has none
-   * @param note the note, or {@code null} if the handle has none
    * @param text the handle as it was rendered
    */
   public record ParsedDocumentHandle(
@@ -306,6 +317,5 @@ public final class ToolCallResultDocumentAssertions {
       @Nullable String fileName,
       @Nullable String contentType,
       @Nullable Long size,
-      @Nullable String note,
       String text) {}
 }

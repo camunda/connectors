@@ -61,7 +61,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -234,13 +233,14 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
   private static void assertDocumentParameterSchema(ToolDefinition upload) {
     assertThat(upload.inputSchema())
-        .extractingByKey("properties")
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsEntry("document", DocumentParameter.documentSchema("The document to upload."));
-    assertThat(upload.inputSchema())
-        .extractingByKey("required")
-        .asInstanceOf(InstanceOfAssertFactories.LIST)
-        .contains("document");
+        .isEqualTo(
+            Map.of(
+                "type",
+                "object",
+                "properties",
+                Map.of("document", DocumentParameter.documentSchema("The document to upload.")),
+                "required",
+                List.of("document")));
   }
 
   private ZeebeTest startProcess(Function<ElementTemplate, ElementTemplate> elementTemplateModifier)
