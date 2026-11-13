@@ -94,6 +94,10 @@ limitations under the License.</license.inlineheader>
     <version.jackson-datatype-jsr310>2.23.0</version.jackson-datatype-jsr310>
     <version.hibernate-validator>9.1.6.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
+    <!-- CVE-2026-59171: org.json transitive override (connector-kafka -> kafka-json-schema-provider
+         -> everit-json-schema). Remove once the Confluent schema-registry artifacts ship an
+         everit-json-schema that resolves org.json >= 20260719. See the enforcer guard in connectors/kafka/pom.xml. -->
+    <version.json>20260814</version.json>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
@@ -827,6 +831,15 @@ limitations under the License.</license.inlineheader>
         <artifactId>assertj-core</artifactId>
         <version>${version.assertj}</version>
         <scope>test</scope>
+      </dependency>
+
+      <!-- CVE-2026-59171: override the org.json version brought in transitively by
+           everit-json-schema (via kafka-json-schema-provider). Remove once Confluent ships an
+           everit-json-schema that resolves org.json >= 20260719. -->
+      <dependency>
+        <groupId>org.json</groupId>
+        <artifactId>json</artifactId>
+        <version>${version.json}</version>
       </dependency>
 
       <dependency>
