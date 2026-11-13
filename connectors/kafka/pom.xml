@@ -155,6 +155,32 @@ except in compliance with the proprietary license.</license.inlineheader>
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <configuration>
+          <rules combine.children="append">
+            <!-- CVE-2026-59171 guard: fails if the Confluent schema-registry artifacts are bumped, as a
+                 reminder to check whether the org.json override can be removed (see version.json in
+                 parent/pom.xml). -->
+            <requireProperty>
+              <property>version.schema-registry</property>
+              <regex>^8\.4\.1$</regex>
+              <regexMessage>
+version.schema-registry was changed! Check if the org.json CVE-2026-59171 override can be removed.
+1. Temporarily delete the org.json dependencyManagement entry from parent/pom.xml. While it is present,
+   dependency:tree only reports the pinned version, so it cannot show what the Confluent artifacts request.
+2. Run `mvn dependency:tree -Dincludes=org.json:json -pl :connector-runtime-bundle,:connector-runtime-bundle-saas -am`.
+3. If org.json now resolves to &gt;= 20260719,
+   remove only the org.json dependencyManagement entry from parent/pom.xml and this enforcer rule.
+   Keep the version.json property: Kafka's test-scope org.json dependency still uses it.
+   If it resolves to a lower version, restore the entry and update the regex of this rule.
+See: https://github.com/stleary/JSON-java/security/advisories/GHSA-ghc9-756g-vrcv
+              </regexMessage>
+            </requireProperty>
+          </rules>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
