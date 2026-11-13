@@ -13,6 +13,7 @@ import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -177,7 +178,7 @@ public class GenericRecordConverter {
 
   private static BigDecimal exactInteger(Number number, Schema.Type type) {
     try {
-      var exact = new BigDecimal(number.toString());
+      var exact = exactDecimal(number);
       if (type == Schema.Type.INT) {
         exact.intValueExact();
       } else {
@@ -199,6 +200,21 @@ public class GenericRecordConverter {
               + ".",
           e);
     }
+  }
+
+  // a double's shortest decimal string can differ from its value, for example for 2^60
+  private static BigDecimal exactDecimal(Number number) {
+    return switch (number) {
+      case BigDecimal decimal -> decimal;
+      case BigInteger integer -> new BigDecimal(integer);
+      case Double d -> new BigDecimal(d);
+      case Float f -> new BigDecimal(f);
+      case Long l -> BigDecimal.valueOf(l);
+      case Integer i -> BigDecimal.valueOf(i);
+      case Short s -> BigDecimal.valueOf(s);
+      case Byte b -> BigDecimal.valueOf(b);
+      default -> new BigDecimal(number.toString());
+    };
   }
 
   private Schema inferMember(Schema union, Map<?, ?> map) {
