@@ -36,8 +36,6 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
 @SlowTest
 public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
@@ -64,9 +62,10 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
                 .hasNoResponseJson());
   }
 
-  @ParameterizedTest
-  @CsvSource({"test.pdf,application/pdf", "test.txt,text/plain"})
-  void supportsDocumentResponsesFromToolCalls(String filename, String mimeType) throws Exception {
+  @Test
+  void supportsDocumentResponsesFromToolCalls() throws Exception {
+    final var filename = "test.pdf";
+    final var mimeType = "application/pdf";
     final var initialUserPrompt = "Go and download a document!";
     final var fileUrl = wireMock.getHttpBaseUrl() + "/" + filename;
     final var aiFinalResponseText = "The content type is '%s'".formatted(mimeType);

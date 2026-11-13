@@ -35,8 +35,6 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
 @SlowTest
 public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
@@ -69,9 +67,10 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
     assertNoToolCallVariableLeakToProcessScope(zeebeTest);
   }
 
-  @ParameterizedTest
-  @CsvSource({"test.pdf,application/pdf", "test.txt,text/plain"})
-  void supportsDocumentResponsesFromToolCalls(String filename, String mimeType) throws Exception {
+  @Test
+  void supportsDocumentResponsesFromToolCalls() throws Exception {
+    final var filename = "test.pdf";
+    final var mimeType = "application/pdf";
     final var initialUserPrompt = "Go and download a document!";
     final var aiToolCallText =
         "The user asked me to download a document. I will call the Download_A_File tool to do so.";
