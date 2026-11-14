@@ -24,7 +24,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Turn input composer and response handler](#turn-input-composer-and-response-handler) | Custom `AgentConversationTurnInputComposer` and `AgentResponseHandler` |
 | [Gateway tool handlers](#gateway-tool-handlers)              | Custom `GatewayToolHandler` that overrides `extractDocuments` |
 | [Agent instance client and mappers](#agent-instance-client-and-mappers)      | Custom `AgentInstanceClient`, `AgentInstanceHistoryMapper`, `AgentInstanceToolMapper` |
-| [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers |
+| [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers or the AI Agent connector functions |
 | [Conversation window](#conversation-window)                                  | Code that calls `AgentConversation.window`                      |
 | [Runtime tools and tool names](#runtime-tools-and-tool-names)                | Processes with a tool element named like a runtime tool        |
 | [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records (`AgentContext`, `ToolCall`), switches over `Content` |
@@ -257,6 +257,23 @@ constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandle
 auto-configuration provides these beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra
 arguments; inject them as beans.
 
+The constructors of the AI Agent connector functions take the execution context factory of their flavor and the
+request handler:
+
+- `AgentTaskV1Function(ProcessDefinitionAdHocToolElementsResolver, AgentTaskRequestHandler, V1ToV2ProviderConfigurationMapper, boolean)`
+  is now `AgentTaskV1Function(AgentTaskExecutionContextFactory, AgentTaskRequestHandler)`.
+- `AgentTaskV2Function(ProcessDefinitionAdHocToolElementsResolver, AgentTaskRequestHandler)` is now
+  `AgentTaskV2Function(AgentTaskExecutionContextFactory, AgentTaskRequestHandler)`.
+- `AgentSubProcessV1Function(AgentSubProcessRequestHandler, V1ToV2ProviderConfigurationMapper, boolean)` is now
+  `AgentSubProcessV1Function(AgentSubProcessExecutionContextFactory, AgentSubProcessRequestHandler)`.
+- `AgentSubProcessV2Function(AgentSubProcessRequestHandler)` is now
+  `AgentSubProcessV2Function(AgentSubProcessExecutionContextFactory, AgentSubProcessRequestHandler)`.
+
+The auto-configuration provides the `aiAgentExecutionContextFactory` bean of type `AgentExecutionContextFactory`. It
+implements both interfaces and applies the `rewrite-v1-provider-config-to-v2` setting that the v1 functions took before.
+A bean of either interface replaces it, so each enabled flavor needs a bean of its interface. Migration: in a custom function
+bean, inject the `AgentTaskExecutionContextFactory` or `AgentSubProcessExecutionContextFactory` bean.
+
 ### Conversation window
 
 `AgentConversation.window(int size)` keeps its signature. The request handler hands the snapshot to
@@ -296,6 +313,9 @@ applies it to its persisted context, and the next round continues with the conte
   creates documents in the document store of the physical tenant of the job. The constructors of
   `AgentSubProcessExecutionContext` and `AgentTaskExecutionContext` take it after the `JobContext`. Migration: a custom
   implementation returns the `OutboundConnectorContext` of the job, which is a `DocumentFactory`.
+- The constructors of `AgentTaskExecutionContext` and `AgentSubProcessExecutionContext` that take an
+  `AgentTaskV1Request` or an `AgentSubProcessV1Request` are removed. Migration: call the remaining constructor with the
+  request data and the chat model configuration.
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builder, or for `ToolCall` the constructors with three or four arguments and for `ToolDefinition` the constructor with
   three arguments: `AgentContext` (`documents`, the `AgentDocuments`, and `features`, a list), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`

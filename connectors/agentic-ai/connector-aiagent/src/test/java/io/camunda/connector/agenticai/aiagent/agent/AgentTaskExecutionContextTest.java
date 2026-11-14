@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.times;
@@ -14,7 +15,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
@@ -38,8 +38,6 @@ class AgentTaskExecutionContextTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private JobContext jobContext;
 
-  @Mock private AgentTaskV1Request agentRequest;
-
   @Mock(answer = RETURNS_DEEP_STUBS)
   private AgentTaskRequestData agentRequestData;
 
@@ -49,10 +47,13 @@ class AgentTaskExecutionContextTest {
 
   @BeforeEach
   void setUp() {
-    when(agentRequest.data()).thenReturn(agentRequestData);
     executionContext =
         new AgentTaskExecutionContext(
-            jobContext, TestDocuments.documentFactory(), agentRequest, toolElementsResolver);
+            jobContext,
+            TestDocuments.documentFactory(),
+            agentRequestData,
+            TEST_CHAT_MODEL,
+            toolElementsResolver);
   }
 
   @ParameterizedTest

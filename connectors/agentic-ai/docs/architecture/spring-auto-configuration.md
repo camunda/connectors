@@ -25,6 +25,13 @@ auto-configurations does not matter.
 
 Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatModelFactory` bean) directly, outside of the imported configurations.
 
+The `aiAgentExecutionContextFactory` bean (`AgentExecutionContextFactory`) implements `AgentTaskExecutionContextFactory`
+and `AgentSubProcessExecutionContextFactory`. It backs off when a bean of either interface exists. Then each enabled
+flavor needs a bean of its interface: the AI Agent Task functions
+(`camunda.connector.agenticai.aiagent.outbound-connector.enabled`) need an `AgentTaskExecutionContextFactory` bean, and
+the AI Agent Sub-process functions (`camunda.connector.agenticai.aiagent.job-worker.enabled`) need an
+`AgentSubProcessExecutionContextFactory` bean.
+
 ## Key Differences from Standard Connectors
 
 1. **Dual activation modes**: Both an outbound connector (`AgentTaskV1Function`) and a job worker (`AgentSubProcessV1Function`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
