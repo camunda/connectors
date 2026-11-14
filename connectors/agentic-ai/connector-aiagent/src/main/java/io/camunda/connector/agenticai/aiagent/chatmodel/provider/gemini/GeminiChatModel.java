@@ -70,8 +70,8 @@ public class GeminiChatModel implements ChatModel {
         requestConverter.toGenerateContentConfig(
             configuration,
             request.executionContext().configuration().response(),
-            request.snapshot());
-    final List<Content> contents = requestConverter.toContents(request.snapshot());
+            request.conversation());
+    final List<Content> contents = requestConverter.toContents(request.conversation());
 
     if (LOG.isTraceEnabled()) {
       LOG.trace(

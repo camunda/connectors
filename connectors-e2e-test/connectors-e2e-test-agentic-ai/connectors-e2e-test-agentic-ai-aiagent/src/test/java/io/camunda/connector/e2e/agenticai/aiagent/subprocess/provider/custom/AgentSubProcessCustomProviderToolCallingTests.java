@@ -18,11 +18,11 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.custom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatAssistantMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatSystemMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -93,22 +93,22 @@ class AgentSubProcessCustomProviderToolCallingTests extends BaseAgentSubProcessT
     final var recordedRequests = chatModelFactory.recordedRequests();
     assertThat(recordedRequests).hasSize(2);
 
-    final var lastMessages = recordedRequests.get(1).snapshot().messages();
+    final var lastMessages = recordedRequests.get(1).conversation().messages();
     assertThat(lastMessages).hasSize(4);
-    assertThat(lastMessages.get(0)).isInstanceOf(SystemMessage.class);
-    assertThat(lastMessages.get(1)).isInstanceOf(UserMessage.class);
+    assertThat(lastMessages.get(0)).isInstanceOf(ChatSystemMessage.class);
+    assertThat(lastMessages.get(1)).isInstanceOf(ChatUserMessage.class);
     assertThat(lastMessages.get(2))
         .isInstanceOfSatisfying(
-            AssistantMessage.class,
+            ChatAssistantMessage.class,
             assistantMessage -> {
-              assertThat(assistantMessage.hasToolCalls()).isTrue();
+              assertThat(assistantMessage.toolCalls()).isNotEmpty();
               assertThat(assistantMessage.toolCalls())
                   .extracting(ToolCall::name)
                   .containsExactly("SuperfluxProduct");
             });
     assertThat(lastMessages.get(3))
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             toolCallResultMessage ->
                 assertThat(toolCallResultMessage.results())
                     .extracting("id")

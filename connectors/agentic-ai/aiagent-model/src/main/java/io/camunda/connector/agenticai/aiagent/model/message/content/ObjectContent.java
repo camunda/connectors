@@ -15,7 +15,7 @@ import org.jspecify.annotations.Nullable;
 public record ObjectContent(
     Object content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
-    implements Content {
+    implements PortableContent {
   public ObjectContent {
     if (content == null) {
       throw new IllegalArgumentException("Content cannot be null");

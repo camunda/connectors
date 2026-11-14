@@ -15,19 +15,15 @@ import com.openai.models.responses.ResponseInputImage;
 import com.openai.models.responses.ResponseInputText;
 import com.openai.models.responses.ResponseInputTextContent;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
-import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Converts the domain {@link Content} model to OpenAI Responses API content parts ({@link
+ * Converts {@link PortableContent} blocks to OpenAI Responses API content parts ({@link
  * ResponseInputContent}). Used for user/assistant message bodies as well as Responses tool-result
  * bodies ({@link ResponseFunctionCallOutputItem}).
  *
@@ -45,32 +41,19 @@ public class OpenAiContentConverter {
     this.objectMapper = objectMapper;
   }
 
-  public List<ResponseInputContent> toResponsesContentParts(List<Content> content) {
+  public List<ResponseInputContent> toResponsesContentParts(List<PortableContent> content) {
     final List<ResponseInputContent> parts = new ArrayList<>();
-    for (final Content c : content) {
+    for (final PortableContent c : content) {
       switch (c) {
         case TextContent text ->
             parts.add(
                 ResponseInputContent.ofInputText(
                     ResponseInputText.builder().text(text.text()).build()));
         case DocumentContent doc -> parts.add(responsesDocumentPart(doc));
-        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj ->
             parts.add(
                 ResponseInputContent.ofInputText(
                     ResponseInputText.builder().text(writeAsJson(obj.content())).build()));
-        // ReasoningContent/ProviderContent's actual wire-shaped replay is handled by the request
-        // converters before this method is ever called with an assistant's plain content; if one
-        // still reaches here, it is added as a single JSON-reference text part rather than lost or
-        // duplicated - not its native shape, but not dropped either.
-        case ReasoningContent reasoning ->
-            parts.add(
-                ResponseInputContent.ofInputText(
-                    ResponseInputText.builder().text(writeAsJson(reasoning)).build()));
-        case ProviderContent providerContent ->
-            parts.add(
-                ResponseInputContent.ofInputText(
-                    ResponseInputText.builder().text(writeAsJson(providerContent)).build()));
       }
     }
     return parts;
@@ -84,9 +67,9 @@ public class OpenAiContentConverter {
    * well would send it twice.
    */
   public List<ResponseFunctionCallOutputItem> toResponsesToolResultOutputItems(
-      List<Content> content) {
+      List<PortableContent> content) {
     final List<ResponseFunctionCallOutputItem> items = new ArrayList<>();
-    for (final Content c : content) {
+    for (final PortableContent c : content) {
       switch (c) {
         case TextContent text ->
             items.add(
@@ -96,19 +79,10 @@ public class OpenAiContentConverter {
             items.add(
                 ResponseFunctionCallOutputItem.ofInputText(
                     ResponseInputTextContent.builder().text(writeAsJson(doc.document())).build()));
-        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj ->
             items.add(
                 ResponseFunctionCallOutputItem.ofInputText(
                     ResponseInputTextContent.builder().text(writeAsJson(obj.content())).build()));
-        case ReasoningContent reasoning ->
-            items.add(
-                ResponseFunctionCallOutputItem.ofInputText(
-                    ResponseInputTextContent.builder().text(writeAsJson(reasoning)).build()));
-        case ProviderContent providerContent ->
-            items.add(
-                ResponseFunctionCallOutputItem.ofInputText(
-                    ResponseInputTextContent.builder().text(writeAsJson(providerContent)).build()));
       }
     }
     return items;

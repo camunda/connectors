@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredExcep
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ChatContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -346,7 +347,7 @@ class BedrockConverseResponseConverterTest {
     assertThat(content).hasSize(1);
     final var reasoningContent = content.get(0);
 
-    final var rebuilt = contentConverter.toContentBlocks(List.of(reasoningContent));
+    final var rebuilt = contentConverter.toContentBlocks(List.of((ChatContent) reasoningContent));
 
     assertThat(rebuilt).containsExactly(original);
   }
@@ -362,7 +363,7 @@ class BedrockConverseResponseConverterTest {
     final var content = converter.toResult(response, EXECUTION_TIME).assistantMessage().content();
     final var reasoningContent = content.get(0);
 
-    final var rebuilt = contentConverter.toContentBlocks(List.of(reasoningContent));
+    final var rebuilt = contentConverter.toContentBlocks(List.of((ChatContent) reasoningContent));
 
     assertThat(rebuilt).containsExactly(original);
   }

@@ -14,7 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequestMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter;
@@ -36,10 +38,10 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
-import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
@@ -72,7 +74,7 @@ class DocumentBlocksModelFacingTest {
             .build());
   }
 
-  private List<Message> windowed() {
+  private List<ChatRequestMessage> windowed() {
     final var agentDocuments =
         AgentDocuments.empty()
             .register(
@@ -133,10 +135,10 @@ class DocumentBlocksModelFacingTest {
         .messages();
   }
 
-  private List<Content> toolResultContent(List<Message> messages) {
+  private List<PortableContent> toolResultContent(List<ChatRequestMessage> messages) {
     return messages.stream()
-        .filter(ToolCallResultMessage.class::isInstance)
-        .map(ToolCallResultMessage.class::cast)
+        .filter(ChatToolCallResultMessage.class::isInstance)
+        .map(ChatToolCallResultMessage.class::cast)
         .findFirst()
         .orElseThrow()
         .results()
@@ -159,7 +161,7 @@ class DocumentBlocksModelFacingTest {
 
     assertThat(messages)
         .extracting(message -> message.getClass().getSimpleName())
-        .containsExactly("UserMessage", "AssistantMessage", "ToolCallResultMessage");
+        .containsExactly("ChatUserMessage", "ChatAssistantMessage", "ChatToolCallResultMessage");
     assertThat(toolResultContent(messages)).hasSize(3);
   }
 
@@ -193,7 +195,7 @@ class DocumentBlocksModelFacingTest {
 
   @Test
   void geminiSendsTheTextsAndTheDocumentTagAsOneFunctionResponseOutputList() throws Exception {
-    final var snapshot = new ConversationSnapshot(windowed(), List.of());
+    final var snapshot = new ChatConversation(windowed(), List.of());
 
     final var contents =
         new GeminiContentRequestConverter(new GeminiContentConverter(OBJECT_MAPPER))
@@ -268,7 +270,7 @@ class DocumentBlocksModelFacingTest {
                 null,
                 new OpenAiRequestCustomizations(null, null, null)),
             null,
-            new ConversationSnapshot(windowed(), List.of()));
+            new ChatConversation(windowed(), List.of()));
 
     final JsonNode body = com.openai.core.ObjectMappers.jsonMapper().valueToTree(params._body());
     final var messages = body.path("messages");
@@ -284,13 +286,11 @@ class DocumentBlocksModelFacingTest {
   @Test
   void langChain4jJoinsTheToolResultPartsWithNewlines() {
     final var result =
-        ((ToolCallResultMessage)
-                windowed().stream()
-                    .filter(ToolCallResultMessage.class::isInstance)
-                    .findFirst()
-                    .orElseThrow())
-            .results()
-            .getFirst();
+        ToolCallResultContent.builder()
+            .id("call-1")
+            .name("load_document")
+            .content(List.copyOf(toolResultContent(windowed())))
+            .build();
 
     assertThat(new ToolCallConverterImpl(OBJECT_MAPPER).asToolExecutionResultMessage(result).text())
         .isEqualTo(

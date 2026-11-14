@@ -71,7 +71,7 @@ public class BedrockConverseChatModel implements ChatModel {
         requestConverter.toConverseStreamRequest(
             configuration,
             request.executionContext().configuration().response(),
-            request.snapshot());
+            request.conversation());
     logTrace("request", converseStreamRequest);
 
     final long startNanos = System.nanoTime();

@@ -15,6 +15,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter;
@@ -33,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -147,8 +149,8 @@ class ToolResultDocumentRenderingTest {
                 TestDocuments.documentFactory())
             .messages()
             .stream()
-            .filter(ToolCallResultMessage.class::isInstance)
-            .map(ToolCallResultMessage.class::cast)
+            .filter(ChatToolCallResultMessage.class::isInstance)
+            .map(ChatToolCallResultMessage.class::cast)
             .findFirst()
             .orElseThrow();
 
@@ -169,8 +171,7 @@ class ToolResultDocumentRenderingTest {
     }
   }
 
-  private static List<String> renderedByEveryProvider(
-      List<io.camunda.connector.agenticai.aiagent.model.message.content.Content> content) {
+  private static List<String> renderedByEveryProvider(List<PortableContent> content) {
     final var mapper = TestObjectMapperSupplier.INSTANCE;
     return List.of(
         new AnthropicContentConverter(mapper).toToolResultBlocks(content).toString(),

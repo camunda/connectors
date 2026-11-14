@@ -12,11 +12,10 @@ import static io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseC
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
-import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ChatContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -46,8 +45,8 @@ import software.amazon.awssdk.services.bedrockruntime.model.ReasoningContentBloc
 import software.amazon.awssdk.services.bedrockruntime.model.ToolResultContentBlock;
 
 /**
- * Converts the domain {@link Content} model to Bedrock Converse SDK content blocks, both for
- * user/assistant message bodies ({@link ContentBlock}) and tool-result bodies ({@link
+ * Converts the provider-facing {@link ChatContent} blocks to Bedrock Converse SDK content blocks,
+ * both for user/assistant message bodies ({@link ContentBlock}) and tool-result bodies ({@link
  * ToolResultContentBlock}).
  *
  * <p>Note: {@code software.amazon.awssdk.core.document.Document} (the generic AWS "any JSON value"
@@ -94,13 +93,12 @@ public class BedrockConverseContentConverter {
     this.objectMapper = objectMapper;
   }
 
-  public List<ContentBlock> toContentBlocks(List<Content> content) {
+  public List<ContentBlock> toContentBlocks(List<? extends ChatContent> content) {
     final List<ContentBlock> blocks = new ArrayList<>();
-    for (final Content c : content) {
+    for (final ChatContent c : content) {
       switch (c) {
         case TextContent text -> blocks.add(ContentBlock.fromText(text.text()));
         case DocumentContent doc -> blocks.add(documentContentBlock(doc));
-        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj -> blocks.add(ContentBlock.fromText(writeAsJson(obj.content())));
         case ReasoningContent rc when BEDROCK_CONVERSE_ID.equals(rc.provider()) ->
             blocks.add(toReasoningContentBlock(rc));
@@ -121,24 +119,13 @@ public class BedrockConverseContentConverter {
    * DocumentBlock}: its real bytes are delivered elsewhere, so embedding it here as well would send
    * it twice and trip Converse's duplicate-document-name validation.
    */
-  public List<ToolResultContentBlock> toToolResultBlocks(List<Content> content) {
+  public List<ToolResultContentBlock> toToolResultBlocks(List<PortableContent> content) {
     final List<ToolResultContentBlock> blocks = new ArrayList<>();
-    for (final Content c : content) {
+    for (final PortableContent c : content) {
       switch (c) {
         case TextContent text -> blocks.add(ToolResultContentBlock.fromText(text.text()));
         case DocumentContent doc -> blocks.add(toolResultContentBlock(doc.document()));
-        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj -> blocks.add(toolResultContentBlock(obj.content()));
-        case ReasoningContent rc ->
-            throw new ConnectorException(
-                ERROR_CODE_FAILED_MODEL_CALL,
-                "Unsupported content type 'reasoning' for tool result: Bedrock's "
-                    + "ToolResultContentBlock has no reasoning-content member.");
-        case ProviderContent pc ->
-            throw new ConnectorException(
-                ERROR_CODE_FAILED_MODEL_CALL,
-                "Unsupported content type 'provider' for tool result: provider content is only "
-                    + "ever produced from assistant message content.");
       }
     }
     return blocks;

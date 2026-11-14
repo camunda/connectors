@@ -22,9 +22,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -272,7 +272,7 @@ class RuntimeToolsTest {
                     .fileName("report.txt")
                     .build());
     final var content =
-        List.<Content>of(
+        List.<PortableContent>of(
             TextContent.textContent("Here is the report"),
             ObjectContent.objectContent(Map.of("size", 6)),
             DocumentContent.documentContent(document));
@@ -483,7 +483,7 @@ class RuntimeToolsTest {
 
   @Test
   void returnsTheDocumentsOfAResultAsTheyAreAndRegistersNone() {
-    final List<Content> content =
+    final List<PortableContent> content =
         List.of(
             TextContent.textContent("Saved the note"),
             DocumentContent.documentContent(new InlineDocument("a", "note-1.txt", "text/plain")));

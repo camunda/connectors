@@ -28,10 +28,10 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.RawMessageStreamEvent;
 import com.anthropic.services.blocking.MessageService;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -71,7 +71,7 @@ class AnthropicChatModelTest {
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
 
   private final ChatRequest request =
-      new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
+      new ChatRequest(executionContext, ChatConversation.of(List.of(), List.of()));
 
   private AnthropicChatModel api;
 
@@ -101,7 +101,7 @@ class AnthropicChatModelTest {
     assertThat(result).isSameAs(expected);
     verify(requestConverter)
         .toMessageCreateParams(
-            configuration, executionContext.configuration().response(), request.snapshot());
+            configuration, executionContext.configuration().response(), request.conversation());
     verify(messageService).createStreaming(params);
     verify(streamAssembler).assemble(streamResponse);
     verify(streamResponse).close();

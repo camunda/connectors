@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentDialect;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ChatContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -29,7 +30,7 @@ public final class MistralReasoningContentDialect implements OpenAiCompletionsCo
       Set.of("reference", "image_url", "document_url", "file", "input_audio");
 
   @Override
-  public Optional<Map<String, Object>> toReplayableChunk(Content content, String providerId) {
+  public Optional<Map<String, Object>> toReplayableChunk(ChatContent content, String providerId) {
     if (content instanceof ReasoningContent reasoning
         && isChunkedReasoningContent(reasoning, providerId)) {
       return Optional.of(toChunkedThinkingChunk(reasoning));

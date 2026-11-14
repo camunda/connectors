@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ChatContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -144,7 +145,7 @@ class GeminiContentResponseConverterTest {
             .content();
 
     assertThat(content).singleElement().isInstanceOf(ProviderContent.class);
-    assertThat(new GeminiContentConverter(new ObjectMapper()).toParts(content))
+    assertThat(new GeminiContentConverter(new ObjectMapper()).toParts(chatContent(content)))
         .singleElement()
         .satisfies(part -> {
           final var blob = part.inlineData().orElseThrow();
@@ -185,7 +186,7 @@ class GeminiContentResponseConverterTest {
             .assistantMessage()
             .content();
 
-    assertThat(new GeminiContentConverter(new ObjectMapper()).toParts(content))
+    assertThat(new GeminiContentConverter(new ObjectMapper()).toParts(chatContent(content)))
         .singleElement()
         .satisfies(part -> {
           assertThat(part.text()).contains("the answer");
@@ -225,7 +226,7 @@ class GeminiContentResponseConverterTest {
             .content();
 
     assertThat(content).singleElement().isInstanceOf(ProviderContent.class);
-    assertThat(new GeminiContentConverter(new ObjectMapper()).toParts(content))
+    assertThat(new GeminiContentConverter(new ObjectMapper()).toParts(chatContent(content)))
         .singleElement()
         .satisfies(part -> assertThat(part.thoughtSignature()).contains(THOUGHT_SIGNATURE));
   }
@@ -432,7 +433,8 @@ class GeminiContentResponseConverterTest {
             .content();
 
     // Round trip through the request-direction converter using the established metadata contract.
-    final var replayed = new GeminiContentConverter(new ObjectMapper()).toParts(content);
+    final var replayed =
+        new GeminiContentConverter(new ObjectMapper()).toParts(chatContent(content));
 
     assertThat(replayed)
         .singleElement()
@@ -765,5 +767,10 @@ class GeminiContentResponseConverterTest {
       functionCall.args(args);
     }
     return Part.builder().functionCall(functionCall).build();
+  }
+
+  private static List<ChatContent> chatContent(
+      List<io.camunda.connector.agenticai.aiagent.model.message.content.Content> content) {
+    return content.stream().map(ChatContent.class::cast).toList();
   }
 }

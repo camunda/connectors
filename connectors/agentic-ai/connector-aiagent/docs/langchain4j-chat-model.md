@@ -45,7 +45,8 @@ LangChain4JChatModel
   │           └── JsonSchemaElementModule  # Jackson module for JsonSchemaElement round-trip
 ```
 
-`LangChain4JChatModel` also uses `JsonSchemaConverter` directly, to map the JSON schema of the response
+`LangChain4JChatModel` maps the `ChatConversation` of the request back to the persisted message types, which the
+converters read. It also uses `JsonSchemaConverter` directly, to map the JSON schema of the response
 format.
 
 Key converters:
