@@ -5,8 +5,9 @@ connector's element template — for humans and agents alike. It complements
 [ADR-0004](adr/ADR-0004-configuration-templates-in-element-templates.md), which records *why* the
 feature is shaped this way; this document is *how* to build on it correctly, distilled from
 migrating REST, GraphQL, Polling, the AWS connector family (~14 connectors + idp-extraction +
-aws-sqs), JDBC, Slack, and the Microsoft family (Teams, O365 Email inbound, Azure Blob Storage,
-and the hand-written O365 Mail and Azure OpenAI templates).
+aws-sqs), JDBC, Slack, the Microsoft family (Teams, O365 Email inbound, Azure Blob Storage,
+and the hand-written O365 Mail and Azure OpenAI templates), and the hand-authored `http-json`
+service connectors (Asana, HubSpot, Hugging Face, OpenAI, WhatsApp, EasyPost, Google Maps Platform).
 
 If you're adding a credential chooser to a connector that doesn't have one yet, read this end to
 end before writing code — most of the mistakes below are easy to make and easy to avoid once you
@@ -263,6 +264,31 @@ as stale — rerun the generator and commit the result. If the committed Salesfo
 has already been released, that's a non-cosmetic change to it: bump `TEMPLATE_VERSION` and archive
 the previous version under `versioned/` first, and bump `SALESFORCE_CREDENTIAL_VERSION` too if the
 change would invalidate existing Salesforce credentials.
+
+The hand-authored `http-json` service connectors (`connectors/asana/`, `hubspot/`, `hugging-face/`,
+`openai/`, `whatsapp/`, `easy-post/` and `google-maps-platform/`) are hand-maintained like O365
+Mail, but each writes its own credential type, `io.camunda.connectors:<name>-authentication:1`,
+directly into its template's `configurationTemplates` instead of copying `rest-authentication`.
+There is no Java per connector. Instead:
+
+- The chooser binds to `serviceAuthenticationConfiguration`, not `authenticationConfiguration`.
+  `HttpJsonRequest` reads it as `ServiceAuthenticationConfiguration`: an `authentication` object
+  and no URL, because these templates fix their own endpoint. Every credential type saves into
+  that one record.
+- One credential type per connector, never a shared one: the credential picker is filtered by the
+  credential type's id only, so a shared type would offer every connector's credentials to every
+  other connector.
+- The credential type fixes the authentication mechanism with hidden constants:
+  `authentication.type = bearer` for the token-based services;
+  `authentication.type = basic` and `authentication.password = SPEC_PASSWORD_EMPTY_PATTERN` for EasyPost;
+  `authentication.type = apiKey`, `authentication.apiKeyLocation = query` and
+  `authentication.name = key` for Google Maps. Hub saves hidden defaults with the credential.
+- The template `engines` must be `^8.11` or newer: an older runtime ignores the new input and
+  sends no authentication.
+- `HttpJsonRequest#serviceAuthenticationConfiguration` is `@TemplateProperty(ignore = true,
+  type = Hidden)`. The explicit type is what makes the generator treat the field as a leaf so
+  `ignore` applies; without it the generator expands the record into the REST template.
+- Changes to `RestAuthenticationConfiguration` do not affect these templates.
 
 ## Trying it out locally
 
