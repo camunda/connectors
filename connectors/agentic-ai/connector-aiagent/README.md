@@ -376,6 +376,6 @@ leading to the following result
 | Connector Info            |                                                                       |
 | ---                       | ---                                                                   |
 | Type                      | io.camunda.agenticai:aiagent:task:2                                                            |
-| Version                   | 1                                                         |
+| Version                   | 5                                                         |
 | Supported element types   |     |
 
