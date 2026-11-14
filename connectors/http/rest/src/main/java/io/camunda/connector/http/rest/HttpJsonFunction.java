@@ -45,7 +45,8 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
       "ignoreNullValues",
       "followRedirects",
       "authenticationConfiguration",
-      "serviceAuthenticationConfiguration"
+      "serviceAuthenticationConfiguration",
+      "relativeUrl"
     },
     type = HttpJsonFunction.TYPE)
 @ElementTemplate(
