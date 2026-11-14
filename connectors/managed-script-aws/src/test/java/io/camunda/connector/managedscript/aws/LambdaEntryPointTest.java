@@ -59,6 +59,8 @@ class LambdaEntryPointTest {
     final var builder =
         new ProcessBuilder(command).directory(task.toFile()).redirectErrorStream(true);
     builder.environment().put("EXECUTOR_TMP", tmp.toString());
+    // Set by Lambda on every function.
+    builder.environment().put("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "512");
     // To a file, so that the deadline applies to an entry point that hangs: reading a pipe to its
     // end waits as long as the process does.
     final var log = Files.createTempFile(logs, "entry-point", ".log");

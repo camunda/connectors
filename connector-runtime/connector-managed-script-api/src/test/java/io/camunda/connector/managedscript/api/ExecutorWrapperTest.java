@@ -38,7 +38,7 @@ class ExecutorWrapperTest {
   void packagesThePythonCoreAndChild() {
     assertThat(python.files()).containsOnlyKeys("child.py", "executor_core.py");
     assertThat(new String(python.files().get("executor_core.py"), StandardCharsets.UTF_8))
-        .contains("def create_executor(local, tmp)");
+        .contains("def create_executor(local, tmp, memory_mb=None)");
   }
 
   @Test

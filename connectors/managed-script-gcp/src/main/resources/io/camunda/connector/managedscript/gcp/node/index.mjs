@@ -20,6 +20,12 @@ if (!(FUNCTION_TIMEOUT_MS > 0)) {
   throw new Error('EXECUTOR_FUNCTION_TIMEOUT_MS must be a positive number of milliseconds');
 }
 
+// The memory of the instance, set by the provider: the script gets it but for a margin.
+const MEMORY_MB = Number(process.env.EXECUTOR_MEMORY_MB);
+if (!(Number.isInteger(MEMORY_MB) && MEMORY_MB > 0)) {
+  throw new Error('EXECUTOR_MEMORY_MB must be a positive number of MB');
+}
+
 const TMP = process.env.EXECUTOR_TMP ?? '/tmp';
 
 // Whatever is in /tmp when the module loads becomes part of what the executor keeps. A new container
@@ -30,7 +36,7 @@ if (left.length > 0) {
   console.error(`Kept in ${TMP}, which the server cannot remove: ${left.join(', ')}`);
 }
 
-const executor = createExecutor({ local: false, tmp: TMP });
+const executor = createExecutor({ local: false, tmp: TMP, memoryMb: MEMORY_MB });
 
 functions.http('handler', async (request, response) => {
   response.json(await executor.run(request.body, FUNCTION_TIMEOUT_MS - SAFETY_MS));
