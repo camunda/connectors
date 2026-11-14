@@ -115,14 +115,15 @@ The loop operates as a distributed state machine between the connector runtime a
    - Resolve a `ChatModel` for the configured provider via `ChatModelRegistry` and call
      `execute(ChatRequest)` with the windowed `ConversationSnapshot` after `DocumentExpander.expand`; `ingest` the assistant response
      into the turn. Before the ingest, `ToolCallAdmission` admits the tool calls of the assistant message: each gets the kind
-     of its tool, or a rejection when the tool is not offered (see [What Happens When Tools Complete](#what-happens-when-tools-complete)). If the result is a `ChatResult.Continuation`
+     of its tool, or a rejection when the tool is not offered or a document parameter is not a known document
+     (see [What Happens When Tools Complete](#what-happens-when-tools-complete) and [Document parameters](../../connector-aiagent/docs/document-parameters.md)). If the result is a `ChatResult.Continuation`
      rather than `Completed`, the handler loops — persisting the round as its own turn and re-calling the model with no new
      input — until a `Completed` result ends the turn (see [`chat-model.md`](../../connector-aiagent/docs/chat-model.md#turn-based-continuation-loop)). The same happens when every
      tool call of the message is a local tool call: the handler checks the model-call limit, produces their tool call
      results the same way, from a `Ready` of the batch, and opens the next round with the assembled input
      (`nextRuntimeToolRound`) and registers the documents of the results in the agent documents (`TurnInput.applyTo`)
    - Store the updated conversation back to the memory store (via `ConversationSession`) and reduce it back to `AgentContext`
-   - Transform the process tool calls and create the response
+   - Resolve the document parameters of the process tool calls, transform them and create the response
 
 5. **Job completion** (`AgentSubProcessConnectorResponse`):
    - Sets `agentContext` variable with updated state
@@ -322,7 +323,9 @@ is a BPMN element, `RUNTIME` for a tool the agent executes itself ([Add a runtim
 call to the kind of the tool of its name in the tool list of the job (the tools of the process and the enabled runtime
 tools; for an instance without the feature, the tools of the process). A call whose name is not in the list gets a
 `rejection`, the error text that is its tool call result (`The tool '<name>' does not exist.`); its kind stays
-`PROCESS`. A rejection can apply to a call of any kind. The agent admits the calls once, between the model result and
+`PROCESS`. For an agent instance with the `documents` feature, a call of a tool of either kind with a document parameter
+([Document parameters](../../connector-aiagent/docs/document-parameters.md)) whose value is not the handle of a known document is rejected the same way, with an error message that names
+the parameter, and keeps its kind. A rejection can apply to a call of any kind. The agent admits the calls once, between the model result and
 `AgentConversation.ingest`, for every agent instance, with or without the `runtimeTools` feature, persists
 them with the message and never computes them again, so they may appear in the state of any agent instance. The JSON of a
 tool call holds `kind` (`"runtime"`) only for `RUNTIME` and `rejection` only when set; a missing `kind` reads as `PROCESS`
@@ -338,7 +341,7 @@ whatever its kind, else `RUNTIME` or `PROCESS` after the kind. `ToolCall.isLocal
 tool call result (`ToolCallResultContent.forRejectedToolCall`) when its `ToolCallBatch` is created, and is never
 executed. `LocalToolCallExecutor` executes the rest, the calls of runtime tools, through `RuntimeTools` and fails for
 any other result source; a call whose tool is no longer enabled when it is executed gets the error result `The tool
-'<name>' is not available.` Neither goes to the process. The error is plain text in the tool call
+'<name>' is not available.` Neither goes to the process. A runtime tool receives the `AgentDocumentId`s of its document parameters. The error is plain text in the tool call
 result; the tool call result has no error flag.
 
 Only the process tool calls are activated and handed to the process (`AgentResponse.toolCalls`, built from

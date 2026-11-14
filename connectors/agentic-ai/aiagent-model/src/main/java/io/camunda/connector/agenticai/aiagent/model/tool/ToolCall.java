@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
@@ -81,6 +83,21 @@ public record ToolCall(
   @JsonIgnore
   public boolean isLocal() {
     return resultSource() != ResultSource.PROCESS;
+  }
+
+  /**
+   * The call with the given arguments. Keeps a {@code null} value in the arguments, which a model
+   * can send explicitly and the immutable copy of the generated wither rejects.
+   */
+  @Override
+  public ToolCall withArguments(Map<String, Object> arguments) {
+    return new ToolCall(
+        id,
+        name,
+        Collections.unmodifiableMap(new LinkedHashMap<>(arguments)),
+        metadata,
+        kind,
+        rejection);
   }
 
   public static ToolCallBuilder builder() {

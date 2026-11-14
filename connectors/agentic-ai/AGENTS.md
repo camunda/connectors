@@ -147,6 +147,7 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 | Process instance migration (what's allowed / blocked)                    | [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md)                                                              |
 | Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern)                                                                  |
 | Agent documents (registry, handles, expansion for the model, only Camunda documents) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`data-model.md`](aiagent-model/docs/data-model.md), [ADR 018](docs/adr/018-document-flow.md) |
+| Document parameters of tools (`fromAi` type `document`, resolution, rejection) | [`document-parameters.md`](connector-aiagent/docs/document-parameters.md), [`extension-points.md`](docs/architecture/extension-points.md#documents-and-gateway-tools), [ADR 018](docs/adr/018-document-flow.md) |
 | MCP integration                                                          | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md)                       |
 | A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
 | Example BPMN processes & configurations                                  | the `Examples` section of the connector module READMEs, [`examples/`](examples/)                                                                     |
@@ -230,7 +231,8 @@ High-frequency traps (detail behind each link):
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
   `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
-  keeps the previous document handling (bare content and the older XML tag format, no agent documents), a `Tracked` one holds
+  keeps the previous document handling (bare content and the older XML tag format, no agent documents, no document
+  parameters), a `Tracked` one holds
   its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
   `boolean` parameter. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
   and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
@@ -242,9 +244,11 @@ High-frequency traps (detail behind each link):
 - **Tool calls are admitted once, and the agent produces the tool call results of local tool calls itself**: before an
   assistant message enters the conversation, `ToolCallAdmission` sets `ToolCall.kind` to the kind of the tool of the call's name among the
   tools offered in the job, and `ToolCall.rejection` (the error text) when the call must not be carried out, such as a name that is not offered, and never computes either
-  again, for every agent instance, with or without the `runtimeTools` feature. Both are persisted (`kind` written only
+  again, for every agent instance, with or without the `runtimeTools` feature. For an instance with the `documents`
+  feature, a call of a tool of either kind whose document parameter is not the handle of a known document also
+  gets a `rejection` and keeps its kind. Both are persisted (`kind` written only
   for `RUNTIME`, `rejection` only when set), so every conversation store must keep them. A call with a rejection
-  (a rejected call) gets its rejection as its tool call result and is never executed, also when a runtime tool of that
+  (a rejected call) gets its rejection as its tool call result and is never executed or activated, also when a runtime tool of that
   name is enabled later; the calls of runtime tools go to `RuntimeTools`. Both are local tool calls
   (`ToolCall.isLocal()`), the calls whose tool call result the agent produces itself: the rejection when the
   `ToolCallBatch` is created, the calls of runtime tools in `LocalToolCallExecutor` only. An interrupting event cancels
@@ -279,9 +283,14 @@ High-frequency traps (detail behind each link):
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
   documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order.
   A `Tracked` instance accepts only Camunda documents: an external or an inline document of the user prompt, a tool call
-  result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`).
+  result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`). A tool
+  parameter of the `fromAi` type `document` (the parameter, array items or an object property) takes a handle.
+  `DocumentParameterResolver` replaces it with the Camunda document reference for a process tool and the
+  `AgentDocumentId` for a runtime tool; `ToolCallAdmission` rejects a call whose value is not the handle of a known
+  document. The stored messages and the history keep the handle.
   [ADR 018](docs/adr/018-document-flow.md),
-  [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results).
+  [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results),
+  [`document-parameters.md`](connector-aiagent/docs/document-parameters.md).
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently

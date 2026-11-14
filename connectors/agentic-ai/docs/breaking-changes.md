@@ -215,11 +215,15 @@ client in its properties does not start.
 
 `AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
 process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent produces the tool call
-results of the other calls (`AgentConversationTurn.localToolCalls()`) itself and never hands them to the process.
+results of the other calls (`AgentConversationTurn.localToolCalls()`) itself and never hands them to the process. The
+response carries the Camunda document references in place of the document handles in the arguments of these calls
+(`DocumentParameterResolver.resolveArguments` with the tool definition of the agent context), and the stored assistant message keeps the arguments as the model sent
+them. The constructor of `AgentResponseHandlerImpl` takes the `DocumentParameterResolver`, a bean of the
+auto-configuration.
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
-implement the response handler interface directly, hand only the process tool calls to the process.
+implement the response handler interface directly, hand only the process tool calls to the process and resolve their document parameters.
 
 ### Gateway tool handlers
 
@@ -286,7 +290,7 @@ applies it to its persisted context, and the next round continues with the conte
   [Add a runtime tool](architecture/extension-points.md#add-a-runtime-tool)). A tool can return documents in its result, which the agent registers after all
   calls of the message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
   call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
-  error result from the executor; neither goes to the process.
+  error result from `RuntimeTools`; neither goes to the process.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
@@ -346,7 +350,9 @@ applies it to its persisted context, and the next round continues with the conte
   loads unchanged.
 - A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
   and without the `runtimeTools` feature. `kind` is the kind of the tool the call names; a call of a tool name that is not
-  offered gets a `rejection`, the error text that is its tool call result, and keeps the kind `PROCESS`. The JSON holds `kind`
+  offered, or of a tool of either kind whose document parameter is not the handle of a known document (only with the `documents`
+  feature), gets a `rejection`, the error text that is its tool call result; a call of a name that is not offered keeps the kind `PROCESS`, any
+  other rejected call keeps the kind of its tool. The JSON holds `kind`
   only for a call of a runtime tool and `rejection` only when set, and a missing value reads as `PROCESS` and as none, so
   state written by 8.10 loads unchanged. The agent never computes them again, so a custom `ConversationStore` must keep
   them: a store that drops them turns a runtime tool call or a rejected call into a process tool call that never gets a

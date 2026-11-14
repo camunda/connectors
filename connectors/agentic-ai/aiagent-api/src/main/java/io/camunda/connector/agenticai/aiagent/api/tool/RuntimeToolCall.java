@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 import java.util.Map;
 
@@ -22,14 +23,17 @@ public interface RuntimeToolCall {
 
   /**
    * The arguments, with an unmodifiable top level. The values are JSON values: a {@link String}, a
-   * {@link Number}, a {@link Boolean}, a {@link java.util.List}, a {@link Map} or {@code null}.
+   * {@link Number}, a {@link Boolean}, a {@link java.util.List}, a {@link Map} or {@code null}. In
+   * an agent instance with the {@code documents} feature, a document parameter holds the {@link
+   * AgentDocumentId} of the document instead; in an instance without the feature, it holds the JSON
+   * value the model sent.
    */
   Map<String, Object> arguments();
 
   /**
    * Binds the {@link #arguments() arguments} to {@code type}, a record or a bean with a property
-   * per argument. Properties without an argument are {@code null}, arguments without a property are
-   * ignored.
+   * per argument. Bind a document parameter to an {@link AgentDocumentId} property. Properties
+   * without an argument are {@code null}, arguments without a property are ignored.
    *
    * @throws RuntimeToolException if the arguments do not fit {@code type}, which gives the call an
    *     error result

@@ -35,7 +35,7 @@ on the SDK for it. The file name, content type and size shown in handles are rea
 `AgentDocuments` is immutable and insertion-ordered, the first registration of an id wins and a known id is never
 replaced; `register(Document, AgentDocumentOrigin)` and `register(List<AgentDocument>)` return the collection that holds the
 documents. Registering a document whose id belongs to a different document, one the agent knows or one of the same batch,
-fails with a `AgentDocumentIdCollisionException` and a document that is not a Camunda document with an
+fails with an `AgentDocumentIdCollisionException` and a document that is not a Camunda document with an
 `UnsupportedDocumentReferenceException`; the request handler turns them into `DOCUMENT_ID_COLLISION` and
 `UNSUPPORTED_DOCUMENT_REFERENCE` ([Error Codes](../../connector-aiagent/docs/error-codes.md)). Because it rides in `agentContext`, it is
 independent of the conversation store and the context window. The persisted conversation is not self-contained: the
@@ -62,6 +62,13 @@ the job), the inbound `AgentContext` and tool-call results, the LLM
 provider configuration, the system- and user-prompt configurations, and the memory, limits, event, and
 response settings that shape the turn. Authoritative definition:
 [`AgentExecutionContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).
+
+## ToolDefinition (a tool offered to the model)
+
+`ToolDefinition` holds the `name`, the `description`, the JSON `inputSchema` and the `kind` (`ToolKind`: a BPMN element of
+the process or a runtime tool) of one tool. `ToolDefinition.documentParameters()` lists the document parameters of the
+input schema (`DocumentParameter`); see
+[Document parameters](../../connector-aiagent/docs/document-parameters.md).
 
 ## ToolCallResultContent (persisted tool-call-result content)
 

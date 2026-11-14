@@ -124,7 +124,7 @@ The model sees each document as a handle:
 {"type":"camunda.agenticai.document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}
 ```
 
-The model passes `type` and `id` to a tool. The other fields are information only. Only the agent writes `note`. No
+The model passes `type` and `id` to a tool. The other fields are information only. No
 other data about a document goes to the model, to a tool argument or to an error text. The handle has a fixed key order,
 so the bytes are the same in every request. The handle has no origin, because the message that holds it shows the
 origin.
@@ -191,8 +191,19 @@ because models often send nested objects as strings. The agent does not accept a
 to an id must not become a document. For a document parameter, the agent answers an incorrect value with an error
 result. The tool does not run.
 
-A parameter can also be a union of the handle schema and other schemas, for example text or a document. In a union, each
-handle in the value is a document. The agent gives all other values to the tool without changes.
+A document parameter is the parameter itself, the items of an array or a property of an object, at any depth. The agent
+fails the job for a `document` anywhere else, such as in an `anyOf` or `oneOf` alternative or in a type array.
+
+The tool schema generation keeps the type `document` as authored. The agent maps it to the handle schema when it loads
+the tools of the process, and only for an instance with the `documents` feature. A handle schema means something only
+next to the document registry and the resolution of the agent. The output of the ad-hoc tools schema connector has
+neither, so it keeps the authored schema.
+
+Union types are not supported. Supporting them is a large step in complexity for a small gain. The agent would have to
+match a value against each alternative to find the handles, decide what an ambiguous value is, and report a problem per
+alternative, so the schema rules, the resolution and the error messages all grow. Simple alternatives cover the same
+cases: a tool that takes text or a document declares two optional parameters, and a tool that takes several documents
+takes a list.
 
 A process tool receives the SDK reference of the agent document. A runtime tool receives the document id. The stored
 assistant message and the history keep the handle that the model wrote. A gateway handler that defines its own tools can
@@ -204,6 +215,8 @@ Alternatives:
 * *A string with a format marker.* Some providers reject an unknown format, and each description needs a hint.
 * *A separate field next to the schema.* It must stay in sync with the schema.
 * *Accept a bare id or an object without `type`.* A text or an object of the tool result can become a document.
+* *Union parameters.* Rejected for the complexity described above. Two parameters, an optional property or a list
+  cover the same cases.
 
 ### Documents and effects of runtime tools
 

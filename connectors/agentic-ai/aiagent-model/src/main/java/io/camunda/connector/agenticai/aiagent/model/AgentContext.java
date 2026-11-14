@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
@@ -98,6 +99,11 @@ public record AgentContext(
     return supports(AgentFeatures.DOCUMENTS)
         ? new DocumentHandling.Tracked(documents)
         : new DocumentHandling.Untracked();
+  }
+
+  /** The tool definition with the given name, or empty if the agent context has none. */
+  public Optional<ToolDefinition> toolDefinition(String name) {
+    return toolDefinitions.stream().filter(tool -> tool.name().equals(name)).findFirst();
   }
 
   public AgentContext withProperty(String key, Object value) {

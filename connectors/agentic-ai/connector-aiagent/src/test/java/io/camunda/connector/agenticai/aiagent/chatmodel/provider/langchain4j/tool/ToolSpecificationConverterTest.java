@@ -9,18 +9,22 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.to
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
+import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -93,6 +97,98 @@ class ToolSpecificationConverterTest {
           assertThat(schema.required()).containsExactly("path", "edits");
           assertThat(schema.additionalProperties()).isFalse();
         });
+  }
+
+  private static JsonObjectSchema handleSchema(String description) {
+    return JsonObjectSchema.builder()
+        .description(description)
+        .addProperty(
+            "type", JsonEnumSchema.builder().enumValues("camunda.agenticai.document").build())
+        .addProperty(
+            "id", JsonStringSchema.builder().description("The id of the document.").build())
+        .required("type", "id")
+        .build();
+  }
+
+  @Test
+  void keepsTheHandleSchemaOfDocumentParametersThroughTheConversionAndBack() throws Exception {
+    final var properties = new LinkedHashMap<String, Object>();
+    properties.put("file", DocumentParameter.documentSchema("The file"));
+    properties.put(
+        "files",
+        Map.of(
+            "type",
+            "array",
+            "description",
+            "The files",
+            "items",
+            DocumentParameter.documentSchema(null)));
+    final var toolDefinition =
+        ToolDefinition.builder()
+            .name("send")
+            .description("Sends")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    properties,
+                    "required",
+                    List.of("file", "files")))
+            .build();
+
+    final var toolSpecification = toolSpecificationConverter.asToolSpecification(toolDefinition);
+
+    assertThat(toolSpecification.parameters())
+        .isEqualTo(
+            JsonObjectSchema.builder()
+                .addProperty("file", handleSchema("The file"))
+                .addProperty(
+                    "files",
+                    JsonArraySchema.builder()
+                        .description("The files")
+                        .items(handleSchema(null))
+                        .build())
+                .required("file", "files")
+                .build());
+
+    final var restored = toolSpecificationConverter.asToolDefinition(toolSpecification);
+
+    // an enum is restored without the type
+    final var expectedSchema =
+        objectMapper.readValue(
+            """
+            {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "object",
+                  "description": "The file",
+                  "properties": {
+                    "type": {"enum": ["camunda.agenticai.document"]},
+                    "id": {"type": "string", "description": "The id of the document."}
+                  },
+                  "required": ["type", "id"]
+                },
+                "files": {
+                  "type": "array",
+                  "description": "The files",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {"enum": ["camunda.agenticai.document"]},
+                      "id": {"type": "string", "description": "The id of the document."}
+                    },
+                    "required": ["type", "id"]
+                  }
+                }
+              },
+              "required": ["file", "files"]
+            }
+            """,
+            new TypeReference<Map<String, Object>>() {});
+    assertThat(restored).isEqualTo(new ToolDefinition("send", "Sends", expectedSchema));
+    assertThat(restored.documentParameters()).isEqualTo(toolDefinition.documentParameters());
   }
 
   @Test
