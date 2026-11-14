@@ -61,7 +61,7 @@ jobs:
       - name: Cache Maven wrapper distribution
         uses: ./.github/actions/cache-maven-wrapper
 
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: 'temurin'
           java-version: '25.0.5+8.0.LTS'
@@ -486,7 +486,7 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
 
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         if: steps.changes.outputs.ai == 'true'
         with:
           distribution: temurin
