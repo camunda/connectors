@@ -109,7 +109,7 @@ limitations under the License.</license.inlineheader>
          An earlier override was removed once the BOM caught up to a previous, lower threshold,
          which silently moved Tomcat back into the vulnerable range - do not repeat that: compare
          against 10.1.59, not against whatever the BOM happens to ship. -->
-    <tomcat.version>10.1.61</tomcat.version>
+    <tomcat.version>10.1.62</tomcat.version>
     <version.spring-cloud-gcp-starter-logging>5.13.12</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.7</version.logback>
     <version.log4j>2.26.1</version.log4j>
