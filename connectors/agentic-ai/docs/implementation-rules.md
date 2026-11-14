@@ -204,6 +204,17 @@ that caused it.
      requests in an agentic loop test, for example `modelCallCount()`.
    - Why: a partial assertion lets a regression pass. A schema regression and an extra loop iteration
      passed this way. (#7463, #6999) (P4)
+7. **What user code can pass to the model is safe by construction.** An extension point hands user
+   code only values that the agent can show to the model as they are, or that the agent turns into a
+   safe form before the model reads them.
+   - In this module: hand a runtime tool a document as an `AgentDocumentId` or as an SDK `Document`.
+     `ObjectHandleRenderer` renders a `Document` in a tool result as its handle. Do not hand a runtime
+     tool an `AgentDocument`: its JSON and its `toString()` hold the store reference.
+   - Do not rely on a Javadoc `MUST NOT` to keep store details from the model.
+   - Known exception: `RuntimeToolContext.agentContext()` gives the whole agent context, also the agent
+     documents. Do not add a second way to get them.
+   - Why: a lookup of the runtime tool SPI returned the `AgentDocument`. A tool that wrote it into a
+     result sent store ids to the model, which [ADR 018](adr/018-document-flow.md) excludes. (#9632)
 
 ## Code design
 
@@ -276,8 +287,27 @@ below make this style specific.
   - When the only way to avoid a copy is to refactor existing code, name it in the plan and ask, as
     [Surgical changes](#surgical-changes) says. In a review, report existing copies as an advisory
     consolidation.
+  - A consumer on the same path as the owner does not check the rule again. It handles only the cases
+    that the owner lets through. Example: `RuntimeTools` calls a runtime tool only when the tool is
+    enabled, so `RuntimeTool.call` does not call `isEnabled` again.
+  - Check again where the guarantee crosses a trust boundary: persisted state, a later job, model
+    output or user code. Example: `ToolCallAdmission` admits the call of a runtime tool in one job.
+    `RuntimeTools` checks again that the tool is enabled when it executes the call, which can be in a
+    later job.
+  - When the code must still handle a case that the owner excludes, such as an arm of a sealed type,
+    throw an `IllegalStateException` that names the broken guarantee. Do not return a second error
+    text to the model. Example: `LocalToolCallExecutor` throws for a call whose result source is not
+    `RUNTIME`.
+  - Why: a second check on the same path is dead code, and its error text drifts from the text of the
+    owner. (#9632)
 - **Decide a mode once.** Resolve a per-instance mode, such as an agent instance feature, at one point
   into a value or a strategy. The steps below that point do not switch on the mode again. (P2)
+- **Each boundary gets the narrowest value that it needs.** When consumers need different forms of one
+  domain value, give each boundary the narrowest form. Do not unify the forms when the unified form
+  needs a guard, a serializer or a leak check that the narrow forms do not need. State the reason for
+  each form where the code decides it. Example: a process tool gets the SDK reference of a document,
+  because a process variable carries JSON and BPMN elements need a Camunda document. A runtime tool
+  gets the document id, which holds no store details ([ADR 018](adr/018-document-flow.md)). (P2)
 - **A required guard has one shared test.** When a domain rule requires the same guard in each
   adapter, one test runs each adapter against the guard. A change that adds an adapter adds it to
   that test. When the test does not exist yet, the change adds it. Example of such a guard: the
