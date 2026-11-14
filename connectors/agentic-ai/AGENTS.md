@@ -68,51 +68,16 @@ Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
 
 ### Architecture tests
 
-`agentic-ai-archunit-tests` holds the ArchUnit rules (`archunit-junit5`) for the production classes of
-all modules, in package `io.camunda.connector.agenticai.archunit`:
+`agentic-ai-archunit-tests` holds the ArchUnit rules for the production classes of all modules (see its
+[README](agentic-ai-archunit-tests/README.md#key-types)). The class Javadoc of each architecture test describes what it checks.
 
-- `ModuleLayersArchTest`: the dependency direction between the package roots (layers) of the modules.
-- `ModulePackageOwnershipArchTest`: every class of a package root is loaded from the module owning it,
-  and every module contains only classes of its own package root.
-- `NullMarkedPackagesArchTest`: every package has a `@NullMarked` `package-info`.
-- `ProxySupportArchTest`: the HTTP proxy support depends only on itself and the common library.
-- `ChatModelProviderIndependenceArchTest`: the vendor chat model providers (packages below `aiagent.chatmodel.provider`,
-  except `azure` and `configuration`) do not depend on each other, except for the allowed
-  dependencies listed in the test (today: Mistral on OpenAI). The rest of the AI agent (outside `aiagent.chatmodel.provider`
-  and `aiagent.configuration`) does not depend on the providers.
-- `VendorSdkArchTest`: one table row per vendor SDK: each SDK (Anthropic, OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
-  LangChain4j, A2A, MCP) is only used by the packages that integrate it.
-- `AutoConfigurationArchTest`: every `@AutoConfiguration` class lives in a `configuration` package, is switched by
-  `@ConditionalOnBooleanProperty` on `camunda.connector.agenticai.enabled` with `matchIfMissing = true`, and is listed
-  in the `AutoConfiguration.imports` of the module it is loaded from; every Agentic AI entry of an `imports` resource
-  resolves to an `@AutoConfiguration` class.
-- `ConfigurationPropertyNamesArchTest`: property keys in `@ConfigurationProperties` prefixes,
-  `@ConditionalOnProperty`, `@ConditionalOnBooleanProperty` and `@Value` placeholders are kebab-case.
-  Every `@ConfigurationProperties` prefix is `camunda.connector.agenticai` or below it.
-- `NoFieldInjectionArchTest`: no field injection (`@Autowired`, `@Value`, `@Resource`, `@Inject` on fields).
-- `SpringFreeModelAndApiArchTest`: `aiagent.model` and `aiagent.api` do not depend on `org.springframework`.
-- `PolymorphicJsonArchTest`: no `@JsonTypeInfo(use = Id.CLASS | Id.MINIMAL_CLASS)`, and every concrete
-  `ConversationContext` implementation is annotated with `@JsonTypeName`.
-- `OutboundConnectorBeanScopeArchTest`: `@Bean` methods returning an outbound connector function (annotated with
-  `@OutboundConnector` or implementing `OutboundConnectorFunction`) are annotated `@Scope("prototype")`.
-- `PackageCyclesArchTest`: no package cycles between the chat model providers, between the conversation stores,
-  and between the sub-packages of the A2A client and of the tools schema. The first-level packages of the AI Agent
-  connector and of the MCP client have no cycles except the known ones in `KNOWN_CYCLES` (the ADR 015 follow-up).
-  When you break a cycle, delete its entry; never add one.
-- `ElementTemplateAnnotationsArchTest`: the library modules do not use the element template generator annotations,
-  except the records listed in the test (the ADR 015 follow-up). The list must only shrink.
-- `RegistryEncapsulationArchTest`: concrete `ConversationStore` implementations are only used by
-  `aiagent.memory.conversation` and `aiagent.configuration`; concrete `ChatModelFactory` implementations are only
-  used by `aiagent.chatmodel` and `aiagent.configuration`.
-- `GeneralCodingRulesArchTest`: no access to the standard streams, no `java.util.logging`.
-- `NamingConventionsArchTest`: a class named `FooImpl` implements the interface `Foo`.
-- `ModuleInventoryTest` (plain JUnit): every Maven module of `connectors/agentic-ai` is registered in
-  `AgenticAiModules` and the other way round, and `agentic-ai-bundle` depends on exactly the connector and
-  integration modules.
+- `PackageCyclesArchTest` allows the package cycles in `KNOWN_CYCLES`. When you break a cycle, delete its entry;
+  never add one.
+- `ElementTemplateAnnotationsArchTest` allows the records listed in the test. The list must only shrink.
+- `AgenticAiModules` maps modules to package roots and kinds. When you add a module, a package root or a dependency
+  between modules, update it and the layer rules; a new connector or integration also goes into `agentic-ai-bundle`.
 
-`AgenticAiModules` maps modules to package roots and kinds (library, connector, integration). When you add
-a module, a package root or a dependency between modules, update it and the layer rules; a new connector or
-integration also goes into `agentic-ai-bundle`. Run only the architecture tests with:
+Run only the architecture tests with:
 
 ```bash
 ./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests -am \
@@ -197,13 +162,10 @@ conversation and turn types (everything else below).
 High-frequency traps (detail behind each link):
 
 - **Job supersession / `NOT_FOUND`**: a completing tool creates a new job; the stale in-flight job may be rejected.
-  The AI Agent connectors (v1 and v2, both flavors) opt into job leasing (`@OutboundConnector(withLease = true)`), so
-  completion is fenced against a superseded activation; `CamundaAgentInstanceClient` forwards the lease token via
-  `jobLeaseToken(...)` on each batched turn update
-  (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart`). The engine rejects
-  such an update (`404`) when its job is no longer active; that maps to a non-retryable `AGENT_INSTANCE_SUPERSEDED`
-  failure, not the ordinary retry path (ADR 013). An update with a stale lease on a job that is still active is
-  accepted, and the engine skips its status change. Gateway/MCP/A2A connectors are not leased. [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions),
+  The AI Agent connectors (v1 and v2, both flavors) use job leasing; the gateway, MCP and A2A connectors do not. An
+  agent instance update for a job that is no longer active fails with the non-retryable `AGENT_INSTANCE_SUPERSEDED`
+  and takes no ordinary retry (ADR 013).
+  [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions),
   [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Partial tool results → no-op (but not silent)**: incomplete results make the composer return `Deferred` and the
   worker completes without an LLM call — expected, not a bug — but it now also reports whichever results have
@@ -224,64 +186,43 @@ High-frequency traps (detail behind each link):
 - **Events have `id = null`**: tool-call results without an id are event results, partitioned from real tool results.
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#event-handling).
 - **Gateway `transformToolCallResults` must carry `completedAt` forward**: MCP/A2A handlers rebuild a
-  new `ToolCallResult` when unwrapping the gateway envelope; unlike `elementId`, `completedAt` has no
-  fallback resolution and is silently dropped if not copied explicitly.
-  [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
+  new `ToolCallResult` when unwrapping the gateway envelope. Copy `completedAt` explicitly: unlike `elementId`, it has
+  no fallback resolution.
+  [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-handler-interface), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
-  instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
-  `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
-  keeps the previous document handling (bare content and the older XML tag format, no agent documents), a `Tracked` one holds
-  its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
-  `boolean` parameter. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
-  and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
-  behavior that changes the wire format or the persisted shape on a feature and keep the legacy
-  path covered by `LegacyDocumentConversationTest`. The one deliberate exception is the admission and the rejection of
-  tool calls (next item), which applies to every agent instance: handing the call of an unknown tool to the process
-  made the agent wait for a result that never came, without an incident.
+  instance creates its context (`AgentInitializerImpl`). Never add a feature to a context that exists without it.
+  Branch on `AgentContext.documentHandling()` (`Untracked` or `Tracked`) with an exhaustive `switch`, never on
+  `supports(AgentFeatures.DOCUMENTS)` or a `boolean` parameter. Gate new behavior that changes the wire format or the
+  persisted shape on a feature and keep the legacy path covered by `LegacyDocumentConversationTest`. The one
+  deliberate exception is the admission and the rejection of tool calls (next item), which applies to every agent
+  instance. What each feature gates, and why: [`data-model.md`](aiagent-model/docs/data-model.md),
   [ADR 018](docs/adr/018-document-flow.md), [ADR 016](docs/adr/016-runtime-tools.md).
 - **Tool calls are admitted once, and the agent produces the tool call results of local tool calls itself**: before an
-  assistant message enters the conversation, `ToolCallAdmission` sets `ToolCall.kind` to the kind of the tool of the call's name among the
-  tools offered in the job, and `ToolCall.rejection` (the error text) when the call must not be carried out, such as a name that is not offered, and never computes either
-  again, for every agent instance, with or without the `runtimeTools` feature. Both are persisted (`kind` written only
-  for `RUNTIME`, `rejection` only when set), so every conversation store must keep them. A call with a rejection
-  (a rejected call) gets its rejection as its tool call result and is never executed, also when a runtime tool of that
-  name is enabled later; the calls of runtime tools go to `RuntimeTools`. Both are local tool calls
-  (`ToolCall.isLocal()`), the calls whose tool call result the agent produces itself: the rejection when the
-  `ToolCallBatch` is created, the calls of runtime tools in `LocalToolCallExecutor` only. An interrupting event cancels
-  every call without a result, also the calls of runtime tools that were not executed yet. When the model issues local tool calls and process tool calls together, only
-  the process tool calls are activated, and the agent adds the tool call results of the local tool calls when the next
-  turn is composed, merged with the process results in call order. [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete), [ADR 016](docs/adr/016-runtime-tools.md).
+  assistant message enters the conversation, `ToolCallAdmission` sets `ToolCall.kind` and, for a call that must not be
+  carried out, `ToolCall.rejection`. Nothing computes either again. This applies to every agent instance, with or
+  without the `runtimeTools` feature. Every conversation store must keep both fields. A rejected call gets its
+  rejection as its tool call result and is never executed, also when a runtime tool of that name is enabled later. The
+  calls of runtime tools are executed in `LocalToolCallExecutor` only. Local tool calls (`ToolCall.isLocal()`),
+  interrupting events and batches that mix local and process tool calls:
+  [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete), [ADR 016](docs/adr/016-runtime-tools.md).
 - **Documents are persisted as references and expanded for the model**: for a `Tracked` instance the conversation holds
-  typed document blocks (`AgentDocumentContent`: the id and the delivery), also for a document that is a whole tool
-  result, and `AgentContext.documents` (`AgentDocuments`) holds what the blocks stand for: per document (`AgentDocument`)
-  its `AgentDocumentId`, its `AgentDocumentOrigin` (sealed: user message or event with the id of the message, or tool call, persisted with the
-  discriminator `type`) and its document reference in the format of the connector SDK. A new document is a `DocumentContent` (the user
-  prompt, events, tool results, and every document of an `Untracked` instance; the only document a provider sees), a known
-  one an `AgentDocumentContent` (it never reaches a provider, which fails loudly on it). The id is `doc_` and 12 hex
-  characters of a SHA-256 over the identity of the document (`AgentDocumentId.of`), never the id in the store; registering
-  a different document under a known id, also within one batch, fails with `DOCUMENT_ID_COLLISION`. A block holds no file
-  name, size or origin: the record `AgentDocumentHandle` is what the model reads (JSON with the keys `type`, `id`,
-  `fileName`, `contentType`, `size` in this order, no origin); `AgentDocumentHandle.of(agentDocuments, id)` builds it
-  from the agent document, and `ObjectHandleRenderer.text(handle)` writes it as compact JSON, `tree(handle)` as an object
-  node.
+  document blocks (`AgentDocumentContent`), and `AgentContext.documents` holds the agent documents they stand for.
+  `DocumentExpander` turns the blocks into handles and content after the window, so the providers have no document
+  specific code. A provider never receives an `AgentDocumentContent`: every provider content converter fails with
+  `UnexpandedAgentDocumentException` on one. A `Tracked` instance accepts only Camunda documents
+  (`AgentDocument.isSupported`). The document id, the handle, the expansion, the history and the error codes are in
+  [`data-model.md`](aiagent-model/docs/data-model.md),
+  [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results),
+  [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter)
+  and [`agent-instance.md`](connector-aiagent/docs/agent-instance.md#conversation-history-items). The reasons are in
+  [ADR 018](docs/adr/018-document-flow.md).
   Naming: a type of the agent document registry carries the `AgentDocument` prefix: the entry, a part of one entry, the
   list of entries, and a failure about an entry (`AgentDocument`, `AgentDocumentId`, `AgentDocumentOrigin`,
   `AgentDocumentHandle`, `AgentDocumentContent`, `AgentDocuments`, `AgentDocumentIdCollisionException`,
   `UnexpandedAgentDocumentException`). A type for any document of the SDK or for a setting of the instance keeps the
   `Document` prefix (`DocumentContent`, `DocumentHandling`, `DocumentDelivery`). A class that does work is named by its
   task (`DocumentExpander`, `DocumentRestorer`), and a type of another concept by that concept (`HistoryDocuments`).
-  `DocumentExpander.expand(snapshot, documentHandling, documentFactory)`, a named step of the model call after
-  `AgentConversation.window(int)` with the document factory of the job (`AgentExecutionContext.documentFactory()`, the
-  store of the physical tenant of the job), turns a block into its handle text and, with the delivery `content`, the document; in
-  a tool result it renders the handle as text and a document nested in an object as the handle object
-  (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
-  chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
-  SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
-  documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order.
-  A `Tracked` instance accepts only Camunda documents: an external or an inline document of the user prompt, a tool call
-  result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`).
-  [ADR 018](docs/adr/018-document-flow.md),
-  [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results).
+  The word "handle" is the JSON object the model reads (`AgentDocumentHandle`), never the SDK `DocumentReference`.
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
@@ -367,18 +308,15 @@ Before claiming a change is complete:
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Each Javadoc and each document that names a changed method agrees with the code at the last commit of the PR.
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
-  The build does not check this yet: the API compatibility check skips `aiagent-api` and
-  `aiagent-model` until 8.11.0 is its baseline. From then on, a break of these modules fails the build
-  until it is accepted in the module's `api-changes.json` with a link to its `breaking-changes.md`
-  anchor ([API compatibility check](../../docs/api-compatibility.md)).
+  The [API compatibility check](../../docs/api-compatibility.md) states from when it gates `aiagent-api`
+  and `aiagent-model`. Accept a break that it reports in the module's `api-changes.json` with a link to
+  its `breaking-changes.md` anchor.
 
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
-tool (a tool the connector runtime executes itself, without activating a BPMN element; a process tool must not have its name)
-by implementing the SPI and registering a Spring bean. A runtime tool is the three-method interface `RuntimeTool`
-(`definition`, `isEnabled`, `call`), an experimental SPI in 8.11. Where to start (SPI + reference implementation per
-type): [Extension Points](docs/architecture/extension-points.md#extension-points) (gateway tools:
+tool by implementing the SPI and registering a Spring bean. A process tool must not have the name of a runtime tool that is enabled.
+Where to start (SPI + reference implementation per type): [Extension Points](docs/architecture/extension-points.md#extension-points) (gateway tools:
 [Gateway Tool Pattern](docs/architecture/extension-points.md#gateway-tool-pattern); runtime tools:
 [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool) and [ADR 016](docs/adr/016-runtime-tools.md)).
 
@@ -437,40 +375,16 @@ fixtures for the new template generation in the same change, as described in
 When you write or change help text in `@TemplateProperty` annotations (`label`, `tooltip`,
 `placeholder`, `description`), follow [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md).
 
-### Agent definition marker
+### Template markers
 
-All AI Agent Task and Sub-process templates (v1 and v2, all flavors, including hybrid) carry a
-hidden `zeebe:agentDefinition` property so the engine detects a native agent at deploy time
-(camunda/connectors#8176). `transform-ai-agent-task-template.groovy` adds it to each task template
-(`agentType=aiAgentTask`); `transform-ai-agent-sub-process-template.groovy` adds its own
-(`agentType=aiAgentSubProcess`) to the derived sub-process template. Both take `agentType` as a
-Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
-execution order does not matter — the sub-process transformer cannot carry the task marker into the
-derived template regardless of when the task-marker script runs.
-
-### Deprecation marker (v1 only)
-
-Only the current main/hybrid v1 AI Agent Task and Sub-process templates (version 13, minimum Camunda
-8.10) carry a top-level `deprecated` block pointing modelers to the v2 template, and have `(Deprecated)`
-appended to their `name`. Their `versioned/` snapshots at versions 10–12 do not: Web Modeler never
-offers an Update action on a deprecated template, so deprecating those older versions too would strand
-anyone still on them with no click-path to version 13 (see #8431's follow-up revert). Earlier v1
-versions (8.8/8.9-minimum, versions 0–7) carry neither, and neither do v2 templates. For the generated
-main/hybrid templates, both transform scripts accept optional `deprecationMessage` /
-`deprecationDocumentationRef` Maven properties — wired only into the v1 executions in `pom.xml` — and
-each script strips any inherited `deprecated` block before deciding its own and appending `(Deprecated)`
-to `name` if not already present, the same pattern used for the agent definition marker above.
-`versioned/` snapshots are static and are patched by hand instead (three pre-8.10 snapshots already
-carried an unrelated legacy `"deprecated": true` boolean flag and were left untouched).
+The transform scripts add the hidden `zeebe:agentDefinition` marker to every AI Agent template and the
+`deprecated` block to the current v1 templates. Which templates carry them and how the scripts add them:
+[Markers added by the transform scripts](connector-aiagent/docs/element-template-generation.md#markers-added-by-the-transform-scripts).
 
 ## Key entry points
 
-| File                                        | Purpose                                    |
-| ------------------------------------------- | ------------------------------------------ |
-| `AgentTaskV1Function.java`                  | Connector (Task) entry point               |
-| `AgentSubProcessV1Function.java`            | Job worker (Sub-process) entry point       |
-| `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
-| `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                         |
+The connector functions of both flavors, the shared orchestrator and the Spring wiring are listed in
+the [key types of `connector-aiagent`](connector-aiagent/README.md#key-types).
 
 ## Architecture decision records
 
@@ -483,9 +397,12 @@ When writing or revising an ADR, read the [authoring rules](docs/adr/README.md).
 When a change touches documented structure (classes, interfaces, data-model records, config
 properties, error codes, behavioral contracts), update the matching doc in the same change:
 
-- **`AGENTS.md`** (this file): high-level orientation (mental model, navigation, glossary, gotchas,
-  build/test commands, entry points). Design rules live in `docs/design-guidelines.md`; testing rules
-  live in `docs/acceptance-testing.md`; ADR authoring rules live in `docs/adr/README.md`.
+- **`AGENTS.md`** (this file): rules and links (mental model, navigation, glossary, gotchas,
+  build/test commands). Each fact has one home: a module doc, a doc in `docs/`, or a Javadoc. Do not
+  restate its details here (values, formats, field lists, order, steps or semantics). Link to its home.
+  A rule may name a type, a field or an error code as a pointer to that home.
+  Design rules live in `docs/design-guidelines.md`; testing rules live in `docs/acceptance-testing.md`;
+  ADR authoring rules live in `docs/adr/README.md`.
 - **`<module>/README.md`** and **`<module>/docs/`**: the purpose and key types of a module, and the docs
   about its types (data model, memory, tools, converters, providers, error codes, MCP, A2A). The
   `## Docs` section of the README links every file in `<module>/docs/`.
@@ -502,6 +419,8 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 - **`<connector module>/element-templates/README.md`** and the index
   **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new
   connectors (maintenance rules are in the Element templates section above).
+  These READMEs serve users who pick or configure a template: which template fits which Camunda version
+  and what a user selects. Put the details of how the templates are generated in `<module>/docs/`.
 
 > `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
 > Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.
