@@ -166,7 +166,14 @@ jobs:
   trigger-sm-e2e:
     name: Trigger SM E2E tests
     needs: [ build-image ]
-    if: needs.build-image.outputs.connectors-version != ''
+    # Temporarily disabled on main. The 8.11 chart deploys an ES 8.18.0 companion
+    # while camunda/camunda#68738 moved main's orchestration image to the
+    # Elasticsearch 9 client. This leg still passes only because the chart pins
+    # orchestration to a pre-#68738 digest; it breaks the moment that pin moves or
+    # camunda/camunda-platform-helm#7917 lands the ES 9.5.6 companion. Drop the
+    # `false &&` once the chart ships ES 9. Stable branches keep their own copy of
+    # this file and are untouched.
+    if: false && needs.build-image.outputs.connectors-version != ''
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
@@ -199,7 +206,9 @@ jobs:
     # hiccup in AlwaysGreen's own plumbing is never read as a pipeline failure.
     name: AlwaysGreen SM failure detection
     needs: [ build-image, trigger-sm-e2e ]
-    if: always()
+    # Nothing to scan when the SM leg is skipped, and a scan of zero SM jobs would
+    # still cost a run and an API call on every push.
+    if: always() && needs.trigger-sm-e2e.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
