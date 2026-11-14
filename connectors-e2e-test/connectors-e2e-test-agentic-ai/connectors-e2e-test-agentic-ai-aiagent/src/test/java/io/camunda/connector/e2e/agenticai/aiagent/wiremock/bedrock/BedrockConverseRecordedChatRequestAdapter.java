@@ -46,6 +46,11 @@ final class BedrockConverseRecordedChatRequestAdapter implements RecordedChatReq
   }
 
   @Override
+  public String rawBody() {
+    return delegate.rawBody();
+  }
+
+  @Override
   public Optional<RecordedResponseFormat> responseFormat() {
     return delegate
         .responseFormat()

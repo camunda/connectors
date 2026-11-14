@@ -17,7 +17,7 @@ module does not depend on Spring.
 - `GatewayToolHandler`, `GatewayToolCallTransformer`, `GatewayToolDefinitionResolver` and
   `TypePropertyBasedGatewayToolDefinitionResolver`: the gateway tool SPI.
 - `ContentTreeDocumentWalker`: finds the documents in a tool call result.
-- `RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult` and `RuntimeToolException`: the
+- `RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult`, `ToolCallEffect` and `RuntimeToolException`: the
   runtime tool SPI, for a tool that the connector runtime executes itself. The SPI is experimental.
 
 ## Docs

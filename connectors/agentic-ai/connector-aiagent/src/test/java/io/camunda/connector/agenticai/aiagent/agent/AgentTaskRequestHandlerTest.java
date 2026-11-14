@@ -68,6 +68,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -109,6 +110,8 @@ class AgentTaskRequestHandlerTest {
           List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
           TestObjectMapperSupplier.INSTANCE,
           new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
+
+  @Spy private ToolCallResultsInputBuilder resultsInputBuilder = new ToolCallResultsInputBuilder();
 
   @Spy private DocumentExpander documentExpander = TestDocuments.documentExpander();
 
@@ -448,15 +451,17 @@ class AgentTaskRequestHandlerTest {
     when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenAnswer(invocation ->
             CompositionResult.Ready.of(
-                invocation.getArgument(1, AgentContext.class), ToolCallBatch.of(List.of())));
+                invocation.getArgument(1, AgentContext.class),
+                Set.of(),
+                ToolCallBatch.of(List.of())));
     lenient()
         .when(agentInputComposer.assemble(any()))
         .thenAnswer(invocation -> {
           final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
           return ready.toolCallBatch().toolCalls().isEmpty()
               ? new TurnInput(List.of(inputMessages))
-              : new ToolCallResultsInputBuilder()
-                  .build(ready.agentContext(), ready.toolCallBatch());
+              : resultsInputBuilder.build(
+                  ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
         });
   }
 

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -16,10 +17,16 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -28,6 +35,8 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
+import io.camunda.connector.runtime.core.document.InlineDocument;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +47,19 @@ class LocalToolCallExecutorTest {
 
   private static final AgentContext AGENT_CONTEXT =
       AgentContext.builder().state(AgentState.READY).build();
+
+  private static final AgentContext TRACKED_AGENT_CONTEXT =
+      AGENT_CONTEXT.withFeatures(List.of(AgentFeatures.DOCUMENTS));
+
+  private static final Document KNOWN_DOCUMENT = createDocument("known", "known.txt");
+  private static final AgentDocumentId KNOWN_ID = AgentDocumentId.of(KNOWN_DOCUMENT);
+  private static final AgentContext AGENT_CONTEXT_WITH_DOCUMENT =
+      AGENT_CONTEXT
+          .withFeatures(List.of(AgentFeatures.DOCUMENTS))
+          .withDocuments(
+              AgentDocuments.empty()
+                  .register(
+                      KNOWN_DOCUMENT, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
 
   private static final ToolCall RUNTIME_CALL =
       new ToolCall("runtime-1", "getWeather", Map.of("city", "Berlin")).withKind(ToolKind.RUNTIME);
@@ -66,6 +88,11 @@ class LocalToolCallExecutorTest {
         .orElseThrow();
   }
 
+  private static RuntimeToolExecution runtimeExecution(RuntimeToolResult result) {
+    final var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    return new RuntimeToolExecution(RUNTIME_CALL, result, now, now);
+  }
+
   private static RuntimeToolExecution execution(ToolCall call, String text) {
     final var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
     return new RuntimeToolExecution(call, RuntimeToolResult.success(text), now, now);
@@ -87,6 +114,144 @@ class LocalToolCallExecutorTest {
         .containsExactly(
             ToolCallBatch.Entry.from(executions.get(0).toolCallResult()),
             ToolCallBatch.Entry.from(executions.get(1).toolCallResult()));
+  }
+
+  @Test
+  void keepsTheEffectsOfAResult() {
+    var execution =
+        runtimeExecution(RuntimeToolResult.success("loaded").withDocumentContent(KNOWN_ID));
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(execution));
+
+    var entries =
+        executor.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL));
+
+    assertThat(entries)
+        .containsExactly(
+            new ToolCallBatch.Entry(
+                execution.toolCallResult(),
+                List.of(),
+                List.of(new ToolCallEffect.AddDocumentContent(KNOWN_ID))));
+  }
+
+  @Test
+  void anErrorResultHasNoEffects() {
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(runtimeExecution(RuntimeToolResult.error("no"))));
+
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL));
+
+    assertThat(entries).singleElement().satisfies(entry -> assertThat(entry.effects()).isEmpty());
+  }
+
+  @Test
+  void aResultMayNameTheDocumentsItReturns() {
+    var returned = createDocument("returned", "returned.txt");
+    var id = AgentDocumentId.of(returned);
+    var execution =
+        runtimeExecution(
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
+                .withDocumentContent(id));
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(execution));
+
+    var entries = executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL));
+
+    assertThat(entries)
+        .singleElement()
+        .satisfies(entry ->
+            assertThat(entry.effects()).containsExactly(new ToolCallEffect.AddDocumentContent(id)));
+  }
+
+  @Test
+  void anAgentThatDoesNotTrackItsDocumentsTakesEveryKindOfDocumentFromAResult() {
+    var inline = new InlineDocument("inline", "inline.txt", "text/plain");
+    var external =
+        new ExternalDocument("https://example.com/report.pdf", "report.pdf", url -> null);
+    var execution =
+        runtimeExecution(
+            RuntimeToolResult.success(
+                List.of(
+                    DocumentContent.documentContent(inline),
+                    DocumentContent.documentContent(external))));
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(execution));
+
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL));
+
+    assertThat(entries).containsExactly(ToolCallBatch.Entry.from(execution.toolCallResult()));
+  }
+
+  @Test
+  void anAgentThatTracksItsDocumentsRejectsAnExternalDocumentOfAResultWithTheNameOfTheTool() {
+    var external =
+        new ExternalDocument("https://example.com/report.pdf", "report.pdf", url -> null);
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(
+            List.of(
+                runtimeExecution(
+                    RuntimeToolResult.success(
+                        List.of(DocumentContent.documentContent(external))))));
+
+    assertThatThrownBy(
+            () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .isInstanceOf(UnsupportedDocumentReferenceException.class)
+        .hasMessage(
+            "Only Camunda documents can be passed to the AI Agent, but the result of the tool 'getWeather' contains an external document.");
+  }
+
+  @Test
+  void anAgentThatTracksItsDocumentsRejectsAnInlineDocumentNestedInAnObjectOfAResult() {
+    var inline = new InlineDocument("inline", "inline.txt", "text/plain");
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(
+            List.of(
+                runtimeExecution(
+                    RuntimeToolResult.success(
+                        List.of(ObjectContent.objectContent(Map.of("file", inline)))))));
+
+    assertThatThrownBy(
+            () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .isInstanceOf(UnsupportedDocumentReferenceException.class)
+        .hasMessage(
+            "Only Camunda documents can be passed to the AI Agent, but the result of the tool 'getWeather' contains an inline document.");
+  }
+
+  @Test
+  void anAgentThatTracksItsDocumentsRejectsAnExternalDocumentOfAResultThatAsksForContent() {
+    var external =
+        new ExternalDocument("https://example.com/report.pdf", "report.pdf", url -> null);
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(
+            List.of(
+                runtimeExecution(
+                    RuntimeToolResult.success(List.of(DocumentContent.documentContent(external)))
+                        .withDocumentContent(AgentDocumentId.of("doc_1")))));
+
+    assertThatThrownBy(
+            () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .isInstanceOf(UnsupportedDocumentReferenceException.class)
+        .hasMessage(
+            "Only Camunda documents can be passed to the AI Agent, but the result of the tool 'getWeather' contains an external document.");
+  }
+
+  @Test
+  void keepsTheEffectsOfAResultOfAnAgentThatDoesNotTrackItsDocuments() {
+    var returned = createDocument("returned", "returned.txt");
+    var id = AgentDocumentId.of(returned);
+    var execution =
+        runtimeExecution(
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
+                .withDocumentContent(id));
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(execution));
+
+    var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL));
+
+    assertThat(entries)
+        .containsExactly(
+            ToolCallBatch.Entry.from(
+                execution.toolCallResult(), List.of(new ToolCallEffect.AddDocumentContent(id))));
   }
 
   @Test
@@ -162,7 +327,8 @@ class LocalToolCallExecutorTest {
                     .content(List.of(content))
                     .completedAt(now)
                     .build(),
-                List.of(document)));
+                List.of(document),
+                List.of()));
   }
 
   @Test
@@ -188,6 +354,7 @@ class LocalToolCallExecutorTest {
                     .content(List.of(content))
                     .completedAt(now)
                     .build(),
+                List.of(),
                 List.of()));
   }
 }

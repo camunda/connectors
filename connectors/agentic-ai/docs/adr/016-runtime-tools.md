@@ -85,7 +85,9 @@ name twice, once as a process tool and once as an enabled runtime tool, fails wi
 
 An agent instance records the features it was created with in its agent context, as a list of names. Behavior that
 changes the wire format or the persisted shape is gated on a feature, so an instance that was created before the
-behavior existed keeps the behavior it started with. A feature is never added to an existing instance.
+behavior existed keeps the behavior it started with. A feature is never added to an existing instance. The connector
+function decides the features of a new instance: the v2 connectors give all features, and the deprecated v1 connectors
+give none, so a new v1 instance behaves like an instance created before the features.
 
 The first feature is `runtimeTools`. An instance without it is offered no runtime tool and checks no tool name, because
 its process, which may already contain an element with such a name, must keep running. The feature gates only what is

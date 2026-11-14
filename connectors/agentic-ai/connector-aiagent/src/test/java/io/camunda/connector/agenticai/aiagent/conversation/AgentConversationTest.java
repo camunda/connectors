@@ -32,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
@@ -41,8 +42,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class AgentConversationTest {
 
@@ -754,5 +758,75 @@ class AgentConversationTest {
     assertThat(next.toAgentContext().properties()).containsEntry("note", "x");
     // the metrics of the persisted context are not touched by a change of it
     assertThat(next.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());
+  }
+
+  @ParameterizedTest
+  @CsvSource({"3, 0, true", "2, 0, false", "3, 1, false", "4, 1, true"})
+  void documentIdsWithContent_followTheContextWindowWithTheAddedMessages(
+      int windowSize, int addedMessages, boolean withContent) {
+    var document = TestDocuments.createDocument("content", "a.txt");
+    var userMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    AgentDocumentContent.of(AgentDocumentId.of(document))
+                        .withDelivery(DocumentDelivery.CONTENT)))
+            .build();
+
+    var conv =
+        AgentConversation.rehydrate(
+                new AgentConfiguration(
+                    TEST_CHAT_MODEL,
+                    TEST_SYSTEM_PROMPT,
+                    null,
+                    new MemoryTemplateConfiguration(null, windowSize),
+                    null,
+                    null,
+                    null),
+                BASE_CONTEXT,
+                TurnReconstructor.reconstruct(List.of()),
+                SYSTEM_MESSAGE,
+                List.of(userMessage))
+            .ingest(assistantMessage("one"), AgentMetrics.empty());
+
+    // the system message, the user message, the assistant message and the added messages must fit
+    // into the window for the content of the user message to stay
+    assertThat(conv.documentIdsWithContent(addedMessages))
+        .isEqualTo(withContent ? Set.of(AgentDocumentId.of(document)) : Set.of());
+  }
+
+  @ParameterizedTest
+  @CsvSource({"2, true", "1, false"})
+  void documentIdsWithContent_keepNoPlaceForASystemMessageTheConversationDoesNotHave(
+      int windowSize, boolean withContent) {
+    var document = TestDocuments.createDocument("content", "a.txt");
+    var userMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    AgentDocumentContent.of(AgentDocumentId.of(document))
+                        .withDelivery(DocumentDelivery.CONTENT)))
+            .build();
+
+    var conv =
+        AgentConversation.rehydrate(
+                new AgentConfiguration(
+                    TEST_CHAT_MODEL,
+                    TEST_SYSTEM_PROMPT,
+                    null,
+                    new MemoryTemplateConfiguration(null, windowSize),
+                    null,
+                    null,
+                    null),
+                BASE_CONTEXT,
+                TurnReconstructor.reconstruct(List.of()),
+                null,
+                List.of(userMessage))
+            .ingest(assistantMessage("one"), AgentMetrics.empty());
+
+    // the conversation has no system message, so the user message and the assistant message fill a
+    // window of two
+    assertThat(conv.documentIdsWithContent(0))
+        .isEqualTo(withContent ? Set.of(AgentDocumentId.of(document)) : Set.of());
   }
 }

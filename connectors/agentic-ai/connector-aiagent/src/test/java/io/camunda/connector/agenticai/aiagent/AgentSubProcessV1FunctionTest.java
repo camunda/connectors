@@ -91,6 +91,7 @@ class AgentSubProcessV1FunctionTest {
     verify(agentRequestHandler).handleRequest(executionContextCaptor.capture());
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
     assertThat(chatModel).isInstanceOf(AnthropicChatModelConfiguration.class).isSameAs(V2_PROVIDER);
+    assertThat(executionContextCaptor.getValue().newInstanceFeatures()).isEmpty();
   }
 
   @Test
@@ -104,5 +105,6 @@ class AgentSubProcessV1FunctionTest {
     verifyNoInteractions(providerConfigurationMapper);
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
     assertThat(chatModel).isSameAs(V1_PROVIDER);
+    assertThat(executionContextCaptor.getValue().newInstanceFeatures()).isEmpty();
   }
 }

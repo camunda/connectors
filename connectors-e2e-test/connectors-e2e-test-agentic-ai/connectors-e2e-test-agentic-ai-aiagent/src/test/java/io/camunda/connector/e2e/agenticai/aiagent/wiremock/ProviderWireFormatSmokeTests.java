@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.EXTRACTED_DOCUMENTS_PREAMBLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_JSON;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_JSON_ASSERTIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_TEXT;
@@ -23,9 +25,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAgentTest;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions;
 import io.camunda.connector.e2e.agenticai.aiagent.subprocess.BaseAgentSubProcessTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV1WireFormatFixture;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.AnthropicMessagesV2WireFormatFixture;
@@ -62,8 +66,9 @@ import uk.org.webcompere.systemstubs.properties.SystemProperties;
  * Agent connector sends to each provider — a regression net for wire-format drift, distinct from
  * the full behavioral e2e suite that already exists for {@code openaiCompatible} (tool calling,
  * feedback loops, memory storage, MCP/A2A, etc.). One row per provider/API supplies a {@link
- * ProviderWireFormatFixture}; the four scenarios below cover the wire-format areas most at risk of
- * drifting: plain text, tool calls, multimodal user-prompt documents, and structured JSON output.
+ * ProviderWireFormatFixture}; the five scenarios below cover the wire-format areas most at risk of
+ * drifting: plain text, tool calls, multimodal user-prompt documents, the document of a tool result
+ * that the model loads, and structured JSON output.
  *
  * <p>Job-worker flavor only — the job-worker and outbound-connector flavors share the same
  * provider/wire-call code, so testing both would duplicate maintenance cost for no additional
@@ -224,11 +229,16 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
+    // an instance with the documents feature gives the model the handle of the document and its
+    // content, an instance without it the content only
     assertThat(fixture.modelCallCount()).isEqualTo(1);
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-        ProviderWireFormatExpectedMessage.userWithDocument(userPrompt));
+        fixture.documentsFeature()
+            ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt)
+            : ProviderWireFormatExpectedMessage.userWithDocumentContent(userPrompt));
+    assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 
     assertAgentResponse(
         zeebeTest,
@@ -237,6 +247,153 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                 .isReady()
                 .hasResponseText(responseText));
   }
+
+  /**
+   * A tool returns a document. With the documents feature, the model asks for its content and gets
+   * it through {@code c8__load_document}. Without the feature, the content follows the tool results
+   * in the older XML tag format.
+   */
+  @Test
+  void documentOfAToolResult() throws Exception {
+    if (fixture.documentsFeature()) {
+      documentOfAToolResultRequestedByTheModel();
+    } else {
+      documentOfAToolResultOfAnInstanceWithoutTheDocumentsFeature();
+    }
+  }
+
+  /**
+   * The answer of the load-document tool says that the content follows, and the content follows in
+   * a message of its own.
+   */
+  private void documentOfAToolResultRequestedByTheModel() throws Exception {
+    final var userPrompt = "Download the document and summarize it";
+    final var downloadMessage = "I will download the document.";
+    final var toolCallMessage = "I will read the document.";
+    final var responseText = "TL;DR: it is pretty interesting";
+
+    fixture.stubConversation(
+        TurnStub.toolCalls(
+            downloadMessage,
+            10,
+            20,
+            new ToolCallStub(
+                "dl1111",
+                "Download_A_File",
+                "{\"url\": \"" + wireMock.getHttpBaseUrl() + "/test.jpg\"}")),
+        TurnStub.toolCalls(
+            toolCallMessage,
+            10,
+            20,
+            new ToolCallStub(
+                "get111",
+                "c8__load_document",
+                "{\"id\": {\"type\":\"camunda.agenticai.document\",\"id\":\"@@DOC_ID_0@@\"}}")),
+        TurnStub.text(responseText, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
+
+    assertThat(fixture.modelCallCount()).isEqualTo(3);
+    ProviderWireFormatExpectedMessage.assertConversationMessages(
+        fixture.lastRecordedRequest(),
+        ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+        ProviderWireFormatExpectedMessage.user(userPrompt),
+        ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+            downloadMessage, "Download_A_File"),
+        ProviderWireFormatExpectedMessage.toolCallResultMatching(
+            "dl1111", "\\{\"status\":200,\"document\":" + HANDLE_REGEX + "\\}"),
+        ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+            toolCallMessage, "c8__load_document"),
+        ProviderWireFormatExpectedMessage.toolCallResultMatching(
+            "get111", "The content of " + DOCUMENT_REF_REGEX + " follows in the next message\\."),
+        ProviderWireFormatExpectedMessage.userWithDocument(
+            ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
+    assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(responseText));
+  }
+
+  /**
+   * An agent instance without the documents feature offers no load-document tool. The tool result
+   * holds the reference of the document, and the content follows in a message after the tool
+   * results, with a tag in the older attribute format.
+   */
+  private void documentOfAToolResultOfAnInstanceWithoutTheDocumentsFeature() throws Exception {
+    final var userPrompt = "Download the document and summarize it";
+    final var downloadMessage = "I will download the document.";
+    final var responseText = "TL;DR: it is pretty interesting";
+
+    fixture.stubConversation(
+        TurnStub.toolCalls(
+            downloadMessage,
+            10,
+            20,
+            new ToolCallStub(
+                "dl1111",
+                "Download_A_File",
+                "{\"url\": \"" + wireMock.getHttpBaseUrl() + "/test.jpg\"}")),
+        TurnStub.text(responseText, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", userPrompt)));
+
+    assertThat(fixture.modelCallCount()).isEqualTo(2);
+    assertThat(fixture.recordedRequests())
+        .allSatisfy(request ->
+            assertThat(request.toolDefinitions())
+                .extracting(ToolDefinition::name)
+                .doesNotContain("c8__load_document"));
+    ProviderWireFormatExpectedMessage.assertConversationMessages(
+        fixture.lastRecordedRequest(),
+        ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+        ProviderWireFormatExpectedMessage.user(userPrompt),
+        ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+            downloadMessage, "Download_A_File"),
+        ProviderWireFormatExpectedMessage.toolCallResultMatching(
+            "dl1111", LEGACY_TOOL_RESULT_REGEX),
+        ProviderWireFormatExpectedMessage.userWithTaggedDocument(
+            EXTRACTED_DOCUMENTS_PREAMBLE, LEGACY_DOCUMENT_TAG_REGEX));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(responseText));
+  }
+
+  private static final String DOCUMENT_UUID_REGEX = "[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}";
+
+  /**
+   * The tool result of an instance without the documents feature: the Camunda document reference,
+   * with the store and the content hash.
+   */
+  private static final String LEGACY_TOOL_RESULT_REGEX =
+      "\\{\"status\":200,\"document\":\\{\"storeId\":\"in-memory\",\"documentId\":\""
+          + DOCUMENT_UUID_REGEX
+          + "\",\"contentHash\":\"[0-9a-f]+\",\"metadata\":\\{\"contentType\":\"image/jpeg\"}"
+          + ",\"camunda\\.document\\.type\":\"camunda\"}}";
+
+  /** The tag of the document in the older attribute format. */
+  private static final String LEGACY_DOCUMENT_TAG_REGEX =
+      "<doc toolName=\"Download_A_File\" toolCallId=\"dl1111\" documentId=\""
+          + DOCUMENT_UUID_REGEX
+          + "\" storeId=\"in-memory\" contentType=\"image/jpeg\" />";
+
+  /** The handle of a document, which the model reads as text. */
+  private static final String HANDLE_REGEX =
+      "\\{\"type\":\"camunda\\.agenticai\\.document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}";
+
+  /** The file name and the id of a document as the sentences about its content name it. */
+  private static final String DOCUMENT_REF_REGEX = "(?:[^()]+ \\()?doc_[0-9a-f]{12}\\)?";
 
   private static final Map<String, Object> HAIKU_SCHEMA =
       Map.of(

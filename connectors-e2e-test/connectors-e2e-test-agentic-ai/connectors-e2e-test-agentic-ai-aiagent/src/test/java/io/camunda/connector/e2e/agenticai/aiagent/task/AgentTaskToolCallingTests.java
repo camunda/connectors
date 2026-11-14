@@ -17,15 +17,14 @@
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.SUPERFLUX_PRODUCT_TOOL_NAME;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.EXTRACTED_DOCUMENTS_PREAMBLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseExternalDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
+import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
+import io.camunda.client.api.search.enums.IncidentErrorType;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
@@ -35,11 +34,8 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
-import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
 @SlowTest
 public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
@@ -66,21 +62,10 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
                 .hasNoResponseJson());
   }
 
-  @ParameterizedTest
-  @CsvSource({
-    "test.csv,text,text/csv",
-    "test.gif,base64,image/gif",
-    "test.jpg,base64,image/jpeg",
-    "test.json,text,application/json",
-    "test.pdf,base64,application/pdf",
-    "test.png,base64,image/png",
-    "test.txt,text,text/plain",
-    "test.webp,base64,image/webp",
-    "test.xml,text,application/xml",
-    "test.yaml,text,application/yaml"
-  })
-  void supportsDocumentResponsesFromToolCalls(String filename, String type, String mimeType)
-      throws Exception {
+  @Test
+  void supportsDocumentResponsesFromToolCalls() throws Exception {
+    final var filename = "test.pdf";
+    final var mimeType = "application/pdf";
     final var initialUserPrompt = "Go and download a document!";
     final var fileUrl = wireMock.getHttpBaseUrl() + "/" + filename;
     final var aiFinalResponseText = "The content type is '%s'".formatted(mimeType);
@@ -104,56 +89,47 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
             createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     final var lastMessages = recorded.lastRequest().messages();
-    assertThat(lastMessages).hasSize(7);
+    assertThat(lastMessages).hasSize(6);
 
     assertRole(lastMessages.get(0), "system");
     assertRole(lastMessages.get(1), "user"); // initial prompt
     assertRole(lastMessages.get(2), "assistant"); // tool call
 
-    // tool result: document serialized as a document reference (parsed from the tool message text)
+    // tool result: the document shown as its handle (parsed from the tool message text)
     assertRole(lastMessages.get(3), "tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
-    final var documentReference = parseDocumentReference(lastMessages.get(3).content());
-    assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
+    final var documentHandle = parseDocumentHandle(lastMessages.get(3).content());
 
-    // synthetic user message carrying the extracted document content
-    final var expectedXmlTag =
-        new CamundaDocumentReferenceXmlTag(
-                "aaa111",
-                "Download_A_File",
-                documentReference.documentId(),
-                documentReference.storeId(),
-                documentReference.metadata().getContentType(),
-                documentReference.metadata().getFileName())
-            .toXml();
-    assertExtractedDocumentsUserMessage(lastMessages.get(4), expectedXmlTag, type, mimeType);
-
-    assertRole(lastMessages.get(5), "assistant"); // response after tool
-    assertRole(lastMessages.get(6), "user"); // follow-up prompt
-    assertThat(lastMessages.get(6).textContent()).isEqualTo("What is the content type?");
+    // the content of the document is not part of the conversation
+    assertRole(lastMessages.get(4), "assistant"); // response after tool
+    assertRole(lastMessages.get(5), "user"); // follow-up prompt
+    assertThat(lastMessages.get(5).textContent()).isEqualTo("What is the content type?");
 
     assertAgentResponse(
         zeebeTest,
-        agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 1))
-                .hasResponseMessageText(aiFinalResponseText)
-                .hasResponseText(aiFinalResponseText));
+        agentResponse -> {
+          AgentResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasNoToolCalls()
+              .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 1))
+              .hasResponseMessageText(aiFinalResponseText)
+              .hasResponseText(aiFinalResponseText);
+          assertHandleOfTheOnlyRegisteredDocument(
+              documentHandle, agentResponse.context().documents(), null, mimeType, null);
+        });
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 
   @Test
-  void supportsExternalDocumentReferenceResponsesFromToolCalls() throws Exception {
-    final var initialUserPrompt = "Reference an external document!";
+  void raisesAnIncidentWhenAToolReturnsAnExternalDocument() throws Exception {
     final var docUrl = wireMock.getHttpBaseUrl() + "/test.pdf";
-    final var docName = "Quarterly Report";
-    final var aiFinalResponseText = "Referenced the external document.";
+    final var message =
+        "Only Camunda documents can be passed to the AI Agent, but the result of the tool 'External_File_Reference' contains an external document.";
 
     OpenAiCompletionsChatModelStubs.stubConversation(
         Turn.toolCalls(
@@ -163,50 +139,26 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
             ToolCall.of(
                 "ext111",
                 "External_File_Reference",
-                "{\"url\": \"%s\", \"name\": \"%s\"}".formatted(docUrl, docName))),
-        Turn.text(aiFinalResponseText, 11, 22));
-
-    enqueueUserFeedback(userSatisfiedFeedback());
+                "{\"url\": \"%s\", \"name\": \"Quarterly Report\"}".formatted(docUrl))));
 
     final var zeebeTest =
-        awaitProcessCompletion(
-            createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
+        awaitActiveIncidents(
+            createProcessInstance(e -> e, Map.of("userPrompt", "Reference an external document!")));
 
-    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
-    assertThat(recorded.modelCallCount()).isEqualTo(2);
-
-    final var lastMessages = recorded.lastRequest().messages();
-    assertThat(lastMessages).hasSize(5);
-
-    assertRole(lastMessages.get(0), "system");
-    assertRole(lastMessages.get(1), "user"); // initial prompt
-    assertRole(lastMessages.get(2), "assistant"); // tool call
-
-    // tool result: external document reference serialized as { url, name }
-    assertRole(lastMessages.get(3), "tool");
-    final var externalRef = parseExternalDocumentReference(lastMessages.get(3).content());
-    assertThat(externalRef.url()).isEqualTo(docUrl);
-    assertThat(externalRef.name()).isEqualTo(docName);
-
-    // synthetic user message: external doc rendered as <doc url="…" name="…" /> + content block
-    final var expectedXmlTag =
-        new ExternalDocumentReferenceXmlTag(
-                "ext111", "External_File_Reference", externalRef.url(), externalRef.name())
-            .toXml();
-    assertExtractedDocumentsUserMessage(
-        lastMessages.get(4), expectedXmlTag, "base64", "application/pdf");
-
-    assertAgentResponse(
+    assertIncident(
         zeebeTest,
-        agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42), 1))
-                .hasResponseMessageText(aiFinalResponseText)
-                .hasResponseText(aiFinalResponseText));
-
-    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
+        incident -> {
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_ELEMENT_ID);
+          assertThat(incident.getErrorType()).isEqualTo(IncidentErrorType.JOB_NO_RETRIES);
+          // the incident message ends with the variables of the error, in no fixed order
+          assertThat(incident.getErrorMessage())
+              .startsWith(message + " | Error variables: {error={")
+              .contains(
+                  "message=" + message,
+                  "code=UNSUPPORTED_DOCUMENT_REFERENCE",
+                  "type=io.camunda.connector.api.error.ConnectorException");
+        });
+    assertThat(OpenAiCompletionsRecordedConversation.recorded().modelCallCount()).isEqualTo(1);
   }
 
   @Test
@@ -311,45 +263,5 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
 
   private static void assertRole(RecordedMessage message, String expectedRole) {
     assertThat(message.role()).isEqualTo(expectedRole);
-  }
-
-  /**
-   * Asserts the synthetic "extracted documents" user message in OpenAI-compatible form: a
-   * multimodal {@code content} array of {@code preamble (text) + <doc/> tag (text) + content
-   * block}.
-   *
-   * <p>The content block is classified the same way as {@link
-   * io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions#assertDocumentContentBlock}:
-   * {@code text} → {@code type=text}; {@code application/pdf} → {@code type=file}; otherwise {@code
-   * type=image_url} with a {@code data:<mime>;base64,} URL.
-   */
-  private static void assertExtractedDocumentsUserMessage(
-      RecordedMessage message,
-      String expectedXmlTag,
-      String expectedType,
-      String expectedMimeType) {
-    assertRole(message, "user");
-
-    final List<JsonNode> parts = message.contentParts();
-    assertThat(parts).as("preamble + <doc/> tag + content block").hasSize(3);
-
-    assertThat(parts.get(0).path("type").asText()).isEqualTo("text");
-    assertThat(parts.get(0).path("text").asText()).isEqualTo(EXTRACTED_DOCUMENTS_PREAMBLE);
-
-    assertThat(parts.get(1).path("type").asText()).isEqualTo("text");
-    assertThat(parts.get(1).path("text").asText()).isEqualTo(expectedXmlTag);
-
-    final JsonNode block = parts.get(2);
-    if ("text".equals(expectedType)) {
-      assertThat(block.path("type").asText()).isEqualTo("text");
-      assertThat(block.path("text").asText()).isNotBlank();
-    } else if ("application/pdf".equals(expectedMimeType)) {
-      assertThat(block.path("type").asText()).isEqualTo("file");
-      assertThat(block.path("file").path("file_data").asText()).isNotBlank();
-    } else {
-      assertThat(block.path("type").asText()).isEqualTo("image_url");
-      assertThat(block.path("image_url").path("url").asText())
-          .startsWith("data:" + expectedMimeType + ";base64,");
-    }
   }
 }

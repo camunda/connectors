@@ -29,11 +29,13 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   private final List<ToolCallResult> initialToolCallResults;
   private final List<AdHocToolElement> toolElements;
   private final AgentConfiguration configuration;
+  private final List<String> newInstanceFeatures;
 
   public AgentSubProcessExecutionContext(
       final JobContext jobContext,
       final DocumentFactory documentFactory,
-      final AgentSubProcessV1Request request) {
+      final AgentSubProcessV1Request request,
+      final List<String> newInstanceFeatures) {
     this(
         jobContext,
         documentFactory,
@@ -41,7 +43,8 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
         request.agentContext(),
         request.toolCallResults(),
         request.toolElements(),
-        request.provider());
+        request.provider(),
+        newInstanceFeatures);
   }
 
   public AgentSubProcessExecutionContext(
@@ -51,13 +54,15 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
       AgentContext initialAgentContext,
       List<ToolCallResult> initialToolCallResults,
       List<AdHocToolElement> toolElements,
-      ChatModelConfiguration chatModel) {
+      ChatModelConfiguration chatModel,
+      List<String> newInstanceFeatures) {
     this.jobContext = jobContext;
     this.documentFactory = documentFactory;
     this.data = data;
     this.initialAgentContext = initialAgentContext;
     this.initialToolCallResults = initialToolCallResults;
     this.toolElements = toolElements;
+    this.newInstanceFeatures = newInstanceFeatures;
     this.configuration =
         new AgentConfiguration(
             chatModel,
@@ -77,6 +82,11 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   @Override
   public DocumentFactory documentFactory() {
     return documentFactory;
+  }
+
+  @Override
+  public List<String> newInstanceFeatures() {
+    return newInstanceFeatures;
   }
 
   @Override

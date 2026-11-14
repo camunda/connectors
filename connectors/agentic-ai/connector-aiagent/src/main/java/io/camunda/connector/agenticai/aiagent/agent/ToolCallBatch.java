@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
@@ -97,12 +98,20 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     return toolCalls.stream().map(call -> entriesById.get(call.id())).toList();
   }
 
-  /** A tool call result of the batch, with the documents the agent takes from it. */
-  public record Entry(ToolCallResultContent result, List<Document> documents) {
+  /**
+   * A tool call result of the batch, with the documents the agent takes from it and what the result
+   * asks of the agent.
+   *
+   * @param effects what the result asks of the agent besides its content, in the order they were
+   *     added
+   */
+  public record Entry(
+      ToolCallResultContent result, List<Document> documents, List<ToolCallEffect> effects) {
 
     public Entry {
       Objects.requireNonNull(result.id(), "The tool call result of an entry must have an id");
       documents = List.copyOf(documents);
+      effects = List.copyOf(effects);
     }
 
     /**
@@ -115,7 +124,7 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
           extractor.extractDocuments(List.of(result)).stream()
               .flatMap(group -> group.documents().stream())
               .toList();
-      return new Entry(ToolCallResultContent.from(result), documents);
+      return new Entry(ToolCallResultContent.from(result), documents, List.of());
     }
 
     /**
@@ -126,10 +135,23 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      */
     public static Entry withRenderedDocuments(
         ToolCallResultContent result, ObjectHandleRenderer objectHandleRenderer) {
+      return withRenderedDocuments(result, objectHandleRenderer, List.of());
+    }
+
+    /**
+     * The entry of a result that asks something of the agent, for an agent instance that tracks its
+     * documents; the documents are the ones the model reads as handles, as in {@link
+     * #withRenderedDocuments(ToolCallResultContent, ObjectHandleRenderer)}.
+     */
+    static Entry withRenderedDocuments(
+        ToolCallResultContent result,
+        ObjectHandleRenderer objectHandleRenderer,
+        List<ToolCallEffect> effects) {
       return new Entry(
           result,
           ToolCallResultDocumentExtractor.renderedDocumentsOf(
-              result.content(), objectHandleRenderer));
+              result.content(), objectHandleRenderer),
+          effects);
     }
 
     /**
@@ -138,7 +160,16 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      * the ones the generic walker finds in its content.
      */
     public static Entry from(ToolCallResultContent result) {
-      return new Entry(result, ToolCallResultDocumentExtractor.documentsOf(result.content()));
+      return from(result, List.of());
+    }
+
+    /**
+     * The entry of a result that asks something of the agent, for an agent instance that does not
+     * track its documents; the documents are the ones the generic walker finds in its content.
+     */
+    static Entry from(ToolCallResultContent result, List<ToolCallEffect> effects) {
+      return new Entry(
+          result, ToolCallResultDocumentExtractor.documentsOf(result.content()), effects);
     }
 
     /**

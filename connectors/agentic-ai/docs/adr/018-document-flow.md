@@ -24,7 +24,7 @@ four problems:
 The agent must give the model these four capabilities:
 
 1. The model sees every document as a short handle and can pass a document to a tool.
-2. The model can ask for the content of a document, within limits. A process can add the content without a request.
+2. The model can ask for the content of a document. A process can add the content without a request.
 3. The model can return documents with the final response.
 4. The agent knows its documents for the lifetime of the agent instance, independent of the window and of the
    conversation store.
@@ -34,7 +34,7 @@ and A2A tools, Modeler support or document retention.
 
 ## Decision Drivers
 
-* **Tokens and providers**: content goes into a request only when the model needs it and every provider can read it.
+* **Tokens**: content goes into a request only when the model needs it.
 * **No store details for the model**: store ids and content hashes never go to the model or to tool arguments. The
   history shows the document chip with the Camunda document reference, as for any document.
 * **Stable requests**: the bytes of a request prefix do not change between requests, for prompt caching. The agent never
@@ -151,34 +151,31 @@ handle and then the content. The delivery is set on each block. Thus an earlier 
 document comes again with a different delivery.
 
 The default is `reference` for tool results and for a user prompt that sets `reference`. A user prompt without a
-delivery, as in a v1 template, behaves as before: all documents go to the model as content, without the content guard.
+delivery, as in a v1 template, behaves as before: all documents go to the model as content.
 The v2 templates set `reference` as the default.
 
-Content goes into a request in two ways. Both use the same content guard and the same persisted form:
+Content goes into a request in two ways. Both use the same persisted form:
 
 * **On request.** The model calls the built-in tool `c8__load_document`. The model knows when it must read a document.
-  The agent writes into the tool result whether the content follows or why it does not. The content follows in the next
-  message.
+  The agent writes into the tool result whether the content follows or is in the conversation already. The content
+  follows in the next message.
 * **By opt-in.** Only the process knows the documents before the model sees them. Thus only the user prompt (a dropdown)
   and a tool activity (an extension property) can set `content`. This saves one model round trip per document. Events,
   MCP tools and A2A tools use `reference`.
 
 The content stays in each request until its message leaves the window.
 
-### The content guard
+### No check of the content
 
-One content guard checks each addition of content, for all requests:
+The agent adds the content of a requested document without a check of the content type or the size. A document that the
+model provider cannot read, or that is above the limits of the provider, fails the model call. The only decision is that
+the agent does not add content again when the model reads it already or an earlier request of the same batch asked for
+it.
 
-* The guard classifies a document by its content type: text, PDF or image. It lets pass only the types that every
-  provider can read. A document without a content type does not pass.
-* The limits for each class are operator configuration, not job input. The default limits are below the limits of the
-  most restrictive provider.
-* When the guard rejects a document, the document stays a `reference`. The model gets a short sentence with the content
-  type, the size and the limit. The cause goes to the log only, because it can contain a URL with a token. A rejection
-  causes no incident.
-
-Consequence accepted: bytes do not measure tokens well, and one limit for all providers is as strict as the strictest
-provider.
+A check in the agent needs a fixed list of content types and one size limit for all providers. This does not fit the
+target architecture, where each provider states what it reads. A check of the content against what the model provider
+reads is the follow-up
+[#10417](https://github.com/camunda/connectors/issues/10417).
 
 ### Document parameters
 
@@ -288,13 +285,16 @@ hold Camunda documents only. The message names the kind of the document and the 
 
 A tool result and an event cannot change. The incident repeats on each retry until the process passes a Camunda document.
 
-An instance without the `documents` feature keeps its behavior and accepts external and inline documents.
+An instance without the `documents` feature keeps its behavior and accepts external and inline documents. This
+includes a new instance of a v1 connector.
 
 ### Instance features and the legacy path
 
 The agent context lists the features of the agent instance: `runtimeTools` and `documents`. The agent sets the features
-when it creates the instance and does not add features later. The `documents` feature selects the document handling:
-`Untracked` without the feature, `Tracked` with it. Each place that treats documents matches both variants.
+when it creates the instance and does not add features later. A new instance of a v2 connector gets both features. A new
+instance of a deprecated v1 connector gets none, so a deployed process keeps its behavior. The `documents` feature selects the document handling:
+`Untracked` without the feature, `Tracked` with it. Each step that treats documents matches both variants once and hands
+the result to the code below it.
 
 An instance without the `documents` feature behaves as before. Documents are content with the XML tag format, and all
 kinds of documents are accepted. There are
@@ -306,7 +306,8 @@ running instances at the same time.
 Consequences accepted:
 
 * A running instance cannot use document parameters. It must start again.
-* The legacy path is a second code path. It stays while instances without the feature exist.
+* The legacy path is a second code path. It stays while instances without the feature exist, and the v1 connectors
+  create such instances.
 * A rollback is not supported. An earlier runtime removes the new fields and cannot read a document block.
 
 ### History
@@ -320,25 +321,28 @@ the SDK reference that a tool received.
 * A conversation can hold many documents at a few dozen tokens each. Documents stay known outside the window and with
   each conversation store.
 * The model can give a document to a tool and return a document, without bytes or store details.
-* All content goes through one content guard. A document that a provider cannot read does not fail a model call.
 * Persisted state and running instances of earlier versions load and behave as before.
 
 ### Negative Consequences
 
 * The agent context grows with the agent documents, and the agent does not remove them.
-* The limits are global and use bytes. They are as strict as the strictest provider.
+* A document that a provider cannot read, or that is above its limits, fails the model call until the check of the
+  follow-up exists.
 * The content goes to the model only in a user message. It stays in each request until its message leaves the window.
 * The legacy path is a second code path.
-* Each new instance gets both document tools. This costs input tokens in each call.
+* Each new instance of a v2 connector gets both document tools. This costs input tokens in each call.
 
 ## Follow-up
 
 * **`c8__list_documents`.** A built-in tool that lists the known documents when the model needs them.
 * **A switch for the built-in document tools.** A setting of the agent configuration, frozen when the instance starts.
 * **Per-tool document scoping.** The documents that each tool can receive.
-* **Per-provider limits and documents in tool results.** A capability matrix of the providers replaces the global limits
-  and lets the agent put content into a tool result for models that accept it.
-* **A token-based guard, a budget per turn or a way to remove content.**
+* **A check of the content against the provider.** Before it adds content, the agent checks the content type and the
+  size against what the model provider reads
+  ([#10417](https://github.com/camunda/connectors/issues/10417)).
+* **Documents in tool results.** A capability matrix of the providers lets the agent put content into a tool result for
+  models that accept it.
+* **A token-based check, a budget per turn or a way to remove content.**
 * **External and inline documents.** Support both kinds of reference. The agent passes an external document to the
   provider as a URL and does not download it. It stores an inline document as a Camunda document on entry
   (https://github.com/camunda/connectors/issues/5587).

@@ -50,6 +50,11 @@ final class OpenAiResponsesV2RecordedChatRequestAdapter implements RecordedChatR
   }
 
   @Override
+  public String rawBody() {
+    return delegate.rawBody();
+  }
+
+  @Override
   public Optional<RecordedResponseFormat> responseFormat() {
     return delegate
         .responseFormat()

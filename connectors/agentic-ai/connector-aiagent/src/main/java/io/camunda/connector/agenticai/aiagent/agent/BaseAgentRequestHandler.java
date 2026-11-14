@@ -421,7 +421,10 @@ public abstract class BaseAgentRequestHandler<
         answerLocalToolCalls(
             executionContext,
             CompositionResult.Ready.of(
-                conversation.persistedContext(), ToolCallBatch.of(currentTurn.toolCalls())));
+                conversation.persistedContext(),
+                // the model call reads the tool call result message of the batch as well
+                conversation.documentIdsWithContent(1),
+                ToolCallBatch.of(currentTurn.toolCalls())));
     final var nextConversation =
         conversation.nextRuntimeToolRound(input.messages(), input::applyTo);
     // the previous turn is the one whose tool calls these results belong to

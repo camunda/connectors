@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -52,9 +53,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class RuntimeToolsTest {
 
@@ -496,7 +502,215 @@ class RuntimeToolsTest {
   }
 
   @Test
+  void aToolCanBeEnabledOnlyWhileTheAgentKnowsADocument() {
+    final var tool =
+        tool("acme_documents", context -> !context.agentContext().documents().all().isEmpty());
+    final var needsDocuments = toolsOf(tool);
+    final var knowingADocument = knowing(createDocument("report", "report.txt"));
+
+    assertThat(needsDocuments.enabledDefinitions(PLAIN, NEW_INSTANCE)).isEmpty();
+    assertThat(needsDocuments.enabledDefinitions(PLAIN, knowingADocument))
+        .containsExactly(tool.definition());
+  }
+
+  @Test
+  void aToolReadsADocumentTheAgentKnowsByItsId() {
+    final var report = createDocument("report", "report.txt");
+    final var seen = new ArrayList<Object>();
+    final var reading =
+        StubRuntimeTool.of(
+            "acme_reading",
+            (context, call) -> {
+              seen.add(
+                  context.agentContext().documents().all().stream()
+                      .map(AgentDocument::id)
+                      .toList());
+              final var found = context.document(AgentDocumentId.of(report)).orElseThrow();
+              seen.add(new String(found.asByteArray(), StandardCharsets.UTF_8));
+              seen.add(found.metadata().getFileName());
+              seen.add(context.document(AgentDocumentId.of("unknown")));
+              return RuntimeToolResult.success("read");
+            });
+
+    toolsOf(reading)
+        .execute(
+            WITH_MEMORY, knowing(report), List.of(runtimeCall("r1", "acme_reading", Map.of())));
+
+    assertThat(seen)
+        .containsExactly(
+            List.of(AgentDocumentId.of(report)), "report", "report.txt", Optional.empty());
+  }
+
+  @Test
+  void anAgentWithoutTheDocumentsFeatureHasNoDocumentForAnId() {
+    final var seen = new ArrayList<Object>();
+    final var reading =
+        StubRuntimeTool.of(
+            "acme_reading",
+            (context, call) -> {
+              seen.add(context.document(AgentDocumentId.of("doc_000000000000")));
+              return RuntimeToolResult.success("read");
+            });
+
+    toolsOf(reading)
+        .execute(
+            WITH_MEMORY,
+            AgentContext.empty().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
+            List.of(runtimeCall("r1", "acme_reading", Map.of())));
+
+    assertThat(seen).containsExactly(Optional.empty());
+  }
+
+  @Test
+  void anAgentDocumentInAResultFailsTheJob() {
+    final var report = createDocument("report", "report.txt");
+    final var leaking =
+        StubRuntimeTool.of(
+            "acme_leaking",
+            (context, call) ->
+                RuntimeToolResult.success(
+                    List.of(
+                        ObjectContent.objectContent(
+                            Map.of(
+                                "file",
+                                context
+                                    .agentContext()
+                                    .documents()
+                                    .find(AgentDocumentId.of(report))
+                                    .orElseThrow())))));
+    final var tools = toolsOf(leaking);
+    final var agentContext = knowing(report);
+    final var calls = List.of(runtimeCall("l1", "acme_leaking", Map.of()));
+
+    assertThatThrownBy(() -> tools.execute(WITH_MEMORY, agentContext, calls))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'acme_leaking' returned the agent document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
+                .formatted(AgentDocumentId.of(report).value()));
+  }
+
+  @Test
+  void aReferenceBlockInAResultFailsTheJob() {
+    final var report = createDocument("report", "report.txt");
+    final var id = AgentDocumentId.of(report);
+    final var referencing =
+        StubRuntimeTool.of(
+            "acme_referencing",
+            (context, call) -> RuntimeToolResult.success(List.of(AgentDocumentContent.of(id))));
+    final var tools = toolsOf(referencing);
+    final var agentContext = knowing(report);
+    final var calls = List.of(runtimeCall("r1", "acme_referencing", Map.of()));
+
+    assertThatThrownBy(() -> tools.execute(WITH_MEMORY, agentContext, calls))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'acme_referencing' returned a reference to the document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
+                .formatted(id.value()));
+  }
+
+  record Reference(String name, AgentDocumentContent file) {}
+
+  static Stream<Arguments> nestedReferences() {
+    final var id = AgentDocumentId.of("doc_000000000001");
+    return Stream.of(
+        Arguments.argumentSet(
+            "in a map", id, Map.of("files", List.of(Map.of("file", AgentDocumentContent.of(id))))),
+        Arguments.argumentSet(
+            "in a record", id, new Reference("report", AgentDocumentContent.of(id))));
+  }
+
+  @ParameterizedTest
+  @MethodSource("nestedReferences")
+  void aReferenceBlockNestedInAnObjectOfAResultFailsTheJob(AgentDocumentId id, Object object) {
+    final var referencing =
+        StubRuntimeTool.of(
+            "acme_referencing",
+            (context, call) ->
+                RuntimeToolResult.success(List.of(ObjectContent.objectContent(object))));
+    final var tools = toolsOf(referencing);
+    final var calls = List.of(runtimeCall("r1", "acme_referencing", Map.of()));
+
+    assertThatThrownBy(() -> tools.execute(WITH_MEMORY, NEW_INSTANCE, calls))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'acme_referencing' returned a reference to the document '%s' in its result; a result holds the document of the connector SDK (RuntimeToolContext#document)"
+                .formatted(id.value()));
+  }
+
+  @Test
+  void aKnownDocumentInAResultKeepsItsEntry() {
+    final var report = createDocument("report", "report.txt");
+    final var id = AgentDocumentId.of(report);
+    final var returning =
+        StubRuntimeTool.of(
+            "acme_returning",
+            (context, call) ->
+                RuntimeToolResult.success(
+                    List.of(DocumentContent.documentContent(context.document(id).orElseThrow()))));
+
+    final var executions =
+        toolsOf(returning)
+            .execute(
+                WITH_MEMORY,
+                knowing(report),
+                List.of(runtimeCall("r1", "acme_returning", Map.of())));
+
+    assertThat(executions.getFirst().toolCallResult().content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            DocumentContent.class,
+            content -> assertThat(AgentDocumentId.of(content.document())).isEqualTo(id));
+  }
+
+  @Test
+  void theCallsOfABatchSeeTheDocumentsKnownAtTheStartAndNotTheOnesAnotherCallReturned() {
+    final var report = createDocument("report", "report.txt");
+    final var counting =
+        StubRuntimeTool.of(
+            "acme_count",
+            (context, call) ->
+                RuntimeToolResult.success(
+                    "documents: " + context.agentContext().documents().all().size()));
+    final var batch = toolsOf(new SaveNoteTool(), counting);
+
+    final var executions =
+        batch.execute(
+            WITH_MEMORY,
+            knowing(report),
+            List.of(
+                runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a")),
+                runtimeCall("c1", "acme_count", Map.of()),
+                runtimeCall("n2", SaveNoteTool.NAME, Map.of("text", "b"))));
+
+    // the second note is numbered like the first one: neither call saw the document of the other
+    assertThat(executions).hasSize(3);
+    assertSavedNoteOne(executions.get(0), "a");
+    assertThat(executions.get(1).result())
+        .isEqualTo(RuntimeToolResult.success(List.of(TextContent.textContent("documents: 1"))));
+    assertSavedNoteOne(executions.get(2), "b");
+  }
+
+  private static void assertSavedNoteOne(RuntimeToolExecution execution, String text) {
+    assertThat(execution.result()).isInstanceOf(RuntimeToolResult.Success.class);
+    assertThat(((RuntimeToolResult.Success) execution.result()).effects()).isEmpty();
+    final var content = execution.result().content();
+    assertThat(content).hasSize(2);
+    assertThat(content.get(0)).isEqualTo(TextContent.textContent("Saved note #1"));
+    assertThat(content.get(1))
+        .isInstanceOfSatisfying(
+            DocumentContent.class,
+            block -> {
+              assertThat(block.metadata()).isNull();
+              assertThat(block.document().metadata().getFileName()).isEqualTo("note-1.txt");
+              assertThat(block.document().metadata().getContentType()).isEqualTo("text/plain");
+              assertThat(new String(block.document().asByteArray(), StandardCharsets.UTF_8))
+                  .isEqualTo(text);
+            });
+  }
+
+  @Test
   void returnsTheDocumentsOfAResultAsTheyAreAndRegistersNone() {
+    final var agentContext = knowing();
     final List<Content> content =
         List.of(
             TextContent.textContent("Saved the note"),
@@ -506,13 +720,39 @@ class RuntimeToolsTest {
 
     final var executions =
         toolsOf(notes)
-            .execute(WITH_MEMORY, NEW_INSTANCE, List.of(runtimeCall("n1", "acme_notes", Map.of())));
+            .execute(WITH_MEMORY, agentContext, List.of(runtimeCall("n1", "acme_notes", Map.of())));
 
     assertThat(executions)
         .singleElement()
         .satisfies(execution -> assertThat(execution.result().content()).isEqualTo(content));
     // the agent context is the one the tools were given
-    assertThat(NEW_INSTANCE.documents().all()).isEmpty();
+    assertThat(agentContext.documents().all()).isEmpty();
+  }
+
+  @Test
+  void theExecutionKeepsTheEffectsOfASuccessfulResultAndNoneOfAnErrorResult() {
+    final var report = createDocument("report", "report.txt");
+    final var id = AgentDocumentId.of(report);
+    final var loading =
+        StubRuntimeTool.of(
+            "acme_load",
+            (context, call) -> RuntimeToolResult.success("ok").withDocumentContent(id));
+    final var failing =
+        StubRuntimeTool.of("acme_fail", (context, call) -> RuntimeToolResult.error("no"));
+
+    final var executions =
+        toolsOf(loading, failing)
+            .execute(
+                WITH_MEMORY,
+                knowing(report),
+                List.of(
+                    runtimeCall("l1", "acme_load", Map.of()),
+                    runtimeCall("f1", "acme_fail", Map.of())));
+
+    assertThat(executions)
+        .extracting(RuntimeToolExecution::result)
+        .containsExactly(
+            RuntimeToolResult.success("ok").withDocumentContent(id), RuntimeToolResult.error("no"));
   }
 
   // document parameters
@@ -736,7 +976,12 @@ class RuntimeToolsTest {
 
     final var call = runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"));
 
-    final var executions = toolsOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, List.of(call));
+    final var executions =
+        toolsOf(tool)
+            .execute(
+                WITH_MEMORY,
+                AgentContext.empty().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
+                List.of(call));
 
     assertThat(executions)
         .extracting(RuntimeToolExecution::call, RuntimeToolExecution::result)

@@ -41,6 +41,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -140,7 +141,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         // calls that were not executed yet; a rejected call keeps its rejection
         batch = batch.withEntries(batch.unanswered().stream().map(this::cancelled).toList());
       }
-      return new CompositionResult.Ready(agentContext, batch, TurnInput.empty(), events);
+      // the model call reads the tool call result message and the event messages as well
+      final var documentIdsWithContent =
+          previousConversation.documentIdsWithContent(
+              configuration.contextWindowSize(), 1 + events.messages().size());
+      return new CompositionResult.Ready(
+          agentContext, documentIdsWithContent, batch, TurnInput.empty(), events);
     }
 
     final var userPrompt = userPromptInput(agentInput.userPrompt(), documentHandling);
@@ -149,7 +155,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return new CompositionResult.NoInput();
     }
     return new CompositionResult.Ready(
-        agentContext, ToolCallBatch.of(List.of()), userPrompt, events);
+        agentContext, Set.of(), ToolCallBatch.of(List.of()), userPrompt, events);
   }
 
   @Override
@@ -157,7 +163,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     final var input =
         ready.toolCallBatch().toolCalls().isEmpty()
             ? ready.userPrompt()
-            : toolCallResultsInputBuilder.build(ready.agentContext(), ready.toolCallBatch());
+            : toolCallResultsInputBuilder.build(
+                ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
     return input.followedBy(ready.events());
   }
 
@@ -255,9 +262,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * The entry of a process tool result. An agent instance that tracks its documents registers the
-   * documents the model reads as handles; an instance that does not adds the documents its gateway
-   * tool handler extracts in a message of their own.
+   * The entry of a process tool result. An agent instance that tracks its documents takes the
+   * documents the model reads as handles, for the agent to register; an instance that does not adds
+   * the documents its gateway tool handler extracts in a message of their own.
    */
   private ToolCallBatch.Entry processEntry(
       ToolCallResult result, DocumentHandling documentHandling) {

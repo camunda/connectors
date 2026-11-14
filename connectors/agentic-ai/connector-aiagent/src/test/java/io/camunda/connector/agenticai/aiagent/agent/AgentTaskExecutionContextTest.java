@@ -9,15 +9,18 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 import java.util.stream.Stream;
@@ -52,7 +55,41 @@ class AgentTaskExecutionContextTest {
     when(agentRequest.data()).thenReturn(agentRequestData);
     executionContext =
         new AgentTaskExecutionContext(
-            jobContext, TestDocuments.documentFactory(), agentRequest, toolElementsResolver);
+            jobContext,
+            TestDocuments.documentFactory(),
+            agentRequest,
+            toolElementsResolver,
+            AgentFeatures.ofNewInstance());
+  }
+
+  @Test
+  void exposesTheNewInstanceFeaturesItWasCreatedWith() {
+    assertThat(executionContext.newInstanceFeatures())
+        .containsExactly(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS);
+
+    final var withoutFeatures =
+        new AgentTaskExecutionContext(
+            jobContext,
+            TestDocuments.documentFactory(),
+            agentRequest,
+            toolElementsResolver,
+            List.of());
+
+    assertThat(withoutFeatures.newInstanceFeatures()).isEmpty();
+  }
+
+  @Test
+  void exposesTheDocumentFactoryOfTheJob() {
+    final var documentFactory = mock(DocumentFactory.class);
+    final var context =
+        new AgentTaskExecutionContext(
+            jobContext,
+            documentFactory,
+            agentRequest,
+            toolElementsResolver,
+            AgentFeatures.ofNewInstance());
+
+    assertThat(context.documentFactory()).isSameAs(documentFactory);
   }
 
   @ParameterizedTest
