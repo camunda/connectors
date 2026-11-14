@@ -38,7 +38,10 @@ public final class OutboundSchemaRegistryStrategy extends AbstractSchemaRegistry
           "Inline: the schema you enter below is used, and it is registered in the schema registry"
               + " if it is not available there yet. From registry: the schema already registered"
               + " in the schema registry is used and nothing is registered; the task fails if it"
-              + " does not exist.")
+              + " does not exist. A schema that is a union of records needs From registry; the"
+              + " record type is taken from the type name if the message value is wrapped in it,"
+              + " for example <code>{\"my.namespace.CreateTask\": {...}}</code>, otherwise it is"
+              + " inferred from the fields.")
   SchemaSource schemaSource;
 
   @TemplateProperty(
