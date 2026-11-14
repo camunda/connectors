@@ -19,20 +19,28 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertContentReturnedOnceAndPassedByIdFlow;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertDownloadResultInHistory;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.COMPLEX_TOOL;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.COMPLEX_TOOL_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOADED_FILE;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_AGAIN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_DESCRIPTION;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.SUPERFLUX_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.SUPERFLUX_RESULT;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_TOOL;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertResponseDocument;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.assertUploaded;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.handle;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentWithComplexToolTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.roundTripTurns;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.unknownUploadWithSuperfluxTurn;
@@ -41,10 +49,14 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.up
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withUploadTool;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -54,8 +66,12 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
+import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaProcessTestContext;
+import io.camunda.process.test.api.assertions.JobSelectors;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.util.List;
 import java.util.Map;
@@ -65,14 +81,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Document flow of the AI Agent Sub-process against a scripted model: a document parameter of a
- * tool (a real HTTP connector that uploads the document), loading a document, unknown document
- * handles and the window. The process is the default one with the upload tool added.
+ * tool (a real HTTP connector that uploads the document), loading a document, returning documents,
+ * unknown document handles and the window. The process is the default one with the upload tool
+ * added.
  */
 @SlowTest
 public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
+
+  @Autowired private CamundaProcessTestContext processTestContext;
 
   @Override
   protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
@@ -83,6 +105,83 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   void setUpDocumentFlow() {
     stubUploadEndpoint();
     enqueueUserFeedback(userSatisfiedFeedback());
+  }
+
+  /**
+   * The document is downloaded in one job, passed to a tool in a later one and returned in the last
+   * one. The agent documents and the response documents are part of the agent context. The history
+   * of the agent instance shows the handle of the document in the arguments of both calls.
+   */
+  @Test
+  void passesADownloadedDocumentToAToolAndReturnsIt() throws Exception {
+    final var turns = roundTripTurns(wireMock.getHttpBaseUrl());
+    OpenAiCompletionsChatModelStubs.stubConversation(turns.toArray(Turn[]::new));
+
+    final var zeebeTest = awaitProcessCompletion(startProcess(e -> e));
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
+    assertThat(recorded.requests().getFirst().toolNames())
+        .contains("Download_A_File", UPLOAD_TOOL, "c8__return_document", "c8__load_document");
+
+    // the id the model works with is the one shown with the downloaded document
+    final var downloadResult = recorded.requests().get(1).messages().get(3);
+    assertThat(downloadResult.toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
+    final var documentId = parseDocumentHandle(downloadResult.content()).id().value();
+
+    // the tool received the real bytes, the model only got the outcome
+    assertUploaded(servedFile(DOWNLOADED_FILE));
+    final var uploadResult = recorded.requests().get(2).messages().getLast();
+    assertThat(uploadResult.role()).isEqualTo("tool");
+    assertThat(uploadResult.toolCallId()).isEqualTo(UPLOAD_CALL_ID);
+    JSONAssert.assertEquals("{\"status\":200}", uploadResult.content(), JSONCompareMode.STRICT);
+
+    final var returnResult = recorded.lastRequest().messages().getLast();
+    assertThat(returnResult.toolCallId()).isEqualTo(RETURN_CALL_ID);
+    assertThat(returnResult.content()).isEqualTo("Returned the document under the key 'report'.");
+
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasResponseText(FINAL_TEXT);
+          assertResponseDocument(
+              agentResponse.context(), agentResponse.responseDocuments(), documentId);
+          // the agent documents and the response documents are part of the agent context
+          assertThat(agentResponse.context().documents().all())
+              .extracting(entry -> entry.id().value())
+              .containsExactly(documentId);
+          assertThat(agentResponse.context().responseDocuments())
+              .containsExactly(
+                  new ResponseDocumentSelection(
+                      RETURN_KEY, AgentDocumentId.of(documentId), RETURN_DESCRIPTION));
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
+        });
+
+    // the history of the agent instance shows the arguments of a call as the model sent them: the
+    // handle of the document, for a tool of the process and for the runtime tool
+    final var documentHandle = Map.of("type", AgentDocumentHandle.TYPE, "id", documentId);
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasToolCallArguments(
+            "Upload_A_File",
+            arguments -> assertThat(arguments).isEqualTo(Map.of("document", documentHandle)))
+        .hasToolCallArguments(
+            "c8__return_document",
+            arguments ->
+                assertThat(arguments)
+                    .isEqualTo(
+                        Map.of(
+                            "key",
+                            RETURN_KEY,
+                            "document",
+                            documentHandle,
+                            "description",
+                            RETURN_DESCRIPTION)))
+        .verify();
+
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
   }
 
   /**
@@ -149,6 +248,81 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         });
 
     assertDownloadResultInHistory(camundaClient, agentInstanceKey.get(), recorded.requests());
+  }
+
+  /**
+   * The agent answers the valid {@code c8__return_document} call. The real call of the same message
+   * runs in the process. While it runs, the history of the agent instance holds only the results
+   * that already arrived. After it ends, the model sees both results in the order of its calls,
+   * each once. The batch costs no extra model call: one call before the tools run and one after.
+   * The agent instance lists the runtime tool without a BPMN element and reports its call and its
+   * result next to the real call.
+   */
+  @Test
+  void mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall() throws Exception {
+    final var turns =
+        List.of(
+            downloadTurn(wireMock.getHttpBaseUrl()),
+            returnDocumentWithComplexToolTurn(),
+            finalTurn());
+    OpenAiCompletionsChatModelStubs.stubConversation(turns.toArray(Turn[]::new));
+
+    final var zeebeTest = startProcess(e -> e);
+    final var processInstance = zeebeTest.getProcessInstanceEvent();
+    CamundaAssert.assertThat(processInstance).hasActiveElements(COMPLEX_TOOL);
+    final var agentInstanceKey =
+        AgentInstanceEngineVerifier.awaitAgentInstanceKey(
+            camundaClient, processInstance.getProcessInstanceKey());
+
+    // the complex tool has not answered, so the history holds no result of the batch yet
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
+        .hasExactlyToolResultsInOrder("Download_A_File")
+        .verify();
+    CamundaAssert.assertThat(processInstance).hasActiveElements(COMPLEX_TOOL);
+
+    processTestContext.completeJob(
+        JobSelectors.byElementId(COMPLEX_TOOL)
+            .and(JobSelectors.byProcessInstanceKey(processInstance.getProcessInstanceKey())),
+        Map.of("toolCallResult", "complex tool done"));
+    awaitProcessCompletion(zeebeTest);
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
+
+    final var documentId =
+        parseDocumentHandle(recorded.requests().get(1).messages().get(3).content()).id().value();
+    final var messages = recorded.lastRequest().messages();
+    final var results = messages.subList(messages.size() - 2, messages.size());
+    assertThat(results).extracting(m -> m.role()).containsExactly("tool", "tool");
+    assertThat(results)
+        .extracting(m -> m.toolCallId())
+        .containsExactly(RETURN_CALL_ID, COMPLEX_TOOL_CALL_ID);
+    assertThat(results.get(0).content()).isEqualTo("Returned the document under the key 'report'.");
+    assertThat(results.get(1).content()).isEqualTo("complex tool done");
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasResponseText(FINAL_TEXT);
+          assertResponseDocument(
+              agentResponse.context(), agentResponse.responseDocuments(), documentId);
+          assertThat(agentResponse.context().responseDocuments())
+              .containsExactly(
+                  new ResponseDocumentSelection(
+                      RETURN_KEY, AgentDocumentId.of(documentId), RETURN_DESCRIPTION));
+        });
+
+    // the results of the batch are reported together, in the order of the calls
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey)
+        .hasToolsContaining("Download_A_File", UPLOAD_TOOL, COMPLEX_TOOL, "c8__return_document")
+        .hasToolWithoutElementId("c8__return_document")
+        .hasExactlyToolResultsInOrder("Download_A_File", "c8__return_document", COMPLEX_TOOL)
+        .hasToolCallsWithElementId("c8__return_document", null)
+        .hasToolCallsWithElementId(COMPLEX_TOOL, COMPLEX_TOOL)
+        .verify();
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
   }
 
   /**

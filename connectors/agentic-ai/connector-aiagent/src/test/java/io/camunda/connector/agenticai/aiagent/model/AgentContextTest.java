@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -33,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 class AgentContextTest {
   private static final AgentContext EMPTY_CONTEXT = AgentContext.empty();
@@ -305,6 +308,68 @@ class AgentContextTest {
   }
 
   @Test
+  void responseDocumentsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty()
+      throws JsonProcessingException {
+    final var context = AgentContext.empty();
+    assertThat(context.responseDocuments()).isEmpty();
+
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("responseDocuments");
+  }
+
+  @Test
+  void agentContextWithoutResponseDocumentsFieldBindsToEmptyList() throws JsonProcessingException {
+    final var json =
+        """
+        {
+          "schemaVersion": 2,
+          "state": "READY",
+          "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
+          "toolDefinitions": []
+        }
+        """;
+
+    final var context = objectMapper.readValue(json, AgentContext.class);
+
+    assertThat(context.responseDocuments()).isEmpty();
+    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+  }
+
+  @Test
+  void responseDocumentsAreSerializedAndDeserializedInInsertionOrder() throws Exception {
+    var context = AgentContext.empty();
+    for (final var key : List.of("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta")) {
+      context =
+          context.withResponseDocument(
+              new ResponseDocumentSelection(key, AgentDocumentId.of("doc-" + key), null));
+    }
+    context =
+        context.withResponseDocument(
+            new ResponseDocumentSelection("alpha", AgentDocumentId.of("doc-alpha-2"), "Replaced"));
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
+
+    JSONAssert.assertEquals(
+        """
+        [
+          {"key": "zeta", "document": "doc-zeta"},
+          {"key": "alpha", "document": "doc-alpha-2", "description": "Replaced"},
+          {"key": "mid", "document": "doc-mid"},
+          {"key": "beta", "document": "doc-beta"},
+          {"key": "omega", "document": "doc-omega"},
+          {"key": "gamma", "document": "doc-gamma"},
+          {"key": "delta", "document": "doc-delta"}
+        ]
+        """,
+        objectMapper.readTree(serialized).get("responseDocuments").toString(),
+        JSONCompareMode.STRICT);
+    assertThat(deserialized.responseDocuments())
+        .extracting(ResponseDocumentSelection::key)
+        .containsExactly("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta");
+    assertThat(deserialized).isEqualTo(context);
+  }
+
+  @Test
   void featuresDefaultToEmptyAndAreOmittedFromJsonWhenEmpty() throws JsonProcessingException {
     final var context = AgentContext.empty();
 
@@ -403,7 +468,8 @@ class AgentContextTest {
                 InProcessConversationContext.builder("test-conversation").build(),
                 AgentDocuments.empty(),
                 List.of(),
-                Map.of()))
+                Map.of(),
+                List.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }

@@ -13,10 +13,12 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +46,10 @@ public record AgentContext(
     // the features the agent instance was created with, fixed at creation and never added later: an
     // instance without a feature keeps the behavior it started with
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> features,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties,
+    // the documents selected for the final response, in the order they were selected; the keys are
+    // unique
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ResponseDocumentSelection> responseDocuments)
     implements AgentContextBuilder.With {
 
   /**
@@ -69,6 +74,7 @@ public record AgentContext(
     requireNoRuntimeTools(toolDefinitions);
     Objects.requireNonNull(features, "Features must not be null");
     Objects.requireNonNull(documents, "Documents must not be null");
+    Objects.requireNonNull(responseDocuments, "Response documents must not be null");
   }
 
   private static void requireNoRuntimeTools(List<ToolDefinition> toolDefinitions) {
@@ -104,6 +110,26 @@ public record AgentContext(
   /** The tool definition with the given name, or empty if the agent context has none. */
   public Optional<ToolDefinition> toolDefinition(String name) {
     return toolDefinitions.stream().filter(tool -> tool.name().equals(name)).findFirst();
+  }
+
+  /**
+   * Returns the agent context with the document selected for the final response. A selection under
+   * a key that is already used replaces that selection in place; any other is added at the end.
+   */
+  public AgentContext withResponseDocument(ResponseDocumentSelection selection) {
+    final var selections = new ArrayList<>(responseDocuments);
+    boolean replaced = false;
+    for (int i = 0; i < selections.size(); i++) {
+      if (selections.get(i).key().equals(selection.key())) {
+        selections.set(i, selection);
+        replaced = true;
+        break;
+      }
+    }
+    if (!replaced) {
+      selections.add(selection);
+    }
+    return withResponseDocuments(selections);
   }
 
   public AgentContext withProperty(String key, Object value) {

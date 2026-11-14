@@ -33,9 +33,8 @@ public interface AgentConversationTurnInputComposer {
    * Assembles the input of the next turn: the tool call results of the batch in call order, or the
    * user prompt, followed by the event messages.
    *
-   * <p>The documents of the input are not in the agent context of {@code ready}: they are part of
-   * the {@link TurnInput#documents() input}, and the caller registers them in the agent context it
-   * persists.
+   * <p>The changes of the agent the input asks for are not in the agent context of {@code ready}:
+   * the caller applies the input to the agent context it persists ({@link TurnInput#applyTo}).
    *
    * @throws IllegalStateException if a call of the batch has no result
    */

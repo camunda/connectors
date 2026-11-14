@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
@@ -437,10 +438,196 @@ class ToolCallResultsInputBuilderTest {
             "The runtime tool 'alpha' refers to a document by its id, which an agent instance that does not track its documents does not support");
   }
 
+  @Test
+  void aSelectionOfADocumentTheAgentDoesNotKnowIsADefectOfTheTool() {
+    final var unknown = AgentDocumentId.of("unknown");
+    final var entry =
+        runtimeEntry(
+            "c1", "alpha", RuntimeToolResult.success("a").withResponseDocument("k", unknown, null));
+
+    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'alpha' refers to the document '%s', which the agent does not know and the result does not return"
+                .formatted(unknown));
+  }
+
+  @Test
+  void aCallNeverSelectsADocumentAnotherCallReturned() {
+    final var returning =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(first))));
+    final var selecting =
+        runtimeEntry(
+            "c2",
+            "beta",
+            RuntimeToolResult.success("a").withResponseDocument("k", idOf(first), null));
+
+    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(returning, selecting), Set.of()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'beta' refers to the document '%s', which the agent does not know and the result does not return"
+                .formatted(idOf(first)));
+  }
+
+  @Test
+  void aResultOfAnAgentThatDoesNotTrackItsDocumentsThatSelectsADocumentIsADefectOfTheTool() {
+    final var entry =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
+                .withResponseDocument("k", idOf(first), null));
+
+    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry), Set.of()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The runtime tool 'alpha' refers to a document by its id, which an agent instance that does not track its documents does not support");
+  }
+
   /** An entry with the documents the generic walker finds and the given effects. */
   private static ToolCallBatch.Entry entryWithEffects(
       ToolCallResultContent result, List<ToolCallEffect> effects) {
     return new ToolCallBatch.Entry(
         result, ToolCallResultDocumentExtractor.documentsOf(result.content()), effects);
+  }
+
+  @Test
+  void aBatchWithoutASelectionSelectsNoResponseDocumentAndLeavesTheContextAsItIs() {
+    final var context = knowing(known);
+    final var textOnly = entryOf(result("c1", "alpha", textContent("one")), List.of());
+
+    final var input = builder.build(context, batchOf(textOnly), Set.of());
+
+    assertThat(input.responseDocuments()).isEmpty();
+    assertThat(input.applyTo(context)).isEqualTo(context);
+    assertThat(builder.build(context, entries(), Set.of()).responseDocuments()).isEmpty();
+  }
+
+  @Test
+  void aSuccessfulResultThatSelectsAKnownDocumentPutsItIntoTheResponseDocumentsOfTheInput() {
+    final var entry =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success("returned").withResponseDocument("report", idOf(known), "R"));
+    final var context = knowing(known);
+
+    final var input = builder.build(context, batchOf(entry), Set.of());
+
+    assertThat(input.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("report", idOf(known), "R"));
+    assertThat(input.applyTo(context).responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("report", idOf(known), "R"));
+    assertThat(context.responseDocuments()).isEmpty();
+    // the selection changes the input's response documents only: the model reads the result as it
+    // is
+    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    assertThat(((ToolCallResultMessage) input.messages().getFirst()).results().getFirst().content())
+        .containsExactly(textContent("returned"));
+    assertThat(input.documents()).isEmpty();
+  }
+
+  @Test
+  void
+      theResponseDocumentsAreSelectedInTheOrderOfTheCallsAndAKeyThatIsUsedAgainIsReplacedInPlace() {
+    final var other = createDocument("other", "other.txt");
+    final var batch =
+        batchOf(
+            runtimeEntry(
+                "c1",
+                "alpha",
+                RuntimeToolResult.success("a")
+                    .withResponseDocument("a", idOf(known), "one")
+                    .withResponseDocument("b", idOf(other), null)),
+            runtimeEntry(
+                "c2",
+                "beta",
+                RuntimeToolResult.success("b").withResponseDocument("a", idOf(other), "three")));
+    final var context = knowing(known, other);
+
+    final var input = builder.build(context, batch, Set.of());
+
+    assertThat(input.responseDocuments())
+        .containsExactly(
+            new ResponseDocumentSelection("a", idOf(known), "one"),
+            new ResponseDocumentSelection("b", idOf(other), null),
+            new ResponseDocumentSelection("a", idOf(other), "three"));
+    assertThat(input.applyTo(context).responseDocuments())
+        .containsExactly(
+            new ResponseDocumentSelection("a", idOf(other), "three"),
+            new ResponseDocumentSelection("b", idOf(other), null));
+  }
+
+  @Test
+  void aSelectionReplacesTheSelectionOfAnEarlierTurnUnderTheSameKeyInPlace() {
+    final var other = createDocument("other", "other.txt");
+    final var context =
+        knowing(known, other)
+            .withResponseDocument(new ResponseDocumentSelection("a", idOf(known), null))
+            .withResponseDocument(new ResponseDocumentSelection("b", idOf(known), null));
+    final var entry =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success("a").withResponseDocument("a", idOf(other), "new"));
+
+    final var input = builder.build(context, batchOf(entry), Set.of());
+
+    assertThat(input.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("a", idOf(other), "new"));
+    assertThat(input.applyTo(context).responseDocuments())
+        .containsExactly(
+            new ResponseDocumentSelection("a", idOf(other), "new"),
+            new ResponseDocumentSelection("b", idOf(known), null));
+  }
+
+  @Test
+  void aDocumentTheResultReturnsItselfCanBeSelectedByTheSameResult() {
+    final var entry =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
+                .withResponseDocument("created", idOf(first), null));
+
+    final var input = builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of());
+
+    assertThat(input.documents())
+        .containsExactly(AgentDocument.of(first, AgentDocumentOrigin.toolCall("alpha", "c1")));
+    assertThat(input.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("created", idOf(first), null));
+    final var applied = input.applyTo(WITH_DOCUMENTS);
+    assertThat(applied.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("created", idOf(first), null));
+    assertThat(applied.documents().find(idOf(first))).isPresent();
+  }
+
+  @Test
+  void anErrorResultSelectsNoResponseDocument() {
+    final var entry = runtimeEntry("c1", "alpha", RuntimeToolResult.error("no"));
+
+    final var input = builder.build(knowing(known), batchOf(entry), Set.of());
+
+    assertThat(entry.effects()).isEmpty();
+    assertThat(input.responseDocuments()).isEmpty();
+  }
+
+  @Test
+  void theSelectionsAreTheSameForTheSameContextAndResults() {
+    final var entry =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success("a").withResponseDocument("k", idOf(known), "d"));
+    final var context = knowing(known);
+
+    final var once = builder.build(context, batchOf(entry), Set.of());
+    final var again = builder.build(context, batchOf(entry), Set.of());
+
+    assertThat(once.responseDocuments()).isEqualTo(again.responseDocuments());
+    assertThat(once.applyTo(context)).isEqualTo(again.applyTo(context));
   }
 }

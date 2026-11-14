@@ -25,6 +25,16 @@ gating a persisted shape on a feature.
 `RuntimeTools` and the conversation read the features from the `AgentContext`; they are not part of the configuration
 fingerprint.
 
+**Response documents.** `AgentContext.responseDocuments` is the list of the documents selected for the final response, in the
+order they were selected (omitted when empty; a missing field binds to an empty list). An entry is
+`{key, document, description?}`: the key the process finds the document by, the `AgentDocumentId` of one of the agent
+documents and an optional description. A selection under a key that is already used replaces that selection in place
+(`AgentContext.withResponseDocument`). The final response carries each selection under its key as a `ReturnedDocument` with
+the Camunda document reference of its agent document; the order of its entries is not specified, only this list keeps
+the order of selection. The runtime tool `c8__return_document` selects them ([Add a runtime tool](../../docs/architecture/extension-points.md#add-a-runtime-tool)); the list stays in the
+context for the lifetime of the agent instance, so every final response carries all of them. It is part of `agentContext`
+like the agent documents, so it is independent of the conversation store.
+
 **Documents.** `AgentContext.documents` is the `AgentDocuments` of the agent instance: a list of `AgentDocument` entries
 `{id, origin, reference}` (omitted when empty; a missing field binds to no documents), read and
 replaced through `AgentContext.documents()` and `withDocuments(...)`. `origin` is the sealed `AgentDocumentOrigin`
@@ -145,8 +155,8 @@ opaque `ObjectContent`, never re-split into typed `Content` — a shape heuristi
 it, since those blocks share the same `type` discriminators. The write path always re-persists the
 current shape, so a conversation touched again after upgrading is migrated forward on its next write.
 
-Version 2 adds `AgentContext.features` and `AgentContext.documents`, the `agent_document` content block, and the `kind`
-and `rejection` of a `ToolCall`. A version 1 root loads
+Version 2 adds `AgentContext.features`, `AgentContext.documents` and `AgentContext.responseDocuments`, the
+`agent_document` content block, and the `kind` and `rejection` of a `ToolCall`. A version 1 root loads
 unchanged, because each of them binds to its empty value when it is missing. Every root migrates step by step: unversioned
 to 1 lifts the tool call result content, 1 to 2 changes nothing. A runtime that supports a lower version rejects a root
 with a higher one, so it fails on state that a newer connector wrote and never rewrites it.

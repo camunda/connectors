@@ -22,16 +22,29 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.agenticai.aiagent.agent.ReturnedDocument;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import org.json.JSONException;
+import org.jspecify.annotations.Nullable;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.core.io.ClassPathResource;
 
 /**
@@ -50,10 +63,13 @@ public final class DocumentFlowFixtures {
   public static final String DOWNLOADED_FILE = "test.pdf";
   public static final String DOWNLOAD_CALL_ID = "call_download";
   public static final String UPLOAD_CALL_ID = "call_upload";
+  public static final String RETURN_CALL_ID = "call_return";
   public static final String GET_CALL_ID = "call_get";
   public static final String GET_AGAIN_CALL_ID = "call_get_again";
   public static final String SUPERFLUX_CALL_ID = "call_superflux";
   public static final String SUPERFLUX_RESULT = "24";
+  public static final String COMPLEX_TOOL = "A_Complex_Tool";
+  public static final String COMPLEX_TOOL_CALL_ID = "call_complex";
   public static final String FINAL_TEXT = "I uploaded the document and return it.";
 
   private DocumentFlowFixtures() {}
@@ -158,6 +174,72 @@ public final class DocumentFlowFixtures {
             UPLOAD_CALL_ID, UPLOAD_TOOL, "{\"document\": %s}".formatted(handle(documentId))));
   }
 
+  /** The key and the description of the document the model returns. */
+  public static final String RETURN_KEY = "report";
+
+  public static final String RETURN_DESCRIPTION = "The downloaded document";
+
+  private static final String RETURN_ARGUMENTS =
+      "{\"key\": \"%s\", \"document\": %%s, \"description\": \"%s\"}"
+          .formatted(RETURN_KEY, RETURN_DESCRIPTION);
+
+  public static Turn returnDocumentTurn() {
+    return Turn.toolCalls(
+        "I will return the document.",
+        10,
+        20,
+        ToolCall.of(
+            RETURN_CALL_ID,
+            "c8__return_document",
+            RETURN_ARGUMENTS.formatted(handle(documentId(0)))));
+  }
+
+  /** Returns the document with the given id under the given key. */
+  public static Turn returnDocumentTurn(
+      String callId, String key, String documentId, String description) {
+    return Turn.toolCalls(
+        "I will return the document.",
+        10,
+        20,
+        ToolCall.of(
+            callId,
+            "c8__return_document",
+            "{\"key\": \"%s\", \"document\": %s, \"description\": \"%s\"}"
+                .formatted(key, handle(documentId), description)));
+  }
+
+  /**
+   * One assistant message with a valid {@code c8__return_document} call and a {@code
+   * SuperfluxProduct} call, which answers {@value #SUPERFLUX_RESULT}.
+   */
+  public static Turn returnDocumentWithSuperfluxTurn() {
+    return Turn.toolCalls(
+        "I will return the document and calculate the superflux product.",
+        10,
+        20,
+        ToolCall.of(
+            RETURN_CALL_ID,
+            "c8__return_document",
+            RETURN_ARGUMENTS.formatted(handle(documentId(0)))),
+        ToolCall.of(SUPERFLUX_CALL_ID, "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"));
+  }
+
+  /**
+   * One assistant message with a valid {@code c8__return_document} call and a call of the complex
+   * tool. The complex tool has no job worker: it runs until the test completes its job.
+   */
+  public static Turn returnDocumentWithComplexToolTurn() {
+    return Turn.toolCalls(
+        "I will return the document and run the complex tool.",
+        10,
+        20,
+        ToolCall.of(
+            RETURN_CALL_ID,
+            "c8__return_document",
+            RETURN_ARGUMENTS.formatted(handle(documentId(0)))),
+        ToolCall.of(COMPLEX_TOOL_CALL_ID, COMPLEX_TOOL, "{}"));
+  }
+
   /**
    * One assistant message with an upload with the handle of an unknown document and a {@code
    * SuperfluxProduct} call, which answers {@value #SUPERFLUX_RESULT}.
@@ -205,5 +287,87 @@ public final class DocumentFlowFixtures {
 
   public static int uploadCount() {
     return findAll(postRequestedFor(urlPathEqualTo(UPLOAD_PATH))).size();
+  }
+
+  /**
+   * Asserts that a response document reference is the whole Camunda document reference of the agent
+   * document with the given id, the id the model reads in the handle of the document.
+   */
+  public static void assertCamundaDocumentReference(
+      AgentContext context, Object reference, String expectedDocumentId) {
+    final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    final var registered =
+        context
+            .documents()
+            .find(AgentDocumentId.of(expectedDocumentId))
+            .orElseThrow(() ->
+                new AssertionError("The agent does not know the document " + expectedDocumentId));
+    try {
+      JSONAssert.assertEquals(
+          objectMapper.writeValueAsString(registered.reference()),
+          objectMapper.writeValueAsString(reference),
+          true);
+    } catch (JsonProcessingException e) {
+      throw new UncheckedIOException(e);
+    } catch (JSONException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  /**
+   * A response document the agent response is expected to hold: the key, the id of the document the
+   * model reads in its handle, and the description.
+   */
+  public record ExpectedResponseDocument(
+      String key, String documentId, @Nullable String description) {}
+
+  /**
+   * Asserts that the response documents of an agent response hold only the document with the given
+   * id, under the key and with the description the model sent.
+   */
+  public static void assertResponseDocument(
+      AgentContext context,
+      Map<String, ? extends ReturnedDocument> documents,
+      String expectedDocumentId) {
+    assertResponseDocuments(
+        context,
+        documents,
+        new ExpectedResponseDocument(RETURN_KEY, expectedDocumentId, RETURN_DESCRIPTION));
+  }
+
+  /**
+   * Asserts that the response documents hold exactly the expected entries, in no particular order,
+   * each with the whole Camunda document reference of its document and its description.
+   */
+  public static void assertResponseDocuments(
+      AgentContext context,
+      Map<String, ? extends ReturnedDocument> documents,
+      ExpectedResponseDocument... expected) {
+    assertThat(documents.keySet())
+        .containsExactlyInAnyOrderElementsOf(
+            Arrays.stream(expected).map(ExpectedResponseDocument::key).toList());
+    for (final var entry : expected) {
+      final var returned = documents.get(entry.key());
+      assertCamundaDocumentReference(context, returned.document(), entry.documentId());
+      assertThat(returned.description()).isEqualTo(entry.description());
+    }
+  }
+
+  /**
+   * The id of the document in the handle of the result of the tool call with the given id, as the
+   * last request of the conversation holds it.
+   */
+  public static String documentIdOfToolResult(
+      OpenAiCompletionsRecordedConversation recorded, String toolCallId) {
+    final var result =
+        recorded.lastRequest().messages().stream()
+            .filter(m -> toolCallId.equals(m.toolCallId()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No tool result for call " + toolCallId));
+    return parseDocumentHandle(result.content()).id().value();
+  }
+
+  public static List<Turn> roundTripTurns(String wireMockBaseUrl) {
+    return List.of(downloadTurn(wireMockBaseUrl), uploadTurn(), returnDocumentTurn(), finalTurn());
   }
 }

@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
@@ -587,8 +588,9 @@ class CamundaDocumentConversationStoreTest {
   }
 
   @Test
-  void keepsDocumentBlocksWhenTheStoredConversationIsLoadedAgainAndLeavesTheAgentDocumentsAlone()
-      throws Exception {
+  void
+      keepsDocumentBlocksWhenTheStoredConversationIsLoadedAgainAndLeavesTheAgentDocumentsAndTheResponseDocumentsAlone()
+          throws Exception {
     mockJobContext();
     final var document = createDocument("report", "report.txt");
     final var entry = AgentDocument.of(document, AgentDocumentOrigin.toolCall("fetch", "call-1"));
@@ -602,7 +604,11 @@ class CamundaDocumentConversationStoreTest {
     when(documentFactory.create(documentCreationRequestCaptor.capture()))
         .thenReturn(storedDocument);
 
-    final var agentContext = AgentContext.empty().withDocuments(AgentDocuments.of(List.of(entry)));
+    final var selection = new ResponseDocumentSelection("report", entry.id(), "The report");
+    final var agentContext =
+        AgentContext.empty()
+            .withDocuments(AgentDocuments.of(List.of(entry)))
+            .withResponseDocument(selection);
     AgentContext storedAgentContext;
     try (var session = store.createSession(executionContext, agentContext)) {
       session.loadMessages(agentContext);
@@ -614,8 +620,10 @@ class CamundaDocumentConversationStoreTest {
     final var storedContent = documentCreationRequestCaptor.getValue().content().readAllBytes();
     when(storedDocument.asInputStream()).thenReturn(new ByteArrayInputStream(storedContent));
 
-    // the agent documents is part of the agent context, which the store does not touch
+    // the agent documents and the response documents are part of the agent context, which the store
+    // does not touch
     assertThat(storedAgentContext.documents().all()).containsExactly(entry);
+    assertThat(storedAgentContext.responseDocuments()).containsExactly(selection);
     try (var session = store.createSession(executionContext, storedAgentContext)) {
       assertThat(session.loadMessages(storedAgentContext).messages())
           .singleElement()

@@ -136,6 +136,7 @@ class LegacyDocumentConversationTest {
     assertThat(context.features()).isEmpty();
     assertThat(context.supports(AgentFeatures.DOCUMENTS)).isFalse();
     assertThat(context.documents().all()).isEmpty();
+    assertThat(context.responseDocuments()).isEmpty();
   }
 
   @Test
@@ -253,16 +254,19 @@ class LegacyDocumentConversationTest {
             text -> assertThat(text).isEqualTo(textContent("Next")),
             content -> assertThat(content).isInstanceOf(DocumentContent.class));
 
-    // the persisted shape holds the document content, and no agent documents or features
+    // the persisted shape holds the document content, and no agent documents, features or response
+    // documents
     final var stored = conversation.allMessages().getLast();
     assertThat(objectMapper.valueToTree(stored).at("/content/1/type").asText())
         .isEqualTo("document");
     final var storedContext = conversation.toAgentContext();
     assertThat(storedContext.features()).isEmpty();
     assertThat(storedContext.documents().all()).isEmpty();
+    assertThat(storedContext.responseDocuments()).isEmpty();
     final var serialized = objectMapper.valueToTree(storedContext);
     assertThat(serialized.has("features")).isFalse();
     assertThat(serialized.has("documents")).isFalse();
+    assertThat(serialized.has("responseDocuments")).isFalse();
   }
 
   @Test

@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
@@ -27,7 +28,9 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfigura
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -76,6 +79,16 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             .orElse(DEFAULT_RESPONSE_CONFIGURATION);
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
+    if (toolCalls.isEmpty()) {
+      switch (agentContext.documentHandling()) {
+        // every final response carries all response documents, which stay in the context for the
+        // lifetime of the agent instance
+        case DocumentHandling.Tracked ignored ->
+            builder.responseDocuments(responseDocuments(agentContext));
+        // an instance that does not track its documents has no response documents
+        case DocumentHandling.Untracked ignored -> {}
+      }
+    }
     if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {
       builder.responseMessage(assistantMessage);
     }
@@ -124,6 +137,23 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     return Objects.requireNonNull(
         lastTurn.assistantMessage(),
         "Cannot create an agent response: the last turn has no assistant message");
+  }
+
+  private Map<String, ReturnedDocument> responseDocuments(AgentContext agentContext) {
+    final var returned = new LinkedHashMap<String, ReturnedDocument>();
+    for (final var selection : agentContext.responseDocuments()) {
+      final var document =
+          agentContext
+              .documents()
+              .find(selection.document())
+              .orElseThrow(() ->
+                  new IllegalStateException(
+                      "The response document '%s' is the document '%s', which the agent does not know"
+                          .formatted(selection.key(), selection.document())));
+      returned.put(
+          selection.key(), new ReturnedDocument(document.reference(), selection.description()));
+    }
+    return returned;
   }
 
   private Optional<String> deriveResponseText(AssistantMessage assistantMessage) {

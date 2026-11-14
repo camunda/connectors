@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -164,6 +165,46 @@ class LocalToolCallExecutorTest {
   }
 
   @Test
+  void keepsTheSelectionOfAKnownDocumentForTheResponse() {
+    var selection = new ResponseDocumentSelection("report", KNOWN_ID, "The report");
+    var execution =
+        runtimeExecution(
+            RuntimeToolResult.success("ok").withResponseDocument("report", KNOWN_ID, "The report"));
+    when(runtimeTools.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(execution));
+
+    var entries =
+        executor.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL));
+
+    assertThat(entries)
+        .singleElement()
+        .satisfies(entry ->
+            assertThat(entry.effects())
+                .containsExactly(new ToolCallEffect.SelectResponseDocument(selection)));
+  }
+
+  @Test
+  void aResultMayReturnADocumentAndSelectItForTheResponse() {
+    var returned = createDocument("returned", "returned.txt");
+    var id = AgentDocumentId.of(returned);
+    var execution =
+        runtimeExecution(
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
+                .withResponseDocument("created", id, null));
+    when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
+        .thenReturn(List.of(execution));
+
+    var entries = executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL));
+
+    assertThat(entries)
+        .singleElement()
+        .satisfies(entry ->
+            assertThat(entry.effects())
+                .containsExactly(
+                    new ToolCallEffect.SelectResponseDocument(
+                        new ResponseDocumentSelection("created", id, null))));
+  }
+
   void anAgentThatDoesNotTrackItsDocumentsTakesEveryKindOfDocumentFromAResult() {
     var inline = new InlineDocument("inline", "inline.txt", "text/plain");
     var external =

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
@@ -14,6 +15,7 @@ import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The outcome of a runtime tool call: a {@link Success} or an {@link Error}. The model reads {@link
@@ -43,6 +45,7 @@ import java.util.Objects;
  *
  * <ul>
  *   <li>{@link Success#withDocumentContent}: adds the content of a document to the next request.
+ *   <li>{@link Success#withResponseDocument}: selects a document for the final response.
  * </ul>
  */
 @Experimental
@@ -98,6 +101,36 @@ public sealed interface RuntimeToolResult {
      */
     public Success withDocumentContent(AgentDocumentId id) {
       return withEffect(new ToolCallEffect.AddDocumentContent(Objects.requireNonNull(id)));
+    }
+
+    /**
+     * Returns a copy that asks the agent to select a document for the final response, without a
+     * description. See {@link #withResponseDocument(String, AgentDocumentId, String)}.
+     *
+     * @throws IllegalArgumentException if the key does not match the pattern
+     */
+    public Success withResponseDocument(String key, AgentDocumentId id) {
+      return withResponseDocument(key, id, null);
+    }
+
+    /**
+     * Returns a copy that asks the agent to select a document for the final response.
+     *
+     * <p>{@code id} identifies a document that the agent knows when the batch starts, or a document
+     * that this result returns. Every later final response carries the selection. A selection with
+     * a key that is already used replaces the earlier selection. An unknown id fails the job.
+     *
+     * @param key the key of the document in the response, see {@link
+     *     ResponseDocumentSelection#KEY_PATTERN}
+     * @param id the id of the document
+     * @param description a short description of the document, or {@code null}
+     * @throws IllegalArgumentException if the key does not match the pattern
+     */
+    public Success withResponseDocument(
+        String key, AgentDocumentId id, @Nullable String description) {
+      return withEffect(
+          new ToolCallEffect.SelectResponseDocument(
+              new ResponseDocumentSelection(key, Objects.requireNonNull(id), description)));
     }
 
     private Success withEffect(ToolCallEffect effect) {
