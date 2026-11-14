@@ -277,6 +277,22 @@ class ToolCallBatchTest {
   }
 
   @Test
+  void entryFromAProcessResult_asksForNoContent() {
+    var attachment = document("attachment");
+    var result =
+        ToolCallResult.builder()
+            .id("first")
+            .name("getWeather")
+            .content(Map.of("attachment", attachment))
+            .build();
+
+    var entry = ToolCallBatch.Entry.from(result, extractor);
+
+    assertThat(entry.documents()).containsExactly(attachment);
+    assertThat(entry.effects()).isEmpty();
+  }
+
+  @Test
   void entryFromAProcessResult_ofAGatewayToolTakesTheDocumentsOfItsHandler() {
     var document = document("gateway");
     var result =

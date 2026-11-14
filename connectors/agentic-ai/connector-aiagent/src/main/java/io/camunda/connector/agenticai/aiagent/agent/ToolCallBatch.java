@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -117,7 +119,7 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     /**
      * The entry of a result as the process returned it, for an agent instance that does not track
      * its documents. The documents are extracted from the result, by its gateway tool handler if it
-     * has one.
+     * has one. The entry asks for no document content.
      */
     public static Entry from(ToolCallResult result, ToolCallResultDocumentExtractor extractor) {
       final var documents =
@@ -128,20 +130,9 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     }
 
     /**
-     * The entry of a result of any source (a process tool or a runtime tool), for an agent instance
-     * that tracks its documents. The documents are the ones the model reads as handles: every
-     * document the renderer finds in the result, at any depth and also inside a typed record,
-     * whatever gateway tool handler manages the result.
-     */
-    public static Entry withRenderedDocuments(
-        ToolCallResultContent result, ObjectHandleRenderer objectHandleRenderer) {
-      return withRenderedDocuments(result, objectHandleRenderer, List.of());
-    }
-
-    /**
-     * The entry of a result that asks something of the agent, for an agent instance that tracks its
-     * documents; the documents are the ones the model reads as handles, as in {@link
-     * #withRenderedDocuments(ToolCallResultContent, ObjectHandleRenderer)}.
+     * The entry of a result of a runtime tool, which asks something of the agent, for an agent
+     * instance that tracks its documents. The documents are the ones the model reads as handles:
+     * every document the renderer finds in the result, at any depth and also inside a typed record.
      */
     static Entry withRenderedDocuments(
         ToolCallResultContent result,
@@ -152,6 +143,38 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
           ToolCallResultDocumentExtractor.renderedDocumentsOf(
               result.content(), objectHandleRenderer),
           effects);
+    }
+
+    /**
+     * The entry of a result of a process tool with the given document delivery, for an agent
+     * instance that tracks its documents. The documents are the ones the model reads as handles:
+     * every document the renderer finds in the result, at any depth and also inside a typed record,
+     * whatever gateway tool handler manages the result. With the delivery {@link
+     * DocumentDelivery#CONTENT} the entry asks for the content of every Camunda document of the
+     * result; a document of another kind has no agent document id, and {@link
+     * #requireCamundaDocuments()} reports it.
+     */
+    static Entry withRenderedDocuments(
+        ToolCallResultContent result,
+        ObjectHandleRenderer objectHandleRenderer,
+        DocumentDelivery documentDelivery) {
+      final var documents =
+          ToolCallResultDocumentExtractor.renderedDocumentsOf(
+              result.content(), objectHandleRenderer);
+      return new Entry(result, documents, effectsOf(documents, documentDelivery));
+    }
+
+    private static List<ToolCallEffect> effectsOf(
+        List<Document> documents, DocumentDelivery documentDelivery) {
+      return switch (documentDelivery) {
+        case REFERENCE -> List.of();
+        case CONTENT ->
+            documents.stream()
+                .filter(AgentDocument::isSupported)
+                .<ToolCallEffect>map(
+                    document -> new ToolCallEffect.AddDocumentContent(AgentDocumentId.of(document)))
+                .toList();
+      };
     }
 
     /**

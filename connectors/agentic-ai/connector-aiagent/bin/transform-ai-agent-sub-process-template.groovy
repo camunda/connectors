@@ -127,10 +127,14 @@ def updatedGroups = []
 json.put('groups', updatedGroups)
 
 // Transform properties
+// optional: comma-separated ids of template properties to leave out; unset keeps every property
+def omittedPropertyIds = (binding.hasVariable('omittedPropertyIds') && omittedPropertyIds
+        ? ((String) omittedPropertyIds).split(',').collect { it.trim() }.findAll { it }
+        : [])
 def updatedProperties = []
 
 ((List) json.get('properties')).each { property ->
-    if (property.id in skipProperties) {
+    if (property.id in skipProperties || property.id in omittedPropertyIds) {
         return
     }
 

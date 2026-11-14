@@ -259,7 +259,8 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
                 definition.name(),
                 definition.description(),
                 definition.inputSchema(),
-                ToolKind.PROCESS))
+                ToolKind.PROCESS,
+                null))
         .forEach(expected::add);
     assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }

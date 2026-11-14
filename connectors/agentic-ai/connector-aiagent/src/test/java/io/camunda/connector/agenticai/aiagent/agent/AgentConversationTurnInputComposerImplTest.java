@@ -257,11 +257,13 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void firstTurn_withUserPromptDocuments_addsTheReferencesWithTheDeliveryContent() {
+  void firstTurn_withUserPromptDocumentsOfTheDeliveryReference_addsTheTagWithoutTheContent() {
     var document = createDocument("story notes", "text/plain", "notes.txt");
     var input =
         AgentInput.from(
-            new UserPromptConfiguration("Tell me a story", List.of(document)), List.of());
+            new UserPromptConfiguration(
+                "Tell me a story", List.of(document), DocumentDelivery.REFERENCE),
+            List.of());
     var history = TurnReconstructor.reconstruct(List.of());
 
     var result = resolve(CONFIG, CTX, history, input);
@@ -270,7 +272,8 @@ class AgentConversationTurnInputComposerImplTest {
     var userMessage = (UserMessage) messagesOf(result).getFirst();
     assertThat(userMessage.content())
         .containsExactly(
-            textContent("Tell me a story"), documentReference(document, DocumentDelivery.CONTENT));
+            textContent("Tell me a story"),
+            documentReference(document, DocumentDelivery.REFERENCE));
     final var ingested = inputOf(result).documents();
     assertThat(ingested)
         .containsExactly(

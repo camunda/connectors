@@ -351,6 +351,27 @@
             "from" : "provider.googleVertexAi.model.parameters.topK",
             "to" : "provider.googleGemini.model.parameters.topK"
           } ]
+        }, {
+          "to" : "data.userPrompt.documentDelivery",
+          "set" : "content",
+          "when" : {
+            "path" : "data.userPrompt.documentDelivery",
+            "exists" : false
+          },
+          "note" : "The element keeps adding the content of the user prompt documents to the model call. Select Reference in the Document delivery dropdown to let the model load the content of a document when it needs it."
+        } ]
+      }, {
+        "kind" : "upgrade",
+        "sourceTemplateId" : "io.camunda.connectors.agenticai.ai-agent-task.v2-hybrid",
+        "toVersion" : 5,
+        "paths" : [ {
+          "to" : "data.userPrompt.documentDelivery",
+          "set" : "content",
+          "when" : {
+            "path" : "data.userPrompt.documentDelivery",
+            "exists" : false
+          },
+          "note" : "The element keeps adding the content of the user prompt documents to the model call. Select Reference in the Document delivery dropdown to let the model load the content of a document when it needs it."
         } ]
       } ]
     }
@@ -4332,6 +4353,26 @@
     },
     "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details and supported file types.",
     "type" : "String"
+  }, {
+    "id" : "data.userPrompt.documentDelivery",
+    "label" : "Document delivery",
+    "description" : "How the model receives the documents of the user prompt.",
+    "optional" : false,
+    "value" : "reference",
+    "group" : "userPrompt",
+    "binding" : {
+      "name" : "data.userPrompt.documentDelivery",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "<code>Reference</code> (recommended): the model loads the content of a document when it needs it. <code>Content</code>: the content is part of every model call and costs more tokens.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Reference",
+      "value" : "reference"
+    }, {
+      "name" : "Content",
+      "value" : "content"
+    } ]
   }, {
     "id" : "data.tools.containerElementId",
     "label" : "Ad-hoc sub-process ID",

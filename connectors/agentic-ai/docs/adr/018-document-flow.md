@@ -151,8 +151,10 @@ handle and then the content. The delivery is set on each block. Thus an earlier 
 document comes again with a different delivery.
 
 The default is `reference` for tool results and for a user prompt that sets `reference`. A user prompt without a
-delivery, as in a v1 template, behaves as before: all documents go to the model as content.
-The v2 templates set `reference` as the default.
+delivery, as in a process modeled before the dropdown existed, behaves as before: all documents go to the model as content.
+The v2 templates set `reference` as the default. A delivery applies only to an agent instance with the `documents`
+feature, which only the v2 connectors give to a new instance. The v1 templates have no delivery property, and an instance
+without the feature always sends the documents as content.
 
 Content goes into a request in two ways. Both use the same persisted form:
 

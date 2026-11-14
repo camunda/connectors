@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
@@ -31,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfigu
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
@@ -120,14 +122,24 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               agentInput.toolCallResults(),
               interruptMissingToolCalls);
       final var processEntries =
-          processResults.arrivedResults().stream()
-              .map(result -> processEntry(result, documentHandling))
-              .toList();
-      switch (documentHandling) {
-        case DocumentHandling.Tracked ignored ->
-            processEntries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
-        case DocumentHandling.Untracked ignored -> {}
-      }
+          switch (documentHandling) {
+            case DocumentHandling.Tracked ignored -> {
+              // the delivery is the one of the tool the model called: a result is correlated by its
+              // id and can come without a name
+              final var toolNamesByCallId =
+                  previousTurn.processToolCalls().stream()
+                      .collect(
+                          Collectors.toMap(ToolCall::id, ToolCall::name, (first, second) -> first));
+              yield processResults.arrivedResults().stream()
+                  .map(result ->
+                      trackedProcessEntry(agentContext, result, toolNamesByCallId.get(result.id())))
+                  .toList();
+            }
+            case DocumentHandling.Untracked ignored ->
+                processResults.arrivedResults().stream()
+                    .map(result -> ToolCallBatch.Entry.from(result, documentExtractor))
+                    .toList();
+          };
 
       // either we have all results or we interrupted the missing tool calls
       // if incomplete, we wait on further tool call results to be added
@@ -149,11 +161,20 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           agentContext, documentIdsWithContent, batch, TurnInput.empty(), events);
     }
 
-    final var userPrompt = userPromptInput(agentInput.userPrompt(), documentHandling);
-    if (userPrompt.isEmpty() && events.isEmpty()) {
+    final boolean addsUserPromptMessage = agentInput.userPrompt().hasContent();
+    if (!addsUserPromptMessage && events.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
     }
+    // the model call reads the user prompt message and the event messages as well
+    final var documentIdsWithContent =
+        previousConversation.documentIdsWithContent(
+            configuration.contextWindowSize(),
+            (addsUserPromptMessage ? 1 : 0) + events.messages().size());
+    final var userPrompt =
+        addsUserPromptMessage
+            ? userPromptInput(agentInput.userPrompt(), documentHandling, documentIdsWithContent)
+            : TurnInput.empty();
     return new CompositionResult.Ready(
         agentContext, Set.of(), ToolCallBatch.of(List.of()), userPrompt, events);
   }
@@ -168,8 +189,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     return input.followedBy(ready.events());
   }
 
-  /** The user message of the user prompt and its documents, empty without user content. */
-  private TurnInput userPromptInput(UserPrompt userPrompt, DocumentHandling documentHandling) {
+  /** The user message of the user prompt and its documents. */
+  private TurnInput userPromptInput(
+      UserPrompt userPrompt,
+      DocumentHandling documentHandling,
+      Set<AgentDocumentId> idsWithContent) {
 
     final var messageId = MessageUtil.generateId();
     final var content = new ArrayList<Content>();
@@ -183,8 +207,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     switch (documentHandling) {
       case DocumentHandling.Tracked ignored -> {
-        // add the documents as blocks with the delivery content: the content is added when the
-        // model is called
+        // add the documents as blocks: the delivery of the user prompt decides which blocks add
+        // the content when the model is called
         userPrompt.documents().stream()
             .filter(doc -> !AgentDocument.isSupported(doc))
             .findFirst()
@@ -192,12 +216,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               throw UnsupportedDocumentReferenceException.inUserPrompt(doc);
             });
         final var origin = AgentDocumentOrigin.userMessage(messageId);
-        for (var doc : userPrompt.documents()) {
-          content.add(
-              AgentDocumentContent.of(AgentDocumentId.of(doc))
-                  .withDelivery(DocumentDelivery.CONTENT));
-          newDocuments.add(AgentDocument.of(doc, origin));
-        }
+        userPrompt.documents().forEach(doc -> newDocuments.add(AgentDocument.of(doc, origin)));
+        content.addAll(trackedPromptDocuments(userPrompt, idsWithContent));
       }
       case DocumentHandling.Untracked ignored ->
           userPrompt.documents().stream()
@@ -205,10 +225,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               .forEach(content::add);
     }
 
-    if (content.isEmpty()) {
-      LOGGER.debug("Not adding user message as no user content was found to add.");
-      return TurnInput.empty();
-    }
     return new TurnInput(
         List.of(
             UserMessage.builder()
@@ -217,6 +233,38 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
                 .metadata(MessageMetadata.defaults())
                 .build()),
         newDocuments);
+  }
+
+  /**
+   * The blocks of the documents of the user prompt, by the delivery of the prompt. With the
+   * delivery content the content of a document is added when the model is called. Without a
+   * delivery the content of every document is added.
+   */
+  private List<Content> trackedPromptDocuments(
+      UserPrompt userPrompt, Set<AgentDocumentId> idsWithContent) {
+    var delivery = DocumentContentDelivery.of(idsWithContent);
+    final var blocks = new ArrayList<Content>();
+    for (final var doc : userPrompt.documents()) {
+      final var reference = AgentDocumentContent.of(AgentDocumentId.of(doc));
+      final var withContent = reference.withDelivery(DocumentDelivery.CONTENT);
+      switch (userPrompt.documentDelivery()) {
+        case UNSET -> blocks.add(withContent);
+        case REFERENCE -> blocks.add(reference);
+        case CONTENT -> {
+          final var decision = delivery.deliver(List.of(reference.id()));
+          delivery = decision.next();
+          for (final var outcome : decision.outcomes()) {
+            switch (outcome) {
+              case DocumentContentDelivery.Outcome.Delivered delivered ->
+                  blocks.add(delivered.withContent());
+              case DocumentContentDelivery.Outcome.AlreadyInConversation ignored ->
+                  blocks.add(reference);
+            }
+          }
+        }
+      }
+    }
+    return blocks;
   }
 
   /**
@@ -262,19 +310,28 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /**
-   * The entry of a process tool result. An agent instance that tracks its documents takes the
-   * documents the model reads as handles, for the agent to register; an instance that does not adds
-   * the documents its gateway tool handler extracts in a message of their own.
+   * The entry of a process tool result for an agent instance that tracks its documents. It takes
+   * the documents the model reads as handles, for the agent to register; they must be Camunda
+   * documents. The entry carries the document delivery of the tool the model called: the delivery
+   * of the stored definition of the tool, and {@code reference} when the definition sets none or
+   * the tool is unknown. An instance that does not track its documents adds the documents its
+   * gateway tool handler extracts in a message of their own instead.
+   *
+   * @throws UnsupportedDocumentReferenceException if a document of the result is not a Camunda
+   *     document
    */
-  private ToolCallBatch.Entry processEntry(
-      ToolCallResult result, DocumentHandling documentHandling) {
-    return switch (documentHandling) {
-      case DocumentHandling.Tracked ignored ->
-          ToolCallBatch.Entry.withRenderedDocuments(
-              ToolCallResultContent.from(result), objectHandleRenderer);
-      case DocumentHandling.Untracked ignored ->
-          ToolCallBatch.Entry.from(result, documentExtractor);
-    };
+  private ToolCallBatch.Entry trackedProcessEntry(
+      AgentContext agentContext, ToolCallResult result, @Nullable String toolName) {
+    final var documentDelivery =
+        Optional.ofNullable(toolName)
+            .flatMap(agentContext::toolDefinition)
+            .map(ToolDefinition::documentDelivery)
+            .orElse(DocumentDelivery.REFERENCE);
+    final var entry =
+        ToolCallBatch.Entry.withRenderedDocuments(
+            ToolCallResultContent.from(result), objectHandleRenderer, documentDelivery);
+    entry.requireCamundaDocuments();
+    return entry;
   }
 
   private ToolCallBatch.Entry cancelled(ToolCall toolCall) {

@@ -12,6 +12,7 @@ import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Per-invocation input: pre-partitioned from the raw engine data. {@link #toolCallResults} holds
@@ -27,11 +28,17 @@ public final class AgentInput {
   /**
    * Domain representation of the per-invocation user prompt, derived from the request-level {@link
    * UserPromptConfiguration} so the conversation turn composition does not depend on the request
-   * DTO.
+   * DTO. The {@code documentDelivery} says how the documents reach the model.
    */
-  public record UserPrompt(String prompt, List<Document> documents) {
+  public record UserPrompt(
+      String prompt, List<Document> documents, UserPromptDocumentDelivery documentDelivery) {
     public UserPrompt {
       documents = List.copyOf(documents);
+    }
+
+    /** Whether the user prompt has a text or a document, so that it makes a message. */
+    public boolean hasContent() {
+      return StringUtils.isNotBlank(prompt) || !documents.isEmpty();
     }
   }
 
@@ -52,7 +59,8 @@ public final class AgentInput {
     return new AgentInput(
         new UserPrompt(
             userPrompt.prompt(),
-            userPrompt.documents() == null ? List.of() : userPrompt.documents()),
+            userPrompt.documents() == null ? List.of() : userPrompt.documents(),
+            UserPromptDocumentDelivery.of(userPrompt.documentDelivery())),
         partitioned.getOrDefault(true, List.of()),
         partitioned.getOrDefault(false, List.of()));
   }

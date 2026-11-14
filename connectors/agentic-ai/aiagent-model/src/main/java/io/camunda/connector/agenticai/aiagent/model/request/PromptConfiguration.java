@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -58,6 +59,25 @@ public interface PromptConfiguration {
                       + "for details and supported file types.",
               feel = FeelMode.required,
               optional = true)
-          @Nullable List<Document> documents)
-      implements PromptConfiguration {}
+          @Nullable List<Document> documents,
+      @TemplateProperty(
+              group = "userPrompt",
+              label = "Document delivery",
+              description = "How the model receives the documents of the user prompt.",
+              tooltip =
+                  "<code>Reference</code> (recommended): the model loads the content of a document when it needs it. "
+                      + "<code>Content</code>: the content is part of every model call and costs more tokens.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(value = "reference", label = "Reference"),
+                @TemplateProperty.DropdownPropertyChoice(value = "content", label = "Content")
+              },
+              defaultValue = "reference")
+          @Nullable DocumentDelivery documentDelivery)
+      implements PromptConfiguration {
+
+    public UserPromptConfiguration(String prompt, @Nullable List<Document> documents) {
+      this(prompt, documents, null);
+    }
+  }
 }

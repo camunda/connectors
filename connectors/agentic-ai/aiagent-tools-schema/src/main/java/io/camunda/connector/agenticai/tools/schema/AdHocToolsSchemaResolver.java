@@ -15,5 +15,6 @@ import java.util.List;
  * definitions and gateway tool definitions.
  */
 public interface AdHocToolsSchemaResolver {
+
   AdHocToolsSchemaResponse resolveAdHocToolsSchema(List<AdHocToolElement> elements);
 }

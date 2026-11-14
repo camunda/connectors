@@ -11,6 +11,7 @@ import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -454,6 +455,65 @@ class AgentConfigurationTest {
       // silently suppress a real update or dedup two distinct configurations
       final var fingerprint = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
       assertThat(fingerprint).matches("[0-9a-f]{64}");
+    }
+
+    @Test
+    void toolWithoutDocumentDeliveryHashesAsWithoutTheProperty() throws NoSuchAlgorithmException {
+      final var configuration =
+          configuration(
+              "gpt-4o",
+              "Be nice.",
+              10,
+              List.of(
+                  ToolDefinition.builder()
+                      .name("getWeather")
+                      .description("Get the weather forecast")
+                      .inputSchema(Map.of("type", "object", "required", List.of("city")))
+                      .build()));
+
+      final var json =
+          """
+          ["gpt-4o","%s","Be nice.",10,[["getWeather","Get the weather forecast",\
+          {"required":["city"],"type":"object"},[]]]]\
+          """
+              .formatted(configuration.chatModel().descriptiveProvider());
+      final var expected =
+          HexFormat.of()
+              .formatHex(
+                  MessageDigest.getInstance("SHA-256")
+                      .digest(json.getBytes(StandardCharsets.UTF_8)));
+
+      assertThat(configuration.fingerprint()).isEqualTo(expected);
+    }
+
+    @Test
+    void documentDeliveryOfAToolIsPartOfTheHashInput() throws NoSuchAlgorithmException {
+      final var configuration =
+          configuration(
+              "gpt-4o",
+              "Be nice.",
+              10,
+              List.of(
+                  ToolDefinition.builder()
+                      .name("getWeather")
+                      .description("Get the weather forecast")
+                      .inputSchema(Map.of("type", "object", "required", List.of("city")))
+                      .documentDelivery(DocumentDelivery.CONTENT)
+                      .build()));
+
+      final var json =
+          """
+          ["gpt-4o","%s","Be nice.",10,[["getWeather","Get the weather forecast",\
+          {"required":["city"],"type":"object"},[],"content"]]]\
+          """
+              .formatted(configuration.chatModel().descriptiveProvider());
+      final var expected =
+          HexFormat.of()
+              .formatHex(
+                  MessageDigest.getInstance("SHA-256")
+                      .digest(json.getBytes(StandardCharsets.UTF_8)));
+
+      assertThat(configuration.fingerprint()).isEqualTo(expected);
     }
 
     /**

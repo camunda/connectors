@@ -7,11 +7,14 @@
 package io.camunda.connector.agenticai.tools.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.api.tool.TypePropertyBasedGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +58,81 @@ class AdHocToolsSchemaResolverTest {
           assertThat(toolDefinition.description()).isEqualTo("This is a test tool.");
           assertThat(toolDefinition.inputSchema()).isEqualTo(DUMMY_SCHEMA);
         });
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"content", "CONTENT", " Content "})
+  void marksAToolWhoseActivityRequestsTheDeliveryContent(String value) {
+    final var element =
+        AdHocToolElement.builder()
+            .elementId("Test_Tool")
+            .properties(Map.of(AdHocToolsSchemaResolverImpl.DOCUMENT_DELIVERY_PROPERTY, value))
+            .build();
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
+
+    assertThat(resolver.resolveAdHocToolsSchema(List.of(element)).toolDefinitions())
+        .containsExactly(
+            ToolDefinition.builder()
+                .name("Test_Tool")
+                .inputSchema(DUMMY_SCHEMA)
+                .documentDelivery(DocumentDelivery.CONTENT)
+                .build());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"reference", "Reference", " REFERENCE ", " ", ""})
+  void storesNoDeliveryForAToolWhoseActivityRequestsTheDefaultDelivery(String value) {
+    final var element =
+        AdHocToolElement.builder()
+            .elementId("Test_Tool")
+            .properties(Map.of(AdHocToolsSchemaResolverImpl.DOCUMENT_DELIVERY_PROPERTY, value))
+            .build();
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
+
+    assertThat(resolver.resolveAdHocToolsSchema(List.of(element)).toolDefinitions())
+        .containsExactly(
+            ToolDefinition.builder()
+                .name("Test_Tool")
+                .inputSchema(DUMMY_SCHEMA)
+                .documentDelivery(null)
+                .build());
+  }
+
+  @Test
+  void failsForADeliveryThatIsNeitherReferenceNorContent() {
+    final var element =
+        AdHocToolElement.builder()
+            .elementId("Test_Tool")
+            .properties(Map.of(AdHocToolsSchemaResolverImpl.DOCUMENT_DELIVERY_PROPERTY, "contnet"))
+            .build();
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
+
+    assertThatThrownBy(() -> resolver.resolveAdHocToolsSchema(List.of(element)))
+        .isInstanceOf(AdHocToolSchemaGenerationException.class)
+        .hasMessage(
+            "Failed to resolve ad-hoc tool element 'Test_Tool'. Property 'io.camunda.agenticai.documents.delivery': The document delivery 'contnet' is not allowed, use one of: reference, content.");
+  }
+
+  @Test
+  void keepsTheDocumentsOfAToolWithoutTheMarkerByReference() {
+    final var element =
+        AdHocToolElement.builder()
+            .elementId("Test_Tool")
+            .properties(Map.of("some.other.property", "content"))
+            .build();
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
+
+    assertThat(resolver.resolveAdHocToolsSchema(List.of(element)).toolDefinitions())
+        .containsExactly(
+            ToolDefinition.builder()
+                .name("Test_Tool")
+                .inputSchema(DUMMY_SCHEMA)
+                .documentDelivery(null)
+                .build());
   }
 
   @ParameterizedTest

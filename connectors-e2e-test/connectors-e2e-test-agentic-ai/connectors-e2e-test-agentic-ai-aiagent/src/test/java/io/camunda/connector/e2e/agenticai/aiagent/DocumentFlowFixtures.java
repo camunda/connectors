@@ -36,12 +36,18 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
+import io.camunda.zeebe.model.bpmn.instance.BaseElement;
+import io.camunda.zeebe.model.bpmn.instance.ExtensionElements;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.json.JSONException;
 import org.jspecify.annotations.Nullable;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -70,9 +76,49 @@ public final class DocumentFlowFixtures {
   public static final String SUPERFLUX_RESULT = "24";
   public static final String COMPLEX_TOOL = "A_Complex_Tool";
   public static final String COMPLEX_TOOL_CALL_ID = "call_complex";
+  public static final String DOCUMENT_DELIVERY_PROPERTY = "io.camunda.agenticai.documents.delivery";
   public static final String FINAL_TEXT = "I uploaded the document and return it.";
 
+  private static final String UNSUPPORTED_ZIP_MESSAGE =
+      "Unsupported content type 'application/zip' for document with reference"
+          + " 'CamundaDocumentReferenceModel\\[storeId=in-memory,"
+          + " documentId=[0-9a-f-]{36}, contentHash=\\d+,"
+          + " metadata=CamundaDocumentMetadataModel\\[contentType=application/zip,"
+          + " expiresAt=null, size=null, fileName=null, processDefinitionId=null,"
+          + " processInstanceKey=null, customProperties=null\\]\\]'";
+
   private DocumentFlowFixtures() {}
+
+  /**
+   * The pattern of the incident message of a user prompt with a ZIP document that the model
+   * provider does not read. The error variables of the message are a map, whose fields come in any
+   * order.
+   */
+  public static String unsupportedZipIncidentMessage() {
+    final var fields =
+        List.of(
+            Pattern.quote("message=") + UNSUPPORTED_ZIP_MESSAGE,
+            Pattern.quote("type=io.camunda.connector.api.error.ConnectorException"),
+            Pattern.quote("code=FAILED_MODEL_CALL"));
+    final var orders =
+        List.of(
+            List.of(0, 1, 2),
+            List.of(0, 2, 1),
+            List.of(1, 0, 2),
+            List.of(1, 2, 0),
+            List.of(2, 0, 1),
+            List.of(2, 1, 0));
+    final var alternatives =
+        orders.stream()
+            .map(order -> order.stream().map(fields::get).collect(Collectors.joining(", ")))
+            .collect(Collectors.joining("|"));
+    return UNSUPPORTED_ZIP_MESSAGE
+        + Pattern.quote(" | Error variables: {error={")
+        + "(?:"
+        + alternatives
+        + ")"
+        + Pattern.quote("}}");
+  }
 
   /**
    * Adds the {@code Upload_A_File} tool to the ad-hoc sub-process. The tool takes a document as its
@@ -106,6 +152,33 @@ public final class DocumentFlowFixtures {
 
     final AdHocSubProcess adHocSubProcess = model.getModelElementById(adHocSubProcessId);
     adHocSubProcess.addChildElement(upload);
+    return model;
+  }
+
+  /**
+   * Sets the document delivery of a tool element of the ad-hoc sub-process. The tool element gets
+   * the extension property {@value #DOCUMENT_DELIVERY_PROPERTY} with the given value.
+   */
+  public static BpmnModelInstance withDocumentDelivery(
+      BpmnModelInstance model, String toolElementId, String delivery) {
+    final BaseElement tool = model.getModelElementById(toolElementId);
+    var extensionElements = tool.getExtensionElements();
+    if (extensionElements == null) {
+      extensionElements = model.newInstance(ExtensionElements.class);
+      tool.setExtensionElements(extensionElements);
+    }
+    var properties =
+        extensionElements.getElementsQuery().filterByType(ZeebeProperties.class).list().stream()
+            .findFirst()
+            .orElse(null);
+    if (properties == null) {
+      properties = model.newInstance(ZeebeProperties.class);
+      extensionElements.addChildElement(properties);
+    }
+    final var property = model.newInstance(ZeebeProperty.class);
+    property.setName(DOCUMENT_DELIVERY_PROPERTY);
+    property.setValue(delivery);
+    properties.addChildElement(property);
     return model;
   }
 

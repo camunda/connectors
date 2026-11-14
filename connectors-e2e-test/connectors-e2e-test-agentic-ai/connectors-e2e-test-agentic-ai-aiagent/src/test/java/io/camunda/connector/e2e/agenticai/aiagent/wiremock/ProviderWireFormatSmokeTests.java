@@ -67,8 +67,8 @@ import uk.org.webcompere.systemstubs.properties.SystemProperties;
  * the full behavioral e2e suite that already exists for {@code openaiCompatible} (tool calling,
  * feedback loops, memory storage, MCP/A2A, etc.). One row per provider/API supplies a {@link
  * ProviderWireFormatFixture}; the five scenarios below cover the wire-format areas most at risk of
- * drifting: plain text, tool calls, multimodal user-prompt documents, the document of a tool result
- * that the model loads, and structured JSON output.
+ * drifting: plain text, tool calls, user-prompt documents, the document of a tool result that the
+ * model loads, and structured JSON output.
  *
  * <p>Job-worker flavor only — the job-worker and outbound-connector flavors share the same
  * provider/wire-call code, so testing both would duplicate maintenance cost for no additional
@@ -229,14 +229,14 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
-    // an instance with the documents feature gives the model the handle of the document and its
-    // content, an instance without it the content only
+    // an instance with the documents feature gives the model the handle of the document, an
+    // instance without it the content only
     assertThat(fixture.modelCallCount()).isEqualTo(1);
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
         fixture.documentsFeature()
-            ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt)
+            ? ProviderWireFormatExpectedMessage.userWithDocumentHandle(userPrompt)
             : ProviderWireFormatExpectedMessage.userWithDocumentContent(userPrompt));
     assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 

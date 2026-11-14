@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -300,11 +301,16 @@ public final class AgentConversation {
    * AgentContext} — {@link AgentConfiguration#toolDefinitions()} is the authoritative current tool
    * list for this invocation once the handler has populated it via {@link
    * AgentConfiguration#withToolDefinitions} with the tools of the process and the enabled runtime
-   * tools.
+   * tools. The definitions are the ones the model provider gets: without the document delivery of a
+   * tool.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    return new ConversationSnapshot(windowed, configuration.toolDefinitions());
+    return new ConversationSnapshot(
+        windowed,
+        configuration.toolDefinitions().stream()
+            .map(ToolDefinition::withoutDocumentDelivery)
+            .toList());
   }
 
   /**

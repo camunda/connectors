@@ -368,7 +368,9 @@ job that resolves a mixed batch. The builder is the one place that checks that a
 start of the batch or returned by the result, and that a result of an agent instance that does not track its documents has
 no effect. The input it returns carries the response documents the results selected, and the caller
 applies it to its agent context (`TurnInput.applyTo`); the update is a function of the agent context and the results only,
-so a job that runs again computes the same context. No state about the local tool calls is persisted between
+so a job that runs again computes the same context. The effects of a process tool whose definition has the document
+delivery `content` are `AddDocumentContent` effects the composer gives its entries (see [Document Extraction from Tool
+Call Results](extension-points.md#document-extraction-from-tool-call-results)); a runtime tool asks for content by naming a document instead. No state about the local tool calls is persisted between
 jobs apart from the `kind` and the `rejection` of the calls and the response documents of the agent context. See [ADR 016](../adr/016-runtime-tools.md).
 
 ### No-Op Detection in BaseAgentRequestHandler

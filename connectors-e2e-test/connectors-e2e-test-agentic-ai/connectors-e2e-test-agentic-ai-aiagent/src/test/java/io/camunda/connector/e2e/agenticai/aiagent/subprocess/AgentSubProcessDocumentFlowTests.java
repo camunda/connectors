@@ -47,8 +47,11 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.un
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadCount;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withDocumentDelivery;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withUploadTool;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
@@ -61,6 +64,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -77,6 +81,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -96,13 +101,16 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
   @Autowired private CamundaProcessTestContext processTestContext;
 
+  private UnaryOperator<BpmnModelInstance> toolModelCustomization = UnaryOperator.identity();
+
   @Override
   protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
-    return withUploadTool(model, AI_AGENT_ELEMENT_ID);
+    return toolModelCustomization.apply(withUploadTool(model, AI_AGENT_ELEMENT_ID));
   }
 
   @BeforeEach
   void setUpDocumentFlow() {
+    toolModelCustomization = UnaryOperator.identity();
     stubUploadEndpoint();
     enqueueUserFeedback(userSatisfiedFeedback());
   }
@@ -248,6 +256,61 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         });
 
     assertDownloadResultInHistory(camundaClient, agentInstanceKey.get(), recorded.requests());
+  }
+
+  /**
+   * A tool whose activity sets the document delivery {@code content} returns a document: the agent
+   * adds its content to the request in the message after the tool result, so the model reads it
+   * without a {@code c8__load_document} call and still passes its handle to a tool. The tool
+   * receives the real bytes.
+   */
+  @Test
+  void addsTheContentOfTheDocumentsOfAToolWithTheDeliveryContentForTheModel() throws Exception {
+    final var file = "test.pdf";
+    toolModelCustomization = model -> withDocumentDelivery(model, "Download_A_File", "content");
+    final var turns =
+        List.of(downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
+    OpenAiCompletionsChatModelStubs.stubConversation(turns.toArray(Turn[]::new));
+
+    final var zeebeTest = awaitProcessCompletion(startProcess(e -> e));
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
+    final var afterDownload = recorded.requests().get(1).messages();
+    assertThat(afterDownload)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user");
+    assertThat(afterDownload.get(3).toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
+    final var handle = parseDocumentHandle(afterDownload.get(3).content());
+    assertThat(afterDownload.get(3).content())
+        .isEqualTo(
+            "{\"status\":200,\"document\":"
+                + handle.text()
+                + "}\n"
+                + contentFollowsSentence(handle));
+    assertDocumentContentUserMessage(
+        afterDownload.get(4),
+        DocumentWithContent.of(handle, block -> assertDocumentContentBlockJson(block, file)));
+
+    // no load by the model: the next request holds the upload and nothing else
+    final var afterUpload = recorded.lastRequest().messages();
+    assertThat(afterUpload)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user", "assistant", "tool");
+    assertThat(afterUpload.get(6).toolCallId()).isEqualTo(UPLOAD_CALL_ID);
+    assertThat(afterUpload)
+        .flatExtracting(message -> message.toolCalls())
+        .extracting(toolCall -> toolCall.name())
+        .containsExactly("Download_A_File", "Upload_A_File");
+    assertUploaded(servedFile(file));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(FINAL_TEXT));
+    assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
   }
 
   /**

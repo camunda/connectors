@@ -115,7 +115,8 @@ tool's input schema is unspecified after a record builder copied it. The order o
 list values is significant, so the parameter order enters the hash as a list. The serialization is written and read
 once before hashing, so a number hashes the same for a fresh tool definition and for one loaded from the process
 variable. The fingerprint has its own mapper and does not inherit the settings of the connectors mapper; it writes a date or a
-duration as ISO text, never as a timestamp.
+duration as ISO text, never as a timestamp. The document delivery of a tool enters the hash only when it is set, so a tool
+without one keeps its fingerprint.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither

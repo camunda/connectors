@@ -7,12 +7,16 @@
 package io.camunda.connector.agenticai.tools.schema;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Converts a list of {@link AdHocToolElement} to a {@link AdHocToolsSchemaResponse} containing tool
@@ -22,6 +26,13 @@ import java.util.stream.Collectors;
  * tool definitions.
  */
 public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
+
+  /**
+   * The extension property of a tool activity that sets the document delivery of the documents the
+   * tool returns: {@code reference} or {@code content}.
+   */
+  static final String DOCUMENT_DELIVERY_PROPERTY = "io.camunda.agenticai.documents.delivery";
+
   private final List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers;
   private final AdHocToolSchemaGenerator schemaGenerator;
 
@@ -63,6 +74,38 @@ public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
         .name(element.elementId())
         .description(element.documentationWithNameFallback())
         .inputSchema(schemaGenerator.generateToolSchema(element))
+        .documentDelivery(documentDelivery(element))
         .build();
+  }
+
+  /**
+   * The delivery set by the extension property {@link #DOCUMENT_DELIVERY_PROPERTY} of the element,
+   * ignoring case and surrounding blanks. An absent or blank property and the value {@code
+   * reference} are the default delivery, so they are all {@code null}.
+   *
+   * @throws AdHocToolSchemaGenerationException if the value names no delivery
+   */
+  private static @Nullable DocumentDelivery documentDelivery(AdHocToolElement element) {
+    final var properties = element.properties();
+    final var value = properties == null ? null : properties.get(DOCUMENT_DELIVERY_PROPERTY);
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    final var name = value.strip();
+    final var delivery =
+        Arrays.stream(DocumentDelivery.values())
+            .filter(candidate -> candidate.name().equalsIgnoreCase(name))
+            .findFirst()
+            .orElseThrow(() ->
+                new AdHocToolSchemaGenerationException(
+                    "Failed to resolve ad-hoc tool element '%s'. Property '%s': The document delivery '%s' is not allowed, use one of: %s."
+                        .formatted(
+                            element.elementId(),
+                            DOCUMENT_DELIVERY_PROPERTY,
+                            value,
+                            Arrays.stream(DocumentDelivery.values())
+                                .map(candidate -> candidate.name().toLowerCase(Locale.ROOT))
+                                .collect(Collectors.joining(", ")))));
+    return delivery == DocumentDelivery.REFERENCE ? null : delivery;
   }
 }
