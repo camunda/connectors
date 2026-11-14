@@ -106,6 +106,14 @@ jobs:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
         queries: security-and-quality
+        # java/local-variable-is-never-read flags the binding of every type pattern in an
+        # exhaustive switch over a sealed type, such as `case Untracked ignored -> ...`. The repo
+        # targets Java 21, which has no unnamed pattern (`case Untracked _`), so the binding cannot
+        # be avoided without a `default` branch, which would give up the exhaustiveness check.
+        config: |
+          query-filters:
+            - exclude:
+                id: java/local-variable-is-never-read
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
         # Prefix the list here with "+" to use these queries and those in the config file.
