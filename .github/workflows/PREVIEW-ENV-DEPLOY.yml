@@ -34,7 +34,7 @@ jobs:
     #########################################################################
     # Sanitize the branch name to remove dependabot/,renovate/ and transform the name
     - id: sanitize
-      uses: camunda/infra-global-github-actions/sanitize-branch-name@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
+      uses: camunda/infra-global-github-actions/sanitize-branch-name@a7aee06a947103719f282c3a6ae038a349275963 # main
       with:
         branch: ${{ env.BRANCH_NAME }}
         max_length: '15'
@@ -79,7 +79,7 @@ jobs:
     #########################################################################
     # Create a preview environment
     - name: Deploy Preview Environment for ${{ matrix.product_context }}
-      uses: camunda/infra-global-github-actions/preview-env/create@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
+      uses: camunda/infra-global-github-actions/preview-env/create@a7aee06a947103719f282c3a6ae038a349275963 # main
       with:
         revision: ${{ env.BRANCH_NAME }}
         argocd_token: ${{ steps.secrets.outputs.ARGOCD_TOKEN }}
@@ -119,7 +119,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Check PR for merge conflicts
-      uses: camunda/infra-global-github-actions/preview-env/conflicts@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
+      uses: camunda/infra-global-github-actions/preview-env/conflicts@a7aee06a947103719f282c3a6ae038a349275963 # main
       with:
         pull-request-id: ${{ github.event.pull_request.number }}
   clean:
@@ -138,4 +138,4 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [deploy-preview]
     steps:
-    - uses: camunda/infra-global-github-actions/preview-env/comment@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
+    - uses: camunda/infra-global-github-actions/preview-env/comment@a7aee06a947103719f282c3a6ae038a349275963 # main
