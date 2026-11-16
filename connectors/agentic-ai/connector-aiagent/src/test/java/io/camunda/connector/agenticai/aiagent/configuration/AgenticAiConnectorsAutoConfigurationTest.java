@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.configuration;
 import static io.camunda.connector.agenticai.aiagent.configuration.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
 import static io.camunda.connector.agenticai.aiagent.configuration.ApplicationContextAssertions.assertHasAllBeansOf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
@@ -314,9 +315,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
         .withBean("aiAgentLoadDocumentRuntimeTool", RuntimeTool.class, () -> custom)
         .run(context -> {
           assertThat(context).hasNotFailed();
-          assertThat(context.getBeansOfType(RuntimeTool.class)).containsValue(custom);
-          assertThat(context.getBeansOfType(RuntimeTool.class).values())
-              .noneMatch(LoadDocumentTool.class::isInstance);
+          assertThat(context.getBeansOfType(RuntimeTool.class))
+              .containsExactly(entry("aiAgentLoadDocumentRuntimeTool", custom));
         });
   }
 
@@ -334,7 +334,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
                 .getFailure()
                 .rootCause()
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("More than one runtime tool is named 'c8__load_document'"));
+                .hasMessage(
+                    "More than one runtime tool is named 'c8__load_document'; runtime tool names must be unique."));
   }
 
   @Test

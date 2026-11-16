@@ -33,10 +33,12 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.api.search.response.AgentInstanceHistory;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
+import io.camunda.connector.runtime.core.document.CamundaDocumentReferenceImpl;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Consumer;
@@ -161,8 +163,23 @@ public final class DocumentFlowAssertions {
               final JsonNode reported = OBJECT_MAPPER.valueToTree(object.getObject());
               assertThat(reported).isEqualTo(resultTheModelRead);
             });
+    // The chip is checked by its identity only: it must be the document whose handle the model
+    // read.
+    // The history mapper builds the whole chip, and its unit tests compare the full shape.
+    final var handle = parseDocumentHandle(messagesAfter(requests, DOWNLOAD).getLast().content());
     assertThat(downloaded.getContent().get(1))
-        .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.DocumentContent.class,
+            chip -> assertThat(agentDocumentIdOf(chip)).isEqualTo(handle.id()));
+  }
+
+  /** The id the agent gives the document of a history chip. */
+  private static AgentDocumentId agentDocumentIdOf(
+      AgentInstanceHistoryContent.DocumentContent chip) {
+    final var reference = chip.getDocumentReference();
+    return AgentDocumentId.of(
+        new CamundaDocumentReferenceImpl(
+            reference.getStoreId(), reference.getDocumentId(), reference.getContentHash(), null));
   }
 
   /** The committed history of the agent instance once it holds the final answer of the model. */
