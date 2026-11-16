@@ -176,7 +176,9 @@ class GcpCloudRunManagedCodeProviderTest {
     assertThat(settings.getMaxInstanceRequestConcurrency()).isEqualTo(1);
     assertThat(settings.getServiceAccountEmail()).isEqualTo(SERVICE_ACCOUNT);
     assertThat(settings.getEnvironmentVariablesMap())
-        .containsExactly(Map.entry("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000"));
+        .containsOnly(
+            Map.entry("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000"),
+            Map.entry("EXECUTOR_MEMORY_MB", "512"));
     assertThat(settings.getAllTrafficOnLatestRevision()).isTrue();
     verify(update, never()).call(any(UpdateFunctionRequest.class));
     assertThat(sleeps).hasSize(1);
@@ -296,7 +298,8 @@ class GcpCloudRunManagedCodeProviderTest {
     assertThat(settings.getServiceAccountEmail()).isEqualTo(SERVICE_ACCOUNT);
     assertThat(settings.getEnvironmentVariablesMap())
         .containsEntry("LOG_EXECUTION_ID", "true")
-        .containsEntry("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000");
+        .containsEntry("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000")
+        .containsEntry("EXECUTOR_MEMORY_MB", "512");
     verify(functions, never()).generateUploadUrl(any(GenerateUploadUrlRequest.class));
     verify(create, never()).call(any(CreateFunctionRequest.class));
   }
@@ -312,6 +315,25 @@ class GcpCloudRunManagedCodeProviderTest {
     provider.ensureExecutors(ScriptLanguage.PYTHON);
 
     verify(update).call(any(UpdateFunctionRequest.class));
+  }
+
+  @Test
+  void updatesAFunctionThatDoesNotTellTheWrapperItsMemory() {
+    when(functions.getFunction(anyString()))
+        .thenReturn(
+            function(
+                Function.State.ACTIVE,
+                settings().removeEnvironmentVariables("EXECUTOR_MEMORY_MB").build()),
+            active());
+    when(update.call(any(UpdateFunctionRequest.class))).thenReturn(operation("update", true));
+    when(operations.getOperation("update")).thenReturn(operation("update", true));
+
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+
+    final var updated = ArgumentCaptor.forClass(UpdateFunctionRequest.class);
+    verify(update).call(updated.capture());
+    assertThat(updated.getValue().getFunction().getServiceConfig().getEnvironmentVariablesMap())
+        .containsEntry("EXECUTOR_MEMORY_MB", "512");
   }
 
   @Test
@@ -774,7 +796,8 @@ class GcpCloudRunManagedCodeProviderTest {
         .setServiceAccountEmail(SERVICE_ACCOUNT)
         .setAllTrafficOnLatestRevision(true)
         .putEnvironmentVariables("LOG_EXECUTION_ID", "true")
-        .putEnvironmentVariables("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000");
+        .putEnvironmentVariables("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000")
+        .putEnvironmentVariables("EXECUTOR_MEMORY_MB", "512");
   }
 
   private static Function function(Function.State state, ServiceConfig.Builder settings) {

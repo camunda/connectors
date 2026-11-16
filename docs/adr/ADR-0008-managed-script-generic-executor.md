@@ -349,8 +349,8 @@ Limits enforced by the wrapper:
 |---|---|
 | Response size (the child's stdout) | 1 MB, above it `RESOURCE_LIMIT` |
 | Script logs kept per call (stderr) | 4 KB |
-| Child memory, Python | 256 MB of address space through `RLIMIT_AS`, where the OS supports it (not macOS) |
-| Child memory, JavaScript | 256 MB of V8 heap through `--max-old-space-size` |
+| Child memory, Python | The executor's memory less 128 MB, at least 64 MB, of address space through `RLIMIT_AS`, where the OS supports it (not macOS); 256 MB in local mode |
+| Child memory, JavaScript | 80% of the executor's memory less 64 MB of V8 heap through `--max-old-space-size`; 256 MB in local mode |
 | `error.message` | 1,024 characters |
 | `error.stackTrace` | 8,192 characters, keeping the frames nearest the error |
 
