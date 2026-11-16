@@ -48,17 +48,14 @@ escalation:
     - reason: public API
       paths:
         - "connectors/agentic-ai/aiagent-api/*"
-        - "connectors/agentic-ai/aiagent-model/api-changes.json"
-    - reason: architecture tests
-      paths: ["connectors/agentic-ai/agentic-ai-archunit-tests/*"]
-    - reason: build config and dependencies
-      paths:
-        - "connectors/agentic-ai/*pom.xml"
-        - "connectors-e2e-test/connectors-e2e-test-agentic-ai/*pom.xml"
+        - "connectors/agentic-ai/*/api-changes.json"
     - reason: review rules
       paths:
-        - "connectors/agentic-ai/docs/*"
-        - "connectors/agentic-ai/AGENTS.md"
+        - "connectors/agentic-ai/docs/implementation-rules.md"
+        - "connectors/agentic-ai/docs/design-guidelines.md"
+        - "connectors/agentic-ai/docs/target-architecture.md"
+        - "connectors/agentic-ai/docs/code-review.md"
+        - "connectors/agentic-ai/docs/breaking-changes.md"
     - reason: authentication and credentials
       paths:
         - "connectors/agentic-ai/*/src/main/*Auth*"
