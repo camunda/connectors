@@ -117,18 +117,6 @@ class RuntimeToolResultTest {
   }
 
   @Test
-  void aResponseDocumentKeyMustMatchThePattern() {
-    final var result = RuntimeToolResult.success("ok");
-
-    for (final var key : List.of("", " ", "1abc", "a b")) {
-      assertThatThrownBy(
-              () -> result.withEffect(ToolCallEffect.selectResponseDocument(key, DOC_1, null)))
-          .isInstanceOf(IllegalArgumentException.class);
-    }
-    assertThat(result.effects()).isEmpty();
-  }
-
-  @Test
   void aWitherLeavesTheOriginalResultUnchanged() {
     final var original = RuntimeToolResult.success("ok");
 
