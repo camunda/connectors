@@ -23,7 +23,6 @@ public record AgentSubProcessResponse(
     @Nullable AssistantMessage responseMessage,
     @Nullable String responseText,
     @Nullable Object responseJson,
-    // the response documents by key
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, ReturnedDocument> responseDocuments)
     implements AgentSubProcessResponseBuilder.With {
 
