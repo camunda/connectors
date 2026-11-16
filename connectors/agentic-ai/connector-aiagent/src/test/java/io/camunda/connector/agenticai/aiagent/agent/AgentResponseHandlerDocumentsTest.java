@@ -222,7 +222,7 @@ class AgentResponseHandlerDocumentsTest {
     assertThatThrownBy(() -> createResponse(conversation))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage(
-            "The response document 'gone' is the document '%s', which the agent does not know"
+            "The response document 'gone' refers to the unknown document '%s'"
                 .formatted(AgentDocumentId.of("gone")));
   }
 

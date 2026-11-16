@@ -142,13 +142,15 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
   private Map<String, ReturnedDocument> responseDocuments(AgentContext agentContext) {
     final var returned = new LinkedHashMap<String, ReturnedDocument>();
     for (final var selection : agentContext.responseDocuments()) {
+      // the agent selects only known documents and never removes one, so only an agent context
+      // changed outside the agent gets here
       final var document =
           agentContext
               .documents()
               .find(selection.agentDocumentId())
               .orElseThrow(() ->
                   new IllegalStateException(
-                      "The response document '%s' is the document '%s', which the agent does not know"
+                      "The response document '%s' refers to the unknown document '%s'"
                           .formatted(selection.key(), selection.agentDocumentId())));
       returned.put(
           selection.key(), new ReturnedDocument(document.reference(), selection.description()));
