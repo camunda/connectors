@@ -185,7 +185,7 @@ limitations under the License.</license.inlineheader>
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
 
-    <version.wss4j>4.0.2</version.wss4j>
+    <version.wss4j>4.0.3</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
     <version.slack>1.55.0</version.slack>
