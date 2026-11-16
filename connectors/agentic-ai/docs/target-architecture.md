@@ -18,7 +18,7 @@ Read this document before you plan a structural change. A structural change adds
 4. **Interfaces only at real seams.** Interfaces exist for the SPIs and for seams with two or more adapters. An adapter only translates between the domain and the wire format. A shared contract test proves each adapter. A concrete bean with `@ConditionalOnMissingBean` is also an extension point: a user can replace it without an interface. Until #9539 changes the interface invariant in [`AGENTS.md`](../AGENTS.md#architectural-invariants), the invariant applies. (#9539)
 5. **Typed outcomes.** A step returns a sealed outcome type. The caller matches all subtypes of the outcome. A flavor-specific adapter converts the outcome into the response. (#9537)
 6. **The tests follow the structure.** Use pure tests for the domain. Use contract tests for adapters. Use e2e tests for wiring and engine behavior.
-7. **The build enforces stable traits.** Prose rules cover only the decisions that need judgment. When a review finds a problem that a build check can find, add the check, or open a follow-up issue under #9591.
+7. **The build enforces stable traits.** Prose rules cover only the decisions that need judgment. When a review names a problem that a build check can find, a maintainer adds the check or opens a follow-up issue.
 
 ## Module depth and extension points
 
