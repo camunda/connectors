@@ -42,7 +42,6 @@ import io.camunda.connector.api.document.Document;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -266,7 +265,7 @@ class ReturnDocumentToolTest {
     final var batch = ToolCallBatch.of(admitted);
     final var entries =
         executor.execute(withConfiguration(CONFIGURATION), agentContext, batch.unanswered());
-    final var input = inputBuilder.build(agentContext, batch.withEntries(entries), Set.of());
+    final var input = inputBuilder.build(agentContext, batch.withEntries(entries));
 
     assertThat(admitted.getFirst().rejection())
         .isEqualTo(
@@ -331,7 +330,7 @@ class ReturnDocumentToolTest {
     final var entries =
         executor.execute(withConfiguration(CONFIGURATION), agentContext, List.of(calls));
     final var batch = ToolCallBatch.of(List.of(calls)).withEntries(entries);
-    final var input = inputBuilder.build(agentContext, batch, Set.of());
+    final var input = inputBuilder.build(agentContext, batch);
     return new Run(entries, input, input.applyTo(agentContext));
   }
 }

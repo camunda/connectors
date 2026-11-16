@@ -207,6 +207,7 @@ class LocalToolCallExecutorTest {
                         new ResponseDocumentSelection("created", id, null))));
   }
 
+  @Test
   void anAgentThatDoesNotTrackItsDocumentsTakesEveryKindOfDocumentFromAResult() {
     var inline = new InlineDocument("inline", "inline.txt", "text/plain");
     var external =

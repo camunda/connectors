@@ -29,7 +29,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -89,11 +88,8 @@ public class ToolCallResultsInputBuilder {
   }
 
   /** The input for an agent instance that tracks its documents. */
-  private TurnInput trackedInput(
-      AgentDocuments documents,
-      List<ToolCallBatch.Entry> entries,
-      Set<AgentDocumentId> documentIdsWithContent) {
-    final var applied = applyEffects(documents, entries, documentIdsWithContent);
+  private TurnInput trackedInput(AgentDocuments documents, List<ToolCallBatch.Entry> entries) {
+    final var applied = applyEffects(documents, entries);
     final var input = buildWithDocumentBlocks(entries, applied);
     return new TurnInput(input.messages(), input.documents(), applied.responseDocuments());
   }
@@ -103,7 +99,8 @@ public class ToolCallResultsInputBuilder {
    *
    * @param statements for every entry, in the order of the entries, the sentences that tell what
    *     happens to the content of the documents it asked for
-   * @param delivered the documents whose content is added, in the order of the entries
+   * @param delivered the documents whose content is added, each one once, in the order of the first
+   *     request
    * @param responseDocuments the response documents to select, in call order
    */
   private record AppliedEffects(
@@ -119,7 +116,7 @@ public class ToolCallResultsInputBuilder {
    */
   private AppliedEffects applyEffects(AgentDocuments documents, List<ToolCallBatch.Entry> entries) {
     final var statements = new ArrayList<List<Content>>();
-    final var delivered = new ArrayList<AgentDocumentContent>();
+    final var requestedByTheBatch = new LinkedHashSet<AgentDocumentId>();
     final var responseDocuments = new ArrayList<ResponseDocumentSelection>();
 
     for (final var entry : entries) {
@@ -130,10 +127,10 @@ public class ToolCallResultsInputBuilder {
 
       final var known = documents.register(newDocumentsOf(entry));
       requireKnown(entry, known);
-      final var requestedContent = new ArrayList<AgentDocumentId>();
+      final var requestedByTheEntry = new LinkedHashSet<AgentDocumentId>();
       for (final var effect : entry.effects()) {
         switch (effect) {
-          case ToolCallEffect.AddDocumentContent add -> requestedContent.add(add.id());
+          case ToolCallEffect.AddDocumentContent add -> requestedByTheEntry.add(add.id());
           case ToolCallEffect.SelectResponseDocument select ->
               responseDocuments.add(select.selection());
         }
@@ -145,8 +142,11 @@ public class ToolCallResultsInputBuilder {
       statements.add(List.copyOf(entryStatements));
       requestedByTheBatch.addAll(requestedByTheEntry);
     }
-    return new AppliedEffects(
-        List.copyOf(statements), List.copyOf(delivered), List.copyOf(responseDocuments));
+    final var delivered =
+        requestedByTheBatch.stream()
+            .map(id -> AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT))
+            .toList();
+    return new AppliedEffects(List.copyOf(statements), delivered, List.copyOf(responseDocuments));
   }
 
   /** The id of the document that an effect names. */

@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertContentReturnedOnceAndPassedByIdFlow;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertContentLoadedTwiceAndPassedByIdFlow;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertDownloadResultInHistory;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOADED_FILE;
@@ -40,6 +40,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.re
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.roundTripTurns;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadToolInputSchema;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withUploadTool;
@@ -51,7 +52,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -63,7 +63,6 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -92,14 +91,13 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
   }
 
   /**
-   * A tool returns a document, the model loads it twice and passes its handle to a tool: the first
-   * load puts the content next to the handle, the second one is answered without loading again, and
-   * the tool receives the real bytes. The model provider sees the object schema of a document
-   * handle for the document parameter of the tool, and the history shows the result of the tool
-   * with the handle nested in it.
+   * A tool returns a document, the model loads it twice and passes its handle to a tool: every load
+   * puts the content next to the handle, and the tool receives the real bytes. The model provider
+   * sees the object schema of a document handle for the document parameter of the tool, and the
+   * history shows the result of the tool with the handle nested in it.
    */
   @Test
-  void loadsAFetchedDocumentOnceAndPassesItsHandleToATool() throws Exception {
+  void loadsAFetchedDocumentTwiceAndPassesItsHandleToATool() throws Exception {
     final var turns =
         List.of(
             downloadTurn(wireMock.getHttpBaseUrl(), FILE),
@@ -113,7 +111,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
-    assertContentReturnedOnceAndPassedByIdFlow(
+    assertContentLoadedTwiceAndPassedByIdFlow(
         recorded.requests(), block -> assertDocumentContentBlockJson(block, FILE));
     assertUploaded(servedFile(FILE));
 
@@ -123,10 +121,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
             .filter(tool -> UPLOAD_TOOL.equals(tool.name()))
             .toList();
     assertThat(upload).hasSize(1);
-    assertThat(upload.getFirst().inputSchema())
-        .extractingByKey("properties")
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsEntry("document", DocumentParameter.documentSchema("The document to upload."));
+    assertThat(upload.getFirst().inputSchema()).isEqualTo(uploadToolInputSchema());
     assertThat(recorded.lastRequest().toolNames()).contains("c8__load_document");
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
 

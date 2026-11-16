@@ -208,7 +208,7 @@ client in its properties does not start.
   rejected calls) and adds them to the `Ready`. The composer executes no tool.
 - `CompositionResult` has the variants `Deferred`, `NoInput` and `Ready`. `NextTurn` is removed; its messages are in
   `TurnInput`, with the documents that enter the conversation with it and the response documents the runtime tool results
-  select; the request handler applies it to the agent context it persists (`TurnInput.applyTo`). `Ready` holds the agent context, the ids of the documents whose content the model reads, the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
+  select; the request handler applies it to the agent context it persists (`TurnInput.applyTo`). `Ready` holds the agent context, the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
   of a turn without tool call results, and the event messages. `Deferred.arrivedResults` holds only the results that
   arrived from the process.
 - The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an

@@ -1190,28 +1190,6 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void userPrompt_readyHasNoDocumentIdsWithContentAsTheTurnHasNoBatch() {
-    var document = createDocument("first", "text/plain", "first.txt");
-
-    var ready =
-        resolveReady(
-            configWithContextWindow(6),
-            contextKnowing(document),
-            TurnReconstructor.reconstruct(
-                List.of(
-                    UserMessage.builder()
-                        .content(
-                            List.of(
-                                AgentDocumentContent.of(AgentDocumentId.of(document))
-                                    .withDelivery(DocumentDelivery.CONTENT)))
-                        .build(),
-                    assistantMessage("one"))),
-            AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of()));
-
-    assertThat(ready.documentIdsWithContent()).isEmpty();
-  }
-
-  @Test
   void runtimeToolCalls_aResultThatSelectsAResponseDocumentIsAppliedToTheContextOfTheNextTurn() {
     var document = createDocument("first", "text/plain", "first.txt");
     var id = AgentDocumentId.of(document);
