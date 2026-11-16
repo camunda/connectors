@@ -32,6 +32,8 @@ import time
 CONTRACT_VERSION = "1"
 CHILD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "child.py")
 MAX_OUTPUT_BYTES = 1_000_000
+# The default maximum nesting depth of the connector's JSON reader (Jackson StreamReadConstraints).
+MAX_NESTING_DEPTH = 1000
 MAX_LOG_BYTES = 4_096
 MAX_MESSAGE_LENGTH = 1024
 MAX_STACK_TRACE_LENGTH = 8192
@@ -235,6 +237,21 @@ def _finite(text):
     return number
 
 
+def _check_nesting(response):
+    """Rejects a response nested deeper than the connector's JSON reader accepts.
+
+    The parser alone does not bound the depth: from Python 3.14 it is limited by the C stack, which
+    is unbounded when the stack size is unlimited.
+    """
+    pending = [(response, 1)]
+    while pending:
+        value, depth = pending.pop()
+        if depth > MAX_NESTING_DEPTH:
+            raise ValueError(f"nested deeper than {MAX_NESTING_DEPTH} levels")
+        children = value.values() if isinstance(value, dict) else value
+        pending.extend((child, depth + 1) for child in children if isinstance(child, (dict, list)))
+
+
 def failure(code, message):
     return {
         "contractVersion": CONTRACT_VERSION,
@@ -363,8 +380,9 @@ def _execute(event, workdir, deadline_ms):
     try:
         # A script can write a response to fd 1 itself: NaN, Infinity and 1e999 are not JSON.
         response = json.loads(out, parse_constant=_reject_constant, parse_float=_finite)
+        _check_nesting(response)
         return _sanitize(response), logs, child.pid
-    except (ValueError, RecursionError):  # RecursionError: nesting deeper than the parser allows
+    except (ValueError, RecursionError):  # RecursionError: nesting deeper than the stack allows
         return failure("INVALID_RESULT", "the script wrote to standard output outside the contract"), logs, child.pid
 
 
