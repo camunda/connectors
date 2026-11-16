@@ -277,8 +277,8 @@ The [target architecture](docs/target-architecture.md) shows the target state be
 
 ## Working in this module
 
-Read the [implementation rules](docs/implementation-rules.md) before you plan, implement or review a
-change.
+Read the [implementation rules](docs/implementation-rules.md) before you plan or implement a change.
+To review a change, follow [`docs/code-review.md`](docs/code-review.md).
 
 Before you design stored shapes, names, defaults, limits or observability, also read
 [`docs/design-guidelines.md`](docs/design-guidelines.md). Before you plan a structural change (a new
