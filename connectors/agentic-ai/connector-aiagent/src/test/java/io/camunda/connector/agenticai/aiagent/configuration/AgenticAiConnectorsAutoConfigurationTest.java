@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.configuration;
 import static io.camunda.connector.agenticai.aiagent.configuration.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
 import static io.camunda.connector.agenticai.aiagent.configuration.ApplicationContextAssertions.assertHasAllBeansOf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
@@ -27,6 +28,8 @@ import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
@@ -95,6 +98,8 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
@@ -290,6 +295,47 @@ class AgenticAiConnectorsAutoConfigurationTest {
                               -10L,
                               "must be greater than or equal to 0");
                     }));
+  }
+
+  @Test
+  void theBuiltInLoadDocumentToolIsRegisteredAsARuntimeTool() {
+    contextRunner.run(context ->
+        assertThat(context.getBeansOfType(RuntimeTool.class).values())
+            .extracting(tool -> tool.definition().name())
+            .containsExactly(LoadDocumentTool.NAME));
+  }
+
+  @Test
+  void aBeanWithTheBeanNameOfABuiltInToolReplacesIt() {
+    final var custom =
+        StubRuntimeTool.of(
+            LoadDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+
+    contextRunner
+        .withBean("aiAgentLoadDocumentRuntimeTool", RuntimeTool.class, () -> custom)
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(context.getBeansOfType(RuntimeTool.class))
+              .containsExactly(entry("aiAgentLoadDocumentRuntimeTool", custom));
+        });
+  }
+
+  @Test
+  void aBeanWithAnotherBeanNameAndTheNameOfABuiltInToolFailsTheStartup() {
+    final var custom =
+        StubRuntimeTool.of(
+            LoadDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+
+    contextRunner
+        .withBean("acmeLoadDocument", RuntimeTool.class, () -> custom)
+        .run(context ->
+            assertThat(context)
+                .hasFailed()
+                .getFailure()
+                .rootCause()
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                    "More than one runtime tool is named 'c8__load_document'; runtime tool names must be unique."));
   }
 
   @Test

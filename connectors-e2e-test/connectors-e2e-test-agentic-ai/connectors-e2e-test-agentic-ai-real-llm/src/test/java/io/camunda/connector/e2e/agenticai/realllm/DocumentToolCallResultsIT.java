@@ -60,8 +60,12 @@ import org.springframework.core.io.ResourceLoader;
  * Cross-provider viability test for document handling in tool call results, covering both the v1
  * (LangChain4j-backed) and v2 (native) provider configurations.
  *
- * <p>Validates that real LLM providers can receive and reason about PDF documents extracted from
- * tool call results via the synthetic UserMessage with XML correlation tags.
+ * <p>Validates that real LLM providers can reason about PDF documents returned by tool calls. A v2
+ * row creates an agent instance with the {@code documents} feature: a tool result shows the handle
+ * of each document and the model loads the content it needs with {@code c8__load_document}. A v1
+ * row creates an agent instance without features: the model has no {@code c8__load_document} tool,
+ * and the content of the documents follows the tool results in a message of the agent. The
+ * assertions are the same for both, because they check what the model reports about the documents.
  *
  * <p>Local-only: runs only when {@code RUN_NATIVE_LLM_E2E=true} and the row's API key is present.
  * Configure API keys via environment variables:

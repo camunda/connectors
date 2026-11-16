@@ -75,6 +75,9 @@ are and a `Document` in a tool result is serialized as its Camunda reference JSO
 tool result, so the content of a document reaches the model only in a user message. The content of a document stays in every request until
 the message that holds it leaves the window; there is no removal.
 
+The window never announces a document whose message it hides. The agent documents still resolve the handle of such a document,
+so a handle that is still in the model's context, in its own text for example, can be passed to a tool or loaded again.
+
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
 static window filter:
   - Keeps at most `maxMessages` (default: 20, from `AgentConfiguration.contextWindowSize()`) messages

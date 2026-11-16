@@ -48,8 +48,8 @@ batched `update()` mechanism).
 
 ## Conversation history items
 
-- A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
-  document messages). A message of an agent
+- A `UserMessage` → one `USER` item (covers the user prompt, event messages, virtual
+  document messages and the follow-up message of documents with content). A message of an agent
   instance without the `documents` feature is reported as stored; the documents of one that tracks them are reported as
   described below.
 - A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
@@ -69,7 +69,9 @@ batched `update()` mechanism).
   chip). An object with documents in it is reported as the object with the handle objects nested, followed by the chips.
   When a document reported as a `DOCUMENT` block has no file name, the reported metadata carries the agent document id
   (`doc_…`) as the file name, so the chip shows the id the handle shows; the document and its stored reference are not changed. A
-  text is reported as it is, also when it holds a handle.
+  text is reported as it is, also when it holds a handle. The answer of `c8__load_document` is the one text block the agent
+  writes, which a consumer shows as the first block of the result. The message that follows the tool results is reported as
+  its preamble text and, per delivered document, the handle object and its chip.
   `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `HistoryDocuments` of the job (the document
   handling of the agent instance and the document factory of the job): the document handling decides what the history
   shows, and the agent documents of a `Tracked` instance are what the handles are expanded with. An

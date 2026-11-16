@@ -143,6 +143,7 @@ class AgentInitializerTest {
       when(jobContext.getCustomHeaders())
           .thenReturn(Map.of("io.camunda.zeebe:agentDefinitionKey", "6755399441055744"));
       when(agentInstanceClient.create(any())).thenReturn(AgentInstanceKey.of(12345L));
+      when(executionContext.newInstanceFeatures()).thenReturn(AgentFeatures.ofNewInstance());
 
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
@@ -171,7 +172,8 @@ class AgentInitializerTest {
     }
 
     @Test
-    void shouldCreateNewAgentInstanceWithTheRuntimeToolsFeature() {
+    void shouldCreateNewAgentInstanceWithTheNewInstanceFeaturesOfTheExecution() {
+      when(executionContext.newInstanceFeatures()).thenReturn(AgentFeatures.ofNewInstance());
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
@@ -183,8 +185,28 @@ class AgentInitializerTest {
               ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext().features())
-                    .containsExactly(AgentFeatures.RUNTIME_TOOLS);
+                    .containsExactly(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS);
                 assertThat(res.agentContext().supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
+                assertThat(res.agentContext().supports(AgentFeatures.DOCUMENTS)).isTrue();
+              });
+    }
+
+    @Test
+    void shouldCreateNewAgentInstanceWithoutFeaturesWhenTheExecutionGivesNone() {
+      when(executionContext.newInstanceFeatures()).thenReturn(List.of());
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              ReadyToConverse.class,
+              res -> {
+                assertThat(res.agentContext().features()).isEmpty();
+                assertThat(res.agentContext().supports(AgentFeatures.RUNTIME_TOOLS)).isFalse();
+                assertThat(res.agentContext().supports(AgentFeatures.DOCUMENTS)).isFalse();
               });
     }
 

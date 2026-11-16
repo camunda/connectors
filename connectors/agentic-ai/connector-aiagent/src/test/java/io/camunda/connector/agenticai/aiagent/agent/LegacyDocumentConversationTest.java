@@ -215,7 +215,7 @@ class LegacyDocumentConversationTest {
             textContent(legacyTag("toolName=\"Download_A_File\" toolCallId=\"call-2\" ", document)),
             DocumentContent.documentContent(document));
     assertThat(documentMessage.metadata())
-        .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+        .isEqualTo(TestDocuments.toolCallDocumentsMetadata(documentMessage));
   }
 
   @Test

@@ -108,8 +108,7 @@ public class AgentSubProcessProcessMigrationTests extends BaseAgentSubProcessTes
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
     assertThat(recorded.lastRequest().toolNames())
-        .hasSize(expectedTools().size() + 1)
-        .contains(NEW_TOOL_ID);
+        .containsExactlyInAnyOrderElementsOf(offeredToolNamesWith(NEW_TOOL_ID));
 
     final var getDateAndTimeTool =
         recorded.lastRequest().toolDefinitions().stream()

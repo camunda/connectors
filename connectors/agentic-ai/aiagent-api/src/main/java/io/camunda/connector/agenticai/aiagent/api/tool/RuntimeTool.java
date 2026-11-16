@@ -20,7 +20,8 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  *       the call again, so side effects outside the agent must be idempotent.
  *   <li><b>Concurrency.</b> The calls of one assistant message may be executed concurrently, their
  *       results are applied in call order. {@link #call} and {@link #isEnabled} may be called from
- *       different threads.
+ *       different threads. The calls of one message see the same agent context. A tool changes the
+ *       agent only through the {@link RuntimeToolResult effects} of its result.
  *   <li><b>Bounded execution time.</b> A call is executed within the agent job and is neither
  *       cancelled nor timed out by the framework, so it must return well within the job timeout.
  *   <li><b>Mixed batches.</b> When an assistant message calls runtime tools and tools of the
@@ -72,11 +73,6 @@ public interface RuntimeTool {
   /**
    * Handles {@code call}, only when the tool is enabled. A {@link RuntimeToolException} becomes an
    * error result; any other exception fails the job.
-   *
-   * <p>In an agent instance with the {@code documents} feature, a call with a document parameter
-   * that does not hold the handle of a known document gets an error result and does not reach the
-   * tool. In an instance without the feature, a document parameter reaches the tool as the model
-   * sent it.
    *
    * @return the result, never {@code null}
    */
