@@ -58,6 +58,20 @@ These documents are the only rules. Do not invent rules. Read the parts that app
    leaves with no match. Examples: a class that handles credentials or authentication, outbound proxy
    code, a folder of released element templates, a module with an SPI.
 
+## Severity
+
+Start each finding with one code. These are the codes of the AI PR review bot.
+
+- ❌ Blocking. The change breaks a rule, or a failure is reachable, and the code has to change.
+- ❓ A possible problem that you cannot confirm. The author must clarify.
+- 🔧 Advisory. The finding is worth fixing: the likelihood of the scenario or its effect on end users is
+  medium or high.
+- 🙃 Nitpick. The likelihood and the effect on end users are both low.
+- 💭 A rule discussion or an open design question. Nothing has to change in this PR.
+
+Rate the likelihood and the end-user severity (`high`, `medium` or `low`) of each ❌, ❓ and 🔧
+finding.
+
 ## Human review required
 
 A human reviewer must approve the change when any of these applies. Say so in the review, and name the
