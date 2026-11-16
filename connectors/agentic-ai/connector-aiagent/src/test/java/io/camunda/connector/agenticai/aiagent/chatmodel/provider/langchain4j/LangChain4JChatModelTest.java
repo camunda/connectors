@@ -13,6 +13,8 @@ import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupp
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -30,10 +32,10 @@ import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -41,10 +43,18 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
@@ -59,6 +69,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -92,8 +103,8 @@ class LangChain4JChatModelTest {
               .description("Returns the current time")
               .build());
 
-  private static final ConversationSnapshot SNAPSHOT =
-      new ConversationSnapshot(INPUT_MESSAGES, TOOL_DEFINITIONS);
+  private static final ChatConversation SNAPSHOT =
+      ChatConversation.of(INPUT_MESSAGES, TOOL_DEFINITIONS);
 
   private static final ProviderConfiguration PROVIDER_CONFIGURATION =
       new AnthropicProviderConfiguration(null);
@@ -106,6 +117,7 @@ class LangChain4JChatModelTest {
   @Mock private ChatResponse chatResponse;
 
   @Captor private ArgumentCaptor<dev.langchain4j.model.chat.request.ChatRequest> chatRequestCaptor;
+  @Captor private ArgumentCaptor<List<Message>> messagesCaptor;
 
   private LangChain4JChatModel api;
 
@@ -141,7 +153,8 @@ class LangChain4JChatModelTest {
   // stubbed per-test rather than in setUp() (not every test calls execute(), e.g.
   // closeClosesTheUnderlyingChatModel), so a strict, non-lenient stub is used only where needed
   private void mockChatMessageConverterMapsInputMessages() {
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(argThat(sameAsInputMessages()), eq(PROVIDER_CONFIGURATION)))
+        .thenReturn(L4J_MESSAGES);
   }
 
   @Test
@@ -152,6 +165,58 @@ class LangChain4JChatModelTest {
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.messages()).containsExactlyElementsOf(L4J_MESSAGES);
     assertThat(chatRequest.toolSpecifications()).containsExactlyElementsOf(L4J_TOOL_SPECIFICATIONS);
+  }
+
+  @Test
+  void passesAssistantAndToolCallResultMessagesToTheConverterWithAllRequestFields() {
+    final List<Message> messages =
+        List.of(
+            AssistantMessage.builder()
+                .content(
+                    List.of(
+                        new ReasoningContent(
+                            "anthropic",
+                            Map.of("signature", "sig-1"),
+                            "Thinking",
+                            Map.of("k", "v")),
+                        new TextContent("Let me check.", Map.of("cache", "ephemeral"))))
+                .toolCalls(
+                    List.of(
+                        new ToolCall(
+                            "call-1",
+                            "GetTime",
+                            Map.of("zone", "UTC"),
+                            Map.of("thoughtSignature", "ts-1")),
+                        new ToolCall("call-2", "GetWeather", Map.of("city", "Berlin"))))
+                .messageId("msg-provider-1")
+                .metadata(Map.of("framework", "langchain4j"))
+                .build(),
+            ToolCallResultMessage.builder()
+                .results(
+                    List.of(
+                        ToolCallResultContent.builder()
+                            .id("call-1")
+                            .name("GetTime")
+                            .content(List.<Content>of(TextContent.textContent("12:00")))
+                            .build(),
+                        ToolCallResultContent.builder()
+                            .id("call-2")
+                            .name("GetWeather")
+                            .content(
+                                List.<Content>of(
+                                    ObjectContent.objectContent(Map.of("temperature", 21))))
+                            .build()))
+                .build());
+    when(chatMessageConverter.map(messagesCaptor.capture(), eq(PROVIDER_CONFIGURATION)))
+        .thenReturn(L4J_MESSAGES);
+
+    api.execute(
+        new ChatRequest(createExecutionContext(), ChatConversation.of(messages, TOOL_DEFINITIONS)));
+
+    assertThat(messagesCaptor.getValue())
+        .usingRecursiveComparison()
+        .ignoringFieldsOfTypes(MessageId.class)
+        .isEqualTo(messages);
   }
 
   @Test
@@ -166,7 +231,8 @@ class LangChain4JChatModelTest {
   @Test
   void throwsContentFilteredExceptionForContentFilteredResponse() {
     reset(chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(argThat(sameAsInputMessages()), eq(PROVIDER_CONFIGURATION)))
+        .thenReturn(L4J_MESSAGES);
     when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
 
     final var filteredAssistantMessage =
@@ -189,7 +255,8 @@ class LangChain4JChatModelTest {
   @Test
   void wrapsUnderlyingExceptionsInConnectorException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(argThat(sameAsInputMessages()), eq(PROVIDER_CONFIGURATION)))
+        .thenReturn(L4J_MESSAGES);
 
     final var cause = new ModelNotFoundException("Model 'dummy' was not found");
     doThrow(cause).when(chatModel).chat(any(dev.langchain4j.model.chat.request.ChatRequest.class));
@@ -208,7 +275,8 @@ class LangChain4JChatModelTest {
   @Test
   void usesExceptionClassIfNoMessageIncludedInException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(argThat(sameAsInputMessages()), eq(PROVIDER_CONFIGURATION)))
+        .thenReturn(L4J_MESSAGES);
 
     final var cause = new UnresolvedModelServerException((String) null);
     doThrow(cause).when(chatModel).chat(any(dev.langchain4j.model.chat.request.ChatRequest.class));
@@ -378,5 +446,11 @@ class LangChain4JChatModelTest {
             new AgentConfiguration(null, null, null, null, null, null, responseConfiguration));
 
     return executionContext;
+  }
+
+  /** The input messages as the chat request holds them; the message ids are not compared. */
+  private static ArgumentMatcher<List<Message>> sameAsInputMessages() {
+    return messages ->
+        ChatConversation.of(messages, List.of()).messages().equals(SNAPSHOT.messages());
   }
 }

@@ -22,7 +22,7 @@ public record ProviderContent(
     Object payload,
     @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String text,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
-    implements Content {
+    implements ChatContent {
 
   public ProviderContent {
     if (payload == null) {

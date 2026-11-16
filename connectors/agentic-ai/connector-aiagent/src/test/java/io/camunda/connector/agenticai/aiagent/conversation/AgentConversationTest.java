@@ -10,6 +10,8 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.*;
 
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequestMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -178,7 +180,7 @@ class AgentConversationTest {
     assertThat(conv.allMessages()).containsExactly(input);
   }
 
-  private static List<Message> windowedForTheModel(AgentConversation conv, int size) {
+  private static List<ChatRequestMessage> windowedForTheModel(AgentConversation conv, int size) {
     return DOCUMENT_EXPANDER
         .expand(
             conv.window(size),
@@ -229,11 +231,12 @@ class AgentConversationTest {
     var allBefore = conv.allMessages();
 
     // the document message is outside of the window and nothing takes its place
-    assertThat(windowed).doesNotContain(documentMessage);
-    assertThat(windowed.getLast().id()).isEqualTo(conv.allMessages().getLast().id());
+    assertThat(conv.window(2).messages()).doesNotContain(documentMessage);
+    assertThat(conv.window(2).messages().getLast().id())
+        .isEqualTo(conv.allMessages().getLast().id());
     assertThat(windowed)
-        .filteredOn(UserMessage.class::isInstance)
-        .map(message -> ((UserMessage) message).content())
+        .filteredOn(ChatUserMessage.class::isInstance)
+        .map(message -> ((ChatUserMessage) message).content())
         .allSatisfy(content -> assertThat(content).noneMatch(DocumentContent.class::isInstance));
     // the conversation itself is untouched
     assertThat(conv.allMessages()).isEqualTo(allBefore).contains(documentMessage);
@@ -266,11 +269,11 @@ class AgentConversationTest {
     var windowed = windowedForTheModel(conv, 20);
 
     assertThat(windowed).hasSize(2);
+    assertThat(conv.window(20).messages().getLast().id()).isEqualTo(storedMessage.id());
     assertThat(windowed.getLast())
         .isInstanceOfSatisfying(
-            UserMessage.class,
+            ChatUserMessage.class,
             expanded -> {
-              assertThat(expanded.id()).isEqualTo(storedMessage.id());
               assertThat(expanded.content()).hasSize(3);
               assertThat(expanded.content().subList(0, 2))
                   .containsExactly(
@@ -318,11 +321,11 @@ class AgentConversationTest {
     var windowed = windowedForTheModel(conv, 20);
 
     assertThat(windowed).hasSize(2);
+    assertThat(conv.window(20).messages().getLast().id()).isEqualTo(storedMessage.id());
     assertThat(windowed.getLast())
         .isInstanceOfSatisfying(
-            UserMessage.class,
+            ChatUserMessage.class,
             expanded -> {
-              assertThat(expanded.id()).isEqualTo(storedMessage.id());
               assertThat(expanded.content())
                   .containsExactly(
                       textContent("see"),
@@ -366,12 +369,14 @@ class AgentConversationTest {
 
     var windowed = windowedForTheModel(conv, 3);
 
-    assertThat(windowed).noneMatch(message -> message.id().equals(evictedMessage.id()));
+    assertThat(conv.window(3).messages())
+        .noneMatch(message -> message.id().equals(evictedMessage.id()));
     assertThat(windowed)
-        .filteredOn(UserMessage.class::isInstance)
-        .map(message -> ((UserMessage) message).content())
+        .filteredOn(ChatUserMessage.class::isInstance)
+        .map(message -> ((ChatUserMessage) message).content())
         .allSatisfy(content -> assertThat(content).noneMatch(DocumentContent.class::isInstance));
-    assertThat(windowed.getLast().id()).isEqualTo(conv.allMessages().getLast().id());
+    assertThat(conv.window(3).messages().getLast().id())
+        .isEqualTo(conv.allMessages().getLast().id());
   }
 
   @Test

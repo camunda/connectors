@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 /** The execution of one runtime tool call: its result and when it was executed. */
 public record RuntimeToolExecution(
@@ -20,7 +21,7 @@ public record RuntimeToolExecution(
     return ToolCallResultContent.builder()
         .id(call.id())
         .name(call.name())
-        .content(result.content())
+        .content(List.copyOf(result.content()))
         .completedAt(completedAt)
         .build();
   }

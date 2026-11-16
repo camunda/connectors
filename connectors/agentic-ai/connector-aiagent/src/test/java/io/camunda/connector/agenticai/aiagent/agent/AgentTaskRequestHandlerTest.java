@@ -34,9 +34,12 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequestMessage;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
@@ -52,7 +55,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
@@ -217,8 +219,8 @@ class AgentTaskRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     // snapshot is captured before the assistant message is ingested
-    assertMessagesEqualIgnoringSystemMessageId(
-        chatModelRequestCaptor.getValue().snapshot().messages(), SYSTEM_MESSAGE, USER_MESSAGE);
+    assertThat(chatModelRequestCaptor.getValue().conversation().messages())
+        .isEqualTo(requestMessages(SYSTEM_MESSAGE, USER_MESSAGE));
 
     var agentResponse = response.agentResponse();
     assertThat(agentResponse).isNotNull();
@@ -254,8 +256,8 @@ class AgentTaskRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertMessagesEqualIgnoringSystemMessageId(
-        chatModelRequestCaptor.getValue().snapshot().messages(), SYSTEM_MESSAGE, USER_MESSAGE);
+    assertThat(chatModelRequestCaptor.getValue().conversation().messages())
+        .isEqualTo(requestMessages(SYSTEM_MESSAGE, USER_MESSAGE));
 
     var agentResponse = response.agentResponse();
     assertThat(agentResponse).isNotNull();
@@ -411,9 +413,9 @@ class AgentTaskRequestHandlerTest {
 
     verify(chatModel, times(2)).execute(any());
     verify(runtimeTools, never()).execute(any(), any(), any());
-    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
                     .singleElement()
@@ -508,5 +510,9 @@ class AgentTaskRequestHandlerTest {
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(chatModelRequestCaptor.capture()))
         .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
+  }
+
+  private static List<ChatRequestMessage> requestMessages(Message... messages) {
+    return ChatConversation.of(List.of(messages), List.of()).messages();
   }
 }

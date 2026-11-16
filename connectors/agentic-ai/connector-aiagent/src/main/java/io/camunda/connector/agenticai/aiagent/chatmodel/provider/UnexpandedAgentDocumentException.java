@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 
 /**
- * The failure of a provider chat model that is handed an {@link AgentDocumentContent}: the agent
- * expands it to its handle text and document content before the request is built, so it never
- * reaches a provider.
+ * The failure of a LangChain4j converter that is handed an {@link AgentDocumentContent}. The
+ * LangChain4j converters read the persisted content types, which include the block; a chat request
+ * never holds it.
  */
 public class UnexpandedAgentDocumentException extends IllegalStateException {
 

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -28,8 +29,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Expands the {@link AgentDocumentContent document blocks} of the conversation into the form the
- * chat model providers see, so that no provider has document specific code.
+ * Builds the {@link ChatConversation} of a chat request from the window of the conversation. It
+ * expands the {@link AgentDocumentContent document blocks} into the form the chat model providers
+ * see, so that no provider has document specific code.
  *
  * <p>The persisted form of a document is its block only; the document is restored from the agent
  * documents. In a user message the model gets the handle text of every block and the document
@@ -52,20 +54,24 @@ public class DocumentExpander {
   }
 
   /**
-   * The snapshot the model is called with: for an agent instance that tracks its documents the
-   * messages are expanded, for one that does not they are left as they are.
+   * The conversation the model is called with: for an agent instance that tracks its documents the
+   * messages are expanded, for one that does not they are taken as they are.
    *
    * @param documentFactory the document factory of the job, which restores the documents in the
    *     document store of the physical tenant of the job
+   * @throws IllegalArgumentException if a message holds a block that a chat request cannot hold in
+   *     that message, see {@link ChatConversation#of}; for an agent instance that does not track
+   *     its documents this includes an {@link AgentDocumentContent}
    */
-  public ConversationSnapshot expand(
+  public ChatConversation expand(
       ConversationSnapshot snapshot, DocumentHandling handling, DocumentFactory documentFactory) {
-    return switch (handling) {
-      case DocumentHandling.Untracked ignored -> snapshot;
-      case DocumentHandling.Tracked tracked ->
-          snapshot.withMessages(
-              expandMessages(snapshot.messages(), tracked.documents(), documentFactory));
-    };
+    final List<Message> messages =
+        switch (handling) {
+          case DocumentHandling.Untracked ignored -> snapshot.messages();
+          case DocumentHandling.Tracked tracked ->
+              expandMessages(snapshot.messages(), tracked.documents(), documentFactory);
+        };
+    return ChatConversation.of(messages, snapshot.toolDefinitions());
   }
 
   /**

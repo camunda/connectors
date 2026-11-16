@@ -27,11 +27,11 @@ import com.google.genai.errors.ClientException;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -72,7 +72,7 @@ class GeminiChatModelTest {
   private final AgentConfiguration agentConfiguration = mock(AgentConfiguration.class);
 
   private final ChatRequest request =
-      new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
+      new ChatRequest(executionContext, ChatConversation.of(List.of(), List.of()));
 
   private GeminiChatModel api;
 
@@ -109,8 +109,8 @@ class GeminiChatModelTest {
 
     assertThat(result).isSameAs(expected);
     verify(requestConverter)
-        .toGenerateContentConfig(configuration, responseConfiguration, request.snapshot());
-    verify(requestConverter).toContents(request.snapshot());
+        .toGenerateContentConfig(configuration, responseConfiguration, request.conversation());
+    verify(requestConverter).toContents(request.conversation());
     verify(models).generateContentStream(configuration.model(), contents, config);
     verify(streamAssembler).assemble(responseStream);
     verify(responseStream).close();

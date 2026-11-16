@@ -80,7 +80,7 @@ public class MistralChatModel implements ChatModel {
       final CompletionsRequestSpec spec = toSpec(configuration);
       final ChatCompletionCreateParams params =
           requestConverter.toRequest(
-              spec, request.executionContext().configuration().response(), request.snapshot());
+              spec, request.executionContext().configuration().response(), request.conversation());
 
       final long startNanos = System.nanoTime();
       final ChatCompletion completion;

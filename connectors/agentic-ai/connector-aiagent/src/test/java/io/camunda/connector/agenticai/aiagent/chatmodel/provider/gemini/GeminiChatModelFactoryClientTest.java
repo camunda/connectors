@@ -27,9 +27,9 @@ import com.google.genai.types.FinishReason;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.GenerateContentResponseUsageMetadata;
 import com.google.genai.types.Part;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
@@ -222,8 +222,8 @@ class GeminiChatModelFactoryClientTest {
     return executionContext;
   }
 
-  private static ConversationSnapshot snapshot() {
-    return new ConversationSnapshot(
+  private static ChatConversation snapshot() {
+    return ChatConversation.of(
         List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
         List.of());
   }

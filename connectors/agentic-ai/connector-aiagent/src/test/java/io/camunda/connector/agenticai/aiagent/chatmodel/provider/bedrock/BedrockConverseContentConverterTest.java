@@ -10,9 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -339,7 +339,7 @@ class BedrockConverseContentConverterTest {
     @Test
     void mapsMultipleContentItemsInOrder() {
       final var doc = inlineDocument("fake-png-bytes", "photo.png", "image/png");
-      final List<Content> content =
+      final List<PortableContent> content =
           List.of(new TextContent("first", null), new DocumentContent(doc, null));
 
       final var blocks = converter.toContentBlocks(content);
@@ -490,26 +490,6 @@ class BedrockConverseContentConverterTest {
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).json()).isNull();
       assertThat(blocks.get(0).text()).isEqualTo("42");
-    }
-
-    @Test
-    void throwsForReasoningContent() {
-      assertThatThrownBy(() ->
-              converter.toToolResultBlocks(
-                  List.of(
-                      new ReasoningContent(
-                          "bedrock", Map.of("reasoningText", Map.of()), null, null))))
-          .isInstanceOf(ConnectorException.class)
-          .hasFieldOrPropertyWithValue("errorCode", "FAILED_MODEL_CALL");
-    }
-
-    @Test
-    void throwsForProviderContent() {
-      assertThatThrownBy(() ->
-              converter.toToolResultBlocks(
-                  List.of(new ProviderContent("bedrock", Map.of("cachePoint", Map.of()), null))))
-          .isInstanceOf(ConnectorException.class)
-          .hasFieldOrPropertyWithValue("errorCode", "FAILED_MODEL_CALL");
     }
   }
 }

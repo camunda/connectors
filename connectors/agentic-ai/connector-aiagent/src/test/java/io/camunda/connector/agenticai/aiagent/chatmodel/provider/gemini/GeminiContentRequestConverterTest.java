@@ -15,7 +15,7 @@ import com.google.genai.types.FinishReason;
 import com.google.genai.types.FunctionCall;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.Part;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -84,7 +84,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void mapsModelParameters() {
     final var parameters = new GeminiModelParameters(1024, 0.5, 0.9, 40, null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
 
@@ -96,7 +96,7 @@ class GeminiContentRequestConverterTest {
 
   @Test
   void omitsUnsetModelParameters() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
 
@@ -114,7 +114,7 @@ class GeminiContentRequestConverterTest {
   void mapsThinkingBudgetOnly() {
     final var parameters =
         new GeminiModelParameters(null, null, null, null, new GeminiThinking(2048, null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
 
@@ -130,7 +130,7 @@ class GeminiContentRequestConverterTest {
     final var parameters =
         new GeminiModelParameters(
             null, null, null, null, new GeminiThinking(null, GeminiThinkingLevel.HIGH));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
 
@@ -146,7 +146,7 @@ class GeminiContentRequestConverterTest {
     final var parameters =
         new GeminiModelParameters(
             null, null, null, null, new GeminiThinking(null, GeminiThinkingLevel.MINIMAL));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
 
@@ -158,7 +158,7 @@ class GeminiContentRequestConverterTest {
   void modelDefaultLevelWithNoBudgetEmitsNoThinkingConfig() {
     final var parameters =
         new GeminiModelParameters(null, null, null, null, new GeminiThinking(null, null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
 
@@ -172,7 +172,7 @@ class GeminiContentRequestConverterTest {
     final var parameters =
         new GeminiModelParameters(
             null, null, null, null, new GeminiThinking(2048, GeminiThinkingLevel.HIGH));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     assertThatThrownBy(() -> converter.toGenerateContentConfig(model(parameters), null, snapshot))
         .isInstanceOf(ConnectorException.class);
@@ -183,7 +183,7 @@ class GeminiContentRequestConverterTest {
     final var parameters =
         new GeminiModelParameters(
             null, null, null, null, new GeminiThinking(2048, GeminiThinkingLevel.MODEL_DEFAULT));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
 
@@ -193,7 +193,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void noThinkingConfiguredEmitsNoThinkingConfig() {
     final var parameters = new GeminiModelParameters(null, null, null, null, null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
 
@@ -205,7 +205,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void hoistsLeadingSystemMessageToSystemInstructionAndExcludesItFromContents() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 SystemMessage.builder().content(List.of(TextContent.textContent("sys"))).build(),
                 UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
@@ -225,7 +225,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void noSystemMessageEmitsNoSystemInstruction() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of());
 
@@ -245,7 +245,7 @@ class GeminiContentRequestConverterTest {
     final var completedAnswerSignature = "completed-answer-sig".getBytes(StandardCharsets.UTF_8);
     final var assistantOnlySentinel = "aurora-kestrel";
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 SystemMessage.builder()
                     .content(List.of(TextContent.textContent("Use tools when needed.")))
@@ -327,7 +327,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void mapsUserMessageToUserRoleContent() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of());
 
@@ -341,7 +341,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void mapsAssistantMessageToModelRoleContentWithToolCallAsFunctionCallPart() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(TextContent.textContent("calling tool")))
@@ -379,7 +379,7 @@ class GeminiContentRequestConverterTest {
                 GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
                 Base64.getEncoder().encodeToString(signatureBytes)));
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .toolCalls(
@@ -403,7 +403,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void omitsThoughtSignatureOnReplayedFunctionCallPartWhenAbsentFromToolCallMetadata() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .toolCalls(
@@ -426,7 +426,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void mapsToolCallResultMessageToUserRoleContentWithFunctionResponsePart() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 ToolCallResultMessage.builder()
                     .results(
@@ -456,7 +456,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void mergesMultiPartToolResultIntoASingleFunctionResponsePart() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 ToolCallResultMessage.builder()
                     .results(
@@ -488,7 +488,7 @@ class GeminiContentRequestConverterTest {
   void toolResultWithTextAndDocumentContentMergesIntoSingleFunctionResponse() {
     final var doc = mockDocument("image/png", "ABC".getBytes(StandardCharsets.UTF_8));
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 ToolCallResultMessage.builder()
                     .results(
@@ -527,7 +527,7 @@ class GeminiContentRequestConverterTest {
   void toolResultWithOnlyDocumentContentStillClosesOutTheFunctionCall() {
     final var doc = mockDocument("image/png", "ABC".getBytes(StandardCharsets.UTF_8));
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 ToolCallResultMessage.builder()
                     .results(
@@ -559,7 +559,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void toolResultWithEmptyContentStillClosesOutTheFunctionCall() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 ToolCallResultMessage.builder()
                     .results(
@@ -589,7 +589,7 @@ class GeminiContentRequestConverterTest {
 
   @Test
   void emptySnapshotReturnsEmptyContentsListNotNull() {
-    final var contents = converter.toContents(new ConversationSnapshot(List.of(), List.of()));
+    final var contents = converter.toContents(ChatConversation.of(List.of(), List.of()));
 
     assertThat(contents).isNotNull();
     assertThat(contents).isEmpty();
@@ -598,7 +598,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void assistantMessageWithNoContentAndNoToolCallsEmitsNoContent() {
     final var snapshot =
-        new ConversationSnapshot(List.of(AssistantMessage.builder().build()), List.of());
+        ChatConversation.of(List.of(AssistantMessage.builder().build()), List.of());
 
     final var contents = converter.toContents(snapshot);
 
@@ -618,7 +618,7 @@ class GeminiContentRequestConverterTest {
             "required",
             List.of("quantity"));
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(),
             List.of(
                 ToolDefinition.builder()
@@ -642,7 +642,7 @@ class GeminiContentRequestConverterTest {
 
   @Test
   void noToolDefinitionsEmitsNoTools() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
 
@@ -658,7 +658,7 @@ class GeminiContentRequestConverterTest {
     final var response =
         new AgentTaskResponseConfiguration(
             new JsonResponseFormatConfiguration(schema, "Answer"), null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), response, snapshot);
 
@@ -676,7 +676,7 @@ class GeminiContentRequestConverterTest {
   void configuresJsonResponseFormatWithoutSchema() {
     final var response =
         new AgentTaskResponseConfiguration(new JsonResponseFormatConfiguration(null, null), null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), response, snapshot);
 
@@ -689,7 +689,7 @@ class GeminiContentRequestConverterTest {
     final var response =
         new AgentTaskResponseConfiguration(
             new JsonResponseFormatConfiguration(Map.of(), null), null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), response, snapshot);
 
@@ -701,7 +701,7 @@ class GeminiContentRequestConverterTest {
   void textResponseFormatHasNoRequestSideEffect() {
     final var response =
         new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), response, snapshot);
 
@@ -711,7 +711,7 @@ class GeminiContentRequestConverterTest {
 
   @Test
   void nullResponseConfigurationHasNoRequestSideEffect() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
 

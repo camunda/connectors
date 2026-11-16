@@ -20,7 +20,7 @@ import com.openai.models.responses.EasyInputMessage;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseIncludable;
 import com.openai.models.responses.ResponseOutputMessage;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -110,7 +110,7 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void mapsSystemMessageToInstructions() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 SystemMessage.builder().content(List.of(TextContent.textContent("sys"))).build(),
                 UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
@@ -124,7 +124,7 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void mapsUserMessageTextToInputItem() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of());
 
@@ -144,7 +144,7 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void mapsAssistantToolCallAndToolResultToFunctionCallAndOutput() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .toolCalls(
@@ -188,7 +188,7 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void unwrapsObjectContentToolResultToRawValue() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .toolCalls(
@@ -239,7 +239,7 @@ class OpenAiResponsesRequestConverterTest {
             new ExternalDocumentReferenceModel("https://example.com/report.pdf", "report.pdf"));
 
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 ToolCallResultMessage.builder()
                     .results(
@@ -276,7 +276,7 @@ class OpenAiResponsesRequestConverterTest {
     // replayed as a ResponseOutputMessage with an output_text part, not the EasyInputMessage
     // content-part-list shape used for user messages.
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(TextContent.textContent("here's the answer")))
@@ -299,7 +299,7 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void replaysRecordedAnswerPhaseOnAssistantMessage() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(TextContent.textContent("done")))
@@ -318,7 +318,7 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void replaysUnphasedAndForeignProviderAssistantMessageWithoutPhase() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(TextContent.textContent("unphased")))
@@ -349,7 +349,7 @@ class OpenAiResponsesRequestConverterTest {
                 List.of(
                     Map.of("type", "output_text", "text", "Checking", "annotations", List.of())));
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(
@@ -379,7 +379,7 @@ class OpenAiResponsesRequestConverterTest {
     // Block boundaries are preserved rather than flattened into one joined string - see
     // OpenAiResponsesRequestConverter#assistantContentInputItem.
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(
@@ -406,7 +406,7 @@ class OpenAiResponsesRequestConverterTest {
     // checked at the raw JSON level (not through a typed SDK accessor) so it fails on any
     // reintroduction of the bug, typed or not.
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(TextContent.textContent("here's the answer")))
@@ -431,7 +431,7 @@ class OpenAiResponsesRequestConverterTest {
     // A genuine Responses-origin turn's messageId is the msg_* id OpenAiResponsesResponseConverter
     // captured from the real response - replay passes it through verbatim.
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(TextContent.textContent("here's the answer")))
@@ -455,7 +455,7 @@ class OpenAiResponsesRequestConverterTest {
     // the foreign id through or failing.
     for (final String messageId : new String[] {null, "chatcmpl_1", "some-other-provider-id"}) {
       final var snapshot =
-          new ConversationSnapshot(
+          ChatConversation.of(
               List.of(
                   AssistantMessage.builder()
                       .content(List.of(TextContent.textContent("here's the answer")))
@@ -475,7 +475,7 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void replaysAssistantTextContentAndToolCallAsSeparateInputItems() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(TextContent.textContent("let me check that")))
@@ -510,7 +510,7 @@ class OpenAiResponsesRequestConverterTest {
     final var reasoning = new ReasoningContent("openai", reasoningPayload, null, Map.of());
 
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(reasoning, TextContent.textContent("here's the answer")))
@@ -545,7 +545,7 @@ class OpenAiResponsesRequestConverterTest {
             "required",
             List.of("quantity"));
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(),
             List.of(
                 ToolDefinition.builder()
@@ -597,7 +597,7 @@ class OpenAiResponsesRequestConverterTest {
     final var response =
         new AgentTaskResponseConfiguration(
             new JsonResponseFormatConfiguration(schema, "Answer"), null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(model(null), response, snapshot);
 
@@ -634,7 +634,7 @@ class OpenAiResponsesRequestConverterTest {
   void configuresJsonObjectResponseFormatWhenNoSchema() {
     final var response =
         new AgentTaskResponseConfiguration(new JsonResponseFormatConfiguration(null, null), null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(model(null), response, snapshot);
 
@@ -649,7 +649,7 @@ class OpenAiResponsesRequestConverterTest {
     final var response =
         new AgentTaskResponseConfiguration(
             new JsonResponseFormatConfiguration(Map.of(), null), null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(model(null), response, snapshot);
 
@@ -664,7 +664,7 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void requestsEncryptedReasoningAndDisablesServerSideStoreWhenEffortSet() {
     final var parameters = new ResponsesParameters(null, OpenAiEffort.HIGH, null, null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(model(parameters), null, snapshot);
 
@@ -676,7 +676,7 @@ class OpenAiResponsesRequestConverterTest {
 
   @Test
   void requestsEncryptedReasoningButOmitsEffortParamWhenEffortUnset() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(model(null), null, snapshot);
 
@@ -691,7 +691,7 @@ class OpenAiResponsesRequestConverterTest {
     // The "default" dropdown choice binds to OpenAiEffort.MODEL_DEFAULT rather than an unset
     // value; it must still be treated as "don't send the effort dial".
     final var parameters = new ResponsesParameters(null, OpenAiEffort.MODEL_DEFAULT, null, null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(model(parameters), null, snapshot);
 
@@ -712,7 +712,7 @@ class OpenAiResponsesRequestConverterTest {
         new OpenAiChatModelConfiguration(
             new OpenAiConnection(
                 new OpenAiResponsesApi(null), defaultBackend(), new OpenAiModel("gpt-5"), null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(config, null, snapshot);
 
@@ -727,7 +727,7 @@ class OpenAiResponsesRequestConverterTest {
 
   @Test
   void mapsEachEffortLevelToItsLowercaseWireValue() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     for (final var entry :
         Map.of(
@@ -757,7 +757,7 @@ class OpenAiResponsesRequestConverterTest {
             "type", "reasoning", "id", "rs_1", "encrypted_content", "abc123", "summary", List.of());
 
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(new ReasoningContent("openai", payload, null, Map.of())))
@@ -774,7 +774,7 @@ class OpenAiResponsesRequestConverterTest {
     final var providerContent =
         new ProviderContent("openai", Map.of("type", "item_reference", "id", "ref_1"), null);
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(AssistantMessage.builder().content(List.of(providerContent)).build()),
             List.of());
 
@@ -791,7 +791,7 @@ class OpenAiResponsesRequestConverterTest {
         Map.<String, Object>of("type", "reasoning", "id", "rs_1", "encrypted_content", "abc123");
     final var reasoning = new ReasoningContent("openai", payload, "Thinking about it", Map.of());
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
 
     final var params = converter.toRequest(model(null), null, snapshot);
@@ -819,7 +819,7 @@ class OpenAiResponsesRequestConverterTest {
     final var reasoning =
         new ReasoningContent("openai", payload, "First part\nSecond part", Map.of());
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
 
     final var params = converter.toRequest(model(null), null, snapshot);
@@ -833,7 +833,7 @@ class OpenAiResponsesRequestConverterTest {
     final var payload = Map.<String, Object>of("type", "thinking", "thinking", "some thought");
     final var reasoning = new ReasoningContent("anthropic", payload, null, Map.of());
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
 
     final var params = converter.toRequest(model(null), null, snapshot);
@@ -847,7 +847,7 @@ class OpenAiResponsesRequestConverterTest {
         new ProviderContent(
             "anthropic", Map.of("type", "server_tool_use", "id", "srvtoolu_1"), null);
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(AssistantMessage.builder().content(List.of(providerContent)).build()),
             List.of());
 
@@ -868,7 +868,7 @@ class OpenAiResponsesRequestConverterTest {
                 null,
                 Map.of("service_tier", "priority", "top_logprobs", 5),
                 new ApiKeyAuthentication("test-key")));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
 
@@ -883,7 +883,7 @@ class OpenAiResponsesRequestConverterTest {
         new OpenAiApiBackend(
             new OpenAiApiConnection(
                 "sk-test", null, null, null, null, null, Map.of("service_tier", "priority")));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
 
@@ -893,7 +893,7 @@ class OpenAiResponsesRequestConverterTest {
 
   @Test
   void doesNotAddBodyPropertiesWhenNoneConfigured() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(model(null), null, snapshot);
 
@@ -912,7 +912,7 @@ class OpenAiResponsesRequestConverterTest {
                 Map.of("api-version", "2026-01-01"),
                 null,
                 new ApiKeyAuthentication("test-key")));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
 
@@ -933,7 +933,7 @@ class OpenAiResponsesRequestConverterTest {
                 Map.of("X-Hidden-Header", "hidden-value"),
                 Map.of("api-version", "2026-01-01"),
                 null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
 
@@ -946,7 +946,7 @@ class OpenAiResponsesRequestConverterTest {
 
   @Test
   void throwsWhenConfiguredWithCompletionsApiFamily() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     assertThatThrownBy(() -> converter.toRequest(completionsFamilyModel(), null, snapshot))
         .isInstanceOf(IllegalArgumentException.class)

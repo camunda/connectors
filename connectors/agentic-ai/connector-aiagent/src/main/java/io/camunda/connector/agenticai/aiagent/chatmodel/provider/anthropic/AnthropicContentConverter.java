@@ -19,11 +19,10 @@ import com.anthropic.models.messages.ToolResultBlockParam;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
-import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ChatContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -39,7 +38,7 @@ import org.apache.hc.core5.http.ContentType;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Converts the domain {@link Content} model to Anthropic SDK content blocks, both for
+ * Converts the provider-facing {@link ChatContent} blocks to Anthropic SDK content blocks, both for
  * user/assistant message bodies ({@link ContentBlockParam}) and tool-result bodies ({@link
  * ToolResultBlockParam.Content.Block}).
  */
@@ -51,13 +50,12 @@ public class AnthropicContentConverter {
     this.objectMapper = objectMapper;
   }
 
-  public List<ContentBlockParam> toContentBlockParams(List<Content> content) {
+  public List<ContentBlockParam> toContentBlockParams(List<? extends ChatContent> content) {
     final List<ContentBlockParam> blocks = new ArrayList<>();
-    for (final Content c : content) {
+    for (final ChatContent c : content) {
       switch (c) {
         case TextContent text -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(text)));
         case DocumentContent doc -> blocks.add(toDocumentBlockParam(doc));
-        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(obj)));
         // Content tagged for a different provider is dropped rather than replayed.
         case ReasoningContent rc when ANTHROPIC_ID.equals(rc.provider()) ->
@@ -147,9 +145,10 @@ public class AnthropicContentConverter {
    * natively as an image/document block: the document's actual bytes are already delivered to the
    * model elsewhere for tool results, so embedding it here as well would send it twice.
    */
-  public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(List<Content> content) {
+  public List<ToolResultBlockParam.Content.Block> toToolResultBlocks(
+      List<PortableContent> content) {
     final List<ToolResultBlockParam.Content.Block> blocks = new ArrayList<>();
-    for (final Content c : content) {
+    for (final PortableContent c : content) {
       switch (c) {
         case TextContent text ->
             blocks.add(ToolResultBlockParam.Content.Block.ofText(toTextBlockParam(text)));
@@ -157,17 +156,8 @@ public class AnthropicContentConverter {
             blocks.add(
                 ToolResultBlockParam.Content.Block.ofText(
                     TextBlockParam.builder().text(writeAsJson(doc.document())).build()));
-        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj ->
             blocks.add(ToolResultBlockParam.Content.Block.ofText(toTextBlockParam(obj)));
-        case ReasoningContent reasoning ->
-            blocks.add(
-                ToolResultBlockParam.Content.Block.ofText(
-                    TextBlockParam.builder().text(writeAsJson(reasoning)).build()));
-        case ProviderContent providerContent ->
-            blocks.add(
-                ToolResultBlockParam.Content.Block.ofText(
-                    TextBlockParam.builder().text(writeAsJson(providerContent)).build()));
       }
     }
     return blocks;

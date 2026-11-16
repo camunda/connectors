@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumen
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -83,7 +84,7 @@ public record ToolCallResultContent(
     return builder()
         .id(toolCall.id())
         .name(toolCall.name())
-        .content(contentFromObject(toolCall.rejection()))
+        .content(List.<Content>copyOf(contentFromObject(toolCall.rejection())))
         .completedAt(completedAt)
         .build();
   }
@@ -99,7 +100,7 @@ public record ToolCallResultContent(
         .elementId(result.elementId())
         .completedAt(result.completedAt())
         .properties(result.properties())
-        .content(contentFromObject(result.content()))
+        .content(List.<Content>copyOf(contentFromObject(result.content())))
         .build();
   }
 
@@ -111,7 +112,7 @@ public record ToolCallResultContent(
    * nodes read from legacy (Camunda 8.9) data lives in {@code
    * AgentContextSchemaMigration#liftLegacyContent}.
    */
-  public static List<Content> contentFromObject(@Nullable Object content) {
+  public static List<PortableContent> contentFromObject(@Nullable Object content) {
     return switch (content) {
       case null -> List.of();
       case String s -> s.isBlank() ? List.of() : List.of(TextContent.textContent(s));

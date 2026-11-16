@@ -12,14 +12,10 @@ import com.openai.models.chat.completions.ChatCompletionContentPart;
 import com.openai.models.chat.completions.ChatCompletionContentPartImage;
 import com.openai.models.chat.completions.ChatCompletionContentPartText;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiDocumentParts;
-import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,31 +34,20 @@ public class OpenAiFileContentChunkStrategy implements OpenAiCompletionsContentC
   }
 
   @Override
-  public List<ChatCompletionContentPart> toContentParts(List<Content> content) {
+  public List<ChatCompletionContentPart> toContentParts(List<PortableContent> content) {
     final List<ChatCompletionContentPart> parts = new ArrayList<>();
-    for (final Content c : content) {
+    for (final PortableContent c : content) {
       switch (c) {
         case TextContent text ->
             parts.add(
                 ChatCompletionContentPart.ofText(
                     ChatCompletionContentPartText.builder().text(text.text()).build()));
         case DocumentContent doc -> parts.add(documentPart(doc));
-        case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
         case ObjectContent obj ->
             parts.add(
                 ChatCompletionContentPart.ofText(
                     ChatCompletionContentPartText.builder()
                         .text(writeAsJson(obj.content()))
-                        .build()));
-        case ReasoningContent reasoning ->
-            parts.add(
-                ChatCompletionContentPart.ofText(
-                    ChatCompletionContentPartText.builder().text(writeAsJson(reasoning)).build()));
-        case ProviderContent providerContent ->
-            parts.add(
-                ChatCompletionContentPart.ofText(
-                    ChatCompletionContentPartText.builder()
-                        .text(writeAsJson(providerContent))
                         .build()));
       }
     }

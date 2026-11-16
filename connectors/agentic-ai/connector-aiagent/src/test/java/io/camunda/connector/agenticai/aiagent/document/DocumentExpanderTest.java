@@ -9,7 +9,10 @@ package io.camunda.connector.agenticai.aiagent.document;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
@@ -163,7 +166,7 @@ class DocumentExpanderTest {
         .extracting(AgentDocumentId::of)
         .isEqualTo(AgentDocumentId.of(document));
     assertRebuiltDocumentIs(
-        ((UserMessage) snapshot.messages().getFirst()).content().get(1), document);
+        ((ChatUserMessage) snapshot.messages().getFirst()).content().get(1), document);
   }
 
   @Test
@@ -445,7 +448,7 @@ class DocumentExpanderTest {
         expander.expand(snapshot, new DocumentHandling.Tracked(agentDocuments), documentFactory);
 
     assertThat(expanded.toolDefinitions()).isEqualTo(snapshot.toolDefinitions());
-    assertThat(((UserMessage) expanded.messages().getFirst()).content())
+    assertThat(((ChatUserMessage) expanded.messages().getFirst()).content())
         .hasSize(2)
         .startsWith(handleOf(agentDocuments, reference));
   }
@@ -458,6 +461,19 @@ class DocumentExpanderTest {
             List.of());
 
     assertThat(expander.expand(snapshot, new DocumentHandling.Untracked(), documentFactory))
-        .isSameAs(snapshot);
+        .isEqualTo(ChatConversation.of(snapshot.messages(), snapshot.toolDefinitions()));
+  }
+
+  @Test
+  void failsForADocumentBlockOfAnAgentThatDoesNotTrackItsDocuments() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(userMessage(AgentDocumentContent.of(AgentDocumentId.of("doc-1")))), List.of());
+
+    assertThatThrownBy(
+            () -> expander.expand(snapshot, new DocumentHandling.Untracked(), documentFactory))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "A user message of a chat request cannot hold content of type 'AgentDocumentContent'");
   }
 }

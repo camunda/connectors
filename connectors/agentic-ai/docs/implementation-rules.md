@@ -176,8 +176,8 @@ that caused it.
      model.
    - A new provider converts each content block: text, image and document.
    - If the provider does not support a part of the contract, it throws an error that names the
-     unsupported value. A test covers the error. Examples: `GeminiContentConverter` for an unsupported
-     document type, `BedrockConverseRequestConverter` for unsupported content in a system message.
+     unsupported value. A test covers the error. Example: `GeminiContentConverter` for an unsupported
+     document type.
    - The help text of a new provider shows the value format that the runtime accepts.
    - When a change stops calling a method of an extension point for some agent instances, the same
      change updates the Javadoc of the method or deprecates the method. (#9631)

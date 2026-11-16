@@ -8,11 +8,11 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.models.chat.completions.ChatCompletionContentPart;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import java.util.List;
 
 /**
- * Converts the domain {@link Content} model to Chat Completions content parts ({@link
+ * Converts {@link PortableContent} blocks to Chat Completions content parts ({@link
  * ChatCompletionContentPart}) for a user/assistant message body. One implementation per provider
  * rather than one shared method with a provider check inside it: this is a genuine, outbound
  * wire-format choice each implementation makes, with no self-detectable signal to key off the way
@@ -21,7 +21,7 @@ import java.util.List;
 @FunctionalInterface
 public interface OpenAiCompletionsContentChunkStrategy {
 
-  List<ChatCompletionContentPart> toContentParts(List<Content> content);
+  List<ChatCompletionContentPart> toContentParts(List<PortableContent> content);
 
   static OpenAiCompletionsContentChunkStrategy openAi(ObjectMapper objectMapper) {
     return new OpenAiFileContentChunkStrategy(objectMapper);

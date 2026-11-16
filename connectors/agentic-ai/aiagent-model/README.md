@@ -15,7 +15,8 @@ does not depend on Spring.
   limits, events, response and tools).
 - `Message` with `SystemMessage`, `UserMessage`, `AssistantMessage` and `ToolCallResultMessage`, and
   `Content` with `TextContent`, `DocumentContent`, `ObjectContent`, `ReasoningContent` and
-  `ProviderContent`.
+  `ProviderContent`. The sealed `ChatContent` and `PortableContent` group the blocks that a chat
+  request can hold ([ADR 019](../docs/adr/019-typed-chat-request-messages.md)).
 - `ToolDefinition`, `GatewayToolDefinition`, `ToolCall`, `ToolCallResult` and `ToolCallResultContent`.
   `ToolKind` tells whether a tool is a BPMN element of the process or a runtime tool.
 - `ConversationContext`: the pointer to the stored conversation. `ConversationContextSubtypes` registers

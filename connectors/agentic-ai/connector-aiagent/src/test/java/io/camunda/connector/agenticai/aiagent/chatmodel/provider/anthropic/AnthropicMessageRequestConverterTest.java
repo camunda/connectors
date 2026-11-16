@@ -15,7 +15,7 @@ import com.anthropic.models.messages.MessageParam;
 import com.anthropic.models.messages.ThinkingConfigAdaptive;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -134,7 +134,7 @@ class AnthropicMessageRequestConverterTest {
   @Test
   void mapsSystemPromptToTopLevelSystemAndRemainingToMessages() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 SystemMessage.builder().content(List.of(TextContent.textContent("sys"))).build(),
                 UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
@@ -164,7 +164,7 @@ class AnthropicMessageRequestConverterTest {
             "required",
             List.of("quantity"));
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of(
                 ToolDefinition.builder()
@@ -194,7 +194,7 @@ class AnthropicMessageRequestConverterTest {
   @Test
   void mapsAssistantToolCallsAndToolResults() {
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 UserMessage.builder()
                     .content(List.of(TextContent.textContent("please call the tool")))
@@ -287,7 +287,7 @@ class AnthropicMessageRequestConverterTest {
             null);
 
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 UserMessage.builder()
                     .content(List.of(TextContent.textContent("run some code")))
@@ -340,7 +340,7 @@ class AnthropicMessageRequestConverterTest {
             null);
 
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(serverToolUse))
@@ -379,7 +379,7 @@ class AnthropicMessageRequestConverterTest {
             null);
 
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(
                 AssistantMessage.builder()
                     .content(List.of(reasoning))
@@ -418,7 +418,7 @@ class AnthropicMessageRequestConverterTest {
             null);
 
     final var snapshot =
-        new ConversationSnapshot(
+        ChatConversation.of(
             List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
 
     final var params = converter.toMessageCreateParams(model(null), null, snapshot);
@@ -439,7 +439,7 @@ class AnthropicMessageRequestConverterTest {
     // concern); this asserts the remaining 5 model-parameter fields this converter is responsible
     // for.
     final var parameters = new AnthropicModelParameters(null, null, null, 2048, 0.5, 0.9, 40);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
 
@@ -455,7 +455,7 @@ class AnthropicMessageRequestConverterTest {
       "deprecation") // temperature()/topP()/topK() deprecated in anthropic-java 2.48.0
   void usesConfiguredMaxTokensAndModelParams() {
     final var parameters = new AnthropicModelParameters(null, null, null, 2048, 0.5, 0.9, 40);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
     final var response =
         new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), null);
 
@@ -474,7 +474,7 @@ class AnthropicMessageRequestConverterTest {
     final var response =
         new AgentTaskResponseConfiguration(
             new JsonResponseFormatConfiguration(Map.of(), null), null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(null), response, snapshot);
 
@@ -488,7 +488,7 @@ class AnthropicMessageRequestConverterTest {
     final var response =
         new AgentTaskResponseConfiguration(
             new JsonResponseFormatConfiguration(schema, "Answer"), null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(null), response, snapshot);
 
@@ -513,7 +513,7 @@ class AnthropicMessageRequestConverterTest {
 
   @Test
   void defaultsMaxTokensToTheDefaultConstantWhenConfigNull() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(null), null, snapshot);
 
@@ -534,7 +534,7 @@ class AnthropicMessageRequestConverterTest {
   @Test
   void mapsEnabledThinkingToWireThinkingConfigWithBudgetTokens() {
     final var parameters = thinkingParams(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
 
@@ -552,7 +552,7 @@ class AnthropicMessageRequestConverterTest {
     final var parameters =
         thinkingParams(
             new AnthropicThinking(ThinkingMode.ADAPTIVE, null, ThinkingDisplay.SUMMARIZED));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
 
@@ -569,7 +569,7 @@ class AnthropicMessageRequestConverterTest {
   void mapsAdaptiveThinkingWithOmittedDisplayToLowercaseWireValue() {
     final var parameters =
         thinkingParams(new AnthropicThinking(ThinkingMode.ADAPTIVE, null, ThinkingDisplay.OMITTED));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
 
@@ -580,7 +580,7 @@ class AnthropicMessageRequestConverterTest {
   @Test
   void mapsAdaptiveThinkingWithoutDisplayEmitsNoDisplayField() {
     final var parameters = thinkingParams(new AnthropicThinking(ThinkingMode.ADAPTIVE, null, null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
 
@@ -591,7 +591,7 @@ class AnthropicMessageRequestConverterTest {
   @Test
   void mapsDisabledThinkingToWireThinkingConfig() {
     final var parameters = thinkingParams(new AnthropicThinking(ThinkingMode.DISABLED, null, null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
 
@@ -605,7 +605,7 @@ class AnthropicMessageRequestConverterTest {
     // A `thinking` object with a null `mode` (modeler left the dropdown blank) is unset: no
     // thinking param is mapped onto the wire request.
     final var parameters = thinkingParams(new AnthropicThinking(null, null, null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
 
@@ -618,7 +618,7 @@ class AnthropicMessageRequestConverterTest {
     // value; applyThinking treats it the same as null.
     final var parameters =
         thinkingParams(new AnthropicThinking(ThinkingMode.MODEL_DEFAULT, null, null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
 
@@ -630,7 +630,7 @@ class AnthropicMessageRequestConverterTest {
     // {thinking:{budgetTokens:...}} with a null mode must still emit no thinking param (mode null
     // means unset, regardless of any other field being populated).
     final var parameters = thinkingParams(new AnthropicThinking(null, 4096, null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
 
@@ -643,7 +643,7 @@ class AnthropicMessageRequestConverterTest {
     // validator: ENABLED requires a budget, otherwise the SDK builder itself would silently skip
     // the field or (depending on future SDK versions) throw an opaque error. Fail loud instead.
     final var parameters = thinkingParams(new AnthropicThinking(ThinkingMode.ENABLED, null, null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     assertThatThrownBy(() -> converter.toMessageCreateParams(model(parameters), null, snapshot))
         .isInstanceOf(ConnectorException.class);
@@ -655,7 +655,7 @@ class AnthropicMessageRequestConverterTest {
     // value (see AnthropicChatModelConfiguration); it must still be treated as "don't send an
     // effort" rather than being mapped onto the wire as the literal string "modelDefault".
     final var parameters = effortParams(AnthropicEffort.MODEL_DEFAULT);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), null, snapshot);
 
@@ -664,7 +664,7 @@ class AnthropicMessageRequestConverterTest {
 
   @Test
   void mapsEachEffortLevelToItsLowercaseWireValue() {
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     for (final var entry :
         Map.of(
@@ -696,7 +696,7 @@ class AnthropicMessageRequestConverterTest {
         new AgentTaskResponseConfiguration(
             new JsonResponseFormatConfiguration(schema, "Answer"), null);
     final var parameters = effortParams(AnthropicEffort.HIGH);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var snapshot = ChatConversation.of(List.of(), List.of());
 
     final var params = converter.toMessageCreateParams(model(parameters), response, snapshot);
 
@@ -713,7 +713,7 @@ class AnthropicMessageRequestConverterTest {
   void promptCachingEnabledAddsTopLevelEphemeralCacheControl() {
     final var params =
         converter.toMessageCreateParams(
-            promptCachingModel(true), null, new ConversationSnapshot(List.of(), List.of()));
+            promptCachingModel(true), null, ChatConversation.of(List.of(), List.of()));
 
     final var cacheControl = requestBodyAsJson(params).path("cache_control");
     assertThat(cacheControl.isMissingNode()).as("cache_control present").isFalse();
@@ -725,7 +725,7 @@ class AnthropicMessageRequestConverterTest {
     for (final Boolean flag : new Boolean[] {null, Boolean.FALSE}) {
       final var params =
           converter.toMessageCreateParams(
-              promptCachingModel(flag), null, new ConversationSnapshot(List.of(), List.of()));
+              promptCachingModel(flag), null, ChatConversation.of(List.of(), List.of()));
 
       assertThat(requestBodyAsJson(params).path("cache_control").isMissingNode())
           .as("cache_control omitted when flag=%s", flag)
@@ -759,10 +759,10 @@ class AnthropicMessageRequestConverterTest {
 
     final var turn1 =
         converter.toMessageCreateParams(
-            promptCachingModel(true), null, new ConversationSnapshot(turn1Messages, tools));
+            promptCachingModel(true), null, ChatConversation.of(turn1Messages, tools));
     final var turn2 =
         converter.toMessageCreateParams(
-            promptCachingModel(true), null, new ConversationSnapshot(turn2Messages, tools));
+            promptCachingModel(true), null, ChatConversation.of(turn2Messages, tools));
 
     final JsonNode body1 = requestBodyAsJson(turn1);
     final JsonNode body2 = requestBodyAsJson(turn2);
@@ -796,10 +796,10 @@ class AnthropicMessageRequestConverterTest {
 
     final var turn1 =
         converter.toMessageCreateParams(
-            promptCachingModel(true), null, new ConversationSnapshot(turn1Messages, List.of()));
+            promptCachingModel(true), null, ChatConversation.of(turn1Messages, List.of()));
     final var turn2 =
         converter.toMessageCreateParams(
-            promptCachingModel(true), null, new ConversationSnapshot(turn1Messages, List.of()));
+            promptCachingModel(true), null, ChatConversation.of(turn1Messages, List.of()));
 
     final JsonNode messages1 = requestBodyAsJson(turn1).path("messages");
     final JsonNode messages2 = requestBodyAsJson(turn2).path("messages");
@@ -815,7 +815,7 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(
             customModel(Map.of("X-Custom-Header", "custom-value"), null, null),
             null,
-            new ConversationSnapshot(List.of(), List.of()));
+            ChatConversation.of(List.of(), List.of()));
 
     assertThat(params._additionalHeaders().values("X-Custom-Header"))
         .containsExactly("custom-value");
@@ -827,7 +827,7 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(
             customModel(null, Map.of("api-version", "2026-01-01"), null),
             null,
-            new ConversationSnapshot(List.of(), List.of()));
+            ChatConversation.of(List.of(), List.of()));
 
     assertThat(params._additionalQueryParams().values("api-version")).containsExactly("2026-01-01");
   }
@@ -838,7 +838,7 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(
             customModel(Map.of("custom_field", "custom_value")),
             null,
-            new ConversationSnapshot(List.of(), List.of()));
+            ChatConversation.of(List.of(), List.of()));
 
     assertThat(requestBodyAsJson(params).path("custom_field").asText()).isEqualTo("custom_value");
   }
@@ -847,7 +847,7 @@ class AnthropicMessageRequestConverterTest {
   void directBackendNeverEmitsAdditionalBodyPropertiesEvenIfNoneConfigured() {
     final var params =
         converter.toMessageCreateParams(
-            model(null), null, new ConversationSnapshot(List.of(), List.of()));
+            model(null), null, ChatConversation.of(List.of(), List.of()));
 
     // no additional body properties beyond the standard request fields
     assertThat(requestBodyAsJson(params).has("custom_field")).isFalse();
@@ -857,7 +857,7 @@ class AnthropicMessageRequestConverterTest {
   void customBackendWithNoBodyPropertiesAddsNothing() {
     final var params =
         converter.toMessageCreateParams(
-            customModel(null), null, new ConversationSnapshot(List.of(), List.of()));
+            customModel(null), null, ChatConversation.of(List.of(), List.of()));
 
     assertThat(requestBodyAsJson(params).has("custom_field")).isFalse();
   }
@@ -870,7 +870,7 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(
             apiModel(Map.of("X-Hidden-Header", "hidden-value"), null, null),
             null,
-            new ConversationSnapshot(List.of(), List.of()));
+            ChatConversation.of(List.of(), List.of()));
 
     assertThat(params._additionalHeaders().values("X-Hidden-Header"))
         .containsExactly("hidden-value");
@@ -882,7 +882,7 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(
             apiModel(null, Map.of("api-version", "2026-01-01"), null),
             null,
-            new ConversationSnapshot(List.of(), List.of()));
+            ChatConversation.of(List.of(), List.of()));
 
     assertThat(params._additionalQueryParams().values("api-version")).containsExactly("2026-01-01");
   }
@@ -893,7 +893,7 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(
             apiModel(null, null, Map.of("hidden_field", "hidden_value")),
             null,
-            new ConversationSnapshot(List.of(), List.of()));
+            ChatConversation.of(List.of(), List.of()));
 
     assertThat(requestBodyAsJson(params).path("hidden_field").asText()).isEqualTo("hidden_value");
   }

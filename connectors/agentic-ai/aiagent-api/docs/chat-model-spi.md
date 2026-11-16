@@ -4,9 +4,10 @@
 
 `ChatModel` (`aiagent/api/chatmodel/ChatModel.java`) is the provider SPI: an `AutoCloseable` exposing a
 single `ChatResult execute(ChatRequest request)`. `ChatRequest` bundles the `AgentExecutionContext` and
-the windowed `ConversationSnapshot` (`BaseAgentRequestHandler` builds the snapshot via
+the `ChatConversation` (`BaseAgentRequestHandler` builds it via
 `documentExpander.expand(conversation.window(agentConfiguration.contextWindowSize()), documentHandling, documentFactory)`
-with the document handling of the instance and the document factory of the job). `ChatResult` is a sealed `Completed |
+with the document handling of the instance and the document factory of the job; see
+[Request messages](#request-messages)). `ChatResult` is a sealed `Completed |
 Continuation`, each carrying the produced `AssistantMessage` and `AgentMetrics` for that one round-trip:
 - **`Completed`** — the round-trip finished the agent's turn; no further model call is needed for it.
 - **`Continuation`** — the provider paused mid-turn (e.g. Anthropic's `pause_turn` stop reason) and
@@ -33,6 +34,32 @@ user-supplied factories via `CustomProviderConfiguration` (see [`extension-point
 configuration and routes to the single match; a configuration matched by zero factories throws
 `IllegalArgumentException`, and one matched by more than one throws `IllegalStateException` — fail
 loud rather than resolving implicitly.
+
+## Request messages
+
+`ChatConversation` holds the messages and the tool definitions of one model call
+([ADR 019](../../docs/adr/019-typed-chat-request-messages.md)). The messages are the sealed `ChatRequestMessage`, one
+record per role:
+
+| Message                     | Content                                                                                                    |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `ChatSystemMessage`         | `TextContent` blocks; `text()` joins them with a line break                                                |
+| `ChatUserMessage`           | `PortableContent`: `TextContent`, `DocumentContent`, `ObjectContent`                                       |
+| `ChatAssistantMessage`      | `ChatContent` (`PortableContent`, `ReasoningContent`, `ProviderContent`), tool calls, message id, metadata |
+| `ChatToolCallResultMessage` | `ChatToolCallResult` per call: the call id, the tool name and `PortableContent`                            |
+
+`ChatContent` and `PortableContent` are sealed sub-interfaces of `Content`, in the content package of `aiagent-model`.
+`AgentDocumentContent` is not a `ChatContent`, so a provider never receives it, and reasoning and provider-native content
+reach a provider only in an assistant message. A provider converter switches over these types with no arm for blocks it
+cannot receive. `ChatConversation.leadingSystemMessage()` returns the first message when it is a system message.
+
+`ChatConversation.of(messages, toolDefinitions)` builds the conversation from persisted messages. It fails with an
+`IllegalArgumentException` for a block that a message of its role cannot hold: an `AgentDocumentContent` in any message,
+a `ReasoningContent` or a `ProviderContent` outside an assistant message, or a block other than `TextContent` in a system
+message. `DocumentExpander` calls it after it expands the document blocks, for every agent instance. A test of a custom
+`ChatModel` can build its request with it.
+
+The LangChain4j chat model maps the conversation back to the persisted message types, which its converters read.
 
 ## Normalized stop reasons & ChatModelRejectedException
 

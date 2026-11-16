@@ -18,13 +18,13 @@ import com.google.genai.types.Part;
 import com.google.genai.types.ThinkingConfig;
 import com.google.genai.types.ThinkingLevel;
 import com.google.genai.types.Tool;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
-import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatAssistantMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequestMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatSystemMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
@@ -45,11 +45,11 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Maps a windowed {@link ConversationSnapshot} plus the resolved Gemini model configuration to the
- * Gemini SDK's {@link GenerateContentConfig} (model parameters, thinking, system instruction,
- * tools, structured output) and {@link Content} history (message-by-message), translating the
- * domain {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire
- * shape via the {@link GeminiContentConverter} built for parts.
+ * Maps a {@link ChatConversation} plus the resolved Gemini model configuration to the Gemini SDK's
+ * {@link GenerateContentConfig} (model parameters, thinking, system instruction, tools, structured
+ * output) and {@link Content} history (message-by-message), translating the {@link
+ * ChatRequestMessage} / {@link ToolCall} / {@link ChatToolCallResult} model into the wire shape via
+ * the {@link GeminiContentConverter} built for parts.
  *
  * <p>Two methods rather than one combined request object: {@code
  * GeminiChatModel#generateContentStream(model, contents, config)} (Task 6) takes contents and
@@ -70,37 +70,34 @@ public class GeminiContentRequestConverter {
   public GenerateContentConfig toGenerateContentConfig(
       GeminiChatModelConfiguration configuration,
       @Nullable ResponseConfiguration response,
-      ConversationSnapshot snapshot) {
+      ChatConversation conversation) {
     final var params = configuration.googleGemini().model().parameters();
 
     final var builder = GenerateContentConfig.builder();
 
     applyModelParameters(builder, params);
     applyThinking(builder, params);
-    applySystemInstruction(builder, snapshot);
-    applyTools(builder, snapshot.toolDefinitions());
+    applySystemInstruction(builder, conversation);
+    applyTools(builder, conversation.toolDefinitions());
     applyStructuredOutput(builder, response);
 
     return builder.build();
   }
 
-  public List<Content> toContents(ConversationSnapshot snapshot) {
-    // Seed an empty list so an all-system/empty snapshot returns empty rather than null.
+  public List<Content> toContents(ChatConversation conversation) {
+    // Seed an empty list so an all-system/empty conversation returns empty rather than null.
     final List<Content> contents = new ArrayList<>();
-    for (final Message message : snapshot.messages()) {
+    for (final ChatRequestMessage message : conversation.messages()) {
       switch (message) {
-        case SystemMessage ignored -> {
+        case ChatSystemMessage ignored -> {
           // hoisted to systemInstruction, see applySystemInstruction()
         }
-        case UserMessage user ->
+        case ChatUserMessage user ->
             addContent(contents, ROLE_USER, contentConverter.toParts(user.content()));
-        case AssistantMessage assistant ->
+        case ChatAssistantMessage assistant ->
             addContent(contents, ROLE_MODEL, assistantParts(assistant));
-        case ToolCallResultMessage toolResults ->
+        case ChatToolCallResultMessage toolResults ->
             addContent(contents, ROLE_USER, toolResultParts(toolResults));
-        default ->
-            throw new IllegalArgumentException(
-                "Unsupported message type: " + message.getClass().getSimpleName());
       }
     }
     return contents;
@@ -108,9 +105,9 @@ public class GeminiContentRequestConverter {
 
   /**
    * Skips emitting a {@link Content} for a message that would otherwise carry an empty {@code
-   * parts} list (e.g. a {@link UserMessage} or {@link AssistantMessage} with no content and, for
-   * the latter, no tool calls) -- Gemini's own examples never send an empty parts array, and this
-   * mirrors the Anthropic converter's care to never emit an empty content array.
+   * parts} list (e.g. a {@link ChatUserMessage} or {@link ChatAssistantMessage} with no content
+   * and, for the latter, no tool calls) -- Gemini's own examples never send an empty parts array,
+   * and this mirrors the Anthropic converter's care to never emit an empty content array.
    */
   private void addContent(List<Content> contents, String role, List<Part> parts) {
     if (parts.isEmpty()) {
@@ -195,8 +192,8 @@ public class GeminiContentRequestConverter {
   }
 
   private void applySystemInstruction(
-      GenerateContentConfig.Builder builder, ConversationSnapshot snapshot) {
-    final var systemMessage = MessageUtil.leadingSystemMessage(snapshot.messages());
+      GenerateContentConfig.Builder builder, ChatConversation conversation) {
+    final var systemMessage = conversation.leadingSystemMessage();
     if (systemMessage.isEmpty()) {
       return;
     }
@@ -247,7 +244,7 @@ public class GeminiContentRequestConverter {
     }
   }
 
-  private List<Part> assistantParts(AssistantMessage assistant) {
+  private List<Part> assistantParts(ChatAssistantMessage assistant) {
     final List<Part> parts = new ArrayList<>(contentConverter.toParts(assistant.content()));
     for (final ToolCall toolCall : assistant.toolCalls()) {
       parts.add(toFunctionCallPart(toolCall));
@@ -308,9 +305,9 @@ public class GeminiContentRequestConverter {
                 signature.getClass().getSimpleName()));
   }
 
-  private List<Part> toolResultParts(ToolCallResultMessage message) {
+  private List<Part> toolResultParts(ChatToolCallResultMessage message) {
     final List<Part> parts = new ArrayList<>();
-    for (final ToolCallResultContent result : message.results()) {
+    for (final ChatToolCallResult result : message.results()) {
       parts.addAll(toolResultParts(result));
     }
     return parts;
@@ -320,8 +317,9 @@ public class GeminiContentRequestConverter {
    * Converts a single tool result into {@link Part}s, stamping {@code name}/{@code id} onto the
    * {@code functionResponse} part(s) {@link GeminiContentConverter#toFunctionResponseParts(List)}
    * deliberately leaves blank (see that method's javadoc -- the correlating identity lives on this
-   * {@link ToolCallResultContent}, one level up from the individual {@link
-   * io.camunda.connector.agenticai.aiagent.model.message.content.Content} items it converts).
+   * {@link ChatToolCallResult}, one level up from the individual {@link
+   * io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent} items it
+   * converts).
    *
    * <p>{@code toFunctionResponseParts} emits one {@link Part} per {@code Content} item, so a
    * multi-element result (e.g. two {@code TextContent}s) comes back as multiple sibling {@code
@@ -337,7 +335,7 @@ public class GeminiContentRequestConverter {
    * {@link ToolCallResult#CONTENT_NO_RESULT} functionResponse in that case, same convention already
    * used for a canceled tool call.
    */
-  private List<Part> toolResultParts(ToolCallResultContent result) {
+  private List<Part> toolResultParts(ChatToolCallResult result) {
     final List<Part> parts = contentConverter.toFunctionResponseParts(result.content());
 
     final List<Part> functionResponseParts =

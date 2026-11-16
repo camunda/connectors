@@ -45,10 +45,14 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequestMessage;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventionException;
@@ -339,8 +343,8 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.elementActivations()).isEmpty();
 
     // snapshot is captured before the assistant message is ingested
-    assertMessagesEqualIgnoringSystemMessageId(
-        chatModelRequestCaptor.getValue().snapshot().messages(), SYSTEM_MESSAGE, USER_MESSAGE);
+    assertThat(chatModelRequestCaptor.getValue().conversation().messages())
+        .isEqualTo(requestMessages(SYSTEM_MESSAGE, USER_MESSAGE));
   }
 
   @Test
@@ -598,8 +602,8 @@ class AgentSubProcessRequestHandlerTest {
             InProcessConversationContext.class,
             c -> assertThat(c.messages()).containsExactly(USER_MESSAGE, assistantMessage));
     // no system message is sent to the LLM either
-    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
-        .containsExactly(USER_MESSAGE);
+    assertThat(chatModelRequestCaptor.getValue().conversation().messages())
+        .isEqualTo(requestMessages(USER_MESSAGE));
   }
 
   @Test
@@ -890,25 +894,23 @@ class AgentSubProcessRequestHandlerTest {
 
     // the tool is offered next to the tools of the process, in every request
     for (final var request : chatModelRequestCaptor.getAllValues()) {
-      assertThat(request.snapshot().toolDefinitions())
+      assertThat(request.conversation().toolDefinitions())
           .extracting(ToolDefinition::name)
           .contains("acme_lookup");
     }
 
     // the second request carries the runtime tool results of the first round
     final var secondRequestMessages =
-        chatModelRequestCaptor.getAllValues().get(1).snapshot().messages();
+        chatModelRequestCaptor.getAllValues().get(1).conversation().messages();
     assertThat(secondRequestMessages.getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
                     .singleElement()
                     .satisfies(result -> {
                       assertThat(result.id()).isEqualTo("call-1");
                       assertThat(result.name()).isEqualTo("acme_lookup");
-                      assertThat(result.elementId()).isNull();
-                      assertThat(result.completedAt()).isNotNull();
                       assertThat(result.content())
                           .containsExactly(TextContent.textContent("found the customer"));
                     }));
@@ -931,7 +933,16 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(c.messages().get(2))
                   .isEqualTo(
                       firstMessage.withToolCalls(List.of(lookupCall.withKind(ToolKind.RUNTIME))));
-              assertThat(c.messages().get(3)).isInstanceOf(ToolCallResultMessage.class);
+              assertThat(c.messages().get(3))
+                  .isInstanceOfSatisfying(
+                      ToolCallResultMessage.class,
+                      message ->
+                          assertThat(message.results())
+                              .singleElement()
+                              .satisfies(result -> {
+                                assertThat(result.elementId()).isNull();
+                                assertThat(result.completedAt()).isNotNull();
+                              }));
               assertThat(c.messages().get(4)).isEqualTo(secondMessage);
             });
 
@@ -1005,12 +1016,12 @@ class AgentSubProcessRequestHandlerTest {
 
     verify(chatModel, times(2)).execute(any());
     // the tool is not offered, and the call never goes to the process
-    assertThat(chatModelRequestCaptor.getAllValues().get(0).snapshot().toolDefinitions())
+    assertThat(chatModelRequestCaptor.getAllValues().get(0).conversation().toolDefinitions())
         .extracting(ToolDefinition::name)
         .doesNotContain("acme_hidden");
-    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
                     .singleElement()
@@ -1038,7 +1049,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // no extra model call: only the call of the process is handed out
     verify(chatModel, times(1)).execute(any());
-    assertThat(chatModelRequestCaptor.getValue().snapshot().toolDefinitions())
+    assertThat(chatModelRequestCaptor.getValue().conversation().toolDefinitions())
         .extracting(ToolDefinition::name)
         .contains("acme_lookup");
     final var agentResponse = response.responseValue();
@@ -1212,12 +1223,12 @@ class AgentSubProcessRequestHandlerTest {
     // the tool and returns the results of all calls in the order of the calls
     verify(runtimeTools, times(1)).execute(any(), any(), anyList());
     assertThat(chatRequests).hasSize(2);
-    assertThat(chatRequests.get(1).snapshot().messages().getLast())
+    assertThat(chatRequests.get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
-                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .extracting(ChatToolCallResult::id, ChatToolCallResult::content)
                     .containsExactly(
                         tuple("call-1", List.of(TextContent.textContent("found the customer"))),
                         tuple("call-2", List.of(TextContent.textContent("Sunny")))));
@@ -1231,12 +1242,12 @@ class AgentSubProcessRequestHandlerTest {
     // the call was tagged in the first job: it gets an error result and is not left to the process
     // forever
     assertThat(chatRequests).hasSize(2);
-    assertThat(chatRequests.get(1).snapshot().messages().getLast())
+    assertThat(chatRequests.get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
-                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .extracting(ChatToolCallResult::id, ChatToolCallResult::content)
                     .containsExactly(
                         tuple(
                             "call-1",
@@ -1256,12 +1267,12 @@ class AgentSubProcessRequestHandlerTest {
     // the call was rejected in the first job: the tool is never called with the arguments of a call
     // the model made without being offered it
     assertThat(chatRequests).hasSize(2);
-    assertThat(chatRequests.get(1).snapshot().messages().getLast())
+    assertThat(chatRequests.get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
-                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .extracting(ChatToolCallResult::id, ChatToolCallResult::content)
                     .containsExactly(
                         tuple(
                             "call-1",
@@ -1308,14 +1319,14 @@ class AgentSubProcessRequestHandlerTest {
 
     // the runtime call was not executed yet when the event arrived: it is cancelled and never runs
     verify(runtimeTools, never()).execute(any(), any(), anyList());
-    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
-        .filteredOn(ToolCallResultMessage.class::isInstance)
+    assertThat(chatModelRequestCaptor.getValue().conversation().messages())
+        .filteredOn(ChatToolCallResultMessage.class::isInstance)
         .singleElement()
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message -> {
               assertThat(message.results())
-                  .extracting(ToolCallResultContent::id)
+                  .extracting(ChatToolCallResult::id)
                   .containsExactly("call-1", "call-2");
               assertThat(message.results())
                   .allSatisfy(result ->
@@ -1397,8 +1408,8 @@ class AgentSubProcessRequestHandlerTest {
 
     verify(chatModel, times(3)).execute(any());
     verify(runtimeTools, times(1)).execute(any(), any(), anyList());
-    assertThat(chatModelRequestCaptor.getAllValues().get(2).snapshot().messages().getLast())
-        .isInstanceOf(ToolCallResultMessage.class);
+    assertThat(chatModelRequestCaptor.getAllValues().get(2).conversation().messages().getLast())
+        .isInstanceOf(ChatToolCallResultMessage.class);
     assertThat(response.responseValue().responseMessage()).isEqualTo(doneMessage);
     assertThat(response.responseValue().context().metrics().modelCalls()).isEqualTo(3);
 
@@ -1568,9 +1579,9 @@ class AgentSubProcessRequestHandlerTest {
     // receives the call
     verify(chatModel, times(2)).execute(any());
     verify(runtimeTools, never()).execute(any(), any(), anyList());
-    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
                     .singleElement()
@@ -1609,12 +1620,12 @@ class AgentSubProcessRequestHandlerTest {
     final ArgumentCaptor<List<ToolCall>> executedCalls = ArgumentCaptor.forClass(List.class);
     verify(runtimeTools).execute(any(), any(), executedCalls.capture());
     assertThat(executedCalls.getValue()).extracting(ToolCall::id).containsExactly("call-2");
-    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
-                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .extracting(ChatToolCallResult::id, ChatToolCallResult::content)
                     .containsExactly(
                         tuple(
                             "call-1",
@@ -1641,12 +1652,12 @@ class AgentSubProcessRequestHandlerTest {
 
     verify(runtimeTools, times(1)).execute(any(), any(), anyList());
     assertThat(chatRequests).hasSize(2);
-    assertThat(chatRequests.get(1).snapshot().messages().getLast())
+    assertThat(chatRequests.get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
-                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .extracting(ChatToolCallResult::id, ChatToolCallResult::content)
                     .containsExactly(
                         tuple(
                             "call-1",
@@ -1894,9 +1905,9 @@ class AgentSubProcessRequestHandlerTest {
         });
 
     // the model reads the handle of the document in the tool result, never the document
-    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
@@ -1931,9 +1942,9 @@ class AgentSubProcessRequestHandlerTest {
                 AgentDocumentOrigin.toolCall("getWeather", "call-2")));
     // the document of the runtime tool is shown as its handle in the tool result of the next
     // request
-    assertThat(run.chatRequests().get(1).snapshot().messages().getLast())
+    assertThat(run.chatRequests().get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
@@ -1964,9 +1975,9 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     assertThat(response.responseValue().context().documents().all()).isEmpty();
-    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results().getFirst().content())
                     .containsExactly(TextContent.textContent("The report could not be created.")));
@@ -2025,7 +2036,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertThat(chatModelRequestCaptor.getValue().snapshot().toolDefinitions())
+    assertThat(chatModelRequestCaptor.getValue().conversation().toolDefinitions())
         .containsExactlyElementsOf(TOOL_DEFINITIONS);
     assertThat(response.responseValue().context().features()).isEmpty();
   }
@@ -2057,12 +2068,12 @@ class AgentSubProcessRequestHandlerTest {
     verify(chatModel, times(2)).execute(any());
     verify(runtimeTools, never()).execute(any(), any(), anyList());
     assertThat(response.responseValue().toolCalls()).isEmpty();
-    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).conversation().messages().getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
-                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .extracting(ChatToolCallResult::id, ChatToolCallResult::content)
                     .containsExactly(
                         tuple(
                             "call-1",
@@ -2317,25 +2328,23 @@ class AgentSubProcessRequestHandlerTest {
 
     // the tool is offered next to the tools of the process, in every request
     for (final var request : chatModelRequestCaptor.getAllValues()) {
-      assertThat(request.snapshot().toolDefinitions())
+      assertThat(request.conversation().toolDefinitions())
           .extracting(ToolDefinition::name)
           .contains("acme_lookup");
     }
 
     // the second request carries the runtime tool results of the first round
     final var secondRequestMessages =
-        chatModelRequestCaptor.getAllValues().get(1).snapshot().messages();
+        chatModelRequestCaptor.getAllValues().get(1).conversation().messages();
     assertThat(secondRequestMessages.getLast())
         .isInstanceOfSatisfying(
-            ToolCallResultMessage.class,
+            ChatToolCallResultMessage.class,
             message ->
                 assertThat(message.results())
                     .singleElement()
                     .satisfies(result -> {
                       assertThat(result.id()).isEqualTo("call-1");
                       assertThat(result.name()).isEqualTo("acme_lookup");
-                      assertThat(result.elementId()).isNull();
-                      assertThat(result.completedAt()).isNotNull();
                       assertThat(result.content())
                           .containsExactly(TextContent.textContent("found the customer"));
                     }));
@@ -2358,7 +2367,16 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(c.messages().get(2))
                   .isEqualTo(
                       firstMessage.withToolCalls(List.of(lookupCall.withKind(ToolKind.RUNTIME))));
-              assertThat(c.messages().get(3)).isInstanceOf(ToolCallResultMessage.class);
+              assertThat(c.messages().get(3))
+                  .isInstanceOfSatisfying(
+                      ToolCallResultMessage.class,
+                      message ->
+                          assertThat(message.results())
+                              .singleElement()
+                              .satisfies(result -> {
+                                assertThat(result.elementId()).isNull();
+                                assertThat(result.completedAt()).isNotNull();
+                              }));
               assertThat(c.messages().get(4)).isEqualTo(secondMessage);
             });
 
@@ -2407,5 +2425,9 @@ class AgentSubProcessRequestHandlerTest {
         .get()
         .extracting(turn -> ((AgentConversationTurn) turn).assistantMessage())
         .isEqualTo(firstMessage.withToolCalls(List.of(lookupCall.withKind(ToolKind.RUNTIME))));
+  }
+
+  private static List<ChatRequestMessage> requestMessages(Message... messages) {
+    return ChatConversation.of(List.of(messages), List.of()).messages();
   }
 }

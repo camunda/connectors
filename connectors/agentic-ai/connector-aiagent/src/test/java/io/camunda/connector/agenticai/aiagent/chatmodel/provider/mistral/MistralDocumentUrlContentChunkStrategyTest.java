@@ -12,8 +12,8 @@ import static org.mockito.Mockito.when;
 
 import com.openai.core.JsonValue;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -41,7 +41,7 @@ class MistralDocumentUrlContentChunkStrategyTest {
     final var document = pdfDocument();
 
     final var parts =
-        strategy.toContentParts(List.of((Content) new DocumentContent(document, null)));
+        strategy.toContentParts(List.of((PortableContent) new DocumentContent(document, null)));
 
     assertThat(parts).hasSize(1);
     assertThat(parts.get(0).isFile()).isFalse();
@@ -64,7 +64,7 @@ class MistralDocumentUrlContentChunkStrategyTest {
     when(document.asBase64()).thenReturn("QUJD");
 
     final var parts =
-        strategy.toContentParts(List.of((Content) new DocumentContent(document, null)));
+        strategy.toContentParts(List.of((PortableContent) new DocumentContent(document, null)));
 
     assertThat(parts).hasSize(1);
     assertThat(parts.get(0).isImageUrl()).isTrue();

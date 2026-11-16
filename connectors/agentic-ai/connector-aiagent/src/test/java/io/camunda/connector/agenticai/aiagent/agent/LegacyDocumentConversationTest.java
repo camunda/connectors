@@ -16,6 +16,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
@@ -234,13 +237,27 @@ class LegacyDocumentConversationTest {
 
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());
-    final var snapshot =
+    final var window = conversation.window(100);
+    final var snapshot = window.messages();
+    final var expansion =
         TestDocuments.documentExpander()
             .expand(
-                conversation.window(100),
+                window,
                 conversation.persistedContext().documentHandling(),
-                TestDocuments.documentFactory())
-            .messages();
+                TestDocuments.documentFactory());
+
+    // the chat request holds every window message in order, with the user content as it is
+    assertThat(expansion).isEqualTo(ChatConversation.of(snapshot, window.toolDefinitions()));
+    assertThat(
+            expansion.messages().stream()
+                .filter(ChatUserMessage.class::isInstance)
+                .map(message -> (Object) ((ChatUserMessage) message).content())
+                .toList())
+        .containsExactlyElementsOf(
+            snapshot.stream()
+                .filter(UserMessage.class::isInstance)
+                .map(message -> (Object) ((UserMessage) message).content())
+                .toList());
 
     // no tag is inserted or rewritten: the window holds the stored messages and the new input as
     // they are
@@ -277,18 +294,17 @@ class LegacyDocumentConversationTest {
             null,
             List.of(TestMessagesFixture.userMessage("Next")));
 
-    final var snapshot =
+    final var expansion =
         TestDocuments.documentExpander()
             .expand(
                 conversation.window(100),
                 conversation.persistedContext().documentHandling(),
-                TestDocuments.documentFactory())
-            .messages();
+                TestDocuments.documentFactory());
 
     final var toolResult =
-        snapshot.stream()
-            .filter(ToolCallResultMessage.class::isInstance)
-            .map(ToolCallResultMessage.class::cast)
+        expansion.messages().stream()
+            .filter(ChatToolCallResultMessage.class::isInstance)
+            .map(ChatToolCallResultMessage.class::cast)
             .findFirst()
             .orElseThrow();
     final var original =

@@ -14,7 +14,7 @@ import org.jspecify.annotations.Nullable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record TextContent(
     String text, @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
-    implements Content {
+    implements PortableContent {
   public TextContent {
     if (text == null || text.isBlank()) {
       throw new IllegalArgumentException("Text cannot be null or empty");

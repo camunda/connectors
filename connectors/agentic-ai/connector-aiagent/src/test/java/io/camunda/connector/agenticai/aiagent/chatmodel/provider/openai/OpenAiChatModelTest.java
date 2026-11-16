@@ -22,11 +22,11 @@ import com.openai.core.http.Headers;
 import com.openai.errors.BadRequestException;
 import com.openai.models.ErrorObject;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -63,7 +63,7 @@ class OpenAiChatModelTest {
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
 
   private final ChatRequest request =
-      new ChatRequest(executionContext, new ConversationSnapshot(List.of(), List.of()));
+      new ChatRequest(executionContext, ChatConversation.of(List.of(), List.of()));
 
   private OpenAiChatModel api;
 

@@ -293,12 +293,12 @@ public final class AgentConversation {
   }
 
   /**
-   * Applies the context window filter and returns a {@link ConversationSnapshot} ready to send to
-   * the LLM. Tool definitions come from {@link #configuration}, not the durable {@link
-   * AgentContext} — {@link AgentConfiguration#toolDefinitions()} is the authoritative current tool
-   * list for this invocation once the handler has populated it via {@link
-   * AgentConfiguration#withToolDefinitions} with the tools of the process and the enabled runtime
-   * tools.
+   * Applies the context window filter and returns a {@link ConversationSnapshot}, the persisted
+   * messages that the request for the LLM is built from. Tool definitions come from {@link
+   * #configuration}, not the durable {@link AgentContext} — {@link
+   * AgentConfiguration#toolDefinitions()} is the authoritative current tool list for this
+   * invocation once the handler has populated it via {@link AgentConfiguration#withToolDefinitions}
+   * with the tools of the process and the enabled runtime tools.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);

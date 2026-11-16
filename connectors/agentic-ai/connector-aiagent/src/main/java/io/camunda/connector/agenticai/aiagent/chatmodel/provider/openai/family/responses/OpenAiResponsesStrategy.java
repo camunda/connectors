@@ -54,7 +54,7 @@ public class OpenAiResponsesStrategy implements OpenAiApiFamilyStrategy {
         requestConverter.toRequest(
             configuration,
             request.executionContext().configuration().response(),
-            request.snapshot());
+            request.conversation());
     if (LOG.isTraceEnabled()) {
       LOG.trace("OpenAI Responses API request: {}", LoggingSupport.toJson(MAPPER, params._body()));
     }

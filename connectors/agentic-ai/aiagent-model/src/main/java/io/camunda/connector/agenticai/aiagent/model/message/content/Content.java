@@ -19,12 +19,6 @@ import java.util.Map;
   @JsonSubTypes.Type(value = ReasoningContent.class, name = "reasoning"),
   @JsonSubTypes.Type(value = ProviderContent.class, name = "provider")
 })
-public sealed interface Content
-    permits TextContent,
-        DocumentContent,
-        AgentDocumentContent,
-        ObjectContent,
-        ReasoningContent,
-        ProviderContent {
+public sealed interface Content permits ChatContent, AgentDocumentContent {
   Map<String, Object> metadata();
 }

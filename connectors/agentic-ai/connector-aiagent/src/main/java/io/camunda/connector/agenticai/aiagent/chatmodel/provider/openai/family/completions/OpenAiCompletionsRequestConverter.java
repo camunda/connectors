@@ -26,27 +26,25 @@ import com.openai.models.chat.completions.ChatCompletionSystemMessageParam;
 import com.openai.models.chat.completions.ChatCompletionTool;
 import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
 import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatAssistantMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatConversation;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequestMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatSystemMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiStrictJsonSchemas;
-import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
-import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ChatContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
 import java.util.ArrayList;
@@ -57,10 +55,10 @@ import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Maps a windowed {@link ConversationSnapshot} plus a provider-neutral {@link
- * CompletionsRequestSpec} to an OpenAI SDK {@link ChatCompletionCreateParams} request, translating
- * the domain {@link Message} / {@link ToolCall} / {@link ToolCallResultContent} model into the wire
- * shape via {@link OpenAiContentConverter} for generic JSON serialization and the injected {@link
+ * Maps a {@link ChatConversation} plus a provider-neutral {@link CompletionsRequestSpec} to an
+ * OpenAI SDK {@link ChatCompletionCreateParams} request, translating the {@link ChatRequestMessage}
+ * / {@link ToolCall} / {@link ChatToolCallResult} model into the wire shape via {@link
+ * OpenAiContentConverter} for generic JSON serialization and the injected {@link
  * OpenAiCompletionsContentChunkStrategy} for user-message content parts. This converter has no
  * dependency on any specific {@code ProviderConfiguration} subtype -- the OpenAI provider and any
  * other caller of the Chat Completions wire format (e.g. the Mistral provider) each build their own
@@ -101,7 +99,7 @@ public class OpenAiCompletionsRequestConverter {
   public ChatCompletionCreateParams toRequest(
       CompletionsRequestSpec spec,
       @Nullable ResponseConfiguration response,
-      ConversationSnapshot snapshot) {
+      ChatConversation conversation) {
     final var builder = ChatCompletionCreateParams.builder().model(spec.model());
 
     // Chat Completions streaming omits `usage` unless `stream_options.include_usage=true`; this
@@ -111,8 +109,8 @@ public class OpenAiCompletionsRequestConverter {
 
     applyModelParameters(builder, spec);
     applyReasoning(builder, spec);
-    applyMessages(builder, snapshot.messages());
-    applyTools(builder, snapshot.toolDefinitions());
+    applyMessages(builder, conversation.messages());
+    applyTools(builder, conversation.toolDefinitions());
     applyStructuredOutput(builder, response);
     applyRequestCustomizations(builder, spec.customizations());
 
@@ -153,35 +151,32 @@ public class OpenAiCompletionsRequestConverter {
     }
   }
 
-  private void applyMessages(ChatCompletionCreateParams.Builder builder, List<Message> messages) {
+  private void applyMessages(
+      ChatCompletionCreateParams.Builder builder, List<ChatRequestMessage> messages) {
     final List<ChatCompletionMessageParam> items = new ArrayList<>();
-    for (final Message message : messages) {
+    for (final ChatRequestMessage message : messages) {
       switch (message) {
-        case SystemMessage system ->
+        case ChatSystemMessage system ->
             items.add(ChatCompletionMessageParam.ofSystem(systemMessage(system)));
-        case UserMessage user -> items.add(ChatCompletionMessageParam.ofUser(userMessage(user)));
-        case AssistantMessage assistant -> {
+        case ChatUserMessage user ->
+            items.add(ChatCompletionMessageParam.ofUser(userMessage(user)));
+        case ChatAssistantMessage assistant -> {
           final ChatCompletionAssistantMessageParam assistantMessage = assistantMessage(assistant);
           if (assistantMessage != null) {
             items.add(ChatCompletionMessageParam.ofAssistant(assistantMessage));
           }
         }
-        case ToolCallResultMessage toolResults -> items.addAll(toolResultMessages(toolResults));
-        default ->
-            throw new IllegalArgumentException(
-                "Unsupported message type: " + message.getClass().getSimpleName());
+        case ChatToolCallResultMessage toolResults -> items.addAll(toolResultMessages(toolResults));
       }
     }
     builder.messages(items);
   }
 
-  private ChatCompletionSystemMessageParam systemMessage(SystemMessage system) {
-    return ChatCompletionSystemMessageParam.builder()
-        .content(MessageUtil.contentText(system))
-        .build();
+  private ChatCompletionSystemMessageParam systemMessage(ChatSystemMessage system) {
+    return ChatCompletionSystemMessageParam.builder().content(system.text()).build();
   }
 
-  private ChatCompletionUserMessageParam userMessage(UserMessage user) {
+  private ChatCompletionUserMessageParam userMessage(ChatUserMessage user) {
     return ChatCompletionUserMessageParam.builder()
         .content(
             ChatCompletionUserMessageParam.Content.ofArrayOfContentParts(
@@ -201,10 +196,11 @@ public class OpenAiCompletionsRequestConverter {
    * tool/function call, so such a message is omitted entirely rather than sent empty.
    */
   private @Nullable ChatCompletionAssistantMessageParam assistantMessage(
-      AssistantMessage assistant) {
-    final List<Content> plainContent =
+      ChatAssistantMessage assistant) {
+    final List<PortableContent> plainContent =
         assistant.content().stream()
-            .filter(c -> !(c instanceof ReasoningContent) && !(c instanceof ProviderContent))
+            .filter(PortableContent.class::isInstance)
+            .map(PortableContent.class::cast)
             .toList();
     final boolean useChunkedContent =
         assistant.content().stream()
@@ -238,28 +234,28 @@ public class OpenAiCompletionsRequestConverter {
 
   /**
    * Rebuilds the assistant message's {@code content} as a chunked array, preserving the original
-   * order of its {@link Content} entries: an entry the dialect recognizes as replayable is replayed
-   * as the chunk it supplies, and every other plain content entry becomes a {@code text} chunk.
-   * Only called once {@link #assistantMessage} has established at least one dialect- replayable
-   * entry is present, so the result is never empty.
+   * order of its {@link ChatContent} entries: an entry the dialect recognizes as replayable is
+   * replayed as the chunk it supplies, and every other plain content entry becomes a {@code text}
+   * chunk. Only called once {@link #assistantMessage} has established at least one
+   * dialect-replayable entry is present, so the result is never empty.
    */
-  private List<Map<String, Object>> toChunkedContent(List<Content> content) {
+  private List<Map<String, Object>> toChunkedContent(List<ChatContent> content) {
     final List<Map<String, Object>> chunks = new ArrayList<>();
-    for (final Content c : content) {
+    for (final ChatContent c : content) {
       final Optional<Map<String, Object>> replayable =
           contentDialect.toReplayableChunk(c, providerId);
       if (replayable.isPresent()) {
         chunks.add(replayable.get());
-      } else if (!(c instanceof ReasoningContent) && !(c instanceof ProviderContent)) {
-        chunks.add(Map.of("type", "text", "text", toTextOutput(List.of(c))));
+      } else if (c instanceof PortableContent portable) {
+        chunks.add(Map.of("type", "text", "text", toTextOutput(List.of(portable))));
       }
     }
     return chunks;
   }
 
-  private List<ChatCompletionMessageParam> toolResultMessages(ToolCallResultMessage message) {
+  private List<ChatCompletionMessageParam> toolResultMessages(ChatToolCallResultMessage message) {
     final List<ChatCompletionMessageParam> items = new ArrayList<>();
-    for (final ToolCallResultContent result : message.results()) {
+    for (final ChatToolCallResult result : message.results()) {
       items.add(
           ChatCompletionMessageParam.ofTool(
               ChatCompletionToolMessageParam.builder()
@@ -274,24 +270,18 @@ public class OpenAiCompletionsRequestConverter {
    * Flattens a message's structured content to a single text blob: {@link TextContent} is
    * concatenated verbatim, {@link ObjectContent} is unwrapped to its raw {@code content()}, and
    * {@link DocumentContent} is unwrapped to its raw {@code document()} reference -- in both cases
-   * so the polymorphic {@link Content} envelope itself, including its {@code type} discriminator,
-   * never leaks onto the wire. A document's bytes are already delivered to the model elsewhere, so
-   * this reference is never accompanied by a native embed, matching the tool-result document
-   * handling on the Responses and Anthropic siblings. Anything else falls back to serializing the
-   * whole content value: a {@link ReasoningContent} or a {@link ProviderContent}. An {@link
-   * AgentDocumentContent} block fails: the agent expands it before a request is built. Tool results
-   * are always text-only on this family.
+   * so the polymorphic content envelope itself, including its {@code type} discriminator, never
+   * leaks onto the wire. A document's bytes are already delivered to the model elsewhere, so this
+   * reference is never accompanied by a native embed, matching the tool-result document handling on
+   * the Responses and Anthropic siblings. Tool results are always text-only on this family.
    */
-  private String toTextOutput(List<Content> content) {
+  private String toTextOutput(List<PortableContent> content) {
     return content.stream()
         .map(c ->
             switch (c) {
               case TextContent text -> text.text();
-              case AgentDocumentContent block -> throw new UnexpandedAgentDocumentException(block);
               case ObjectContent obj -> contentConverter.writeAsJson(obj.content());
               case DocumentContent doc -> contentConverter.writeAsJson(doc.document());
-              case ReasoningContent reasoning -> contentConverter.writeAsJson(reasoning);
-              case ProviderContent provider -> contentConverter.writeAsJson(provider);
             })
         .collect(Collectors.joining("\n"));
   }

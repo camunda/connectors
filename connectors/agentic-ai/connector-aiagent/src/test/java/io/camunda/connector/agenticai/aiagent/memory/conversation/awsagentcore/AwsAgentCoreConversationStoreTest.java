@@ -20,6 +20,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatUserMessage;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
@@ -977,7 +978,7 @@ class AwsAgentCoreConversationStoreTest {
 
     assertThat(windowed.get(0))
         .isInstanceOfSatisfying(
-            UserMessage.class,
+            ChatUserMessage.class,
             expanded -> {
               assertThat(expanded.content()).hasSize(3);
               assertThat(expanded.content().subList(0, 2))

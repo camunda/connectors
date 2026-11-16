@@ -10,7 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.PortableContent;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,7 @@ class RuntimeToolResultTest {
   void nullsAreRejected() {
     assertThatThrownBy(() -> RuntimeToolResult.success((String) null))
         .isInstanceOf(NullPointerException.class);
-    assertThatThrownBy(() -> RuntimeToolResult.success((List<Content>) null))
+    assertThatThrownBy(() -> RuntimeToolResult.success((List<PortableContent>) null))
         .isInstanceOf(NullPointerException.class);
     assertThatThrownBy(() -> RuntimeToolResult.error(null))
         .isInstanceOf(NullPointerException.class);
@@ -64,7 +64,7 @@ class RuntimeToolResultTest {
 
   @Test
   void theContentIsACopyThatCannotBeChanged() {
-    final var blocks = new ArrayList<Content>(List.of(textContent("a")));
+    final var blocks = new ArrayList<PortableContent>(List.of(textContent("a")));
     final var result = RuntimeToolResult.success(blocks);
 
     blocks.add(textContent("b"));

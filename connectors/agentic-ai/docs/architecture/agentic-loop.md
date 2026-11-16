@@ -113,7 +113,7 @@ The loop operates as a distributed state machine between the connector runtime a
    - Register the documents of the turn in the agent documents (`TurnInput.applyTo`, for a `Tracked` agent instance),
      compose the system message and `AgentConversation.rehydrate` into a pending turn
    - Resolve a `ChatModel` for the configured provider via `ChatModelRegistry` and call
-     `execute(ChatRequest)` with the windowed `ConversationSnapshot` after `DocumentExpander.expand`; `ingest` the assistant response
+     `execute(ChatRequest)` with the `ChatConversation` that `DocumentExpander.expand` builds from the windowed `ConversationSnapshot`; `ingest` the assistant response
      into the turn. Before the ingest, `ToolCallAdmission` admits the tool calls of the assistant message: each gets the kind
      of its tool, or a rejection when the tool is not offered (see [What Happens When Tools Complete](#what-happens-when-tools-complete)). If the result is a `ChatResult.Continuation`
      rather than `Completed`, the handler loops — persisting the round as its own turn and re-calling the model with no new
