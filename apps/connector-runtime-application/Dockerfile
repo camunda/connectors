@@ -3,7 +3,7 @@
 # (camunda/connectors#10102); the exploded layout gives every library its own JarFile.
 # The jar is only ever treated as data here (unzip), never executed: the PR image workflow builds
 # this Dockerfile on a privileged runner with PR-supplied jars. Platform-independent, so run natively.
-FROM --platform=$BUILDPLATFORM alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f AS extract
+FROM --platform=$BUILDPLATFORM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS extract
 COPY target/*-with-dependencies.jar /tmp/runtime.jar
 RUN unzip -q /tmp/runtime.jar -d /tmp/runtime
 

@@ -113,7 +113,7 @@ limitations under the License.</license.inlineheader>
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.37.1</version.amqp-client>
-    <version.netty>4.2.20.Final</version.netty>
+    <version.netty>4.2.21.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.7</version.logback>
 
@@ -160,7 +160,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.4.0</version.kafka-clients>
     <!-- CVE-2026-106450 / CVE-2026-106451: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.4
          Ref: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv -->
-    <version.lz4-java>1.14.0</version.lz4-java>
+    <version.lz4-java>1.14.1</version.lz4-java>
 
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.10.5</version.microsoft-kiota-abstraction>
@@ -209,7 +209,7 @@ limitations under the License.</license.inlineheader>
     <!-- community releases are built against one core release: keep the prefix equal to version.langchain4j -->
     <version.langchain4j-community>1.23.0-beta33</version.langchain4j-community>
     <version.mcp-sdk>2.2.0</version.mcp-sdk>
-    <version.elasticsearch-java>8.19.24</version.elasticsearch-java>
+    <version.elasticsearch-java>8.19.25</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.25</version.elasticsearch-rest-client>
 
     <version.scala>3.10.1</version.scala>
@@ -1219,7 +1219,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.opennlp</groupId>
         <artifactId>opennlp-tools</artifactId>
-        <version>2.5.12</version>
+        <version>2.5.13</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
