@@ -24,10 +24,8 @@ import java.util.Objects;
  *
  * <h2>Documents</h2>
  *
- * <p>A result holds a document as the {@link Document} of the connector SDK, also in an object. The
- * model reads its handle. Only Camunda documents are accepted: an external or inline document fails
- * the job with {@code UNSUPPORTED_DOCUMENT_REFERENCE}. An {@code AgentDocument} or an {@code
- * AgentDocumentContent} block fails the job.
+ * <p>A result holds a document as the {@link Document} of the connector SDK, also in an object.
+ * Return Camunda documents only.
  *
  * <h2>Effects</h2>
  *

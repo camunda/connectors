@@ -74,9 +74,6 @@ public interface RuntimeTool {
    * Handles {@code call}, only when the tool is enabled. A {@link RuntimeToolException} becomes an
    * error result; any other exception fails the job.
    *
-   * <p>A call whose document parameter is not the handle of a known document gets an error result
-   * and does not reach the tool.
-   *
    * @return the result, never {@code null}
    */
   RuntimeToolResult call(RuntimeToolContext context, RuntimeToolCall call);

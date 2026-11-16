@@ -29,7 +29,7 @@ public interface RuntimeToolContext {
 
   /**
    * The document with this id, such as the value of a document parameter of the call. A result can
-   * hold the document; the model reads its handle.
+   * hold the document.
    *
    * @return empty when the agent does not know the id
    */
