@@ -104,7 +104,7 @@ limitations under the License.</license.inlineheader>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.greenmail>2.1.15</version.greenmail>
     <version.xmlunit>2.14.0</version.xmlunit>
-    <version.json>20250517</version.json>
+    <version.json>20260814</version.json>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
