@@ -288,4 +288,4 @@ below make this style specific.
 - **Code agrees with the accepted ADRs.** When code diverges from an accepted ADR, the same change
   supersedes or extends the ADR with a new ADR, as the [ADR authoring rules](adr/README.md) say.
 
-For interfaces, follow the convention in [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md#architectural-invariants) (#9539).
+For interfaces, follow trait 4 of the [target architecture](target-architecture.md) (#9539).
