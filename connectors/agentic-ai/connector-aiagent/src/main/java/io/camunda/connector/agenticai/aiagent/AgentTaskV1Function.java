@@ -16,6 +16,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
+import java.util.List;
 
 /**
  * AI Agent outbound connector implementation (acting on a service task).
@@ -106,6 +107,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     },
     icon = "aiagent.svg")
 public class AgentTaskV1Function implements AgentConnectorFunction {
+  /** The deprecated v1 connector gives a new agent instance no agent instance feature. */
+  private static final List<String> NEW_INSTANCE_FEATURES = List.of();
+
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentTaskRequestHandler agentRequestHandler;
   private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
@@ -134,10 +138,15 @@ public class AgentTaskV1Function implements AgentConnectorFunction {
     if (rewriteV1ProviderConfigToV2) {
       var nativeConfig = providerConfigurationMapper.map(request.provider());
       return new AgentTaskExecutionContext(
-          context.getJobContext(), context, request.data(), nativeConfig, toolElementsResolver);
+          context.getJobContext(),
+          context,
+          request.data(),
+          nativeConfig,
+          toolElementsResolver,
+          NEW_INSTANCE_FEATURES);
     }
 
     return new AgentTaskExecutionContext(
-        context.getJobContext(), context, request, toolElementsResolver);
+        context.getJobContext(), context, request, toolElementsResolver, NEW_INSTANCE_FEATURES);
   }
 }

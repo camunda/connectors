@@ -30,11 +30,14 @@ import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaAssert;
@@ -45,6 +48,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -62,6 +66,9 @@ import org.springframework.core.io.Resource;
 public abstract class BaseAgentTest extends BaseAgenticAiTest {
 
   public static final String HTTPS_KEYSTORE_PASSWORD = "changeit";
+
+  /** The built-in c8__ tools that the model is offered next to the tools of the process. */
+  protected static final List<String> BUILT_IN_TOOL_NAMES = List.of(LoadDocumentTool.NAME);
 
   /**
    * Self-signed keystore backing the WireMock HTTPS port. Also usable as a truststore by clients
@@ -103,7 +110,8 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
                   .keystorePassword(HTTPS_KEYSTORE_PASSWORD)
                   .keyManagerPassword(HTTPS_KEYSTORE_PASSWORD)
                   .keystoreType("PKCS12")
-                  .notifier(new ConsoleNotifier(true)))
+                  .notifier(new ConsoleNotifier(true))
+                  .extensions(new DocumentIdPlaceholderTransformer()))
           .configureStaticDsl(true)
           .build();
 
@@ -241,9 +249,31 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
     return EXPECTED_TOOL_SPECIFICATIONS;
   }
 
+  /**
+   * The names of every tool the model is offered: the tools of the process, {@code addedTools} and
+   * the built-in c8__ tools.
+   */
+  protected List<String> offeredToolNamesWith(String... addedTools) {
+    final var names = new ArrayList<String>();
+    expectedTools().forEach(tool -> names.add(tool.name()));
+    names.addAll(List.of(addedTools));
+    names.addAll(BUILT_IN_TOOL_NAMES);
+    return names;
+  }
+
   protected void assertToolSpecifications(
       OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
-    assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expectedTools());
+    // the model sees the tools of the process next to the built-in c8__ tools
+    final var expected = new ArrayList<>(expectedTools());
+    final var loadDocument = new LoadDocumentTool().definition();
+    // a recorded request does not tell the kind of a tool
+    expected.add(
+        new ToolDefinition(
+            loadDocument.name(),
+            loadDocument.description(),
+            loadDocument.inputSchema(),
+            ToolKind.PROCESS));
+    assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }
 
   protected void assertConversationMessages(

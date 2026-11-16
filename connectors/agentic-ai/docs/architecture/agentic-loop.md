@@ -121,7 +121,8 @@ The loop operates as a distributed state machine between the connector runtime a
      input — until a `Completed` result ends the turn (see [`chat-model.md`](../../connector-aiagent/docs/chat-model.md#turn-based-continuation-loop)). The same happens when every
      tool call of the message is a local tool call: the handler checks the model-call limit, produces their tool call
      results the same way, from a `Ready` of the batch, and opens the next round with the assembled input
-     (`nextRuntimeToolRound`) and registers the documents of the results in the agent documents (`TurnInput.applyTo`)
+     (`nextRuntimeToolRound`), registers the documents of the results in the agent documents (`TurnInput.applyTo`) and
+     applies the effects of the results (the content of a document a tool asked for)
    - Store the updated conversation back to the memory store (via `ConversationSession`) and reduce it back to `AgentContext`
    - Resolve the document parameters of the process tool calls, transform them and create the response
 
@@ -308,7 +309,7 @@ assistant message against them (`ProcessToolCallResults(arrivedResults, complete
 - If all present: `complete` is `true`. `resolve` returns `CompositionResult.Ready` with a `ToolCallBatch` of all tool
   calls of the turn that holds the process results and the rejections of the rejected calls (`ToolCallBatch.of`). The
   calls of runtime tools are its unanswered calls; the handler executes them (`LocalToolCallExecutor`), and `assemble` builds the `ToolCallResultMessage` from the batch in
-  call order (`ToolCallResultsInputBuilder`). The builder does not know where a result came from
+  call order (`ToolCallResultsInputBuilder`) and applies the effects of the runtime tool results ([Add a runtime tool](extension-points.md#add-a-runtime-tool)). The builder does not know where a result came from
 - If missing and NOT interrupting: `complete` is `false`; `arrivedResults` holds only the process
   results that arrived so far → `resolve` returns `CompositionResult.Deferred(arrivedResults)`
   (ADR 011) → handler reports them to agent instance history and completes as a no-op. The agent adds the tool call results of
@@ -356,10 +357,12 @@ on the message:
   it holds back every other result of the batch.
 
 `RuntimeTools.execute` executes the calls in call order, one after the other. Its contract allows the calls of one
-message to be executed concurrently, with the results applied in call order. Every execution (`RuntimeToolExecution`) keeps the
-call, the `RuntimeToolResult` and the time the call started and completed; the tool call result for the conversation is
-derived from them. No state about the local tool calls is
-persisted between jobs apart from the `kind` and the `rejection` of the calls. See [ADR 016](../adr/016-runtime-tools.md).
+message to be executed concurrently, with the results applied in call order. Every execution (`RuntimeToolExecution`) keeps
+the call, the `RuntimeToolResult` the tool returned (with the effects of a successful one), the time the call started and
+completed, and derives the tool call result that becomes part of the conversation (`toolCallResult()`). The executor turns an execution into a
+`ToolCallBatch.Entry` (the result, its documents and its effects) with an exhaustive switch over `Success` and `Error`, and
+checks the result of a runtime tool against the documents known at the start of the batch ([Add a runtime tool](extension-points.md#add-a-runtime-tool)). No state about the local tool calls is persisted between
+jobs apart from the `kind` and the `rejection` of the calls. See [ADR 016](../adr/016-runtime-tools.md).
 
 ### No-Op Detection in BaseAgentRequestHandler
 

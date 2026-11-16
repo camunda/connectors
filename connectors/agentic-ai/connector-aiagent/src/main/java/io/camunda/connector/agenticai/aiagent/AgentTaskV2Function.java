@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV2Request;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -103,7 +104,8 @@ public class AgentTaskV2Function implements AgentConnectorFunction {
             context,
             request.data(),
             request.provider(),
-            toolElementsResolver);
+            toolElementsResolver,
+            AgentFeatures.ofNewInstance());
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

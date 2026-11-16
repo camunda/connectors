@@ -110,6 +110,8 @@ class AgentTaskRequestHandlerTest {
           TestObjectMapperSupplier.INSTANCE,
           new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
+  @Spy private ToolCallResultsInputBuilder resultsInputBuilder = new ToolCallResultsInputBuilder();
+
   @Spy private DocumentExpander documentExpander = TestDocuments.documentExpander();
 
   @Mock private AgentTaskExecutionContext agentExecutionContext;
@@ -455,8 +457,7 @@ class AgentTaskRequestHandlerTest {
           final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
           return ready.toolCallBatch().toolCalls().isEmpty()
               ? new TurnInput(List.of(inputMessages))
-              : new ToolCallResultsInputBuilder()
-                  .build(ready.agentContext(), ready.toolCallBatch());
+              : resultsInputBuilder.build(ready.agentContext(), ready.toolCallBatch());
         });
   }
 

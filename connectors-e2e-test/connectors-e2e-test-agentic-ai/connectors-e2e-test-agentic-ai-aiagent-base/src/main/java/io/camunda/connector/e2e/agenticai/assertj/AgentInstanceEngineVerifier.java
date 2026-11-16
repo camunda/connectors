@@ -49,6 +49,17 @@ public class AgentInstanceEngineVerifier {
     return new AgentInstanceEngineVerifier(client, agentInstanceKey);
   }
 
+  /** The committed history items of the agent instance in {@code historyItemKey} order. */
+  public static List<AgentInstanceHistory> committedHistory(
+      CamundaClient client, long agentInstanceKey) {
+    return client
+        .newAgentInstanceHistorySearchRequest(agentInstanceKey)
+        .filter(f -> f.commitStatus(AgentInstanceHistoryCommitStatus.COMMITTED))
+        .sort(s -> s.historyItemKey().asc())
+        .execute()
+        .items();
+  }
+
   public AgentInstanceEngineVerifier hasStatus(AgentInstanceStatus status) {
     instanceChecks.add(
         instance -> assertThat(instance.getStatus()).as("agent instance status").isEqualTo(status));
@@ -171,13 +182,7 @@ public class AgentInstanceEngineVerifier {
         .ignoreExceptions()
         .untilAsserted(() -> {
           final var instance = client.newAgentInstanceGetRequest(agentInstanceKey).execute();
-          final var history =
-              client
-                  .newAgentInstanceHistorySearchRequest(agentInstanceKey)
-                  .filter(f -> f.commitStatus(AgentInstanceHistoryCommitStatus.COMMITTED))
-                  .sort(s -> s.historyItemKey().asc())
-                  .execute()
-                  .items();
+          final var history = committedHistory(client, agentInstanceKey);
           instanceChecks.forEach(check -> check.accept(instance));
           historyChecks.forEach(check -> check.accept(history));
         });
