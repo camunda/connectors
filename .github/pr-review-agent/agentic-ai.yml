@@ -44,7 +44,8 @@ policy:
       against docs/acceptance-testing.md: the test level, the e2e decision, and
       the real-provider coverage for a provider change.
     - A change that removes or weakens an assertion is not a pure test change.
-      Report it as a finding.
+      Report it as a finding, unless the behavior changed on purpose and the PR
+      description says so.
     - element-templates/*.json, including hybrid/, are generated from the
       @ElementTemplate annotations and the Groovy transform scripts in bin/. A
       changed template JSON needs a matching change to an annotation or a
