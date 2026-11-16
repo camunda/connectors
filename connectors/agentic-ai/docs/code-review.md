@@ -56,9 +56,10 @@ A human reviewer must approve the change when any of these applies. Say so in th
 number:
 
 1. The change reads, stores, logs or forwards a credential, a token or an API key.
-2. The change affects running process instances or released element templates. Examples: the stored
-   conversation format, variable names, template IDs, job types.
-3. The change modifies a public API or an extension point.
+2. The change affects running process instances or released element templates. It changes a stored
+   shape, a wire format, a variable name, a template ID, a job type or a released template.
+3. The change modifies a type or member of `aiagent-api` or `aiagent-model`, an SPI named in
+   `design-guidelines.md` (I4), or anything that `breaking-changes.md` lists as a break.
 4. The change misses a location from step 4.
 5. The change weakens or removes a rule in the module docs.
 
