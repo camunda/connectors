@@ -412,6 +412,16 @@ class AgentContextTest {
   }
 
   @Test
+  void findsAToolDefinitionByItsName() {
+    final var first = ToolDefinition.builder().name("toolA").description("A tool").build();
+    final var second = ToolDefinition.builder().name("toolB").description("B tool").build();
+    final var agentContext = AgentContext.empty().withToolDefinitions(List.of(first, second));
+
+    assertThat(agentContext.toolDefinition("toolB")).contains(second);
+    assertThat(agentContext.toolDefinition("unknown")).isEmpty();
+  }
+
+  @Test
   void canBeSerializedAndDeserialized() throws JsonProcessingException {
     final var agentContext =
         AgentContext.builder()

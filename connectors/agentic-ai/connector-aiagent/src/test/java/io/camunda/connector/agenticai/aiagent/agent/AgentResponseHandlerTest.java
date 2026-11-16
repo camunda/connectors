@@ -11,36 +11,51 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SY
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT;
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -52,8 +67,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 class AgentResponseHandlerTest {
@@ -88,7 +106,11 @@ class AgentResponseHandlerTest {
 
   @BeforeEach
   void setUp() {
-    responseHandler = new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
+    responseHandler =
+        new AgentResponseHandlerImpl(
+            objectMapper,
+            gatewayToolHandlers,
+            new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
     // by default, registry passes tool calls through unchanged
     when(gatewayToolHandlers.transformToolCalls(any(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
@@ -347,7 +369,10 @@ class AgentResponseHandlerTest {
               .registerModule(
                   new JacksonModuleDocumentDeserializer(
                       mock(DocumentFactory.class), new DisabledIntrinsicFunctionExecutor()));
-      return new AgentResponseHandlerImpl(documentModuleObjectMapper, gatewayToolHandlers);
+      return new AgentResponseHandlerImpl(
+          documentModuleObjectMapper,
+          gatewayToolHandlers,
+          new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
     }
 
     @Test
@@ -389,15 +414,244 @@ class AgentResponseHandlerTest {
         new ToolCall("call-1", "acme_lookup", Map.of()).withKind(ToolKind.RUNTIME);
     final var processCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     final var conversation =
-        conversationWith(
-            new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false),
-            assistantMessage("both", List.of(runtimeCall, processCall)));
+        AgentConversation.rehydrate(
+                new AgentConfiguration(
+                    TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null),
+                BASE_AGENT_CONTEXT.withToolDefinitions(
+                    List.of(
+                        ToolDefinition.builder()
+                            .name("getWeather")
+                            .inputSchema(Map.of("type", "object"))
+                            .build())),
+                TurnReconstructor.reconstruct(List.of()),
+                systemMessage("system"),
+                List.of())
+            .ingest(
+                assistantMessage("both", List.of(runtimeCall, processCall)),
+                new AgentMetrics(1, AgentMetrics.TokenUsage.empty(), 2));
 
     final var response = responseHandler.createResponse(conversation);
 
     assertThat(response.toolCalls())
         .extracting(call -> call.metadata().id())
         .containsExactly("call-2");
+  }
+
+  // a call with invalid document parameters fails before the gateway tool handlers are reached
+  @Nested
+  @MockitoSettings(strictness = Strictness.LENIENT)
+  class DocumentParameters {
+
+    private static final ToolDefinition UPLOAD =
+        ToolDefinition.builder()
+            .name("upload")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of("doc", DocumentParameter.documentSchema(null))))
+            .build();
+    private static final ToolDefinition WEATHER =
+        ToolDefinition.builder().name("getWeather").inputSchema(Map.of("type", "object")).build();
+
+    private final Document report = createDocument("report", "report.txt");
+    private final AgentDocumentId reportId = AgentDocumentId.of(report);
+    private final AgentDocuments documents =
+        AgentDocuments.empty()
+            .register(
+                List.of(
+                    AgentDocument.of(
+                        report, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
+
+    private static Map<String, Object> handle(String id) {
+      return Map.of("type", "camunda.agenticai.document", "id", id);
+    }
+
+    private Object reportReference() {
+      return TestDocuments.referenceJson(documents.find(reportId).orElseThrow());
+    }
+
+    private AgentConversation conversation(List<String> features, ToolCall... calls) {
+      final var context =
+          AgentContext.empty()
+              .withState(AgentState.READY)
+              .withFeatures(features)
+              .withDocuments(documents)
+              .withToolDefinitions(List.of(UPLOAD, WEATHER));
+      return AgentConversation.rehydrate(
+              new AgentConfiguration(
+                  TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null),
+              context,
+              TurnReconstructor.reconstruct(List.of()),
+              systemMessage("system"),
+              List.of())
+          .ingest(
+              assistantMessage("calling", List.of(calls)),
+              new AgentMetrics(1, AgentMetrics.TokenUsage.empty(), calls.length));
+    }
+
+    private AgentConversation conversation(ToolCall... calls) {
+      return conversation(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS), calls);
+    }
+
+    /** The response to the text of the assistant message with the given tool calls. */
+    private static AgentResponse responseOf(
+        AgentConversation conversation, ToolCallProcessVariable... toolCalls) {
+      return AgentResponse.builder()
+          .context(conversation.toAgentContext())
+          .toolCalls(List.of(toolCalls))
+          .responseText("calling")
+          .build();
+    }
+
+    @Test
+    void handsTheCamundaDocumentReferenceOfAKnownHandleToTheProcess() {
+      final var call = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
+
+      final var conversation = conversation(call);
+
+      final var response = responseHandler.createResponse(conversation);
+
+      assertThat(response)
+          .isEqualTo(
+              responseOf(
+                  conversation,
+                  new ToolCallProcessVariable("u1", "upload", Map.of("doc", reportReference()))));
+    }
+
+    @Test
+    void keepsAnArgumentTheModelSentAsNullNextToAResolvedDocument() {
+      final var arguments = new LinkedHashMap<String, Object>();
+      arguments.put("doc", handle(reportId.value()));
+      arguments.put("note", null);
+      final var call = new ToolCall("u1", "upload", arguments);
+
+      final var conversation = conversation(call);
+
+      final var response = responseHandler.createResponse(conversation);
+
+      final var expected = new LinkedHashMap<String, Object>();
+      expected.put("doc", reportReference());
+      expected.put("note", null);
+      assertThat(response)
+          .isEqualTo(
+              responseOf(conversation, new ToolCallProcessVariable("u1", "upload", expected)));
+    }
+
+    @Test
+    void failsForACallWithAHandleOfAnUnknownDocumentThatIsHandedToTheProcess() {
+      final var call = new ToolCall("u1", "upload", Map.of("doc", handle("doc_000000000000")));
+
+      assertThatThrownBy(() -> responseHandler.createResponse(conversation(call)))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessage(
+              "The call 'u1' of the tool 'upload' was admitted, but its document parameters are invalid: "
+                  + "Parameter 'doc' has the id 'doc_000000000000', but the conversation has no document with this id."
+                  + " Pass the handle of a document from the conversation: a JSON object such as "
+                  + "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.");
+      verify(gatewayToolHandlers, never()).transformToolCalls(any(), any());
+    }
+
+    @Test
+    void keepsTheToolCallsOfTheStoredAssistantMessageAsTheModelSentThem() {
+      final var call = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
+      final var conversation = conversation(call);
+
+      responseHandler.createResponse(conversation);
+
+      assertThat(conversation.lastTurn().orElseThrow().assistantMessage().toolCalls())
+          .containsExactly(call);
+    }
+
+    @Test
+    void resolvesTheDocumentsOfEveryCallOfTheProcessAndLeavesCallsWithoutDocumentParameters() {
+      final var upload = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
+      final var weather = new ToolCall("w1", "getWeather", Map.of("doc", "nope"));
+
+      final var conversation = conversation(upload, weather);
+
+      final var response = responseHandler.createResponse(conversation);
+
+      assertThat(response)
+          .isEqualTo(
+              responseOf(
+                  conversation,
+                  new ToolCallProcessVariable("u1", "upload", Map.of("doc", reportReference())),
+                  new ToolCallProcessVariable("w1", "getWeather", Map.of("doc", "nope"))));
+    }
+
+    @Test
+    void passesTheCallsWithResolvedArgumentsToTheGatewayToolHandlers() {
+      final var call = new ToolCall("u1", "upload", Map.of("doc", handle(reportId.value())));
+
+      final var conversation = conversation(call);
+
+      responseHandler.createResponse(conversation);
+
+      @SuppressWarnings("unchecked")
+      final ArgumentCaptor<List<ToolCall>> transformed = ArgumentCaptor.forClass(List.class);
+      verify(gatewayToolHandlers)
+          .transformToolCalls(eq(conversation.toAgentContext()), transformed.capture());
+      assertThat(transformed.getValue())
+          .containsExactly(new ToolCall("u1", "upload", Map.of("doc", reportReference())));
+    }
+
+    @Test
+    void anAgentInstanceWithoutTheDocumentsFeatureHandsTheArgumentsAsTheModelSentThem() {
+      final var call = new ToolCall("u1", "upload", Map.of("doc", handle("doc_000000000000")));
+
+      final var conversation = conversation(List.of(AgentFeatures.RUNTIME_TOOLS), call);
+
+      final var response = responseHandler.createResponse(conversation);
+
+      assertThat(response)
+          .isEqualTo(
+              responseOf(
+                  conversation,
+                  new ToolCallProcessVariable(
+                      "u1", "upload", Map.of("doc", handle("doc_000000000000")))));
+    }
+
+    @Test
+    void failsForACallOfAToolThatTheAgentContextDoesNotDefine() {
+      final var call = new ToolCall("x1", "unknown", Map.of("doc", handle(reportId.value())));
+
+      assertThatThrownBy(() -> responseHandler.createResponse(conversation(call)))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessage(
+              "The call 'x1' of the tool 'unknown' goes to the process, but the agent context has no tool of this name");
+      verify(gatewayToolHandlers, never()).transformToolCalls(any(), any());
+    }
+
+    @Test
+    void failsForACallWithInvalidDocumentParametersThatIsHandedToTheProcess() {
+      final var call = new ToolCall("u1", "upload", Map.of("doc", "bogus"));
+
+      assertThatThrownBy(() -> responseHandler.createResponse(conversation(call)))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessage(
+              "The call 'u1' of the tool 'upload' was admitted, but its document parameters are invalid: "
+                  + "Parameter 'doc' must be the handle of a document from the conversation: a JSON object such as "
+                  + "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc_…\"}.");
+      verify(gatewayToolHandlers, never()).transformToolCalls(any(), any());
+    }
+
+    @Test
+    void doesNotHandOutTheCallOfAToolOfTheProcessThatWasRejectedForItsDocumentParameters() {
+      final var rejected =
+          new ToolCall("u1", "upload", Map.of("doc", "bogus"))
+              .withRejection("Parameter 'doc' must be the handle of a document.");
+      final var weather = new ToolCall("w1", "getWeather", Map.of());
+
+      final var conversation = conversation(rejected, weather);
+
+      final var response = responseHandler.createResponse(conversation);
+
+      assertThat(response)
+          .isEqualTo(
+              responseOf(conversation, new ToolCallProcessVariable("w1", "getWeather", Map.of())));
+    }
   }
 
   private AgentResponse createResponse(

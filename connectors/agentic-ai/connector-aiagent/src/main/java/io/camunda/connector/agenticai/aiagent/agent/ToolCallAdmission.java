@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -17,18 +19,27 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Admits the tool calls of an assistant message from the model, before the message enters the
- * conversation: each call gets the kind of the offered tool of its name, or a rejection. The
- * decision is persisted with the call and never made again.
+ * conversation: each call gets the kind of the offered tool of its name, and a rejection when no
+ * tool has the name or, for an agent instance that tracks its documents, a document parameter does
+ * not name a known document. The decision is persisted with the call and never made again.
  */
 public class ToolCallAdmission {
+
+  private final DocumentParameterResolver documentParameterResolver;
+
+  public ToolCallAdmission(DocumentParameterResolver documentParameterResolver) {
+    this.documentParameterResolver = documentParameterResolver;
+  }
 
   /**
    * Admits the calls of the message.
    *
+   * @param agentContext the agent context the message is answered with
    * @param offeredTools the tools offered to the model in this job
    * @return the message with every call admitted or rejected; a message without calls as it is
    */
-  public AssistantMessage admit(AssistantMessage message, List<ToolDefinition> offeredTools) {
+  public AssistantMessage admit(
+      AgentContext agentContext, List<ToolDefinition> offeredTools, AssistantMessage message) {
     if (!message.hasToolCalls()) {
       return message;
     }
@@ -39,14 +50,20 @@ public class ToolCallAdmission {
                     ToolDefinition::name, Function.identity(), (first, second) -> first));
     return message.withToolCalls(
         message.toolCalls().stream()
-            .map(call -> admit(call, definitionsByName.get(call.name())))
+            .map(call -> admit(agentContext, definitionsByName.get(call.name()), call))
             .toList());
   }
 
-  private static ToolCall admit(ToolCall call, @Nullable ToolDefinition definition) {
+  private ToolCall admit(
+      AgentContext agentContext, @Nullable ToolDefinition definition, ToolCall call) {
     if (definition == null) {
       return call.withRejection("The tool '%s' does not exist.".formatted(call.name()));
     }
-    return call.withKind(definition.kind());
+    final var admitted = call.withKind(definition.kind());
+    return switch (documentParameterResolver.resolve(agentContext, definition, call)) {
+      case DocumentParameterResolver.Resolution.Resolved ignored -> admitted;
+      case DocumentParameterResolver.Resolution.Invalid invalid ->
+          admitted.withRejection(invalid.message());
+    };
   }
 }

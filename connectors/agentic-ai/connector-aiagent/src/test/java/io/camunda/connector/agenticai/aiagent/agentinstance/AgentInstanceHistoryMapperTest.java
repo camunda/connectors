@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
+import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
@@ -75,6 +76,25 @@ class AgentInstanceHistoryMapperTest {
   private final AgentInstanceHistoryMapper mapper =
       new AgentInstanceHistoryMapper(
           Mockito.mock(GatewayToolHandlerRegistry.class), TestDocuments.objectHandleRenderer());
+
+  private static AgentInstanceHistoryToolCall historyToolCall(
+      String id, String name, String elementId, Map<String, Object> arguments) {
+    return new AgentInstanceHistoryToolCall()
+        .toolCallId(id)
+        .toolName(name)
+        .elementId(elementId)
+        .arguments(arguments);
+  }
+
+  private static AgentInstanceHistoryMapper.InputHistoryItem toolResultItem(
+      String id, String name, String elementId, String text, Map<String, Object> arguments) {
+    return new AgentInstanceHistoryMapper.InputHistoryItem(
+        AgentInstanceHistoryRole.TOOL_RESULT,
+        List.of(new AgentInstanceHistoryContent.TextContent(text)),
+        List.of(historyToolCall(id, name, elementId, arguments)),
+        TOOL_RESULT_COMPLETED_AT,
+        id);
+  }
 
   private static HistoryDocuments historyDocuments(DocumentHandling handling) {
     return new HistoryDocuments(handling, new DocumentRestorer(TestDocuments.documentFactory()));
@@ -598,6 +618,164 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Nested
+  class DocumentArguments {
+
+    private final Document document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    private final AgentDocumentId documentId = AgentDocumentId.of(document);
+    private final AgentDocuments documents =
+        AgentDocuments.empty()
+            .register(
+                List.of(
+                    AgentDocument.of(
+                        document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
+    private final AgentContext agentContext = WITH_DOCUMENTS.withDocuments(documents);
+
+    private final ToolCall uploadCall =
+        ToolCall.builder()
+            .id("call-1")
+            .name("upload")
+            .arguments(
+                Map.of(
+                    "file",
+                    "<doc id=\"" + documentId + "\" />",
+                    "attachments",
+                    List.of("<doc id=\"" + documentId + "\" />", "unknown"),
+                    "note",
+                    "n"))
+            .build();
+
+    @Test
+    void assistantToolCallShowsTheArgumentsAsTheModelSentThem() {
+      final var calls =
+          mapper.assistantToolCalls(
+              AssistantMessage.builder().toolCalls(List.of(uploadCall)).build());
+
+      assertThat(calls)
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(historyToolCall("call-1", "upload", "upload", uploadCall.arguments())));
+    }
+
+    @Test
+    void toolResultShowsTheSameArgumentsAsTheAssistantToolCall() {
+      final var result =
+          ToolCallResultContent.builder()
+              .id("call-1")
+              .name("upload")
+              .elementId("upload")
+              .content(List.of(TextContent.textContent("200")))
+              .completedAt(TOOL_RESULT_COMPLETED_AT)
+              .build();
+
+      final var items =
+          mapper.inputHistoryItems(
+              ToolCallResultMessage.builder().results(List.of(result)).build(),
+              Map.of("call-1", uploadCall),
+              TURN_INGESTION_TIMESTAMP,
+              historyDocuments(agentContext.documentHandling()));
+
+      assertThat(items)
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(toolResultItem("call-1", "upload", "upload", "200", uploadCall.arguments())));
+    }
+
+    @Test
+    void showsTheTagOfTheDocumentParameterOfARuntimeToolCallAsTheModelSentIt() {
+      final var tag = "<doc id=\"" + documentId + "\" />";
+      final var call =
+          ToolCall.builder()
+              .id("call-2")
+              .name("acme_lookup")
+              .arguments(Map.of("key", "report", "document", tag))
+              .kind(ToolKind.RUNTIME)
+              .build();
+
+      final var calls =
+          mapper.assistantToolCalls(AssistantMessage.builder().toolCalls(List.of(call)).build());
+
+      assertThat(calls)
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(
+                  historyToolCall(
+                      "call-2", "acme_lookup", null, Map.of("key", "report", "document", tag))));
+    }
+
+    @Test
+    void aRejectedCallOfAToolOfTheProcessHasNoElementIdAndShowsTheArgumentsAsTheModelSentThem() {
+      final var rejected =
+          ToolCall.builder()
+              .id("call-3")
+              .name("upload")
+              .arguments(Map.of("file", "bogus"))
+              .rejection("Parameter 'file' must be a tag.")
+              .build();
+      final var result =
+          ToolCallResultContent.builder()
+              .id("call-3")
+              .name("upload")
+              .content(List.of(TextContent.textContent("Parameter 'file' must be a tag.")))
+              .completedAt(TOOL_RESULT_COMPLETED_AT)
+              .build();
+
+      final var calls =
+          mapper.assistantToolCalls(
+              AssistantMessage.builder().toolCalls(List.of(rejected)).build());
+      final var items =
+          mapper.inputHistoryItems(
+              ToolCallResultMessage.builder().results(List.of(result)).build(),
+              Map.of("call-3", rejected),
+              TURN_INGESTION_TIMESTAMP,
+              historyDocuments(agentContext.documentHandling()));
+
+      assertThat(calls)
+          .usingRecursiveComparison()
+          .isEqualTo(List.of(historyToolCall("call-3", "upload", null, rejected.arguments())));
+      assertThat(items)
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(
+                  toolResultItem(
+                      "call-3",
+                      "upload",
+                      null,
+                      "Parameter 'file' must be a tag.",
+                      rejected.arguments())));
+    }
+
+    @Test
+    void showsTheArgumentsAsGivenForAnAgentWithoutDocuments() {
+      final var result =
+          ToolCallResultContent.builder()
+              .id("call-1")
+              .name("upload")
+              .elementId("upload")
+              .content(List.of(TextContent.textContent("200")))
+              .completedAt(TOOL_RESULT_COMPLETED_AT)
+              .build();
+
+      final var items =
+          mapper.inputHistoryItems(
+              ToolCallResultMessage.builder().results(List.of(result)).build(),
+              Map.of("call-1", uploadCall),
+              TURN_INGESTION_TIMESTAMP,
+              historyDocuments(NEW_INSTANCE.documentHandling()));
+
+      assertThat(items)
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(toolResultItem("call-1", "upload", "upload", "200", uploadCall.arguments())));
+    }
+  }
+
+  @Nested
   class ToolResultDocuments {
 
     private final ObjectMapper objectMapper = TestObjectMapperSupplier.INSTANCE;
@@ -1043,6 +1221,20 @@ class AgentInstanceHistoryMapperTest {
       assertThat(objectJson(item.content().getFirst()))
           .isEqualTo(
               "{\"url\":\"https://example.com/a.pdf\",\"name\":\"a.pdf\",\"camunda.document.type\":\"external\"}");
+    }
+
+    @Test
+    void theArgumentsAreTheOnesTheModelSent() {
+      final var item =
+          item(
+              message(
+                  AgentDocumentContent.of(AgentDocumentId.of(document)),
+                  ObjectContent.objectContent(Map.of("file", otherDocument))),
+              agentContext);
+
+      assertThat(item.toolCalls())
+          .usingRecursiveComparison()
+          .isEqualTo(List.of(historyToolCall("call-1", "fetch", "fetch", call.arguments())));
     }
 
     @Test

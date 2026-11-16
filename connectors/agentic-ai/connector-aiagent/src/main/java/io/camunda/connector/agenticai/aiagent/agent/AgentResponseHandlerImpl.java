@@ -14,15 +14,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -38,11 +43,15 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   private final ObjectMapper objectMapper;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final DocumentParameterResolver documentParameterResolver;
 
   public AgentResponseHandlerImpl(
-      ObjectMapper objectMapper, GatewayToolHandlerRegistry gatewayToolHandlers) {
+      ObjectMapper objectMapper,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      DocumentParameterResolver documentParameterResolver) {
     this.objectMapper = objectMapper;
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.documentParameterResolver = documentParameterResolver;
   }
 
   @Override
@@ -50,10 +59,14 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     final var agentContext = conversation.toAgentContext();
     final var lastTurn = lastTurnOf(conversation);
     final var assistantMessage = assistantMessageOf(lastTurn);
-    // the stored assistant message keeps every tool call the model sent; only the calls handed to
-    // the process become tool calls of the response
+    // the stored assistant message keeps every tool call as the model sent it; only the calls
+    // handed to the process become tool calls of the response, and these carry the Camunda
+    // document references in place of the document handles
     final var toolCalls =
-        gatewayToolHandlers.transformToolCalls(agentContext, lastTurn.processToolCalls()).stream()
+        gatewayToolHandlers
+            .transformToolCalls(
+                agentContext, withDocumentReferences(agentContext, lastTurn.processToolCalls()))
+            .stream()
             .map(ToolCallProcessVariable::from)
             .toList();
 
@@ -72,6 +85,31 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             responseText -> handleFirstResponseText(responseConfiguration, builder, responseText));
 
     return builder.build();
+  }
+
+  /**
+   * The calls with the documents of their document parameters resolved, with the tool definitions
+   * of the agent context. The calls that go to the process were admitted against these definitions
+   * (see {@link ToolCallAdmission}): each has a definition, and a call with an invalid document
+   * parameter is rejected (see {@link ToolCall#rejection()}).
+   */
+  private List<ToolCall> withDocumentReferences(
+      AgentContext agentContext, List<ToolCall> processToolCalls) {
+    return processToolCalls.stream()
+        .map(toolCall ->
+            toolCall.withArguments(
+                documentParameterResolver.resolveArguments(
+                    agentContext, definitionOf(agentContext, toolCall), toolCall)))
+        .toList();
+  }
+
+  private static ToolDefinition definitionOf(AgentContext agentContext, ToolCall toolCall) {
+    return agentContext
+        .toolDefinition(toolCall.name())
+        .orElseThrow(() ->
+            new IllegalStateException(
+                "The call '%s' of the tool '%s' goes to the process, but the agent context has no tool of this name"
+                    .formatted(toolCall.id(), toolCall.name())));
   }
 
   private static AgentConversationTurn lastTurnOf(AgentConversation conversation) {

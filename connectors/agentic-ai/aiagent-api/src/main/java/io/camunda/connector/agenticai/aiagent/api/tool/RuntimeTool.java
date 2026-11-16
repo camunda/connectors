@@ -73,6 +73,11 @@ public interface RuntimeTool {
    * Handles {@code call}, only when the tool is enabled. A {@link RuntimeToolException} becomes an
    * error result; any other exception fails the job.
    *
+   * <p>In an agent instance with the {@code documents} feature, a call with a document parameter
+   * that does not hold the handle of a known document gets an error result and does not reach the
+   * tool. In an instance without the feature, a document parameter reaches the tool as the model
+   * sent it.
+   *
    * @return the result, never {@code null}
    */
   RuntimeToolResult call(RuntimeToolContext context, RuntimeToolCall call);

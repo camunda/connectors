@@ -394,6 +394,40 @@ class AdHocToolSchemaGeneratorTest {
         """);
   }
 
+  @Test
+  void keepsTheDocumentTypeAsAuthored() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter("toolCall.doc", "The invoice", "document"),
+                new AdHocToolElementParameter(
+                    "toolCall.files",
+                    "The files",
+                    null,
+                    Map.of(
+                        "type",
+                        "array",
+                        "items",
+                        Map.of("anyOf", List.of(Map.of("type", "document")))))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "doc": {"type": "document", "description": "The invoice"},
+            "files": {
+              "type": "array",
+              "items": {"anyOf": [{"type": "document"}]},
+              "description": "The files"
+            }
+          },
+          "required": ["doc", "files"]
+        }
+        """);
+  }
+
   private void assertJsonSchema(AdHocToolElement element, String expectedJsonSchema)
       throws Exception {
     Map<String, Object> schema = generator.generateToolSchema(element);

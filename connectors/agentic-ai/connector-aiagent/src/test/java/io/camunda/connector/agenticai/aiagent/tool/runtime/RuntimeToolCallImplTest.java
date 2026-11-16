@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,16 @@ class RuntimeToolCallImplTest {
       String text, int count, boolean flag, List<String> tags, Map<String, Object> extra) {}
 
   record CountArguments(int count) {}
+
+  record DocumentArguments(AgentDocumentId document, @Nullable String note) {}
+
+  record ObjectArguments(Object body) {}
+
+  record TextArguments(@Nullable String body) {}
+
+  record DocumentsArguments(List<AgentDocumentId> documents) {}
+
+  private static final AgentDocumentId DOC = AgentDocumentId.of("doc-1");
 
   private RuntimeToolCallImpl call(Map<String, Object> arguments) {
     return new RuntimeToolCallImpl("call-1", "tool", arguments, argumentsMapper);
@@ -62,11 +73,52 @@ class RuntimeToolCallImplTest {
   }
 
   @Test
+  void aDocumentParameterBindsToADocumentId() {
+    final var arguments =
+        call(Map.of("document", DOC, "note", "hello")).argumentsAs(DocumentArguments.class);
+
+    assertThat(arguments).isEqualTo(new DocumentArguments(DOC, "hello"));
+  }
+
+  @Test
+  void aDocumentIdInAnObjectPropertyStaysADocumentIdAndOtherTextStaysAString() {
+    final var tag = call(Map.of("body", DOC)).argumentsAs(ObjectArguments.class);
+    final var text = call(Map.of("body", "doc-1")).argumentsAs(ObjectArguments.class);
+
+    assertThat(tag).isEqualTo(new ObjectArguments(DOC));
+    assertThat(text).isEqualTo(new ObjectArguments("doc-1"));
+  }
+
+  @Test
+  void otherValuesOfAnObjectPropertyKeepTheirJsonType() {
+    final var number = call(Map.of("body", 42)).argumentsAs(ObjectArguments.class);
+    final var list = call(Map.of("body", List.of("a", DOC))).argumentsAs(ObjectArguments.class);
+
+    assertThat(number).isEqualTo(new ObjectArguments(42));
+    assertThat(list).isEqualTo(new ObjectArguments(List.of("a", DOC)));
+  }
+
+  @Test
+  void aDocumentBindsToTheTextOfItsIdForAStringProperty() {
+    assertThat(call(Map.of("body", DOC)).argumentsAs(TextArguments.class))
+        .isEqualTo(new TextArguments("doc-1"));
+  }
+
+  @Test
+  void documentsInAListBindToDocumentIds() {
+    final var other = AgentDocumentId.of("doc-2");
+
+    final var arguments =
+        call(Map.of("documents", List.of(DOC, other))).argumentsAs(DocumentsArguments.class);
+
+    assertThat(arguments).isEqualTo(new DocumentsArguments(List.of(DOC, other)));
+  }
+
+  @Test
   void missingArgumentsAreNullAndUnknownArgumentsAreIgnored() {
     final var arguments = call(Map.of("title", "t", "other", "x")).argumentsAs(NoteArguments.class);
 
-    assertThat(arguments.title()).isEqualTo("t");
-    assertThat(arguments.note()).isNull();
+    assertThat(arguments).isEqualTo(new NoteArguments("t", null));
   }
 
   @Test

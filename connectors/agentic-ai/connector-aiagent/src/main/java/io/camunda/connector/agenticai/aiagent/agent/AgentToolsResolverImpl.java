@@ -8,6 +8,9 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.MisplacedDocumentTypeException;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
@@ -39,10 +42,39 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
     this.gatewayToolHandlers = gatewayToolHandlers;
   }
 
+  /**
+   * Loads the tool definitions of the process. For an agent instance with the {@code documents}
+   * feature, the authored type {@code document} of a tool parameter becomes the schema of a
+   * document parameter (see {@link DocumentParameter#fromDocumentType}); without the feature, the
+   * schemas stay as authored.
+   *
+   * @throws ConnectorException with code {@code DOCUMENT_PARAMETER_SCHEMA_INVALID} when a tool has
+   *     the type {@code document} where no document parameter can sit
+   */
   @Override
   public AdHocToolsSchemaResponse loadAdHocToolsSchema(
       AgentExecutionContext executionContext, AgentContext agentContext) {
-    return toolsSchemaResolver.resolveAdHocToolsSchema(executionContext.toolElements());
+    final var schema = toolsSchemaResolver.resolveAdHocToolsSchema(executionContext.toolElements());
+    return switch (agentContext.documentHandling()) {
+      case DocumentHandling.Untracked ignored -> schema;
+      case DocumentHandling.Tracked ignored ->
+          schema.withToolDefinitions(
+              schema.toolDefinitions().stream()
+                  .map(AgentToolsResolverImpl::withDocumentParameters)
+                  .toList());
+    };
+  }
+
+  private static ToolDefinition withDocumentParameters(ToolDefinition toolDefinition) {
+    try {
+      return toolDefinition.withInputSchema(
+          DocumentParameter.fromDocumentType(toolDefinition.inputSchema()));
+    } catch (MisplacedDocumentTypeException e) {
+      throw new ConnectorException(
+          AgentErrorCodes.ERROR_CODE_DOCUMENT_PARAMETER_SCHEMA_INVALID,
+          "Invalid tool '%s'. %s".formatted(toolDefinition.name(), e.getMessage()),
+          e);
+    }
   }
 
   @Override
