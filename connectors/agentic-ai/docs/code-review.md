@@ -61,7 +61,11 @@ number:
 3. The change modifies a type or member of `aiagent-api` or `aiagent-model`, an SPI named in
    `design-guidelines.md` (I4), or anything that `breaking-changes.md` lists as a break.
 4. The change misses a location from step 4.
-5. The change weakens or removes a rule in the module docs.
+5. The change weakens or removes a rule in the module docs or a build check. Examples: a new entry in
+   an ArchUnit allowlist, an accepted break in `api-changes.json`, a deleted architecture test, a new
+   `@NullUnmarked` or `@SuppressWarnings`.
+6. The change adds or upgrades a dependency, changes build configuration, changes outbound proxy
+   code, or edits the module docs or `AGENTS.md`.
 
 A review that finds none of these does not need a human because of this section. It can still need one
 for other reasons, such as a blocking finding or low confidence.

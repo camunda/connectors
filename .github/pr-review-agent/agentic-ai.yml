@@ -40,12 +40,17 @@ policy:
 
 escalation:
   # Changed paths that always need a human, whatever the agent says.
+  # Keep in line with "Human review required" in connectors/agentic-ai/docs/code-review.md.
   # `*` also matches `/`.
   rules:
     - reason: released element templates
       paths: ["connectors/agentic-ai/*/element-templates/versioned/*"]
     - reason: public API
-      paths: ["connectors/agentic-ai/aiagent-api/*"]
+      paths:
+        - "connectors/agentic-ai/aiagent-api/*"
+        - "connectors/agentic-ai/aiagent-model/api-changes.json"
+    - reason: architecture tests
+      paths: ["connectors/agentic-ai/agentic-ai-archunit-tests/*"]
     - reason: build config and dependencies
       paths:
         - "connectors/agentic-ai/*pom.xml"
