@@ -236,7 +236,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         fixture.lastRecordedRequest(),
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
         fixture.documentsFeature()
-            ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt)
+            ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt, "test.jpg")
             : ProviderWireFormatExpectedMessage.userWithDocumentContent(userPrompt));
     assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 
@@ -309,7 +309,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
         ProviderWireFormatExpectedMessage.toolCallResultMatching(
             "get111", "The content of " + DOCUMENT_REF_REGEX + " follows in the next message\\."),
         ProviderWireFormatExpectedMessage.userWithDocument(
-            ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE));
+            ToolCallResultDocumentAssertions.DOCUMENT_CONTENT_PREAMBLE, "test.jpg"));
     assertNoDocumentInternalsInLlmRequests(fixture.recordedRequests());
 
     assertAgentResponse(
@@ -390,7 +390,7 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
 
   /** The handle of a document, which the model reads as text. */
   private static final String HANDLE_REGEX =
-      "\\{\"type\":\"camunda\\.agenticai\\.document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}";
+      ToolCallResultDocumentAssertions.handleRegex("test.jpg");
 
   /** The file name and the id of a document as the sentences about its content name it. */
   private static final String DOCUMENT_REF_REGEX = "(?:[^()]+ \\()?doc_[0-9a-f]{12}\\)?";

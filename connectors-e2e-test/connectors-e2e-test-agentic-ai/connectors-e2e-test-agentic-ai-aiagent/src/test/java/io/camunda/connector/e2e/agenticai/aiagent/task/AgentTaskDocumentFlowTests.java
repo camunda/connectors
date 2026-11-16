@@ -29,6 +29,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.fi
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadToolInputSchema;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withUploadTool;
@@ -36,7 +37,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentA
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
@@ -46,7 +46,6 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -111,10 +110,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
             .filter(tool -> UPLOAD_TOOL.equals(tool.name()))
             .toList();
     assertThat(upload).hasSize(1);
-    assertThat(upload.getFirst().inputSchema())
-        .extractingByKey("properties")
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsEntry("document", DocumentParameter.documentSchema("The document to upload."));
+    assertThat(upload.getFirst().inputSchema()).isEqualTo(uploadToolInputSchema());
     assertThat(recorded.lastRequest().toolNames()).contains("c8__load_document");
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
 

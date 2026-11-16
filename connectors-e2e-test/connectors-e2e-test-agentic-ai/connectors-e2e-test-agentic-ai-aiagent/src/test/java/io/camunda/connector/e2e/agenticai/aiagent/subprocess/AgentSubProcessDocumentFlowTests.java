@@ -37,6 +37,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.se
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.unknownUploadWithSuperfluxTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadCount;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadToolInputSchema;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withUploadTool;
@@ -45,7 +46,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtu
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
@@ -232,15 +232,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   private static void assertDocumentParameterSchema(ToolDefinition upload) {
-    assertThat(upload.inputSchema())
-        .isEqualTo(
-            Map.of(
-                "type",
-                "object",
-                "properties",
-                Map.of("document", DocumentParameter.documentSchema("The document to upload.")),
-                "required",
-                List.of("document")));
+    assertThat(upload.inputSchema()).isEqualTo(uploadToolInputSchema());
   }
 
   private ZeebeTest startProcess(Function<ElementTemplate, ElementTemplate> elementTemplateModifier)

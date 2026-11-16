@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -214,19 +215,39 @@ public final class ToolCallResultDocumentAssertions {
    */
   public static ParsedDocumentHandle assertDocumentHandlePart(JsonNode part, String servedFile) {
     assertThat(part.path("type").asText()).as("document handle part type").isEqualTo("text");
-    final var seen = parseDocumentHandle(part.path("text").asText());
+    return assertDocumentHandleText(part.path("text").asText(), servedFile);
+  }
+
+  /**
+   * Asserts that a text is exactly the handle of a document that a process step downloaded from the
+   * test file (see {@link #assertDocumentHandlePart}), with no text before or after it.
+   *
+   * @return the handle the model read
+   */
+  public static ParsedDocumentHandle assertDocumentHandleText(String text, String servedFile) {
+    final var seen = parseDocumentHandle(text);
     assertThat(seen.id().value()).as("document id").matches("doc_[0-9a-f]{12}");
     assertThat(seen.text())
         .as("document handle text")
-        .isEqualTo(
-            HANDLE_RENDERER.text(
-                new AgentDocumentHandle(
-                    AgentDocumentHandle.TYPE,
-                    seen.id().value(),
-                    null,
-                    mimeType(servedFile),
-                    null)));
+        .isEqualTo(renderedHandle(seen.id().value(), servedFile));
+    assertThat(text.strip()).as("the text of the document handle part").isEqualTo(seen.text());
     return seen;
+  }
+
+  /**
+   * A regular expression for the handle of a document that a process step downloaded from the test
+   * file (see {@link #assertDocumentHandlePart}). It matches the whole handle as the agent writes
+   * it. Only the generated id is a pattern.
+   */
+  public static String handleRegex(String servedFile) {
+    final var placeholder = "doc_000000000000";
+    final var parts = renderedHandle(placeholder, servedFile).split(placeholder, -1);
+    return Pattern.quote(parts[0]) + "doc_[0-9a-f]{12}" + Pattern.quote(parts[1]);
+  }
+
+  private static String renderedHandle(String id, String servedFile) {
+    return HANDLE_RENDERER.text(
+        new AgentDocumentHandle(AgentDocumentHandle.TYPE, id, null, mimeType(servedFile), null));
   }
 
   /**

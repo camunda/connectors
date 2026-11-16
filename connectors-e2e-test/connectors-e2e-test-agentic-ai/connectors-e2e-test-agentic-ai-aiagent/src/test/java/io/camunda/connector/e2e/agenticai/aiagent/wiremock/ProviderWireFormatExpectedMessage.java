@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.wiremock;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandleText;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedChatRequest;
@@ -24,7 +25,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.RecordedToolCall;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Provider-agnostic counterpart of {@code BaseAgentTest.ExpectedMessage}, asserting against the
@@ -56,11 +56,15 @@ sealed interface ProviderWireFormatExpectedMessage {
     return new UserMessage(List.of(contentParts));
   }
 
-  /** A user message with the text, the handle and the content of a loaded document. */
-  static ProviderWireFormatExpectedMessage userWithDocument(String text) {
+  /**
+   * A user message with the text, the handle and the content of a loaded document. The handle is
+   * the whole handle of a document that a process step downloaded from the test file {@code
+   * servedFile}.
+   */
+  static ProviderWireFormatExpectedMessage userWithDocument(String text, String servedFile) {
     return user(
         ExpectedContentPart.text(text),
-        ExpectedContentPart.documentHandle(),
+        ExpectedContentPart.documentHandle(servedFile),
         ExpectedContentPart.attachment());
   }
 
@@ -217,8 +221,8 @@ sealed interface ProviderWireFormatExpectedMessage {
       return new TextMatching(textRegex);
     }
 
-    static ExpectedContentPart documentHandle() {
-      return new AgentDocumentHandlePart();
+    static ExpectedContentPart documentHandle(String servedFile) {
+      return new AgentDocumentHandlePart(servedFile);
     }
 
     static ExpectedContentPart attachment() {
@@ -252,24 +256,18 @@ sealed interface ProviderWireFormatExpectedMessage {
     }
 
     /**
-     * The document handle rendered as a text part before a document's content; it must carry the
-     * document id and none of the store internals.
+     * The document handle rendered as a text part before a document's content. The part holds the
+     * whole handle of a document that a process step downloaded from the test file: the content
+     * type of the file and an id the agent derived, and none of the store internals.
      */
-    record AgentDocumentHandlePart() implements ExpectedContentPart {
-
-      private static final Pattern HANDLE =
-          Pattern.compile(
-              "\\{\"type\":\"camunda\\.agenticai\\.document\",\"id\":\"doc_[0-9a-f]{12}\"[^}]*}");
+    record AgentDocumentHandlePart(String servedFile) implements ExpectedContentPart {
 
       @Override
       public void assertMatches(int messageIndex, int partIndex, RecordedContentPart actual) {
         assertThat(actual.isText())
             .as("content part %d of message %d is text", partIndex, messageIndex)
             .isTrue();
-        assertThat(actual.text().strip())
-            .as("document handle of content part %d of message %d", partIndex, messageIndex)
-            .matches(HANDLE)
-            .doesNotContain("storeId", "contentHash");
+        assertDocumentHandleText(actual.text(), servedFile);
       }
     }
 

@@ -25,6 +25,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -32,6 +33,8 @@ import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.List;
+import java.util.Map;
 import org.springframework.core.io.ClassPathResource;
 
 /**
@@ -57,6 +60,21 @@ public final class DocumentFlowFixtures {
   public static final String FINAL_TEXT = "I uploaded the document and return it.";
 
   private DocumentFlowFixtures() {}
+
+  /**
+   * The whole input schema of the {@code Upload_A_File} tool as the model provider receives it: an
+   * object with the required {@code document} parameter, which has the object schema of a document
+   * handle.
+   */
+  public static Map<String, Object> uploadToolInputSchema() {
+    return Map.of(
+        "type",
+        "object",
+        "properties",
+        Map.of("document", DocumentParameter.documentSchema("The document to upload.")),
+        "required",
+        List.of("document"));
+  }
 
   /**
    * Adds the {@code Upload_A_File} tool to the ad-hoc sub-process. The tool takes a document as its
