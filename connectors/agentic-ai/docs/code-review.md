@@ -10,8 +10,12 @@ This is how to review a change in `connectors/agentic-ai` and
 AI PR review bot. Find problems. Do not fix them.
 
 Report a finding only when you can point to the code. Prefer a few findings with evidence over many
-guesses. Report only on code that the diff adds or changes. The one exception is a consolidation
-finding (step 5).
+guesses. Report only on code that the diff adds or changes. There are two exceptions:
+
+- A consolidation finding (step 5).
+- Code outside the diff that the change made wrong, or that the rules require the change to update.
+  Examples: a missed location (step 4), Javadoc or a document that names a changed method, an SPI
+  method that is no longer called, a rule that conflicts with the change. Cite the unchanged line.
 
 ## Rules to read
 
