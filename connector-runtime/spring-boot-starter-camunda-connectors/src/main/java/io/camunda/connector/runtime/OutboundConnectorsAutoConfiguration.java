@@ -62,8 +62,9 @@ public class OutboundConnectorsAutoConfiguration {
    *
    * <p>Without it the SDK's executor would apply, sized by {@code camunda.client.execution-threads}
    * (default 1), which runs one job at a time. The pool is sized to at least the per-worker
-   * in-flight cap ({@code camunda.client.worker.defaults.max-jobs-active}), so turning virtual
-   * threads off keeps the same concurrency.
+   * in-flight cap ({@code camunda.client.worker.defaults.max-jobs-active}). All connector job
+   * workers share it, so raise {@code camunda.client.execution-threads} when many connector types
+   * run at the same time.
    */
   @Bean(name = {"connectorCamundaClientExecutorService", "camundaClientExecutorService"})
   @ConditionalOnMissingBean
