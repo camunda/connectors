@@ -215,13 +215,21 @@ jobs:
       # older stable branches may predate it.
       - name: Prepare module-specific Maven repositories
         run: |
+          # Mirror ids and mirrorOf must match the test job's settings.xml. Maven records the
+          # repository id each artifact came from and, since 3.10.1, refuses an artifact whose
+          # recorded id is not one the test job resolves that repository through.
           cat > "$RUNNER_TEMP/local-maven-mirror-settings.xml" <<EOF
           <settings>
             <mirrors>
               <mirror>
                 <id>camunda-nexus</id>
                 <url>file://$HOME/.m2/repository</url>
-                <mirrorOf>*</mirrorOf>
+                <mirrorOf>herodevs-nes</mirrorOf>
+              </mirror>
+              <mirror>
+                <id>nexus-mirror</id>
+                <url>file://$HOME/.m2/repository</url>
+                <mirrorOf>*,!confluent,!shibboleth,!herodevs-nes</mirrorOf>
               </mirror>
             </mirrors>
           </settings>
