@@ -238,6 +238,43 @@ class PythonExecutorWrapperTest {
   }
 
   @Test
+  void acceptsAResponseNestedToTheReaderLimitAndRejectsOneLevelMore() throws Exception {
+    // Built in a loop and checked directly, so the result does not depend on how deep the
+    // installed Python can parse JSON.
+    final var process =
+        new ProcessBuilder(
+                python.orElseThrow().toString(),
+                "-I",
+                "-c",
+                """
+                import sys
+                sys.path.insert(0, sys.argv[1])
+                import executor_core
+
+                def nested(depth):
+                    root = current = []
+                    for _ in range(depth - 1):
+                        current.append([])
+                        current = current[0]
+                    return root
+
+                for depth in (executor_core.MAX_NESTING_DEPTH, executor_core.MAX_NESTING_DEPTH + 1):
+                    try:
+                        executor_core._check_nesting(nested(depth))
+                        print(depth, "accepted")
+                    except ValueError:
+                        print(depth, "rejected")
+                """,
+                wrapper.toString())
+            .redirectErrorStream(true)
+            .start();
+    assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
+
+    assertThat(new String(process.getInputStream().readAllBytes()).lines())
+        .containsExactly("1000 accepted", "1001 rejected");
+  }
+
+  @Test
   void rejectsAForgedResponseThatIsAScalar() throws Exception {
     for (var scalar : new String[] {"null", "0", "true", "\\\"x\\\""}) {
       final var error =
