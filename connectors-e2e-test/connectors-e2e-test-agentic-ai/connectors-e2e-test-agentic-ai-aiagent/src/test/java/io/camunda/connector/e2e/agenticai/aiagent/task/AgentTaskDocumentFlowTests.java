@@ -36,6 +36,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.as
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.offeredToolNames;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentWithSuperfluxTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.roundTripTurns;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
@@ -122,7 +123,8 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
             .toList();
     assertThat(upload).hasSize(1);
     assertThat(upload.getFirst().inputSchema()).isEqualTo(uploadToolInputSchema());
-    assertThat(recorded.lastRequest().toolNames()).contains("c8__load_document");
+    assertThat(recorded.lastRequest().toolNames())
+        .containsExactlyInAnyOrderElementsOf(offeredToolNames(expectedTools()));
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
 
     final var agentInstanceKey = new AtomicLong();
@@ -154,7 +156,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
     assertThat(recorded.requests().getFirst().toolNames())
-        .contains("Download_A_File", UPLOAD_TOOL, "c8__return_document", "c8__load_document");
+        .containsExactlyInAnyOrderElementsOf(offeredToolNames(expectedTools()));
 
     // the id the model works with is the one shown with the downloaded document
     final var downloadResult = recorded.requests().get(1).messages().get(3);

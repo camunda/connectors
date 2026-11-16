@@ -431,7 +431,7 @@ document. A result holds a document as the `Document` of the connector SDK, and 
 **Effects.** `Success.withDocumentContent(AgentDocumentId)` adds the effect `AddDocumentContent`: the agent adds the
 content to the next request, once per document, and writes the outcome sentence into the result. `LoadDocumentTool` is the
 reference. `Success.withResponseDocument(key, AgentDocumentId, description)` adds the effect `SelectResponseDocument`: the
-the builder returns the selection in `TurnInput.responseDocuments()`, and `TurnInput.applyTo` adds the document to
+builder returns the selection in `TurnInput.responseDocuments()`, and `TurnInput.applyTo` adds the document to
 `AgentContext.responseDocuments`. A key that is already used replaces its selection. `ReturnDocumentTool` is the
 reference. Content comes only through an effect. An effect with an id that the agent does not
 know when the batch starts, and that the result does not return, fails the job.

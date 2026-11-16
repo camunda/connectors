@@ -39,6 +39,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.do
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.handle;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.offeredToolNames;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentWithComplexToolTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.roundTripTurns;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
@@ -122,7 +123,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
     assertThat(recorded.requests().getFirst().toolNames())
-        .contains("Download_A_File", UPLOAD_TOOL, "c8__return_document", "c8__load_document");
+        .containsExactlyInAnyOrderElementsOf(offeredToolNames(expectedTools()));
 
     // the id the model works with is the one shown with the downloaded document
     final var downloadResult = recorded.requests().get(1).messages().get(3);

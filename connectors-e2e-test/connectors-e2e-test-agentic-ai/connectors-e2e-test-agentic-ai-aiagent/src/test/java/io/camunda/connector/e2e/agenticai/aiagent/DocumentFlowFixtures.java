@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.agent.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
@@ -43,6 +44,7 @@ import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.json.JSONException;
 import org.jspecify.annotations.Nullable;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -82,7 +84,7 @@ public final class DocumentFlowFixtures {
   public static List<String> offeredToolNames(List<ToolDefinition> processTools) {
     return Stream.concat(
             processTools.stream().map(ToolDefinition::name),
-            Stream.of(UPLOAD_TOOL, "c8__load_document"))
+            Stream.of(UPLOAD_TOOL, "c8__return_document", "c8__load_document"))
         .toList();
   }
 
