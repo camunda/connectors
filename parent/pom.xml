@@ -120,7 +120,7 @@ limitations under the License.</license.inlineheader>
          that declaration in every module importing this parent, including the bundles. Remove once
          spring-boot-dependencies manages org.mariadb.jdbc:mariadb-java-client >= 3.5.11. -->
     <version.mariadb-java-client>3.5.11</version.mariadb-java-client>
-    <version.netty>4.2.20.Final</version.netty>
+    <version.netty>4.2.21.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.7</version.logback>
 
@@ -174,7 +174,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.4.0</version.kafka-clients>
     <!-- CVE-2026-106450 / CVE-2026-106451: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.4
          Ref: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv -->
-    <version.lz4-java>1.14.0</version.lz4-java>
+    <version.lz4-java>1.14.1</version.lz4-java>
 
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.10.5</version.microsoft-kiota-abstraction>
@@ -198,7 +198,7 @@ limitations under the License.</license.inlineheader>
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
 
-    <version.wss4j>4.0.2</version.wss4j>
+    <version.wss4j>4.0.3</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
     <version.slack>1.55.0</version.slack>
@@ -221,7 +221,7 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.23.0</version.langchain4j>
     <version.mcp-sdk>2.2.0</version.mcp-sdk>
-    <version.elasticsearch-java>8.19.24</version.elasticsearch-java>
+    <version.elasticsearch-java>8.19.25</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.25</version.elasticsearch-rest-client>
 
     <version.scala>3.10.1</version.scala>
@@ -1059,7 +1059,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.opennlp</groupId>
         <artifactId>opennlp-tools</artifactId>
-        <version>2.5.12</version>
+        <version>2.5.13</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
