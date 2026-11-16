@@ -67,6 +67,9 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
 
   public static final String HTTPS_KEYSTORE_PASSWORD = "changeit";
 
+  /** The built-in c8__ tools that the model is offered next to the tools of the process. */
+  protected static final List<String> BUILT_IN_TOOL_NAMES = List.of(LoadDocumentTool.NAME);
+
   /**
    * Self-signed keystore backing the WireMock HTTPS port. Also usable as a truststore by clients
    * that need to trust this same self-signed certificate, since it's a self-signed cert with no
@@ -244,6 +247,18 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
 
   protected List<ToolDefinition> expectedTools() {
     return EXPECTED_TOOL_SPECIFICATIONS;
+  }
+
+  /**
+   * The names of every tool the model is offered: the tools of the process, {@code addedTools} and
+   * the built-in c8__ tools.
+   */
+  protected List<String> offeredToolNamesWith(String... addedTools) {
+    final var names = new ArrayList<String>();
+    expectedTools().forEach(tool -> names.add(tool.name()));
+    names.addAll(List.of(addedTools));
+    names.addAll(BUILT_IN_TOOL_NAMES);
+    return names;
   }
 
   protected void assertToolSpecifications(
