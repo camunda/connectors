@@ -35,7 +35,8 @@ and A2A tools, Modeler support or document retention.
 ## Decision Drivers
 
 * **Tokens**: content goes into a request only when the model needs it.
-* **No store details for the model**: store ids and content hashes never go to the model or to tool arguments. The
+* **No store details for the model**: the model works with handles. Store ids and content hashes are of no use to it
+  and cost tokens, so the messages for the model, and the tool arguments that the model writes, hold handles. The
   history shows the document chip with the Camunda document reference, as for any document.
 * **Stable requests**: the bytes of a request prefix do not change between requests, for prompt caching. The agent never
   changes a stored message.

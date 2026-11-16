@@ -272,13 +272,25 @@ class AgentInstanceHistoryMapperTest {
           assertThat(texts(item.content())).containsExactly(CONTENT_PREAMBLE);
           assertThat(objectJson(item.content().get(1)))
               .isEqualTo(TestDocuments.handleText(agentDocuments, firstBlock.id()));
-          assertThat(item.content().get(2))
-              .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
           assertThat(objectJson(item.content().get(3)))
               .isEqualTo(TestDocuments.handleText(agentDocuments, secondBlock.id()));
-          assertThat(item.content().get(4))
-              .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+          assertThat(chipDocumentIds(item.content()))
+              .containsExactly(documentId(first), documentId(second));
         });
+  }
+
+  private static List<String> chipDocumentIds(List<AgentInstanceHistoryContent> content) {
+    return content.stream()
+        .filter(AgentInstanceHistoryContent.DocumentContent.class::isInstance)
+        .map(c ->
+            ((AgentInstanceHistoryContent.DocumentContent) c)
+                .getDocumentReference()
+                .getDocumentId())
+        .toList();
+  }
+
+  private static String documentId(Document document) {
+    return ((CamundaDocumentReference) document.reference()).getDocumentId();
   }
 
   @Test

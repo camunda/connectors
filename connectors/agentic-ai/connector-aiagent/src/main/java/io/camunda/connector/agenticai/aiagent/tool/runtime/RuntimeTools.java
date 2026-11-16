@@ -194,10 +194,11 @@ public class RuntimeTools {
    * conversation.
    *
    * <p>A result holds a document as the {@link Document} of the connector SDK ({@link
-   * RuntimeToolContext#document}). An {@link AgentDocument} holds the store details of a document,
-   * which never go to the model, so one in a result is a defect of the tool and fails the job, as
-   * does an {@link AgentDocumentContent} block, the reference of the conversation, also one nested
-   * in the object.
+   * RuntimeToolContext#document}). The model works with the handles of documents and has no use for
+   * the store details of an {@link AgentDocument}, so an {@link AgentDocument} in a result is a
+   * defect of the tool and fails the job. An {@link AgentDocumentContent} block, the reference of
+   * the conversation, fails the job too, also one nested in the object, because content comes only
+   * through an effect.
    */
   private Content plainContent(ToolCall toolCall, Content content) {
     if (!(content instanceof ObjectContent objectContent)) {
