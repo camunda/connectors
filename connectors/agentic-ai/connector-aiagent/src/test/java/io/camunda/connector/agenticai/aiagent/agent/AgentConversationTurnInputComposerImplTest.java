@@ -1122,7 +1122,8 @@ class AgentConversationTurnInputComposerImplTest {
     final var execution =
         new RuntimeToolExecution(
             MIXED_CALLS.getFirst(),
-            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
+            RuntimeToolResult.success("Loaded the document.")
+                .withEffect(ToolCallEffect.addDocumentContent(id)),
             NOW,
             NOW);
     return entryOf(execution);
@@ -1198,7 +1199,7 @@ class AgentConversationTurnInputComposerImplTest {
         new RuntimeToolExecution(
             MIXED_CALLS.getFirst(),
             RuntimeToolResult.success("Returned the document.")
-                .withResponseDocument("report", id, "The report"),
+                .withEffect(ToolCallEffect.selectResponseDocument("report", id, "The report")),
             NOW,
             NOW);
     var ready =
@@ -1226,7 +1227,7 @@ class AgentConversationTurnInputComposerImplTest {
         new RuntimeToolExecution(
             MIXED_CALLS.getFirst(),
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(document)))
-                .withResponseDocument("created", id, null),
+                .withEffect(ToolCallEffect.selectResponseDocument("created", id, null)),
             NOW,
             NOW);
     var ready =

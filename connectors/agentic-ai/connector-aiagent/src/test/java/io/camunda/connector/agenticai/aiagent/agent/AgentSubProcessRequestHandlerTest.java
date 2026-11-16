@@ -227,8 +227,9 @@ class AgentSubProcessRequestHandlerTest {
           "acme_select_document",
           (context, call) ->
               RuntimeToolResult.success("Selected the document.")
-                  .withResponseDocument(
-                      "report", AgentDocumentId.of(KNOWN_DOCUMENT), "The report"));
+                  .withEffect(
+                      ToolCallEffect.selectResponseDocument(
+                          "report", AgentDocumentId.of(KNOWN_DOCUMENT), "The report")));
 
   private static final RuntimeTool LOOKUP_TOOL =
       StubRuntimeTool.of(

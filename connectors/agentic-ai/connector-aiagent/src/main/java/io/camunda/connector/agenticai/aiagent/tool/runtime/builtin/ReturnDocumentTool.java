@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
@@ -27,8 +28,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A valid call answers with the text {@code Returned the document under the key 'k'.} and asks
  * the agent to select the document for the response documents under its key ({@link
- * RuntimeToolResult.Success#withResponseDocument}); a call with a key that is already used replaces
- * that selection in place. The selections stay in the agent context for the lifetime of the agent
+ * ToolCallEffect#selectResponseDocument}); a call with a key that is already used replaces that
+ * selection in place. The selections stay in the agent context for the lifetime of the agent
  * instance, and every response without tool calls returns all of them. An invalid key or a document
  * the agent does not know is answered with an error result, which selects nothing.
  */
@@ -115,7 +116,7 @@ public final class ReturnDocumentTool implements RuntimeTool {
             ? null
             : arguments.description();
     return RuntimeToolResult.success("Returned the document under the key '%s'.".formatted(key))
-        .withResponseDocument(key, document, description);
+        .withEffect(ToolCallEffect.selectResponseDocument(key, document, description));
   }
 
   private static RuntimeToolResult invalidKey() {

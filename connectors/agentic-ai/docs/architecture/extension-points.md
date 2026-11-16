@@ -212,7 +212,7 @@ window together with the tool results. A document parameter never adds content.
 
 **Returning documents: `c8__return_document`.** The model calls the tool once per document with `key`, `document` (a
 handle) and an optional `description`. The tool returns the effect `SelectResponseDocument`
-(`Success.withResponseDocument`). An invalid key, a missing parameter or an unknown document gives an error result.
+(`ToolCallEffect.selectResponseDocument`). An invalid key, a missing parameter or an unknown document gives an error result.
 `ToolCallResultsInputBuilder.build` returns the selections in call order in `TurnInput.responseDocuments()`, and the
 caller adds them to `AgentContext.responseDocuments` with `TurnInput.applyTo`. The builder fails the job for a selection
 of a document that the agent does not know when the batch starts and that the result does not return. A key that is
@@ -428,13 +428,10 @@ and the tool is not called. The tool gets the id of a known document and need no
 document. A result holds a document as the `Document` of the connector SDK, and the model reads its handle; the Javadoc of
 `RuntimeToolResult` has the rules.
 
-**Effects.** `Success.withDocumentContent(AgentDocumentId)` adds the effect `AddDocumentContent`: the agent adds the
-content to the next request, once per document, and writes the outcome sentence into the result. `LoadDocumentTool` is the
-reference. `Success.withResponseDocument(key, AgentDocumentId, description)` adds the effect `SelectResponseDocument`: the
-builder returns the selection in `TurnInput.responseDocuments()`, and `TurnInput.applyTo` adds the document to
-`AgentContext.responseDocuments`. A key that is already used replaces its selection. `ReturnDocumentTool` is the
-reference. Content comes only through an effect. An effect with an id that the agent does not
-know when the batch starts, and that the result does not return, fails the job.
+**Effects.** `Success.withEffect(ToolCallEffect)` adds an effect, such as `ToolCallEffect.addDocumentContent(id)`, which
+adds the content of a document to the next request (`LoadDocumentTool`), or `ToolCallEffect.selectResponseDocument(key,
+id, description)`, which selects a document for the final response (`ReturnDocumentTool`); the Javadoc of `ToolCallEffect`
+has the rules.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the

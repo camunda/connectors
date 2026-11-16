@@ -102,9 +102,9 @@ class RuntimeToolResultTest {
   void effectsOfDifferentKindsKeepTheOrderTheyWereAdded() {
     final var result =
         RuntimeToolResult.success("ok")
-            .withResponseDocument("second", DOC_2)
-            .withDocumentContent(DOC_1)
-            .withResponseDocument("first", DOC_1, "A document");
+            .withEffect(ToolCallEffect.selectResponseDocument("second", DOC_2, null))
+            .withEffect(ToolCallEffect.addDocumentContent(DOC_1))
+            .withEffect(ToolCallEffect.selectResponseDocument("first", DOC_1, "A document"));
 
     assertThat(result.effects())
         .containsExactly(
@@ -121,7 +121,8 @@ class RuntimeToolResultTest {
     final var result = RuntimeToolResult.success("ok");
 
     for (final var key : List.of("", " ", "1abc", "a b")) {
-      assertThatThrownBy(() -> result.withResponseDocument(key, DOC_1))
+      assertThatThrownBy(
+              () -> result.withEffect(ToolCallEffect.selectResponseDocument(key, DOC_1, null)))
           .isInstanceOf(IllegalArgumentException.class);
     }
     assertThat(result.effects()).isEmpty();
@@ -131,8 +132,8 @@ class RuntimeToolResultTest {
   void aWitherLeavesTheOriginalResultUnchanged() {
     final var original = RuntimeToolResult.success("ok");
 
-    original.withDocumentContent(DOC_1);
-    original.withResponseDocument("key", DOC_1);
+    original.withEffect(ToolCallEffect.addDocumentContent(DOC_1));
+    original.withEffect(ToolCallEffect.selectResponseDocument("key", DOC_1, null));
 
     assertThat(original.effects()).isEmpty();
   }
@@ -141,8 +142,8 @@ class RuntimeToolResultTest {
   void theEffectsAreACopyThatCannotBeChanged() {
     final var result =
         RuntimeToolResult.success("ok")
-            .withDocumentContent(DOC_1)
-            .withResponseDocument("key", DOC_1);
+            .withEffect(ToolCallEffect.addDocumentContent(DOC_1))
+            .withEffect(ToolCallEffect.selectResponseDocument("key", DOC_1, null));
 
     assertThatThrownBy(() -> result.effects().add(new ToolCallEffect.AddDocumentContent(DOC_2)))
         .isInstanceOf(UnsupportedOperationException.class);

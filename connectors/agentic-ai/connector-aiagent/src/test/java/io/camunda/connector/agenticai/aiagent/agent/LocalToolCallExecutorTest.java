@@ -171,7 +171,9 @@ class LocalToolCallExecutorTest {
     var selection = new ResponseDocumentSelection("report", KNOWN_ID, "The report");
     var execution =
         runtimeExecution(
-            RuntimeToolResult.success("ok").withResponseDocument("report", KNOWN_ID, "The report"));
+            RuntimeToolResult.success("ok")
+                .withEffect(
+                    ToolCallEffect.selectResponseDocument("report", KNOWN_ID, "The report")));
     when(runtimeTools.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(execution));
 
@@ -192,7 +194,7 @@ class LocalToolCallExecutorTest {
     var execution =
         runtimeExecution(
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
-                .withResponseDocument("created", id, null));
+                .withEffect(ToolCallEffect.selectResponseDocument("created", id, null)));
     when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(execution));
 

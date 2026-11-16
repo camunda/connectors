@@ -463,7 +463,10 @@ class ToolCallResultsInputBuilderTest {
     final var unknown = AgentDocumentId.of("unknown");
     final var entry =
         runtimeEntry(
-            "c1", "alpha", RuntimeToolResult.success("a").withResponseDocument("k", unknown, null));
+            "c1",
+            "alpha",
+            RuntimeToolResult.success("a")
+                .withEffect(ToolCallEffect.selectResponseDocument("k", unknown, null)));
 
     assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry)))
         .isInstanceOf(IllegalArgumentException.class)
@@ -483,7 +486,8 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c2",
             "beta",
-            RuntimeToolResult.success("a").withResponseDocument("k", idOf(first), null));
+            RuntimeToolResult.success("a")
+                .withEffect(ToolCallEffect.selectResponseDocument("k", idOf(first), null)));
 
     assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(returning, selecting)))
         .isInstanceOf(IllegalArgumentException.class)
@@ -499,7 +503,7 @@ class ToolCallResultsInputBuilderTest {
             "c1",
             "alpha",
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
-                .withResponseDocument("k", idOf(first), null));
+                .withEffect(ToolCallEffect.selectResponseDocument("k", idOf(first), null)));
 
     assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry)))
         .isInstanceOf(IllegalArgumentException.class)
@@ -532,7 +536,8 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1",
             "alpha",
-            RuntimeToolResult.success("returned").withResponseDocument("report", idOf(known), "R"));
+            RuntimeToolResult.success("returned")
+                .withEffect(ToolCallEffect.selectResponseDocument("report", idOf(known), "R")));
     final var context = knowing(known);
 
     final var input = builder.build(context, batchOf(entry));
@@ -560,12 +565,13 @@ class ToolCallResultsInputBuilderTest {
                 "c1",
                 "alpha",
                 RuntimeToolResult.success("a")
-                    .withResponseDocument("a", idOf(known), "one")
-                    .withResponseDocument("b", idOf(other), null)),
+                    .withEffect(ToolCallEffect.selectResponseDocument("a", idOf(known), "one"))
+                    .withEffect(ToolCallEffect.selectResponseDocument("b", idOf(other), null))),
             runtimeEntry(
                 "c2",
                 "beta",
-                RuntimeToolResult.success("b").withResponseDocument("a", idOf(other), "three")));
+                RuntimeToolResult.success("b")
+                    .withEffect(ToolCallEffect.selectResponseDocument("a", idOf(other), "three"))));
     final var context = knowing(known, other);
 
     final var input = builder.build(context, batch);
@@ -592,7 +598,8 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1",
             "alpha",
-            RuntimeToolResult.success("a").withResponseDocument("a", idOf(other), "new"));
+            RuntimeToolResult.success("a")
+                .withEffect(ToolCallEffect.selectResponseDocument("a", idOf(other), "new")));
 
     final var input = builder.build(context, batchOf(entry));
 
@@ -611,7 +618,7 @@ class ToolCallResultsInputBuilderTest {
             "c1",
             "alpha",
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
-                .withResponseDocument("created", idOf(first), null));
+                .withEffect(ToolCallEffect.selectResponseDocument("created", idOf(first), null)));
 
     final var input = builder.build(WITH_DOCUMENTS, batchOf(entry));
 
@@ -641,7 +648,8 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1",
             "alpha",
-            RuntimeToolResult.success("a").withResponseDocument("k", idOf(known), "d"));
+            RuntimeToolResult.success("a")
+                .withEffect(ToolCallEffect.selectResponseDocument("k", idOf(known), "d")));
     final var context = knowing(known);
 
     final var once = builder.build(context, batchOf(entry));
