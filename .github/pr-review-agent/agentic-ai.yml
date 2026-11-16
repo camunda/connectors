@@ -53,6 +53,8 @@ policy:
     - A change that adds a stored shape, a customer-facing name, a default or a
       limit needs its decision and rationale in the PR description (Definition
       of Done in AGENTS.md). If the description lacks it, report a ❓ finding.
+    - Use the severity codes of the review prompt. Apply the section "Severity"
+      of code-review.md to choose between ❌, ❓, 🔧, 🙃 and 💭.
     - Set AUTO_APPROVE only for class A1, A2, A3 or B of the rubric. Name the
       class in reason.
 
