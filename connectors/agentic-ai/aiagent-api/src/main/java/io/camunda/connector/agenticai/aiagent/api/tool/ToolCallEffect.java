@@ -7,9 +7,11 @@
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 import io.camunda.connector.api.document.Document;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What the result of a local tool call asks of the agent besides its content. The agent applies the
@@ -36,6 +38,30 @@ public sealed interface ToolCallEffect {
 
     public AddDocumentContent {
       Objects.requireNonNull(id, "id must not be null");
+    }
+  }
+
+  /**
+   * A known document is selected for the final response of the agent. Every later final response
+   * carries the selection. A selection under a key that is already used replaces the earlier one.
+   *
+   * @param key the key of the document in the response, see {@link
+   *     ResponseDocumentSelection#KEY_PATTERN}
+   * @param id the id of a document the agent knows when the batch starts, or of a document the same
+   *     result returns. An unknown id fails the job.
+   * @param description a short description of the document, or {@code null}
+   * @throws IllegalArgumentException if the key does not match the pattern
+   */
+  static ToolCallEffect selectResponseDocument(
+      String key, AgentDocumentId id, @Nullable String description) {
+    return new SelectResponseDocument(new ResponseDocumentSelection(key, id, description));
+  }
+
+  /** See {@link #selectResponseDocument}. */
+  record SelectResponseDocument(ResponseDocumentSelection selection) implements ToolCallEffect {
+
+    public SelectResponseDocument {
+      Objects.requireNonNull(selection, "selection must not be null");
     }
   }
 }

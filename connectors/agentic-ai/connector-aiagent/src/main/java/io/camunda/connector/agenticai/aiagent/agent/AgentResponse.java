@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.MessageUtil.singleTextContent;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -19,6 +20,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.generator.java.annotation.DataExample;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +34,9 @@ public record AgentResponse(
     List<ToolCallProcessVariable> toolCalls,
     @Nullable AssistantMessage responseMessage,
     @Nullable String responseText,
-    @Nullable Object responseJson)
+    @Nullable Object responseJson,
+    // the response documents by key
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, ReturnedDocument> responseDocuments)
     implements AgentResponseBuilder.With {
 
   public static AgentResponseBuilder builder() {
@@ -124,6 +129,25 @@ public record AgentResponse(
                         .name("sampleTool")
                         .arguments(Map.of("input1", "value1", "input2", 42))
                         .build())))
+        .build();
+  }
+
+  @DataExample(id = "withResponseDocuments", feel = "=responseDocuments")
+  public static AgentResponse exampleResultWithResponseDocuments() {
+    return AgentResponse.builder()
+        .context(exampleResultWithTextResponse().context())
+        .responseText("The report is attached.")
+        .responseDocuments(
+            Map.of(
+                "report",
+                new ReturnedDocument(
+                    new CamundaDocumentReferenceModel(
+                        "in-memory",
+                        "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10",
+                        "9f86d081884c7d659a2feaa0c55ad015",
+                        new CamundaDocumentMetadataModel(
+                            "application/pdf", null, null, "report.pdf", null, null, null)),
+                    "The quarterly report")))
         .build();
   }
 }

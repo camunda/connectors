@@ -297,6 +297,81 @@ leading to the following result
 } ]
 ```
 
+#### Response containing documents
+
+```json
+{
+  "context" : {
+    "metrics" : {
+      "modelCalls" : 3,
+      "tokenUsage" : {
+        "inputTokenCount" : 10,
+        "outputTokenCount" : 20
+      },
+      "toolCalls" : 0
+    },
+    "schemaVersion" : 2,
+    "state" : "READY",
+    "toolDefinitions" : [ {
+      "description" : "A sample tool for demonstration purposes.",
+      "inputSchema" : {
+        "properties" : {
+          "input1" : {
+            "type" : "string"
+          },
+          "input2" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "input1", "input2" ],
+        "type" : "object"
+      },
+      "name" : "sampleTool"
+    } ]
+  },
+  "responseDocuments" : {
+    "report" : {
+      "description" : "The quarterly report",
+      "document" : {
+        "contentHash" : "9f86d081884c7d659a2feaa0c55ad015",
+        "documentId" : "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10",
+        "metadata" : {
+          "contentType" : "application/pdf",
+          "fileName" : "report.pdf"
+        },
+        "storeId" : "in-memory",
+        "camunda.document.type" : "camunda"
+      }
+    }
+  },
+  "responseText" : "The report is attached.",
+  "toolCalls" : [ ]
+}
+```
+
+The documents returned by the agent can be accessed via FEEL:
+```json
+=responseDocuments
+```
+leading to the following result
+```json
+{
+  "report" : {
+    "description" : "The quarterly report",
+    "document" : {
+      "camunda.document.type" : "camunda",
+      "contentHash" : "9f86d081884c7d659a2feaa0c55ad015",
+      "documentId" : "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10",
+      "metadata" : {
+        "contentType" : "application/pdf",
+        "fileName" : "report.pdf"
+      },
+      "storeId" : "in-memory"
+    }
+  }
+}
+```
+
 
 | Connector Info            |                                                                       |
 | ---                       | ---                                                                   |

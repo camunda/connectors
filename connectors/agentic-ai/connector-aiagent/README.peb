@@ -148,4 +148,22 @@ leading to the following result
 
 ```
 
+#### Response containing documents
+
+```json
+{{ exampleData["withResponseDocuments"].json }}
+
+```
+
+The documents returned by the agent can be accessed via FEEL:
+```json
+{{ exampleData["withResponseDocuments"].feel }}
+
+```
+leading to the following result
+```json
+{{ exampleData["withResponseDocuments"].feelResultJson }}
+
+```
+
 {% endblock %}

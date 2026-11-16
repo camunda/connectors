@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -33,12 +34,15 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Builds the input of the turn that follows a batch of tool calls from its results, in call order.
  * It applies what the results ask of the agent after all calls ran: it returns the documents of the
- * results in the {@link TurnInput}, which {@link TurnInput#applyTo} registers, and it applies the
- * effects of the results. It is the one place that checks that an effect names a known document.
+ * results in the {@link TurnInput}, which {@link TurnInput#applyTo} registers, it applies the
+ * effects of the results, and it returns the response documents that the results select in the
+ * {@link TurnInput}, in call order, which {@link TurnInput#applyTo} adds to the agent context. It
+ * is the one place that checks that an effect names a known document.
  *
  * <p>An agent instance that tracks its documents shows a document as its handle inside the tool
  * result and reports it in the {@link TurnInput} to be registered in its documents. For every
@@ -71,12 +75,11 @@ public class ToolCallResultsInputBuilder {
    * @throws IllegalStateException if a call of the batch has no result
    * @throws UnsupportedDocumentReferenceException if a result of an agent instance that tracks its
    *     documents holds a document that is not a Camunda document
-   * @throws IllegalArgumentException if a result asks for the content of a document that is neither
+   * @throws IllegalArgumentException if an effect of a result names a document that is neither
    *     known to {@code agentContext} as of the start of the batch nor returned by the result, or
-   *     if a result of an agent instance that does not track its documents asks anything of the
-   *     agent
-   * @throws AgentDocumentIdCollisionException if a document of a result that asks for content gets
-   *     the id of a different document that the agent knows
+   *     if a result of an agent instance that does not track its documents has an effect
+   * @throws AgentDocumentIdCollisionException if a document of a result that has an effect gets the
+   *     id of a different document that the agent knows
    */
   public TurnInput build(AgentContext agentContext, ToolCallBatch batch) {
     final var entries = batch.entriesInCallOrder();
@@ -90,22 +93,28 @@ public class ToolCallResultsInputBuilder {
    * The input for an agent instance that tracks its documents. The effects are applied in the order
    * of the entries. An entry sees the documents of the agent and its own documents only, never the
    * ones of another entry. The content of a document that several entries ask for is added once, in
-   * the order of the first request.
+   * the order of the first request. The response documents are selected in call order.
    */
   private TurnInput trackedInput(AgentDocuments documents, List<ToolCallBatch.Entry> entries) {
     final var results = new ArrayList<ToolCallResultContent>();
     final var delivered = new LinkedHashSet<AgentDocumentId>();
+    final var responseDocuments = new ArrayList<ResponseDocumentSelection>();
     for (final var entry : entries) {
       final var result = entry.result().withDocumentsAsReferences();
-      final var requested = requestedContent(entry);
-      if (requested.isEmpty()) {
+      final var effects = EntryEffects.of(entry);
+      if (effects.isEmpty()) {
         results.add(result);
         continue;
       }
+      final var known = documents.register(newDocumentsOf(entry));
+      requireKnown(entry, effects, known);
       results.add(
-          result.withContent(
-              concat(result.content(), contentStatements(documents, entry, requested))));
-      delivered.addAll(requested);
+          effects.contentRequests().isEmpty()
+              ? result
+              : result.withContent(
+                  concat(result.content(), contentStatements(known, effects.contentRequests()))));
+      delivered.addAll(effects.contentRequests());
+      responseDocuments.addAll(effects.responseDocuments());
     }
 
     final var messages = new ArrayList<Message>();
@@ -121,36 +130,55 @@ public class ToolCallResultsInputBuilder {
     }
     final var newDocuments = new ArrayList<AgentDocument>();
     entries.forEach(entry -> newDocuments.addAll(newDocumentsOf(entry)));
-    return new TurnInput(messages, newDocuments);
-  }
-
-  /** The documents whose content the entry asks for, in the order of its effects. */
-  private static Set<AgentDocumentId> requestedContent(ToolCallBatch.Entry entry) {
-    final var requested = new LinkedHashSet<AgentDocumentId>();
-    for (final var effect : entry.effects()) {
-      switch (effect) {
-        case ToolCallEffect.AddDocumentContent add -> requested.add(add.id());
-      }
-    }
-    return requested;
+    return new TurnInput(messages, newDocuments, List.copyOf(responseDocuments));
   }
 
   /**
-   * The sentences that end the result of the entry, one per requested document. Every requested
-   * document must be known to the agent or returned by the entry.
+   * The effects of one entry, in the order of the effects.
+   *
+   * @param contentRequests the documents whose content the entry asks for
+   * @param responseDocuments the response documents the entry selects
    */
+  private record EntryEffects(
+      Set<AgentDocumentId> contentRequests, List<ResponseDocumentSelection> responseDocuments) {
+
+    static EntryEffects of(ToolCallBatch.Entry entry) {
+      final var contentRequests = new LinkedHashSet<AgentDocumentId>();
+      final var responseDocuments = new ArrayList<ResponseDocumentSelection>();
+      for (final var effect : entry.effects()) {
+        switch (effect) {
+          case ToolCallEffect.AddDocumentContent add -> contentRequests.add(add.id());
+          case ToolCallEffect.SelectResponseDocument select ->
+              responseDocuments.add(select.selection());
+        }
+      }
+      return new EntryEffects(contentRequests, responseDocuments);
+    }
+
+    boolean isEmpty() {
+      return contentRequests.isEmpty() && responseDocuments.isEmpty();
+    }
+
+    /** The ids of the documents that the effects name. */
+    Stream<AgentDocumentId> documents() {
+      return Stream.concat(
+          contentRequests.stream(),
+          responseDocuments.stream().map(ResponseDocumentSelection::agentDocumentId));
+    }
+  }
+
+  /** The sentences that end a result, one per document whose content the result asks for. */
   private static List<Content> contentStatements(
-      AgentDocuments documents, ToolCallBatch.Entry entry, Collection<AgentDocumentId> requested) {
-    final var known = documents.register(newDocumentsOf(entry));
-    requireKnown(entry, requested, known);
+      AgentDocuments known, Collection<AgentDocumentId> requested) {
     return requested.stream()
         .<Content>map(id -> textContent(contentFollows(documentRef(known, id))))
         .toList();
   }
 
   private static void requireKnown(
-      ToolCallBatch.Entry entry, Collection<AgentDocumentId> requested, AgentDocuments known) {
-    requested.stream()
+      ToolCallBatch.Entry entry, EntryEffects effects, AgentDocuments known) {
+    effects
+        .documents()
         .filter(id -> known.find(id).isEmpty())
         .findFirst()
         .ifPresent(id -> {

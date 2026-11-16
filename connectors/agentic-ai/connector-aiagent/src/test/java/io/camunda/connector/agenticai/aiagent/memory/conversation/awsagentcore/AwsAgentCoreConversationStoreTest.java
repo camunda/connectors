@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -900,6 +901,7 @@ class AwsAgentCoreConversationStoreTest {
     final var tagOnlyMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
 
+    final var selection = new ResponseDocumentSelection("report", entry.id(), "The report");
     final var agentContext =
         AgentContext.builder()
             .conversation(
@@ -909,7 +911,8 @@ class AwsAgentCoreConversationStoreTest {
                     .build())
             .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
             .build()
-            .withDocuments(AgentDocuments.of(List.of(entry)));
+            .withDocuments(AgentDocuments.of(List.of(entry)))
+            .withResponseDocument(selection);
 
     mockListEventsResponse(List.of());
     when(bedrockClient.createEvent(any(CreateEventRequest.class)))
@@ -944,6 +947,8 @@ class AwsAgentCoreConversationStoreTest {
       loaded = session.loadMessages(storedContext).messages();
     }
 
+    // the response documents are part of the agent context, which the store does not touch
+    assertThat(storedContext.responseDocuments()).containsExactly(selection);
     assertThat(loaded).hasSize(2);
     assertThat(loaded.get(0))
         .isInstanceOfSatisfying(

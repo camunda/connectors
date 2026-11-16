@@ -139,7 +139,8 @@ public class AgentSubProcessRequestHandler
         AgentSubProcessResponse.builder()
             .responseText(agentResponse.responseText())
             .responseJson(agentResponse.responseJson())
-            .responseMessage(agentResponse.responseMessage());
+            .responseMessage(agentResponse.responseMessage())
+            .responseDocuments(agentResponse.responseDocuments());
 
     if (executionContext.response() != null
         && Boolean.TRUE.equals(executionContext.response().includeAgentContext())) {
