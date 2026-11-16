@@ -85,6 +85,7 @@ number:
 3. The change weakens or removes a rule in the module docs or a build check. Examples: a new entry in
    an ArchUnit allowlist, a deleted architecture test, a new `@NullUnmarked` or `@SuppressWarnings`.
 4. The change adds a dependency.
+5. The PR description declares a deviation from a rule. The declaration never removes a finding.
 
 The path rules in `.github/pr-review-agent/agentic-ai.yml` also require a human, whatever the review
 finds. They cover released element templates, `aiagent-api`, `api-changes.json`, the rule documents
