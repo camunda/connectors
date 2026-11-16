@@ -153,7 +153,7 @@ public class ToolCallResultsInputBuilder {
   private static AgentDocumentId documentOf(ToolCallEffect effect) {
     return switch (effect) {
       case ToolCallEffect.AddDocumentContent add -> add.id();
-      case ToolCallEffect.SelectResponseDocument select -> select.selection().document();
+      case ToolCallEffect.SelectResponseDocument select -> select.selection().agentDocumentId();
     };
   }
 

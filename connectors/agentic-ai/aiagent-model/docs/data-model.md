@@ -27,7 +27,7 @@ fingerprint.
 
 **Response documents.** `AgentContext.responseDocuments` is the list of the documents selected for the final response, in the
 order they were selected (omitted when empty; a missing field binds to an empty list). An entry is
-`{key, document, description?}`: the key the process finds the document by, the `AgentDocumentId` of one of the agent
+`{key, agentDocumentId, description?}`: the key the process finds the document by, the `AgentDocumentId` of one of the agent
 documents and an optional description. A selection under a key that is already used replaces that selection in place
 (`AgentContext.withResponseDocument`). The final response carries each selection under its key as a `ReturnedDocument` with
 the Camunda document reference of its agent document; the order of its entries is not specified, only this list keeps

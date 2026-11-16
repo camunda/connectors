@@ -18,12 +18,12 @@ import org.jspecify.annotations.Nullable;
  *
  * @param key the key the process finds the document by; it starts with a letter or an underscore
  *     and continues with letters, digits, underscores or hyphens ({@link #KEY_PATTERN})
- * @param document the id of the document in the agent documents
+ * @param agentDocumentId the id of the document in the agent documents
  * @param description a description of the document, if any
  */
 @AgenticAiRecord
 public record ResponseDocumentSelection(
-    String key, AgentDocumentId document, @Nullable String description)
+    String key, AgentDocumentId agentDocumentId, @Nullable String description)
     implements ResponseDocumentSelectionBuilder.With {
 
   /** The form of a key, as a regular expression. */
@@ -45,6 +45,6 @@ public record ResponseDocumentSelection(
       throw new IllegalArgumentException(
           "The key '%s' of a response document must match %s".formatted(key, KEY_PATTERN));
     }
-    Objects.requireNonNull(document, "document must not be null");
+    Objects.requireNonNull(agentDocumentId, "agentDocumentId must not be null");
   }
 }

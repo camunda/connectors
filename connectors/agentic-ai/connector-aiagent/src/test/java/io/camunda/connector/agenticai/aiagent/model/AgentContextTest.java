@@ -352,13 +352,13 @@ class AgentContextTest {
     JSONAssert.assertEquals(
         """
         [
-          {"key": "zeta", "document": "doc-zeta"},
-          {"key": "alpha", "document": "doc-alpha-2", "description": "Replaced"},
-          {"key": "mid", "document": "doc-mid"},
-          {"key": "beta", "document": "doc-beta"},
-          {"key": "omega", "document": "doc-omega"},
-          {"key": "gamma", "document": "doc-gamma"},
-          {"key": "delta", "document": "doc-delta"}
+          {"key": "zeta", "agentDocumentId": "doc-zeta"},
+          {"key": "alpha", "agentDocumentId": "doc-alpha-2", "description": "Replaced"},
+          {"key": "mid", "agentDocumentId": "doc-mid"},
+          {"key": "beta", "agentDocumentId": "doc-beta"},
+          {"key": "omega", "agentDocumentId": "doc-omega"},
+          {"key": "gamma", "agentDocumentId": "doc-gamma"},
+          {"key": "delta", "agentDocumentId": "doc-delta"}
         ]
         """,
         objectMapper.readTree(serialized).get("responseDocuments").toString(),

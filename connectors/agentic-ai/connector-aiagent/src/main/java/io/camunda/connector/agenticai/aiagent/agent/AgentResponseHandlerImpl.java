@@ -145,11 +145,11 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       final var document =
           agentContext
               .documents()
-              .find(selection.document())
+              .find(selection.agentDocumentId())
               .orElseThrow(() ->
                   new IllegalStateException(
                       "The response document '%s' is the document '%s', which the agent does not know"
-                          .formatted(selection.key(), selection.document())));
+                          .formatted(selection.key(), selection.agentDocumentId())));
       returned.put(
           selection.key(), new ReturnedDocument(document.reference(), selection.description()));
     }
