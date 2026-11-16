@@ -28,16 +28,10 @@ public interface RuntimeToolContext {
   AgentContext agentContext();
 
   /**
-   * The document of a known document id, such as the value of a document parameter of the call,
-   * restored with the document factory of the job to read its metadata and content. The content is
-   * read only when the tool asks for it. A result can hold the document: the model reads its
-   * handle.
+   * The document with this id, such as the value of a document parameter of the call. A result can
+   * hold the document; the model reads its handle.
    *
-   * <p>The agent knows the documents of the agent context as of the start of the batch of calls
-   * this call belongs to. The documents the other calls of the batch return are not known yet, they
-   * are known to the next turn.
-   *
-   * @return empty when the agent does not know the id or does not track its documents
+   * @return empty when the agent does not know the id
    */
   Optional<Document> document(AgentDocumentId id);
 }

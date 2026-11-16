@@ -55,6 +55,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventio
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
@@ -215,7 +216,8 @@ class AgentSubProcessRequestHandlerTest {
           "acme_load_document",
           (context, call) ->
               RuntimeToolResult.success("Loaded the document.")
-                  .withDocumentContent(AgentDocumentId.of(KNOWN_DOCUMENT)));
+                  .withEffect(
+                      ToolCallEffect.addDocumentContent(AgentDocumentId.of(KNOWN_DOCUMENT))));
 
   private static final RuntimeTool LOOKUP_TOOL =
       StubRuntimeTool.of(

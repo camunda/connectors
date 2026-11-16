@@ -1118,7 +1118,9 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   private static ToolCallBatch.Entry loadingEntry(AgentDocumentId id) {
-    final var result = RuntimeToolResult.success("Loaded the document.").withDocumentContent(id);
+    final var result =
+        RuntimeToolResult.success("Loaded the document.")
+            .withEffect(ToolCallEffect.addDocumentContent(id));
     final var execution = new RuntimeToolExecution(MIXED_CALLS.getFirst(), result, NOW, NOW);
     return entryWithEffects(execution.toolCallResult(), result.effects());
   }

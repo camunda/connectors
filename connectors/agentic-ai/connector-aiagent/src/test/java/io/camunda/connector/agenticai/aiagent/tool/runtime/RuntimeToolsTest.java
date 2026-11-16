@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -736,7 +737,8 @@ class RuntimeToolsTest {
     final var loading =
         StubRuntimeTool.of(
             "acme_load",
-            (context, call) -> RuntimeToolResult.success("ok").withDocumentContent(id));
+            (context, call) ->
+                RuntimeToolResult.success("ok").withEffect(ToolCallEffect.addDocumentContent(id)));
     final var failing =
         StubRuntimeTool.of("acme_fail", (context, call) -> RuntimeToolResult.error("no"));
 
@@ -752,7 +754,8 @@ class RuntimeToolsTest {
     assertThat(executions)
         .extracting(RuntimeToolExecution::result)
         .containsExactly(
-            RuntimeToolResult.success("ok").withDocumentContent(id), RuntimeToolResult.error("no"));
+            RuntimeToolResult.success("ok").withEffect(ToolCallEffect.addDocumentContent(id)),
+            RuntimeToolResult.error("no"));
   }
 
   // document parameters

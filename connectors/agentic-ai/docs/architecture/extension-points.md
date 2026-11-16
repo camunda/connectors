@@ -194,7 +194,7 @@ exposes a store id or the id of the document in its store.
 
 **Loading content: `c8__load_document`.** The model calls the tool with the handle of a document (`id`). Every agent
 instance with the `documents` feature offers it. The tool returns the effect `AddDocumentContent`
-(`Success.withDocumentContent`). It writes no text. A missing or unknown id gives an error result.
+(`ToolCallEffect.addDocumentContent`). It writes no text. A missing or unknown id gives an error result.
 
 After all calls of the message ran, `ToolCallResultsInputBuilder` applies the effects in call order.
 Every request for the content of a document adds the content. The agent does not check earlier turns. The builder adds
@@ -398,7 +398,6 @@ example.
 - *Bounded execution time.* A call is executed in the thread of the job, without a timeout: stay well below the job timeout.
 - *Order and concurrency.* The results of a batch are applied in call order. `call` and `isEnabled` may be called from different
   threads, and a `RuntimeToolContext` is safe to read concurrently.
-  The calls of one message see the same agent context, the one when the batch starts, and so the same documents.
 - *Mixed batches.* Runtime calls of a message that also calls process tools are executed in the job that composes the next turn
   ([What Happens When Tools Complete](agentic-loop.md#what-happens-when-tools-complete)); a message that calls runtime tools only has them executed in the same job and calls the model again.
 - *Failures.* A call of a tool that is not offered in the job is rejected and gets the error result "does not exist" from the
@@ -409,21 +408,15 @@ example.
 **Document parameters.** A parameter that carries a document is declared with `DocumentParameter.documentSchema(...)`. The agent
 resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, which `argumentsAs` binds to a
 property typed `AgentDocumentId`. A call with a value that is not the handle of a known document is rejected at admission,
-and the tool is not called. A tool does not look up the document to check it: the id it receives is the one of a known
-document. `RuntimeTools` resolves the call again against the definition the tool is registered with, which can differ from
-the one of the admission when the call runs in a later job; an invalid value gets a `RuntimeToolResult.error` with the
-resolution message, and the tool is not called.
+and the tool is not called. The tool gets the id of a known document and need not check it.
 
 **Documents.** `RuntimeToolContext#document(AgentDocumentId)` returns the `Document` of the connector SDK for a known
-document, or nothing. A result holds a document, new or known, as the `Document` of the connector SDK, in a
-`DocumentContent` block or in an object. The agent registers a new document after the calls ran, and the model reads its
-handle ([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). An `AgentDocument` or
-an `AgentDocumentContent` block in a result fails the job. An error result registers nothing.
+document. A result holds a document as the `Document` of the connector SDK, and the model reads its handle; the Javadoc of
+`RuntimeToolResult` has the rules.
 
-**Effects.** `Success.withDocumentContent(AgentDocumentId)` adds the effect `AddDocumentContent`: the agent adds the
-content to the next request, once per document, and writes the outcome sentence into the result. `LoadDocumentTool` is the
-reference. Content comes only through this effect. An effect with an id that the agent does not know when the batch starts,
-and that the result does not return, fails the job.
+**Effects.** `Success.withEffect(ToolCallEffect)` adds an effect, such as `ToolCallEffect.addDocumentContent(id)`, which
+adds the content of a document to the next request. `LoadDocumentTool` is the reference; the Javadoc of `ToolCallEffect`
+has the rules.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the

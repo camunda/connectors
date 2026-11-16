@@ -288,12 +288,9 @@ High-frequency traps (detail behind each link):
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
   documents of a turn input, also those a runtime tool returns. After the calls of a message ran, `ToolCallResultsInputBuilder`
   returns the documents of the results in the `TurnInput`, in call order, and applies the effects of the results; a tool
-  reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
-  and gets content only through `c8__load_document`: a tool asks for content with the sealed `ToolCallEffect`
-  `AddDocumentContent` of its `RuntimeToolResult.Success`. Every request adds the content, without a check of the type or the size and without a check against earlier turns. The builder (`ToolCallResultsInputBuilder`) ends the tool result of every result that
-  asks for content with the sentence `The content of {ref} follows in the next message.` for each document. The message that follows the tool results holds the requested documents only. It holds a document once, also when several results of the batch ask for it; a tool writes none of it. A document in a tool result, new or known, is a `DocumentContent` with the document of the
-  connector SDK, and content comes only through the effect; `RuntimeTools` fails the job for an `AgentDocument` or an
-  `AgentDocumentContent` block in a result, and `ToolCallResultsInputBuilder`, the one owner of this rule, for an effect that names a document neither known when the batch starts nor returned by the result, and for every effect of a result of an `Untracked` instance. Passing a handle to a tool never adds content.
+  reads the documents known when the batch starts. The model sees the handle of the documents of a tool result and gets content only by request: `c8__load_document`
+  returns the `ToolCallEffect` `AddDocumentContent`, which `ToolCallResultsInputBuilder` applies after the calls of a
+  message ran ([Loading content](docs/architecture/extension-points.md#document-extraction-from-tool-call-results)). Passing a handle to a tool never adds content.
   A `Tracked` instance accepts only Camunda documents: an external or an inline document of the user prompt, a tool call
   result or an event fails the job on entry with `UNSUPPORTED_DOCUMENT_REFERENCE` (`AgentDocument.isSupported`). A tool
   parameter of the `fromAi` type `document` (the parameter, array items or an object property) takes a handle.

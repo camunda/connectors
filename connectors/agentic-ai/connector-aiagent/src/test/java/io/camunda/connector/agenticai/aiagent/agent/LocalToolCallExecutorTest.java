@@ -119,7 +119,9 @@ class LocalToolCallExecutorTest {
   @Test
   void keepsTheEffectsOfAResult() {
     var execution =
-        runtimeExecution(RuntimeToolResult.success("loaded").withDocumentContent(KNOWN_ID));
+        runtimeExecution(
+            RuntimeToolResult.success("loaded")
+                .withEffect(ToolCallEffect.addDocumentContent(KNOWN_ID)));
     when(runtimeTools.execute(executionContext, AGENT_CONTEXT_WITH_DOCUMENT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(execution));
 
@@ -151,7 +153,7 @@ class LocalToolCallExecutorTest {
     var execution =
         runtimeExecution(
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
-                .withDocumentContent(id));
+                .withEffect(ToolCallEffect.addDocumentContent(id)));
     when(runtimeTools.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(execution));
 
@@ -226,7 +228,8 @@ class LocalToolCallExecutorTest {
             List.of(
                 runtimeExecution(
                     RuntimeToolResult.success(List.of(DocumentContent.documentContent(external)))
-                        .withDocumentContent(AgentDocumentId.of("doc_1")))));
+                        .withEffect(
+                            ToolCallEffect.addDocumentContent(AgentDocumentId.of("doc_1"))))));
 
     assertThatThrownBy(
             () -> executor.execute(executionContext, TRACKED_AGENT_CONTEXT, List.of(RUNTIME_CALL)))
@@ -242,7 +245,7 @@ class LocalToolCallExecutorTest {
     var execution =
         runtimeExecution(
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(returned)))
-                .withDocumentContent(id));
+                .withEffect(ToolCallEffect.addDocumentContent(id)));
     when(runtimeTools.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL)))
         .thenReturn(List.of(execution));
 

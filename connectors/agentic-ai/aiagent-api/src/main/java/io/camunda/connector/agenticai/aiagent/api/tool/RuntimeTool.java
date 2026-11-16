@@ -13,23 +13,15 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  * A tool the connector runtime executes itself, without activating a BPMN element. Register it as a
  * Spring bean of this type. {@link Experimental}.
  *
- * <p>The connector ships tools of this kind itself, with names that start with {@code c8__}, and
- * they use no other extension point than this one.
- *
  * <h2>Execution contract</h2>
  *
  * <ul>
  *   <li><b>At least once.</b> A job that fails after the call was executed is retried and executes
- *       the call again, so side effects outside the agent must be idempotent. The {@link
- *       RuntimeToolResult effects} of the result are discarded with the attempt.
+ *       the call again, so side effects outside the agent must be idempotent.
  *   <li><b>Concurrency.</b> The calls of one assistant message may be executed concurrently, their
  *       results are applied in call order. {@link #call} and {@link #isEnabled} may be called from
- *       different threads. The calls of one message see the same agent context, the one when the
- *       first of them starts, and so the same {@link RuntimeToolContext#document documents}: a call
- *       must not depend on a document another call of the same message returned. The agent
- *       registers the documents the results contain and applies their {@link RuntimeToolResult
- *       effects} after all calls were executed, in call order. A tool changes the agent only
- *       through these effects.
+ *       different threads. The calls of one message see the same agent context. A tool changes the
+ *       agent only through the {@link RuntimeToolResult effects} of its result.
  *   <li><b>Bounded execution time.</b> A call is executed within the agent job and is neither
  *       cancelled nor timed out by the framework, so it must return well within the job timeout.
  *   <li><b>Mixed batches.</b> When an assistant message calls runtime tools and tools of the
@@ -82,10 +74,8 @@ public interface RuntimeTool {
    * Handles {@code call}, only when the tool is enabled. A {@link RuntimeToolException} becomes an
    * error result; any other exception fails the job.
    *
-   * <p>In an agent instance with the {@code documents} feature, a call with a document parameter
-   * that does not hold the handle of a known document gets an error result and does not reach the
-   * tool. In an instance without the feature, a document parameter reaches the tool as the model
-   * sent it.
+   * <p>A call whose document parameter is not the handle of a known document gets an error result
+   * and does not reach the tool.
    *
    * @return the result, never {@code null}
    */

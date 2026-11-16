@@ -108,7 +108,10 @@ class ToolCallResultsInputBuilderTest {
 
   private static Entry loading(String id, Document document) {
     return runtimeEntry(
-        id, "alpha", RuntimeToolResult.success("loaded").withDocumentContent(idOf(document)));
+        id,
+        "alpha",
+        RuntimeToolResult.success("loaded")
+            .withEffect(ToolCallEffect.addDocumentContent(idOf(document))));
   }
 
   /** The content of the message that adds the content of the document. */
@@ -207,7 +210,10 @@ class ToolCallResultsInputBuilderTest {
   void aSuccessfulResultThatNamesAKnownDocumentEndsWithASentenceAndItsContentFollowsInAMessage() {
     final var entry =
         runtimeEntry(
-            "c1", "alpha", RuntimeToolResult.success("loaded").withDocumentContent(idOf(known)));
+            "c1",
+            "alpha",
+            RuntimeToolResult.success("loaded")
+                .withEffect(ToolCallEffect.addDocumentContent(idOf(known))));
 
     final var input = builder.build(knowing(known), batchOf(entry));
 
@@ -239,7 +245,10 @@ class ToolCallResultsInputBuilderTest {
   void aResultWithoutContentOfItsOwnEndsWithTheSentenceOnly() {
     final var entry =
         runtimeEntry(
-            "c1", "alpha", RuntimeToolResult.success(List.of()).withDocumentContent(idOf(known)));
+            "c1",
+            "alpha",
+            RuntimeToolResult.success(List.of())
+                .withEffect(ToolCallEffect.addDocumentContent(idOf(known))));
 
     final var input = builder.build(knowing(known), batchOf(entry));
 
@@ -259,7 +268,8 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1",
             "alpha",
-            RuntimeToolResult.success(List.of()).withDocumentContent(idOf(nameless)));
+            RuntimeToolResult.success(List.of())
+                .withEffect(ToolCallEffect.addDocumentContent(idOf(nameless))));
 
     final var input = builder.build(knowing(nameless), batchOf(entry));
 
@@ -303,10 +313,13 @@ class ToolCallResultsInputBuilderTest {
                 "c1",
                 "alpha",
                 RuntimeToolResult.success("a")
-                    .withDocumentContent(idOf(other))
-                    .withDocumentContent(idOf(known))),
+                    .withEffect(ToolCallEffect.addDocumentContent(idOf(other)))
+                    .withEffect(ToolCallEffect.addDocumentContent(idOf(known)))),
             runtimeEntry(
-                "c2", "alpha", RuntimeToolResult.success("b").withDocumentContent(idOf(known))));
+                "c2",
+                "alpha",
+                RuntimeToolResult.success("b")
+                    .withEffect(ToolCallEffect.addDocumentContent(idOf(known)))));
 
     final var input = builder.build(knowing(known, other), batch);
 
@@ -330,8 +343,8 @@ class ToolCallResultsInputBuilderTest {
             "c1",
             "alpha",
             RuntimeToolResult.success("a")
-                .withDocumentContent(idOf(known))
-                .withDocumentContent(idOf(known)));
+                .withEffect(ToolCallEffect.addDocumentContent(idOf(known)))
+                .withEffect(ToolCallEffect.addDocumentContent(idOf(known))));
 
     final var input = builder.build(knowing(known), batchOf(entry));
 
@@ -346,7 +359,7 @@ class ToolCallResultsInputBuilderTest {
             "c1",
             "alpha",
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
-                .withDocumentContent(idOf(first)));
+                .withEffect(ToolCallEffect.addDocumentContent(idOf(first))));
 
     final var input = builder.build(WITH_DOCUMENTS, batchOf(entry));
 
@@ -386,7 +399,11 @@ class ToolCallResultsInputBuilderTest {
             "alpha",
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(first))));
     final var naming =
-        runtimeEntry("c2", "beta", RuntimeToolResult.success("a").withDocumentContent(idOf(first)));
+        runtimeEntry(
+            "c2",
+            "beta",
+            RuntimeToolResult.success("a")
+                .withEffect(ToolCallEffect.addDocumentContent(idOf(first))));
 
     assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(returning, naming)))
         .isInstanceOf(IllegalArgumentException.class)
@@ -401,7 +418,8 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1",
             "alpha",
-            RuntimeToolResult.success("a").withDocumentContent(AgentDocumentId.of("unknown")));
+            RuntimeToolResult.success("a")
+                .withEffect(ToolCallEffect.addDocumentContent(AgentDocumentId.of("unknown"))));
 
     assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry)))
         .isInstanceOf(IllegalArgumentException.class)
@@ -431,7 +449,7 @@ class ToolCallResultsInputBuilderTest {
             "c1",
             "alpha",
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
-                .withDocumentContent(idOf(first)));
+                .withEffect(ToolCallEffect.addDocumentContent(idOf(first))));
 
     assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry)))
         .isInstanceOf(IllegalArgumentException.class)

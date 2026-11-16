@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
@@ -21,29 +20,20 @@ import java.util.Objects;
  * method returns a changed copy. {@link Experimental}, see {@link RuntimeTool}.
  *
  * <p>The agent shows text as it is and an {@link
- * io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent object} as JSON. It
- * turns an object into plain JSON values when the tool returns it. A document in the object stays a
- * document.
+ * io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent object} as JSON.
  *
  * <h2>Documents</h2>
  *
- * <p>A result holds a document as the {@link Document} of the connector SDK, also in an object. For
- * an agent instance with the {@link
- * io.camunda.connector.agenticai.aiagent.model.AgentFeatures#DOCUMENTS} feature, the agent
- * registers the document and the model reads its handle. Such an instance accepts Camunda documents
- * only: an external or inline document fails the job with {@code UNSUPPORTED_DOCUMENT_REFERENCE}.
- * For an instance without the feature, the model reads the document as for a tool of the process.
- * An {@code AgentDocument} or an {@code AgentDocumentContent} block in a result fails the job.
+ * <p>A result holds a document as the {@link Document} of the connector SDK, also in an object. The
+ * model reads its handle. Only Camunda documents are accepted: an external or inline document fails
+ * the job with {@code UNSUPPORTED_DOCUMENT_REFERENCE}. An {@code AgentDocument} or an {@code
+ * AgentDocumentContent} block fails the job.
  *
  * <h2>Effects</h2>
  *
  * <p>A {@link Success} can carry effects. The agent applies them in call order after all calls of
  * the assistant message ran. An {@link Error} has no effects. A failed job discards the effects,
- * and the retry applies them again.
- *
- * <ul>
- *   <li>{@link Success#withDocumentContent}: adds the content of a document to the next request.
- * </ul>
+ * and the retry applies them again. {@link ToolCallEffect} lists the effects.
  */
 @Experimental
 public sealed interface RuntimeToolResult {
@@ -90,19 +80,12 @@ public sealed interface RuntimeToolResult {
     }
 
     /**
-     * Returns a copy that asks the agent to add the content of a document to the next request.
-     *
-     * <p>{@code id} identifies a document that the agent knows when the batch starts, or a document
-     * that this result returns ({@link AgentDocumentId#of(Document)}). The agent adds the content
-     * once and tells the model in the result. An unknown id fails the job.
+     * Returns a copy with {@code effect} added after the effects of this result, for example {@code
+     * success(text).withEffect(ToolCallEffect.addDocumentContent(id))}.
      */
-    public Success withDocumentContent(AgentDocumentId id) {
-      return withEffect(new ToolCallEffect.AddDocumentContent(Objects.requireNonNull(id)));
-    }
-
-    private Success withEffect(ToolCallEffect effect) {
+    public Success withEffect(ToolCallEffect effect) {
       final var updated = new ArrayList<>(effects);
-      updated.add(effect);
+      updated.add(Objects.requireNonNull(effect, "effect must not be null"));
       return new Success(content, updated);
     }
   }

@@ -81,7 +81,9 @@ class RuntimeToolResultTest {
   @Test
   void aSuccessfulResultKeepsTheEffectsInTheOrderTheyWereAdded() {
     final var result =
-        RuntimeToolResult.success("ok").withDocumentContent(DOC_2).withDocumentContent(DOC_1);
+        RuntimeToolResult.success("ok")
+            .withEffect(ToolCallEffect.addDocumentContent(DOC_2))
+            .withEffect(ToolCallEffect.addDocumentContent(DOC_1));
 
     assertThat(result.effects())
         .containsExactly(
@@ -99,14 +101,15 @@ class RuntimeToolResultTest {
   void aWitherLeavesTheOriginalResultUnchanged() {
     final var original = RuntimeToolResult.success("ok");
 
-    original.withDocumentContent(DOC_1);
+    original.withEffect(ToolCallEffect.addDocumentContent(DOC_1));
 
     assertThat(original.effects()).isEmpty();
   }
 
   @Test
   void theEffectsAreACopyThatCannotBeChanged() {
-    final var result = RuntimeToolResult.success("ok").withDocumentContent(DOC_1);
+    final var result =
+        RuntimeToolResult.success("ok").withEffect(ToolCallEffect.addDocumentContent(DOC_1));
 
     assertThatThrownBy(() -> result.effects().add(new ToolCallEffect.AddDocumentContent(DOC_2)))
         .isInstanceOf(UnsupportedOperationException.class);

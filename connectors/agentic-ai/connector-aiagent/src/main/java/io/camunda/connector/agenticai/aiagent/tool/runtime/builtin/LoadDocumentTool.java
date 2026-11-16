@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
@@ -30,9 +31,8 @@ import org.jspecify.annotations.Nullable;
  * the documents feature.
  *
  * <p>A call for a known document returns no text of its own: it asks the agent to add the content
- * of the document ({@link RuntimeToolResult.Success#withDocumentContent}). The agent writes into
- * the tool result that the content follows in the next message, and it adds the content in that
- * message.
+ * of the document ({@link ToolCallEffect#addDocumentContent}). The agent writes into the tool
+ * result that the content follows in the next message, and it adds the content in that message.
  */
 public final class LoadDocumentTool implements RuntimeTool {
 
@@ -87,6 +87,6 @@ public final class LoadDocumentTool implements RuntimeTool {
               .formatted(PARAMETER_ID));
     }
 
-    return RuntimeToolResult.success(List.of()).withDocumentContent(id);
+    return RuntimeToolResult.success(List.of()).withEffect(ToolCallEffect.addDocumentContent(id));
   }
 }
