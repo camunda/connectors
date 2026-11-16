@@ -45,10 +45,12 @@ These documents are the only rules. Do not invent rules. Read the parts that app
 4. **Locations.** Check the list in `implementation-rules.md` under "Before you plan": both flavors,
    all element template versions, all conversation stores, all providers, running process instances.
    Report a location that the change must reach but does not.
-5. **Consolidation.** When the change makes existing code redundant or inconsistent, report it with
-   the risk of keeping it and the risk of changing it. A human decides.
-6. **Build checks.** When a build check (ArchUnit, ErrorProne, NullAway, Spotless, a docs test) can
-   find the problem, name the check.
+5. **Consolidation.** When the change adds a copy of existing code, or makes existing code redundant
+   or inconsistent, report it as an advisory finding with the risk of keeping it and the risk of
+   changing it. A human decides.
+6. **Build checks and rules.** When a build check (ArchUnit, ErrorProne, NullAway, Spotless, a docs
+   test) can find the problem, name the check. When a rule conflicts with the change, or a build check
+   in the change now enforces a rule, name the rule for revision. A maintainer decides the follow-up.
 
 ## Human review required
 
