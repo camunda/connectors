@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Builds the input of the turn that follows a batch of tool calls from its results, in call order.
@@ -74,8 +75,8 @@ public class ToolCallResultsInputBuilder {
    *     known to {@code agentContext} as of the start of the batch nor returned by the result, or
    *     if a result of an agent instance that does not track its documents asks anything of the
    *     agent
-   * @throws AgentDocumentIdCollisionException if a document of a result gets the id of a different
-   *     document that the agent knows, or of another document of the batch
+   * @throws AgentDocumentIdCollisionException if a document of a result that asks for content gets
+   *     the id of a different document that the agent knows
    */
   public TurnInput build(AgentContext agentContext, ToolCallBatch batch) {
     final var entries = batch.entriesInCallOrder();
@@ -85,58 +86,66 @@ public class ToolCallResultsInputBuilder {
     };
   }
 
-  /** The input for an agent instance that tracks its documents. */
+  /**
+   * The input for an agent instance that tracks its documents. The effects are applied in the order
+   * of the entries. An entry sees the documents of the agent and its own documents only, never the
+   * ones of another entry. The content of a document that several entries ask for is added once, in
+   * the order of the first request.
+   */
   private TurnInput trackedInput(AgentDocuments documents, List<ToolCallBatch.Entry> entries) {
-    return buildWithDocumentBlocks(entries, applyEffects(documents, entries));
+    final var results = new ArrayList<ToolCallResultContent>();
+    final var delivered = new LinkedHashSet<AgentDocumentId>();
+    for (final var entry : entries) {
+      final var result = entry.result().withDocumentsAsReferences();
+      final var requested = requestedContent(entry);
+      if (requested.isEmpty()) {
+        results.add(result);
+        continue;
+      }
+      results.add(
+          result.withContent(
+              concat(result.content(), contentStatements(documents, entry, requested))));
+      delivered.addAll(requested);
+    }
+
+    final var messages = new ArrayList<Message>();
+    messages.add(toolCallResultMessage(results));
+    if (!delivered.isEmpty()) {
+      messages.add(
+          toolCallDocumentsMessage(
+              DOCUMENT_CONTENT_PREAMBLE,
+              delivered.stream()
+                  .<Content>map(
+                      id -> AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT))
+                  .toList()));
+    }
+    final var newDocuments = new ArrayList<AgentDocument>();
+    entries.forEach(entry -> newDocuments.addAll(newDocumentsOf(entry)));
+    return new TurnInput(messages, newDocuments);
+  }
+
+  /** The documents whose content the entry asks for, in the order of its effects. */
+  private static Set<AgentDocumentId> requestedContent(ToolCallBatch.Entry entry) {
+    final var requested = new LinkedHashSet<AgentDocumentId>();
+    for (final var effect : entry.effects()) {
+      switch (effect) {
+        case ToolCallEffect.AddDocumentContent add -> requested.add(add.id());
+      }
+    }
+    return requested;
   }
 
   /**
-   * What the effects of the entries add to the conversation.
-   *
-   * @param statements for every entry, in the order of the entries, the sentences that tell what
-   *     happens to the content of the documents it asked for
-   * @param delivered the documents whose content is added, each one once, in the order of the first
-   *     request
+   * The sentences that end the result of the entry, one per requested document. Every requested
+   * document must be known to the agent or returned by the entry.
    */
-  private record AppliedEffects(
-      List<List<Content>> statements, List<AgentDocumentContent> delivered) {}
-
-  /**
-   * Applies the effects in the order of the entries. An entry sees the documents of the agent and
-   * its own documents only, never the ones of another entry. An effect that names another document
-   * fails. Every document that an entry asks for gets a sentence in the result of the entry. The
-   * content of a document that several entries ask for is added once.
-   */
-  private AppliedEffects applyEffects(AgentDocuments documents, List<ToolCallBatch.Entry> entries) {
-    final var statements = new ArrayList<List<Content>>();
-    final var requestedByTheBatch = new LinkedHashSet<AgentDocumentId>();
-
-    for (final var entry : entries) {
-      final var requestedByTheEntry = new LinkedHashSet<AgentDocumentId>();
-      for (final var effect : entry.effects()) {
-        switch (effect) {
-          case ToolCallEffect.AddDocumentContent add -> requestedByTheEntry.add(add.id());
-        }
-      }
-      if (requestedByTheEntry.isEmpty()) {
-        statements.add(List.of());
-        continue;
-      }
-
-      final var known = documents.register(newDocumentsOf(entry));
-      requireKnown(entry, requestedByTheEntry, known);
-      final var entryStatements = new ArrayList<Content>();
-      for (final var id : requestedByTheEntry) {
-        entryStatements.add(textContent(contentFollows(documentRef(known, id))));
-      }
-      statements.add(List.copyOf(entryStatements));
-      requestedByTheBatch.addAll(requestedByTheEntry);
-    }
-    final var delivered =
-        requestedByTheBatch.stream()
-            .map(id -> AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT))
-            .toList();
-    return new AppliedEffects(List.copyOf(statements), delivered);
+  private static List<Content> contentStatements(
+      AgentDocuments documents, ToolCallBatch.Entry entry, Collection<AgentDocumentId> requested) {
+    final var known = documents.register(newDocumentsOf(entry));
+    requireKnown(entry, requested, known);
+    return requested.stream()
+        .<Content>map(id -> textContent(contentFollows(documentRef(known, id))))
+        .toList();
   }
 
   private static void requireKnown(
@@ -162,42 +171,6 @@ public class ToolCallResultsInputBuilder {
     return entry.documents().stream().map(document -> AgentDocument.of(document, origin)).toList();
   }
 
-  /**
-   * A document that is a whole result is persisted as a document block, like the documents that are
-   * not a whole result. The {@link TurnInput} holds the documents of every result, with the tool
-   * call as their origin. A result that asks for the content of documents ends with a sentence per
-   * document. The content of the documents that are loaded follows in a message of its own.
-   */
-  private static TurnInput buildWithDocumentBlocks(
-      List<ToolCallBatch.Entry> entries, AppliedEffects applied) {
-    final var results = new ArrayList<ToolCallResultContent>();
-    for (int i = 0; i < entries.size(); i++) {
-      final var result = entries.get(i).result().withDocumentsAsReferences();
-      final var statements = applied.statements().get(i);
-      results.add(
-          statements.isEmpty() ? result : result.withContent(concat(result.content(), statements)));
-    }
-    final var documents = new ArrayList<AgentDocument>();
-    entries.forEach(entry -> documents.addAll(newDocumentsOf(entry)));
-
-    final var messages = new ArrayList<Message>();
-    messages.add(
-        ToolCallResultMessage.builder()
-            .results(results)
-            .metadata(MessageMetadata.defaults())
-            .build());
-    if (!applied.delivered().isEmpty()) {
-      final var content = new ArrayList<Content>();
-      content.add(textContent(DOCUMENT_CONTENT_PREAMBLE));
-      content.addAll(applied.delivered());
-
-      final var metadata = new HashMap<>(MessageMetadata.defaults());
-      metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-      messages.add(UserMessage.builder().content(content).metadata(metadata).build());
-    }
-    return new TurnInput(messages, documents);
-  }
-
   private static List<Content> concat(List<Content> first, List<Content> second) {
     final var all = new ArrayList<>(first);
     all.addAll(second);
@@ -214,11 +187,7 @@ public class ToolCallResultsInputBuilder {
                   .formatted(entry.result().name()));
         });
     final var messages = new ArrayList<Message>();
-    messages.add(
-        ToolCallResultMessage.builder()
-            .results(entries.stream().map(ToolCallBatch.Entry::result).toList())
-            .metadata(MessageMetadata.defaults())
-            .build());
+    messages.add(toolCallResultMessage(entries.stream().map(ToolCallBatch.Entry::result).toList()));
 
     final var documentGroups =
         entries.stream()
@@ -228,15 +197,30 @@ public class ToolCallResultsInputBuilder {
                     entry.result().id(), entry.result().name(), entry.documents()))
             .toList();
     if (!documentGroups.isEmpty()) {
-      final var content = new ArrayList<Content>();
-      content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-      content.addAll(documentPairs(documentGroups));
-
-      final var metadata = new HashMap<>(MessageMetadata.defaults());
-      metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-      messages.add(UserMessage.builder().content(content).metadata(metadata).build());
+      messages.add(
+          toolCallDocumentsMessage(TOOL_CALL_DOCUMENTS_PREAMBLE, documentPairs(documentGroups)));
     }
     return new TurnInput(messages);
+  }
+
+  private static ToolCallResultMessage toolCallResultMessage(List<ToolCallResultContent> results) {
+    return ToolCallResultMessage.builder()
+        .results(results)
+        .metadata(MessageMetadata.defaults())
+        .build();
+  }
+
+  /**
+   * The user message that follows the tool results with their documents. {@link
+   * UserMessage#METADATA_TOOL_CALL_DOCUMENTS} marks it for the message window.
+   */
+  private static UserMessage toolCallDocumentsMessage(String preamble, List<Content> documents) {
+    final var content = new ArrayList<Content>();
+    content.add(textContent(preamble));
+    content.addAll(documents);
+    final var metadata = new HashMap<>(MessageMetadata.defaults());
+    metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+    return UserMessage.builder().content(content).metadata(metadata).build();
   }
 
   /** A document tag followed by the document, for every document of every group. */

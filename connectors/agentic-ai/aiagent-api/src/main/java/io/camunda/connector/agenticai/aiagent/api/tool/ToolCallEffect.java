@@ -21,7 +21,8 @@ import java.util.Objects;
 public sealed interface ToolCallEffect {
 
   /**
-   * The content of a known document is added to the request that follows the tool results.
+   * The content of a known document is added to the request that follows the tool results, once per
+   * batch, also when an earlier turn added it.
    *
    * @param id the id of a document the agent knows when the batch starts, or of a document the same
    *     result returns ({@link AgentDocumentId#of(Document)}). An unknown id fails the job.
