@@ -29,12 +29,13 @@ jobs:
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           exportEnv: false # we rely on step outputs, no need for environment variables
           secrets: |
             secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
@@ -60,7 +61,7 @@ jobs:
       - name: Cache Maven wrapper distribution
         uses: ./.github/actions/cache-maven-wrapper
 
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: 'temurin'
           java-version: '21.0.13+9.0.LTS'
@@ -100,7 +101,7 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Login to Harbor
-        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_HARBOR_USR }}
@@ -128,7 +129,7 @@ jobs:
           echo "connectors-version=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Login to Minimus
-        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           registry: reg.mini.dev
           username: minimus
@@ -184,6 +185,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+      id-token: write  # Vault JWT login
     outputs:
       # Triage replies in this message's thread rather than opening a second
       # top-level alert for the same failure.
@@ -196,15 +198,16 @@ jobs:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@9965a08067900e11c602a050b8821ec92f49544b # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@a7aee06a947103719f282c3a6ae038a349275963 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
           github-app-private-key-vault-key: GITHUB_APP_SECRET
           github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-auth-method: jwt
+          vault-auth-jwt-path: ${{ secrets.VAULT_JWT_PATH }}
+          vault-auth-jwt-role: ${{ secrets.VAULT_JWT_ROLE }}
+          vault-auth-jwt-audience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           vault-url: ${{ secrets.VAULT_ADDR }}
           owner: camunda
           repositories: connectors
@@ -260,15 +263,16 @@ jobs:
 
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@9965a08067900e11c602a050b8821ec92f49544b # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@a7aee06a947103719f282c3a6ae038a349275963 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
           github-app-private-key-vault-key: GITHUB_APP_SECRET
           github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-auth-method: jwt
+          vault-auth-jwt-path: ${{ secrets.VAULT_JWT_PATH }}
+          vault-auth-jwt-role: ${{ secrets.VAULT_JWT_ROLE }}
+          vault-auth-jwt-audience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           vault-url: ${{ secrets.VAULT_ADDR }}
           owner: camunda
           repositories: connectors,c8-cross-component-e2e-tests
@@ -625,6 +629,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+      id-token: write  # Vault JWT login
     outputs:
       slack_ts: ${{ steps.feedback.outputs.slack_ts }}
       slack_channel: ${{ steps.feedback.outputs.slack_channel }}
@@ -635,15 +640,16 @@ jobs:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@9965a08067900e11c602a050b8821ec92f49544b # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@a7aee06a947103719f282c3a6ae038a349275963 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
           github-app-private-key-vault-key: GITHUB_APP_SECRET
           github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-auth-method: jwt
+          vault-auth-jwt-path: ${{ secrets.VAULT_JWT_PATH }}
+          vault-auth-jwt-role: ${{ secrets.VAULT_JWT_ROLE }}
+          vault-auth-jwt-audience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           vault-url: ${{ secrets.VAULT_ADDR }}
           owner: camunda
           repositories: connectors
@@ -689,12 +695,13 @@ jobs:
       - name: Import Secrets
         if: steps.changes.outputs.ai == 'true'
         id: secrets
-        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           exportEnv: false
           secrets: |
             secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
@@ -704,7 +711,7 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
 
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         if: steps.changes.outputs.ai == 'true'
         with:
           distribution: temurin
@@ -712,7 +719,7 @@ jobs:
 
       - name: Login to Harbor
         if: steps.changes.outputs.ai == 'true'
-        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
@@ -823,6 +830,7 @@ jobs:
       contents: read
       actions: write
       pull-requests: read
+      id-token: write  # Vault JWT login
     uses: camunda/connectors/.github/workflows/alwaysgreen-triage.yml@main
     secrets: inherit
     with:

@@ -102,6 +102,11 @@ jobs:
     concurrency:
       group: alwaysgreen-triage-${{ github.repository }}-${{ inputs.base_ref }}
       cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      id-token: write  # Vault JWT login
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -135,8 +140,9 @@ jobs:
         uses: ./.github/actions/alwaysgreen-flag
         with:
           vault-addr: ${{ secrets.VAULT_ADDR }}
-          vault-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-jwt-path: ${{ secrets.VAULT_JWT_PATH }}
+          vault-jwt-role: ${{ secrets.VAULT_JWT_ROLE }}
+          vault-jwt-audience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           dry-run-override: ${{ inputs.dry_run }}
 
       - name: Report disabled and stop
@@ -204,9 +210,10 @@ jobs:
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
           github-app-private-key-vault-key: GITHUB_APP_SECRET
           github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-auth-method: jwt
+          vault-auth-jwt-path: ${{ secrets.VAULT_JWT_PATH }}
+          vault-auth-jwt-role: ${{ secrets.VAULT_JWT_ROLE }}
+          vault-auth-jwt-audience: ${{ secrets.VAULT_JWT_AUDIENCE }}
           vault-url: ${{ secrets.VAULT_ADDR }}
           owner: camunda
           repositories: connectors,c8-cross-component-e2e-tests
@@ -441,6 +448,7 @@ jobs:
       contents: read
       actions: read
       pull-requests: read
+      id-token: write  # Vault JWT login
     uses: ./.github/workflows/alwaysgreen-fix.yml
     secrets: inherit
     with:

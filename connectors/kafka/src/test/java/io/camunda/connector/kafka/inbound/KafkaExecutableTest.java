@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -38,6 +39,7 @@ import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -46,7 +48,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
@@ -54,6 +59,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.Metric;
+import org.apache.kafka.common.MetricName;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -312,6 +319,247 @@ public class KafkaExecutableTest {
           kafkaExecutable.deactivate();
         },
         "Deactivate should not hang, it's likely an issue with the stopConsumer method");
+  }
+
+  @Test
+  void testConsumerNotReportedUpBeforeGroupMembershipIsConfirmed() {
+    // Given a consumer that has not joined its group yet
+    var group = new AtomicReference<>(new GroupState(-1, false));
+    stubGroupState(group);
+    stubEmptyPolls();
+    var spyContext = spy(contextWithAdditionalProperties(Map.of()));
+    var healthChanges = recordHealthChanges(spyContext);
+    KafkaExecutable kafkaExecutable = getConsumerMock();
+
+    // When it joins, but no heartbeat has been answered yet
+    kafkaExecutable.activate(spyContext);
+    awaitStatuses(healthChanges, Health.Status.UNKNOWN);
+    group.set(new GroupState(1, false));
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(() ->
+            assertThat(healthChanges.getLast().getDetails())
+                .containsEntry("group-generation-id", 1));
+    awaitStatuses(healthChanges, Health.Status.UNKNOWN);
+
+    // Then it is UP only once heartbeat responses confirm the membership
+    group.set(new GroupState(1, true));
+    awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.UP);
+    kafkaExecutable.deactivate();
+  }
+
+  @Test
+  void testConsumerReportedDownWhenGroupNotJoinedWithinMaxPollInterval() {
+    // Given a consumer that never joins its group
+    var group = new AtomicReference<>(new GroupState(-1, false));
+    stubGroupState(group);
+    stubEmptyPolls();
+    var spyContext =
+        spy(
+            contextWithAdditionalProperties(
+                Map.of(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "200")));
+    var healthChanges = recordHealthChanges(spyContext);
+    KafkaExecutable kafkaExecutable = getConsumerMock();
+
+    // When
+    kafkaExecutable.activate(spyContext);
+
+    // Then it is reported DOWN once max.poll.interval.ms has elapsed
+    awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.DOWN);
+    Health down = healthChanges.getLast();
+    assertThat(down.getError().code()).isEqualTo("NOT_IN_CONSUMER_GROUP");
+    assertThat(down.getError().message()).contains("'groupId'");
+    assertThat(down.getDetails()).containsEntry("group-generation-id", -1);
+
+    // And UP once it joins
+    group.set(new GroupState(1, true));
+    awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.DOWN, Health.Status.UP);
+    kafkaExecutable.deactivate();
+  }
+
+  @Test
+  void testConsumerReportedDownWhenGroupMembershipLostAfterJoining() {
+    // Given a consumer in its group
+    var group = new AtomicReference<>(new GroupState(1, true));
+    stubGroupState(group);
+    stubEmptyPolls();
+    var spyContext =
+        spy(
+            contextWithAdditionalProperties(
+                Map.of(
+                    ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
+                    "200",
+                    ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG,
+                    "300")));
+    var healthChanges = recordHealthChanges(spyContext);
+    KafkaExecutable kafkaExecutable = getConsumerMock();
+    kafkaExecutable.activate(spyContext);
+    awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.UP);
+
+    // When the coordinator stops answering its heartbeats, while
+    // groupMetadata() still returns the last generation
+    group.set(new GroupState(1, false));
+
+    // Then it is UNKNOWN, then DOWN once max.poll.interval.ms has elapsed
+    awaitStatuses(
+        healthChanges,
+        Health.Status.UNKNOWN,
+        Health.Status.UP,
+        Health.Status.UNKNOWN,
+        Health.Status.DOWN);
+
+    // And UP again once heartbeats are answered
+    group.set(new GroupState(1, true));
+    awaitStatuses(
+        healthChanges,
+        Health.Status.UNKNOWN,
+        Health.Status.UP,
+        Health.Status.UNKNOWN,
+        Health.Status.DOWN,
+        Health.Status.UP);
+    kafkaExecutable.deactivate();
+  }
+
+  @Test
+  void testConsumerStaysUpBetweenHeartbeatResponses() throws InterruptedException {
+    // Given a consumer in its group, whose heartbeats are answered less often than it polls
+    var group = new AtomicReference<>(new GroupState(1, true));
+    stubGroupState(group);
+    stubEmptyPolls();
+    var spyContext =
+        spy(
+            contextWithAdditionalProperties(
+                Map.of(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "1000")));
+    var healthChanges = recordHealthChanges(spyContext);
+    KafkaExecutable kafkaExecutable = getConsumerMock();
+
+    // When it runs for several heartbeat intervals
+    kafkaExecutable.activate(spyContext);
+    awaitStatuses(healthChanges, Health.Status.UNKNOWN, Health.Status.UP);
+    Thread.sleep(5 * HEARTBEAT_RESPONSE_INTERVAL.toMillis());
+
+    // Then it stays UP, whatever the metrics window
+    assertThat(healthChanges)
+        .extracting(Health::getStatus)
+        .containsExactly(Health.Status.UNKNOWN, Health.Status.UP);
+    kafkaExecutable.deactivate();
+  }
+
+  private static final Duration HEARTBEAT_RESPONSE_INTERVAL = Duration.ofMillis(100);
+
+  // The generation from groupMetadata(), and whether the coordinator answers the heartbeats
+  private record GroupState(int generation, boolean answering) {}
+
+  // Every call returns an immutable snapshot, like the real consumer
+  private void stubGroupState(AtomicReference<GroupState> group) {
+    // The ConsumerGroupMetadata constructors are deprecated (it becomes an interface in Kafka 5)
+    when(mockConsumer.groupMetadata())
+        .thenAnswer(invocation -> {
+          int generation = group.get().generation();
+          return mock(
+              ConsumerGroupMetadata.class,
+              metadataCall ->
+                  switch (metadataCall.getMethod().getName()) {
+                    case "groupId" -> "groupId";
+                    case "generationId" -> generation;
+                    case "groupInstanceId" -> Optional.empty();
+                    default -> null;
+                  });
+        });
+    // heartbeat-total grows once per HEARTBEAT_RESPONSE_INTERVAL while the coordinator answers
+    var responses = new AtomicLong();
+    // Started on the first read, so the consumer always starts without any response
+    var lastResponseAt = new AtomicReference<Long>();
+    var heartbeatTotalName =
+        new MetricName(
+            KafkaConnectorConsumer.HEARTBEAT_TOTAL_METRIC,
+            KafkaConnectorConsumer.COORDINATOR_METRIC_GROUP,
+            "",
+            Map.of());
+    Metric heartbeatTotal =
+        new Metric() {
+          @Override
+          public MetricName metricName() {
+            return heartbeatTotalName;
+          }
+
+          @Override
+          public Object metricValue() {
+            long now = System.nanoTime();
+            if (lastResponseAt.compareAndSet(null, now)) {
+              return (double) responses.get();
+            }
+            if (group.get().answering()
+                && now - lastResponseAt.get() >= HEARTBEAT_RESPONSE_INTERVAL.toNanos()) {
+              lastResponseAt.set(now);
+              responses.incrementAndGet();
+            }
+            return (double) responses.get();
+          }
+        };
+    when(mockConsumer.metrics())
+        .thenAnswer(invocation -> Map.of(heartbeatTotalName, heartbeatTotal));
+  }
+
+  // Compares the statuses with consecutive repeats collapsed: the group details in the health
+  // (e.g. the generation) can change without the status changing
+  private static void awaitStatuses(List<Health> healthChanges, Health.Status... statuses) {
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(() -> {
+          List<Health.Status> collapsed = new ArrayList<>();
+          for (Health health : healthChanges) {
+            if (collapsed.isEmpty() || collapsed.getLast() != health.getStatus()) {
+              collapsed.add(health.getStatus());
+            }
+          }
+          assertThat(collapsed).containsExactly(statuses);
+        });
+  }
+
+  private void stubEmptyPolls() {
+    when(mockConsumer.poll(any()))
+        .thenAnswer(invocation -> {
+          Thread.sleep(10);
+          return ConsumerRecords.empty();
+        });
+  }
+
+  private InboundConnectorContextBuilder.TestInboundConnectorContext
+      contextWithAdditionalProperties(Map<String, Object> additionalProperties) {
+    var properties =
+        new KafkaConnectorProperties(
+            KafkaConnectorProperties.AuthenticationType.custom,
+            new KafkaAuthentication(null, null),
+            kafkaTopic,
+            "groupId",
+            additionalProperties,
+            null,
+            KafkaConnectorProperties.AutoOffsetReset.NONE,
+            new NoSchemaStrategy());
+    return InboundConnectorContextBuilder.create()
+        .properties(properties)
+        .definition(InboundConnectorDefinitionBuilder.create().build())
+        .validation(new DefaultValidationProvider())
+        .build();
+  }
+
+  // Records health changes as they are logged, safe to read while the consumer thread runs
+  private static List<Health> recordHealthChanges(
+      InboundConnectorContextBuilder.TestInboundConnectorContext spyContext) {
+    List<Health> healthChanges = new CopyOnWriteArrayList<>();
+    // Lenient: the code under test also calls the log(Consumer) overload
+    lenient()
+        .doAnswer(invocation -> {
+          Activity activity = invocation.getArgument(0);
+          if (activity.healthChange() != null) {
+            healthChanges.add(activity.healthChange());
+          }
+          return null;
+        })
+        .when(spyContext)
+        .log(any(Activity.class));
+    return healthChanges;
   }
 
   @Test
