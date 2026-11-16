@@ -33,6 +33,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.do
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.handle;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.offeredToolNames;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.unknownUploadWithSuperfluxTurn;
@@ -128,7 +129,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     // the model provider sees the object schema of a document handle
     final var upload = toolDefinition(recorded.lastRequest(), UPLOAD_TOOL);
     assertDocumentParameterSchema(upload);
-    assertThat(recorded.lastRequest().toolNames()).contains("c8__load_document");
+    assertThat(recorded.lastRequest().toolNames())
+        .containsExactlyInAnyOrderElementsOf(offeredToolNames(expectedTools()));
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
 
     final var agentInstanceKey = new AtomicLong();

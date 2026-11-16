@@ -27,6 +27,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.as
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.offeredToolNames;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadToolInputSchema;
@@ -110,7 +111,8 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
             .toList();
     assertThat(upload).hasSize(1);
     assertThat(upload.getFirst().inputSchema()).isEqualTo(uploadToolInputSchema());
-    assertThat(recorded.lastRequest().toolNames()).contains("c8__load_document");
+    assertThat(recorded.lastRequest().toolNames())
+        .containsExactlyInAnyOrderElementsOf(offeredToolNames(expectedTools()));
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
 
     final var agentInstanceKey = new AtomicLong();

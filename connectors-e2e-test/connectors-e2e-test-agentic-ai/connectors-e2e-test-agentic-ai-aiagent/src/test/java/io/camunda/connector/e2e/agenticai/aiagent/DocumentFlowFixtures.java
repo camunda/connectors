@@ -26,6 +26,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlac
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.springframework.core.io.ClassPathResource;
 
 /**
@@ -60,6 +62,17 @@ public final class DocumentFlowFixtures {
   public static final String FINAL_TEXT = "I uploaded the document and return it.";
 
   private DocumentFlowFixtures() {}
+
+  /**
+   * The names of every tool the model is offered: the tools of the process, the {@code
+   * Upload_A_File} tool that is added to the process, and the built-in tools.
+   */
+  public static List<String> offeredToolNames(List<ToolDefinition> processTools) {
+    return Stream.concat(
+            processTools.stream().map(ToolDefinition::name),
+            Stream.of(UPLOAD_TOOL, "c8__load_document"))
+        .toList();
+  }
 
   /**
    * The whole input schema of the {@code Upload_A_File} tool as the model provider receives it: an
