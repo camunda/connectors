@@ -243,7 +243,7 @@ def _check_nesting(response):
     The parser alone does not bound the depth: from Python 3.14 it is limited by the C stack, which
     is unbounded when the stack size is unlimited.
     """
-    pending = [(response, 1)]
+    pending = [(response, 1)] if isinstance(response, (dict, list)) else []
     while pending:
         value, depth = pending.pop()
         if depth > MAX_NESTING_DEPTH:

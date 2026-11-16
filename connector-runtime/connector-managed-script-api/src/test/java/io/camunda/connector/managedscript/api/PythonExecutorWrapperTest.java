@@ -238,6 +238,22 @@ class PythonExecutorWrapperTest {
   }
 
   @Test
+  void rejectsAForgedResponseThatIsAScalar() throws Exception {
+    for (var scalar : new String[] {"null", "0", "true", "\\\"x\\\""}) {
+      final var error =
+          errorOf(
+              call(
+                  "import os\n\ndef execute(variables, context):\n"
+                      + "    os.write(1, b'"
+                      + scalar
+                      + "')\n"
+                      + "    os._exit(0)\n"));
+
+      assertThat(error.get("code").asText()).as(scalar).isEqualTo("INVALID_RESULT");
+    }
+  }
+
+  @Test
   void isNotBlockedByAScriptThatReplacesItsOutputWithAFifo() throws Exception {
     final var response =
         call(
