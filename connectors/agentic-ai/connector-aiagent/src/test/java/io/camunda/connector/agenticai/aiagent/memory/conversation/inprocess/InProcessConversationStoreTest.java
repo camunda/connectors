@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -147,8 +148,9 @@ class InProcessConversationStoreTest {
   }
 
   @Test
-  void keepsDocumentBlocksAndTheAgentDocumentsWhenTheAgentContextIsSerializedAndLoadedAgain()
-      throws Exception {
+  void
+      keepsDocumentBlocksTheAgentDocumentsAndTheResponseDocumentsWhenTheAgentContextIsSerializedAndLoadedAgain()
+          throws Exception {
     final var objectMapper = TestObjectMapperSupplier.INSTANCE;
     final var document = createDocument("report", "report.txt");
     final var entry = AgentDocument.of(document, AgentDocumentOrigin.toolCall("fetch", "call-1"));
@@ -158,7 +160,11 @@ class InProcessConversationStoreTest {
     final var message =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), reference)).build();
 
-    final var agentContext = AgentContext.empty().withDocuments(AgentDocuments.of(List.of(entry)));
+    final var selection = new ResponseDocumentSelection("report", entry.id(), "The report");
+    final var agentContext =
+        AgentContext.empty()
+            .withDocuments(AgentDocuments.of(List.of(entry)))
+            .withResponseDocument(selection);
     AgentContext storedAgentContext;
     try (var session = store.createSession(executionContext, agentContext)) {
       session.loadMessages(agentContext);
@@ -173,6 +179,7 @@ class InProcessConversationStoreTest {
             objectMapper.writeValueAsString(storedAgentContext), AgentContext.class);
 
     assertThat(reloadedAgentContext.documents().all()).containsExactly(entry);
+    assertThat(reloadedAgentContext.responseDocuments()).containsExactly(selection);
     try (var session = store.createSession(executionContext, reloadedAgentContext)) {
       assertThat(session.loadMessages(reloadedAgentContext).messages())
           .singleElement()

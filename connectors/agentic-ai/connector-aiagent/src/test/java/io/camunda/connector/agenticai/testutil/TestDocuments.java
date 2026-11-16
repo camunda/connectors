@@ -13,12 +13,14 @@ import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
@@ -91,6 +93,13 @@ public final class TestDocuments {
                 .contentType("text/plain")
                 .fileName(fileName)
                 .build());
+  }
+
+  /** The Camunda document reference of a new {@code text/plain} document in the in-memory store. */
+  public static CamundaDocumentReferenceModel reference(String content, String fileName) {
+    return AgentDocument.of(
+            createDocument(content, fileName), AgentDocumentOrigin.userMessage(MESSAGE_ID))
+        .reference();
   }
 
   /** The document reference of an agent document in the JSON format it is persisted in. */

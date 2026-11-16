@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.configuration;
 import static io.camunda.connector.agenticai.aiagent.configuration.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
 import static io.camunda.connector.agenticai.aiagent.configuration.ApplicationContextAssertions.assertHasAllBeansOf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
@@ -100,6 +99,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
@@ -298,15 +298,15 @@ class AgenticAiConnectorsAutoConfigurationTest {
   }
 
   @Test
-  void theBuiltInLoadDocumentToolIsRegisteredAsARuntimeTool() {
+  void theBuiltInDocumentToolsAreRegisteredAsRuntimeTools() {
     contextRunner.run(context ->
         assertThat(context.getBeansOfType(RuntimeTool.class).values())
             .extracting(tool -> tool.definition().name())
-            .containsExactly(LoadDocumentTool.NAME));
+            .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, LoadDocumentTool.NAME));
   }
 
   @Test
-  void aBeanWithTheBeanNameOfABuiltInToolReplacesIt() {
+  void aBeanWithTheBeanNameOfTheLoadDocumentToolReplacesIt() {
     final var custom =
         StubRuntimeTool.of(
             LoadDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
@@ -315,13 +315,56 @@ class AgenticAiConnectorsAutoConfigurationTest {
         .withBean("aiAgentLoadDocumentRuntimeTool", RuntimeTool.class, () -> custom)
         .run(context -> {
           assertThat(context).hasNotFailed();
-          assertThat(context.getBeansOfType(RuntimeTool.class))
-              .containsExactly(entry("aiAgentLoadDocumentRuntimeTool", custom));
+          final var tools = context.getBeansOfType(RuntimeTool.class);
+          assertThat(tools)
+              .containsOnlyKeys(
+                  "aiAgentLoadDocumentRuntimeTool", "aiAgentReturnDocumentRuntimeTool");
+          assertThat(tools.get("aiAgentLoadDocumentRuntimeTool")).isSameAs(custom);
+          assertThat(tools.get("aiAgentReturnDocumentRuntimeTool"))
+              .isInstanceOf(ReturnDocumentTool.class);
         });
   }
 
   @Test
-  void aBeanWithAnotherBeanNameAndTheNameOfABuiltInToolFailsTheStartup() {
+  void aBeanWithTheBeanNameOfTheReturnDocumentToolReplacesIt() {
+    final var custom =
+        StubRuntimeTool.of(
+            ReturnDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+
+    contextRunner
+        .withBean("aiAgentReturnDocumentRuntimeTool", RuntimeTool.class, () -> custom)
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          final var tools = context.getBeansOfType(RuntimeTool.class);
+          assertThat(tools)
+              .containsOnlyKeys(
+                  "aiAgentLoadDocumentRuntimeTool", "aiAgentReturnDocumentRuntimeTool");
+          assertThat(tools.get("aiAgentReturnDocumentRuntimeTool")).isSameAs(custom);
+          assertThat(tools.get("aiAgentLoadDocumentRuntimeTool"))
+              .isInstanceOf(LoadDocumentTool.class);
+        });
+  }
+
+  @Test
+  void aBeanWithAnotherBeanNameAndTheNameOfTheReturnDocumentToolFailsTheStartup() {
+    final var custom =
+        StubRuntimeTool.of(
+            ReturnDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+
+    contextRunner
+        .withBean("acmeReturnDocument", RuntimeTool.class, () -> custom)
+        .run(context ->
+            assertThat(context)
+                .hasFailed()
+                .getFailure()
+                .rootCause()
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                    "More than one runtime tool is named 'c8__return_document'; runtime tool names must be unique."));
+  }
+
+  @Test
+  void aBeanWithAnotherBeanNameAndTheNameOfTheLoadDocumentToolFailsTheStartup() {
     final var custom =
         StubRuntimeTool.of(
             LoadDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));

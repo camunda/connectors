@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,10 +99,29 @@ class RuntimeToolResultTest {
   }
 
   @Test
+  void effectsOfDifferentKindsKeepTheOrderTheyWereAdded() {
+    final var result =
+        RuntimeToolResult.success("ok")
+            .withEffect(ToolCallEffect.selectResponseDocument("second", DOC_2, null))
+            .withEffect(ToolCallEffect.addDocumentContent(DOC_1))
+            .withEffect(ToolCallEffect.selectResponseDocument("first", DOC_1, "A document"));
+
+    assertThat(result.effects())
+        .containsExactly(
+            new ToolCallEffect.SelectResponseDocument(
+                new ResponseDocumentSelection("second", DOC_2, null)),
+            new ToolCallEffect.AddDocumentContent(DOC_1),
+            new ToolCallEffect.SelectResponseDocument(
+                new ResponseDocumentSelection("first", DOC_1, "A document")));
+    assertThat(result.content()).containsExactly(textContent("ok"));
+  }
+
+  @Test
   void aWitherLeavesTheOriginalResultUnchanged() {
     final var original = RuntimeToolResult.success("ok");
 
     original.withEffect(ToolCallEffect.addDocumentContent(DOC_1));
+    original.withEffect(ToolCallEffect.selectResponseDocument("key", DOC_1, null));
 
     assertThat(original.effects()).isEmpty();
   }
@@ -109,7 +129,9 @@ class RuntimeToolResultTest {
   @Test
   void theEffectsAreACopyThatCannotBeChanged() {
     final var result =
-        RuntimeToolResult.success("ok").withEffect(ToolCallEffect.addDocumentContent(DOC_1));
+        RuntimeToolResult.success("ok")
+            .withEffect(ToolCallEffect.addDocumentContent(DOC_1))
+            .withEffect(ToolCallEffect.selectResponseDocument("key", DOC_1, null));
 
     assertThatThrownBy(() -> result.effects().add(new ToolCallEffect.AddDocumentContent(DOC_2)))
         .isInstanceOf(UnsupportedOperationException.class);

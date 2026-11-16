@@ -94,13 +94,15 @@ result; an error result is plain text content, the history has no result status.
 `TOOL_CALLING`, a batch of local tool calls only with `THINKING` followed by the next round. The engine deduplicates
 items by `historyItemId`, so results that more than one job writes appear once.
 
-**What the history covers.** The history records what the model sent and received, in a representation suited to the
-history; process data stays in the tool element variables. Each message of a model request is covered by a history item:
-the system prompt by the `CONFIGURATION` item, user messages by `USER` items, assistant messages by `ASSISTANT` items and
-tool results by `TOOL_RESULT` items. The representations may differ: a document with content is a `DOCUMENT` block next to
-its handle in the history and the handle plus the native block in the request, so the history is a superset of what the model
-receives. The history API has no tool kind and no result status, so a runtime tool is recognizable only by its missing
-element id and an error result is plain text; tool input schemas are not reported.
+**What the history covers.** The history shows what the model sees. Each message of a model request has a history item:
+the system prompt has the `CONFIGURATION` item, a user message a `USER` item, an assistant message an `ASSISTANT` item and
+a tool result a `TOOL_RESULT` item. Process data stays in the variables of the tool elements. The history can show more
+than the model sees, never less. Where a document enters the conversation, the history shows its handle and a `DOCUMENT`
+block that the user can open. The model request holds the handle, and the content only when the content is delivered.
+The history API has no tool kind, no result status and no tool input schema. A runtime tool is therefore recognizable
+only by its missing element id, and an error result is plain text. A document that the agent returns gets no `DOCUMENT`
+block: the history shows the handle in the arguments of `c8__return_document` and the text of its result. The document
+itself is in `responseDocuments` of the final response.
 
 **`historyItemId` (`AgentInstanceHistoryItemIds`).** Every history item carries a `historyItemId` so a
 retried batch write, and the same result written by two jobs, dedup against the previous write (the engine keeps the first): `USER`/`ASSISTANT` items key off the domain
