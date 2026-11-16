@@ -41,7 +41,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -141,12 +140,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         // calls that were not executed yet; a rejected call keeps its rejection
         batch = batch.withEntries(batch.unanswered().stream().map(this::cancelled).toList());
       }
-      // the model call reads the tool call result message and the event messages as well
-      final var documentIdsWithContent =
-          previousConversation.documentIdsWithContent(
-              configuration.contextWindowSize(), 1 + events.messages().size());
-      return new CompositionResult.Ready(
-          agentContext, documentIdsWithContent, batch, TurnInput.empty(), events);
+      return new CompositionResult.Ready(agentContext, batch, TurnInput.empty(), events);
     }
 
     final var userPrompt = userPromptInput(agentInput.userPrompt(), documentHandling);
@@ -155,7 +149,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return new CompositionResult.NoInput();
     }
     return new CompositionResult.Ready(
-        agentContext, Set.of(), ToolCallBatch.of(List.of()), userPrompt, events);
+        agentContext, ToolCallBatch.of(List.of()), userPrompt, events);
   }
 
   @Override
@@ -163,8 +157,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     final var input =
         ready.toolCallBatch().toolCalls().isEmpty()
             ? ready.userPrompt()
-            : toolCallResultsInputBuilder.build(
-                ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
+            : toolCallResultsInputBuilder.build(ready.agentContext(), ready.toolCallBatch());
     return input.followedBy(ready.events());
   }
 

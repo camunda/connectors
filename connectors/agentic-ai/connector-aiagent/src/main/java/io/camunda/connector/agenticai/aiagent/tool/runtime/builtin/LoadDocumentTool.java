@@ -30,9 +30,9 @@ import org.jspecify.annotations.Nullable;
  * the documents feature.
  *
  * <p>A call for a known document returns no text of its own: it asks the agent to add the content
- * of the document ({@link RuntimeToolResult.Success#withDocumentContent}), and the agent writes
- * into the tool result what happens to the content: it follows in the next message, or it is in the
- * conversation already. The agent decides, the tool does not.
+ * of the document ({@link RuntimeToolResult.Success#withDocumentContent}). The agent writes into
+ * the tool result that the content follows in the next message, and it adds the content in that
+ * message.
  */
 public final class LoadDocumentTool implements RuntimeTool {
 
@@ -46,8 +46,8 @@ public final class LoadDocumentTool implements RuntimeTool {
       ToolDefinition.runtime(
           NAME,
           "Loads the content of a document from the conversation. Pass its handle. Do not call it"
-              + " when the conversation has no document handle. Content that is already in the"
-              + " conversation is not loaded again.",
+              + " when the conversation has no document handle. Do not load content that you"
+              + " already have.",
           schema());
 
   /** The arguments of a call: the document to load. */

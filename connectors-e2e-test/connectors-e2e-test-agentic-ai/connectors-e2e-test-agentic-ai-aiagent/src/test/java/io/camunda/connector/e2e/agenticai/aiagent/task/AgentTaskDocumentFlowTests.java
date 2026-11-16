@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertContentReturnedOnceAndPassedByIdFlow;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertContentLoadedTwiceAndPassedByIdFlow;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertDownloadResultInHistory;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
@@ -72,14 +72,13 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
   }
 
   /**
-   * A tool returns a document, the model loads it twice and passes its handle to a tool: the first
-   * load puts the content next to the handle, the second one is answered without loading again, and
-   * the tool receives the real bytes. The model provider sees the object schema of a document
-   * handle for the document parameter of the tool, and the history shows the result of the tool
-   * with the handle nested in it.
+   * A tool returns a document, the model loads it twice and passes its handle to a tool: every load
+   * puts the content next to the handle, and the tool receives the real bytes. The model provider
+   * sees the object schema of a document handle for the document parameter of the tool, and the
+   * history shows the result of the tool with the handle nested in it.
    */
   @Test
-  void loadsAFetchedDocumentOnceAndPassesItsHandleToATool() throws Exception {
+  void loadsAFetchedDocumentTwiceAndPassesItsHandleToATool() throws Exception {
     final var turns =
         List.of(
             downloadTurn(wireMock.getHttpBaseUrl(), FILE),
@@ -100,7 +99,7 @@ public class AgentTaskDocumentFlowTests extends BaseAgentTaskTest {
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
-    assertContentReturnedOnceAndPassedByIdFlow(
+    assertContentLoadedTwiceAndPassedByIdFlow(
         recorded.requests(), block -> assertDocumentContentBlockJson(block, FILE));
     assertUploaded(servedFile(FILE));
 

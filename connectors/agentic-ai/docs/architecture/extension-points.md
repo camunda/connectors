@@ -197,15 +197,16 @@ instance with the `documents` feature offers it. The tool returns the effect `Ad
 (`Success.withDocumentContent`). It writes no text. A missing or unknown id gives an error result.
 
 After all calls of the message ran, `ToolCallResultsInputBuilder` applies the effects in call order.
-The value `DocumentContentDelivery` decides for each document. The builder adds one sentence per document to the tool result:
+Every request for the content of a document adds the content. The agent does not check earlier turns. The builder adds
+this sentence for each requested document to the tool result of the request:
 
-| Decision | Sentence |
-|----------|----------|
-| the content is added | `The content of {ref} follows in the next message.` |
-| the model has the content, or an earlier call of the message asked for it | `The content of {ref} is already in the conversation.` |
+`The content of {ref} follows in the next message.`
+
+When several requests of the batch ask for the same document, each of them gets the sentence, and the content follows
+once. The content message lists the documents in the order of the first request.
 
 `{ref}` is the file name and the id (`a.pdf (doc_3a1d3166fe56)`). The agent does not check the type or the size of the
-content. The loaded documents follow the tool results in one user message with the preamble
+content. The requested documents follow the tool results in one user message with the preamble
 `Document content from tool calls (added by the system):`. Its metadata `toolCallDocuments` makes it leave the context
 window together with the tool results. A document parameter never adds content.
 

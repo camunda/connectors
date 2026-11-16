@@ -43,7 +43,6 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ToolCallResultsInputBuilderTest {
@@ -86,10 +85,6 @@ class ToolCallResultsInputBuilderTest {
     return textContent("The content of " + refOf(document) + " follows in the next message.");
   }
 
-  private static Content alreadySentence(Document document) {
-    return textContent("The content of " + refOf(document) + " is already in the conversation.");
-  }
-
   private static AgentContext knowing(Document... documents) {
     return WITH_DOCUMENTS.withDocuments(
         AgentDocuments.empty()
@@ -109,6 +104,18 @@ class ToolCallResultsInputBuilderTest {
           entryWithEffects(execution.toolCallResult(), success.effects());
       case RuntimeToolResult.Error ignored -> Entry.from(execution.toolCallResult());
     };
+  }
+
+  private static Entry loading(String id, Document document) {
+    return runtimeEntry(
+        id, "alpha", RuntimeToolResult.success("loaded").withDocumentContent(idOf(document)));
+  }
+
+  /** The content of the message that adds the content of the document. */
+  private static List<Content> loadingMessageOf(Document document) {
+    return List.of(
+        textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+        AgentDocumentContent.of(idOf(document)).withDelivery(DocumentDelivery.CONTENT));
   }
 
   private static Entry entryOf(ToolCallResultContent result, List<Document> documents) {
@@ -136,7 +143,7 @@ class ToolCallResultsInputBuilderTest {
 
   @Test
   void withTheDocumentsFeatureTheResultsAreOneMessageAndTheDocumentsAreReportedInCallOrder() {
-    final var input = builder.build(WITH_DOCUMENTS, entries(), Set.of());
+    final var input = builder.build(WITH_DOCUMENTS, entries());
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(input.documents())
@@ -148,7 +155,7 @@ class ToolCallResultsInputBuilderTest {
 
   @Test
   void withTheDocumentsFeatureADocumentThatIsAWholeResultIsItsTagAndANestedOneStaysADocument() {
-    final var input = builder.build(WITH_DOCUMENTS, entries(), Set.of());
+    final var input = builder.build(WITH_DOCUMENTS, entries());
 
     final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();
     assertThat(results.get(0).content())
@@ -162,9 +169,7 @@ class ToolCallResultsInputBuilderTest {
   void withTheDocumentsFeatureAResultWithoutDocumentsReportsNone() {
     final var input =
         builder.build(
-            WITH_DOCUMENTS,
-            batchOf(entryOf(result("c2", "beta", textContent("two")), List.of())),
-            Set.of());
+            WITH_DOCUMENTS, batchOf(entryOf(result("c2", "beta", textContent("two")), List.of())));
 
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
     assertThat(input.documents()).isEmpty();
@@ -172,7 +177,7 @@ class ToolCallResultsInputBuilderTest {
 
   @Test
   void withoutTheDocumentsFeatureTheDocumentsFollowTheResultsInAMessageAndNoneIsReported() {
-    final var input = builder.build(WITHOUT_DOCUMENTS, entries(), Set.of());
+    final var input = builder.build(WITHOUT_DOCUMENTS, entries());
 
     assertThat(input.documents()).isEmpty();
     assertThat(input.messages()).hasSize(2);
@@ -204,7 +209,7 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1", "alpha", RuntimeToolResult.success("loaded").withDocumentContent(idOf(known)));
 
-    final var input = builder.build(knowing(known), batchOf(entry), Set.of());
+    final var input = builder.build(knowing(known), batchOf(entry));
 
     assertThat(input.messages()).hasSize(2);
     assertThat(input.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
@@ -236,7 +241,7 @@ class ToolCallResultsInputBuilderTest {
         runtimeEntry(
             "c1", "alpha", RuntimeToolResult.success(List.of()).withDocumentContent(idOf(known)));
 
-    final var input = builder.build(knowing(known), batchOf(entry), Set.of());
+    final var input = builder.build(knowing(known), batchOf(entry));
 
     assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
         .containsExactly(followsSentence(known));
@@ -256,7 +261,7 @@ class ToolCallResultsInputBuilderTest {
             "alpha",
             RuntimeToolResult.success(List.of()).withDocumentContent(idOf(nameless)));
 
-    final var input = builder.build(knowing(nameless), batchOf(entry), Set.of());
+    final var input = builder.build(knowing(nameless), batchOf(entry));
 
     assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
         .containsExactly(
@@ -268,32 +273,29 @@ class ToolCallResultsInputBuilderTest {
   void anErrorResultAsksForNoContent() {
     final var entry = runtimeEntry("c1", "alpha", RuntimeToolResult.error("no"));
 
-    final var input = builder.build(knowing(known), batchOf(entry), Set.of());
+    final var input = builder.build(knowing(known), batchOf(entry));
 
     assertThat(entry.effects()).isEmpty();
     assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
   }
 
   @Test
-  void aDocumentWhoseContentTheModelReadsIsNotAddedAgainAndTheResultSaysSo() {
-    final var entry =
-        runtimeEntry(
-            "c1", "alpha", RuntimeToolResult.success("loaded").withDocumentContent(idOf(known)));
+  void aDocumentWhoseContentAnEarlierTurnAddedIsAddedAgain() {
+    final var message = loadingMessageOf(known);
+    final var earlierTurn = builder.build(knowing(known), batchOf(loading("c1", known)));
+    final var laterTurn = builder.build(knowing(known), batchOf(loading("c2", known)));
 
-    final var input = builder.build(knowing(known), batchOf(entry), Set.of(idOf(known)));
-
-    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
-    assertThat(((ToolCallResultMessage) input.messages().getFirst()).results().getFirst().content())
-        .containsExactly(
-            textContent("loaded"),
-            textContent(
-                "The content of known.txt ("
-                    + idOf(known).value()
-                    + ") is already in the conversation."));
+    for (final var input : List.of(earlierTurn, laterTurn)) {
+      assertThat(input.messages()).hasSize(2);
+      assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
+          .containsExactly(textContent("loaded"), followsSentence(known));
+      assertThat(((UserMessage) input.messages().get(1)).content())
+          .containsExactlyElementsOf(message);
+    }
   }
 
   @Test
-  void aDocumentThatSeveralCallsAskForIsAddedOnceAndTheLaterCallsSayItIsInTheConversation() {
+  void aDocumentThatSeveralCallsAskForIsAddedOnceAndEveryResultSaysItFollows() {
     final var other = createDocument("other", "other.txt");
     final var batch =
         batchOf(
@@ -306,7 +308,7 @@ class ToolCallResultsInputBuilderTest {
             runtimeEntry(
                 "c2", "alpha", RuntimeToolResult.success("b").withDocumentContent(idOf(known))));
 
-    final var input = builder.build(knowing(known, other), batch, Set.of());
+    final var input = builder.build(knowing(known, other), batch);
 
     assertThat(((UserMessage) input.messages().get(1)).content())
         .containsExactly(
@@ -318,7 +320,7 @@ class ToolCallResultsInputBuilderTest {
     final var results = ((ToolCallResultMessage) input.messages().get(0)).results();
     assertThat(results.get(0).content())
         .containsExactly(textContent("a"), followsSentence(other), followsSentence(known));
-    assertThat(results.get(1).content()).containsExactly(textContent("b"), alreadySentence(known));
+    assertThat(results.get(1).content()).containsExactly(textContent("b"), followsSentence(known));
   }
 
   @Test
@@ -331,7 +333,7 @@ class ToolCallResultsInputBuilderTest {
                 .withDocumentContent(idOf(known))
                 .withDocumentContent(idOf(known)));
 
-    final var input = builder.build(knowing(known), batchOf(entry), Set.of());
+    final var input = builder.build(knowing(known), batchOf(entry));
 
     assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
         .containsExactly(textContent("a"), followsSentence(known));
@@ -346,7 +348,7 @@ class ToolCallResultsInputBuilderTest {
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
                 .withDocumentContent(idOf(first)));
 
-    final var input = builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of());
+    final var input = builder.build(WITH_DOCUMENTS, batchOf(entry));
 
     assertThat(input.documents())
         .containsExactly(AgentDocument.of(first, AgentDocumentOrigin.toolCall("alpha", "c1")));
@@ -366,7 +368,7 @@ class ToolCallResultsInputBuilderTest {
             result("c1", "process_tool", textContent("done")),
             List.of(new ToolCallEffect.AddDocumentContent(idOf(known))));
 
-    final var input = builder.build(knowing(known), batchOf(processEntry), Set.of());
+    final var input = builder.build(knowing(known), batchOf(processEntry));
 
     assertThat(((ToolCallResultMessage) input.messages().get(0)).results().getFirst().content())
         .containsExactly(textContent("done"), followsSentence(known));
@@ -386,7 +388,7 @@ class ToolCallResultsInputBuilderTest {
     final var naming =
         runtimeEntry("c2", "beta", RuntimeToolResult.success("a").withDocumentContent(idOf(first)));
 
-    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(returning, naming), Set.of()))
+    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(returning, naming)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'beta' refers to the document '%s', which the agent does not know and the result does not return"
@@ -401,7 +403,7 @@ class ToolCallResultsInputBuilderTest {
             "alpha",
             RuntimeToolResult.success("a").withDocumentContent(AgentDocumentId.of("unknown")));
 
-    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry), Set.of()))
+    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(entry)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'alpha' refers to the document '%s', which the agent does not know and the result does not return"
@@ -415,7 +417,7 @@ class ToolCallResultsInputBuilderTest {
             result("c1", "process_tool", textContent("done")),
             List.of(new ToolCallEffect.AddDocumentContent(idOf(known))));
 
-    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(processEntry), Set.of()))
+    assertThatThrownBy(() -> builder.build(WITH_DOCUMENTS, batchOf(processEntry)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'process_tool' refers to the document '%s', which the agent does not know and the result does not return"
@@ -431,7 +433,7 @@ class ToolCallResultsInputBuilderTest {
             RuntimeToolResult.success(List.of(DocumentContent.documentContent(first)))
                 .withDocumentContent(idOf(first)));
 
-    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry), Set.of()))
+    assertThatThrownBy(() -> builder.build(WITHOUT_DOCUMENTS, batchOf(entry)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The runtime tool 'alpha' refers to a document by its id, which an agent instance that does not track its documents does not support");

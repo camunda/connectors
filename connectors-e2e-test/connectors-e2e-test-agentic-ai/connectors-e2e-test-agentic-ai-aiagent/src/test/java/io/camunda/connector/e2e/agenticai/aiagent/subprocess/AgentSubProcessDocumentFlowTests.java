@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertContentReturnedOnceAndPassedByIdFlow;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertContentLoadedTwiceAndPassedByIdFlow;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertDownloadResultInHistory;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DOWNLOADED_FILE;
@@ -86,13 +86,12 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * A tool returns a document, the model loads it twice and passes its handle to a tool: the first
-   * load puts the content next to the handle, the second one is answered without loading again, and
-   * the tool receives the real bytes. The content is a text for a text document, an image for an
-   * image and a file for a PDF. This is the e2e coverage of all file types. The model provider sees
-   * the object schema of a document handle for the document parameter of the tool, the persisted
-   * tool definition holds the same schema, and the history shows the result of the tool with the
-   * handle nested in it.
+   * A tool returns a document, the model loads it twice and passes its handle to a tool: every load
+   * puts the content next to the handle, and the tool receives the real bytes. The content is a
+   * text for a text document, an image for an image and a file for a PDF. This is the e2e coverage
+   * of all file types. The model provider sees the object schema of a document handle for the
+   * document parameter of the tool, the persisted tool definition holds the same schema, and the
+   * history shows the result of the tool with the handle nested in it.
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(
@@ -108,7 +107,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         "test.xml",
         "test.yaml"
       })
-  void loadsAFetchedDocumentOnceAndPassesItsHandleToATool(String file) throws Exception {
+  void loadsAFetchedDocumentTwiceAndPassesItsHandleToATool(String file) throws Exception {
     final var turns =
         List.of(
             downloadTurn(wireMock.getHttpBaseUrl(), file),
@@ -122,7 +121,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(turns.size());
-    assertContentReturnedOnceAndPassedByIdFlow(
+    assertContentLoadedTwiceAndPassedByIdFlow(
         recorded.requests(), block -> assertDocumentContentBlockJson(block, file));
     assertUploaded(servedFile(file));
 

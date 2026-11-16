@@ -116,7 +116,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -1268,7 +1267,7 @@ class AgentSubProcessRequestHandlerTest {
         ToolCallBatch.of(List.of(lookupCall, processCall))
             .withEntries(List.of(ToolCallBatch.Entry.from(processResult)));
     when(agentInputComposer.resolve(any(), any(), any(), any()))
-        .thenReturn(CompositionResult.Ready.of(context, Set.of(), batch));
+        .thenReturn(CompositionResult.Ready.of(context, batch));
     when(agentInputComposer.assemble(any())).thenReturn(new TurnInput(List.of(USER_MESSAGE)));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
@@ -1851,8 +1850,7 @@ class AgentSubProcessRequestHandlerTest {
     mockSystemPrompt();
     when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenReturn(
-            CompositionResult.Ready.of(
-                CONTEXT_WITH_DOCUMENTS, Set.of(), ToolCallBatch.of(List.of())));
+            CompositionResult.Ready.of(CONTEXT_WITH_DOCUMENTS, ToolCallBatch.of(List.of())));
     when(agentInputComposer.assemble(any()))
         .thenReturn(
             new TurnInput(
@@ -1934,7 +1932,7 @@ class AgentSubProcessRequestHandlerTest {
   private String failureCodeOfRegistering(AgentContext context, Document document) {
     reset(agentInitializer, agentInputComposer);
     when(agentInputComposer.resolve(any(), any(), any(), any()))
-        .thenReturn(CompositionResult.Ready.of(context, Set.of(), ToolCallBatch.of(List.of())));
+        .thenReturn(CompositionResult.Ready.of(context, ToolCallBatch.of(List.of())));
     // the agent document of a reference of an unsupported type cannot be created
     when(agentInputComposer.assemble(any()))
         .thenAnswer(invocation ->
@@ -2068,13 +2066,25 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void doesNotAddTheContentOfADocumentTheModelReadsAlreadyAgain() {
+  void addsTheContentOfADocumentAgainWhenALaterRoundAsksForItAgain() {
     final var requests = runLoadingRounds(CONTEXT_KNOWING_A_DOCUMENT, "call-1", "call-2");
 
-    // the first round adds the content, the second one finds it in the window
-    assertThat(requests.get(1).snapshot().messages().getLast()).isInstanceOf(UserMessage.class);
-    assertThat(requests.get(2).snapshot().messages().getLast())
-        .isInstanceOf(ToolCallResultMessage.class);
+    // the first round and the second round both add the content
+    for (final var request : requests.subList(1, 3)) {
+      final var messages = request.snapshot().messages();
+      assertThat(messages.get(messages.size() - 2))
+          .isInstanceOfSatisfying(
+              ToolCallResultMessage.class,
+              message ->
+                  assertThat(message.results().getFirst().content())
+                      .containsExactly(
+                          TextContent.textContent("Loaded the document."),
+                          TextContent.textContent(
+                              "The content of known.txt ("
+                                  + AgentDocumentId.of(KNOWN_DOCUMENT).value()
+                                  + ") follows in the next message.")));
+      assertContentMessageOf(messages.getLast(), KNOWN_DOCUMENT);
+    }
   }
 
   @Test
@@ -2937,9 +2947,7 @@ class AgentSubProcessRequestHandlerTest {
     // stubbed with doAnswer so that a test can stub the composer more than once
     doAnswer(invocation ->
             CompositionResult.Ready.of(
-                invocation.getArgument(1, AgentContext.class),
-                Set.of(),
-                ToolCallBatch.of(List.of())))
+                invocation.getArgument(1, AgentContext.class), ToolCallBatch.of(List.of())))
         .when(agentInputComposer)
         .resolve(any(), any(), any(), any());
     lenient()
@@ -2947,8 +2955,7 @@ class AgentSubProcessRequestHandlerTest {
           final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
           return ready.toolCallBatch().toolCalls().isEmpty()
               ? firstTurnInput
-              : resultsInputBuilder.build(
-                  ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
+              : resultsInputBuilder.build(ready.agentContext(), ready.toolCallBatch());
         })
         .when(agentInputComposer)
         .assemble(any());

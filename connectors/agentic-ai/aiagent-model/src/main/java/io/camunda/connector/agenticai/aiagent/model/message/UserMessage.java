@@ -9,16 +9,11 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
-import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
@@ -36,19 +31,6 @@ public record UserMessage(
    * tool results with the documents whose content a tool asked for.
    */
   public static final String METADATA_TOOL_CALL_DOCUMENTS = "toolCallDocuments";
-
-  /**
-   * The ids of the documents whose content the model reads in this message: the documents of the
-   * blocks with the delivery {@code content}.
-   */
-  public Set<AgentDocumentId> documentIdsWithContent() {
-    return content.stream()
-        .filter(AgentDocumentContent.class::isInstance)
-        .map(AgentDocumentContent.class::cast)
-        .filter(reference -> reference.delivery() == DocumentDelivery.CONTENT)
-        .map(AgentDocumentContent::id)
-        .collect(Collectors.toUnmodifiableSet());
-  }
 
   public static UserMessageBuilder builder() {
     return UserMessageBuilder.builder();

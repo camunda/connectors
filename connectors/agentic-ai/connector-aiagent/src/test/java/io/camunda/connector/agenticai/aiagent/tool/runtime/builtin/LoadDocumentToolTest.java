@@ -54,7 +54,6 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
@@ -140,8 +139,8 @@ class LoadDocumentToolTest {
     assertThat(definition.description())
         .isEqualTo(
             "Loads the content of a document from the conversation. Pass its handle. Do not call"
-                + " it when the conversation has no document handle. Content that is already in the"
-                + " conversation is not loaded again.");
+                + " it when the conversation has no document handle. Do not load content that you"
+                + " already have.");
     // the stored schema is the schema of a document handle
     assertThat(definition.inputSchema())
         .isEqualTo(
@@ -173,7 +172,7 @@ class LoadDocumentToolTest {
   void loadsAKnownDocumentAndAsksTheAgentForItsContent() {
     final var entry = camundaEntry("doc-1", "text/plain", 10L);
 
-    final var run = run(List.of(entry), Set.of(), call("1", "doc-1"));
+    final var run = run(List.of(entry), call("1", "doc-1"));
 
     assertThat(run.entry().effects())
         .containsExactly(new ToolCallEffect.AddDocumentContent(AgentDocumentId.of("doc-1")));
@@ -192,7 +191,6 @@ class LoadDocumentToolTest {
     final var withHandle =
         run(
             List.of(entry),
-            Set.of(),
             callWith("1", "{\"type\":\"camunda.agenticai.document\",\"id\":\"doc-1\"}"));
 
     assertThat(withHandle.addedContent())
@@ -200,33 +198,19 @@ class LoadDocumentToolTest {
   }
 
   @Test
-  void asksForADocumentThatAlreadyHasContentInTheConversationAndTheAgentSaysSo() {
+  void loadsADocumentAgainWhenAnEarlierTurnLoadedItsContent() {
     final var entry = camundaEntry("doc-1", "text/plain", 10L);
-    final var withContent = referenceTo(entry).withDelivery(DocumentDelivery.CONTENT);
-    final var inConversation =
-        UserMessage.builder().content(List.of(withContent)).build().documentIdsWithContent();
 
-    final var run = run(List.of(entry), inConversation, call("1", "doc-1"));
+    final var earlierTurn = run(List.of(entry), call("1", "doc-1"));
+    final var laterTurn = run(List.of(entry), call("2", "doc-1"));
 
-    assertThat(run.entry().effects())
-        .containsExactly(new ToolCallEffect.AddDocumentContent(AgentDocumentId.of("doc-1")));
-    assertThat(run.result().content())
-        .containsExactly(textContent("The content of doc-1 is already in the conversation."));
-    assertThat(run.addedContent()).isEmpty();
-  }
-
-  @Test
-  void loadsADocumentThatIsOnlyAReferenceInTheConversation() {
-    final var entry = camundaEntry("doc-1", "text/plain", 10L);
-    final var inConversation =
-        UserMessage.builder().content(List.of(referenceTo(entry))).build().documentIdsWithContent();
-
-    final var run = run(List.of(entry), inConversation, call("1", "doc-1"));
-
-    assertThat(run.entry().effects())
-        .containsExactly(new ToolCallEffect.AddDocumentContent(AgentDocumentId.of("doc-1")));
-    assertThat(run.addedContent())
-        .containsExactly(referenceTo(entry).withDelivery(DocumentDelivery.CONTENT));
+    for (final var run : List.of(earlierTurn, laterTurn)) {
+      assertThat(run.entry().effects())
+          .containsExactly(new ToolCallEffect.AddDocumentContent(AgentDocumentId.of("doc-1")));
+      assertThat(run.result().content()).containsExactly(follows(entry));
+      assertThat(run.addedContent())
+          .containsExactly(referenceTo(entry).withDelivery(DocumentDelivery.CONTENT));
+    }
   }
 
   @Test
@@ -253,12 +237,12 @@ class LoadDocumentToolTest {
         .withKind(ToolKind.RUNTIME);
   }
 
-  private Run run(List<AgentDocument> entries, Set<AgentDocumentId> idsWithContent, ToolCall call) {
+  private Run run(List<AgentDocument> entries, ToolCall call) {
     final var agentContext = WITH_DOCUMENTS.withDocuments(AgentDocuments.of(entries));
     final var batchEntries =
         executor.execute(withConfiguration(CONFIGURATION), agentContext, List.of(call));
     final var batch = ToolCallBatch.of(List.of(call)).withEntries(batchEntries);
-    final var input = inputBuilder.build(agentContext, batch, idsWithContent);
+    final var input = inputBuilder.build(agentContext, batch);
     return new Run(batchEntries.getFirst(), input);
   }
 }

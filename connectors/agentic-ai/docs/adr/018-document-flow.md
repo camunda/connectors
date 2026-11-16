@@ -157,8 +157,8 @@ The v2 templates set `reference` as the default.
 Content goes into a request in two ways. Both use the same persisted form:
 
 * **On request.** The model calls the built-in tool `c8__load_document`. The model knows when it must read a document.
-  The agent writes into the tool result whether the content follows or is in the conversation already. The content
-  follows in the next message.
+  The agent writes into the tool result that the content follows in the next message. The content follows in that
+  message.
 * **By opt-in.** Only the process knows the documents before the model sees them. Thus only the user prompt (a dropdown)
   and a tool activity (an extension property) can set `content`. This saves one model round trip per document. Events,
   MCP tools and A2A tools use `reference`.
@@ -168,9 +168,9 @@ The content stays in each request until its message leaves the window.
 ### No check of the content
 
 The agent adds the content of a requested document without a check of the content type or the size. A document that the
-model provider cannot read, or that is above the limits of the provider, fails the model call. The only decision is that
-the agent does not add content again when the model reads it already or an earlier request of the same batch asked for
-it.
+model provider cannot read, or that is above the limits of the provider, fails the model call. The agent does not check
+earlier turns. Every request adds the content. When several requests of one batch ask for the same document, the agent
+adds the content once.
 
 A check in the agent needs a fixed list of content types and one size limit for all providers. This does not fit the
 target architecture, where each provider states what it reads. A check of the content against what the model provider

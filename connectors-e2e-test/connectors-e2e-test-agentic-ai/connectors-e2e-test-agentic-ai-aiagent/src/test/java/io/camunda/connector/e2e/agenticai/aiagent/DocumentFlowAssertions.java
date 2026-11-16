@@ -22,7 +22,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GE
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UPLOAD_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentAlreadyInConversationSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,14 +60,13 @@ public final class DocumentFlowAssertions {
 
   /**
    * Asserts the requests of the flow download, {@code c8__load_document}, {@code c8__load_document}
-   * again, upload, final answer: the download shows the handle only, the first load adds the
-   * content in a message after the tool result, the second load is answered without a message, and
-   * the upload receives the id.
+   * again, upload, final answer: the download shows the handle only, every load adds the content in
+   * a message after its tool result, and the upload receives the id.
    *
    * @param requests the recorded requests of the five turns
    * @param contentBlockAssertion the check of the wire form of the document content
    */
-  public static void assertContentReturnedOnceAndPassedByIdFlow(
+  public static void assertContentLoadedTwiceAndPassedByIdFlow(
       List<OpenAiCompletionsRecordedConversation.RecordedChatRequest> requests,
       Consumer<JsonNode> contentBlockAssertion)
       throws JSONException {
@@ -91,15 +89,29 @@ public final class DocumentFlowAssertions {
     assertDocumentContentUserMessage(
         afterFirstLoad.getLast(), DocumentWithContent.of(handle, contentBlockAssertion));
 
-    // the second load adds nothing but its own result
+    // the second load adds the content again: the tool result, then the message with the handle
+    // and the content
     final var afterSecondLoad = messagesAfter(requests, SECOND_LOAD);
-    assertThat(afterSecondLoad).hasSize(afterFirstLoad.size() + 2);
-    assertThat(afterSecondLoad.getLast().role()).isEqualTo("tool");
-    assertThat(afterSecondLoad.getLast().toolCallId()).isEqualTo(GET_AGAIN_CALL_ID);
-    assertThat(afterSecondLoad.getLast().content())
-        .isEqualTo(contentAlreadyInConversationSentence(handle));
+    assertThat(afterSecondLoad)
+        .extracting(m -> m.role())
+        .containsExactly(
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool",
+            "user",
+            "assistant",
+            "tool",
+            "user");
+    final var secondLoadResult = afterSecondLoad.get(afterSecondLoad.size() - 2);
+    assertThat(secondLoadResult.toolCallId()).isEqualTo(GET_AGAIN_CALL_ID);
+    assertThat(secondLoadResult.content()).isEqualTo(contentFollowsSentence(handle));
+    assertDocumentContentUserMessage(
+        afterSecondLoad.getLast(), DocumentWithContent.of(handle, contentBlockAssertion));
 
-    // the tool received the id and the content is in the conversation once
+    // the tool received the id
     final var afterUpload = messagesAfter(requests, UPLOAD);
     assertThat(afterUpload)
         .extracting(m -> m.role())
@@ -113,6 +125,7 @@ public final class DocumentFlowAssertions {
             "user",
             "assistant",
             "tool",
+            "user",
             "assistant",
             "tool");
     assertThat(afterUpload.getLast().toolCallId()).isEqualTo(UPLOAD_CALL_ID);
