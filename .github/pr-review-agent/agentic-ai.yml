@@ -21,6 +21,8 @@ triggers:
   skip_authors:
     - renovate[bot]
     - dependabot[bot]
+    # Backport PRs re-apply changes already reviewed on main.
+    - team-connectors-int-automation[bot]
   max_auto_reviews: 5
 
 policy:
@@ -85,7 +87,9 @@ escalation:
         - "connectors/agentic-ai/*/src/main/*/auth/*"
         - "connectors/agentic-ai/*/src/main/*Credential*"
     - reason: outbound proxy
-      paths: ["connectors/agentic-ai/*/src/main/*Proxy*"]
+      paths:
+        - "connectors/agentic-ai/*/src/main/*Proxy*"
+        - "connectors/agentic-ai/*/src/main/*/proxy/*"
 
 notifications:
   # Tagged when the agent's session transcript could not be captured.
