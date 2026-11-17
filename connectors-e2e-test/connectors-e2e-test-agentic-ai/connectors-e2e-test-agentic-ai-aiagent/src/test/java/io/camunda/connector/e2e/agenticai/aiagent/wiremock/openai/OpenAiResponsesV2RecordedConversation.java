@@ -147,7 +147,8 @@ public final class OpenAiResponsesV2RecordedConversation {
             responseFormat,
             reasoningEffort,
             wireBody.include(),
-            wireBody.input());
+            wireBody.input(),
+            rawBody);
       } catch (Exception e) {
         throw new IllegalStateException(
             "Failed to parse recorded Responses request body: " + rawBody, e);
@@ -297,6 +298,7 @@ public final class OpenAiResponsesV2RecordedConversation {
     private final String reasoningEffort;
     private final List<String> include;
     private final List<JsonNode> rawInput;
+    private final String rawBody;
 
     private RecordedChatRequest(
         List<RecordedMessage> messages,
@@ -304,13 +306,20 @@ public final class OpenAiResponsesV2RecordedConversation {
         RecordedResponseFormat responseFormat,
         String reasoningEffort,
         List<String> include,
-        List<JsonNode> rawInput) {
+        List<JsonNode> rawInput,
+        String rawBody) {
       this.messages = messages;
       this.toolDefinitions = toolDefinitions;
       this.responseFormat = responseFormat;
       this.reasoningEffort = reasoningEffort;
       this.include = include;
       this.rawInput = rawInput;
+      this.rawBody = rawBody;
+    }
+
+    /** The request body as it went over the wire. */
+    public String rawBody() {
+      return rawBody;
     }
 
     /** The reconstructed messages, in conversation order. */

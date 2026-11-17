@@ -23,6 +23,15 @@ public interface AgentExecutionContext {
    */
   DocumentFactory documentFactory();
 
+  /**
+   * The agent instance features (see {@link AgentFeatures}) that a new agent instance of this
+   * execution gets. The default is {@link AgentFeatures#ofNewInstance()}. An existing agent
+   * instance keeps the features it was created with.
+   */
+  default List<String> newInstanceFeatures() {
+    return AgentFeatures.ofNewInstance();
+  }
+
   /** Initial agent context object read from input variables, before further processing. */
   AgentContext initialAgentContext();
 

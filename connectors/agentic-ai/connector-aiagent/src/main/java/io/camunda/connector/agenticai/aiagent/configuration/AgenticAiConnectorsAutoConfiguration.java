@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
@@ -57,6 +58,8 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerI
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
@@ -97,8 +100,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolCallAdmission aiAgentToolCallAdmission() {
-    return new ToolCallAdmission();
+  public ToolCallAdmission aiAgentToolCallAdmission(
+      DocumentParameterResolver documentParameterResolver) {
+    return new ToolCallAdmission(documentParameterResolver);
   }
 
   @Bean
@@ -111,8 +115,22 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public RuntimeTools aiAgentRuntimeTools(
-      List<RuntimeTool> runtimeTools, @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new RuntimeTools(runtimeTools, objectMapper);
+      List<RuntimeTool> runtimeTools,
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      DocumentParameterResolver documentParameterResolver) {
+    return new RuntimeTools(runtimeTools, objectMapper, documentParameterResolver);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(name = "aiAgentLoadDocumentRuntimeTool")
+  public RuntimeTool aiAgentLoadDocumentRuntimeTool() {
+    return new LoadDocumentTool();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(name = "aiAgentReturnDocumentRuntimeTool")
+  public RuntimeTool aiAgentReturnDocumentRuntimeTool() {
+    return new ReturnDocumentTool();
   }
 
   @Bean
@@ -258,6 +276,13 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public DocumentParameterResolver aiAgentDocumentParameterResolver(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new DocumentParameterResolver(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public DocumentExpander aiAgentDocumentExpander(ObjectHandleRenderer objectHandleRenderer) {
     return new DocumentExpander(objectHandleRenderer);
   }
@@ -266,8 +291,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AgentResponseHandler aiAgentResponseHandler(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      DocumentParameterResolver documentParameterResolver) {
+    return new AgentResponseHandlerImpl(
+        objectMapper, gatewayToolHandlers, documentParameterResolver);
   }
 
   @Bean

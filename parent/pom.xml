@@ -104,7 +104,7 @@ limitations under the License.</license.inlineheader>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.greenmail>2.1.15</version.greenmail>
     <version.xmlunit>2.14.0</version.xmlunit>
-    <version.json>20250517</version.json>
+    <version.json>20260814</version.json>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
@@ -113,11 +113,11 @@ limitations under the License.</license.inlineheader>
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.37.1</version.amqp-client>
-    <version.netty>4.2.20.Final</version.netty>
+    <version.netty>4.2.21.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.6.6</version.logback>
+    <version.logback>1.6.7</version.logback>
 
-    <version.aws-sdk2>2.58.0</version.aws-sdk2>
+    <version.aws-sdk2>2.59.2</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -135,12 +135,12 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-services-drive>v3-rev20261106-2.9.2</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.57.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.58.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
     <version.google-libraries-bom>26.93.0</version.google-libraries-bom>
-    <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
+    <version.google-api-services-sheets>v4-rev20261109-2.9.2</version.google-api-services-sheets>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>2.2.0</version.google-genai>
+    <version.google-genai>2.4.0</version.google-genai>
     <!-- overrides the Google libraries BOM for the whole Vertex AI family -->
     <version.google-cloud-vertexai>1.52.0</version.google-cloud-vertexai>
     <version.jsr305>3.0.2</version.jsr305>
@@ -150,7 +150,7 @@ limitations under the License.</license.inlineheader>
     <version.httpcore5>5.4.4</version.httpcore5>
     <version.httpclient5>5.6.5</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
-    <version.ayza>10.1.0</version.ayza>
+    <version.ayza>10.1.1</version.ayza>
     <version.pdfbox>3.0.8</version.pdfbox>
     <version.collections4>4.6.0</version.collections4>
 
@@ -160,7 +160,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.4.0</version.kafka-clients>
     <!-- CVE-2026-106450 / CVE-2026-106451: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.4
          Ref: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv -->
-    <version.lz4-java>1.14.0</version.lz4-java>
+    <version.lz4-java>1.14.1</version.lz4-java>
 
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.10.5</version.microsoft-kiota-abstraction>
@@ -180,15 +180,15 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override (kafka-clients) — remove once kafka-clients ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-26</version.zstd-jni>
+    <version.zstd-jni>1.5.7-28</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
 
-    <version.wss4j>4.0.2</version.wss4j>
+    <version.wss4j>4.0.3</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
-    <version.slack>1.54.0</version.slack>
+    <version.slack>1.55.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
@@ -208,8 +208,8 @@ limitations under the License.</license.inlineheader>
     <version.langchain4j>1.23.0</version.langchain4j>
     <!-- community releases are built against one core release: keep the prefix equal to version.langchain4j -->
     <version.langchain4j-community>1.23.0-beta33</version.langchain4j-community>
-    <version.mcp-sdk>2.1.0</version.mcp-sdk>
-    <version.elasticsearch-java>8.19.24</version.elasticsearch-java>
+    <version.mcp-sdk>2.2.0</version.mcp-sdk>
+    <version.elasticsearch-java>8.19.25</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.25</version.elasticsearch-rest-client>
 
     <version.scala>3.10.1</version.scala>
@@ -236,7 +236,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.52.0</version.error-prone>
-    <version.nullaway>0.14.3</version.nullaway>
+    <version.nullaway>0.14.4</version.nullaway>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
 
     <!-- false still builds the with-dependencies fat jars into target/, but does not install or deploy them -->
@@ -1219,7 +1219,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.opennlp</groupId>
         <artifactId>opennlp-tools</artifactId>
-        <version>2.5.12</version>
+        <version>3.0.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

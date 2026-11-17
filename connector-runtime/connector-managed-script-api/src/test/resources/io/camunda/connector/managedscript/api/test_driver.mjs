@@ -11,7 +11,13 @@ import { createExecutor } from './executor_core.mjs';
 // No platform deadline on a local host: the request's timeoutMs alone bounds the script.
 const DEADLINE_MS = Number(process.env.EXECUTOR_DEADLINE_MS || Infinity);
 
-const executor = createExecutor({ local: true, tmp: process.env.EXECUTOR_TMP || tmpdir() });
+// The memory of a cloud executor instance, to size the child as there; unset, the child gets a
+// heap of 256 MB.
+const MEMORY_MB = process.env.EXECUTOR_MEMORY_MB ? Number(process.env.EXECUTOR_MEMORY_MB) : undefined;
+
+const executor = createExecutor({
+  local: true, tmp: process.env.EXECUTOR_TMP || tmpdir(), memoryMb: MEMORY_MB,
+});
 
 let input = '';
 process.stdin.setEncoding('utf8'); // keeps a character split across two chunks whole

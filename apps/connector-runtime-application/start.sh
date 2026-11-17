@@ -25,4 +25,5 @@ if [[ -n "${DEBUG_JVM_PRINT_JAVA_OPTS}" ]]; then
   echo "Applied JVM options: $JAVA_OPTS"
 fi
 
-exec java ${JAVA_OPTS} -cp "/opt/app/*" "org.springframework.boot.loader.launch.PropertiesLauncher"
+# /opt/app/runtime is the exploded Connector runtime; other jars in /opt/app are added to the classpath
+exec java ${JAVA_OPTS} -cp "/opt/app/runtime:/opt/app/*" "org.springframework.boot.loader.launch.PropertiesLauncher"

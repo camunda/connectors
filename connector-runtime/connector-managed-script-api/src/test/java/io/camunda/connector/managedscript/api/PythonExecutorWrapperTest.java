@@ -238,6 +238,59 @@ class PythonExecutorWrapperTest {
   }
 
   @Test
+  void acceptsAResponseNestedToTheReaderLimitAndRejectsOneLevelMore() throws Exception {
+    // Built in a loop and checked directly, so the result does not depend on how deep the
+    // installed Python can parse JSON.
+    final var process =
+        new ProcessBuilder(
+                python.orElseThrow().toString(),
+                "-I",
+                "-c",
+                """
+                import sys
+                sys.path.insert(0, sys.argv[1])
+                import executor_core
+
+                def nested(depth):
+                    root = current = []
+                    for _ in range(depth - 1):
+                        current.append([])
+                        current = current[0]
+                    return root
+
+                for depth in (executor_core.MAX_NESTING_DEPTH, executor_core.MAX_NESTING_DEPTH + 1):
+                    try:
+                        executor_core._check_nesting(nested(depth))
+                        print(depth, "accepted")
+                    except ValueError:
+                        print(depth, "rejected")
+                """,
+                wrapper.toString())
+            .redirectErrorStream(true)
+            .start();
+    assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
+
+    assertThat(new String(process.getInputStream().readAllBytes()).lines())
+        .containsExactly("1000 accepted", "1001 rejected");
+  }
+
+  @Test
+  void rejectsAForgedResponseThatIsAScalar() throws Exception {
+    for (var scalar : new String[] {"null", "0", "true", "\\\"x\\\""}) {
+      final var error =
+          errorOf(
+              call(
+                  "import os\n\ndef execute(variables, context):\n"
+                      + "    os.write(1, b'"
+                      + scalar
+                      + "')\n"
+                      + "    os._exit(0)\n"));
+
+      assertThat(error.get("code").asText()).as(scalar).isEqualTo("INVALID_RESULT");
+    }
+  }
+
+  @Test
   void isNotBlockedByAScriptThatReplacesItsOutputWithAFifo() throws Exception {
     final var response =
         call(
@@ -574,6 +627,40 @@ class PythonExecutorWrapperTest {
     }
   }
 
+  /** The memory of the executor instance the wrapper is told, or null for a shared host. */
+  private String executorMemoryMb;
+
+  // RLIMIT_AS is not enforced on macOS.
+  @Test
+  @EnabledOnOs(OS.LINUX)
+  void givesTheScriptTheMemoryOfTheExecutorButAMargin() throws Exception {
+    executorMemoryMb = "1024";
+
+    final var response =
+        call(
+            "def execute(variables, context):\n"
+                + "    import resource\n"
+                + "    return {'limit': resource.getrlimit(resource.RLIMIT_AS)[0],"
+                + " 'size': len(bytearray(512 * 1024 * 1024))}\n");
+
+    assertThat(response.get("variables").get("limit").asLong()).isEqualTo(896L * 1024 * 1024);
+    assertThat(response.get("variables").get("size").asLong()).isEqualTo(512L * 1024 * 1024);
+  }
+
+  @Test
+  @EnabledOnOs(OS.LINUX)
+  void givesTheScriptAMinimumMemoryOnASmallExecutor() throws Exception {
+    executorMemoryMb = "128";
+
+    final var response =
+        call(
+            "def execute(variables, context):\n"
+                + "    import resource\n"
+                + "    return {'limit': resource.getrlimit(resource.RLIMIT_AS)[0]}\n");
+
+    assertThat(response.get("variables").get("limit").asLong()).isEqualTo(64L * 1024 * 1024);
+  }
+
   private JsonNode call(String script) throws Exception {
     return call(request(script, Map.of()));
   }
@@ -604,6 +691,9 @@ class PythonExecutorWrapperTest {
             .redirectError(ProcessBuilder.Redirect.DISCARD);
     builder.environment().put("EXECUTOR_TMP", tmp.toString());
     builder.environment().put("AWS_SECRET_ACCESS_KEY", "not-for-scripts");
+    if (executorMemoryMb != null) {
+      builder.environment().put("EXECUTOR_MEMORY_MB", executorMemoryMb);
+    }
     // To a file, so that the deadline applies before anything is read: reading the pipe to its end
     // would wait for a hung wrapper as long as the wrapper does.
     final var output = Files.createTempFile(wrapper, "response", ".json");

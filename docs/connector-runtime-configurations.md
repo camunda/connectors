@@ -101,6 +101,8 @@ camunda.connector.managed-code.local.directory=/home/me/.camunda/managed-script
   the directory it was set up for. A host with only Node.js runs `.js` scripts, and a `.py` script
   fails with a message saying that Python 3.10 or later was not found, until you install it: the
   first job after `provisioning-retry-backoff` looks again, so the runtime does not need a restart.
+- A script gets 256 MB, since it shares the host with the runtime. See
+  [the memory of a script](#the-memory-of-a-script).
 
 ### AWS Lambda provider
 
@@ -130,6 +132,9 @@ camunda.connector.managed-code.aws.log-retention-days=30
   therefore creates no function and leaves none behind.
 - `aws.region` is the region of the executors; without it, the SDK's default region chain applies
   (`AWS_REGION`, the profile). `aws.memory-mb` is between 128 and 10240 (default 512).
+- `aws.memory-mb` sizes the scripts: the wrapper reads the memory of the function from Lambda and
+  gives a script all of it but for what the wrapper and the interpreter need. See
+  [the memory of a script](#the-memory-of-a-script).
   `aws.log-retention-days` is a value that CloudWatch Logs accepts, such as 7, 14, 30 or 90
   (default 30).
 - Credentials come from the default chain of the AWS SDK only: environment variables, a web-identity
@@ -263,6 +268,11 @@ camunda.connector.managed-code.gcp.max-instance-count=1000
   function and leaves none behind.
 - `gcp.project-id` and `gcp.region` locate the executors. `gcp.memory-mb` is between 128 and
   32768 (default 512).
+- `gcp.memory-mb` sizes the scripts: it is passed to the wrapper in `EXECUTOR_MEMORY_MB`, and the
+  wrapper gives a script all of it but for what the wrapper and the interpreter need. See
+  [the memory of a script](#the-memory-of-a-script). The file system of a Cloud Run instance is in
+  memory: what a script writes to its directory takes from the same memory, outside the script's
+  limit, until the call ends.
 - `gcp.function-service-account` is required: without it, Cloud Run would run the executors as the
   default compute service account, which often has Editor on the project.
 - `gcp.build-service-account` is required for the same reason. The provider uploads the source of
@@ -357,6 +367,28 @@ Each failure has an error code, and the code decides what happens to the job's r
 The incident shows the error message, and the script's stack trace when the script raised the
 failure. Both also reach the runtime's error log, so a script must not let a sensitive value reach
 an exception message. Secrets in the script input are resolved as for any connector.
+
+### The memory of a script
+
+The wrapper runs each script in a child process with a memory limit. A script that goes over it
+fails with `RESOURCE_LIMIT`, and the wrapper survives to answer and clean up. Without the limit,
+the platform would stop the whole instance for its memory, and the job would fail with
+`PLATFORM_EXECUTION_FAILED`.
+
+On AWS and GCP, the limit comes from the memory of the executor (`aws.memory-mb`, `gcp.memory-mb`),
+less what the wrapper and the interpreter need besides the script:
+
+| Language | Limit | At 128 MB | At 512 MB | At 1024 MB |
+|---|---|---|---|---|
+| Python | `memory-mb` − 128 MB of address space (`RLIMIT_AS`), at least 64 MB | 64 MB | 384 MB | 896 MB |
+| JavaScript | 80% of `memory-mb` − 64 MB of V8 heap (`--max-old-space-size`) | 38 MB | 345 MB | 755 MB |
+
+The V8 heap leaves out the young generation and the memory the collector needs, which grow with the
+heap: the share keeps them within the function. Memory a JavaScript script holds outside the heap,
+such as large `Buffer`s, is not limited. A function of 128 MB leaves room for small scripts only.
+Raise `memory-mb` for a script that needs more.
+
+The `local` provider gives a script 256 MB, whatever the host has.
 
 ### Deleting executors that are no longer in use
 

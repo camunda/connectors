@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.versioning.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -135,6 +136,7 @@ class LegacyDocumentConversationTest {
     assertThat(context.features()).isEmpty();
     assertThat(context.supports(AgentFeatures.DOCUMENTS)).isFalse();
     assertThat(context.documents().all()).isEmpty();
+    assertThat(context.responseDocuments()).isEmpty();
   }
 
   @Test
@@ -214,7 +216,7 @@ class LegacyDocumentConversationTest {
             textContent(legacyTag("toolName=\"Download_A_File\" toolCallId=\"call-2\" ", document)),
             DocumentContent.documentContent(document));
     assertThat(documentMessage.metadata())
-        .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+        .isEqualTo(TestDocuments.toolCallDocumentsMetadata(documentMessage));
   }
 
   @Test
@@ -252,16 +254,19 @@ class LegacyDocumentConversationTest {
             text -> assertThat(text).isEqualTo(textContent("Next")),
             content -> assertThat(content).isInstanceOf(DocumentContent.class));
 
-    // the persisted shape holds the document content, and no agent documents or features
+    // the persisted shape holds the document content, and no agent documents, features or response
+    // documents
     final var stored = conversation.allMessages().getLast();
     assertThat(objectMapper.valueToTree(stored).at("/content/1/type").asText())
         .isEqualTo("document");
     final var storedContext = conversation.toAgentContext();
     assertThat(storedContext.features()).isEmpty();
     assertThat(storedContext.documents().all()).isEmpty();
+    assertThat(storedContext.responseDocuments()).isEmpty();
     final var serialized = objectMapper.valueToTree(storedContext);
     assertThat(serialized.has("features")).isFalse();
     assertThat(serialized.has("documents")).isFalse();
+    assertThat(serialized.has("responseDocuments")).isFalse();
   }
 
   @Test
@@ -314,7 +319,8 @@ class LegacyDocumentConversationTest {
     final var runtimeTools =
         new RuntimeTools(
             List.of(StubRuntimeTool.of("acme_lookup", (toolContext, call) -> null)),
-            TestObjectMapperSupplier.INSTANCE);
+            TestObjectMapperSupplier.INSTANCE,
+            new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
 
     final var executionContext = TestAgentExecutionContext.withConfiguration(configuration);
     assertThat(runtimeTools.enabledDefinitions(executionContext, context)).isEmpty();

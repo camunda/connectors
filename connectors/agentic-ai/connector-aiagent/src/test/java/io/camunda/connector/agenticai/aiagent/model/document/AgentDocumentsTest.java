@@ -54,8 +54,20 @@ class AgentDocumentsTest {
   void emptyHasNoDocuments() {
     final var documents = AgentDocuments.empty();
 
+    assertThat(documents.isEmpty()).isTrue();
     assertThat(documents.all()).isEmpty();
     assertThat(documents.find(AgentDocumentId.of("unknown"))).isEmpty();
+  }
+
+  @Test
+  void isNotEmptyOnceADocumentIsRegistered() {
+    final var documents =
+        AgentDocuments.empty()
+            .register(
+                document("one", "one.txt"),
+                AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID));
+
+    assertThat(documents.isEmpty()).isFalse();
   }
 
   @Test

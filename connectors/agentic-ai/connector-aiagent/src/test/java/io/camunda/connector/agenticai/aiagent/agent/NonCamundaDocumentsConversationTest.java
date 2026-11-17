@@ -201,31 +201,12 @@ class NonCamundaDocumentsConversationTest {
     final var entry =
         new ToolCallBatch.Entry(
             unnamed.withContent(List.of(DocumentContent.documentContent(EXTERNAL))),
-            List.of(EXTERNAL));
+            List.of(EXTERNAL),
+            List.of());
 
     assertFailsWith(
         entry::requireCamundaDocuments,
         PREFIX + "the result of a tool contains an external document.");
-  }
-
-  @Test
-  void aRuntimeToolResultWithADocumentThatIsNotACamundaDocumentFailsTheJob() {
-    final var runtimeResult =
-        ToolCallResultContent.builder()
-            .id("abcdef")
-            .name("acme_create_report")
-            .content(List.of(objectContent(Map.of("file", INLINE))))
-            .build();
-    final var batch =
-        ToolCallBatch.of(TOOL_CALLS)
-            .withEntries(
-                List.of(
-                    ToolCallBatch.Entry.from(runtimeResult),
-                    ToolCallBatch.Entry.from(ToolCallResultContent.from(dateTime()))));
-
-    assertFailsWith(
-        () -> new ToolCallResultsInputBuilder().build(TRACKED, batch),
-        PREFIX + "the result of the tool 'acme_create_report' contains an inline document.");
   }
 
   @Test

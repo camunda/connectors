@@ -30,7 +30,9 @@ import io.camunda.client.metrics.MeteredCamundaClientExecutorService;
 import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.configuration.ExecutorServiceConfiguration;
+import io.camunda.client.spring.properties.CamundaClientJobWorkerProperties;
 import io.camunda.client.spring.properties.CamundaClientProperties;
+import io.camunda.client.spring.properties.CamundaClientWorkerProperties;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
@@ -41,6 +43,7 @@ import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -83,13 +86,40 @@ class OutboundConnectorsAutoConfigurationTest {
   }
 
   @Test
-  void shouldNotCreateConnectorExecutorServiceWhenVirtualThreadsAreDisabled() {
+  void shouldCreatePlatformThreadExecutorServiceWhenVirtualThreadsAreDisabled() {
     contextRunner
         .withPropertyValues("camunda.connector.virtual-threads.enabled=false")
         .run(context -> {
-          assertThat(context).doesNotHaveBean(CONNECTOR_EXECUTOR_BEAN_NAME);
           assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
+          var executorService =
+              context.getBean(CONNECTOR_EXECUTOR_BEAN_NAME, CamundaClientExecutorService.class);
+          assertThat(context.getBean(CamundaClientExecutorService.class)).isSameAs(executorService);
+
+          var jobExecutor = (ThreadPoolExecutor) executorService.getJobHandlingExecutor();
+          assertThat(jobExecutor.getMaximumPoolSize()).isEqualTo(32);
+          var threadIsVirtual = jobExecutor.submit(() -> Thread.currentThread().isVirtual());
+          assertThat(threadIsVirtual.get()).isFalse();
         });
+  }
+
+  @Test
+  void shouldSizePlatformThreadPoolToTheLargerOfExecutionThreadsAndMaxJobsActive() {
+    var properties = new CamundaClientProperties();
+    properties.setExecutionThreads(1);
+    assertThat(OutboundConnectorsAutoConfiguration.platformThreadPoolSize(properties))
+        .isEqualTo(32);
+
+    var workerDefaults = new CamundaClientJobWorkerProperties();
+    workerDefaults.setMaxJobsActive(100);
+    var worker = new CamundaClientWorkerProperties();
+    worker.setDefaults(workerDefaults);
+    properties.setWorker(worker);
+    assertThat(OutboundConnectorsAutoConfiguration.platformThreadPoolSize(properties))
+        .isEqualTo(100);
+
+    properties.setExecutionThreads(200);
+    assertThat(OutboundConnectorsAutoConfiguration.platformThreadPoolSize(properties))
+        .isEqualTo(200);
   }
 
   @Test

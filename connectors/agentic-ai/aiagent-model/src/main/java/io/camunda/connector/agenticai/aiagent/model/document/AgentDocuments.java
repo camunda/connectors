@@ -47,6 +47,10 @@ public final class AgentDocuments {
     return Optional.ofNullable(documentsById.get(id));
   }
 
+  public boolean isEmpty() {
+    return documentsById.isEmpty();
+  }
+
   /** The documents in registration order. */
   @JsonValue
   public List<AgentDocument> all() {

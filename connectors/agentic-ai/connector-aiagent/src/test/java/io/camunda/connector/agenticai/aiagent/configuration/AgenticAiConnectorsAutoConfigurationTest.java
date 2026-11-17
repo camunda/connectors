@@ -27,6 +27,8 @@ import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
@@ -54,6 +56,7 @@ import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsA
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomGoogleVertexAiProviderConfig.CustomGoogleVertexAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiCompatibleProviderConfig.CustomOpenAiCompatibleChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiProviderConfig.CustomOpenAiChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
@@ -94,6 +97,9 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
@@ -128,6 +134,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AdHocToolsSchemaResolver.class,
           ProcessDefinitionAdHocToolElementsResolver.class,
           GatewayToolHandlerRegistry.class,
+          DocumentParameterResolver.class,
           RuntimeTools.class,
           LocalToolCallExecutor.class,
           ToolCallAdmission.class,
@@ -288,6 +295,90 @@ class AgenticAiConnectorsAutoConfigurationTest {
                               -10L,
                               "must be greater than or equal to 0");
                     }));
+  }
+
+  @Test
+  void theBuiltInDocumentToolsAreRegisteredAsRuntimeTools() {
+    contextRunner.run(context ->
+        assertThat(context.getBeansOfType(RuntimeTool.class).values())
+            .extracting(tool -> tool.definition().name())
+            .containsExactlyInAnyOrder(ReturnDocumentTool.NAME, LoadDocumentTool.NAME));
+  }
+
+  @Test
+  void aBeanWithTheBeanNameOfTheLoadDocumentToolReplacesIt() {
+    final var custom =
+        StubRuntimeTool.of(
+            LoadDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+
+    contextRunner
+        .withBean("aiAgentLoadDocumentRuntimeTool", RuntimeTool.class, () -> custom)
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          final var tools = context.getBeansOfType(RuntimeTool.class);
+          assertThat(tools)
+              .containsOnlyKeys(
+                  "aiAgentLoadDocumentRuntimeTool", "aiAgentReturnDocumentRuntimeTool");
+          assertThat(tools.get("aiAgentLoadDocumentRuntimeTool")).isSameAs(custom);
+          assertThat(tools.get("aiAgentReturnDocumentRuntimeTool"))
+              .isInstanceOf(ReturnDocumentTool.class);
+        });
+  }
+
+  @Test
+  void aBeanWithTheBeanNameOfTheReturnDocumentToolReplacesIt() {
+    final var custom =
+        StubRuntimeTool.of(
+            ReturnDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+
+    contextRunner
+        .withBean("aiAgentReturnDocumentRuntimeTool", RuntimeTool.class, () -> custom)
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          final var tools = context.getBeansOfType(RuntimeTool.class);
+          assertThat(tools)
+              .containsOnlyKeys(
+                  "aiAgentLoadDocumentRuntimeTool", "aiAgentReturnDocumentRuntimeTool");
+          assertThat(tools.get("aiAgentReturnDocumentRuntimeTool")).isSameAs(custom);
+          assertThat(tools.get("aiAgentLoadDocumentRuntimeTool"))
+              .isInstanceOf(LoadDocumentTool.class);
+        });
+  }
+
+  @Test
+  void aBeanWithAnotherBeanNameAndTheNameOfTheReturnDocumentToolFailsTheStartup() {
+    final var custom =
+        StubRuntimeTool.of(
+            ReturnDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+
+    contextRunner
+        .withBean("acmeReturnDocument", RuntimeTool.class, () -> custom)
+        .run(context ->
+            assertThat(context)
+                .hasFailed()
+                .getFailure()
+                .rootCause()
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                    "More than one runtime tool is named 'c8__return_document'; runtime tool names must be unique."));
+  }
+
+  @Test
+  void aBeanWithAnotherBeanNameAndTheNameOfTheLoadDocumentToolFailsTheStartup() {
+    final var custom =
+        StubRuntimeTool.of(
+            LoadDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+
+    contextRunner
+        .withBean("acmeLoadDocument", RuntimeTool.class, () -> custom)
+        .run(context ->
+            assertThat(context)
+                .hasFailed()
+                .getFailure()
+                .rootCause()
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                    "More than one runtime tool is named 'c8__load_document'; runtime tool names must be unique."));
   }
 
   @Test

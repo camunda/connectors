@@ -22,6 +22,8 @@ the agent instance client.
 - `ConversationStoreRegistry`: selects the conversation store. The built-in stores are
   `InProcessConversationStore`, `CamundaDocumentConversationStore` and `AwsAgentCoreConversationStore`.
 - `RuntimeTools`: offers the enabled runtime tools to the model and executes their calls.
+- `DocumentParameterResolver`: turns the document handles in the arguments of a tool call into the Camunda document
+  reference or the `AgentDocumentId` and checks that they name known documents.
 - `CamundaAgentInstanceClient`: reports status, metrics and history to the agent instance API.
 - `AgenticAiConnectorsAutoConfiguration`: the Spring configuration.
 
@@ -294,6 +296,81 @@ leading to the following result
   "input1" : "value1",
   "input2" : 42
 } ]
+```
+
+#### Response containing documents
+
+```json
+{
+  "context" : {
+    "metrics" : {
+      "modelCalls" : 3,
+      "tokenUsage" : {
+        "inputTokenCount" : 10,
+        "outputTokenCount" : 20
+      },
+      "toolCalls" : 0
+    },
+    "schemaVersion" : 2,
+    "state" : "READY",
+    "toolDefinitions" : [ {
+      "description" : "A sample tool for demonstration purposes.",
+      "inputSchema" : {
+        "properties" : {
+          "input1" : {
+            "type" : "string"
+          },
+          "input2" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "input1", "input2" ],
+        "type" : "object"
+      },
+      "name" : "sampleTool"
+    } ]
+  },
+  "responseDocuments" : {
+    "report" : {
+      "description" : "The quarterly report",
+      "document" : {
+        "contentHash" : "9f86d081884c7d659a2feaa0c55ad015",
+        "documentId" : "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10",
+        "metadata" : {
+          "contentType" : "application/pdf",
+          "fileName" : "report.pdf"
+        },
+        "storeId" : "in-memory",
+        "camunda.document.type" : "camunda"
+      }
+    }
+  },
+  "responseText" : "The report is attached.",
+  "toolCalls" : [ ]
+}
+```
+
+The documents returned by the agent can be accessed via FEEL:
+```json
+=responseDocuments
+```
+leading to the following result
+```json
+{
+  "report" : {
+    "description" : "The quarterly report",
+    "document" : {
+      "camunda.document.type" : "camunda",
+      "contentHash" : "9f86d081884c7d659a2feaa0c55ad015",
+      "documentId" : "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10",
+      "metadata" : {
+        "contentType" : "application/pdf",
+        "fileName" : "report.pdf"
+      },
+      "storeId" : "in-memory"
+    }
+  }
+}
 ```
 
 

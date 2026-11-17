@@ -8,84 +8,214 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentIdCollisionException;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Builds the input of the turn that follows a batch of tool calls from its results, in call order.
+ * It applies what the results ask of the agent after all calls ran: it returns the documents of the
+ * results in the {@link TurnInput}, which {@link TurnInput#applyTo} registers, it applies the
+ * effects of the results, and it returns the response documents that the results select in the
+ * {@link TurnInput}, in call order, which {@link TurnInput#applyTo} adds to the agent context. It
+ * is the one place that checks that an effect names a known document.
  *
  * <p>An agent instance that tracks its documents shows a document as its handle inside the tool
- * result and reports it to be registered in its documents. An agent instance that does not keeps
- * the document in a message of its own, next to its tag.
+ * result and reports it in the {@link TurnInput} to be registered in its documents. For every
+ * document whose content a result asks for, the builder appends the sentence "The content of {ref}
+ * follows in the next message." to that result. The content follows in a message of its own. A
+ * request always adds the content, also when an earlier turn added it. When several results of the
+ * batch ask for the same document, the message holds the document once. It lists the documents in
+ * the order of their first request.
+ *
+ * <p>An agent instance that does not track its documents keeps the document in a message of its
+ * own, next to its tag. Such an instance gives no document an id, so a result of it must ask
+ * nothing of the agent.
  */
 public class ToolCallResultsInputBuilder {
 
   static final String TOOL_CALL_DOCUMENTS_PREAMBLE =
       "Documents extracted from tool calls (<doc /> tag + content pair):";
 
+  static final String DOCUMENT_CONTENT_PREAMBLE =
+      "Document content from tool calls (added by the system):";
+
+  /** The sentence for a document whose content follows in the next message. */
+  static String contentFollows(String documentRef) {
+    return "The content of %s follows in the next message.".formatted(documentRef);
+  }
+
   /**
    * Builds the input of the turn that follows the batch.
    *
-   * @return the messages and, for an agent instance that tracks its documents, the documents of the
-   *     results to register, in call order
    * @throws IllegalStateException if a call of the batch has no result
-   * @throws UnsupportedDocumentReferenceException if an agent instance that tracks its documents
-   *     gets a document that is not a Camunda document
+   * @throws UnsupportedDocumentReferenceException if a result of an agent instance that tracks its
+   *     documents holds a document that is not a Camunda document
+   * @throws IllegalArgumentException if an effect of a result names a document that is neither
+   *     known to {@code agentContext} as of the start of the batch nor returned by the result, or
+   *     if a result of an agent instance that does not track its documents has an effect
+   * @throws AgentDocumentIdCollisionException if a document of a result that has an effect gets the
+   *     id of a different document that the agent knows
    */
   public TurnInput build(AgentContext agentContext, ToolCallBatch batch) {
     final var entries = batch.entriesInCallOrder();
     return switch (agentContext.documentHandling()) {
-      case DocumentHandling.Tracked ignored -> buildWithDocumentBlocks(entries);
+      case DocumentHandling.Tracked tracked -> trackedInput(tracked.documents(), entries);
       case DocumentHandling.Untracked ignored -> buildWithDocumentMessage(entries);
     };
   }
 
   /**
-   * A document that is a whole result is persisted as a document block, like the documents that are
-   * not a whole result. The documents of every result are registered with the tool call as their
-   * origin.
+   * The input for an agent instance that tracks its documents. The effects are applied in the order
+   * of the entries. An entry sees the documents of the agent and its own documents only, never the
+   * ones of another entry. The content of a document that several entries ask for is added once, in
+   * the order of the first request. The response documents are selected in call order.
    */
-  private static TurnInput buildWithDocumentBlocks(List<ToolCallBatch.Entry> entries) {
-    entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
-    final var results =
-        entries.stream()
-            .map(ToolCallBatch.Entry::result)
-            .map(ToolCallResultContent::withDocumentsAsReferences)
-            .toList();
-    final var documents = new ArrayList<AgentDocument>();
+  private TurnInput trackedInput(AgentDocuments documents, List<ToolCallBatch.Entry> entries) {
+    final var results = new ArrayList<ToolCallResultContent>();
+    final var delivered = new LinkedHashSet<AgentDocumentId>();
+    final var responseDocuments = new ArrayList<ResponseDocumentSelection>();
     for (final var entry : entries) {
-      final var origin = AgentDocumentOrigin.toolCall(entry.result().name(), entry.result().id());
-      entry.documents().forEach(document -> documents.add(AgentDocument.of(document, origin)));
+      final var result = entry.result().withDocumentsAsReferences();
+      final var effects = EntryEffects.of(entry);
+      if (effects.isEmpty()) {
+        results.add(result);
+        continue;
+      }
+      final var known = documents.register(newDocumentsOf(entry));
+      requireKnown(entry, effects, known);
+      results.add(
+          effects.contentRequests().isEmpty()
+              ? result
+              : result.withContent(
+                  concat(result.content(), contentStatements(known, effects.contentRequests()))));
+      delivered.addAll(effects.contentRequests());
+      responseDocuments.addAll(effects.responseDocuments());
     }
-    return new TurnInput(
-        List.of(
-            ToolCallResultMessage.builder()
-                .results(results)
-                .metadata(MessageMetadata.defaults())
-                .build()),
-        documents);
+
+    final var messages = new ArrayList<Message>();
+    messages.add(toolCallResultMessage(results));
+    if (!delivered.isEmpty()) {
+      messages.add(
+          toolCallDocumentsMessage(
+              DOCUMENT_CONTENT_PREAMBLE,
+              delivered.stream()
+                  .<Content>map(
+                      id -> AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT))
+                  .toList()));
+    }
+    final var newDocuments = new ArrayList<AgentDocument>();
+    entries.forEach(entry -> newDocuments.addAll(newDocumentsOf(entry)));
+    return new TurnInput(messages, newDocuments, List.copyOf(responseDocuments));
+  }
+
+  /**
+   * The effects of one entry, in the order of the effects.
+   *
+   * @param contentRequests the documents whose content the entry asks for
+   * @param responseDocuments the response documents the entry selects
+   */
+  private record EntryEffects(
+      Set<AgentDocumentId> contentRequests, List<ResponseDocumentSelection> responseDocuments) {
+
+    static EntryEffects of(ToolCallBatch.Entry entry) {
+      final var contentRequests = new LinkedHashSet<AgentDocumentId>();
+      final var responseDocuments = new ArrayList<ResponseDocumentSelection>();
+      for (final var effect : entry.effects()) {
+        switch (effect) {
+          case ToolCallEffect.AddDocumentContent add -> contentRequests.add(add.id());
+          case ToolCallEffect.SelectResponseDocument select ->
+              responseDocuments.add(select.selection());
+        }
+      }
+      return new EntryEffects(contentRequests, responseDocuments);
+    }
+
+    boolean isEmpty() {
+      return contentRequests.isEmpty() && responseDocuments.isEmpty();
+    }
+
+    /** The ids of the documents that the effects name. */
+    Stream<AgentDocumentId> documents() {
+      return Stream.concat(
+          contentRequests.stream(),
+          responseDocuments.stream().map(ResponseDocumentSelection::agentDocumentId));
+    }
+  }
+
+  /** The sentences that end a result, one per document whose content the result asks for. */
+  private static List<Content> contentStatements(
+      AgentDocuments known, Collection<AgentDocumentId> requested) {
+    return requested.stream()
+        .<Content>map(id -> textContent(contentFollows(documentRef(known, id))))
+        .toList();
+  }
+
+  private static void requireKnown(
+      ToolCallBatch.Entry entry, EntryEffects effects, AgentDocuments known) {
+    effects
+        .documents()
+        .filter(id -> known.find(id).isEmpty())
+        .findFirst()
+        .ifPresent(id -> {
+          throw new IllegalArgumentException(
+              "The runtime tool '%s' refers to the document '%s', which the agent does not know and the result does not return"
+                  .formatted(entry.result().name(), id));
+        });
+  }
+
+  /** The file name and the id of a document, or the id alone when it has no file name. */
+  private static String documentRef(AgentDocuments known, AgentDocumentId id) {
+    final var fileName = AgentDocumentHandle.of(known, id).fileName();
+    return fileName == null ? id.value() : "%s (%s)".formatted(fileName, id.value());
+  }
+
+  private static List<AgentDocument> newDocumentsOf(ToolCallBatch.Entry entry) {
+    final var origin = AgentDocumentOrigin.toolCall(entry.result().name(), entry.result().id());
+    return entry.documents().stream().map(document -> AgentDocument.of(document, origin)).toList();
+  }
+
+  private static List<Content> concat(List<Content> first, List<Content> second) {
+    final var all = new ArrayList<>(first);
+    all.addAll(second);
+    return List.copyOf(all);
   }
 
   private static TurnInput buildWithDocumentMessage(List<ToolCallBatch.Entry> entries) {
+    entries.stream()
+        .filter(entry -> !entry.effects().isEmpty())
+        .findFirst()
+        .ifPresent(entry -> {
+          throw new IllegalArgumentException(
+              "The runtime tool '%s' refers to a document by its id, which an agent instance that does not track its documents does not support"
+                  .formatted(entry.result().name()));
+        });
     final var messages = new ArrayList<Message>();
-    messages.add(
-        ToolCallResultMessage.builder()
-            .results(entries.stream().map(ToolCallBatch.Entry::result).toList())
-            .metadata(MessageMetadata.defaults())
-            .build());
+    messages.add(toolCallResultMessage(entries.stream().map(ToolCallBatch.Entry::result).toList()));
 
     final var documentGroups =
         entries.stream()
@@ -95,17 +225,33 @@ public class ToolCallResultsInputBuilder {
                     entry.result().id(), entry.result().name(), entry.documents()))
             .toList();
     if (!documentGroups.isEmpty()) {
-      final var content = new ArrayList<Content>();
-      content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-      content.addAll(documentPairs(documentGroups));
-
-      final var metadata = new HashMap<>(MessageMetadata.defaults());
-      metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-      messages.add(UserMessage.builder().content(content).metadata(metadata).build());
+      messages.add(
+          toolCallDocumentsMessage(TOOL_CALL_DOCUMENTS_PREAMBLE, documentPairs(documentGroups)));
     }
     return new TurnInput(messages);
   }
 
+  private static ToolCallResultMessage toolCallResultMessage(List<ToolCallResultContent> results) {
+    return ToolCallResultMessage.builder()
+        .results(results)
+        .metadata(MessageMetadata.defaults())
+        .build();
+  }
+
+  /**
+   * The user message that follows the tool results with their documents. {@link
+   * UserMessage#METADATA_TOOL_CALL_DOCUMENTS} marks it for the message window.
+   */
+  private static UserMessage toolCallDocumentsMessage(String preamble, List<Content> documents) {
+    final var content = new ArrayList<Content>();
+    content.add(textContent(preamble));
+    content.addAll(documents);
+    final var metadata = new HashMap<>(MessageMetadata.defaults());
+    metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+    return UserMessage.builder().content(content).metadata(metadata).build();
+  }
+
+  /** A document tag followed by the document, for every document of every group. */
   static List<Content> documentPairs(
       List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups) {
     final var content = new ArrayList<Content>();

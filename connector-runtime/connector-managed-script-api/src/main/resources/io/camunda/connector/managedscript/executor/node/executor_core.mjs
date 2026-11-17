@@ -27,7 +27,16 @@ const MAX_LOG_BYTES = 4_096;
 const MAX_DIAGNOSTIC_BYTES = 65_536;
 const MAX_MESSAGE_LENGTH = 1024;
 const MAX_STACK_TRACE_LENGTH = 8192;
-const CHILD_HEAP_MB = 256;
+// The child's heap on a host shared with other processes, where the executor has no memory of its own.
+const LOCAL_CHILD_HEAP_MB = 256;
+// The child's memory outside its old-space heap (young generation, the collector's own structures)
+// grows with the heap: the heap gets this share of an executor instance's memory...
+const HEAP_SHARE = 0.8;
+// ...less what the wrapper and the child need whatever the heap.
+const MEMORY_MARGIN_MB = 64;
+// What the child's heap gets at least, however small the instance. On Cloud Run, the wrapper and an
+// idle child already take most of 128 MB: a function of that size fits a heap of 38 MB, not 64.
+const MIN_CHILD_HEAP_MB = 16;
 const DEFAULT_TIMEOUT_MS = 10_000;
 const SWEEP_ROUNDS = 5;
 // The only failures the child may report: the others are the platform's.
@@ -254,7 +263,19 @@ function validate(event) {
   return null;
 }
 
-async function execute(event, workdir, deadlineMs) {
+/**
+ * The old-space heap limit of the child, in MB, on an executor instance of `memoryMb` MB, or on a
+ * host shared with other processes when `memoryMb` is undefined.
+ */
+export function childHeapMb(memoryMb) {
+  if (memoryMb === undefined || memoryMb === null) return LOCAL_CHILD_HEAP_MB;
+  if (!Number.isInteger(memoryMb) || memoryMb <= 0) {
+    throw new Error(`the memory of the executor must be a positive number of MB: ${memoryMb}`);
+  }
+  return Math.max(MIN_CHILD_HEAP_MB, Math.floor(memoryMb * HEAP_SHARE) - MEMORY_MARGIN_MB);
+}
+
+async function execute(event, workdir, deadlineMs, heapMb) {
   writeFileSync(path.join(workdir, 'user_script.mjs'), event.script);
   const request = { variables: event.variables, context: event.context ?? {} };
   const timeoutMs = Math.max(1, Math.min(Number(event.timeoutMs) || DEFAULT_TIMEOUT_MS, deadlineMs));
@@ -281,7 +302,7 @@ async function execute(event, workdir, deadlineMs) {
     let timedOut = false;
     let childPid = null;
     const exitCode = await new Promise((resolve) => {
-      const child = spawn(process.execPath, [`--max-old-space-size=${CHILD_HEAP_MB}`, CHILD, workdir], {
+      const child = spawn(process.execPath, [`--max-old-space-size=${heapMb}`, CHILD, workdir], {
         cwd: workdir,
         env: childEnv(workdir),
         stdio: ['pipe', stdoutFd, stderrFd],
@@ -339,10 +360,13 @@ function finish(stdoutReadFd, stderrReadFd, { timedOut, timeoutMs, exitCode, chi
  * Creates the executor of one instance. Call it once, when the instance starts: on a cloud
  * executor, what exists at that moment is kept after every call, and anything else is removed.
  *
- * @param {{ local: boolean, tmp: string }} options `local` for a host shared with other processes;
- *     `tmp`, the directory where every call gets a directory of its own
+ * @param {{ local: boolean, tmp: string, memoryMb?: number }} options `local` for a host shared
+ *     with other processes; `tmp`, the directory where every call gets a directory of its own;
+ *     `memoryMb`, the memory of the executor instance, which the child gets but for a margin, left
+ *     out on a host shared with other processes, where the child gets a heap of 256 MB
  */
-export function createExecutor({ local, tmp }) {
+export function createExecutor({ local, tmp, memoryMb }) {
+  const heapMb = childHeapMb(memoryMb);
   const baselinePids = local ? null : pids();
   const baselineTmp = local ? null : snapshot(tmp);
   if (!local) scrubEnvironmentBlock();
@@ -379,7 +403,7 @@ export function createExecutor({ local, tmp }) {
     let result = { response: failure('PLATFORM_EXECUTION_FAILED', 'wrapper error'), logs: Buffer.alloc(0), childPid: null };
     try {
       workdir = mkdtempSync(path.join(tmp, 'run-'));
-      result = await execute(event, workdir, deadlineMs);
+      result = await execute(event, workdir, deadlineMs, heapMb);
     } catch (error) {
       // The executor must keep serving calls.
       result = { ...result, response: failure('PLATFORM_EXECUTION_FAILED', `wrapper error: ${error}`) };

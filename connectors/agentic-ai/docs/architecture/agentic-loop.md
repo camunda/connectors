@@ -110,19 +110,22 @@ The loop operates as a distributed state machine between the connector runtime a
      handler first checks the model-call limit, so a job at the limit executes no runtime tool. Then it executes
      the unanswered calls, the calls of runtime tools (`LocalToolCallExecutor`), adds their results to the batch and
      assembles the input (`AgentConversationTurnInputComposer.assemble` → `TurnInput`), with all results in call order
-   - Register the documents of the turn in the agent documents (`TurnInput.applyTo`, for a `Tracked` agent instance),
-     compose the system message and `AgentConversation.rehydrate` into a pending turn
+   - Apply the input to the agent context (`TurnInput.applyTo`): add the response documents the runtime tool results
+     selected and register the documents of the turn in the agent documents (`Tracked` agent instances), compose the
+     system message and `AgentConversation.rehydrate` into a pending turn
    - Resolve a `ChatModel` for the configured provider via `ChatModelRegistry` and call
      `execute(ChatRequest)` with the windowed `ConversationSnapshot` after `DocumentExpander.expand`; `ingest` the assistant response
      into the turn. Before the ingest, `ToolCallAdmission` admits the tool calls of the assistant message: each gets the kind
-     of its tool, or a rejection when the tool is not offered (see [What Happens When Tools Complete](#what-happens-when-tools-complete)). If the result is a `ChatResult.Continuation`
+     of its tool, or a rejection when the tool is not offered or a document parameter is not a known document
+     (see [What Happens When Tools Complete](#what-happens-when-tools-complete) and [Document parameters](../../connector-aiagent/docs/document-parameters.md)). If the result is a `ChatResult.Continuation`
      rather than `Completed`, the handler loops — persisting the round as its own turn and re-calling the model with no new
      input — until a `Completed` result ends the turn (see [`chat-model.md`](../../connector-aiagent/docs/chat-model.md#turn-based-continuation-loop)). The same happens when every
      tool call of the message is a local tool call: the handler checks the model-call limit, produces their tool call
      results the same way, from a `Ready` of the batch, and opens the next round with the assembled input
-     (`nextRuntimeToolRound`) and registers the documents of the results in the agent documents (`TurnInput.applyTo`)
+     (`nextRuntimeToolRound`), registers the documents of the results in the agent documents and adds the response documents they select (`TurnInput.applyTo`),
+     and applies the effects of the results (the content of a document a tool asked for)
    - Store the updated conversation back to the memory store (via `ConversationSession`) and reduce it back to `AgentContext`
-   - Transform the process tool calls and create the response
+   - Resolve the document parameters of the process tool calls, transform them and create the response
 
 5. **Job completion** (`AgentSubProcessConnectorResponse`):
    - Sets `agentContext` variable with updated state
@@ -307,7 +310,7 @@ assistant message against them (`ProcessToolCallResults(arrivedResults, complete
 - If all present: `complete` is `true`. `resolve` returns `CompositionResult.Ready` with a `ToolCallBatch` of all tool
   calls of the turn that holds the process results and the rejections of the rejected calls (`ToolCallBatch.of`). The
   calls of runtime tools are its unanswered calls; the handler executes them (`LocalToolCallExecutor`), and `assemble` builds the `ToolCallResultMessage` from the batch in
-  call order (`ToolCallResultsInputBuilder`). The builder does not know where a result came from
+  call order (`ToolCallResultsInputBuilder`) and applies the effects of the runtime tool results ([Add a runtime tool](extension-points.md#add-a-runtime-tool)). The builder does not know where a result came from
 - If missing and NOT interrupting: `complete` is `false`; `arrivedResults` holds only the process
   results that arrived so far → `resolve` returns `CompositionResult.Deferred(arrivedResults)`
   (ADR 011) → handler reports them to agent instance history and completes as a no-op. The agent adds the tool call results of
@@ -322,7 +325,9 @@ is a BPMN element, `RUNTIME` for a tool the agent executes itself ([Add a runtim
 call to the kind of the tool of its name in the tool list of the job (the tools of the process and the enabled runtime
 tools; for an instance without the feature, the tools of the process). A call whose name is not in the list gets a
 `rejection`, the error text that is its tool call result (`The tool '<name>' does not exist.`); its kind stays
-`PROCESS`. A rejection can apply to a call of any kind. The agent admits the calls once, between the model result and
+`PROCESS`. For an agent instance with the `documents` feature, a call of a tool of either kind with a document parameter
+([Document parameters](../../connector-aiagent/docs/document-parameters.md)) whose value is not the handle of a known document is rejected the same way, with an error message that names
+the parameter, and keeps its kind. A rejection can apply to a call of any kind. The agent admits the calls once, between the model result and
 `AgentConversation.ingest`, for every agent instance, with or without the `runtimeTools` feature, persists
 them with the message and never computes them again, so they may appear in the state of any agent instance. The JSON of a
 tool call holds `kind` (`"runtime"`) only for `RUNTIME` and `rejection` only when set; a missing `kind` reads as `PROCESS`
@@ -338,7 +343,7 @@ whatever its kind, else `RUNTIME` or `PROCESS` after the kind. `ToolCall.isLocal
 tool call result (`ToolCallResultContent.forRejectedToolCall`) when its `ToolCallBatch` is created, and is never
 executed. `LocalToolCallExecutor` executes the rest, the calls of runtime tools, through `RuntimeTools` and fails for
 any other result source; a call whose tool is no longer enabled when it is executed gets the error result `The tool
-'<name>' is not available.` Neither goes to the process. The error is plain text in the tool call
+'<name>' is not available.` Neither goes to the process. A runtime tool receives the `AgentDocumentId`s of its document parameters. The error is plain text in the tool call
 result; the tool call result has no error flag.
 
 Only the process tool calls are activated and handed to the process (`AgentResponse.toolCalls`, built from
@@ -353,10 +358,18 @@ on the message:
   it holds back every other result of the batch.
 
 `RuntimeTools.execute` executes the calls in call order, one after the other. Its contract allows the calls of one
-message to be executed concurrently, with the results applied in call order. Every execution (`RuntimeToolExecution`) keeps the
-call, the `RuntimeToolResult` and the time the call started and completed; the tool call result for the conversation is
-derived from them. No state about the local tool calls is
-persisted between jobs apart from the `kind` and the `rejection` of the calls. See [ADR 016](../adr/016-runtime-tools.md).
+message to be executed concurrently, with the results applied in call order. Every execution (`RuntimeToolExecution`) keeps
+the call, the `RuntimeToolResult` the tool returned (with the effects of a successful one), the time the call started and
+completed, and derives the tool call result that becomes part of the conversation (`toolCallResult()`). The executor turns an execution into a
+`ToolCallBatch.Entry` (the result, its documents and its effects) with an exhaustive switch over `Success` and `Error`, and
+checks that the documents of a result are Camunda documents for an agent instance that tracks its documents ([Add a runtime tool](extension-points.md#add-a-runtime-tool)). The agent applies the
+effects of the results in `ToolCallResultsInputBuilder.build`, for both paths: the rounds of local tool calls only and the
+job that resolves a mixed batch. The builder is the one place that checks that an effect names a document known at the
+start of the batch or returned by the result, and that a result of an agent instance that does not track its documents has
+no effect. The input it returns carries the response documents the results selected, and the caller
+applies it to its agent context (`TurnInput.applyTo`); the update is a function of the agent context and the results only.
+No state about the local tool calls is persisted between
+jobs apart from the `kind` and the `rejection` of the calls and the response documents of the agent context. See [ADR 016](../adr/016-runtime-tools.md).
 
 ### No-Op Detection in BaseAgentRequestHandler
 

@@ -35,6 +35,7 @@ import com.openai.models.chat.completions.ChatCompletionChunk.Choice.FinishReaso
 import com.openai.models.completions.CompletionUsage;
 import com.openai.models.completions.CompletionUsage.CompletionTokensDetails;
 import com.openai.models.completions.CompletionUsage.PromptTokensDetails;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.TurnStub;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -237,7 +238,8 @@ public final class OpenAiCompletionsChatModelStubs {
     return aResponse()
         .withStatus(200)
         .withHeader("Content-Type", "text/event-stream")
-        .withBody(body);
+        .withBody(body)
+        .withTransformers(DocumentIdPlaceholderTransformer.NAME);
   }
 
   private static Turn toTurn(TurnStub turn) {

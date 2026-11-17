@@ -112,6 +112,9 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 | Process instance migration (what's allowed / blocked)                    | [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md)                                                              |
 | Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern)                                                                  |
 | Agent documents (registry, handles, expansion for the model, only Camunda documents) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`data-model.md`](aiagent-model/docs/data-model.md), [ADR 018](docs/adr/018-document-flow.md) |
+| Document parameters of tools (`fromAi` type `document`, resolution, rejection) | [`document-parameters.md`](connector-aiagent/docs/document-parameters.md), [`extension-points.md`](docs/architecture/extension-points.md#documents-and-gateway-tools), [ADR 018](docs/adr/018-document-flow.md) |
+| Returning documents in the final response (`c8__return_document`, `responseDocuments`, response documents of the agent context) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`response-handling.md`](connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl), [`data-model.md`](aiagent-model/docs/data-model.md), [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 018](docs/adr/018-document-flow.md) |
+| Loading document content (`c8__load_document`) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 018](docs/adr/018-document-flow.md) |
 | MCP integration                                                          | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md)                       |
 | A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
 | Example BPMN processes & configurations                                  | the `Examples` section of the connector module READMEs, [`examples/`](examples/)                                                                     |
@@ -191,8 +194,8 @@ High-frequency traps (detail behind each link):
   [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-handler-interface), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`). Never add a feature to a context that exists without it.
-  Branch on `AgentContext.documentHandling()` (`Untracked` or `Tracked`) with an exhaustive `switch`, never on
-  `supports(AgentFeatures.DOCUMENTS)` or a `boolean` parameter. Gate new behavior that changes the wire format or the
+  Resolve `AgentContext.documentHandling()` (`Untracked` or `Tracked`) once per step with an exhaustive `switch`;
+  never branch on `supports(AgentFeatures.DOCUMENTS)` or a `boolean` parameter. Gate new behavior that changes the wire format or the
   persisted shape on a feature and keep the legacy path covered by `LegacyDocumentConversationTest`. The one
   deliberate exception is the admission and the rejection of tool calls (next item), which applies to every agent
   instance. What each feature gates, and why: [`data-model.md`](aiagent-model/docs/data-model.md),
@@ -204,7 +207,8 @@ High-frequency traps (detail behind each link):
   rejection as its tool call result and is never executed, also when a runtime tool of that name is enabled later. The
   calls of runtime tools are executed in `LocalToolCallExecutor` only. Local tool calls (`ToolCall.isLocal()`),
   interrupting events and batches that mix local and process tool calls:
-  [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete), [ADR 016](docs/adr/016-runtime-tools.md).
+  [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete),
+  [`document-parameters.md`](connector-aiagent/docs/document-parameters.md), [ADR 016](docs/adr/016-runtime-tools.md).
 - **Documents are persisted as references and expanded for the model**: for a `Tracked` instance the conversation holds
   document blocks (`AgentDocumentContent`), and `AgentContext.documents` holds the agent documents they stand for.
   `DocumentExpander` turns the blocks into handles and content after the window, so the providers have no document
