@@ -185,6 +185,14 @@ class MarkdownParserTest {
     assertThat(doc.anchors()).containsExactly("block", "inline");
   }
 
+  @Test
+  void anAnchorTagMayHaveOtherAttributesBeforeTheId() {
+    final Doc doc =
+        doc("<a href=\"#top\" id=\"setup\"></a>", "", "<a data-id=\"no\" href=\"#x\"></a>");
+
+    assertThat(doc.anchors()).containsExactly("setup");
+  }
+
   private static Doc doc(final String... lines) {
     return MarkdownParser.parse(Path.of("sample.md"), String.join("\n", lines) + "\n");
   }

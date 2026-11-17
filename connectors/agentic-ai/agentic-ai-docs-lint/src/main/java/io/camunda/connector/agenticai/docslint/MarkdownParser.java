@@ -41,7 +41,8 @@ final class MarkdownParser {
           .includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES)
           .build();
 
-  private static final Pattern HTML_ANCHOR = Pattern.compile("<a\\s+(?:id|name)=([\"'])(.+?)\\1");
+  private static final Pattern HTML_ANCHOR =
+      Pattern.compile("<a\\b[^>]*?\\s(?:id|name)=([\"'])(.+?)\\1");
   private static final Pattern WHITESPACE = Pattern.compile("\\s+");
   private static final Pattern EXTERNAL = Pattern.compile("^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|//).*");
 
