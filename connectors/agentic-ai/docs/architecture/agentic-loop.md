@@ -349,9 +349,19 @@ jobs apart from the `kind` and the `rejection` of the calls and the response doc
 `BaseAgentRequestHandler.converse` switches on the `CompositionResult` returned by
 `AgentConversationTurnInputComposer.resolve`:
 
-`CompositionResult.Deferred` reports the arrived results (ADR 011) and completes the job with `handleNoOp`.
-`CompositionResult.NoInput` calls `handleNoInput`. `CompositionResult.Ready` has the handler produce the tool call
-results of the local tool calls (`answerLocalToolCalls`), assemble the input, register the documents and call the LLM.
+<!-- docs-lint: allow-java-block: the switch reads clearer as code than as prose -->
+```java
+return switch (agentInputComposer.resolve(...)) {
+    case CompositionResult.Deferred(var arrivedResults) -> {
+        reportArrivedToolCallResults(..., arrivedResults, ...); // ADR 011 — report what's arrived so far
+        yield handleNoOp(executionContext);    // wait for more tool results
+    }
+    case CompositionResult.NoInput ignored ->
+        handleNoInput(executionContext);       // nothing to add; handler decides
+    case CompositionResult.Ready ready ->
+        proceed(..., answerLocalToolCalls(..., ready), ...); // local results, assemble, register the documents, call the LLM
+};
+```
 
 This is the key gate: when tool results were incomplete the composer returns `CompositionResult.Deferred`,
 and `handleNoOp` completes the job as a no-op (the job worker waits for the next job, which will have
