@@ -74,6 +74,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -427,6 +428,17 @@ class GcpCloudRunManagedCodeProviderTest {
         .containsEntry("EXECUTOR_MEMORY_MB", "512");
     verify(functions, never()).generateUploadUrl(any(GenerateUploadUrlRequest.class));
     verify(create, never()).call(any(CreateFunctionRequest.class));
+  }
+
+  @Test
+  void refusesATamperedFunctionBeforeUpdatingItsDriftedSettings() throws IOException {
+    // An update would give the tampered code the function service account and the traffic.
+    when(functions.getFunction(anyString()))
+        .thenReturn(function(Function.State.ACTIVE, settings().setMaxInstanceCount(100).build()));
+    serveSource(PYTHON_EXECUTOR, pythonSource(files -> files.put("main.py", new byte[1])));
+
+    assertThat(ensureFails(ScriptLanguage.PYTHON).code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    verify(update, never()).call(any(UpdateFunctionRequest.class));
   }
 
   @Test
@@ -872,6 +884,23 @@ class GcpCloudRunManagedCodeProviderTest {
       for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
         assertThat(entry.getMethod()).as(entry.getName()).isEqualTo(ZipEntry.STORED);
       }
+    }
+  }
+
+  @Test
+  void packagesTheSameBytesInEveryTimeZone() {
+    // Runtimes in other time zones must expect the same bytes, or they refuse each other's
+    // executors.
+    final var zone = TimeZone.getDefault();
+    try {
+      TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+      final var utc = CloudRunExecutor.of(ScriptLanguage.PYTHON).zip();
+      TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"));
+      assertThat(CloudRunExecutor.of(ScriptLanguage.PYTHON).zip()).isEqualTo(utc);
+      TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tokyo"));
+      assertThat(CloudRunExecutor.of(ScriptLanguage.PYTHON).zip()).isEqualTo(utc);
+    } finally {
+      TimeZone.setDefault(zone);
     }
   }
 

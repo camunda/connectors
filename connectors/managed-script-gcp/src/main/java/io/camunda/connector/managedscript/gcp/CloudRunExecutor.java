@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.zip.CRC32;
@@ -32,8 +33,11 @@ record CloudRunExecutor(ExecutorWrapper wrapper, String runtime, String entryPoi
 
   private static final String ROOT = "/io/camunda/connector/managedscript/gcp/";
 
-  /** 1980-01-01, the earliest time of a zip entry: the package depends on its content only. */
-  private static final long FIXED_ENTRY_TIME = 315_532_800_000L;
+  /**
+   * A fixed local time from 1980 on, which a zip entry stores as is, without the extended timestamp
+   * an instant needs: the package depends on its content only, not on the time zone of the JVM.
+   */
+  private static final LocalDateTime FIXED_ENTRY_TIME = LocalDateTime.of(1980, 1, 2, 0, 0);
 
   static CloudRunExecutor of(ScriptLanguage language) {
     return switch (language) {
@@ -78,7 +82,7 @@ record CloudRunExecutor(ExecutorWrapper wrapper, String runtime, String entryPoi
     try (var zip = new ZipOutputStream(bytes)) {
       for (var file : wrapper.files().entrySet()) {
         final var entry = new ZipEntry(file.getKey());
-        entry.setTime(FIXED_ENTRY_TIME);
+        entry.setTimeLocal(FIXED_ENTRY_TIME);
         final var crc = new CRC32();
         crc.update(file.getValue());
         entry.setMethod(ZipEntry.STORED);

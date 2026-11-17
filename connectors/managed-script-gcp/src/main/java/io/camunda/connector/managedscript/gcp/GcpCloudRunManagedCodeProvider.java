@@ -254,14 +254,8 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
     try {
       final var existing = read(name);
       final var creation = existing == null ? create(executor, name) : null;
-      final var url = converge(name, creation, existing);
-      try {
-        verify(executor, name);
-      } catch (RuntimeException | IOException | InterruptedException e) {
-        // A URL of an earlier round would let a refused executor be called.
-        endpoints.remove(language);
-        throw e;
-      }
+      final var url = converge(language, name, creation, existing);
+      verify(language, name);
       endpoints.put(language, new Endpoint(url));
     } catch (ApiException e) {
       throw failure(name, code(e), message(e), e);
@@ -474,6 +468,17 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
    * and another to the build, which reads its central directory. The source is downloaded through a
    * signed URL, as it was uploaded.
    */
+  private void verify(ScriptLanguage language, String name)
+      throws IOException, InterruptedException {
+    try {
+      verify(executors.get(language), name);
+    } catch (RuntimeException | IOException | InterruptedException e) {
+      // A URL of an earlier round would let a refused executor be called.
+      endpoints.remove(language);
+      throw e;
+    }
+  }
+
   private void verify(CloudRunExecutor executor, String name)
       throws IOException, InterruptedException {
     final var download =
@@ -486,13 +491,9 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
                 .timeout(UPLOAD_TIMEOUT)
                 .GET()
                 .build(),
-            HttpResponse.BodyHandlers.ofInputStream());
-    final byte[] zip;
-    try (var body = response.body()) {
-      checkTransfer(name, "download", response.statusCode());
-      zip = body.readNBytes(MAX_SOURCE_BYTES + 1);
-    }
-    if (!Arrays.equals(zip, executor.zip())) {
+            GcpClients.capped(MAX_SOURCE_BYTES));
+    checkTransfer(name, "download", response.statusCode());
+    if (!Arrays.equals(response.body(), executor.zip())) {
       throw new ProvisioningException(
           ErrorCode.PLATFORM_REJECTED,
           "Cloud Run executor '%s' does not run the wrapper of this runtime: it differs in its"
@@ -521,16 +522,17 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
   }
 
   /**
-   * Waits until the operation of this instance, if any, is done and the function is active, then
-   * updates its settings if they differ, and waits for that update. Another instance may update it
-   * at the same time: the conflict is waited out, and the settings compared again.
+   * Waits until the operation of this instance, if any, is done and the function is active, then,
+   * once its source is checked, updates its settings if they differ, and waits for that update.
+   * Another instance may update it at the same time: the conflict is waited out, and the settings
+   * compared again.
    *
    * @param pending the operation that created the function, or {@code null}
    * @param read the function as just read, or {@code null} to read it
    * @return the {@code run.app} URL of the function
    */
-  private String converge(String name, Operation pending, Function read)
-      throws InterruptedException {
+  private String converge(ScriptLanguage language, String name, Operation pending, Function read)
+      throws IOException, InterruptedException {
     final long deadline = System.nanoTime() + activationTimeout.toNanos();
     boolean updated = false;
     Function known = read;
@@ -616,6 +618,9 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
                 "Cloud Run executor '%s' did not apply its new settings: %s"
                     .formatted(name, stateMessages(function))));
       }
+      // Before the update, which would give the function service account and the traffic to code
+      // that may not be the wrapper.
+      verify(language, name);
       try {
         pending =
             functions

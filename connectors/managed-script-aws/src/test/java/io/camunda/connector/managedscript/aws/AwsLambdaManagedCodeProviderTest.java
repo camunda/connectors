@@ -38,6 +38,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -921,6 +922,23 @@ class AwsLambdaManagedCodeProviderTest {
       for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
         assertThat(entry.getMethod()).as(entry.getName()).isEqualTo(ZipEntry.STORED);
       }
+    }
+  }
+
+  @Test
+  void packagesTheSameBytesInEveryTimeZone() {
+    // Runtimes in other time zones must expect the same bytes, or they refuse each other's
+    // executors.
+    final var zone = TimeZone.getDefault();
+    try {
+      TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+      final var utc = LambdaExecutor.of(ScriptLanguage.PYTHON).zip();
+      TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"));
+      assertThat(LambdaExecutor.of(ScriptLanguage.PYTHON).zip()).isEqualTo(utc);
+      TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tokyo"));
+      assertThat(LambdaExecutor.of(ScriptLanguage.PYTHON).zip()).isEqualTo(utc);
+    } finally {
+      TimeZone.setDefault(zone);
     }
   }
 

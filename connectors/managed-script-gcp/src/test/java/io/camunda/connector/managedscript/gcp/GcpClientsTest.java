@@ -49,6 +49,19 @@ class GcpClientsTest {
           exchange.close();
         });
     server.createContext(
+        "/large",
+        exchange -> {
+          // A body that does not end: only the cap stops reading it.
+          exchange.sendResponseHeaders(200, 0);
+          try (var body = exchange.getResponseBody()) {
+            while (release.getCount() > 0) {
+              body.write(new byte[1024]);
+            }
+          } catch (IOException e) {
+            // The client stopped reading.
+          }
+        });
+    server.createContext(
         "/ok",
         exchange -> {
           final var body = "done".getBytes();
@@ -90,6 +103,20 @@ class GcpClientsTest {
     assertThatThrownBy(() ->
             GcpClients.send(http, get("/stalled-body"), HttpResponse.BodyHandlers.discarding()))
         .isInstanceOf(HttpTimeoutException.class);
+  }
+
+  @Test
+  void boundsACappedDownloadWhoseBodyStalls() {
+    // A body read after the response completes would escape the deadline of the exchange.
+    assertThatThrownBy(() -> GcpClients.send(http, get("/stalled-body"), GcpClients.capped(100)))
+        .isInstanceOf(HttpTimeoutException.class);
+  }
+
+  @Test
+  void readsACappedBodyUpToOneByteMoreThanTheCap() throws Exception {
+    assertThat(GcpClients.send(http, get("/ok"), GcpClients.capped(100)).body())
+        .isEqualTo("done".getBytes());
+    assertThat(GcpClients.send(http, get("/large"), GcpClients.capped(5000)).body()).hasSize(5001);
   }
 
   private HttpRequest get(String path) {
