@@ -283,8 +283,10 @@ The **identity of the runtime** needs this minimal policy, limited to the prefix
 }
 ```
 
-`lambda:PutFunctionConcurrency` is needed only with `aws.reserved-concurrency`, and
-`lambda:DeleteFunctionConcurrency` only to remove a reservation once it is unset. `GetFunction`
+`lambda:PutFunctionConcurrency` is needed only with `aws.reserved-concurrency`.
+`lambda:DeleteFunctionConcurrency` is needed whenever an executor holds a reservation while
+`aws.reserved-concurrency` is unset: keep it after unsetting the property, or after reserving
+concurrency on an executor by other means, or the executor does not become ready. `GetFunction`
 returns the reservation, so reading it needs no other permission.
 
 ### Google Cloud Run functions provider
