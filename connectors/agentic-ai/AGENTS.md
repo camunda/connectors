@@ -1,6 +1,6 @@
 # Agentic AI Module: Agent Instructions
 
-<!-- docs-lint: allow-names Foo, FooImpl, Read, Inject: placeholders of a naming rule, the Read tool of the coding agent and an injection annotation -->
+<!-- docs-lint: allow-names Read: the Read tool of the coding agent -->
 
 The `agentic-ai` module implements Camunda's AI Agent connectors: an agentic orchestration system that
 runs LLM tool-calling loops inside BPMN processes. It ships in two flavors, an AI Agent Task (on a
