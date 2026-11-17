@@ -264,10 +264,11 @@ class AgenticAiConnectorsAutoConfigurationTest {
               .isSameAs(customTaskFactory);
           assertThat(context.getBean(AgentSubProcessExecutionContextFactory.class))
               .isSameAs(customSubProcessFactory);
-          context.getBean(AgentTaskV1Function.class);
-          context.getBean(AgentTaskV2Function.class);
-          context.getBean(AgentSubProcessV1Function.class);
-          context.getBean(AgentSubProcessV2Function.class);
+          assertThat(context)
+              .hasSingleBean(AgentTaskV1Function.class)
+              .hasSingleBean(AgentTaskV2Function.class)
+              .hasSingleBean(AgentSubProcessV1Function.class)
+              .hasSingleBean(AgentSubProcessV2Function.class);
         });
   }
 
