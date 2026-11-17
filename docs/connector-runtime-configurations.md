@@ -184,7 +184,9 @@ camunda.connector.managed-code.aws.reserved-concurrency=<executions>
   reserved, and a reservation made earlier is removed (`DeleteFunctionConcurrency`). Lambda keeps
   at least 100 executions of the account unreserved: a reservation that would go below fails with
   `PLATFORM_REJECTED`, and the message says so. A call beyond the reservation is throttled, see
-  [Concurrency caps](#concurrency-caps).
+  [Concurrency caps](#concurrency-caps). A new wrapper version creates new executors, and the old
+  ones keep their reservation until they are deleted: leave room in the account for both, or the
+  new executors fail with `PLATFORM_REJECTED`.
 - `aws.region` is the region of the executors; without it, the SDK's default region chain applies
   (`AWS_REGION`, the profile). `aws.memory-mb` is between 128 and 10240 (default 512).
 - `aws.memory-mb` sizes the scripts: the wrapper reads the memory of the function from Lambda and
