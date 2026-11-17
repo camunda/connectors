@@ -1,5 +1,7 @@
 # Native Provider Reference
 
+<!-- docs-lint: allow-names MarshallingType, Credential, CachedContent, RetryInterceptor, ThinkChunk, Authorization, ManagedIdentityCredential: types and names of the vendor SDKs, schemas and HTTP headers -->
+
 Implementation notes specific to each fully-native (non-LangChain4j) v2 chat model provider —
 what a particular provider's converters and configuration do, and why. The general rules every new
 v2 provider must follow (backend-subtype wrapping, provider-namespaced metadata, metadata stamping)

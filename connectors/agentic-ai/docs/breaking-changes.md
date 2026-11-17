@@ -1,5 +1,7 @@
 # Breaking Changes
 
+<!-- docs-lint: history: names the types that earlier releases removed -->
+
 This document tracks breaking changes relevant to [AI Agent customization](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-customization/).
 The public documentation links here instead of repeating it. It targets developers who extend the AI Agent
 connector in a Self-Managed or hybrid runtime (custom beans, SPI implementations, or code that depends

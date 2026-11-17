@@ -18,6 +18,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -39,12 +40,13 @@ final class DocChecks {
   }
 
   /**
-   * The names of code spans that read as types must be known to the code or allowed. A qualified
-   * name whose outermost type the repo sources declare must name a type of the repo sources, unless
-   * the sources import it.
+   * The names of code spans that read as types must be known to the code or allowed by the doc. A
+   * qualified name whose outermost type the repo sources declare must name a type of the repo
+   * sources, unless the sources import it.
    */
-  static Stream<Finding> types(
-      final Doc doc, final JavaSourceIndex index, final Set<String> allowedNames) {
+  static Stream<Finding> types(final Doc doc, final JavaSourceIndex index) {
+    final Set<String> allowedNames =
+        doc.allowedNames().stream().map(Ref::text).collect(Collectors.toSet());
     return doc.codeSpans().stream()
         .flatMap(span ->
             Stream.concat(
@@ -96,42 +98,37 @@ final class DocChecks {
     return findings.stream();
   }
 
-  /** Each allowed name is used in a doc and is not declared by the code. */
-  static Stream<Finding> allowedNames(
-      final Map<String, String> allowedNames,
-      final Set<String> namedInDocs,
-      final JavaSourceIndex index,
-      final Path source) {
-    return new TreeSet<>(allowedNames.keySet())
-        .stream()
-            .<Finding>flatMap(name -> {
-              if (!namedInDocs.contains(name)) {
-                return Stream.of(
-                    new Violation(
-                        source,
-                        0,
-                        "allowed name `" + name + "` is used in no doc",
-                        "an entry that no doc needs keeps a name known that nothing uses",
-                        "delete the entry of the allowed names"));
-              }
-              return index.knows(name)
-                  ? Stream.of(
-                      new Violation(
-                          source,
-                          0,
-                          "allowed name `" + name + "` is now declared by the code",
-                          "the code is the source of truth, and the check of the doc"
-                              + " verifies a declared name against it",
-                          "delete the entry of the allowed names"))
-                  : Stream.empty();
-            });
-  }
-
-  /** The type names of the code spans of the docs. */
-  static Set<String> namedTypes(final Stream<Doc> docs) {
-    final Set<String> named = new TreeSet<>();
-    docs.forEach(doc -> doc.codeSpans().forEach(span -> named.addAll(span.typeNames())));
-    return named;
+  /**
+   * Each name that the doc allows is used in a code span of the doc and is not declared by the
+   * code.
+   */
+  static Stream<Finding> allowedNames(final Doc doc, final JavaSourceIndex index) {
+    final Set<String> named =
+        doc.codeSpans().stream()
+            .flatMap(span -> span.typeNames().stream())
+            .collect(Collectors.toSet());
+    return doc.allowedNames().stream()
+        .<Finding>flatMap(allowed -> {
+          if (!named.contains(allowed.text())) {
+            return Stream.of(
+                new Violation(
+                    doc.path(),
+                    allowed.line(),
+                    "allowed name `" + allowed.text() + "` is used in no code span of this doc",
+                    "an entry that the doc does not need keeps a name known that nothing uses",
+                    "delete the name from the `allow-names` comment"));
+          }
+          return index.knows(allowed.text())
+              ? Stream.of(
+                  new Violation(
+                      doc.path(),
+                      allowed.line(),
+                      "allowed name `" + allowed.text() + "` is now declared by the code",
+                      "the code is the source of truth, and the check of the doc"
+                          + " verifies a declared name against it",
+                      "delete the name from the `allow-names` comment"))
+              : Stream.empty();
+        });
   }
 
   /**

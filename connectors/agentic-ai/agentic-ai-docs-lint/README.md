@@ -8,17 +8,17 @@ module supports development only and is not deployed, so the architecture tests 
 
 ## Key types
 
-- `DocsLint`: finds the stale references of a doc, the README layout violations of a module and the stale
-  allowed names, and lists the docs and modules in scope.
-- `DocsLintConfig`: the root, the docs in scope, the modules, the README layout and the allowed names.
+- `DocsLint`: finds the stale references of a doc, including its stale allowed names, and the README layout
+  violations of a module, and lists the docs and modules in scope.
+- `DocsLintConfig`: the root, the docs in scope, the modules and the README layout.
 - `Findings` of `Violation` and `Warning`: a violation fails the test, a warning is reported.
 - `AgenticAiDocsTest`: the config of the agentic AI docs. Runs the checks per doc, per module and on the
   config.
 - `AgenticAiDocsSmokeTest`: seeds one defect per rule in a small tree and proves that the config of
   `AgenticAiDocsTest` finds each.
 - `MarkdownParser` and `Doc`: a parsed Markdown file with its headings, links, code spans, fences and
-  anchors. `Doc` checks its first heading, its sections and its Java fences, and gives the links under
-  `## Docs`.
+  anchors, and the `docs-lint` comments that allow type names or a Java block, or mark a history doc. `Doc`
+  checks its first heading, its sections and its Java fences, and gives the links under `## Docs`.
 - `CodeSpan`: a code span of a doc, with the type names and the member reference it names.
 - `JavaSourceIndex`: the types, imports, members and supertypes of the repository sources, and the
   declared names similar to a name.

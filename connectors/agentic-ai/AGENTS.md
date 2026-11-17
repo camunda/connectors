@@ -1,5 +1,7 @@
 # Agentic AI Module: Agent Instructions
 
+<!-- docs-lint: allow-names Foo, FooImpl, Read, Inject: placeholders of a naming rule, the Read tool of the coding agent and an injection annotation -->
+
 The `agentic-ai` module implements Camunda's AI Agent connectors: an agentic orchestration system that
 runs LLM tool-calling loops inside BPMN processes. It ships in two flavors, an AI Agent Task (on a
 service task) and an AI Agent Sub-process (on an ad-hoc sub-process), plus supporting infrastructure
@@ -94,10 +96,12 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 ### Docs checks
 
 `agentic-ai-docs-lint` holds the docs checks: the `DocsLint` engine, and `AgenticAiDocsTest` (plain JUnit),
-which applies it to the agentic AI docs and holds their paths, README layout and allowed names. Each module
+which applies it to the agentic AI docs and holds their paths and README layout. Each module
 README has the fixed sections and links the docs of its module. Relative links and anchors resolve. The
-docs hold no `java` code blocks. The types and members that the docs name in backticks exist in the
-repository sources. `AgenticAiDocsSmokeTest` seeds one defect per rule in a small tree and proves that
+docs hold no `java` code blocks, unless a `<!-- docs-lint: allow-java-block: reason -->` comment precedes the block. The types and members that the docs name in backticks exist in the
+repository sources, unless the doc allows the name with `<!-- docs-lint: allow-names Name: reason -->`. A doc
+that records removed code carries `<!-- docs-lint: history: reason -->`, which skips its types and members.
+`AgenticAiDocsSmokeTest` seeds one defect per rule in a small tree and proves that
 the config of `AgenticAiDocsTest` finds each. Run them with:
 
 ```bash

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.docslint;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,13 @@ final class MarkdownParser {
 
   private static final Pattern HTML_ANCHOR =
       Pattern.compile("<a\\b[^>]*?\\s(?:id|name)=([\"'])(.+?)\\1");
+  private static final Pattern ALLOW_NAMES =
+      Pattern.compile("<!--\\s*docs-lint:\\s*allow-names\\s+([^:>]*?)\\s*(?::[^>]*)?-->");
+  private static final Pattern HISTORY =
+      Pattern.compile("<!--\\s*docs-lint:\\s*history\\s*(?::[^>]*)?-->");
+  private static final Pattern ALLOW_JAVA_BLOCK =
+      Pattern.compile("<!--\\s*docs-lint:\\s*allow-java-block\\s*(?::[^>]*)?-->");
+  private static final Pattern COMMA = Pattern.compile(",");
   private static final Pattern WHITESPACE = Pattern.compile("\\s+");
   private static final Pattern EXTERNAL = Pattern.compile("^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|//).*");
 
@@ -58,6 +66,8 @@ final class MarkdownParser {
         collector.definitions,
         collector.codeSpans,
         collector.fences,
+        collector.allowedNames,
+        collector.history,
         collector.anchors);
   }
 
@@ -75,6 +85,9 @@ final class MarkdownParser {
     private final List<Ref> definitions = new ArrayList<>();
     private final List<CodeSpan> codeSpans = new ArrayList<>();
     private final List<Ref> fences = new ArrayList<>();
+    private final List<Ref> allowedNames = new ArrayList<>();
+    private boolean history;
+    private final Set<Node> allowedJavaBlocks = new HashSet<>();
     private final Set<String> anchors = new LinkedHashSet<>();
 
     @Override
@@ -129,6 +142,9 @@ final class MarkdownParser {
 
     @Override
     public void visit(final FencedCodeBlock block) {
+      if (allowedJavaBlocks.contains(block)) {
+        return;
+      }
       final String info = block.getInfo().strip();
       fences.add(new Ref(line(block), WHITESPACE.splitAsStream(info).findFirst().orElse("")));
     }
@@ -136,11 +152,13 @@ final class MarkdownParser {
     @Override
     public void visit(final HtmlBlock block) {
       addHtmlAnchors(block.getLiteral());
+      addMarkers(block, block.getLiteral());
     }
 
     @Override
     public void visit(final HtmlInline html) {
       addHtmlAnchors(html.getLiteral());
+      addMarkers(html, html.getLiteral());
     }
 
     private String headingId(final String text) {
@@ -156,6 +174,21 @@ final class MarkdownParser {
     private void addLink(final List<Ref> target, final Node node, final String destination) {
       if (!EXTERNAL.matcher(destination).matches()) {
         target.add(new Ref(line(node), destination));
+      }
+    }
+
+    private void addMarkers(final Node node, final String html) {
+      final Matcher names = ALLOW_NAMES.matcher(html);
+      while (names.find()) {
+        COMMA
+            .splitAsStream(names.group(1))
+            .map(String::strip)
+            .filter(name -> !name.isEmpty())
+            .forEach(name -> allowedNames.add(new Ref(line(node), name)));
+      }
+      history |= HISTORY.matcher(html).find();
+      if (ALLOW_JAVA_BLOCK.matcher(html).find() && node.getNext() != null) {
+        allowedJavaBlocks.add(node.getNext());
       }
     }
 

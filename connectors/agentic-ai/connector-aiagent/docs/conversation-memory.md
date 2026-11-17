@@ -1,5 +1,7 @@
 # Conversation memory
 
+<!-- docs-lint: allow-names ListEvents: AWS AgentCore API operation -->
+
 ## AgentConversation, ConversationSnapshot & MessageWindowFilter
 
 The in-process working representation of a conversation is the immutable `AgentConversation`

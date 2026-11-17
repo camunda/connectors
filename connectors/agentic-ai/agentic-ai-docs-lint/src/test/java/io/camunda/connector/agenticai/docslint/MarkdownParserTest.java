@@ -193,6 +193,39 @@ class MarkdownParserTest {
     assertThat(doc.anchors()).containsExactly("setup");
   }
 
+  @Test
+  void aMarkerAllowsTypeNamesWithTheLineOfTheComment() {
+    final Doc doc =
+        doc(
+            "# A",
+            "<!-- docs-lint: allow-names Foo, Bar: gone since 8.9 -->",
+            "",
+            "<!--docs-lint: allow-names Baz-->");
+
+    assertThat(lines(doc.allowedNames())).containsExactly("2 Foo", "2 Bar", "4 Baz");
+  }
+
+  @Test
+  void aMarkerAllowsTheCodeBlockThatFollowsIt() {
+    final Doc doc =
+        doc(
+            "<!-- docs-lint: allow-java-block: old signature -->",
+            "```java",
+            "```",
+            "",
+            "```java",
+            "```");
+
+    assertThat(lines(doc.fences())).containsExactly("5 java");
+  }
+
+  @Test
+  void aHistoryMarkerMakesTheDocAHistoryDoc() {
+    assertThat(doc("<!-- docs-lint: history: lists removed types -->", "", "`Gone`").history())
+        .isTrue();
+    assertThat(doc("`Gone`").history()).isFalse();
+  }
+
   private static Doc doc(final String... lines) {
     return MarkdownParser.parse(Path.of("sample.md"), String.join("\n", lines) + "\n");
   }
@@ -223,7 +256,16 @@ class MarkdownParserTest {
   void aDocKeepsTheAnchorsInOrderAndIgnoresLaterChangesOfTheSource() {
     final Set<String> source = new LinkedHashSet<>(List.of("b", "a"));
     final Doc doc =
-        new Doc(Path.of("a.md"), List.of(), List.of(), List.of(), List.of(), List.of(), source);
+        new Doc(
+            Path.of("a.md"),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            false,
+            source);
     source.add("c");
 
     assertThat(doc.anchors()).containsExactly("b", "a");

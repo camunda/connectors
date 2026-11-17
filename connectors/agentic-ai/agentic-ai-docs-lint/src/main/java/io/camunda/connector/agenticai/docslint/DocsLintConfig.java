@@ -10,7 +10,6 @@ import io.soabase.recordbuilder.core.RecordBuilder;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * What {@link DocsLint} checks. All paths except the root are relative to the root.
@@ -22,16 +21,11 @@ import java.util.Set;
  *     against.
  * @param docRoots the directories whose Markdown files are the docs
  * @param excludedDocs glob patterns of the docs that are not checked
- * @param historyDocs the docs that record history and may name types that no longer exist
  * @param modulesPom the pom whose modules are checked. A module directory is relative to it.
  * @param extraModules the directories of further modules, named after the directory
  * @param readmeSections the {@code ##} headings each README starts with, in order
  * @param readmeTitles the first heading of the README by module name, when it is not {@code #
  *     <module name>}
- * @param allowedNames the names that the docs may use although the code does not know them, each
- *     with the reason
- * @param allowedNamesSource the file that holds the allowed names, given as the file of a finding
- *     about them
  */
 @RecordBuilder
 @RecordBuilder.Options(
@@ -42,21 +36,16 @@ public record DocsLintConfig(
     Path root,
     List<Path> docRoots,
     List<String> excludedDocs,
-    Set<Path> historyDocs,
     Path modulesPom,
     List<Path> extraModules,
     List<String> readmeSections,
-    Map<String, String> readmeTitles,
-    Map<String, String> allowedNames,
-    Path allowedNamesSource) {
+    Map<String, String> readmeTitles) {
 
   public DocsLintConfig {
     docRoots = List.copyOf(docRoots);
     excludedDocs = List.copyOf(excludedDocs);
-    historyDocs = Set.copyOf(historyDocs);
     extraModules = List.copyOf(extraModules);
     readmeSections = List.copyOf(readmeSections);
     readmeTitles = Map.copyOf(readmeTitles);
-    allowedNames = Map.copyOf(allowedNames);
   }
 }

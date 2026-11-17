@@ -44,21 +44,17 @@ public final class DocsLint {
 
   /**
    * The stale references of the doc: relative links and anchors that do not resolve, and Java code
-   * blocks. Unless it is a history doc, also the types and members of its code spans that the code
-   * does not know.
+   * blocks, and the types and members of its code spans that the code does not know. A doc allows
+   * names and Java blocks in place, with an HTML comment: {@code <!-- docs-lint: allow-names Foo,
+   * Bar: reason -->} allows the type names, and {@code <!-- docs-lint: allow-java-block: reason
+   * -->} allows the code block that follows it. A doc with {@code <!-- docs-lint: history: reason
+   * -->} records code that no longer exists, and its types and members are not checked.
    */
   public Findings findStaleReferences(final Path doc) {
     final Doc parsed =
         tree.doc(doc).orElseThrow(() -> new IllegalArgumentException("No doc at " + doc));
     return new Findings(
-        Stream.of(
-                DocChecks.links(parsed, tree),
-                parsed.javaFences(),
-                tree.currentDoc(doc).stream()
-                    .flatMap(current ->
-                        Stream.concat(
-                            DocChecks.types(current, index(), config.allowedNames().keySet()),
-                            DocChecks.members(current, index()))))
+        Stream.of(DocChecks.links(parsed, tree), parsed.javaFences(), typeChecks(parsed))
             .flatMap(Function.identity())
             .toList());
   }
@@ -73,18 +69,14 @@ public final class DocsLint {
         DocChecks.readme(module, tree, config.readmeSections(), config.readmeTitles()).toList());
   }
 
-  /**
-   * The stale allowed names: those that no doc uses outside the history docs, and those that the
-   * code now declares.
-   */
-  public Findings findStaleAllowedNames() {
-    return new Findings(
-        DocChecks.allowedNames(
-                config.allowedNames(),
-                DocChecks.namedTypes(tree.currentDocs()),
-                index(),
-                config.allowedNamesSource())
-            .toList());
+  private Stream<Finding> typeChecks(final Doc doc) {
+    return doc.history()
+        ? Stream.empty()
+        : Stream.of(
+                DocChecks.types(doc, index()),
+                DocChecks.allowedNames(doc, index()),
+                DocChecks.members(doc, index()))
+            .flatMap(Function.identity());
   }
 
   private JavaSourceIndex index() {

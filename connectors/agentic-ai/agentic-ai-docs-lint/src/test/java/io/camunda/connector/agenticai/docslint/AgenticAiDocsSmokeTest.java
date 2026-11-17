@@ -27,10 +27,6 @@ class AgenticAiDocsSmokeTest {
 
   private static final String AGENTIC_AI = "connectors/agentic-ai";
   private static final String E2E = "connectors-e2e-test/connectors-e2e-test-agentic-ai";
-  private static final String ALLOWED_NAMES_SOURCE =
-      AGENTIC_AI
-          + "/agentic-ai-docs-lint/src/test/java/io/camunda/connector/agenticai/docslint/AgenticAiDocsTest.java";
-
   private static final String DEFECTS =
       """
       # Doc
@@ -143,7 +139,9 @@ class AgenticAiDocsSmokeTest {
     write(AGENTIC_AI + "/examples/doc.md", DEFECTS);
     write(AGENTIC_AI + "/aiagent-api/src/main/resources/doc.md", DEFECTS);
     final String breakingChanges = AGENTIC_AI + "/docs/breaking-changes.md";
-    write(breakingChanges, "# Breaking changes\n\n[Gone](gone.md)\n\n`Missing`\n");
+    write(
+        breakingChanges,
+        "<!-- docs-lint: history: removed types -->\n\n# Breaking changes\n\n[Gone](gone.md)\n\n`Missing`\n");
 
     final DocsLint lint = lint();
 
@@ -157,7 +155,7 @@ class AgenticAiDocsSmokeTest {
         .containsExactly(
             new Violation(
                 Path.of(breakingChanges),
-                3,
+                5,
                 "link `gone.md` points to a file that does not exist (resolved to `"
                     + AGENTIC_AI
                     + "/docs/gone.md`)",
@@ -221,35 +219,6 @@ class AgenticAiDocsSmokeTest {
 
     assertThat(lint().findReadmeLayoutViolations(module).all())
         .containsExactly(wrongTitle(readme, "# connector-aiagent", "# AI Agent Task"));
-  }
-
-  @Test
-  void staleAllowedNamesAreReported() throws IOException {
-    write(AGENTIC_AI + "/docs/architecture/doc.md", "# Doc\n\n`Foo`\n");
-    write(
-        AGENTIC_AI + "/aiagent-api/src/main/java/io/camunda/smoke/Foo.java",
-        "package io.camunda.smoke; public class Foo {}");
-
-    assertThat(lint().findStaleAllowedNames().all())
-        .containsExactlyElementsOf(
-            AgenticAiDocsTest.config(root).allowedNames().keySet().stream()
-                .sorted()
-                .map(name ->
-                    name.equals("Foo")
-                        ? new Violation(
-                            Path.of(ALLOWED_NAMES_SOURCE),
-                            0,
-                            "allowed name `Foo` is now declared by the code",
-                            "the code is the source of truth, and the check of the doc verifies a"
-                                + " declared name against it",
-                            "delete the entry of the allowed names")
-                        : new Violation(
-                            Path.of(ALLOWED_NAMES_SOURCE),
-                            0,
-                            "allowed name `" + name + "` is used in no doc",
-                            "an entry that no doc needs keeps a name known that nothing uses",
-                            "delete the entry of the allowed names"))
-                .toList());
   }
 
   private DocsLint lint() {

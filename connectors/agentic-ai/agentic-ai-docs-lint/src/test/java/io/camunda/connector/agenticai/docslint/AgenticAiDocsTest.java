@@ -11,8 +11,6 @@ import static org.assertj.core.api.Assertions.fail;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestReporter;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -27,26 +25,6 @@ class AgenticAiDocsTest {
   private static final Path AGENTIC_AI = Path.of("connectors/agentic-ai");
   private static final Path E2E = Path.of("connectors-e2e-test/connectors-e2e-test-agentic-ai");
 
-  private static final Map<String, String> ALLOWED_NAMES =
-      Map.ofEntries(
-          Map.entry("Foo", "placeholder in the naming rule `FooImpl` implements `Foo`"),
-          Map.entry("FooImpl", "placeholder in the naming rule"),
-          Map.entry("Impl", "suffix of the naming rule"),
-          Map.entry("Interface", "placeholder in the naming rule `<Interface>Impl`"),
-          Map.entry("MyFilesystem", "example gateway tool name"),
-          Map.entry("Read", "the Read tool of the coding agent, not a type"),
-          Map.entry("Authorization", "HTTP header name"),
-          Map.entry("CreateEvent", "AWS AgentCore API operation"),
-          Map.entry("ListEvents", "AWS AgentCore API operation"),
-          Map.entry("Inject", "annotation of an injection library, named in a rule"),
-          Map.entry("CompleteJobCommand", "Zeebe client command, not a type of this repo"),
-          Map.entry("MarshallingType", "AWS SDK type"),
-          Map.entry("Credential", "openai-java SDK type"),
-          Map.entry("ManagedIdentityCredential", "Azure SDK type"),
-          Map.entry("CachedContent", "Gemini SDK type"),
-          Map.entry("RetryInterceptor", "Google GenAI SDK type"),
-          Map.entry("ThinkChunk", "Mistral schema name"));
-
   private static final DocsLint LINT = DocsLint.of(config(repositoryRoot()));
 
   @ParameterizedTest(name = "{0}")
@@ -59,11 +37,6 @@ class AgenticAiDocsTest {
   @MethodSource("modules")
   void moduleReadmeFollowsTheLayout(final DocModule module, final TestReporter reporter) {
     assertNoViolations(LINT.findReadmeLayoutViolations(module), reporter);
-  }
-
-  @Test
-  void allowedNamesAreUsedAndUnknownToTheCode(final TestReporter reporter) {
-    assertNoViolations(LINT.findStaleAllowedNames(), reporter);
   }
 
   static List<Path> docs() {
@@ -84,15 +57,10 @@ class AgenticAiDocsTest {
                 AGENTIC_AI + "/docs/adr/**",
                 AGENTIC_AI + "/examples/**",
                 "**/src/main/resources/**"))
-        .historyDocs(Set.of(AGENTIC_AI.resolve("docs/breaking-changes.md")))
         .modulesPom(AGENTIC_AI.resolve("pom.xml"))
         .extraModules(List.of(E2E))
         .readmeSections(List.of("## Purpose", "## Key types", "## Docs"))
         .readmeTitles(Map.of("connector-aiagent", "# AI Agent Task"))
-        .allowedNames(ALLOWED_NAMES)
-        .allowedNamesSource(
-            AGENTIC_AI.resolve(
-                "agentic-ai-docs-lint/src/test/java/io/camunda/connector/agenticai/docslint/AgenticAiDocsTest.java"))
         .build();
   }
 

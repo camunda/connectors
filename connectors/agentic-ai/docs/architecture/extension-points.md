@@ -1,5 +1,7 @@
 # Gateway tools and extension points
 
+<!-- docs-lint: allow-names MyFilesystem: example gateway tool name -->
+
 ## Gateway Tool Pattern
 
 The Gateway Tool Pattern is the extensibility mechanism that allows the AI Agent to integrate with external tool providers that expose **multiple tools behind a single BPMN element**. MCP and A2A are both implementations of this pattern.

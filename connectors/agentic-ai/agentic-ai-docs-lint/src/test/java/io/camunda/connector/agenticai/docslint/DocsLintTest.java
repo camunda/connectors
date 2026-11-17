@@ -13,7 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -493,9 +492,8 @@ class DocsLintTest {
     assertThat(
             messages(
                 findStaleReferences(
-                    lint(Map.of("Allowed", "reason")),
                     "project/one/docs/a.md",
-                    "`Service`, `Map<String, Service>`, `a.Api`, `Servise`, `Allowed`")))
+                    "`Service`, `Map<String, Service>`, `a.Api`, `Servise`")))
         .containsExactly(
             """
             project/one/docs/a.md:1: unknown type `Servise` in `Servise`
@@ -892,87 +890,62 @@ class DocsLintTest {
   }
 
   @Test
-  void allowedNamesMustBeUsedInACurrentDocAndUnknownToTheCode() throws IOException {
+  void aDocAllowsTheTypeNamesOfItsOwnMarkerOnly() throws IOException {
+    final String[] allowing = {
+      "<!-- docs-lint: allow-names Gone, Other: removed in 8.9 -->", "", "`Gone` `Other<Gone>`"
+    };
+
+    assertThat(findStaleReferences("project/docs/history.md", allowing)).isEmpty();
+    assertThat(messages(findStaleReferences("project/docs/current.md", "`Gone`")))
+        .containsExactly(
+            """
+            project/docs/current.md:1: unknown type `Gone` in `Gone`
+                why: the code declares, imports or nests no type of this name, so the doc may name a type that was renamed or removed
+                fix: check the name against the code\
+            """);
+  }
+
+  @Test
+  void anAllowedNameMustBeUsedInTheDocAndUnknownToTheCode() throws IOException {
     writeSources(SOURCES);
-    write("project/one/docs/a.md", "`Used` `Service`");
-    write("project/docs/history.md", "`Unused`");
 
     assertThat(
             messages(
-                lint(Map.of("Used", "r", "Unused", "r", "Service", "r")).findStaleAllowedNames()))
+                findStaleReferences(
+                    "project/docs/a.md",
+                    "<!-- docs-lint: allow-names Used, Unused, Service -->",
+                    "",
+                    "`Used` `Service`")))
         .containsExactly(
             """
-            Policy.java: allowed name `Service` is now declared by the code
+            project/docs/a.md:1: allowed name `Unused` is used in no code span of this doc
+                why: an entry that the doc does not need keeps a name known that nothing uses
+                fix: delete the name from the `allow-names` comment\
+            """,
+            """
+            project/docs/a.md:1: allowed name `Service` is now declared by the code
                 why: the code is the source of truth, and the check of the doc verifies a declared name against it
-                fix: delete the entry of the allowed names\
-            """,
-            """
-            Policy.java: allowed name `Unused` is used in no doc
-                why: an entry that no doc needs keeps a name known that nothing uses
-                fix: delete the entry of the allowed names\
+                fix: delete the name from the `allow-names` comment\
             """);
-    assertThat(lint(Map.of("Used", "r")).findStaleAllowedNames().all()).isEmpty();
   }
 
   @Test
-  void theTypesNamedInTheDocsCountAsUses() throws IOException {
-    write("project/one/docs/a.md", "`Foo` `Bar#baz`");
-    write("project/one/docs/b.md", "`List<Qux>` `plain`");
-
+  void aJavaBlockIsAllowedByTheMarkerBeforeIt() throws IOException {
     assertThat(
             messages(
-                lint(Map.of("Foo", "r", "Bar", "r", "List", "r", "Qux", "r", "plain", "r"))
-                    .findStaleAllowedNames()))
+                findStaleReferences(
+                    "project/docs/a.md",
+                    "<!-- docs-lint: allow-java-block: shows the removed signature -->",
+                    "```java",
+                    "```",
+                    "",
+                    "```java",
+                    "```")))
         .containsExactly(
             """
-            Policy.java: allowed name `plain` is used in no doc
-                why: an entry that no doc needs keeps a name known that nothing uses
-                fix: delete the entry of the allowed names\
-            """);
-  }
-
-  @Test
-  void aHistoryDocHasItsLinksAndFencesCheckedButNotItsNames() throws IOException {
-    final String[] lines = {"# History", "[a](gone.md) `Gone` `Gone#member`", "```java", "```"};
-
-    assertThat(messages(findStaleReferences("project/docs/history.md", lines)))
-        .containsExactly(
-            """
-            project/docs/history.md:2: link `gone.md` points to a file that does not exist (resolved to `project/docs/gone.md`)
-                why: the file was renamed, moved or deleted, or the path is wrong
-                fix: check the path against the file tree\
-            """,
-            """
-            project/docs/history.md:3: Java code block
+            project/docs/a.md:5: Java code block
                 why: a code excerpt goes stale when the code changes
                 fix: replace the excerpt with the name of the type and member, for example `Type#member`\
-            """);
-    assertThat(messages(findStaleReferences("project/docs/current.md", lines)))
-        .containsExactly(
-            """
-            project/docs/current.md:2: link `gone.md` points to a file that does not exist (resolved to `project/docs/gone.md`)
-                why: the file was renamed, moved or deleted, or the path is wrong
-                fix: check the path against the file tree\
-            """,
-            """
-            project/docs/current.md:3: Java code block
-                why: a code excerpt goes stale when the code changes
-                fix: replace the excerpt with the name of the type and member, for example `Type#member`\
-            """,
-            """
-            project/docs/current.md:2: unknown type `Gone` in `Gone`
-                why: the code declares, imports or nests no type of this name, so the doc may name a type that was renamed or removed
-                fix: check the name against the code\
-            """,
-            """
-            project/docs/current.md:2: unknown type `Gone` in `Gone#member`
-                why: the code declares, imports or nests no type of this name, so the doc may name a type that was renamed or removed
-                fix: check the name against the code\
-            """,
-            """
-            project/docs/current.md:2: member of `Gone#member` not verified: `Gone` is not declared in the repo sources, so it is a type of a dependency whose classes are not loaded
-                why: the check reads the code of the repo, so it cannot see the members of a dependency
-                fix: check the member against the documentation or the sources of the dependency\
             """);
   }
 
@@ -1039,23 +1012,16 @@ class DocsLintTest {
   }
 
   private DocsLint lint() {
-    return lint(Map.of());
-  }
-
-  private DocsLint lint(final Map<String, String> allowedNames) {
     return DocsLint.of(
         DocsLintConfigBuilder.builder()
             .root(root)
             .docRoots(List.of(Path.of("project"), Path.of("e2e")))
             .excludedDocs(
                 List.of("project/docs/adr/**", "project/examples/**", "**/src/main/resources/**"))
-            .historyDocs(Set.of(Path.of("project/docs/history.md")))
             .modulesPom(Path.of("project/pom.xml"))
             .extraModules(List.of(Path.of("e2e")))
             .readmeSections(List.of("## Purpose", "## Key types", "## Docs"))
             .readmeTitles(Map.of("titled", "# Titled Module"))
-            .allowedNames(allowedNames)
-            .allowedNamesSource(Path.of("Policy.java"))
             .build());
   }
 

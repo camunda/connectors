@@ -18,7 +18,9 @@ import java.util.stream.Stream;
  * A parsed Markdown document. The path is relative to the repository root. Headings are given as
  * written in ATX form, for example {@code ## Docs}. Links are the relative destinations of the
  * links in the text, and definitions are those of the reference definitions. Fences hold the
- * language of each fenced code block.
+ * language of each fenced code block that is not allowed as a Java block. Allowed names are the
+ * type names that the doc allows although the code does not know them. A history doc records code
+ * that no longer exists, so its types and members are not checked.
  */
 record Doc(
     Path path,
@@ -27,6 +29,8 @@ record Doc(
     List<Ref> definitions,
     List<CodeSpan> codeSpans,
     List<Ref> fences,
+    List<Ref> allowedNames,
+    boolean history,
     Set<String> anchors) {
 
   Doc {
@@ -35,6 +39,7 @@ record Doc(
     definitions = List.copyOf(definitions);
     codeSpans = List.copyOf(codeSpans);
     fences = List.copyOf(fences);
+    allowedNames = List.copyOf(allowedNames);
     anchors = Collections.unmodifiableSet(new LinkedHashSet<>(anchors));
   }
 
