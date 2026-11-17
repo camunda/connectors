@@ -124,7 +124,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.7</version.logback>
 
-    <version.aws-sdk2>2.59.1</version.aws-sdk2>
+    <version.aws-sdk2>2.59.2</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -172,7 +172,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.4.0</version.kafka-clients>
     <!-- CVE-2026-59949: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.1
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
-    <version.lz4-java>1.14.0</version.lz4-java>
+    <version.lz4-java>1.14.1</version.lz4-java>
 
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.10.5</version.microsoft-kiota-abstraction>
