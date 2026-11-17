@@ -42,6 +42,7 @@ class ErrorCodeTest {
             entry(ErrorCode.UNSUPPORTED_CONTRACT_VERSION, Retries.NONE_LEFT),
             entry(ErrorCode.DEPLOYMENT_MISSING, Retries.CONSUME_ONE),
             entry(ErrorCode.PROVISIONING_PENDING, Retries.UNCHANGED),
+            entry(ErrorCode.CONCURRENCY_LIMITED, Retries.UNCHANGED),
             entry(ErrorCode.PLATFORM_THROTTLED, Retries.CONSUME_ONE),
             entry(ErrorCode.PLATFORM_UNAVAILABLE, Retries.CONSUME_ONE),
             entry(ErrorCode.PLATFORM_REJECTED, Retries.NONE_LEFT),

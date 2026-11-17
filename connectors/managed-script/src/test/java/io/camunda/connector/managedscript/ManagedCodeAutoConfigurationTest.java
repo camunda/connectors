@@ -10,6 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
+import io.camunda.client.annotation.customizer.JobWorkerValueCustomizer;
+import io.camunda.client.annotation.value.JobWorkerValue;
+import io.camunda.client.annotation.value.SourceAware;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
 import io.camunda.connector.managedscript.api.ExecutorReference;
@@ -174,7 +177,9 @@ class ManagedCodeAutoConfigurationTest {
 
   @Test
   void keepsTheProviderNameAsWrittenSoThatAnErrorQuotesIt() {
-    assertThat(new ManagedCodeProperties(true, "local ", null, null, null, null, null).provider())
+    assertThat(
+            new ManagedCodeProperties(true, "local ", null, null, null, null, null, null, null)
+                .provider())
         .isEqualTo("local ");
   }
 
@@ -268,6 +273,50 @@ class ManagedCodeAutoConfigurationTest {
           assertThat(properties.provisioningTimeout()).isEqualTo(Duration.ofSeconds(45));
           assertThat(properties.grantPropagationWindow()).isEqualTo(Duration.ZERO);
         });
+  }
+
+  @Test
+  void leavesTheManagedScriptWorkerAsAnyOtherConnectorsUnlessACapIsSet() {
+    enabled.run(context -> {
+      final var properties = context.getBean(ManagedCodeProperties.class);
+      assertThat(properties.maxJobsActive()).isNull();
+      assertThat(properties.maxConcurrentScriptsPerTenant()).isNull();
+      final var worker = managedScriptWorker();
+      context.getBean(JobWorkerValueCustomizer.class).customize(worker);
+      assertThat(worker.getMaxJobsActive()).isInstanceOf(SourceAware.Empty.class);
+    });
+  }
+
+  @Test
+  void capsTheJobsOfTheManagedScriptWorker() {
+    enabled
+        .withPropertyValues(
+            "camunda.connector.managed-code.max-jobs-active=8",
+            "camunda.connector.managed-code.max-concurrent-scripts-per-tenant=2")
+        .run(context -> {
+          final var properties = context.getBean(ManagedCodeProperties.class);
+          assertThat(properties.maxConcurrentScriptsPerTenant()).isEqualTo(2);
+          final var worker = managedScriptWorker();
+          context.getBean(JobWorkerValueCustomizer.class).customize(worker);
+          assertThat(worker.getMaxJobsActive().value()).isEqualTo(8);
+        });
+  }
+
+  @Test
+  void rejectsACapThatIsNotPositive() {
+    enabled
+        .withPropertyValues("camunda.connector.managed-code.max-concurrent-scripts-per-tenant=0")
+        .run(context ->
+            assertThat(context)
+                .getFailure()
+                .rootCause()
+                .hasMessageContaining("max-concurrent-scripts-per-tenant 0 must be positive"));
+  }
+
+  private static JobWorkerValue managedScriptWorker() {
+    final var worker = new JobWorkerValue();
+    worker.setType(new SourceAware.FromAnnotation<>(ManagedScriptFunction.JOB_TYPE));
+    return worker;
   }
 
   @Test

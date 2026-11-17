@@ -31,7 +31,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
@@ -318,13 +320,105 @@ class ManagedScriptJobHandlerTest {
             "1",
             "FAILED",
             null,
-            new ExecutionResponse.Error("PLATFORM_THROTTLED", "slow down", null, false, false)));
+            new ExecutionResponse.Error("PLATFORM_UNAVAILABLE", "try later", null, false, false)));
 
     final var script = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
-    final var throttled = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var unavailable = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
 
     assertFailed(script, ErrorCode.SCRIPT_ERROR, 0);
-    assertFailed(throttled, ErrorCode.PLATFORM_THROTTLED, null);
+    assertFailed(unavailable, ErrorCode.PLATFORM_UNAVAILABLE, null);
+  }
+
+  @Test
+  void keepsTheRetriesOfAThrottledJobWithTheOperatorBackoff() {
+    store("sum.py", "x");
+    provider.respond(throttled());
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.PLATFORM_THROTTLED, 3);
+    assertThat(failed.backoff()).isEqualTo(BACKOFF);
+  }
+
+  @Test
+  void consumesARetryOnceTheThrottlingHasLastedTwiceTheProvisioningTimeout() {
+    store("sum.py", "x");
+    provider.respond(throttled(), throttled());
+
+    final var first = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    sleep(PROVISIONING_TIMEOUT.multipliedBy(2).toMillis() + 50);
+    final var lasting = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(first, ErrorCode.PLATFORM_THROTTLED, 3);
+    final var failed = assertFailed(lasting, ErrorCode.PLATFORM_THROTTLED, null);
+    assertThat(failed.backoff()).isZero();
+  }
+
+  @Test
+  void measuresTheThrottlingAgainAfterACallThatWasNotThrottled() {
+    store("sum.py", "x");
+    provider.respond(throttled(), ExecutionResponse.completed(Map.of()), throttled());
+
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    sleep(PROVISIONING_TIMEOUT.multipliedBy(2).toMillis() + 50);
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var throttledAgain = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(throttledAgain, ErrorCode.PLATFORM_THROTTLED, 3);
+  }
+
+  @Test
+  void failsAJobBeyondTheLimitOfItsTenantWithItsRetriesUnchanged() throws Exception {
+    store("sum.py", "x");
+    final var entered = new CountDownLatch(1);
+    final var release = new CountDownLatch(1);
+    final var executions = new AtomicInteger();
+    final var blocking =
+        new FakeProvider() {
+          @Override
+          public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+            final var response = super.execute(language, request);
+            if (executions.incrementAndGet() == 1) {
+              entered.countDown();
+              try {
+                release.await();
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              }
+            }
+            return response;
+          }
+        };
+    final var limited =
+        handler(
+            blocking,
+            new ExecutorReadiness(blocking, READINESS_BACKOFF, Duration.ZERO),
+            resources(Duration.ofMillis(200)),
+            new TenantLimiter(1));
+
+    final var running =
+        CompletableFuture.supplyAsync(
+            () -> limited.handle(client, "default", job(SCRIPT_HEADER, "tenant-a"), Map.of()));
+    assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
+    final var sameTenant =
+        limited.handle(client, "default", job(SCRIPT_HEADER, "tenant-a"), Map.of());
+    final var otherTenant =
+        limited.handle(client, "default", job(SCRIPT_HEADER, "tenant-b"), Map.of());
+    final var otherPhysicalTenant =
+        limited.handle(client, "other", job(SCRIPT_HEADER, "tenant-a"), Map.of());
+    release.countDown();
+    final var first = running.get(5, TimeUnit.SECONDS);
+    final var afterwards =
+        limited.handle(client, "default", job(SCRIPT_HEADER, "tenant-a"), Map.of());
+
+    final var failed = assertFailed(sameTenant, ErrorCode.CONCURRENCY_LIMITED, 3);
+    assertThat(failed.backoff()).isEqualTo(BACKOFF);
+    assertThat(failed.message()).contains("tenant-a");
+    assertThat(otherTenant).isInstanceOf(Outcome.Completed.class);
+    assertThat(otherPhysicalTenant).isInstanceOf(Outcome.Completed.class);
+    assertThat(first).isInstanceOf(Outcome.Completed.class);
+    assertThat(afterwards).isInstanceOf(Outcome.Completed.class);
+    assertThat(executions).hasValue(4);
   }
 
   @Test
@@ -623,6 +717,14 @@ class ManagedScriptJobHandlerTest {
 
   private ManagedScriptJobHandler handler(
       FakeProvider provider, ExecutorReadiness readiness, ScriptResources resources) {
+    return handler(provider, readiness, resources, TenantLimiter.unlimited());
+  }
+
+  private ManagedScriptJobHandler handler(
+      FakeProvider provider,
+      ExecutorReadiness readiness,
+      ScriptResources resources,
+      TenantLimiter tenants) {
     readinesses.add(readiness);
     return new ManagedScriptJobHandler(
         provider,
@@ -631,7 +733,8 @@ class ManagedScriptJobHandlerTest {
         ConnectorsObjectMapperSupplier.getCopy(),
         PROVISIONING_TIMEOUT,
         Duration.ofSeconds(30),
-        BACKOFF);
+        BACKOFF,
+        tenants);
   }
 
   /** A provider whose executor of the language is ready only once the latch is released. */
@@ -677,6 +780,16 @@ class ManagedScriptJobHandlerTest {
 
   private static JobContext job(String linkedResources) {
     return job(Map.of("linkedResources", linkedResources));
+  }
+
+  private static JobContext job(String linkedResources, String tenantId) {
+    final var job = job(linkedResources);
+    lenient().when(job.getTenantId()).thenReturn(tenantId);
+    return job;
+  }
+
+  private static ExecutionResponse throttled() {
+    return scriptFailure("PLATFORM_THROTTLED", "no instance available", null);
   }
 
   private static JobContext job(Map<String, String> headers) {

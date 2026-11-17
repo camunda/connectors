@@ -396,7 +396,8 @@ the operator sets how often they call the platform.
 | `UNSUPPORTED_CONTRACT_VERSION` | wrapper | The request's `contractVersion` is not the wrapper's own | None left |
 | `DEPLOYMENT_MISSING` | provider | The executor does not exist. The job creates it once and calls again. If it is still missing: | Consume one |
 | `PROVISIONING_PENDING` | runtime | The executors were not ready within the provisioning timeout, including while a new cluster's grants propagate (a permission denial on creation or invocation within the configured window) | Unchanged |
-| `PLATFORM_THROTTLED` | provider | The provider throttled the call (Lambda `TooManyRequests`, HTTP 429) | Consume one |
+| `CONCURRENCY_LIMITED` | runtime | The tenant of the job already runs `max-concurrent-scripts-per-tenant` scripts on this runtime instance | Unchanged |
+| `PLATFORM_THROTTLED` | provider | The provider throttled the call (Lambda `TooManyRequests`, HTTP 429) | Consume one; for an invocation, unchanged until the executor has been throttled for longer than twice the provisioning timeout |
 | `PLATFORM_UNAVAILABLE` | provider, runtime | A transient failure: service error, HTTP 502 or 503, a retryable creation failure that lasted longer than twice the provisioning timeout (except a permission denial within the grant-propagation window), or a linked resource still not found after polling | Consume one |
 | `PLATFORM_REJECTED` | provider, runtime | A permanent provider failure: a creation call rejected with a client error, an executor that failed to build or become active, a denial after the grant-propagation window, or no suitable local interpreter | None left |
 | `PLATFORM_EXECUTION_FAILED` | wrapper, provider | The executor failed outside the script: the child crashed with no response, a wrapper error, a Lambda function error, HTTP 500 or 504 | None left |

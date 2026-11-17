@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.managedscript;
 
+import io.camunda.client.annotation.customizer.JobWorkerValueCustomizer;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.local.LocalManagedCodeConfiguration;
@@ -62,7 +63,19 @@ public class ManagedCodeAutoConfiguration {
         ConnectorsObjectMapperSupplier.getCopy(),
         properties.provisioningTimeout(),
         properties.executionTimeout(),
-        properties.provisioningRetryBackoff());
+        properties.provisioningRetryBackoff(),
+        new TenantLimiter(properties.maxConcurrentScriptsPerTenant()));
+  }
+
+  /**
+   * Bounds the managed-script jobs each worker holds, when {@code max-jobs-active} is set. Applied
+   * like a value of the connector's annotation: it wins over {@code
+   * camunda.client.worker.defaults}, and an override of the job type in {@code
+   * camunda.client.worker.override} still wins over it.
+   */
+  @Bean
+  JobWorkerValueCustomizer managedScriptJobWorkerCustomizer(ManagedCodeProperties properties) {
+    return new ManagedScriptJobWorkerCustomizer(properties.maxJobsActive());
   }
 
   /**
