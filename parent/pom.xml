@@ -124,7 +124,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.7</version.logback>
 
-    <version.aws-sdk2>2.59.1</version.aws-sdk2>
+    <version.aws-sdk2>2.59.2</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -249,7 +249,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.52.0</version.error-prone>
-    <version.nullaway>0.14.3</version.nullaway>
+    <version.nullaway>0.14.4</version.nullaway>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
 
     <!-- false still builds the with-dependencies fat jars into target/, but does not install or deploy them -->
