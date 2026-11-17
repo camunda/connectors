@@ -114,7 +114,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
-    <version.amqp-client>5.37.1</version.amqp-client>
+    <version.amqp-client>5.38.0</version.amqp-client>
     <!-- mariadb-java-client transitive override: connectors/jdbc/pom.xml declares 3.5.11 directly,
          but spring-boot-dependencies' managed mariadb.version (3.5.10 on spring-boot 4.1.2) overrides
          that declaration in every module importing this parent, including the bundles. Remove once
@@ -151,7 +151,7 @@ limitations under the License.</license.inlineheader>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.58.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.93.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.94.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20261109-2.9.2</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
@@ -163,7 +163,7 @@ limitations under the License.</license.inlineheader>
     <version.httpcore5>5.4.4</version.httpcore5>
     <version.httpclient5>5.6.5</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
-    <version.ayza>10.1.1</version.ayza>
+    <version.ayza>10.1.2</version.ayza>
     <version.pdfbox>3.0.8</version.pdfbox>
     <version.collections4>4.6.0</version.collections4>
 
