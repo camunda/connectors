@@ -130,6 +130,14 @@ camunda.connector.managed-code.aws.log-retention-days=30
 - Memory, function timeout and execution role are compared whenever the provider makes an executor
   ready, and updated in place (`UpdateFunctionConfiguration`) when they differ. A configuration change
   therefore creates no function and leaves none behind.
+- Each time it makes an executor ready, before any update, the provider checks that the function
+  runs its wrapper and nothing else. That means the `CodeSha256` of its package, no layers, no
+  environment variables, and its own handler and runtime. Otherwise, the executor is refused and
+  never called, and jobs fail with `PLATFORM_REJECTED`, which names the field that differs. This
+  stops someone who can create or configure functions under the prefix from receiving the scripts,
+  their input and secrets. Find out how the function was changed, then delete it: the runtime
+  creates it again. The check reads nothing beyond `GetFunction`, so it needs no extra permission.
+  It is not repeated on each call.
 - `aws.region` is the region of the executors; without it, the SDK's default region chain applies
   (`AWS_REGION`, the profile). `aws.memory-mb` is between 128 and 10240 (default 512).
 - `aws.memory-mb` sizes the scripts: the wrapper reads the memory of the function from Lambda and
@@ -266,6 +274,14 @@ camunda.connector.managed-code.gcp.max-instance-count=1000
   all traffic on the latest revision are compared whenever the provider makes an executor ready,
   and updated in place, as a new revision of the same function, when they differ. A configuration change therefore creates no
   function and leaves none behind.
+- Each time it makes an executor ready, the provider downloads the deployed source of the function
+  and checks that it is, byte for byte, the archive of its wrapper that the runtime uploads.
+  Otherwise, the executor is refused and never called, and jobs fail with `PLATFORM_REJECTED`. This stops someone who can update functions
+  under the prefix from receiving the scripts, their input and secrets. Find out how the function
+  was changed, then delete it: the runtime creates it again. The check needs
+  `cloudfunctions.functions.sourceCodeGet`, which `roles/cloudfunctions.developer` includes. It is
+  not repeated on each call, and it does not cover the function's environment variables or a
+  change made directly on the underlying Cloud Run service.
 - `gcp.project-id` and `gcp.region` locate the executors. `gcp.memory-mb` is between 128 and
   32768 (default 512).
 - `gcp.memory-mb` sizes the scripts: it is passed to the wrapper in `EXECUTOR_MEMORY_MB`, and the
@@ -320,7 +336,7 @@ executor design proved together:
 
 | Grant | Scope | Why |
 |---|---|---|
-| `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/functions/<prefix>")` | create, read and update its own executors |
+| `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/functions/<prefix>")` | create, read and update its own executors, and read their source to check it (`cloudfunctions.functions.sourceCodeGet`) |
 | `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/operations/")` | poll the operations of a creation or update |
 | A custom role with only `cloudfunctions.functions.generateUploadUrl` | project, condition `resource.name == "<location>"` | upload the source: the upload URL is requested on the location, where the developer role would list the functions of every cluster |
 | `roles/iam.serviceAccountUser` | the function service account only | run the executors as it |

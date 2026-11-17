@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -67,13 +68,23 @@ record CloudRunExecutor(ExecutorWrapper wrapper, String runtime, String entryPoi
     return wrapper.digest(runtime);
   }
 
-  /** Deterministic: entries in name order, with a fixed time. */
+  /**
+   * Deterministic: entries in name order, with a fixed time, and stored, not compressed, so that
+   * the bytes do not depend on the zlib of the JDK. The provider compares them with the deployed
+   * package of an executor.
+   */
   byte[] zip() {
     final var bytes = new ByteArrayOutputStream();
     try (var zip = new ZipOutputStream(bytes)) {
       for (var file : wrapper.files().entrySet()) {
         final var entry = new ZipEntry(file.getKey());
         entry.setTime(FIXED_ENTRY_TIME);
+        final var crc = new CRC32();
+        crc.update(file.getValue());
+        entry.setMethod(ZipEntry.STORED);
+        entry.setSize(file.getValue().length);
+        entry.setCompressedSize(file.getValue().length);
+        entry.setCrc(crc.getValue());
         zip.putNextEntry(entry);
         zip.write(file.getValue());
         zip.closeEntry();
