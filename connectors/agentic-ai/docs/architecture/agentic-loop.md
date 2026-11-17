@@ -189,11 +189,27 @@ SpringConnectorJobHandler.handle(jobClient, job)
 
 ### The Complete Command Structure
 
-`AgentSubProcessRequestHandler` returns an `AgentSubProcessConnectorResponse` with the job variables, the
-`AgentSubProcessConnectorResponse#completionConditionFulfilled` and
-`AgentSubProcessConnectorResponse#cancelRemainingInstances` flags, and one `ToolCallElementActivation` per tool
-call with the `toolCall` and an empty `toolCallResult` variable. The connector runtime turns this response into
-the complete command with the ad-hoc sub-process result.
+<!-- docs-lint: allow-java-block: the command builder reads clearer as code than as prose -->
+```java
+jobClient.newCompleteCommand(job)
+    .variables(completion.variables())    // {agentContext, toolCallResults/agent}
+    .withResult(result -> {
+        var adHocSubProcess = result.forAdHocSubProcess()
+            .completionConditionFulfilled(...)  // true = done, false = continue
+            .cancelRemainingInstances(...);      // true = cancel active tools
+
+        for (toolCall : agentResponse.toolCalls()) {
+            adHocSubProcess = adHocSubProcess
+                .activateElement(toolCall.metadata().name())
+                .variables(Map.of(
+                    "toolCall", toolCall,
+                    "toolCallResult", ""    // empty default to scope the variable locally
+                ));
+        }
+
+        return adHocSubProcess;
+    });
+```
 
 **Key design decisions in the completion command:**
 
@@ -349,19 +365,9 @@ jobs apart from the `kind` and the `rejection` of the calls and the response doc
 `BaseAgentRequestHandler.converse` switches on the `CompositionResult` returned by
 `AgentConversationTurnInputComposer.resolve`:
 
-<!-- docs-lint: allow-java-block: the switch reads clearer as code than as prose -->
-```java
-return switch (agentInputComposer.resolve(...)) {
-    case CompositionResult.Deferred(var arrivedResults) -> {
-        reportArrivedToolCallResults(..., arrivedResults, ...); // ADR 011 — report what's arrived so far
-        yield handleNoOp(executionContext);    // wait for more tool results
-    }
-    case CompositionResult.NoInput ignored ->
-        handleNoInput(executionContext);       // nothing to add; handler decides
-    case CompositionResult.Ready ready ->
-        proceed(..., answerLocalToolCalls(..., ready), ...); // local results, assemble, register the documents, call the LLM
-};
-```
+`CompositionResult.Deferred` reports the arrived results (ADR 011) and completes the job with `handleNoOp`.
+`CompositionResult.NoInput` calls `handleNoInput`. `CompositionResult.Ready` has the handler produce the tool call
+results of the local tool calls (`answerLocalToolCalls`), assemble the input, register the documents and call the LLM.
 
 This is the key gate: when tool results were incomplete the composer returns `CompositionResult.Deferred`,
 and `handleNoOp` completes the job as a no-op (the job worker waits for the next job, which will have
