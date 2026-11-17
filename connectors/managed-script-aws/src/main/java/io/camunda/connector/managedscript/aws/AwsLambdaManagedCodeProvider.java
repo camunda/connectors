@@ -634,8 +634,10 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     } else if (!configuration.layers().isEmpty()) {
       differs = "layers";
     } else if (configuration.environment() != null
-        && configuration.environment().variables() != null
-        && !configuration.environment().variables().isEmpty()) {
+        // Variables encrypted with a key the runtime cannot use come as an error only, yet run.
+        && (configuration.environment().error() != null
+            || configuration.environment().variables() != null
+                && !configuration.environment().variables().isEmpty())) {
       differs = "environment variables";
     } else if (!executor.handler().equals(configuration.handler())) {
       differs = "handler";

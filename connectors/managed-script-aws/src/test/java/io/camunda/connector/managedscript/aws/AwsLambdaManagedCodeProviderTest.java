@@ -62,6 +62,7 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.PutRetentionPolicyRe
 import software.amazon.awssdk.services.cloudwatchlogs.model.ResourceAlreadyExistsException;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.CreateFunctionRequest;
+import software.amazon.awssdk.services.lambda.model.EnvironmentError;
 import software.amazon.awssdk.services.lambda.model.EnvironmentResponse;
 import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
 import software.amazon.awssdk.services.lambda.model.GetFunctionRequest;
@@ -280,6 +281,27 @@ class AwsLambdaManagedCodeProviderTest {
 
     assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
     assertThat(failure.getMessage()).contains(PYTHON_EXECUTOR).contains("differs in its " + field);
+  }
+
+  @Test
+  void refusesAFunctionWhoseEnvironmentCannotBeRead() {
+    // Encrypted with a key the runtime cannot use: Lambda still runs with these variables.
+    when(lambda.getFunction(any(GetFunctionRequest.class)))
+        .thenReturn(
+            tampered(configuration ->
+                configuration.environment(
+                    EnvironmentResponse.builder()
+                        .error(
+                            EnvironmentError.builder()
+                                .errorCode("KMSAccessDeniedException")
+                                .message("Lambda was unable to decrypt the environment variables")
+                                .build())
+                        .build())));
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(failure.getMessage()).contains("differs in its environment variables");
   }
 
   @Test
