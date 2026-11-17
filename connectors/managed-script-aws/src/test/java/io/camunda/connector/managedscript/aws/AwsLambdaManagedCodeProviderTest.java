@@ -38,7 +38,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -60,6 +62,8 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.PutRetentionPolicyRe
 import software.amazon.awssdk.services.cloudwatchlogs.model.ResourceAlreadyExistsException;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.CreateFunctionRequest;
+import software.amazon.awssdk.services.lambda.model.EnvironmentError;
+import software.amazon.awssdk.services.lambda.model.EnvironmentResponse;
 import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
 import software.amazon.awssdk.services.lambda.model.GetFunctionRequest;
 import software.amazon.awssdk.services.lambda.model.GetFunctionResponse;
@@ -68,6 +72,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 import software.amazon.awssdk.services.lambda.model.LambdaException;
 import software.amazon.awssdk.services.lambda.model.LastUpdateStatus;
+import software.amazon.awssdk.services.lambda.model.Layer;
 import software.amazon.awssdk.services.lambda.model.ResourceConflictException;
 import software.amazon.awssdk.services.lambda.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.lambda.model.State;
@@ -78,10 +83,10 @@ class AwsLambdaManagedCodeProviderTest {
 
   private static final String ROLE = "arn:aws:iam::000000000000:role/executor";
   private static final String PREFIX = "ce-0123456789abcdef01234567-";
-  private static final String PYTHON_EXECUTOR =
-      LambdaExecutor.of(ScriptLanguage.PYTHON).functionName(PREFIX);
-  private static final String NODE_EXECUTOR =
-      LambdaExecutor.of(ScriptLanguage.JAVASCRIPT).functionName(PREFIX);
+  private static final LambdaExecutor PYTHON = LambdaExecutor.of(ScriptLanguage.PYTHON);
+  private static final LambdaExecutor NODE = LambdaExecutor.of(ScriptLanguage.JAVASCRIPT);
+  private static final String PYTHON_EXECUTOR = PYTHON.functionName(PREFIX);
+  private static final String NODE_EXECUTOR = NODE.functionName(PREFIX);
 
   private static final String STS_DENIAL =
       "Not authorized to perform sts:AssumeRoleWithWebIdentity (Service: Sts, Status Code: 403)";
@@ -141,7 +146,7 @@ class AwsLambdaManagedCodeProviderTest {
     when(lambda.getFunction(any(GetFunctionRequest.class)))
         .thenThrow(notFound())
         .thenReturn(
-            function(State.ACTIVE, LastUpdateStatus.SUCCESSFUL, 512, FUNCTION_TIMEOUT, ROLE));
+            function(NODE, State.ACTIVE, LastUpdateStatus.SUCCESSFUL, 512, FUNCTION_TIMEOUT, ROLE));
 
     provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
@@ -212,8 +217,16 @@ class AwsLambdaManagedCodeProviderTest {
   @Test
   void adoptsAnExistingFunctionWithTheConfiguredSettingsWithoutAnyWrite() {
     when(lambda.getFunction(any(GetFunctionRequest.class)))
-        .thenReturn(
-            function(State.ACTIVE, LastUpdateStatus.SUCCESSFUL, 512, FUNCTION_TIMEOUT, ROLE));
+        .thenAnswer(call ->
+            function(
+                call.<GetFunctionRequest>getArgument(0).functionName().equals(NODE_EXECUTOR)
+                    ? NODE
+                    : PYTHON,
+                State.ACTIVE,
+                LastUpdateStatus.SUCCESSFUL,
+                512,
+                FUNCTION_TIMEOUT,
+                ROLE));
 
     provider.ensureExecutors(ScriptLanguage.PYTHON);
     provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
@@ -223,6 +236,108 @@ class AwsLambdaManagedCodeProviderTest {
         .updateFunctionConfiguration(any(UpdateFunctionConfigurationRequest.class));
     verify(logs, never()).createLogGroup(any(CreateLogGroupRequest.class));
     assertThat(sleeps).isEmpty();
+  }
+
+  @Test
+  void refusesAnAdoptedFunctionWhoseCodeIsNotItsWrapperWithoutUpdatingIt() {
+    when(lambda.getFunction(any(GetFunctionRequest.class)))
+        .thenReturn(tampered(configuration -> configuration.codeSha256("dGFtcGVyZWQ=")));
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(failure.code().retryable()).isFalse();
+    assertThat(failure.permissionDenied()).isFalse();
+    assertThat(failure.getMessage()).contains(PYTHON_EXECUTOR).contains("differs in its code");
+    verify(lambda, never()).createFunction(any(CreateFunctionRequest.class));
+    verify(lambda, never())
+        .updateFunctionConfiguration(any(UpdateFunctionConfigurationRequest.class));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"layers", "environment variables", "handler", "runtime"})
+  void refusesAnAdoptedFunctionThatRunsMoreThanItsWrapper(String field) {
+    when(lambda.getFunction(any(GetFunctionRequest.class)))
+        .thenReturn(
+            tampered(configuration -> {
+              switch (field) {
+                case "layers" ->
+                    configuration.layers(
+                        Layer.builder()
+                            .arn("arn:aws:lambda:eu-west-1:000000000000:layer:x:1")
+                            .build());
+                case "environment variables" ->
+                    configuration.environment(
+                        EnvironmentResponse.builder()
+                            .variables(Map.of("NODE_OPTIONS", "--require /opt/x.js"))
+                            .build());
+                case "handler" -> configuration.handler("other.handler");
+                case "runtime" -> configuration.runtime("python3.12");
+                default -> throw new IllegalArgumentException(field);
+              }
+            }));
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(failure.getMessage()).contains(PYTHON_EXECUTOR).contains("differs in its " + field);
+  }
+
+  @Test
+  void refusesAFunctionWhoseEnvironmentCannotBeRead() {
+    // Encrypted with a key the runtime cannot use: Lambda still runs with these variables.
+    when(lambda.getFunction(any(GetFunctionRequest.class)))
+        .thenReturn(
+            tampered(configuration ->
+                configuration.environment(
+                    EnvironmentResponse.builder()
+                        .error(
+                            EnvironmentError.builder()
+                                .errorCode("KMSAccessDeniedException")
+                                .message("Lambda was unable to decrypt the environment variables")
+                                .build())
+                        .build())));
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(failure.getMessage()).contains("differs in its environment variables");
+  }
+
+  @Test
+  void acceptsAFunctionWithAnEmptyEnvironment() {
+    when(lambda.getFunction(any(GetFunctionRequest.class)))
+        .thenReturn(
+            tampered(configuration ->
+                configuration.environment(
+                    EnvironmentResponse.builder().variables(Map.of()).build())));
+
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+  }
+
+  @Test
+  void refusesATamperedFunctionBeforeUpdatingItsDriftedSettings() {
+    when(lambda.getFunction(any(GetFunctionRequest.class)))
+        .thenReturn(
+            tampered(configuration -> configuration.codeSha256("dGFtcGVyZWQ=").memorySize(1024)));
+
+    assertThat(ensureFails(ScriptLanguage.PYTHON).code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    verify(lambda, never())
+        .updateFunctionConfiguration(any(UpdateFunctionConfigurationRequest.class));
+  }
+
+  @Test
+  void refusesAFunctionTamperedWithSinceItWasMadeReadyWhenMadeReadyAgain() {
+    // Read twice per attempt: whether it exists, then its state.
+    final var intact =
+        function(State.ACTIVE, LastUpdateStatus.SUCCESSFUL, 512, FUNCTION_TIMEOUT, ROLE);
+    when(lambda.getFunction(any(GetFunctionRequest.class)))
+        .thenReturn(intact, intact)
+        .thenReturn(tampered(configuration -> configuration.codeSha256("dGFtcGVyZWQ=")));
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+
+    // As after DEPLOYMENT_MISSING.
+    assertThat(ensureFails(ScriptLanguage.PYTHON).code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
   }
 
   @Test
@@ -820,6 +935,36 @@ class AwsLambdaManagedCodeProviderTest {
   }
 
   @Test
+  void packagesItsFilesUncompressedSoThatTheBytesDependOnTheirContentOnly() throws IOException {
+    // A compressed entry depends on the zlib of the JDK, so that runtimes on different images
+    // would expect different bytes from the same executor and refuse it.
+    try (var zip =
+        new ZipInputStream(
+            new ByteArrayInputStream(LambdaExecutor.of(ScriptLanguage.PYTHON).zip()))) {
+      for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+        assertThat(entry.getMethod()).as(entry.getName()).isEqualTo(ZipEntry.STORED);
+      }
+    }
+  }
+
+  @Test
+  void packagesTheSameBytesInEveryTimeZone() {
+    // Runtimes in other time zones must expect the same bytes, or they refuse each other's
+    // executors.
+    final var zone = TimeZone.getDefault();
+    try {
+      TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+      final var utc = LambdaExecutor.of(ScriptLanguage.PYTHON).zip();
+      TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"));
+      assertThat(LambdaExecutor.of(ScriptLanguage.PYTHON).zip()).isEqualTo(utc);
+      TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tokyo"));
+      assertThat(LambdaExecutor.of(ScriptLanguage.PYTHON).zip()).isEqualTo(utc);
+    } finally {
+      TimeZone.setDefault(zone);
+    }
+  }
+
+  @Test
   void packagesDeterministicallyWithNamesThatFitTheLongestPrefix() {
     final var executor = LambdaExecutor.of(ScriptLanguage.JAVASCRIPT);
 
@@ -900,8 +1045,20 @@ class AwsLambdaManagedCodeProviderTest {
         .build();
   }
 
+  /** A function of the Python executor, running its wrapper. */
   private static GetFunctionResponse function(
       State state, LastUpdateStatus lastUpdateStatus, int memory, int timeout, String role) {
+    return function(PYTHON, state, lastUpdateStatus, memory, timeout, role);
+  }
+
+  /** A function running the wrapper of the executor, with these settings. */
+  private static GetFunctionResponse function(
+      LambdaExecutor executor,
+      State state,
+      LastUpdateStatus lastUpdateStatus,
+      int memory,
+      int timeout,
+      String role) {
     return GetFunctionResponse.builder()
         .configuration(
             FunctionConfiguration.builder()
@@ -910,8 +1067,22 @@ class AwsLambdaManagedCodeProviderTest {
                 .memorySize(memory)
                 .timeout(timeout)
                 .role(role)
+                .codeSha256(executor.codeSha256())
+                .handler(executor.handler())
+                .runtime(executor.runtime())
                 .build())
         .build();
+  }
+
+  /** The active Python executor with the configured settings, changed by {@code tamper}. */
+  private static GetFunctionResponse tampered(
+      java.util.function.Consumer<FunctionConfiguration.Builder> tamper) {
+    final var configuration =
+        function(State.ACTIVE, LastUpdateStatus.SUCCESSFUL, 512, FUNCTION_TIMEOUT, ROLE)
+            .configuration()
+            .toBuilder();
+    tamper.accept(configuration);
+    return GetFunctionResponse.builder().configuration(configuration.build()).build();
   }
 
   private static Map<String, byte[]> entries(byte[] zip) throws IOException {

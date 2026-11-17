@@ -13,14 +13,19 @@ import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.UserCredentials;
 import com.google.cloud.functions.v2.FunctionServiceClient;
 import com.google.cloud.functions.v2.FunctionServiceSettings;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -99,6 +104,62 @@ final class GcpClients {
    * @throws HttpTimeoutException when no complete response arrived within the timeout of the
    *     request
    */
+  /**
+   * The body as bytes, at most {@code max + 1} of them: a longer body is cut there, so that the
+   * caller can tell it exceeds the cap. The response completes only once the body is read, so that
+   * {@link #send} bounds the read as well.
+   */
+  static HttpResponse.BodyHandler<byte[]> capped(int max) {
+    return info -> new CappedBody(max + 1);
+  }
+
+  private static final class CappedBody implements HttpResponse.BodySubscriber<byte[]> {
+
+    private final int limit;
+    private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    private final CompletableFuture<byte[]> body = new CompletableFuture<>();
+    private Flow.Subscription subscription;
+
+    private CappedBody(int limit) {
+      this.limit = limit;
+    }
+
+    @Override
+    public CompletionStage<byte[]> getBody() {
+      return body;
+    }
+
+    @Override
+    public void onSubscribe(Flow.Subscription subscription) {
+      this.subscription = subscription;
+      subscription.request(Long.MAX_VALUE);
+    }
+
+    @Override
+    public void onNext(List<ByteBuffer> buffers) {
+      for (var buffer : buffers) {
+        final var length = Math.min(buffer.remaining(), limit - bytes.size());
+        final var chunk = new byte[length];
+        buffer.get(chunk);
+        bytes.write(chunk, 0, length);
+      }
+      if (bytes.size() >= limit) {
+        subscription.cancel();
+        body.complete(bytes.toByteArray());
+      }
+    }
+
+    @Override
+    public void onError(Throwable error) {
+      body.completeExceptionally(error);
+    }
+
+    @Override
+    public void onComplete() {
+      body.complete(bytes.toByteArray());
+    }
+  }
+
   static <T> HttpResponse<T> send(
       HttpClient http, HttpRequest request, HttpResponse.BodyHandler<T> handler)
       throws IOException, InterruptedException {
