@@ -113,9 +113,25 @@ final class ManagedScriptJobHandler {
             ErrorCode.UNSUPPORTED_DEPENDENCIES, "Managed scripts do not support dependencies yet");
       }
       resourceKey = links.scriptResourceKey();
-      final var script = resources.get(camundaClient, physicalTenantId, resourceKey);
-      language = languageOf(script.name());
-      outcome = execute(physicalTenantId, job, input, language, script.content());
+      // Admitted before any wait, so that a tenant's jobs beyond its limit leave the worker at
+      // once.
+      final var permit = tenants.tryAcquire(physicalTenantId, job.getTenantId());
+      if (permit.isEmpty()) {
+        outcome =
+            failed(
+                job,
+                ErrorCode.CONCURRENCY_LIMITED,
+                "Tenant '%s' already runs %d scripts at once on this runtime; the job will be retried"
+                    .formatted(job.getTenantId(), tenants.limit()),
+                null,
+                null);
+      } else {
+        try (var held = permit.get()) {
+          final var script = resources.get(camundaClient, physicalTenantId, resourceKey);
+          language = languageOf(script.name());
+          outcome = execute(job, input, language, script.content());
+        }
+      }
     } catch (InvalidJobException e) {
       outcome = failed(job, e.code(), e.getMessage(), null, language);
     } catch (ResourceNotVisibleException e) {
@@ -169,11 +185,7 @@ final class ManagedScriptJobHandler {
   }
 
   private Outcome execute(
-      String physicalTenantId,
-      JobContext job,
-      Map<String, Object> input,
-      ScriptLanguage language,
-      String source)
+      JobContext job, Map<String, Object> input, ScriptLanguage language, String source)
       throws InterruptedException {
     final var request =
         new ExecutionRequest(
@@ -186,26 +198,35 @@ final class ManagedScriptJobHandler {
     final long deadline = System.nanoTime() + provisioningTimeout.toNanos();
     var ready = readiness.start(language);
     awaitExecutor(language, ready, deadline);
-    final var permit = tenants.tryAcquire(physicalTenantId, job.getTenantId());
-    if (permit.isEmpty()) {
-      return failed(
-          job,
-          ErrorCode.CONCURRENCY_LIMITED,
-          "Tenant '%s' already runs %d scripts at once on this runtime; the job will be retried"
-              .formatted(job.getTenantId(), tenants.limit()),
-          null,
-          language);
+    var response = invoke(language, request);
+    if (response != null && response.isDeploymentMissing()) {
+      // Made ready again once within the job; missing again, it consumes a retry.
+      ready = readiness.restart(language, ready);
+      awaitExecutor(language, ready, deadline);
+      response = invoke(language, request);
     }
-    try (var held = permit.get()) {
-      var response = provider.execute(language, request);
-      if (response != null && response.isDeploymentMissing()) {
-        // Made ready again once within the job; missing again, it consumes a retry.
-        ready = readiness.restart(language, ready);
-        awaitExecutor(language, ready, deadline);
-        response = provider.execute(language, request);
-      }
-      return outcome(job, language, response);
+    return outcome(job, language, response);
+  }
+
+  /** Calls the executor; any answer but a throttle ends the throttling of the language. */
+  private ExecutionResponse invoke(ScriptLanguage language, ExecutionRequest request) {
+    final ExecutionResponse response;
+    try {
+      response = provider.execute(language, request);
+    } catch (RuntimeException e) {
+      throttledSinceNanos.remove(language);
+      throw e;
     }
+    if (!isThrottled(response)) {
+      throttledSinceNanos.remove(language);
+    }
+    return response;
+  }
+
+  private static boolean isThrottled(ExecutionResponse response) {
+    return response != null
+        && response.error() != null
+        && ErrorCode.PLATFORM_THROTTLED.name().equals(response.error().code());
   }
 
   private void awaitExecutor(
@@ -233,13 +254,7 @@ final class ManagedScriptJobHandler {
   }
 
   private Outcome outcome(JobContext job, ScriptLanguage language, ExecutionResponse response) {
-    final boolean throttled =
-        response != null
-            && response.error() != null
-            && ErrorCode.PLATFORM_THROTTLED.name().equals(response.error().code());
-    if (!throttled) {
-      throttledSinceNanos.remove(language);
-    }
+    final boolean throttled = isThrottled(response);
     if (response == null || response.outcome() == null) {
       return failed(
           job, ErrorCode.INVALID_RESULT, "The provider returned no outcome", null, language);

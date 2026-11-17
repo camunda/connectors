@@ -368,6 +368,46 @@ class ManagedScriptJobHandlerTest {
   }
 
   @Test
+  void measuresTheThrottlingAgainAfterAMissingExecutor() {
+    store("sum.py", "x");
+    provider.respond(
+        throttled(), ExecutionResponse.failed(ErrorCode.DEPLOYMENT_MISSING, "gone"), throttled());
+
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    sleep(PROVISIONING_TIMEOUT.multipliedBy(2).toMillis() + 50);
+    final var throttledAgain = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(throttledAgain, ErrorCode.PLATFORM_THROTTLED, 3);
+    assertThat(failed.backoff()).isEqualTo(BACKOFF);
+  }
+
+  @Test
+  void turnsAwayAJobBeyondTheLimitOfItsTenantWhileTheExecutorIsMadeReady() throws Exception {
+    store("sum.py", "x");
+    final var release = new CountDownLatch(1);
+    final var blocked = blockingUntil(release, ScriptLanguage.PYTHON);
+    final var limited =
+        handler(
+            blocked,
+            new ExecutorReadiness(blocked, READINESS_BACKOFF, Duration.ZERO),
+            resources(Duration.ofMillis(200)),
+            new TenantLimiter(1));
+
+    final var waiting =
+        CompletableFuture.supplyAsync(
+            () -> limited.handle(client, "default", job(SCRIPT_HEADER, "tenant-a"), Map.of()));
+    Awaitility.await().until(() -> blocked.ensureCalls() > 0);
+    final long start = System.nanoTime();
+    final var beyond = limited.handle(client, "default", job(SCRIPT_HEADER, "tenant-a"), Map.of());
+    final var elapsed = Duration.ofNanos(System.nanoTime() - start);
+    release.countDown();
+
+    assertFailed(beyond, ErrorCode.CONCURRENCY_LIMITED, 3);
+    assertThat(elapsed).isLessThan(PROVISIONING_TIMEOUT);
+    assertThat(waiting.get(5, TimeUnit.SECONDS)).isInstanceOf(Outcome.Completed.class);
+  }
+
+  @Test
   void failsAJobBeyondTheLimitOfItsTenantWithItsRetriesUnchanged() throws Exception {
     store("sum.py", "x");
     final var entered = new CountDownLatch(1);
