@@ -16,9 +16,12 @@ import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.LocalToolCallExecutor;
@@ -148,6 +151,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentConversationTurnInputComposer.class,
           ToolCallResultsInputBuilder.class,
           AgentResponseHandler.class,
+          AgentExecutionContextFactory.class,
+          AgentTaskExecutionContextFactory.class,
+          AgentSubProcessExecutionContextFactory.class,
           AgentTaskRequestHandler.class,
           AgentTaskV1Function.class,
           AgentTaskV2Function.class,
@@ -242,6 +248,27 @@ class AgenticAiConnectorsAutoConfigurationTest {
               .doesNotHaveBean(AgentSubProcessRequestHandler.class)
               .doesNotHaveBean(AgentSubProcessV1Function.class)
               .doesNotHaveBean(AgentSubProcessV2Function.class);
+        });
+  }
+
+  @Test
+  void whenCustomExecutionContextFactoriesProvided_thenReplaceDefaultForBothFlavors() {
+    var customTaskFactory = mock(AgentTaskExecutionContextFactory.class);
+    var customSubProcessFactory = mock(AgentSubProcessExecutionContextFactory.class);
+    contextRunner
+        .withBean(AgentTaskExecutionContextFactory.class, () -> customTaskFactory)
+        .withBean(AgentSubProcessExecutionContextFactory.class, () -> customSubProcessFactory)
+        .run(context -> {
+          assertThat(context).doesNotHaveBean("aiAgentExecutionContextFactory");
+          assertThat(context.getBean(AgentTaskExecutionContextFactory.class))
+              .isSameAs(customTaskFactory);
+          assertThat(context.getBean(AgentSubProcessExecutionContextFactory.class))
+              .isSameAs(customSubProcessFactory);
+          assertThat(context)
+              .hasSingleBean(AgentTaskV1Function.class)
+              .hasSingleBean(AgentTaskV2Function.class)
+              .hasSingleBean(AgentSubProcessV1Function.class)
+              .hasSingleBean(AgentSubProcessV2Function.class);
         });
   }
 

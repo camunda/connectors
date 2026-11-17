@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -63,7 +64,10 @@ class AgentTaskV2FunctionTest {
     when(context.bindVariables(AgentTaskV2Request.class))
         .thenReturn(new AgentTaskV2Request(PROVIDER, DATA));
     when(context.getJobContext()).thenReturn(jobContext);
-    final var function = new AgentTaskV2Function(toolElementsResolver, agentRequestHandler);
+    final var function =
+        new AgentTaskV2Function(
+            new AgentExecutionContextFactory(toolElementsResolver, null, false),
+            agentRequestHandler);
 
     function.execute(context);
 

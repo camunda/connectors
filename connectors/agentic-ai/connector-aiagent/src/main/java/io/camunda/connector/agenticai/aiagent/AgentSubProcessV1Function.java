@@ -6,13 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
-import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
-import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import java.util.List;
 
 /**
  * AI Agent job worker implementation (acting on an ad-hoc sub-process).
@@ -44,46 +42,21 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
   public static final String JOB_WORKER_NAME = "AI Agent Job Worker";
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent-job-worker:1";
 
-  /** The deprecated v1 connector gives a new agent instance no agent instance feature. */
-  private static final List<String> NEW_INSTANCE_FEATURES = List.of();
-
+  private final AgentSubProcessExecutionContextFactory executionContextFactory;
   private final AgentSubProcessRequestHandler agentRequestHandler;
-  private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
-  private final boolean rewriteV1ProviderConfigToV2;
 
   public AgentSubProcessV1Function(
-      AgentSubProcessRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper providerConfigurationMapper,
-      boolean rewriteV1ProviderConfigToV2) {
+      AgentSubProcessExecutionContextFactory executionContextFactory,
+      AgentSubProcessRequestHandler agentRequestHandler) {
+    this.executionContextFactory = executionContextFactory;
     this.agentRequestHandler = agentRequestHandler;
-    this.providerConfigurationMapper = providerConfigurationMapper;
-    this.rewriteV1ProviderConfigToV2 = rewriteV1ProviderConfigToV2;
   }
 
   @Override
   public AgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(AgentSubProcessV1Request.class);
-    var executionContext = buildExecutionContext(context, request);
+    var executionContext = executionContextFactory.subProcessContext(context, request);
     return agentRequestHandler.handleRequest(executionContext);
-  }
-
-  private AgentSubProcessExecutionContext buildExecutionContext(
-      OutboundConnectorContext context, AgentSubProcessV1Request request) {
-    if (rewriteV1ProviderConfigToV2) {
-      var nativeConfig = providerConfigurationMapper.map(request.provider());
-      return new AgentSubProcessExecutionContext(
-          context.getJobContext(),
-          context,
-          request.data(),
-          request.agentContext(),
-          request.toolCallResults(),
-          request.toolElements(),
-          nativeConfig,
-          NEW_INSTANCE_FEATURES);
-    }
-
-    return new AgentSubProcessExecutionContext(
-        context.getJobContext(), context, request, NEW_INSTANCE_FEATURES);
   }
 }

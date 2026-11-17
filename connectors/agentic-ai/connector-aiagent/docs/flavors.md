@@ -5,7 +5,7 @@
 - **BPMN element**: Service task with connector template applied
 - **Class**: `AgentTaskV1Function` implements `OutboundConnectorFunction`
 - **Type**: `io.camunda.agenticai:aiagent:1`
-- **Execution context**: `AgentTaskExecutionContext`
+- **Execution context**: `AgentTaskExecutionContext`, built by `AgentTaskExecutionContextFactory`
 - **Request handler**: `AgentTaskRequestHandler`
 - **Tool resolution**: Fetches process definition XML via the Camunda API to resolve tool elements from a referenced ad-hoc sub-process (eventually consistent — can fail on first deploy)
 - **Feedback loop**: Must be **modeled explicitly** in BPMN — the process must route tool calls to a multi-instance ad-hoc sub-process and route results back to the AI Agent task
@@ -18,7 +18,7 @@
 - **BPMN element**: Ad-hoc sub-process with job worker element template applied
 - **Class**: `AgentSubProcessV1Function` with `@OutboundConnector`
 - **Type**: `io.camunda.agenticai:aiagent-job-worker:1`
-- **Execution context**: `AgentSubProcessExecutionContext`
+- **Execution context**: `AgentSubProcessExecutionContext`, built by `AgentSubProcessExecutionContextFactory`
 - **Request handler**: `AgentSubProcessRequestHandler`
 - **Tool resolution**: Tools come directly from the `adHocSubProcessElements` variable (populated by Zeebe) — no API call needed
 - **Feedback loop**: **Implicit** — the job worker completes the job with element activation commands, and Zeebe automatically creates a new job when those elements complete
