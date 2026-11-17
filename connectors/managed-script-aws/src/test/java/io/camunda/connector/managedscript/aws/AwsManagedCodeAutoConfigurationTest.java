@@ -88,8 +88,22 @@ class AwsManagedCodeAutoConfigurationTest {
   }
 
   @Test
+  void bindsTheReservedConcurrency() {
+    aws.withPropertyValues("camunda.connector.managed-code.aws.reserved-concurrency=20")
+        .run(context ->
+            assertThat(context.getBean(AwsManagedCodeProperties.class).reservedConcurrency())
+                .isEqualTo(20));
+  }
+
+  @Test
+  void rejectsAReservedConcurrencyThatIsNotPositive() {
+    assertThatThrownBy(() -> new AwsManagedCodeProperties(null, ROLE, 512, null, 0))
+        .hasMessageContaining("reserved-concurrency 0 must be positive");
+  }
+
+  @Test
   void rejectsMemoryOutsideTheLambdaRange() {
-    assertThatThrownBy(() -> new AwsManagedCodeProperties(null, ROLE, 64, null))
+    assertThatThrownBy(() -> new AwsManagedCodeProperties(null, ROLE, 64, null, null))
         .hasMessageContaining("between 128 and 10240");
   }
 

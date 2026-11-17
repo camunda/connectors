@@ -96,8 +96,9 @@ Controller sets for each cluster:
   `max-concurrent-scripts-per-tenant` the share of one tenant.
 - On GCP, `gcp.max-instance-count` bounds the scripts of a language that run at once in the
   cluster, whatever the number of runtime instances.
-- On AWS, the concurrency of Lambda is shared by every function of the account; the runtime cap
-  is what bounds a cluster.
+- On AWS, the concurrency of Lambda is shared by every function of the account.
+  `aws.reserved-concurrency` bounds the scripts of a language that run at once in the cluster, and
+  reserves that much of the account for it; without it, the runtime cap is what bounds a cluster.
 
 Keep `max-jobs-active`, times the physical tenants and the runtime instances, at or below the provider's cap, so that the
 provider does not throttle. A call the provider throttles anyway (Lambda `TooManyRequests`, HTTP
@@ -154,6 +155,8 @@ camunda.connector.managed-code.aws.region=eu-central-1
 camunda.connector.managed-code.aws.execution-role-arn=arn:aws:iam::123456789012:role/camunda-ms-executor
 camunda.connector.managed-code.aws.memory-mb=512
 camunda.connector.managed-code.aws.log-retention-days=30
+# Optional, unset by default
+camunda.connector.managed-code.aws.reserved-concurrency=<executions>
 ```
 
 - An executor is named `<deployment-name-prefix><py|js>-<12 hex of the wrapper digest>`. When it is
@@ -174,6 +177,14 @@ camunda.connector.managed-code.aws.log-retention-days=30
   their input and secrets. Find out how the function was changed, then delete it: the runtime
   creates it again. The check reads nothing beyond `GetFunction`, so it needs no extra permission.
   It is not repeated on each call.
+- `aws.reserved-concurrency` reserves concurrency for each executor (`PutFunctionConcurrency`): it
+  bounds the scripts of a language that run at once in the cluster, and guarantees them that much
+  of the account's concurrency, which every function of the account shares. It is compared whenever
+  the provider makes an executor ready, and set again when it differs. Unset, no concurrency is
+  reserved, and a reservation made earlier is removed (`DeleteFunctionConcurrency`). Lambda keeps
+  at least 100 executions of the account unreserved: a reservation that would go below fails with
+  `PLATFORM_REJECTED`, and the message says so. A call beyond the reservation is throttled, see
+  [Concurrency caps](#concurrency-caps).
 - `aws.region` is the region of the executors; without it, the SDK's default region chain applies
   (`AWS_REGION`, the profile). `aws.memory-mb` is between 128 and 10240 (default 512).
 - `aws.memory-mb` sizes the scripts: the wrapper reads the memory of the function from Lambda and
@@ -249,7 +260,9 @@ The **identity of the runtime** needs this minimal policy, limited to the prefix
         "lambda:GetFunction",
         "lambda:UpdateFunctionConfiguration",
         "lambda:InvokeFunction",
-        "lambda:TagResource"
+        "lambda:TagResource",
+        "lambda:PutFunctionConcurrency",
+        "lambda:DeleteFunctionConcurrency"
       ],
       "Resource": "arn:aws:lambda:<region>:<account>:function:<prefix>*"
     },
@@ -267,6 +280,10 @@ The **identity of the runtime** needs this minimal policy, limited to the prefix
   ]
 }
 ```
+
+`lambda:PutFunctionConcurrency` is needed only with `aws.reserved-concurrency`, and
+`lambda:DeleteFunctionConcurrency` only to remove a reservation once it is unset. `GetFunction`
+returns the reservation, so reading it needs no other permission.
 
 ### Google Cloud Run functions provider
 
