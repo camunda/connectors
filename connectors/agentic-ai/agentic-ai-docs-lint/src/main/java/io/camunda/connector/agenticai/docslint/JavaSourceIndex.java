@@ -285,12 +285,19 @@ final class JavaSourceIndex {
     }
   }
 
+  private static boolean inheritable(final int modifiers) {
+    return java.lang.reflect.Modifier.isPublic(modifiers)
+        || java.lang.reflect.Modifier.isProtected(modifiers);
+  }
+
   private static Set<String> memberNames(final Class<?> type) {
     final Set<String> names = new TreeSet<>();
     Stream.concat(Arrays.stream(type.getMethods()), Arrays.stream(type.getDeclaredMethods()))
+        .filter(method -> inheritable(method.getModifiers()))
         .map(Method::getName)
         .forEach(names::add);
     Stream.concat(Arrays.stream(type.getFields()), Arrays.stream(type.getDeclaredFields()))
+        .filter(field -> inheritable(field.getModifiers()))
         .map(Field::getName)
         .forEach(names::add);
     return names;
@@ -339,7 +346,9 @@ final class JavaSourceIndex {
     for (final Tree member : tree.getMembers()) {
       if (member instanceof final MethodTree method && !method.getName().contentEquals("<init>")) {
         members.add(method.getName().toString());
-        if (!method.getModifiers().getFlags().contains(Modifier.PRIVATE)) {
+        final Set<Modifier> flags = method.getModifiers().getFlags();
+        if (!flags.contains(Modifier.PRIVATE)
+            && !(tree.getKind() == Tree.Kind.INTERFACE && flags.contains(Modifier.STATIC))) {
           inheritedMembers.add(method.getName().toString());
         }
       } else if (member instanceof final VariableTree variable) {

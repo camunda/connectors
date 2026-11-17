@@ -615,6 +615,53 @@ class DocsLintTest {
   }
 
   @Test
+  void aNestedTypeMustBeDeclaredByTheOuterTypeEvenWhenTheLeafNameIsKnown() throws IOException {
+    writeSources(SOURCES);
+
+    assertThat(messages(findStaleReferences("project/one/docs/a.md", "`Service.String`")))
+        .containsExactly(
+            """
+            project/one/docs/a.md:1: qualified name `Service.String` of `Service.String` not found
+                why: no type of the repo sources has this qualified name
+                fix: check the package and outer types. No type of the repo sources is named String\
+            """);
+  }
+
+  @Test
+  void aPrivateMemberOfAJdkSupertypeIsNotInherited() throws IOException {
+    writeSources(INHERITANCE);
+
+    assertThat(messages(findStaleReferences("project/one/docs/a.md", "`Mode#readObject`")))
+        .containsExactly(
+            """
+            project/one/docs/a.md:1: no such member `readObject` on `c.Mode`
+                why: the member was renamed or removed, or is spelled differently
+                fix: check the member against the code. Members, including those of supertypes of the repo: FIRST\
+            """);
+  }
+
+  @Test
+  void aStaticMethodOfAnInterfaceIsNotInherited() throws IOException {
+    writeSources(
+        Map.of(
+            "lib/e/Util.java",
+            "package e; interface Util { static void factory() {} void hook(); }",
+            "lib/e/Child.java",
+            "package e; class Child implements Util { public void hook() {} }"));
+
+    assertThat(
+            messages(
+                findStaleReferences(
+                    "project/one/docs/a.md", "`Util#factory` `Child#hook` `Child#factory`")))
+        .containsExactly(
+            """
+            project/one/docs/a.md:1: no such member `factory` on `e.Child`
+                why: the member was renamed or removed, or is spelled differently
+                fix: check the member against the code. Members, including those of supertypes of the repo: hook\
+            """);
+  }
+
+  @Test
   void aMissingMemberListsTheMembers() throws IOException {
     writeSources(SOURCES);
 

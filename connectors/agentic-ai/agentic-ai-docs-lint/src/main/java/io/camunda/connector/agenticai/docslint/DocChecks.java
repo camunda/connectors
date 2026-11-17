@@ -249,7 +249,6 @@ final class DocChecks {
             .orElseThrow();
     final List<JavaSourceIndex.Type> named = index.types(segments.getLast());
     if (index.types(outermost).isEmpty()
-        || named.isEmpty()
         || index.imports(qualifiedName)
         || named.stream()
             .anyMatch(type ->
@@ -263,10 +262,10 @@ final class DocChecks {
             span.line(),
             "qualified name `" + qualifiedName + "` of `" + span.text() + "` not found",
             "no type of the repo sources has this qualified name",
-            "check the package and outer types. The types named "
-                + segments.getLast()
-                + " are: "
-                + qualifiedNames(named)));
+            "check the package and outer types. "
+                + (named.isEmpty()
+                    ? "No type of the repo sources is named " + segments.getLast()
+                    : "The types named " + segments.getLast() + " are: " + qualifiedNames(named))));
   }
 
   private static Stream<Finding> member(
