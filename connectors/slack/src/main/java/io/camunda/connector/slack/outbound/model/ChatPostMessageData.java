@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
+import com.slack.api.methods.request.files.FilesCompleteUploadExternalRequest.FileDetails;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
@@ -133,23 +134,24 @@ public record ChatPostMessageData(
     if (MessageType.plainText.equals(messageType)) {
       requestBuilder.text(text);
       requestBuilder.linkNames(true);
-      if (documents != null && !documents.isEmpty()) {
-        requestBuilder.blocks(
-            BlockBuilder.create(new FileUploader(methodsClient))
-                .text(text)
-                .documents(documents)
-                .getLayoutBlocks());
-      }
     } else {
       requestBuilder.blocks(
-          BlockBuilder.create(new FileUploader(methodsClient))
-              .documents(documents)
-              .text(text)
-              .blockContent(blockContent)
-              .getLayoutBlocks());
+          BlockBuilder.create().text(text).blockContent(blockContent).getLayoutBlocks());
     }
+    // Upload before posting so a failed upload does not leave a message without its files
+    var fileUploader = new FileUploader(methodsClient);
+    List<FileDetails> uploadedFiles =
+        documents == null || documents.isEmpty()
+            ? List.of()
+            : fileUploader.uploadDocuments(documents);
     ChatPostMessageResponse chatPostMessageResponse =
         methodsClient.chatPostMessage(requestBuilder.build());
+    if (chatPostMessageResponse.isOk() && !uploadedFiles.isEmpty()) {
+      // Slack only shows an uploaded file once it is shared in a channel; a file block cannot
+      // display it. Share in the channel Slack resolved for the message, so names, users and
+      // emails all work, and in the same thread when the message went to one.
+      fileUploader.shareFiles(uploadedFiles, chatPostMessageResponse.getChannel(), thread);
+    }
     if (chatPostMessageResponse.isOk()) {
       return new ChatPostMessageSlackResponse(chatPostMessageResponse);
     } else {

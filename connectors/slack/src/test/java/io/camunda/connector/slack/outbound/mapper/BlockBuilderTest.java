@@ -7,34 +7,24 @@
 package io.camunda.connector.slack.outbound.mapper;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.slack.api.model.File;
-import com.slack.api.model.block.FileBlock;
 import com.slack.api.model.block.LayoutBlock;
 import com.slack.api.model.block.SectionBlock;
 import com.slack.api.model.block.composition.MarkdownTextObject;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.runtime.test.document.TestDocument;
-import io.camunda.connector.slack.outbound.caller.FileUploader;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class BlockBuilderTest {
 
-  private FileUploader fileUploader;
   private BlockBuilder blockBuilder;
 
   @BeforeEach
   void setup() {
-    fileUploader = mock(FileUploader.class);
-    blockBuilder = BlockBuilder.create(fileUploader);
+    blockBuilder = BlockBuilder.create();
   }
 
   @Test
@@ -49,23 +39,6 @@ class BlockBuilderTest {
     SectionBlock section = (SectionBlock) blocks.getFirst();
     MarkdownTextObject textObj = (MarkdownTextObject) section.getText();
     assertEquals(text, textObj.getText());
-  }
-
-  @Test
-  void shouldAddDocumentFileBlocks() {
-    // Given
-    File file = new File();
-    file.setId("file123");
-
-    List<File> uploadedFiles = List.of(file);
-    when(fileUploader.uploadDocuments(any())).thenReturn(uploadedFiles);
-
-    Document document = new TestDocument(null, null, null, "id");
-    List<LayoutBlock> layoutBlocks = blockBuilder.documents(List.of(document)).getLayoutBlocks();
-
-    // Then
-    assertEquals(1, layoutBlocks.size());
-    assertEquals("file123", ((FileBlock) layoutBlocks.getFirst()).getFileId());
   }
 
   @Test

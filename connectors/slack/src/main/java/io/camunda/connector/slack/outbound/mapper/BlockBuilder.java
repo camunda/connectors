@@ -8,39 +8,23 @@ package io.camunda.connector.slack.outbound.mapper;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.slack.api.model.File;
 import com.slack.api.model.block.*;
 import com.slack.api.model.block.composition.MarkdownTextObject;
 import com.slack.api.util.json.GsonFactory;
-import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.slack.outbound.caller.FileUploader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
 public class BlockBuilder {
-  private static final String REMOTE_ACCESS = "remote";
   private final List<LayoutBlock> layoutBlockList;
-  private final FileUploader fileUploader;
 
-  private BlockBuilder(List<LayoutBlock> layoutBlockList, FileUploader fileUploader) {
+  private BlockBuilder(List<LayoutBlock> layoutBlockList) {
     this.layoutBlockList = layoutBlockList;
-    this.fileUploader = fileUploader;
   }
 
-  public static BlockBuilder create(FileUploader fileUploader) {
-    return new BlockBuilder(new ArrayList<>(), fileUploader);
-  }
-
-  public BlockBuilder documents(List<Document> documents) {
-    if (documents != null && !documents.isEmpty()) {
-      List<File> files = fileUploader.uploadDocuments(documents);
-      files.stream()
-          .map(file -> FileBlock.builder().fileId(file.getId()).source(REMOTE_ACCESS).build())
-          .forEach(this.layoutBlockList::add);
-    }
-    return this;
+  public static BlockBuilder create() {
+    return new BlockBuilder(new ArrayList<>());
   }
 
   public BlockBuilder text(String text) {
