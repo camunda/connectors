@@ -29,7 +29,15 @@ policy:
   # Read from the PR base commit, never the PR head.
   skills:
     - path: connectors/agentic-ai/docs/code-review.md
+    - path: connectors/agentic-ai/docs/implementation-rules.md
+    - path: connectors/agentic-ai/docs/design-guidelines.md
+    - path: connectors/agentic-ai/docs/target-architecture.md
+    - path: connectors/agentic-ai/docs/acceptance-testing.md
+    - path: connectors/agentic-ai/AGENTS.md
   instructions: |
+    - code-review.md links to rule documents. Read their copies under
+      .policy/skills, not the checkout. Read any other policy document from the
+      PR base commit (git show <baseRefOid>:<path>).
     - Report findings only in connectors/agentic-ai and
       connectors-e2e-test/connectors-e2e-test-agentic-ai. Other teams own the
       rest of the repository.
@@ -71,6 +79,8 @@ escalation:
         - "connectors/agentic-ai/docs/target-architecture.md"
         - "connectors/agentic-ai/docs/code-review.md"
         - "connectors/agentic-ai/docs/breaking-changes.md"
+        - "connectors/agentic-ai/docs/acceptance-testing.md"
+        - "connectors/agentic-ai/AGENTS.md"
     - reason: authentication and credentials
       paths:
         - "connectors/agentic-ai/*/src/main/*Auth*"

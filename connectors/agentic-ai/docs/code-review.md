@@ -100,7 +100,7 @@ number:
 The path rules in `.github/pr-review-agent/agentic-ai.yml` also require a human, whatever the review
 finds. They cover released element templates, element template migration recipes, `aiagent-api`, `aiagent-model`, `api-changes.json`, the rule documents
 (`implementation-rules.md`, `design-guidelines.md`, `target-architecture.md`, `code-review.md`,
-`breaking-changes.md`), and authentication, credential and outbound proxy code.
+`breaking-changes.md`, `acceptance-testing.md`, the module `AGENTS.md`), and authentication, credential and outbound proxy code.
 
 A review that finds none of these does not need a human because of this section. It can still need one
 for other reasons, such as a blocking finding or low confidence.
