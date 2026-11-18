@@ -268,6 +268,15 @@ final class DocChecks {
                     : "The types named " + segments.getLast() + " are: " + qualifiedNames(named))));
   }
 
+  private static boolean declaresOuterType(
+      final String qualifiedName, final JavaSourceIndex index) {
+    return Stream.of(qualifiedName.split("\\."))
+        .filter(segment -> Character.isUpperCase(segment.charAt(0)))
+        .findFirst()
+        .map(outermost -> !index.types(outermost).isEmpty())
+        .orElse(false);
+  }
+
   private static Stream<Finding> member(
       final Doc doc, final CodeSpan.MemberReference reference, final JavaSourceIndex index) {
     final String qualifier = reference.qualifier();
@@ -283,7 +292,10 @@ final class DocChecks {
                     type.qualifiedName().equals(qualifiedName)
                         || type.qualifiedName().endsWith("." + qualifiedName))
                 .toList();
-    if (named.isEmpty() || (candidates.isEmpty() && index.imports(qualifiedName))) {
+    final boolean undeclaredNested =
+        named.isEmpty() && !qualifier.isEmpty() && declaresOuterType(qualifiedName, index);
+    if ((named.isEmpty() && !undeclaredNested)
+        || (candidates.isEmpty() && index.imports(qualifiedName))) {
       return Stream.of(
           new Warning(
               doc.path(),
@@ -305,10 +317,10 @@ final class DocChecks {
               reference.line(),
               "qualified name `" + qualifiedName + "` of `" + reference.text() + "` not found",
               "no type of the repo sources has this qualified name",
-              "check the package and outer types. The types named "
-                  + simpleName
-                  + " are: "
-                  + names));
+              "check the package and outer types. "
+                  + (named.isEmpty()
+                      ? "No type of the repo sources is named " + simpleName
+                      : "The types named " + simpleName + " are: " + names)));
     }
     if (candidates.stream().anyMatch(type -> hasMember(type, member, index))
         || candidates.stream().anyMatch(type -> inheritsMember(type, member, index))) {

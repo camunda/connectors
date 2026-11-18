@@ -615,6 +615,19 @@ class DocsLintTest {
   }
 
   @Test
+  void aMemberOfAnUndeclaredNestedTypeIsRejectedWhenTheOuterTypeIsDeclared() throws IOException {
+    writeSources(SOURCES);
+
+    assertThat(messages(findStaleReferences("project/one/docs/a.md", "`Service.String#length`")))
+        .containsExactly(
+            """
+            project/one/docs/a.md:1: qualified name `Service.String` of `Service.String#length` not found
+                why: no type of the repo sources has this qualified name
+                fix: check the package and outer types. No type of the repo sources is named String\
+            """);
+  }
+
+  @Test
   void aNestedTypeMustBeDeclaredByTheOuterTypeEvenWhenTheLeafNameIsKnown() throws IOException {
     writeSources(SOURCES);
 
