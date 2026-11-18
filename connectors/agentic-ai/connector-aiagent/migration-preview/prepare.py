@@ -14,31 +14,17 @@ OPENAI = {
     "azureOpenAi": "foundry",
     "openaiCompatible": "custom",
 }
-CASES = (
-    ("Anthropic", "anthropic", {}),
-    ("Anthropic endpoint (unsupported)", "anthropic", {
-        "provider.anthropic.endpoint": "https://anthropic.example.invalid",
-    }),
-    ("Bedrock access keys", "bedrock", {}),
-    ("Bedrock API key", "bedrock", {"provider.bedrock.authentication.type": "apiKey"}),
-    ("Bedrock default chain", "bedrock", {
-        "provider.bedrock.authentication.type": "defaultCredentialsChain",
-    }),
-    ("OpenAI", "openai", {}),
-    ("Azure API key", "azureOpenAi", {}),
-    ("Azure client credentials", "azureOpenAi", {
+CASES = {
+    "task": ("Azure OpenAI", "AzureTask", "azureOpenAi", "50", {
         "provider.azureOpenAi.authentication.type": "clientCredentials",
+        "provider.azureOpenAi.model.deploymentName": "demo-gpt-deployment",
     }),
-    ("OpenAI-compatible (no auth)", "openaiCompatible", {
-        "provider.openaiCompatible.authentication.apiKey": "",
+    "subprocess": ("Vertex AI", "VertexSubprocess", "google-vertex-ai", "270", {
+        "provider.googleVertexAi.endpoint": "https://vertex.example.invalid",
+        "provider.googleVertexAi.projectId": "demo-vertex-project",
+        "provider.googleVertexAi.region": "us-central1",
     }),
-    ("OpenAI-compatible key (unsupported)", "openaiCompatible", {}),
-    ("Vertex service account + endpoint (endpoint unsupported)", "google-vertex-ai", {}),
-    ("Vertex application defaults", "google-vertex-ai", {
-        "provider.googleVertexAi.authentication.type": "applicationDefaultCredentials",
-        "provider.googleVertexAi.endpoint": "",
-    }),
-)
+}
 NS = {
     "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
     "bpmndi": "http://www.omg.org/spec/BPMN/20100524/DI",
@@ -140,17 +126,14 @@ def enabled(prop, selections):
                for part in condition.get("allMatch", [condition]))
 
 
-def add_case(process, plane, template, variant, case, column, row):
-    label, provider, overrides = case
+def add_case(process, plane, template, label, case):
+    scenario, node_id, provider, x, overrides = case
     settings = {PROVIDER: provider, **overrides}
-    if label == "Anthropic":
-        settings["provider.anthropic.endpoint"] = ""
     fields = {p["id"]: settings.get(p["id"], example_value(p))
               for p in template["properties"] if "id" in p}
-    node_id = f"Agent_{row}_{column}"
     kind = {"bpmn:ServiceTask": "bpmn:serviceTask",
             "bpmn:AdHocSubProcess": "bpmn:adHocSubProcess"}[template["elementType"]["value"]]
-    agent = add(process, kind, id=node_id, name=f"{variant}: {label}", **{
+    agent = add(process, kind, id=node_id, name=f"{label}: {scenario}", **{
         qname("zeebe:modelerTemplate"): template["id"],
         qname("zeebe:modelerTemplateVersion"): str(template["version"]),
     })
@@ -166,27 +149,22 @@ def add_case(process, plane, template, variant, case, column, row):
             continue
         if name == "data.systemPrompt.prompt":
             value = '="Keep this legacy prompt"'
-        elif name == "provider.openai.model.model":
-            value = "gpt-4.1-mini"
         else:
             value = settings.get(name, example_value(prop))
         add(io, "zeebe:input", source=value, target=name)
     shape = add(plane, "bpmndi:BPMNShape", id=f"{node_id}_di", bpmnElement=node_id)
-    add(shape, "dc:Bounds", x=str(50 + column * 185), y=str(60 + row * 115), width="160", height="90")
+    add(shape, "dc:Bounds", x=x, y="210", width="160", height="90")
 
 
 def prepare(demo):
     for prefix, uri in NS.items():
         ET.register_namespace(prefix, uri)
-    diagram = ET.Element(qname("bpmn:definitions"), {
-        "id": "MigrationPreview", "targetNamespace": "http://bpmn.io/schema/bpmn",
-        qname("modeler:executionPlatform"): "Camunda Cloud",
-        qname("modeler:executionPlatformVersion"): "8.10.0",
-    })
-    process = add(diagram, "bpmn:process", id="PreviewOnly", isExecutable="false")
-    plane = add(add(diagram, "bpmndi:BPMNDiagram", id="Diagram"), "bpmndi:BPMNPlane",
-                id="Plane", bpmnElement="PreviewOnly")
-    templates = []
+    diagram = ET.parse(demo / "diagram.bpmn")
+    diagram.getroot().set(qname("modeler:executionPlatformVersion"), "8.10.0")
+    process = diagram.find("bpmn:process", NS)
+    process.set("isExecutable", "false")
+    plane = diagram.find("bpmndi:BPMNDiagram/bpmndi:BPMNPlane", NS)
+    templates = json.loads((demo / "templates.json").read_text())
     for prefix, suffix in (("", ""), ("hybrid/", "-hybrid")):
         for kind, legacy, label in (("task", "outbound-connector", "Task"),
                                     ("subprocess", "job-worker", "Sub-process")):
@@ -194,13 +172,12 @@ def prepare(demo):
             target = load(f"element-templates/{prefix}agenticai-ai-agent-{kind}.v2{suffix}.json")
             recipe = load(f"element-template-overrides/ai-agent-{kind}.v2{suffix}.migrates-from.json")
             add_migration(source, target, recipe)
-            column = len(templates) // 2
-            for row, case in enumerate(CASES):
-                add_case(process, plane, source, f"{label}{' hybrid' if suffix else ''}", case, column, row)
+            if not suffix:
+                add_case(process, plane, source, label, CASES[kind])
             templates.extend([source, target])
     (demo / "ai-agent-templates.json").write_text(json.dumps(templates, indent=2) + "\n")
     ET.indent(diagram)
-    ET.ElementTree(diagram).write(demo / "ai-agent-diagram.bpmn", encoding="utf-8", xml_declaration=True)
+    diagram.write(demo / "ai-agent-diagram.bpmn", encoding="utf-8", xml_declaration=True)
     upstream_example = demo / "Migration.example.spec.js"
     example = upstream_example.read_text()
     upstream_example.write_text(example.replace("'./templates.json'", "'./ai-agent-templates.json'")

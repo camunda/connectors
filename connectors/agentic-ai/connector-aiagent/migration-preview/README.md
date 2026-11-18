@@ -24,11 +24,18 @@ SINGLE_START=migration ./node_modules/.bin/karma start karma.config.js \
   --hostname 127.0.0.1 --listen-address 127.0.0.1 --port 19891
 ```
 
-Open <http://127.0.0.1:19891/debug.html>. The columns are Task, Sub-process,
-Task Hybrid, and Sub-process Hybrid. Scroll/pan for more providers. Select an
-element and use **Template > Migration available > Review changes**, then
-**Migrate**. Undo or refresh before trying the same case again. The review
-dialog comes from the upstream demo, not released Desktop or Web Modeler.
+Open <http://127.0.0.1:19891/debug.html>. The upstream REST fixture stays at the
+top; two AI Agent cases sit below it. Select either agent and use
+**Template > Migration available > Review changes**, then **Migrate**:
+
+- **Task: Azure OpenAI** — check that Foundry uses Chat Completions and that
+  client credentials and the deployment name carry over.
+- **Sub-process: Vertex AI** — check that the Gemini Vertex backend keeps the
+  project, region, and service-account settings. The custom endpoint is not
+  carried over.
+
+Undo or refresh to try a case again. The review dialog comes from the upstream
+demo, not released Desktop or Web Modeler.
 
 ## Supported moves and release blockers
 
@@ -38,7 +45,7 @@ backend selectors first, then authentication selectors and values. It maps
 nonempty values without changing their FEEL representation; an empty input
 cannot override a target default via a hint.
 
-| Legacy configuration | What the preview exercises | What still needs work |
+| Legacy configuration | What the instructions attempt to preserve | What still needs work |
 | --- | --- | --- |
 | Anthropic | Shared model/timeout fields, public API backend default | An endpoint may be absent, Foundry, or custom. The draft cannot branch on presence or match hostnames. No endpoint or API key is copied, so a custom key is never copied onto the public API binding. |
 | Bedrock | Same provider and model; access keys, API key, or default credential chain | Native Converse calls and prompt caching are not verified equivalent. |
