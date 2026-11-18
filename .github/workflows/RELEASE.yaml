@@ -122,7 +122,7 @@ jobs:
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: 'temurin'
-          java-version: '25.0.5+8.0.LTS'
+          java-version: '25.0.5+100000002.0.LTS'
 
       - name: Determine Maven cache key
         id: maven-cache-key
@@ -391,7 +391,7 @@ jobs:
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: 'temurin'
-          java-version: '25.0.5+8.0.LTS'
+          java-version: '25.0.5+100000002.0.LTS'
 
       - name: Import Secrets
         id: secrets
@@ -613,7 +613,7 @@ jobs:
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: 'temurin'
-          java-version: '25.0.5+8.0.LTS'
+          java-version: '25.0.5+100000002.0.LTS'
 
       # Same credentials and mirrors as the setup job, in place before the first Maven call: on branches
       # whose parent/pom.xml pins an NES-only Spring Boot patch (stable/8.7, stable/8.8), even reading
