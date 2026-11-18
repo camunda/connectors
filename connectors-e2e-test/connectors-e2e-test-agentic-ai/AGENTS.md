@@ -11,6 +11,7 @@ build, commit, PR and CI rules, see the repo-root [`AGENTS.md`](../../AGENTS.md)
 
 Read the [implementation rules](../../connectors/agentic-ai/docs/implementation-rules.md) before you plan,
 implement or review a change. They also apply to the e2e modules.
+Also read the [documentation rules](../../connectors/agentic-ai/docs/documentation-rules.md), which cover the docs of the e2e modules too.
 
 See the [E2E runbook](README.md) for test ownership, local commands, paid-provider authorization, and
 how to verify that tests ran.
