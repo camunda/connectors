@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,7 +18,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 class ToolCallTest {
 
-  private final ObjectMapper objectMapper = TestObjectMapperSupplier.INSTANCE;
+  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Test
   void deserializesPreMetadataJsonWithEmptyMetadata() throws Exception {

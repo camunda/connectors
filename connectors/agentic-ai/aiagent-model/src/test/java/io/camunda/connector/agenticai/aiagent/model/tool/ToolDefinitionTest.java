@@ -9,13 +9,14 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ToolDefinitionTest {
 
-  private final ObjectMapper objectMapper = TestObjectMapperSupplier.INSTANCE;
+  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Test
   void aProcessDefinitionIsSerializedWithoutKind() throws Exception {
