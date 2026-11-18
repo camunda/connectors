@@ -81,14 +81,15 @@ number:
 
 1. The change reads, stores, logs or forwards a credential, a token or an API key.
 2. The change affects running process instances or released element templates. It changes a stored
-   shape, a wire format, a variable name, a template ID, a job type or a released template.
+   shape, a wire format, a variable name, a template ID, a job type, a released template or an
+   element template migration recipe.
 3. The change weakens or removes a rule in the module docs or a build check. Examples: a new entry in
    an ArchUnit allowlist, a deleted architecture test, a new `@NullUnmarked` or `@SuppressWarnings`.
 4. The change adds a dependency.
 5. The PR description declares a deviation from a rule. The declaration never removes a finding.
 
 The path rules in `.github/pr-review-agent/agentic-ai.yml` also require a human, whatever the review
-finds. They cover released element templates, `aiagent-api`, `aiagent-model`, `api-changes.json`, the rule documents
+finds. They cover released element templates, element template migration recipes, `aiagent-api`, `aiagent-model`, `api-changes.json`, the rule documents
 (`implementation-rules.md`, `design-guidelines.md`, `target-architecture.md`, `code-review.md`,
 `breaking-changes.md`), and authentication, credential and outbound proxy code.
 

@@ -75,6 +75,10 @@ escalation:
         - "connectors/agentic-ai/aiagent-api/*"
         - "connectors/agentic-ai/aiagent-model/*"
         - "connectors/agentic-ai/*/api-changes.json"
+    - reason: element template migration
+      paths:
+        - "connectors/agentic-ai/*/element-template-overrides/*migrates-from*"
+        - "connectors/agentic-ai/*/bin/inject-migrates-from.groovy"
     - reason: review rules
       paths:
         - "connectors/agentic-ai/docs/implementation-rules.md"
