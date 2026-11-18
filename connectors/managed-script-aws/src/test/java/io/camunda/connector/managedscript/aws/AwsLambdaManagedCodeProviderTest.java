@@ -61,7 +61,9 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupReques
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutRetentionPolicyRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.ResourceAlreadyExistsException;
 import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.Concurrency;
 import software.amazon.awssdk.services.lambda.model.CreateFunctionRequest;
+import software.amazon.awssdk.services.lambda.model.DeleteFunctionConcurrencyRequest;
 import software.amazon.awssdk.services.lambda.model.EnvironmentError;
 import software.amazon.awssdk.services.lambda.model.EnvironmentResponse;
 import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
@@ -73,6 +75,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 import software.amazon.awssdk.services.lambda.model.LambdaException;
 import software.amazon.awssdk.services.lambda.model.LastUpdateStatus;
 import software.amazon.awssdk.services.lambda.model.Layer;
+import software.amazon.awssdk.services.lambda.model.PutFunctionConcurrencyRequest;
 import software.amazon.awssdk.services.lambda.model.ResourceConflictException;
 import software.amazon.awssdk.services.lambda.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.lambda.model.State;
@@ -139,6 +142,80 @@ class AwsLambdaManagedCodeProviderTest {
     verify(lambda, never())
         .updateFunctionConfiguration(any(UpdateFunctionConfigurationRequest.class));
     assertThat(sleeps).hasSize(1);
+  }
+
+  @Test
+  void reservesTheConfiguredConcurrencyOnceTheSettingsMatch() {
+    when(lambda.getFunction(any(GetFunctionRequest.class))).thenReturn(reserved(null));
+
+    reserving(10).ensureExecutors(ScriptLanguage.PYTHON);
+
+    final var reservation = ArgumentCaptor.forClass(PutFunctionConcurrencyRequest.class);
+    verify(lambda).putFunctionConcurrency(reservation.capture());
+    assertThat(reservation.getValue().functionName()).isEqualTo(PYTHON_EXECUTOR);
+    assertThat(reservation.getValue().reservedConcurrentExecutions()).isEqualTo(10);
+  }
+
+  @Test
+  void updatesADriftedReservation() {
+    when(lambda.getFunction(any(GetFunctionRequest.class))).thenReturn(reserved(4));
+
+    reserving(10).ensureExecutors(ScriptLanguage.PYTHON);
+
+    verify(lambda).putFunctionConcurrency(any(PutFunctionConcurrencyRequest.class));
+  }
+
+  @Test
+  void keepsAReservationThatMatches() {
+    when(lambda.getFunction(any(GetFunctionRequest.class))).thenReturn(reserved(10));
+
+    reserving(10).ensureExecutors(ScriptLanguage.PYTHON);
+
+    verify(lambda, never()).putFunctionConcurrency(any(PutFunctionConcurrencyRequest.class));
+    verify(lambda, never()).deleteFunctionConcurrency(any(DeleteFunctionConcurrencyRequest.class));
+  }
+
+  @Test
+  void removesAReservationOnceNoneIsConfigured() {
+    when(lambda.getFunction(any(GetFunctionRequest.class))).thenReturn(reserved(10));
+
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+
+    final var removal = ArgumentCaptor.forClass(DeleteFunctionConcurrencyRequest.class);
+    verify(lambda).deleteFunctionConcurrency(removal.capture());
+    assertThat(removal.getValue().functionName()).isEqualTo(PYTHON_EXECUTOR);
+  }
+
+  @Test
+  void leavesAFunctionWithoutReservationAloneWhenNoneIsConfigured() {
+    when(lambda.getFunction(any(GetFunctionRequest.class))).thenReturn(reserved(null));
+
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+
+    verify(lambda, never()).putFunctionConcurrency(any(PutFunctionConcurrencyRequest.class));
+    verify(lambda, never()).deleteFunctionConcurrency(any(DeleteFunctionConcurrencyRequest.class));
+  }
+
+  @Test
+  void failsWithoutRetryWhenTheAccountCannotSpareTheReservation() {
+    when(lambda.getFunction(any(GetFunctionRequest.class))).thenReturn(reserved(null));
+    when(lambda.putFunctionConcurrency(any(PutFunctionConcurrencyRequest.class)))
+        .thenThrow(
+            InvalidParameterValueException.builder()
+                .message(
+                    "Specified ReservedConcurrentExecutions for function decreases account's"
+                        + " UnreservedConcurrentExecution below its minimum value of [100].")
+                .statusCode(400)
+                .build());
+
+    assertThatThrownBy(() -> reserving(10).ensureExecutors(ScriptLanguage.PYTHON))
+        .isInstanceOfSatisfying(
+            ProvisioningException.class,
+            failure -> {
+              assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+              assertThat(failure.permissionDenied()).isFalse();
+              assertThat(failure.getMessage()).contains("minimum value of [100]");
+            });
   }
 
   @Test
@@ -983,6 +1060,15 @@ class AwsLambdaManagedCodeProviderTest {
 
   private AwsLambdaManagedCodeProvider provider(
       AwsCredentialsProvider credentials, Duration activationTimeout) {
+    return provider(credentials, activationTimeout, null);
+  }
+
+  private AwsLambdaManagedCodeProvider reserving(Integer reservedConcurrency) {
+    return provider(credentials, Duration.ofMinutes(1), reservedConcurrency);
+  }
+
+  private AwsLambdaManagedCodeProvider provider(
+      AwsCredentialsProvider credentials, Duration activationTimeout, Integer reservedConcurrency) {
     return new AwsLambdaManagedCodeProvider(
         lambda,
         invoker,
@@ -990,7 +1076,7 @@ class AwsLambdaManagedCodeProviderTest {
         logs,
         new ObjectMapper(),
         PREFIX,
-        new AwsManagedCodeProperties(null, ROLE, 512, 14),
+        new AwsManagedCodeProperties(null, ROLE, 512, 14, reservedConcurrency),
         Duration.ofSeconds(30),
         activationTimeout,
         Duration.ofMillis(100),
@@ -1083,6 +1169,14 @@ class AwsLambdaManagedCodeProviderTest {
             .toBuilder();
     tamper.accept(configuration);
     return GetFunctionResponse.builder().configuration(configuration.build()).build();
+  }
+
+  private static GetFunctionResponse reserved(Integer reservedConcurrency) {
+    return function(State.ACTIVE, LastUpdateStatus.SUCCESSFUL, 512, FUNCTION_TIMEOUT, ROLE)
+        .toBuilder()
+        .concurrency(
+            Concurrency.builder().reservedConcurrentExecutions(reservedConcurrency).build())
+        .build();
   }
 
   private static Map<String, byte[]> entries(byte[] zip) throws IOException {

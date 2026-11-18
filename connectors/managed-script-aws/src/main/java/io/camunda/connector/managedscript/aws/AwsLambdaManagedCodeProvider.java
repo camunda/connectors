@@ -40,15 +40,18 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.PutRetentionPolicyRe
 import software.amazon.awssdk.services.cloudwatchlogs.model.ResourceAlreadyExistsException;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.CreateFunctionRequest;
+import software.amazon.awssdk.services.lambda.model.DeleteFunctionConcurrencyRequest;
 import software.amazon.awssdk.services.lambda.model.FunctionCode;
 import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
 import software.amazon.awssdk.services.lambda.model.GetFunctionRequest;
+import software.amazon.awssdk.services.lambda.model.GetFunctionResponse;
 import software.amazon.awssdk.services.lambda.model.InvalidParameterValueException;
 import software.amazon.awssdk.services.lambda.model.InvocationType;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 import software.amazon.awssdk.services.lambda.model.LastUpdateStatus;
 import software.amazon.awssdk.services.lambda.model.PackageType;
+import software.amazon.awssdk.services.lambda.model.PutFunctionConcurrencyRequest;
 import software.amazon.awssdk.services.lambda.model.RequestTooLargeException;
 import software.amazon.awssdk.services.lambda.model.ResourceConflictException;
 import software.amazon.awssdk.services.lambda.model.ResourceNotFoundException;
@@ -124,6 +127,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
   private final String executionRoleArn;
   private final int memoryMb;
   private final int logRetentionDays;
+  private final Integer reservedConcurrency;
   private final int functionTimeoutSeconds;
   private final Duration activationTimeout;
   private final Duration pollInterval;
@@ -183,6 +187,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     this.executionRoleArn = properties.executionRoleArn();
     this.memoryMb = properties.memoryMb();
     this.logRetentionDays = properties.logRetentionDays();
+    this.reservedConcurrency = properties.reservedConcurrency();
     this.functionTimeoutSeconds = functionTimeoutSeconds(executionTimeout);
     this.activationTimeout = activationTimeout;
     this.pollInterval = pollInterval;
@@ -217,7 +222,8 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
 
   /**
    * Creates the executor of the language, after its log group, unless it exists. Then waits until
-   * it is active, and updates its settings in place if they differ from the configuration.
+   * it is active, and updates its settings and its reserved concurrency in place if they differ
+   * from the configuration.
    *
    * @throws ProvisioningException with a code from the failure of the AWS call; {@link
    *     ProvisioningException#permissionDenied()} for a denied identity, credentials that cannot be
@@ -233,7 +239,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
       if (read(name) == null) {
         create(executor, name);
       }
-      converge(executor, name);
+      reserveConcurrency(name, converge(executor, name));
     } catch (AwsServiceException e) {
       throw failure(name, e);
     } catch (SdkClientException e) {
@@ -499,12 +505,10 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     return "/aws/lambda/" + functionName;
   }
 
-  /** The configuration of the function, or {@code null} when it does not exist. */
-  private FunctionConfiguration read(String name) {
+  /** The function, or {@code null} when it does not exist. */
+  private GetFunctionResponse read(String name) {
     try {
-      return lambda
-          .getFunction(GetFunctionRequest.builder().functionName(name).build())
-          .configuration();
+      return lambda.getFunction(GetFunctionRequest.builder().functionName(name).build());
     } catch (ResourceNotFoundException e) {
       return null;
     }
@@ -551,14 +555,17 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
    * Waits until the function is active and no update is in progress, then updates its settings if
    * they differ. Another instance may update it at the same time: the conflict is waited out, and
    * the settings compared again.
+   *
+   * @return the function, once its settings match
    */
-  private void converge(LambdaExecutor executor, String name) throws InterruptedException {
+  private GetFunctionResponse converge(LambdaExecutor executor, String name)
+      throws InterruptedException {
     final long deadline = System.nanoTime() + activationTimeout.toNanos();
     boolean updated = false;
     while (true) {
-      final FunctionConfiguration configuration;
+      final GetFunctionResponse function;
       try {
-        configuration = read(name);
+        function = read(name);
       } catch (AwsServiceException e) {
         if (!throttled(e)) {
           throw e;
@@ -566,11 +573,12 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
         pause(deadline, retryAfter(e), "Reading Lambda executor '%s' is throttled".formatted(name));
         continue;
       }
-      if (configuration == null) {
+      if (function == null) {
         throw new ProvisioningException(
             ErrorCode.PLATFORM_UNAVAILABLE,
             "Lambda executor '%s' was deleted while it was made ready".formatted(name));
       }
+      final var configuration = function.configuration();
       if (configuration.state() == State.FAILED) {
         throw new ProvisioningException(
             ErrorCode.PLATFORM_REJECTED,
@@ -588,7 +596,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
       // Before any update: a function that does not run its wrapper is never touched.
       verify(executor, name, configuration);
       if (matches(configuration)) {
-        return;
+        return function;
       }
       if (updated && configuration.lastUpdateStatus() == LastUpdateStatus.FAILED) {
         throw new ProvisioningException(
@@ -652,6 +660,32 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
             "Lambda executor '%s' does not run the wrapper of this runtime: it differs in its %s;"
                     .formatted(name, differs)
                 + " it is refused, not called"));
+  }
+
+  /**
+   * Reserves the configured concurrency for the function, or removes a reservation when none is
+   * configured. Idempotent: instances that do it at once converge on the same value.
+   */
+  private void reserveConcurrency(String name, GetFunctionResponse function) {
+    final var current =
+        function.concurrency() == null
+            ? null
+            : function.concurrency().reservedConcurrentExecutions();
+    if (Objects.equals(current, reservedConcurrency)) {
+      return;
+    }
+    if (reservedConcurrency == null) {
+      lambda.deleteFunctionConcurrency(
+          DeleteFunctionConcurrencyRequest.builder().functionName(name).build());
+      LOG.info("Removed the reserved concurrency of Lambda executor '{}'", name);
+      return;
+    }
+    lambda.putFunctionConcurrency(
+        PutFunctionConcurrencyRequest.builder()
+            .functionName(name)
+            .reservedConcurrentExecutions(reservedConcurrency)
+            .build());
+    LOG.info("Reserved a concurrency of {} for Lambda executor '{}'", reservedConcurrency, name);
   }
 
   /** Invocable: active, or inactive, which the next invocation activates; no update running. */

@@ -20,10 +20,18 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param memoryMb memory of an executor, in MB (default 512)
  * @param logRetentionDays retention of the log group of an executor, one of the values CloudWatch
  *     Logs accepts (default 30)
+ * @param reservedConcurrency concurrency reserved for each executor, which is also the most scripts
+ *     of a language that run at once in the cluster; taken from the concurrency of the account,
+ *     shared by every function of it, which must keep 100 unreserved. Unset, no concurrency is
+ *     reserved, and a reservation made earlier is removed
  */
 @ConfigurationProperties(prefix = "camunda.connector.managed-code.aws")
 public record AwsManagedCodeProperties(
-    String region, String executionRoleArn, Integer memoryMb, Integer logRetentionDays) {
+    String region,
+    String executionRoleArn,
+    Integer memoryMb,
+    Integer logRetentionDays,
+    Integer reservedConcurrency) {
 
   private static final int DEFAULT_MEMORY_MB = 512;
   private static final int MIN_MEMORY_MB = 128;
@@ -56,6 +64,12 @@ public record AwsManagedCodeProperties(
           "camunda.connector.managed-code.aws.log-retention-days %d is not a retention CloudWatch"
                   .formatted(logRetentionDays)
               + " Logs accepts, such as 7, 14, 30 or 90");
+    }
+    // 0 would throttle every call.
+    if (reservedConcurrency != null && reservedConcurrency < 1) {
+      throw new IllegalArgumentException(
+          "camunda.connector.managed-code.aws.reserved-concurrency %d must be positive"
+              .formatted(reservedConcurrency));
     }
   }
 }
