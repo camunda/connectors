@@ -1,4 +1,4 @@
-FROM reg.mini.dev/1212/openjre-base:v26.0.2-dev@sha256:91f01280bc0923a88dbbd3b38b9da5ed392b344791b80856d26767e2d427ef90
+FROM reg.mini.dev/1212/openjre-base:v25.0.5-dev@sha256:b90c5ee1385bc0c486b8351c81abefaf50076a4f6a4c64bb7461bc84ff09112f
 
 VOLUME /tmp
 
