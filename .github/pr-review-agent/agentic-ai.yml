@@ -8,7 +8,7 @@ shadow_mode: true
 
 vault:
   anthropic_api_key:
-    path: secret/data/products/agentic-experience/github.com/apps/camunda/connectors/agentic-ai/pr-review-agent
+    path: secret/data/products/agentic-experience/agentic-orchestration/ci/connectors/agentic-ai/pr-review-agent
     field: ANTHROPIC_API_KEY
 
 agent:
