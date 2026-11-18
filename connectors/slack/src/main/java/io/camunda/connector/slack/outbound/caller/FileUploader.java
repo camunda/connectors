@@ -77,14 +77,20 @@ public class FileUploader {
    * Completes the uploads and shares the files in the given channel, inside the given thread when
    * one is set. Slack posts them as a single message.
    */
-  public List<File> shareFiles(List<FileDetails> files, String channelId, String threadTs)
-      throws SlackApiException, IOException {
+  public List<File> shareFiles(List<FileDetails> files, String channelId, String threadTs) {
     var request = FilesCompleteUploadExternalRequest.builder().files(files).channelId(channelId);
     if (StringUtils.isNotBlank(threadTs)) {
       request.threadTs(threadTs);
     }
-    FilesCompleteUploadExternalResponse completeUploadResp =
-        methodsClient.filesCompleteUploadExternal(request.build());
+    FilesCompleteUploadExternalResponse completeUploadResp;
+    try {
+      completeUploadResp = methodsClient.filesCompleteUploadExternal(request.build());
+    } catch (SlackApiException | IOException e) {
+      // The message is already posted, so every sharing failure carries the same error code
+      String msg = COMPLETE_UPLOAD_CALL_EX + "\n Errors: " + e.getMessage();
+      LOGGER.error(msg, e);
+      throw new ConnectorException(SHARE_FILES_ERROR_CODE, msg, e);
+    }
 
     if (completeUploadResp.isOk()) {
       return completeUploadResp.getFiles() == null ? List.of() : completeUploadResp.getFiles();

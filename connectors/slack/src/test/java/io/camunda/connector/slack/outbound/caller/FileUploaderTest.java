@@ -180,6 +180,22 @@ class FileUploaderTest {
     assertThat(ex.getMessage()).contains("Add the Slack app to the channel");
   }
 
+  @Test
+  void transportFailureDuringShareFilesCallKeepsErrorCode() throws SlackApiException, IOException {
+    var timeout = new IOException("timeout");
+    when(methodsClient.filesCompleteUploadExternal(any(FilesCompleteUploadExternalRequest.class)))
+        .thenThrow(timeout);
+    var fileDetails = List.of(FileDetails.builder().id(FILE_ID).title("fileName").build());
+
+    ConnectorException ex =
+        assertThrows(
+            ConnectorException.class, () -> fileUploader.shareFiles(fileDetails, "C123", null));
+
+    assertThat(ex.getErrorCode()).isEqualTo(SHARE_FILES_ERROR_CODE);
+    assertThat(ex.getMessage()).contains(COMPLETE_UPLOAD_CALL_EX).contains("timeout");
+    assertThat(ex.getCause()).isSameAs(timeout);
+  }
+
   private Document prepareDocument() {
     DocumentReference.CamundaDocumentReference documentReference =
         Mockito.mock(DocumentReference.CamundaDocumentReference.class);
