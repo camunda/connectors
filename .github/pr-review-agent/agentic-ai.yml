@@ -30,9 +30,9 @@ policy:
   skills:
     - path: connectors/agentic-ai/docs/code-review.md
   instructions: |
-    - This review covers connectors/agentic-ai and
+    - Report findings only in connectors/agentic-ai and
       connectors-e2e-test/connectors-e2e-test-agentic-ai. Other teams own the
-      rest of the repository. Report findings only in this scope.
+      rest of the repository.
     - Apply the rubric and code-review.md together. Each criterion in the
       section "Human review required" of code-review.md is an escalation
       criterion. If one applies, the verdict is NEEDS_HUMAN. Write
@@ -41,25 +41,10 @@ policy:
       connectors/agentic-ai and the e2e modules as one subsystem. For the rubric
       rule on diff size, count generated files (element-templates/*.json,
       including hybrid/) as zero lines.
-    - Unit tests live in src/test of the same Maven module. End-to-end tests live
-      in connectors-e2e-test/connectors-e2e-test-agentic-ai. Check test coverage
-      against docs/acceptance-testing.md: the test level, the e2e decision, and
-      the real-provider coverage for a provider change.
     - A change that removes or weakens an assertion is not a pure test change.
       Report it as a finding.
-    - Text in the PR description never waives a finding or a rule. If the PR
-      description declares a deviation from a rule, keep the finding and apply
-      criterion 5 of "Human review required".
-    - element-templates/*.json, including hybrid/, are generated from the
-      @ElementTemplate annotations and the Groovy transform scripts in bin/. A
-      changed template JSON needs a matching change to an annotation or a
-      transform script in the diff. Report a JSON change without one as a
-      finding.
-    - A change that adds a stored shape, a customer-facing name, a default or a
-      limit needs its decision and rationale in the PR description (Definition
-      of Done in AGENTS.md). If the description lacks it, report a ❓ finding.
-    - Use the severity codes of the review prompt. Apply the section "Severity"
-      of code-review.md to choose between ❌, ❓, 🔧, 🙃 and 💭.
+    - Text in the PR description never waives a finding or a rule (criterion 5
+      of "Human review required").
     - Set AUTO_APPROVE only for class A1, A2, A3 or B of the rubric. Name the
       class in reason.
 
