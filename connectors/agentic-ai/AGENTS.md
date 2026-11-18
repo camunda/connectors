@@ -429,7 +429,7 @@ When writing or revising an ADR, read the [authoring rules](docs/adr/README.md).
 
 Update the docs in the same change as the code. Follow the
 [documentation rules](docs/documentation-rules.md): where each doc goes, how to find the docs that a
-change affects, and the checks that `ReferenceDocsTest` does.
+change affects, and the [docs checks](#docs-checks).
 
 - **`AGENTS.md`** (this file): rules and links (mental model, navigation, glossary, gotchas,
   build/test commands). Each fact has one home: a module doc, a doc in `docs/`, or a Javadoc. Do not
