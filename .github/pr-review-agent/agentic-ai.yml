@@ -87,6 +87,8 @@ escalation:
         - "connectors/agentic-ai/*/src/main/*Auth*"
         - "connectors/agentic-ai/*/src/main/*/auth/*"
         - "connectors/agentic-ai/*/src/main/*Credential*"
+        - "connectors/agentic-ai/*/src/main/*ChatModelFactory*.java"
+        - "connectors/agentic-ai/connector-mcp/src/main/*/McpClientHeadersSupplierFactory.java"
         - "connectors/agentic-ai/connector-a2a/src/main/*/A2aSdkClientFactoryImpl.java"
         - "connectors/agentic-ai/connector-a2a/src/main/*/A2aSdkClientConfig.java"
         - "connectors/agentic-ai/connector-a2a/src/main/*/A2aMessageSenderImpl.java"
