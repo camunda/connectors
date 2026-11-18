@@ -61,10 +61,11 @@ These documents are the only rules. Do not invent rules. Read the parts that app
    🔧 or 🙃 that names the path to add. Report a rule that a rename or a removal in the change
    leaves with no match. Examples: a class that handles credentials or authentication, outbound proxy
    code, a folder of released element templates, a module with an SPI.
-8. **Generated templates.** `element-templates/*.json`, including `hybrid/`, are generated from the
-   `@ElementTemplate` annotations and the Groovy transform scripts in `bin/`. A changed template JSON
-   needs a matching change to an annotation or a transform script in the diff. Report a JSON change
-   without one.
+8. **Generated templates.** `element-templates/*.json`, including `hybrid/`, are generated. A changed
+   template JSON needs a matching change to a generator input in the diff: an `@ElementTemplate`
+   annotation, a transform script in `bin/`, a file in `element-template-overrides/`, or the generator
+   properties in `pom.xml`. Report a JSON change without one. The snapshots in `versioned/` are static,
+   so this step does not apply to them.
 9. **Decisions.** A change that adds a stored shape, a customer-facing name, a default or a limit needs
    its decision and rationale in the PR description (Definition of Done in `AGENTS.md`). If the
    description lacks it, report a ❓.
