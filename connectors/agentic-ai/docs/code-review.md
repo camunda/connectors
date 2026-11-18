@@ -88,7 +88,7 @@ number:
 5. The PR description declares a deviation from a rule. The declaration never removes a finding.
 
 The path rules in `.github/pr-review-agent/agentic-ai.yml` also require a human, whatever the review
-finds. They cover released element templates, `aiagent-api`, `api-changes.json`, the rule documents
+finds. They cover released element templates, `aiagent-api`, `aiagent-model`, `api-changes.json`, the rule documents
 (`implementation-rules.md`, `design-guidelines.md`, `target-architecture.md`, `code-review.md`,
 `breaking-changes.md`), and authentication, credential and outbound proxy code.
 

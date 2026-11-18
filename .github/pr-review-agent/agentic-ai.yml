@@ -73,6 +73,7 @@ escalation:
     - reason: public API
       paths:
         - "connectors/agentic-ai/aiagent-api/*"
+        - "connectors/agentic-ai/aiagent-model/*"
         - "connectors/agentic-ai/*/api-changes.json"
     - reason: review rules
       paths:
