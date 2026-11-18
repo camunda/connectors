@@ -45,6 +45,9 @@ review and the tests of the stores and SPIs enforce them.
     `ConversationStoreRegistry` / `ConversationStoreRegistryImpl`, `AgentToolsResolver` / `AgentToolsResolverImpl`,
     `SystemPromptComposer` / `SystemPromptComposerImpl`). The convention is pervasive, so follow the nearest
     existing pair.
+  - One class can implement one interface per agent flavor of the same concept. It then takes the concept name
+    without `Impl`, and one bean serves all of these interfaces (e.g. `AgentExecutionContextFactory` for
+    `AgentTaskExecutionContextFactory` and `AgentSubProcessExecutionContextFactory`).
   - **Rule**: register the `Impl` as a Spring bean (typically `@ConditionalOnMissingBean` so it can be
     overridden). Don't inject `*Impl` directly.
   - **Enforced by**: review checks that there is a single implementation and that it is registered as an

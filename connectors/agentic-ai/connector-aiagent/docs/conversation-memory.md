@@ -17,10 +17,10 @@ invocation and transformed through copy-on-write methods.
   (1 model call, the token usage, and the tool-call count).
 - `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
 - `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)` and returns a read-only
-  `ConversationSnapshot`. The request handler hands the snapshot to
-  `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before the model is called. The document factory
-  is the one of the job (`AgentExecutionContext.documentFactory()`): it restores the documents from the document store of
-  the physical tenant of the job.
+  `ConversationSnapshot` whose tool definitions are those of `AgentConfiguration.toolDefinitions()`. The request handler
+  hands the snapshot to `DocumentExpander.expand(snapshot, documentHandling, documentFactory)` before the model is
+  called. The document factory is the one of the job (`AgentExecutionContext.documentFactory()`): it restores the
+  documents from the document store of the physical tenant of the job.
 - `persistedContext()`: the base `AgentContext` without the metrics and iteration bookkeeping that `toAgentContext()`
   adds; it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages, registerDocuments)` opens the next round of
   the job with the tool call results of the local tool calls, and the messages that follow them, as its input. It applies
@@ -74,6 +74,9 @@ that does not track its documents (`Untracked`) the expander returns the snapsho
 are and a `Document` in a tool result is serialized as its Camunda reference JSON. No provider receives a document inside a
 tool result, so the content of a document reaches the model only in a user message. The content of a document stays in every request until
 the message that holds it leaves the window; there is no removal.
+
+The window never announces a document whose message it hides. The agent documents still resolve the handle of such a document,
+so a handle that is still in the model's context, in its own text for example, can be passed to a tool or loaded again.
 
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
 static window filter:

@@ -52,6 +52,11 @@ final class OpenAiCompletionsRecordedChatRequestAdapter implements RecordedChatR
   }
 
   @Override
+  public String rawBody() {
+    return delegate.rawBody();
+  }
+
+  @Override
   public Optional<RecordedResponseFormat> responseFormat() {
     // OpenAI's response_format.json_schema is {name, strict, schema} - normalize to the SPI's
     // flat (type, schemaName, jsonSchema) shape.

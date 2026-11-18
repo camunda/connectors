@@ -88,3 +88,4 @@ When asked to create an ADR:
 | [ADR-0006](ADR-0006-createdocument-feel-function.md) | `createDocument` FEEL Function for Result-Expression Document Extraction | Proposed |
 | [ADR-0007](ADR-0007-centralized-secret-resolution-in-the-connector-runtime.md) | Centralized Secret Resolution in the Connector Runtime | Accepted |
 | [ADR-0008](ADR-0008-managed-script-generic-executor.md) | Managed Script Connector with a Generic Executor per Language | Proposed |
+| [ADR-0009](ADR-0009-exploded-runtime-layout-for-virtual-thread-stalls.md) | Exploded Runtime Layout in Docker Images Against Virtual-Thread Stalls | Accepted |

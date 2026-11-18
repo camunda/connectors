@@ -66,9 +66,6 @@ with API-key authentication and the FEEL secret references
 [Camunda-provided LLM documentation](https://docs.camunda.io/docs/8.10/components/agentic-orchestration/camunda-provided-llm/)
 for availability and supported models.
 
-Backend IDs and labels come from the generated dropdowns. Edit preset defaults in
-`../bin/transform-ai-agent-provider-steps.groovy`, not the generated JSON.
-
 ## Maintaining this index
 
 This index must stay in sync with the JSON files in this folder every time a template version is

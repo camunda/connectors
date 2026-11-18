@@ -137,7 +137,7 @@ jobs:
         with:
           app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
-      - uses: camunda/infra-global-github-actions/add-bug-to-quality-board@f49af13e839834ccc2ed45cdcfcbc03166d41712 # main
+      - uses: camunda/infra-global-github-actions/add-bug-to-quality-board@a7aee06a947103719f282c3a6ae038a349275963 # main
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           labels: "component/connectors, kind/bug"

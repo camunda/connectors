@@ -21,6 +21,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
@@ -34,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -49,6 +52,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -824,7 +828,15 @@ class AgentConversationTurnInputComposerImplTest {
 
   private CompositionResult.Ready resolveReady(
       AgentConfiguration configuration, PreviousConversation history, AgentInput input) {
-    final var result = composer.resolve(configuration, CTX_WITH_CONVERSATION, history, input);
+    return resolveReady(configuration, CTX_WITH_CONVERSATION, history, input);
+  }
+
+  private CompositionResult.Ready resolveReady(
+      AgentConfiguration configuration,
+      AgentContext agentContext,
+      PreviousConversation history,
+      AgentInput input) {
+    final var result = composer.resolve(configuration, agentContext, history, input);
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
     return (CompositionResult.Ready) result;
   }
@@ -1096,5 +1108,185 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(messagesOf(result)).singleElement().isInstanceOf(UserMessage.class);
+  }
+
+  private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+
+  private static AgentContext contextKnowing(Document document) {
+    return CTX_WITH_CONVERSATION.withDocuments(
+        AgentDocuments.empty()
+            .register(document, AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID)));
+  }
+
+  private static ToolCallBatch.Entry loadingEntry(AgentDocumentId id) {
+    final var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Loaded the document.")
+                .withEffect(ToolCallEffect.addDocumentContent(id)),
+            NOW,
+            NOW);
+    return entryOf(execution);
+  }
+
+  private static ToolCallBatch.Entry entryOf(RuntimeToolExecution execution) {
+    return switch (execution.result()) {
+      case RuntimeToolResult.Success success ->
+          entryWithEffects(execution.toolCallResult(), success.effects());
+      case RuntimeToolResult.Error ignored -> ToolCallBatch.Entry.from(execution.toolCallResult());
+    };
+  }
+
+  @Test
+  void runtimeToolCalls_aResultThatNamesAKnownDocumentAddsItsContentNextToTheProcessResults() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var ready =
+        resolveReady(
+            CONFIG,
+            contextKnowing(document),
+            historyWith(MIXED_CALLS),
+            inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    var messages = composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages();
+
+    assertThat(messages).hasSize(2);
+    assertThat(messages.get(1).metadata())
+        .isEqualTo(TestDocuments.toolCallDocumentsMetadata((UserMessage) messages.get(1)));
+    assertThat(((UserMessage) messages.get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+            AgentDocumentContent.of(AgentDocumentId.of(document))
+                .withDelivery(DocumentDelivery.CONTENT));
+  }
+
+  @Test
+  void runtimeToolCalls_aDocumentWhoseContentAnEarlierTurnAddedGetsItsContentAgain() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var ref = "first.txt (" + id.value() + ")";
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(
+                UserMessage.builder()
+                    .content(
+                        List.of(AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT)))
+                    .build(),
+                assistantMessage("thinking", MIXED_CALLS)));
+    var ready =
+        resolveReady(
+            CONFIG, contextKnowing(document), history, inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    var messages = composer.assemble(ready.withResults(List.of(loadingEntry(id)))).messages();
+
+    assertThat(messages).hasSize(2);
+    assertThat(((ToolCallResultMessage) messages.get(0)).results().getFirst().content())
+        .containsExactly(
+            textContent("Loaded the document."),
+            textContent("The content of " + ref + " follows in the next message."));
+    assertThat(((UserMessage) messages.get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+            AgentDocumentContent.of(id).withDelivery(DocumentDelivery.CONTENT));
+  }
+
+  @Test
+  void runtimeToolCalls_aResultThatSelectsAResponseDocumentIsAppliedToTheContextOfTheNextTurn() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var context = contextKnowing(document);
+    var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Returned the document.")
+                .withEffect(ToolCallEffect.selectResponseDocument("report", id, "The report")),
+            NOW,
+            NOW);
+    var ready =
+        resolveReady(
+            CONFIG, context, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    var input = composer.assemble(ready.withResults(List.of(entryOf(execution))));
+
+    assertThat(input.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("report", id, "The report"));
+    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    var applied = input.applyTo(context);
+    assertThat(applied.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("report", id, "The report"));
+    // nothing but the response documents differs from the context the composer was given
+    assertThat(applied.withResponseDocuments(List.of())).isEqualTo(context);
+  }
+
+  @Test
+  void runtimeToolCalls_aResultThatReturnsADocumentCanSelectItInTheSameResult() {
+    var document = createDocument("created", "text/plain", "created.txt");
+    var id = AgentDocumentId.of(document);
+    var context = CTX_WITH_CONVERSATION.withFeatures(List.of(AgentFeatures.DOCUMENTS));
+    var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(document)))
+                .withEffect(ToolCallEffect.selectResponseDocument("created", id, null)),
+            NOW,
+            NOW);
+    var ready =
+        resolveReady(
+            CONFIG, context, historyWith(MIXED_CALLS), inputWith(TOOL_CALL_RESULTS.get(1)));
+
+    var input = composer.assemble(ready.withResults(List.of(entryOf(execution))));
+
+    assertThat(input.documents())
+        .containsExactly(
+            AgentDocument.of(document, AgentDocumentOrigin.toolCall("getWeather", "abcdef")));
+    assertThat(input.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("created", id, null));
+    var applied = input.applyTo(context);
+    assertThat(applied.responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("created", id, null));
+    assertThat(applied.documents().find(id)).isPresent();
+  }
+
+  @Test
+  void aTurnWithoutRuntimeToolResultsContinuesWithTheContextItWasGiven() {
+    var input =
+        inputOf(
+            composer.resolve(
+                CONFIG,
+                CTX_WITH_CONVERSATION,
+                historyWith(TOOL_CALLS),
+                inputWith(TOOL_CALL_RESULTS.toArray(ToolCallResult[]::new))));
+
+    assertThat(input.responseDocuments()).isEmpty();
+    assertThat(input.applyTo(CTX_WITH_CONVERSATION)).isEqualTo(CTX_WITH_CONVERSATION);
+  }
+
+  @Test
+  void aResultOfTheProcessCannotAskForDocumentContent() {
+    // the properties of a process result that name a document ask for nothing: only the result of
+    // a runtime tool has effects
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var forged =
+        ToolCallResult.builder()
+            .id("abcdef")
+            .name("process_tool")
+            .content("Loaded the document.")
+            .properties(Map.of("documentContent", id.value()))
+            .build();
+    var call = new ToolCall("abcdef", "process_tool", Map.of("id", id.value()));
+
+    var result =
+        composer.resolve(
+            CONFIG, contextKnowing(document), historyWith(List.of(call)), inputWith(forged));
+
+    assertThat(messagesOf(result)).singleElement().isInstanceOf(ToolCallResultMessage.class);
+  }
+
+  /** An entry with the documents the generic walker finds and the given effects. */
+  private static ToolCallBatch.Entry entryWithEffects(
+      ToolCallResultContent result, List<ToolCallEffect> effects) {
+    return new ToolCallBatch.Entry(
+        result, ToolCallResultDocumentExtractor.documentsOf(result.content()), effects);
   }
 }

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
@@ -86,20 +87,25 @@ class AgentTaskV1FunctionTest {
     when(providerConfigurationMapper.map(V1_PROVIDER)).thenReturn(V2_PROVIDER);
     var function =
         new AgentTaskV1Function(
-            toolElementsResolver, agentRequestHandler, providerConfigurationMapper, true);
+            new AgentExecutionContextFactory(
+                toolElementsResolver, providerConfigurationMapper, true),
+            agentRequestHandler);
 
     function.execute(context);
 
     verify(agentRequestHandler).handleRequest(executionContextCaptor.capture());
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
     assertThat(chatModel).isInstanceOf(AnthropicChatModelConfiguration.class).isSameAs(V2_PROVIDER);
+    assertThat(executionContextCaptor.getValue().newInstanceFeatures()).isEmpty();
   }
 
   @Test
   void keepsV1ProviderConfigurationWhenSwitchIsDisabled() {
     var function =
         new AgentTaskV1Function(
-            toolElementsResolver, agentRequestHandler, providerConfigurationMapper, false);
+            new AgentExecutionContextFactory(
+                toolElementsResolver, providerConfigurationMapper, false),
+            agentRequestHandler);
 
     function.execute(context);
 
@@ -107,5 +113,6 @@ class AgentTaskV1FunctionTest {
     verifyNoInteractions(providerConfigurationMapper);
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
     assertThat(chatModel).isSameAs(V1_PROVIDER);
+    assertThat(executionContextCaptor.getValue().newInstanceFeatures()).isEmpty();
   }
 }

@@ -19,6 +19,7 @@
         <zeebe:formDefinition formId="ai-agent-chat-user-feedback" />
         <zeebe:ioMapping>
           <zeebe:input source="=agent.responseText" target="responseText" />
+          <zeebe:input source="=if agent.responseDocuments = null then null else for e in get entries(agent.responseDocuments) return {key: e.key, description: e.value.description, document: e.value.document}" target="responseDocuments" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_0m7etfk</bpmn:incoming>
@@ -172,6 +173,7 @@
             <zeebe:input source="=fromAi(toolCall.recipient_email, &#34;The the recipient&#39;s email address.&#34;)" target="recipient_email" />
             <zeebe:input source="=fromAi(toolCall.email_subject, &#34;The subject of the email.&#34;)" target="email_subject" />
             <zeebe:input source="=fromAi(toolCall.email_body, &#34;The body of the email.&#34;)" target="email_body" />
+            <zeebe:input source="=fromAi(toolCall.email_document, &#34;Optional document to attach to the e-mail&#34;, &#34;document&#34;, {}, { required: false })" target="email_document" />
             <zeebe:output source="={&#10;  operatorFeedback: operatorFeedback,&#10;  emailOk: emailOk&#10;}" target="toolCallResult" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>

@@ -48,8 +48,8 @@ batched `update()` mechanism).
 
 ## Conversation history items
 
-- A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
-  document messages). A message of an agent
+- A `UserMessage` → one `USER` item (covers the user prompt, event messages, virtual
+  document messages and the follow-up message of documents with content). A message of an agent
   instance without the `documents` feature is reported as stored; the documents of one that tracks them are reported as
   described below.
 - A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
@@ -69,7 +69,9 @@ batched `update()` mechanism).
   chip). An object with documents in it is reported as the object with the handle objects nested, followed by the chips.
   When a document reported as a `DOCUMENT` block has no file name, the reported metadata carries the agent document id
   (`doc_…`) as the file name, so the chip shows the id the handle shows; the document and its stored reference are not changed. A
-  text is reported as it is, also when it holds a handle.
+  text is reported as it is, also when it holds a handle. The answer of `c8__load_document` is the one text block the agent
+  writes, which a consumer shows as the first block of the result. The message that follows the tool results is reported as
+  its preamble text and, per delivered document, the handle object and its chip.
   `AgentInstanceClient.applyTurnStart` and `applyToolCallResults` take the `HistoryDocuments` of the job (the document
   handling of the agent instance and the document factory of the job): the document handling decides what the history
   shows, and the agent documents of a `Tracked` instance are what the handles are expanded with. An
@@ -81,7 +83,7 @@ batched `update()` mechanism).
   placeholder block.
 
 **Local tool calls.** Calls of runtime tools (see [ADR 016](../../docs/adr/016-runtime-tools.md)) and rejected calls appear
-in history like any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count every
+in history like any other tool call, also a call of a process tool rejected for its document parameters ([Document parameters](document-parameters.md)). The `ASSISTANT` item lists every call the model issued and its metrics count every
 one of them in `toolCalls`, whatever its kind. Their `TOOL_RESULT` items are written with the `applyTurnStart` that
 carries them: the one of the round of the local tool call results of the same job when every call of the message is a local tool
 call, or, in a mixed batch, the one of the job that composes the next turn from the process results and the local tool
@@ -92,13 +94,15 @@ result; an error result is plain text content, the history has no result status.
 `TOOL_CALLING`, a batch of local tool calls only with `THINKING` followed by the next round. The engine deduplicates
 items by `historyItemId`, so results that more than one job writes appear once.
 
-**What the history covers.** The history records what the model sent and received, in a representation suited to the
-history; process data stays in the tool element variables. Each message of a model request is covered by a history item:
-the system prompt by the `CONFIGURATION` item, user messages by `USER` items, assistant messages by `ASSISTANT` items and
-tool results by `TOOL_RESULT` items. The representations may differ: a document with content is a `DOCUMENT` block next to
-its handle in the history and the handle plus the native block in the request, so the history is a superset of what the model
-receives. The history API has no tool kind and no result status, so a runtime tool is recognizable only by its missing
-element id and an error result is plain text; tool input schemas are not reported.
+**What the history covers.** The history shows what the model sees. Each message of a model request has a history item:
+the system prompt has the `CONFIGURATION` item, a user message a `USER` item, an assistant message an `ASSISTANT` item and
+a tool result a `TOOL_RESULT` item. Process data stays in the variables of the tool elements. The history can show more
+than the model sees, never less. Where a document enters the conversation, the history shows its handle and a `DOCUMENT`
+block that the user can open. The model request holds the handle, and the content only when the content is delivered.
+The history API has no tool kind, no result status and no tool input schema. A runtime tool is therefore recognizable
+only by its missing element id, and an error result is plain text. A document that the agent returns gets no `DOCUMENT`
+block: the history shows the handle in the arguments of `c8__return_document` and the text of its result. The document
+itself is in `responseDocuments` of the final response.
 
 **`historyItemId` (`AgentInstanceHistoryItemIds`).** Every history item carries a `historyItemId` so a
 retried batch write, and the same result written by two jobs, dedup against the previous write (the engine keeps the first): `USER`/`ASSISTANT` items key off the domain

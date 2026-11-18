@@ -17,6 +17,7 @@ import com.google.cloud.functions.v2.CreateFunctionRequest;
 import com.google.cloud.functions.v2.Environment;
 import com.google.cloud.functions.v2.Function;
 import com.google.cloud.functions.v2.FunctionServiceClient;
+import com.google.cloud.functions.v2.GenerateDownloadUrlRequest;
 import com.google.cloud.functions.v2.GenerateUploadUrlRequest;
 import com.google.cloud.functions.v2.ServiceConfig;
 import com.google.cloud.functions.v2.Source;
@@ -42,6 +43,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +71,11 @@ import org.slf4j.LoggerFactory;
  *       start with, which would kill a concurrent script.
  *   <li>An invocation is a single HTTP request, never sent again, so that a script runs at most
  *       once per job attempt: job retries handle the rest.
+ *   <li>An executor is refused, never called, when its deployed source is not the archive of its
+ *       wrapper, byte for byte: someone who can update functions under the prefix could otherwise
+ *       receive the scripts, their input and secrets. Checked each time the executor is made ready,
+ *       not on each call, by downloading the source ({@code
+ *       cloudfunctions.functions.sourceCodeGet}).
  *   <li>The provider never deletes an executor: Controller, or the operator, does.
  * </ul>
  */
@@ -83,6 +90,9 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
   /** Cloud Run gives the wrapper no remaining time: it reads the function timeout from here. */
   static final String FUNCTION_TIMEOUT_VARIABLE = "EXECUTOR_FUNCTION_TIMEOUT_MS";
 
+  /** The wrapper sizes the memory of a script from the memory of the function, read from here. */
+  static final String MEMORY_VARIABLE = "EXECUTOR_MEMORY_MB";
+
   /** The request size limit of Cloud Run for an HTTP/1 server, as the Functions Framework is. */
   static final int MAX_REQUEST_BYTES = 32 * 1024 * 1024;
 
@@ -90,6 +100,12 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
    * Beyond the execution timeout, so that the wrapper, not Cloud Run, ends a script that runs late.
    */
   static final Duration FUNCTION_TIMEOUT_MARGIN = Duration.ofSeconds(5);
+
+  /**
+   * The most bytes of a deployed source that the provider downloads to check it: its own are a few
+   * tens of KB. A larger source is not its wrapper.
+   */
+  static final int MAX_SOURCE_BYTES = 1024 * 1024;
 
   /** The longest timeout of an HTTP Cloud Run function. */
   static final int MAX_FUNCTION_TIMEOUT_SECONDS = 3600;
@@ -238,14 +254,16 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
     try {
       final var existing = read(name);
       final var creation = existing == null ? create(executor, name) : null;
-      endpoints.put(language, new Endpoint(converge(name, creation, existing)));
+      final var url = converge(language, name, creation, existing);
+      verify(language, name);
+      endpoints.put(language, new Endpoint(url));
     } catch (ApiException e) {
       throw failure(name, code(e), message(e), e);
     } catch (IOException e) {
       throw new ProvisioningException(
           ErrorCode.PLATFORM_UNAVAILABLE,
           bounded(
-              "Cannot upload the source of Cloud Run executor '%s': %s"
+              "Cannot transfer the source of Cloud Run executor '%s': %s"
                   .formatted(name, message(e))),
           e);
     } catch (InterruptedException e) {
@@ -440,12 +458,57 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
                 .PUT(HttpRequest.BodyPublishers.ofByteArray(zip))
                 .build(),
             HttpResponse.BodyHandlers.discarding());
-    final int status = response.statusCode();
+    checkTransfer(name, "upload", response.statusCode());
+  }
+
+  /**
+   * Refuses the executor unless its deployed source is the very archive this runtime uploads:
+   * someone who can update functions under the prefix could otherwise have it run their code.
+   * Bytes, not files, are compared: a crafted archive can show one file to a reader of its entries
+   * and another to the build, which reads its central directory. The source is downloaded through a
+   * signed URL, as it was uploaded.
+   */
+  private void verify(ScriptLanguage language, String name)
+      throws IOException, InterruptedException {
+    try {
+      verify(executors.get(language), name);
+    } catch (RuntimeException | IOException | InterruptedException e) {
+      // A URL of an earlier round would let a refused executor be called.
+      endpoints.remove(language);
+      throw e;
+    }
+  }
+
+  private void verify(CloudRunExecutor executor, String name)
+      throws IOException, InterruptedException {
+    final var download =
+        functions.generateDownloadUrl(
+            GenerateDownloadUrlRequest.newBuilder().setName(functionName(name)).build());
+    final var response =
+        GcpClients.send(
+            http,
+            HttpRequest.newBuilder(URI.create(download.getDownloadUrl()))
+                .timeout(UPLOAD_TIMEOUT)
+                .GET()
+                .build(),
+            GcpClients.capped(MAX_SOURCE_BYTES));
+    checkTransfer(name, "download", response.statusCode());
+    if (!Arrays.equals(response.body(), executor.zip())) {
+      throw new ProvisioningException(
+          ErrorCode.PLATFORM_REJECTED,
+          "Cloud Run executor '%s' does not run the wrapper of this runtime: it differs in its"
+                  .formatted(name)
+              + " source; it is refused, not called");
+    }
+  }
+
+  /** Throws for a status other than 2xx of the upload or download of a source. */
+  private static void checkTransfer(String name, String transfer, int status) {
     if (status == 401 || status == 403) {
       // The URL comes from a grant the runtime was given, which may still propagate.
       throw ProvisioningException.permissionDenied(
-          "GCP denied the upload of the source of Cloud Run executor '%s' (HTTP %d)"
-              .formatted(name, status),
+          "GCP denied the %s of the source of Cloud Run executor '%s' (HTTP %d)"
+              .formatted(transfer, name, status),
           null);
     }
     if (status / 100 != 2) {
@@ -453,22 +516,23 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
           status == 429
               ? ErrorCode.PLATFORM_THROTTLED
               : status >= 500 ? ErrorCode.PLATFORM_UNAVAILABLE : ErrorCode.PLATFORM_REJECTED,
-          "Uploading the source of Cloud Run executor '%s' failed with HTTP %d"
-              .formatted(name, status));
+          "The %s of the source of Cloud Run executor '%s' failed with HTTP %d"
+              .formatted(transfer, name, status));
     }
   }
 
   /**
-   * Waits until the operation of this instance, if any, is done and the function is active, then
-   * updates its settings if they differ, and waits for that update. Another instance may update it
-   * at the same time: the conflict is waited out, and the settings compared again.
+   * Waits until the operation of this instance, if any, is done and the function is active, then,
+   * once its source is checked, updates its settings if they differ, and waits for that update.
+   * Another instance may update it at the same time: the conflict is waited out, and the settings
+   * compared again.
    *
    * @param pending the operation that created the function, or {@code null}
    * @param read the function as just read, or {@code null} to read it
    * @return the {@code run.app} URL of the function
    */
-  private String converge(String name, Operation pending, Function read)
-      throws InterruptedException {
+  private String converge(ScriptLanguage language, String name, Operation pending, Function read)
+      throws IOException, InterruptedException {
     final long deadline = System.nanoTime() + activationTimeout.toNanos();
     boolean updated = false;
     Function known = read;
@@ -554,6 +618,9 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
                 "Cloud Run executor '%s' did not apply its new settings: %s"
                     .formatted(name, stateMessages(function))));
       }
+      // Before the update, which would give the function service account and the traffic to code
+      // that may not be the wrapper.
+      verify(language, name);
       try {
         pending =
             functions
@@ -604,7 +671,8 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
         // Over any traffic split of an adopted function, so that every call gets these settings.
         .setAllTrafficOnLatestRevision(true)
         .putAllEnvironmentVariables(environment)
-        .putEnvironmentVariables(FUNCTION_TIMEOUT_VARIABLE, functionTimeoutMillis());
+        .putEnvironmentVariables(FUNCTION_TIMEOUT_VARIABLE, functionTimeoutMillis())
+        .putEnvironmentVariables(MEMORY_VARIABLE, Integer.toString(memoryMb));
   }
 
   private boolean matches(ServiceConfig settings) {
@@ -615,7 +683,9 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
         && functionServiceAccount.equals(settings.getServiceAccountEmail())
         && settings.getAllTrafficOnLatestRevision()
         && functionTimeoutMillis()
-            .equals(settings.getEnvironmentVariablesOrDefault(FUNCTION_TIMEOUT_VARIABLE, null));
+            .equals(settings.getEnvironmentVariablesOrDefault(FUNCTION_TIMEOUT_VARIABLE, null))
+        && Integer.toString(memoryMb)
+            .equals(settings.getEnvironmentVariablesOrDefault(MEMORY_VARIABLE, null));
   }
 
   private String functionTimeoutMillis() {

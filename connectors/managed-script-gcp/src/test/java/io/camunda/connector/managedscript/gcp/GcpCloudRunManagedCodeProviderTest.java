@@ -9,6 +9,7 @@ package io.camunda.connector.managedscript.gcp;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -43,6 +44,8 @@ import com.google.cloud.functions.v2.CreateFunctionRequest;
 import com.google.cloud.functions.v2.Environment;
 import com.google.cloud.functions.v2.Function;
 import com.google.cloud.functions.v2.FunctionServiceClient;
+import com.google.cloud.functions.v2.GenerateDownloadUrlRequest;
+import com.google.cloud.functions.v2.GenerateDownloadUrlResponse;
 import com.google.cloud.functions.v2.GenerateUploadUrlRequest;
 import com.google.cloud.functions.v2.GenerateUploadUrlResponse;
 import com.google.cloud.functions.v2.ServiceConfig;
@@ -62,6 +65,7 @@ import io.camunda.connector.managedscript.api.ExecutorReference;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -70,10 +74,13 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -122,6 +129,19 @@ class GcpCloudRunManagedCodeProviderTest {
     when(functions.createFunctionCallable()).thenReturn(create);
     when(functions.updateFunctionCallable()).thenReturn(update);
     when(idTokenProvider.idTokenWithAudience(anyString(), any())).thenReturn(idToken);
+    // The deployed source of each executor, as GCP serves it: its own wrapper.
+    when(functions.generateDownloadUrl(any(GenerateDownloadUrlRequest.class)))
+        .thenAnswer(call -> {
+          final String name = call.<GenerateDownloadUrlRequest>getArgument(0).getName();
+          return GenerateDownloadUrlResponse.newBuilder()
+              .setDownloadUrl(
+                  wireMock.getHttpBaseUrl()
+                      + "/download/"
+                      + name.substring(name.lastIndexOf('/') + 1))
+              .build();
+        });
+    serveSource(PYTHON_EXECUTOR, CloudRunExecutor.of(ScriptLanguage.PYTHON).zip());
+    serveSource(NODE_EXECUTOR, CloudRunExecutor.of(ScriptLanguage.JAVASCRIPT).zip());
     provider = provider(Duration.ofMinutes(1));
   }
 
@@ -176,7 +196,9 @@ class GcpCloudRunManagedCodeProviderTest {
     assertThat(settings.getMaxInstanceRequestConcurrency()).isEqualTo(1);
     assertThat(settings.getServiceAccountEmail()).isEqualTo(SERVICE_ACCOUNT);
     assertThat(settings.getEnvironmentVariablesMap())
-        .containsExactly(Map.entry("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000"));
+        .containsOnly(
+            Map.entry("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000"),
+            Map.entry("EXECUTOR_MEMORY_MB", "512"));
     assertThat(settings.getAllTrafficOnLatestRevision()).isTrue();
     verify(update, never()).call(any(UpdateFunctionRequest.class));
     assertThat(sleeps).hasSize(1);
@@ -210,6 +232,112 @@ class GcpCloudRunManagedCodeProviderTest {
     verify(create, never()).call(any(CreateFunctionRequest.class));
     verify(update, never()).call(any(UpdateFunctionRequest.class));
     assertThat(sleeps).isEmpty();
+  }
+
+  @Test
+  void refusesAnAdoptedFunctionWhoseSourceIsNotItsWrapperAndKeepsNoUrl() throws IOException {
+    when(functions.getFunction(anyString())).thenReturn(active());
+    serveSource(
+        PYTHON_EXECUTOR,
+        pythonSource(files -> files.put("main.py", "def handler(r): leak(r)".getBytes())));
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(failure.code().retryable()).isFalse();
+    assertThat(failure.permissionDenied()).isFalse();
+    assertThat(failure.getMessage()).contains(PYTHON_EXECUTOR).contains("differs in its source");
+    verify(functions)
+        .generateDownloadUrl(
+            GenerateDownloadUrlRequest.newBuilder()
+                .setName(LOCATION + "/functions/" + PYTHON_EXECUTOR)
+                .build());
+    verify(update, never()).call(any(UpdateFunctionRequest.class));
+    assertThat(provider.execute(ScriptLanguage.PYTHON, request("s")).isDeploymentMissing())
+        .isTrue();
+    WireMock.verify(0, postRequestedFor(urlEqualTo("/executor")));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"extra file", "missing file", "not a zip"})
+  void refusesASourceWithOtherFilesThanItsWrapper(String change) throws IOException {
+    when(functions.getFunction(anyString())).thenReturn(active());
+    serveSource(
+        PYTHON_EXECUTOR,
+        switch (change) {
+          case "extra file" -> pythonSource(files -> files.put("sitecustomize.py", new byte[1]));
+          case "missing file" -> pythonSource(files -> files.remove("child.py"));
+          default -> "not a zip".getBytes(StandardCharsets.UTF_8);
+        });
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(failure.getMessage()).contains("differs in its source");
+  }
+
+  @Test
+  void refusesASourceWithTheFilesOfItsWrapperInAnotherArchive() throws IOException {
+    // Unzip tools read the central directory, ZipInputStream the local headers: only the exact
+    // archive the runtime uploads leaves no room for an archive that shows each a different file.
+    when(functions.getFunction(anyString())).thenReturn(active());
+    final var bytes = new ByteArrayOutputStream();
+    try (var zip = new ZipOutputStream(bytes)) {
+      for (var file : CloudRunExecutor.of(ScriptLanguage.PYTHON).wrapper().files().entrySet()) {
+        zip.putNextEntry(new ZipEntry(file.getKey()));
+        zip.write(file.getValue());
+        zip.closeEntry();
+      }
+    }
+    serveSource(PYTHON_EXECUTOR, bytes.toByteArray());
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(failure.getMessage()).contains("differs in its source");
+  }
+
+  @Test
+  void refusesASourceLargerThanTheCap() throws IOException {
+    when(functions.getFunction(anyString())).thenReturn(active());
+    serveSource(
+        PYTHON_EXECUTOR,
+        pythonSource(files ->
+            files.put("main.py", new byte[GcpCloudRunManagedCodeProvider.MAX_SOURCE_BYTES + 1])));
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(failure.getMessage()).contains("differs in its source");
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "401,PLATFORM_REJECTED,true",
+    "403,PLATFORM_REJECTED,true",
+    "429,PLATFORM_THROTTLED,false",
+    "503,PLATFORM_UNAVAILABLE,false",
+    "404,PLATFORM_REJECTED,false"
+  })
+  void mapsAFailedDownloadOfTheSourceByItsStatus(int status, ErrorCode code, boolean denied) {
+    when(functions.getFunction(anyString())).thenReturn(active());
+    stubFor(get("/download/" + PYTHON_EXECUTOR).willReturn(aResponse().withStatus(status)));
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(code);
+    assertThat(failure.permissionDenied()).isEqualTo(denied);
+  }
+
+  @Test
+  void checksTheSourceAgainWhenMadeReadyAgain() throws IOException {
+    ready(ScriptLanguage.PYTHON);
+    serveSource(PYTHON_EXECUTOR, pythonSource(files -> files.put("main.py", new byte[1])));
+
+    // As after DEPLOYMENT_MISSING.
+    assertThat(ensureFails(ScriptLanguage.PYTHON).code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    assertThat(provider.execute(ScriptLanguage.PYTHON, request("s")).isDeploymentMissing())
+        .isTrue();
   }
 
   @Test
@@ -296,9 +424,21 @@ class GcpCloudRunManagedCodeProviderTest {
     assertThat(settings.getServiceAccountEmail()).isEqualTo(SERVICE_ACCOUNT);
     assertThat(settings.getEnvironmentVariablesMap())
         .containsEntry("LOG_EXECUTION_ID", "true")
-        .containsEntry("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000");
+        .containsEntry("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000")
+        .containsEntry("EXECUTOR_MEMORY_MB", "512");
     verify(functions, never()).generateUploadUrl(any(GenerateUploadUrlRequest.class));
     verify(create, never()).call(any(CreateFunctionRequest.class));
+  }
+
+  @Test
+  void refusesATamperedFunctionBeforeUpdatingItsDriftedSettings() throws IOException {
+    // An update would give the tampered code the function service account and the traffic.
+    when(functions.getFunction(anyString()))
+        .thenReturn(function(Function.State.ACTIVE, settings().setMaxInstanceCount(100).build()));
+    serveSource(PYTHON_EXECUTOR, pythonSource(files -> files.put("main.py", new byte[1])));
+
+    assertThat(ensureFails(ScriptLanguage.PYTHON).code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+    verify(update, never()).call(any(UpdateFunctionRequest.class));
   }
 
   @Test
@@ -312,6 +452,25 @@ class GcpCloudRunManagedCodeProviderTest {
     provider.ensureExecutors(ScriptLanguage.PYTHON);
 
     verify(update).call(any(UpdateFunctionRequest.class));
+  }
+
+  @Test
+  void updatesAFunctionThatDoesNotTellTheWrapperItsMemory() {
+    when(functions.getFunction(anyString()))
+        .thenReturn(
+            function(
+                Function.State.ACTIVE,
+                settings().removeEnvironmentVariables("EXECUTOR_MEMORY_MB").build()),
+            active());
+    when(update.call(any(UpdateFunctionRequest.class))).thenReturn(operation("update", true));
+    when(operations.getOperation("update")).thenReturn(operation("update", true));
+
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+
+    final var updated = ArgumentCaptor.forClass(UpdateFunctionRequest.class);
+    verify(update).call(updated.capture());
+    assertThat(updated.getValue().getFunction().getServiceConfig().getEnvironmentVariablesMap())
+        .containsEntry("EXECUTOR_MEMORY_MB", "512");
   }
 
   @Test
@@ -716,6 +875,36 @@ class GcpCloudRunManagedCodeProviderTest {
   }
 
   @Test
+  void packagesItsFilesUncompressedSoThatTheBytesDependOnTheirContentOnly() throws IOException {
+    // A compressed entry depends on the zlib of the JDK, so that runtimes on different images
+    // would expect different bytes from the same executor and refuse it.
+    try (var zip =
+        new ZipInputStream(
+            new ByteArrayInputStream(CloudRunExecutor.of(ScriptLanguage.PYTHON).zip()))) {
+      for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+        assertThat(entry.getMethod()).as(entry.getName()).isEqualTo(ZipEntry.STORED);
+      }
+    }
+  }
+
+  @Test
+  void packagesTheSameBytesInEveryTimeZone() {
+    // Runtimes in other time zones must expect the same bytes, or they refuse each other's
+    // executors.
+    final var zone = TimeZone.getDefault();
+    try {
+      TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+      final var utc = CloudRunExecutor.of(ScriptLanguage.PYTHON).zip();
+      TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"));
+      assertThat(CloudRunExecutor.of(ScriptLanguage.PYTHON).zip()).isEqualTo(utc);
+      TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tokyo"));
+      assertThat(CloudRunExecutor.of(ScriptLanguage.PYTHON).zip()).isEqualTo(utc);
+    } finally {
+      TimeZone.setDefault(zone);
+    }
+  }
+
+  @Test
   void packagesDeterministicallyWithNamesThatFitTheLongestPrefix() {
     final var executor = CloudRunExecutor.of(ScriptLanguage.JAVASCRIPT);
 
@@ -740,6 +929,27 @@ class GcpCloudRunManagedCodeProviderTest {
   }
 
   /** Makes the executor of the language ready, served at {@link #url}. */
+  private static void serveSource(String executor, byte[] zip) {
+    stubFor(get("/download/" + executor).willReturn(ok().withBody(zip)));
+  }
+
+  /** The Python wrapper's files, changed by {@code tamper}, as a zip. */
+  private static byte[] pythonSource(java.util.function.Consumer<Map<String, byte[]>> tamper)
+      throws IOException {
+    final Map<String, byte[]> files =
+        new TreeMap<>(CloudRunExecutor.of(ScriptLanguage.PYTHON).wrapper().files());
+    tamper.accept(files);
+    final var bytes = new ByteArrayOutputStream();
+    try (var zip = new ZipOutputStream(bytes)) {
+      for (var file : files.entrySet()) {
+        zip.putNextEntry(new ZipEntry(file.getKey()));
+        zip.write(file.getValue());
+        zip.closeEntry();
+      }
+    }
+    return bytes.toByteArray();
+  }
+
   private void ready(ScriptLanguage language) {
     when(functions.getFunction(anyString())).thenReturn(active());
     provider.ensureExecutors(language);
@@ -774,7 +984,8 @@ class GcpCloudRunManagedCodeProviderTest {
         .setServiceAccountEmail(SERVICE_ACCOUNT)
         .setAllTrafficOnLatestRevision(true)
         .putEnvironmentVariables("LOG_EXECUTION_ID", "true")
-        .putEnvironmentVariables("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000");
+        .putEnvironmentVariables("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000")
+        .putEnvironmentVariables("EXECUTOR_MEMORY_MB", "512");
   }
 
   private static Function function(Function.State state, ServiceConfig.Builder settings) {

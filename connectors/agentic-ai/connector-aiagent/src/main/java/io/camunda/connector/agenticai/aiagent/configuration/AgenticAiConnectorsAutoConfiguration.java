@@ -13,11 +13,14 @@ import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
@@ -40,6 +43,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
@@ -57,6 +61,8 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerI
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
@@ -97,8 +103,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolCallAdmission aiAgentToolCallAdmission() {
-    return new ToolCallAdmission();
+  public ToolCallAdmission aiAgentToolCallAdmission(
+      DocumentParameterResolver documentParameterResolver) {
+    return new ToolCallAdmission(documentParameterResolver);
   }
 
   @Bean
@@ -111,8 +118,22 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public RuntimeTools aiAgentRuntimeTools(
-      List<RuntimeTool> runtimeTools, @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new RuntimeTools(runtimeTools, objectMapper);
+      List<RuntimeTool> runtimeTools,
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      DocumentParameterResolver documentParameterResolver) {
+    return new RuntimeTools(runtimeTools, objectMapper, documentParameterResolver);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(name = "aiAgentLoadDocumentRuntimeTool")
+  public RuntimeTool aiAgentLoadDocumentRuntimeTool() {
+    return new LoadDocumentTool();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(name = "aiAgentReturnDocumentRuntimeTool")
+  public RuntimeTool aiAgentReturnDocumentRuntimeTool() {
+    return new ReturnDocumentTool();
   }
 
   @Bean
@@ -258,6 +279,13 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public DocumentParameterResolver aiAgentDocumentParameterResolver(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new DocumentParameterResolver(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public DocumentExpander aiAgentDocumentExpander(ObjectHandleRenderer objectHandleRenderer) {
     return new DocumentExpander(objectHandleRenderer);
   }
@@ -266,8 +294,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AgentResponseHandler aiAgentResponseHandler(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      DocumentParameterResolver documentParameterResolver) {
+    return new AgentResponseHandlerImpl(
+        objectMapper, gatewayToolHandlers, documentParameterResolver);
   }
 
   @Bean
@@ -281,6 +311,21 @@ public class AgenticAiConnectorsAutoConfiguration {
   public V1ToV2ProviderConfigurationMapper aiAgentV1ToV2ProviderConfigurationMapper(
       AgenticAiConnectorsConfigurationProperties configuration) {
     return new V1ToV2ProviderConfigurationMapperImpl(configuration.aiagent().chatModel());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean({
+    AgentTaskExecutionContextFactory.class,
+    AgentSubProcessExecutionContextFactory.class
+  })
+  public AgentExecutionContextFactory aiAgentExecutionContextFactory(
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
+      AgenticAiConnectorsConfigurationProperties configuration) {
+    return new AgentExecutionContextFactory(
+        toolElementsResolver,
+        v1ProviderConfigurationMapper,
+        configuration.aiagent().rewriteV1ProviderConfigToV2());
   }
 
   @Bean
@@ -322,15 +367,9 @@ public class AgenticAiConnectorsAutoConfiguration {
       matchIfMissing = true)
   @SuppressWarnings("deprecation")
   public AgentTaskV1Function aiAgentTaskV1Function(
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      AgentTaskRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
-      AgenticAiConnectorsConfigurationProperties configuration) {
-    return new AgentTaskV1Function(
-        toolElementsResolver,
-        agentRequestHandler,
-        v1ProviderConfigurationMapper,
-        configuration.aiagent().rewriteV1ProviderConfigToV2());
+      AgentTaskExecutionContextFactory executionContextFactory,
+      AgentTaskRequestHandler agentRequestHandler) {
+    return new AgentTaskV1Function(executionContextFactory, agentRequestHandler);
   }
 
   @Bean
@@ -372,13 +411,9 @@ public class AgenticAiConnectorsAutoConfiguration {
       matchIfMissing = true)
   @SuppressWarnings("deprecation")
   public AgentSubProcessV1Function aiAgentSubProcessV1Function(
-      AgentSubProcessRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
-      AgenticAiConnectorsConfigurationProperties configuration) {
-    return new AgentSubProcessV1Function(
-        agentRequestHandler,
-        v1ProviderConfigurationMapper,
-        configuration.aiagent().rewriteV1ProviderConfigToV2());
+      AgentSubProcessExecutionContextFactory executionContextFactory,
+      AgentSubProcessRequestHandler agentRequestHandler) {
+    return new AgentSubProcessV1Function(executionContextFactory, agentRequestHandler);
   }
 
   @Bean
@@ -389,9 +424,9 @@ public class AgenticAiConnectorsAutoConfiguration {
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
   public AgentTaskV2Function aiAgentTaskV2Function(
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      AgentTaskExecutionContextFactory executionContextFactory,
       AgentTaskRequestHandler agentRequestHandler) {
-    return new AgentTaskV2Function(toolElementsResolver, agentRequestHandler);
+    return new AgentTaskV2Function(executionContextFactory, agentRequestHandler);
   }
 
   @Bean
@@ -402,7 +437,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
   public AgentSubProcessV2Function aiAgentSubProcessV2Function(
+      AgentSubProcessExecutionContextFactory executionContextFactory,
       AgentSubProcessRequestHandler agentRequestHandler) {
-    return new AgentSubProcessV2Function(agentRequestHandler);
+    return new AgentSubProcessV2Function(executionContextFactory, agentRequestHandler);
   }
 }

@@ -13,6 +13,7 @@ import com.google.genai.types.Candidate;
 import com.google.genai.types.Content;
 import com.google.genai.types.FinishReason;
 import com.google.genai.types.FunctionCall;
+import com.google.genai.types.FunctionDeclaration;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
@@ -24,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -45,6 +47,7 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocu
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -638,6 +641,43 @@ class GeminiContentRequestConverterTest {
     assertThat(declarations.get(0).name()).contains("SuperfluxProduct");
     assertThat(declarations.get(0).description()).contains("desc");
     assertThat(declarations.get(0).parametersJsonSchema()).contains(schema);
+  }
+
+  @Test
+  void passesTheSchemaOfDocumentParametersToGeminiUnchanged() {
+    final var properties = new LinkedHashMap<String, Object>();
+    properties.put("file", DocumentParameter.documentSchema("The file"));
+    properties.put(
+        "files", Map.of("type", "array", "items", DocumentParameter.documentSchema("The files")));
+    properties.put(
+        "message",
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "file",
+                DocumentParameter.documentSchema(null),
+                "caption",
+                Map.of("type", "string"))));
+    final Map<String, Object> schema =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            properties,
+            "required",
+            List.of("file", "files", "message"));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(), List.of(ToolDefinition.builder().name("send").inputSchema(schema).build()));
+
+    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+
+    final var declaration =
+        config.tools().orElseThrow().get(0).functionDeclarations().orElseThrow().get(0);
+    assertThat(declaration)
+        .isEqualTo(FunctionDeclaration.builder().name("send").parametersJsonSchema(schema).build());
   }
 
   @Test

@@ -73,6 +73,10 @@ import software.amazon.awssdk.services.lambda.model.UpdateFunctionConfigurationR
  *       attempt: job retries handle the rest.
  *   <li>Readiness is read with {@code GetFunction}, which has a quota of its own, rather than with
  *       {@code GetFunctionConfiguration}, which shares the control-plane calls of the account.
+ *   <li>An executor is refused, never called, when it runs anything but its wrapper: another
+ *       package, a layer, environment variables, another handler or runtime. Someone who can create
+ *       or configure functions under the prefix could otherwise receive the scripts, their input
+ *       and secrets. Checked each time the executor is made ready, not on each call.
  *   <li>The provider never deletes an executor: Controller, or the operator, does.
  * </ul>
  */
@@ -107,6 +111,10 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
   private static final Logger LOG = LoggerFactory.getLogger(AwsLambdaManagedCodeProvider.class);
 
   private final Map<ScriptLanguage, LambdaExecutor> executors = new EnumMap<>(ScriptLanguage.class);
+
+  /** The {@code CodeSha256} of each executor's package, which Lambda reports. */
+  private final Map<ScriptLanguage, String> codeSha256s = new EnumMap<>(ScriptLanguage.class);
+
   private final LambdaClient lambda;
   private final LambdaClient invoker;
   private final AwsCredentialsProvider credentials;
@@ -180,7 +188,9 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     this.pollInterval = pollInterval;
     this.sleeper = sleeper;
     for (var language : ScriptLanguage.values()) {
-      executors.put(language, LambdaExecutor.of(language));
+      final var executor = LambdaExecutor.of(language);
+      executors.put(language, executor);
+      codeSha256s.put(language, executor.codeSha256());
     }
     LOG.info(
         "The aws managed-code provider runs scripts through the AWS Lambda executors named"
@@ -223,7 +233,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
       if (read(name) == null) {
         create(executor, name);
       }
-      converge(name);
+      converge(executor, name);
     } catch (AwsServiceException e) {
       throw failure(name, e);
     } catch (SdkClientException e) {
@@ -542,7 +552,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
    * they differ. Another instance may update it at the same time: the conflict is waited out, and
    * the settings compared again.
    */
-  private void converge(String name) throws InterruptedException {
+  private void converge(LambdaExecutor executor, String name) throws InterruptedException {
     final long deadline = System.nanoTime() + activationTimeout.toNanos();
     boolean updated = false;
     while (true) {
@@ -575,6 +585,8 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
                 .formatted(name, configuration.state(), configuration.lastUpdateStatus()));
         continue;
       }
+      // Before any update: a function that does not run its wrapper is never touched.
+      verify(executor, name, configuration);
       if (matches(configuration)) {
         return;
       }
@@ -608,6 +620,38 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
           withJitter(pollInterval),
           "Lambda executor '%s' did not apply its settings".formatted(name));
     }
+  }
+
+  /**
+   * Refuses a function that runs anything but the wrapper of this runtime: someone who can create
+   * or configure functions under the prefix could otherwise have it run their code, through its
+   * package, a layer, an environment variable such as {@code NODE_OPTIONS}, or its handler.
+   */
+  private void verify(LambdaExecutor executor, String name, FunctionConfiguration configuration) {
+    final String differs;
+    if (!codeSha256s.get(executor.language()).equals(configuration.codeSha256())) {
+      differs = "code";
+    } else if (!configuration.layers().isEmpty()) {
+      differs = "layers";
+    } else if (configuration.environment() != null
+        // Variables encrypted with a key the runtime cannot use come as an error only, yet run.
+        && (configuration.environment().error() != null
+            || configuration.environment().variables() != null
+                && !configuration.environment().variables().isEmpty())) {
+      differs = "environment variables";
+    } else if (!executor.handler().equals(configuration.handler())) {
+      differs = "handler";
+    } else if (!executor.runtime().equals(configuration.runtimeAsString())) {
+      differs = "runtime";
+    } else {
+      return;
+    }
+    throw new ProvisioningException(
+        ErrorCode.PLATFORM_REJECTED,
+        bounded(
+            "Lambda executor '%s' does not run the wrapper of this runtime: it differs in its %s;"
+                    .formatted(name, differs)
+                + " it is refused, not called"));
   }
 
   /** Invocable: active, or inactive, which the next invocation activates; no update running. */

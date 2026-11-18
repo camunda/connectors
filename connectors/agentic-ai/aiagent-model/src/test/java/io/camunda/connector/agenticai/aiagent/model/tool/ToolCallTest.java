@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -217,5 +219,33 @@ class ToolCallTest {
         json,
         true);
     assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
+  }
+
+  @Test
+  void withArgumentsReplacesTheArgumentsAndKeepsEverythingElse() {
+    final var call =
+        new ToolCall(
+            "call-1", "upload", Map.of("doc", "tag"), Map.of("k", "v"), ToolKind.RUNTIME, "no");
+
+    final var resolved = call.withArguments(Map.of("doc", "reference"));
+
+    assertThat(resolved)
+        .isEqualTo(
+            new ToolCall(
+                "call-1",
+                "upload",
+                Map.of("doc", "reference"),
+                Map.of("k", "v"),
+                ToolKind.RUNTIME,
+                "no"));
+  }
+
+  @Test
+  void withArgumentsKeepsAnExplicitNullValue() {
+    final var arguments = new HashMap<String, Object>();
+    arguments.put("note", null);
+
+    final var resolved = new ToolCall("call-1", "upload", Map.of()).withArguments(arguments);
+    assertThat(resolved.arguments()).isEqualTo(Collections.singletonMap("note", null));
   }
 }

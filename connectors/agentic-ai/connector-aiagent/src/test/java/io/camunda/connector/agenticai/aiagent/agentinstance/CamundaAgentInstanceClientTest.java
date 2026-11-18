@@ -26,6 +26,8 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.ProblemDetail;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.command.AgentInstanceHistoryItem;
+import io.camunda.client.api.command.AgentInstanceHistoryMetrics;
+import io.camunda.client.api.command.AgentInstanceHistoryToolCall;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.client.api.command.AgentTool;
 import io.camunda.client.api.command.ClientHttpException;
@@ -42,6 +44,7 @@ import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgent
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -50,6 +53,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -75,12 +83,16 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAut
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import io.camunda.connector.runtime.test.outbound.TestJobContext;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -1401,6 +1413,139 @@ class CamundaAgentInstanceClientTest {
       assertThat(alone.getLoopIteration()).isEqualTo(2);
       assertThat(alone.getProducedAt()).isEqualTo(completedAt);
       assertThat(merged).usingRecursiveComparison().isEqualTo(alone);
+    }
+
+    @Test
+    void shouldReportTheArgumentsOfACallAsTheModelSentThemInEveryWriteOfTheCall() {
+      givenUpdateCommand();
+      final var configuration = configuration();
+      final var document =
+          new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+              .create(
+                  DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                      .contentType("text/plain")
+                      .fileName("report.txt")
+                      .build());
+      final var documentTag = "<doc id=\"" + AgentDocumentId.of(document) + "\" />";
+      final var firstDocuments =
+          AgentDocuments.empty()
+              .register(
+                  List.of(
+                      AgentDocument.of(
+                          document, AgentDocumentOrigin.toolCall("Download", "download"))));
+      final var laterDocuments =
+          firstDocuments.register(
+              List.of(
+                  AgentDocument.of(
+                      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+                          .create(
+                              DocumentCreationRequest.from("other".getBytes(StandardCharsets.UTF_8))
+                                  .fileName("other.txt")
+                                  .build()),
+                      AgentDocumentOrigin.userMessage(TestDocuments.MESSAGE_ID))));
+      final var first =
+          new HistoryDocuments(
+              new DocumentHandling.Tracked(firstDocuments),
+              new DocumentRestorer(TestAgentExecutionContext.withLimits().documentFactory()));
+      final var later =
+          new HistoryDocuments(
+              new DocumentHandling.Tracked(laterDocuments),
+              new DocumentRestorer(TestAgentExecutionContext.withLimits().documentFactory()));
+
+      final var runtimeResult =
+          ToolCallResultContent.builder()
+              .id("runtime")
+              .name("acme_lookup")
+              .content(List.of(TextContent.textContent("Found the customer.")))
+              .completedAt(OffsetDateTime.parse("2026-07-02T09:59:40Z"))
+              .build();
+      final var assistantTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder()
+                  .toolCalls(
+                      List.of(
+                          ToolCall.builder()
+                              .id("runtime")
+                              .name("acme_lookup")
+                              .arguments(Map.of("customerId", "42", "document", documentTag))
+                              .kind(ToolKind.RUNTIME)
+                              .build()))
+                  .build(),
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+      final var nextTurn =
+          new AgentConversationTurn(
+              2,
+              List.of(ToolCallResultMessage.builder().results(List.of(runtimeResult)).build()),
+              null,
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+      final var key = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
+
+      client.applyTurnCompletion(
+          TestAgentExecutionContext.withLimits(),
+          key,
+          assistantTurn,
+          OffsetDateTime.parse("2026-07-02T09:59:30Z"),
+          AgentInstanceUpdateStatus.TOOL_CALLING);
+      client.applyToolCallResults(
+          TestAgentExecutionContext.withLimits(),
+          key,
+          first,
+          List.of(runtimeResult),
+          assistantTurn);
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          key,
+          later,
+          nextTurn,
+          Optional.of(assistantTurn),
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"));
+
+      verify(updateCommandStep4, times(3)).history(historyCaptor.capture());
+      final Map<String, Object> expectedArguments =
+          Map.of("customerId", "42", "document", documentTag);
+      final var expectedToolCall =
+          new AgentInstanceHistoryToolCall()
+              .toolCallId("runtime")
+              .toolName("acme_lookup")
+              .arguments(expectedArguments);
+      final var expectedAssistantItem =
+          new AgentInstanceHistoryItem()
+              .historyItemId(
+                  AgentInstanceHistoryItemIds.forMessage(assistantTurn.assistantMessage()))
+              .role(AgentInstanceHistoryRole.ASSISTANT)
+              .content(List.of())
+              .toolCalls(List.of(expectedToolCall))
+              .metrics(
+                  new AgentInstanceHistoryMetrics()
+                      .inputTokens(0)
+                      .outputTokens(0)
+                      .reasoningTokenCount(0)
+                      .cacheCreationTokenCount(0)
+                      .cacheReadTokenCount(0)
+                      .durationMs(0))
+              .producedAt(OffsetDateTime.parse("2026-07-02T09:59:30Z"))
+              .loopIteration(1);
+      final var expectedResultItem =
+          new AgentInstanceHistoryItem()
+              .historyItemId("runtime")
+              .role(AgentInstanceHistoryRole.TOOL_RESULT)
+              .content(List.of(AgentInstanceHistoryContent.text("Found the customer.")))
+              .toolCalls(List.of(expectedToolCall))
+              .producedAt(OffsetDateTime.parse("2026-07-02T09:59:40Z"))
+              .loopIteration(2);
+      // the engine keeps the first write of a history item id, the later write is identical
+      assertThat(historyCaptor.getAllValues())
+          .usingRecursiveComparison()
+          .isEqualTo(
+              List.of(
+                  List.of(expectedAssistantItem),
+                  List.of(expectedResultItem),
+                  List.of(expectedResultItem)));
     }
 
     @Test

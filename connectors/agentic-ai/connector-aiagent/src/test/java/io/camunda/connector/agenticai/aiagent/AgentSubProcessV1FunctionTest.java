@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
@@ -84,19 +85,24 @@ class AgentSubProcessV1FunctionTest {
   void routesThroughNativeProviderWhenSwitchIsEnabled() throws Exception {
     when(providerConfigurationMapper.map(V1_PROVIDER)).thenReturn(V2_PROVIDER);
     var function =
-        new AgentSubProcessV1Function(agentRequestHandler, providerConfigurationMapper, true);
+        new AgentSubProcessV1Function(
+            new AgentExecutionContextFactory(null, providerConfigurationMapper, true),
+            agentRequestHandler);
 
     function.execute(context);
 
     verify(agentRequestHandler).handleRequest(executionContextCaptor.capture());
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
     assertThat(chatModel).isInstanceOf(AnthropicChatModelConfiguration.class).isSameAs(V2_PROVIDER);
+    assertThat(executionContextCaptor.getValue().newInstanceFeatures()).isEmpty();
   }
 
   @Test
   void keepsV1ProviderConfigurationWhenSwitchIsDisabled() throws Exception {
     var function =
-        new AgentSubProcessV1Function(agentRequestHandler, providerConfigurationMapper, false);
+        new AgentSubProcessV1Function(
+            new AgentExecutionContextFactory(null, providerConfigurationMapper, false),
+            agentRequestHandler);
 
     function.execute(context);
 
@@ -104,5 +110,6 @@ class AgentSubProcessV1FunctionTest {
     verifyNoInteractions(providerConfigurationMapper);
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
     assertThat(chatModel).isSameAs(V1_PROVIDER);
+    assertThat(executionContextCaptor.getValue().newInstanceFeatures()).isEmpty();
   }
 }

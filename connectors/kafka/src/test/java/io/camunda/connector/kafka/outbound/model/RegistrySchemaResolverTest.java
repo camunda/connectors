@@ -9,6 +9,7 @@ package io.camunda.connector.kafka.outbound.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.kafka.model.FixedSubjectNameStrategy;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
@@ -21,8 +22,10 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +46,12 @@ class RegistrySchemaResolverTest {
   private static final String ADDRESS =
       "{\"type\":\"record\",\"name\":\"Address\",\"fields\":[{\"name\":\"street\",\"type\":\"string\"},"
           + "{\"name\":\"city\",\"type\":\"string\"}]}";
+  private static final String CREATE_TASK =
+      "{\"type\":\"record\",\"name\":\"CreateTask\",\"namespace\":\"test\",\"fields\":["
+          + "{\"name\":\"taskId\",\"type\":\"string\"},{\"name\":\"title\",\"type\":\"string\"}]}";
+  private static final String CANCEL_TASK =
+      "{\"type\":\"record\",\"name\":\"CancelTask\",\"namespace\":\"test\",\"fields\":["
+          + "{\"name\":\"taskId\",\"type\":\"string\"},{\"name\":\"reason\",\"type\":\"string\"}]}";
 
   private final MockSchemaRegistryClient client =
       new MockSchemaRegistryClient(List.of(new AvroSchemaProvider(), new JsonSchemaProvider()));
@@ -287,6 +296,80 @@ class RegistrySchemaResolverTest {
   }
 
   @Test
+  void topLevelUnionOfReferencedRecordsIsSerializedWithTheIdOfTheUnion() throws Exception {
+    registerAvro("test.CreateTask", CREATE_TASK);
+    registerAvro("test.CancelTask", CANCEL_TASK);
+    int unionId =
+        registerAvro(
+            "orders-value",
+            "[\"test.CreateTask\",\"test.CancelTask\"]",
+            new SchemaReference("test.CreateTask", "test.CreateTask", 1),
+            new SchemaReference("test.CancelTask", "test.CancelTask", 1));
+    var strategy = strategy(SchemaSource.REGISTRY, null, null, null);
+
+    var payloads =
+        Map.of(
+            "test.CancelTask",
+            Map.<String, Object>of("test.CancelTask", Map.of("taskId", "1", "reason", "duplicate")),
+            "test.CreateTask",
+            Map.<String, Object>of("taskId", "2", "title", "Write tests"));
+
+    for (var payload : payloads.entrySet()) {
+      var request = request(strategy, payload.getValue());
+      var resolved = resolver.resolve(request);
+      assertThat(resolved).get().extracting(ResolvedSchema::id).isEqualTo(unionId);
+
+      var bytes = serialize(request, resolved);
+
+      assertThat(bytes[0]).isZero();
+      assertThat(ByteBuffer.wrap(bytes, 1, 4).getInt()).isEqualTo(unionId);
+      assertThat(deserialize(bytes).getSchema().getFullName()).isEqualTo(payload.getKey());
+    }
+    assertThat(client.getAllVersions("orders-value")).containsExactly(1, 2, 3);
+    assertThat(client.getAllVersions("test.CreateTask")).containsExactly(1);
+    assertThat(client.getAllVersions("test.CancelTask")).containsExactly(1);
+  }
+
+  @Test
+  void topLevelUnionValueMatchingNoRecordIsRejected() throws Exception {
+    registerAvro("test.CreateTask", CREATE_TASK);
+    registerAvro("test.CancelTask", CANCEL_TASK);
+    registerAvro(
+        "orders-value",
+        "[\"test.CreateTask\",\"test.CancelTask\"]",
+        new SchemaReference("test.CreateTask", "test.CreateTask", 1),
+        new SchemaReference("test.CancelTask", "test.CancelTask", 1));
+    var request = request(strategy(SchemaSource.REGISTRY, null, null, null), Map.of("taskId", "1"));
+    var resolved = resolver.resolve(request);
+
+    assertThatThrownBy(() -> serialize(request, resolved))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("[test.CreateTask, test.CancelTask]")
+        .hasMessageContaining("{\"test.CreateTask\": {...}}");
+  }
+
+  @Test
+  void inlineUnionSchemaIsRejectedWithoutRegisteringIt() throws Exception {
+    var strategy =
+        new OutboundSchemaRegistryStrategy(
+            "[" + CREATE_TASK + "," + CANCEL_TASK + "]",
+            "http://registry",
+            SchemaType.AVRO,
+            SchemaSource.INLINE,
+            null,
+            null,
+            null);
+    var request = request(strategy, Map.of("taskId", "1", "reason", "duplicate"));
+    var resolved = resolver.resolve(request);
+
+    assertThatThrownBy(() -> serialize(request, resolved))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("From registry");
+    assertThat(client.getAllSubjects()).containsExactly("orders-value");
+    assertThat(client.getAllVersions("orders-value")).containsExactly(1, 2);
+  }
+
+  @Test
   void lookupClientUsesRegistryUrlOverriddenInAdditionalProperties() throws Exception {
     var urls = new ArrayList<String>();
     var capturing =
@@ -395,6 +478,12 @@ class RegistrySchemaResolverTest {
     return client.register(subject, parsed);
   }
 
+  private int registerAvro(String subject, String schema, SchemaReference... references)
+      throws Exception {
+    var parsed = client.parseSchema("AVRO", schema, List.of(references)).orElseThrow();
+    return client.register(subject, parsed);
+  }
+
   private static OutboundSchemaRegistryStrategy strategy(
       SchemaSource source, String subject, Integer version, Integer id) {
     return new OutboundSchemaRegistryStrategy(
@@ -425,6 +514,13 @@ class RegistrySchemaResolverTest {
     try (var serializer = new KafkaAvroSerializer(client)) {
       serializer.configure(configs, false);
       return serializer.serialize(request.topic().topicName(), record.value());
+    }
+  }
+
+  private GenericRecord deserialize(byte[] bytes) {
+    try (var deserializer = new KafkaAvroDeserializer(client)) {
+      deserializer.configure(Map.of("schema.registry.url", "http://registry"), false);
+      return (GenericRecord) deserializer.deserialize("orders", bytes);
     }
   }
 }

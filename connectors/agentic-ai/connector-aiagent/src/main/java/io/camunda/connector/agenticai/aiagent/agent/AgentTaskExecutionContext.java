@@ -14,7 +14,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -31,27 +30,22 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
   private final AgentTaskRequestData data;
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentConfiguration configuration;
+  private final List<String> newInstanceFeatures;
 
   @Nullable private List<AdHocToolElement> toolElements;
 
   public AgentTaskExecutionContext(
       JobContext jobContext,
       DocumentFactory documentFactory,
-      AgentTaskV1Request request,
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
-    this(jobContext, documentFactory, request.data(), request.provider(), toolElementsResolver);
-  }
-
-  public AgentTaskExecutionContext(
-      JobContext jobContext,
-      DocumentFactory documentFactory,
       AgentTaskRequestData data,
       ChatModelConfiguration chatModel,
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      List<String> newInstanceFeatures) {
     this.jobContext = jobContext;
     this.documentFactory = documentFactory;
     this.data = data;
     this.toolElementsResolver = toolElementsResolver;
+    this.newInstanceFeatures = newInstanceFeatures;
     this.configuration =
         new AgentConfiguration(
             chatModel,
@@ -72,6 +66,11 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
   @Override
   public DocumentFactory documentFactory() {
     return documentFactory;
+  }
+
+  @Override
+  public List<String> newInstanceFeatures() {
+    return newInstanceFeatures;
   }
 
   @Override

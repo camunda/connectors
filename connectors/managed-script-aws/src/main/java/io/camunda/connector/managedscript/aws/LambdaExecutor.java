@@ -12,7 +12,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.Map;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -28,8 +33,11 @@ record LambdaExecutor(ExecutorWrapper wrapper, String runtime, String handler) {
 
   private static final String ROOT = "/io/camunda/connector/managedscript/aws/";
 
-  /** 1980-01-01, the earliest time of a zip entry: the package depends on its content only. */
-  private static final long FIXED_ENTRY_TIME = 315_532_800_000L;
+  /**
+   * A fixed local time from 1980 on, which a zip entry stores as is, without the extended timestamp
+   * an instant needs: the package depends on its content only, not on the time zone of the JVM.
+   */
+  private static final LocalDateTime FIXED_ENTRY_TIME = LocalDateTime.of(1980, 1, 2, 0, 0);
 
   static LambdaExecutor of(ScriptLanguage language) {
     return switch (language) {
@@ -59,13 +67,35 @@ record LambdaExecutor(ExecutorWrapper wrapper, String runtime, String handler) {
     return wrapper.digest(runtime);
   }
 
-  /** Deterministic: entries in name order, with a fixed time. */
+  /**
+   * The Base64 SHA-256 of {@link #zip()}, as Lambda reports the {@code CodeSha256} of a function
+   * deployed from it.
+   */
+  String codeSha256() {
+    try {
+      return Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-256").digest(zip()));
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-256 is unavailable", e);
+    }
+  }
+
+  /**
+   * Deterministic: entries in name order, with a fixed time, and stored, not compressed, so that
+   * the bytes do not depend on the zlib of the JDK. The provider compares them with the deployed
+   * package of an executor.
+   */
   byte[] zip() {
     final var bytes = new ByteArrayOutputStream();
     try (var zip = new ZipOutputStream(bytes)) {
       for (var file : wrapper.files().entrySet()) {
         final var entry = new ZipEntry(file.getKey());
-        entry.setTime(FIXED_ENTRY_TIME);
+        entry.setTimeLocal(FIXED_ENTRY_TIME);
+        final var crc = new CRC32();
+        crc.update(file.getValue());
+        entry.setMethod(ZipEntry.STORED);
+        entry.setSize(file.getValue().length);
+        entry.setCompressedSize(file.getValue().length);
+        entry.setCrc(crc.getValue());
         zip.putNextEntry(entry);
         zip.write(file.getValue());
         zip.closeEntry();

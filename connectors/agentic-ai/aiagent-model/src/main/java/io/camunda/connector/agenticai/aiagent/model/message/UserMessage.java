@@ -27,7 +27,8 @@ public record UserMessage(
 
   /**
    * Metadata key identifying a user message as containing documents extracted from tool call
-   * results.
+   * results. For an agent instance that tracks its documents, this is the message that follows the
+   * tool results with the documents whose content a tool asked for.
    */
   public static final String METADATA_TOOL_CALL_DOCUMENTS = "toolCallDocuments";
 

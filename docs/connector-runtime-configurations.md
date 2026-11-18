@@ -101,6 +101,8 @@ camunda.connector.managed-code.local.directory=/home/me/.camunda/managed-script
   the directory it was set up for. A host with only Node.js runs `.js` scripts, and a `.py` script
   fails with a message saying that Python 3.10 or later was not found, until you install it: the
   first job after `provisioning-retry-backoff` looks again, so the runtime does not need a restart.
+- A script gets 256 MB, since it shares the host with the runtime. See
+  [the memory of a script](#the-memory-of-a-script).
 
 ### AWS Lambda provider
 
@@ -128,8 +130,19 @@ camunda.connector.managed-code.aws.log-retention-days=30
 - Memory, function timeout and execution role are compared whenever the provider makes an executor
   ready, and updated in place (`UpdateFunctionConfiguration`) when they differ. A configuration change
   therefore creates no function and leaves none behind.
+- Each time it makes an executor ready, before any update, the provider checks that the function
+  runs its wrapper and nothing else. That means the `CodeSha256` of its package, no layers, no
+  environment variables, and its own handler and runtime. Otherwise, the executor is refused and
+  never called, and jobs fail with `PLATFORM_REJECTED`, which names the field that differs. This
+  stops someone who can create or configure functions under the prefix from receiving the scripts,
+  their input and secrets. Find out how the function was changed, then delete it: the runtime
+  creates it again. The check reads nothing beyond `GetFunction`, so it needs no extra permission.
+  It is not repeated on each call.
 - `aws.region` is the region of the executors; without it, the SDK's default region chain applies
   (`AWS_REGION`, the profile). `aws.memory-mb` is between 128 and 10240 (default 512).
+- `aws.memory-mb` sizes the scripts: the wrapper reads the memory of the function from Lambda and
+  gives a script all of it but for what the wrapper and the interpreter need. See
+  [the memory of a script](#the-memory-of-a-script).
   `aws.log-retention-days` is a value that CloudWatch Logs accepts, such as 7, 14, 30 or 90
   (default 30).
 - Credentials come from the default chain of the AWS SDK only: environment variables, a web-identity
@@ -261,8 +274,21 @@ camunda.connector.managed-code.gcp.max-instance-count=1000
   all traffic on the latest revision are compared whenever the provider makes an executor ready,
   and updated in place, as a new revision of the same function, when they differ. A configuration change therefore creates no
   function and leaves none behind.
+- Each time it makes an executor ready, the provider downloads the deployed source of the function
+  and checks that it is, byte for byte, the archive of its wrapper that the runtime uploads.
+  Otherwise, the executor is refused and never called, and jobs fail with `PLATFORM_REJECTED`. This stops someone who can update functions
+  under the prefix from receiving the scripts, their input and secrets. Find out how the function
+  was changed, then delete it: the runtime creates it again. The check needs
+  `cloudfunctions.functions.sourceCodeGet`, which `roles/cloudfunctions.developer` includes. It is
+  not repeated on each call, and it does not cover the function's environment variables or a
+  change made directly on the underlying Cloud Run service.
 - `gcp.project-id` and `gcp.region` locate the executors. `gcp.memory-mb` is between 128 and
   32768 (default 512).
+- `gcp.memory-mb` sizes the scripts: it is passed to the wrapper in `EXECUTOR_MEMORY_MB`, and the
+  wrapper gives a script all of it but for what the wrapper and the interpreter need. See
+  [the memory of a script](#the-memory-of-a-script). The file system of a Cloud Run instance is in
+  memory: what a script writes to its directory takes from the same memory, outside the script's
+  limit, until the call ends.
 - `gcp.function-service-account` is required: without it, Cloud Run would run the executors as the
   default compute service account, which often has Editor on the project.
 - `gcp.build-service-account` is required for the same reason. The provider uploads the source of
@@ -310,7 +336,7 @@ executor design proved together:
 
 | Grant | Scope | Why |
 |---|---|---|
-| `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/functions/<prefix>")` | create, read and update its own executors |
+| `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/functions/<prefix>")` | create, read and update its own executors, and read their source to check it (`cloudfunctions.functions.sourceCodeGet`) |
 | `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/operations/")` | poll the operations of a creation or update |
 | A custom role with only `cloudfunctions.functions.generateUploadUrl` | project, condition `resource.name == "<location>"` | upload the source: the upload URL is requested on the location, where the developer role would list the functions of every cluster |
 | `roles/iam.serviceAccountUser` | the function service account only | run the executors as it |
@@ -357,6 +383,28 @@ Each failure has an error code, and the code decides what happens to the job's r
 The incident shows the error message, and the script's stack trace when the script raised the
 failure. Both also reach the runtime's error log, so a script must not let a sensitive value reach
 an exception message. Secrets in the script input are resolved as for any connector.
+
+### The memory of a script
+
+The wrapper runs each script in a child process with a memory limit. A script that goes over it
+fails with `RESOURCE_LIMIT`, and the wrapper survives to answer and clean up. Without the limit,
+the platform would stop the whole instance for its memory, and the job would fail with
+`PLATFORM_EXECUTION_FAILED`.
+
+On AWS and GCP, the limit comes from the memory of the executor (`aws.memory-mb`, `gcp.memory-mb`),
+less what the wrapper and the interpreter need besides the script:
+
+| Language | Limit | At 128 MB | At 512 MB | At 1024 MB |
+|---|---|---|---|---|
+| Python | `memory-mb` − 128 MB of address space (`RLIMIT_AS`), at least 64 MB | 64 MB | 384 MB | 896 MB |
+| JavaScript | 80% of `memory-mb` − 64 MB of V8 heap (`--max-old-space-size`) | 38 MB | 345 MB | 755 MB |
+
+The V8 heap leaves out the young generation and the memory the collector needs, which grow with the
+heap: the share keeps them within the function. Memory a JavaScript script holds outside the heap,
+such as large `Buffer`s, is not limited. A function of 128 MB leaves room for small scripts only.
+Raise `memory-mb` for a script that needs more.
+
+The `local` provider gives a script 256 MB, whatever the host has.
 
 ### Deleting executors that are no longer in use
 

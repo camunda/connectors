@@ -15,7 +15,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessRequestData;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
@@ -29,20 +28,7 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   private final List<ToolCallResult> initialToolCallResults;
   private final List<AdHocToolElement> toolElements;
   private final AgentConfiguration configuration;
-
-  public AgentSubProcessExecutionContext(
-      final JobContext jobContext,
-      final DocumentFactory documentFactory,
-      final AgentSubProcessV1Request request) {
-    this(
-        jobContext,
-        documentFactory,
-        request.data(),
-        request.agentContext(),
-        request.toolCallResults(),
-        request.toolElements(),
-        request.provider());
-  }
+  private final List<String> newInstanceFeatures;
 
   public AgentSubProcessExecutionContext(
       JobContext jobContext,
@@ -51,13 +37,15 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
       AgentContext initialAgentContext,
       List<ToolCallResult> initialToolCallResults,
       List<AdHocToolElement> toolElements,
-      ChatModelConfiguration chatModel) {
+      ChatModelConfiguration chatModel,
+      List<String> newInstanceFeatures) {
     this.jobContext = jobContext;
     this.documentFactory = documentFactory;
     this.data = data;
     this.initialAgentContext = initialAgentContext;
     this.initialToolCallResults = initialToolCallResults;
     this.toolElements = toolElements;
+    this.newInstanceFeatures = newInstanceFeatures;
     this.configuration =
         new AgentConfiguration(
             chatModel,
@@ -77,6 +65,11 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   @Override
   public DocumentFactory documentFactory() {
     return documentFactory;
+  }
+
+  @Override
+  public List<String> newInstanceFeatures() {
+    return newInstanceFeatures;
   }
 
   @Override

@@ -8,14 +8,20 @@ package io.camunda.connector.agenticai.testutil;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +37,23 @@ public final class TestDocuments {
   /** The document factory of the in-memory store, the document factory of a job in a test. */
   public static DocumentFactory documentFactory() {
     return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+  }
+
+  /** Restores the documents of the in-memory store. */
+  public static DocumentRestorer documentRestorer() {
+    return new DocumentRestorer(documentFactory());
+  }
+
+  /**
+   * The metadata of the user message that holds the documents of tool calls: the timestamp of the
+   * message and the marker for the documents.
+   */
+  public static Map<String, Object> toolCallDocumentsMetadata(UserMessage message) {
+    return Map.of(
+        "timestamp",
+        message.metadata().get("timestamp"),
+        UserMessage.METADATA_TOOL_CALL_DOCUMENTS,
+        true);
   }
 
   public static ObjectHandleRenderer objectHandleRenderer() {
@@ -70,5 +93,19 @@ public final class TestDocuments {
                 .contentType("text/plain")
                 .fileName(fileName)
                 .build());
+  }
+
+  /** The Camunda document reference of a new {@code text/plain} document in the in-memory store. */
+  public static CamundaDocumentReferenceModel reference(String content, String fileName) {
+    return AgentDocument.of(
+            createDocument(content, fileName), AgentDocumentOrigin.userMessage(MESSAGE_ID))
+        .reference();
+  }
+
+  /** The document reference of an agent document in the JSON format it is persisted in. */
+  public static Map<String, Object> referenceJson(AgentDocument document) {
+    final var mapper = ConnectorsObjectMapperSupplier.getCopy();
+    return mapper.convertValue(
+        mapper.valueToTree(document).get("reference"), new TypeReference<>() {});
   }
 }

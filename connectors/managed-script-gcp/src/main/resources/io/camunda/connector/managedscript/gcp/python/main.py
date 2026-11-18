@@ -21,6 +21,9 @@ SAFETY_MS = 1_000
 # Cloud Run gives no remaining time: the provider sets the function timeout.
 FUNCTION_TIMEOUT_MS = int(os.environ["EXECUTOR_FUNCTION_TIMEOUT_MS"])
 
+# The memory of the instance, set by the provider: the script gets it but for a margin.
+MEMORY_MB = int(os.environ["EXECUTOR_MEMORY_MB"])
+
 TMP = os.environ.get("EXECUTOR_TMP", "/tmp")
 
 # Whatever is in /tmp when the module loads becomes part of what the executor keeps. A new container
@@ -30,7 +33,7 @@ _left = executor_core.clear(TMP)
 if _left:
     print("Kept in %s, which the server cannot remove: %s" % (TMP, ", ".join(_left)), file=sys.stderr)
 
-executor = executor_core.create_executor(local=False, tmp=TMP)
+executor = executor_core.create_executor(local=False, tmp=TMP, memory_mb=MEMORY_MB)
 
 
 @functions_framework.http

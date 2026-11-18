@@ -28,4 +28,7 @@ public interface RecordedChatRequest {
   List<ToolDefinition> toolDefinitions();
 
   Optional<RecordedResponseFormat> responseFormat();
+
+  /** The request body as it went over the wire. */
+  String rawBody();
 }

@@ -98,13 +98,22 @@ public class ProducerRecordFactory {
     var schemaString =
         resolvedSchema.map(r -> r.schema().canonicalString()).orElseGet(strategy::getSchema);
     return switch (strategy.getSchemaType()) {
-      case AVRO ->
-          GENERIC_RECORD_CONVERTER.toGenericRecord(
-              resolvedSchema
-                  .map(r ->
-                      ((io.confluent.kafka.schemaregistry.avro.AvroSchema) r.schema()).rawSchema())
-                  .orElseGet(() -> new Schema.Parser().parse(schemaString)),
-              payload);
+      case AVRO -> {
+        var schema =
+            resolvedSchema
+                .map(r ->
+                    ((io.confluent.kafka.schemaregistry.avro.AvroSchema) r.schema()).rawSchema())
+                .orElseGet(() -> new Schema.Parser().parse(schemaString));
+        // with Inline, the serializer would register the member record as the subject's schema,
+        // replacing the union for every later message
+        if (resolvedSchema.isEmpty() && schema.getType() == Schema.Type.UNION) {
+          throw new ConnectorException(
+              "FAIL",
+              "A union schema needs the schema source From registry: register the union in the"
+                  + " schema registry and select From registry instead of Inline.");
+        }
+        yield GENERIC_RECORD_CONVERTER.toGenericRecord(schema, payload);
+      }
       case JSON ->
           resolvedSchema
               .map(r -> OBJECT_NODE_CONVERTER.toObjectNode((JsonSchema) r.schema(), payload))

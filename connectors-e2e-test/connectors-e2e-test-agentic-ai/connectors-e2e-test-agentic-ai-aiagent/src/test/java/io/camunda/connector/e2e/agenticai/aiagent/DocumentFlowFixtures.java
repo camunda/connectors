@@ -1,0 +1,402 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.e2e.agenticai.aiagent;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
+import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.agenticai.aiagent.agent.ReturnedDocument;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+import org.json.JSONException;
+import org.jspecify.annotations.Nullable;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.springframework.core.io.ClassPathResource;
+
+/**
+ * Building blocks shared by the document flow e2e tests of both agent flavors: the scripted model
+ * turns, the {@code Upload_A_File} tool that is added to the process, the upload endpoint this tool
+ * posts to and the assertions on what it received.
+ *
+ * <p>The scripted model learns document ids through {@link
+ * io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer}: {@code
+ * documentId(0)} is the first document the request it answers knows.
+ */
+public final class DocumentFlowFixtures {
+
+  public static final String UPLOAD_TOOL = "Upload_A_File";
+  public static final String UPLOAD_PATH = "/upload";
+  public static final String DOWNLOADED_FILE = "test.pdf";
+  public static final String DOWNLOAD_CALL_ID = "call_download";
+  public static final String UPLOAD_CALL_ID = "call_upload";
+  public static final String RETURN_CALL_ID = "call_return";
+  public static final String GET_CALL_ID = "call_get";
+  public static final String GET_AGAIN_CALL_ID = "call_get_again";
+  public static final String SUPERFLUX_CALL_ID = "call_superflux";
+  public static final String SUPERFLUX_RESULT = "24";
+  public static final String COMPLEX_TOOL = "A_Complex_Tool";
+  public static final String COMPLEX_TOOL_CALL_ID = "call_complex";
+  public static final String FINAL_TEXT = "I uploaded the document and return it.";
+
+  private DocumentFlowFixtures() {}
+
+  /**
+   * The names of every tool the model is offered: the tools of the process, the {@code
+   * Upload_A_File} tool that is added to the process, and the built-in tools.
+   */
+  public static List<String> offeredToolNames(List<ToolDefinition> processTools) {
+    return Stream.concat(
+            processTools.stream().map(ToolDefinition::name),
+            Stream.of(UPLOAD_TOOL, "c8__return_document", "c8__load_document"))
+        .toList();
+  }
+
+  /**
+   * The whole input schema of the {@code Upload_A_File} tool as the model provider receives it: an
+   * object with the required {@code document} parameter, which has the object schema of a document
+   * handle.
+   */
+  public static Map<String, Object> uploadToolInputSchema() {
+    return Map.of(
+        "type",
+        "object",
+        "properties",
+        Map.of("document", DocumentParameter.documentSchema("The document to upload.")),
+        "required",
+        List.of("document"));
+  }
+
+  /**
+   * Adds the {@code Upload_A_File} tool to the ad-hoc sub-process. The tool takes a document as its
+   * {@code document} parameter and posts it as multipart form data to the process variable {@code
+   * uploadUrl}.
+   */
+  public static BpmnModelInstance withUploadTool(
+      BpmnModelInstance model, String adHocSubProcessId) {
+    final var upload = model.newInstance(ServiceTask.class, UPLOAD_TOOL);
+    upload.setName("Upload a file");
+    upload
+        .builder()
+        .zeebeJobType("io.camunda:http-json:1")
+        .zeebeJobRetries("0")
+        .zeebeInput("noAuth", "authentication.type")
+        .zeebeInput("POST", "method")
+        .zeebeInput("=uploadUrl", "url")
+        .zeebeInput("={\"Content-Type\": \"multipart/form-data\"}", "headers")
+        .zeebeInput(
+            "={\n  file: fromAi(toolCall.document, \"The document to upload.\", \"document\"),\n"
+                + "  label: \"from-agent\"\n}",
+            "body")
+        .zeebeInput("=20", "connectionTimeoutInSeconds")
+        .zeebeInput("=20", "readTimeoutInSeconds")
+        .zeebeInput("=false", "ignoreNullValues")
+        .zeebeTaskHeader("elementTemplateVersion", "12")
+        .zeebeTaskHeader("elementTemplateId", "io.camunda.connectors.HttpJson.v2")
+        .zeebeTaskHeader(
+            "resultExpression", "={\n  toolCallResult: {\n    status: response.status\n  }\n}")
+        .documentation("Upload a known document to the archive");
+
+    final AdHocSubProcess adHocSubProcess = model.getModelElementById(adHocSubProcessId);
+    adHocSubProcess.addChildElement(upload);
+    return model;
+  }
+
+  /** Stubs the endpoint the {@code Upload_A_File} tool posts the document to. */
+  public static void stubUploadEndpoint() {
+    stubFor(post(urlPathEqualTo(UPLOAD_PATH)).willReturn(aResponse().withStatus(200)));
+  }
+
+  public static String uploadUrl(String wireMockBaseUrl) {
+    return wireMockBaseUrl + UPLOAD_PATH;
+  }
+
+  public static Turn downloadTurn(String wireMockBaseUrl) {
+    return downloadTurn(wireMockBaseUrl, DOWNLOADED_FILE);
+  }
+
+  public static Turn downloadTurn(String wireMockBaseUrl, String file) {
+    return downloadTurn(wireMockBaseUrl, file, DOWNLOAD_CALL_ID);
+  }
+
+  public static Turn downloadTurn(String wireMockBaseUrl, String file, String callId) {
+    return Turn.toolCalls(
+        "I will download the file.",
+        10,
+        20,
+        ToolCall.of(
+            callId, "Download_A_File", "{\"url\": \"%s/%s\"}".formatted(wireMockBaseUrl, file)));
+  }
+
+  /**
+   * The handle object of the document as a JSON value of the scripted arguments: a document
+   * parameter takes the handle of a document.
+   */
+  public static String handle(String documentId) {
+    return "{\"type\":\"camunda.agenticai.document\",\"id\":\"%s\"}".formatted(documentId);
+  }
+
+  /** Loads the first known document of the request. */
+  public static Turn getDocumentTurn() {
+    return getDocumentTurn(documentId(0));
+  }
+
+  public static Turn getDocumentTurn(String documentId) {
+    return getDocumentTurn(GET_CALL_ID, documentId);
+  }
+
+  public static Turn getDocumentTurn(String callId, String documentId) {
+    return Turn.toolCalls(
+        "I will read the document.",
+        10,
+        20,
+        ToolCall.of(callId, "c8__load_document", "{\"id\": %s}".formatted(handle(documentId))));
+  }
+
+  /** Uploads the first known document of the request. */
+  public static Turn uploadTurn() {
+    return uploadTurn(documentId(0));
+  }
+
+  public static Turn uploadTurn(String documentId) {
+    return Turn.toolCalls(
+        "I will upload the document.",
+        10,
+        20,
+        ToolCall.of(
+            UPLOAD_CALL_ID, UPLOAD_TOOL, "{\"document\": %s}".formatted(handle(documentId))));
+  }
+
+  /** The key and the description of the document the model returns. */
+  public static final String RETURN_KEY = "report";
+
+  public static final String RETURN_DESCRIPTION = "The downloaded document";
+
+  private static final String RETURN_ARGUMENTS =
+      "{\"key\": \"%s\", \"document\": %%s, \"description\": \"%s\"}"
+          .formatted(RETURN_KEY, RETURN_DESCRIPTION);
+
+  public static Turn returnDocumentTurn() {
+    return Turn.toolCalls(
+        "I will return the document.",
+        10,
+        20,
+        ToolCall.of(
+            RETURN_CALL_ID,
+            "c8__return_document",
+            RETURN_ARGUMENTS.formatted(handle(documentId(0)))));
+  }
+
+  /** Returns the document with the given id under the given key. */
+  public static Turn returnDocumentTurn(
+      String callId, String key, String documentId, String description) {
+    return Turn.toolCalls(
+        "I will return the document.",
+        10,
+        20,
+        ToolCall.of(
+            callId,
+            "c8__return_document",
+            "{\"key\": \"%s\", \"document\": %s, \"description\": \"%s\"}"
+                .formatted(key, handle(documentId), description)));
+  }
+
+  /**
+   * One assistant message with a valid {@code c8__return_document} call and a {@code
+   * SuperfluxProduct} call, which answers {@value #SUPERFLUX_RESULT}.
+   */
+  public static Turn returnDocumentWithSuperfluxTurn() {
+    return Turn.toolCalls(
+        "I will return the document and calculate the superflux product.",
+        10,
+        20,
+        ToolCall.of(
+            RETURN_CALL_ID,
+            "c8__return_document",
+            RETURN_ARGUMENTS.formatted(handle(documentId(0)))),
+        ToolCall.of(SUPERFLUX_CALL_ID, "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"));
+  }
+
+  /**
+   * One assistant message with a valid {@code c8__return_document} call and a call of the complex
+   * tool. The complex tool has no job worker: it runs until the test completes its job.
+   */
+  public static Turn returnDocumentWithComplexToolTurn() {
+    return Turn.toolCalls(
+        "I will return the document and run the complex tool.",
+        10,
+        20,
+        ToolCall.of(
+            RETURN_CALL_ID,
+            "c8__return_document",
+            RETURN_ARGUMENTS.formatted(handle(documentId(0)))),
+        ToolCall.of(COMPLEX_TOOL_CALL_ID, COMPLEX_TOOL, "{}"));
+  }
+
+  /**
+   * One assistant message with an upload with the handle of an unknown document and a {@code
+   * SuperfluxProduct} call, which answers {@value #SUPERFLUX_RESULT}.
+   */
+  public static Turn unknownUploadWithSuperfluxTurn() {
+    return Turn.toolCalls(
+        "I will upload the document and calculate the superflux product.",
+        10,
+        20,
+        ToolCall.of(
+            UPLOAD_CALL_ID,
+            UPLOAD_TOOL,
+            "{\"document\": %s}".formatted(handle("doc_000000000000"))),
+        ToolCall.of(SUPERFLUX_CALL_ID, "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"));
+  }
+
+  public static Turn finalTurn() {
+    return Turn.text(FINAL_TEXT, 10, 20);
+  }
+
+  /** The bytes of a file the WireMock server serves, as downloaded by the agent. */
+  public static byte[] servedFile(String name) {
+    try {
+      return new ClassPathResource("__files/" + name).getContentAsByteArray();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  /**
+   * Asserts that the upload endpoint received exactly one multipart request whose {@code file} part
+   * holds exactly the given bytes, next to the plain {@code label} part.
+   */
+  public static void assertUploaded(byte[] expectedBytes) {
+    final var uploads = findAll(postRequestedFor(urlPathEqualTo(UPLOAD_PATH)));
+    assertThat(uploads).as("requests to the upload endpoint").hasSize(1);
+    final var upload = uploads.getFirst();
+    assertThat(upload.getHeader("Content-Type")).startsWith("multipart/form-data");
+    assertThat(upload.getPart("file")).as("file part").isNotNull();
+    assertThat(upload.getPart("file").getBody().asBytes())
+        .as("uploaded bytes")
+        .isEqualTo(expectedBytes);
+    assertThat(upload.getPart("label").getBody().asString()).isEqualTo("from-agent");
+  }
+
+  public static int uploadCount() {
+    return findAll(postRequestedFor(urlPathEqualTo(UPLOAD_PATH))).size();
+  }
+
+  /**
+   * Asserts that a response document reference is the whole Camunda document reference of the agent
+   * document with the given id, the id the model reads in the handle of the document.
+   */
+  public static void assertCamundaDocumentReference(
+      AgentContext context, Object reference, String expectedDocumentId) {
+    final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    final var registered =
+        context
+            .documents()
+            .find(AgentDocumentId.of(expectedDocumentId))
+            .orElseThrow(() ->
+                new AssertionError("The agent does not know the document " + expectedDocumentId));
+    try {
+      JSONAssert.assertEquals(
+          objectMapper.writeValueAsString(registered.reference()),
+          objectMapper.writeValueAsString(reference),
+          true);
+    } catch (JsonProcessingException e) {
+      throw new UncheckedIOException(e);
+    } catch (JSONException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  /**
+   * A response document the agent response is expected to hold: the key, the id of the document the
+   * model reads in its handle, and the description.
+   */
+  public record ExpectedResponseDocument(
+      String key, String documentId, @Nullable String description) {}
+
+  /**
+   * Asserts that the response documents of an agent response hold only the document with the given
+   * id, under the key and with the description the model sent.
+   */
+  public static void assertResponseDocument(
+      AgentContext context,
+      Map<String, ? extends ReturnedDocument> documents,
+      String expectedDocumentId) {
+    assertResponseDocuments(
+        context,
+        documents,
+        new ExpectedResponseDocument(RETURN_KEY, expectedDocumentId, RETURN_DESCRIPTION));
+  }
+
+  /**
+   * Asserts that the response documents hold exactly the expected entries, in no particular order,
+   * each with the whole Camunda document reference of its document and its description.
+   */
+  public static void assertResponseDocuments(
+      AgentContext context,
+      Map<String, ? extends ReturnedDocument> documents,
+      ExpectedResponseDocument... expected) {
+    assertThat(documents.keySet())
+        .containsExactlyInAnyOrderElementsOf(
+            Arrays.stream(expected).map(ExpectedResponseDocument::key).toList());
+    for (final var entry : expected) {
+      final var returned = documents.get(entry.key());
+      assertCamundaDocumentReference(context, returned.document(), entry.documentId());
+      assertThat(returned.description()).isEqualTo(entry.description());
+    }
+  }
+
+  /**
+   * The id of the document in the handle of the result of the tool call with the given id, as the
+   * last request of the conversation holds it.
+   */
+  public static String documentIdOfToolResult(
+      OpenAiCompletionsRecordedConversation recorded, String toolCallId) {
+    final var result =
+        recorded.lastRequest().messages().stream()
+            .filter(m -> toolCallId.equals(m.toolCallId()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No tool result for call " + toolCallId));
+    return parseDocumentHandle(result.content()).id().value();
+  }
+
+  public static List<Turn> roundTripTurns(String wireMockBaseUrl) {
+    return List.of(downloadTurn(wireMockBaseUrl), uploadTurn(), returnDocumentTurn(), finalTurn());
+  }
+}

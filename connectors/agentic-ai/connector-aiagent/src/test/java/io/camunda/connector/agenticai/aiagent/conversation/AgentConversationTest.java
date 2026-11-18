@@ -24,12 +24,15 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
@@ -194,6 +197,62 @@ class AgentConversationTest {
     var snapshot = conv.window(20);
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
+  }
+
+  @Test
+  void window_offersTheToolDefinitionsWithDocumentParametersAsConfigured() {
+    var authored =
+        ToolDefinition.builder()
+            .name("send")
+            .description("Sends a message")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of(
+                        "file",
+                        DocumentParameter.documentSchema("The file"),
+                        "files",
+                        Map.of("type", "array", "items", DocumentParameter.documentSchema(null)))))
+            .build();
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG.withToolDefinitions(List.of(authored)),
+            BASE_CONTEXT.withToolDefinitions(List.of(authored)),
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    assertThat(conv.window(20).toolDefinitions()).containsExactly(authored);
+  }
+
+  @Test
+  void window_offersTheToolDefinitionsAsConfiguredWhenTheAgentInstanceDoesNotTrackItsDocuments() {
+    var authored =
+        ToolDefinition.builder()
+            .name("upload")
+            .description("Uploads a file")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of("doc", DocumentParameter.documentSchema("The file"))))
+            .build();
+    var untracked =
+        BASE_CONTEXT
+            .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
+            .withToolDefinitions(List.of(authored));
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG.withToolDefinitions(List.of(authored)),
+            untracked,
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    assertThat(conv.window(20).toolDefinitions()).containsExactly(authored);
   }
 
   @Test
@@ -696,5 +755,22 @@ class AgentConversationTest {
     assertThat(next.toAgentContext().properties()).containsEntry("note", "x");
     // the metrics of the persisted context are not touched by a change of it
     assertThat(next.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());
+  }
+
+  @Test
+  void nextRuntimeToolRound_carriesTheResponseDocumentsIntoTheAgentContext() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty());
+    final var selection = new ResponseDocumentSelection("b", AgentDocumentId.of("doc-b"), null);
+
+    var next =
+        conv.nextRuntimeToolRound(
+            List.of(toolCallResultMessage(TOOL_CALL_RESULTS)),
+            persisted -> persisted.withResponseDocument(selection));
+
+    assertThat(conv.persistedContext().responseDocuments()).isEmpty();
+    assertThat(next.persistedContext().responseDocuments()).containsExactly(selection);
+    assertThat(next.toAgentContext().responseDocuments()).containsExactly(selection);
   }
 }

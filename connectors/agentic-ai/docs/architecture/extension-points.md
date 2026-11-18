@@ -141,6 +141,14 @@ Gateway handlers store per-handler state in `AgentContext.properties`:
 
 These are used during discovery checking and tool call result transformation.
 
+### Documents and Gateway Tools
+
+A gateway handler that defines its tools itself can declare document parameters with
+`DocumentParameter.documentSchema(...)` in the definitions it returns from `handleToolDiscoveryResults`; they are stored as
+they are. `transformToolCalls()` receives the Camunda document references in place of the handles. A call with an invalid
+document value gets an error result and never reaches the handler. The MCP and A2A handlers declare no document
+parameters: the remote side defines their schemas.
+
 ### Document Extraction from Tool Call Results
 
 Tool call results may contain Camunda `Document` instances — at the root, nested in maps/lists, or
@@ -156,10 +164,11 @@ behavior of [ADR-004](../adr/004-document-handling-in-tool-call-results.md): the
 `UserMessage` with native `DocumentContent` blocks so LLMs can interpret them. Design rationale:
 [ADR 018](../adr/018-document-flow.md), which extends [ADR 004](../adr/004-document-handling-in-tool-call-results.md).
 The documents of the result of a runtime tool ([Add a runtime tool](#add-a-runtime-tool)), in a batch of local tool calls only or in a mixed one, are collected from its
-content with the renderer for an instance with the feature (`LocalToolCallExecutor`) and with `ContentTreeDocumentWalker` for one without it, and are handled the same way. They are registered after all calls
-of the message ran, in the order of the calls and together with the documents of the process results, by
-`ToolCallResultsInputBuilder`, which the composer and the runtime tool round of the request handler share; the result of a
-call that failed has none.
+content with the renderer for an instance with the feature (`LocalToolCallExecutor`) and with `ContentTreeDocumentWalker` for one without it, and are handled the same way. They are returned
+after all calls of the message ran, in the order of the calls and together with the documents of the process results, in the
+`TurnInput` that `ToolCallResultsInputBuilder` builds, which the composer and the request handler's rounds of local tool call
+results share, and `TurnInput.applyTo` registers them; the result of a call that failed has none. The same builder applies the effects of the
+results (below) and checks that each effect names a document the agent knows when the batch starts or the result returns.
 
 **The handle.** `{"type":"camunda.agenticai.document","id":"doc_0123456789ab","fileName":"a.pdf","contentType":"application/pdf","size":123}`,
 the keys in the order `type`, `id`, `fileName`, `contentType`, `size`, written as compact JSON by Jackson from the
@@ -183,9 +192,42 @@ its parts, each as a 4-byte big-endian length and its UTF-8 bytes. The content h
 so the same document always gets the same id. An absent part is hashed as such, never as the text `null`. The id never
 exposes a store id or the id of the document in its store.
 
+**Loading content: `c8__load_document`.** The model calls the tool with the handle of a document (`id`). Every agent
+instance with the `documents` feature offers it. The tool returns the effect `AddDocumentContent`
+(`ToolCallEffect.addDocumentContent`). It writes no text. A missing or unknown id gives an error result.
+
+After all calls of the message ran, `ToolCallResultsInputBuilder` applies the effects in call order.
+Every request for the content of a document adds the content. The agent does not check earlier turns. The builder adds
+this sentence for each requested document to the tool result of the request:
+
+`The content of {ref} follows in the next message.`
+
+When several requests of the batch ask for the same document, each of them gets the sentence, and the content follows
+once. The content message lists the documents in the order of the first request.
+
+`{ref}` is the file name and the id (`a.pdf (doc_3a1d3166fe56)`). The agent does not check the type or the size of the
+content. The requested documents follow the tool results in one user message with the preamble
+`Document content from tool calls (added by the system):`. Its metadata `toolCallDocuments` makes it leave the context
+window together with the tool results. A document parameter never adds content.
+
+**Returning documents: `c8__return_document`.** The model calls the tool once per document with `key`, `document` (a
+handle) and an optional `description`. The tool returns the effect `SelectResponseDocument`
+(`ToolCallEffect.selectResponseDocument`). An invalid key, a missing parameter or an unknown document gives an error result.
+`ToolCallResultsInputBuilder.build` returns the selections in call order in `TurnInput.responseDocuments()`, and the
+caller adds them to `AgentContext.responseDocuments` with `TurnInput.applyTo`. The builder fails the job for a selection
+of a document that the agent does not know when the batch starts and that the result does not return. A key that is
+already used replaces its selection. The selections stay for the lifetime of the agent instance, so every final response carries all of them as `responseDocuments`
+([Response Handling](../../connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl)). A sub-process agent
+shows them as `agent.responseDocuments.<key>.document`.
+
+Every agent instance with the `documents` feature offers `c8__load_document` and `c8__return_document`. They cannot be
+switched off. A switch is a follow-up of [ADR 018](../adr/018-document-flow.md).
+
 **The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
-document goes out with the prompt, with no size limit and no type check, and a document the provider cannot read fails the
-model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
+document goes out with the prompt, with no size limit and no type check, and a document the provider
+cannot read fails the model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
+In an instance without the `documents` feature every document, also those of the user prompt, events and tool results,
+is added as content.
 
 **Only Camunda documents.** An instance with the `documents` feature accepts only Camunda documents
 (`AgentDocument.isSupported`). A document with an external reference (a URL) or an inline reference (the content is in the
@@ -204,14 +246,18 @@ A tool result and an event cannot change, so the incident repeats on each retry 
 document. The reason is in [ADR 018](../adr/018-document-flow.md).
 
 **Instances without the `documents` feature.** An agent instance created before the feature (no `features` in its
-`agentContext`) keeps the document handling of Camunda 8.10:
+`agentContext`) or created by a v1 connector (`AgentTaskV1Function`, `AgentSubProcessV1Function`, which give a new
+instance no feature) keeps the document handling of Camunda 8.10:
 
 - A user prompt document is a bare `DocumentContent`. The documents of tool results and events go into a synthetic
   user message with a preamble (also for an external or an inline document), then per document the tag in the older attribute format
   (`DocumentReferenceXmlTag`: `toolName`, `toolCallId`, `documentId`, `storeId`, `contentType`, `fileName`, or `url`
   and `name` for an external document) and the `DocumentContent`, as in ADR-004. Nothing is registered.
-- `documents` stays empty; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
-- Without the `runtimeTools` feature there are no runtime tools, no mixed-batch handling and no tool name check ([Add a runtime tool](#add-a-runtime-tool)).
+- `documents` and `responseDocuments` stay empty and the response has no `responseDocuments`; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
+- Without the `runtimeTools` feature there are no runtime tools (`c8__load_document` and `c8__return_document` included), no mixed-batch handling and no tool name check ([Add a runtime tool](#add-a-runtime-tool)).
+- The document parameters of tool calls are not resolved or checked: the process gets the value the model sent as it is.
+- A document parameter keeps the type `document` as authored; the tool schema is sent to the provider as it is. Only an
+  instance with the feature gets the handle schema ([Document parameters](../../connector-aiagent/docs/document-parameters.md)).
 - The history reports the messages as stored.
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
@@ -326,21 +372,26 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 ### Add a runtime tool
 
-> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult` and
-> `RuntimeToolException`, package `aiagent.api.tool` of `aiagent-api`) is experimental since 8.11 and may change in an
-> incompatible way in a minor release.
+> **Experimental.** The runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`,
+> `RuntimeToolResult`, `ToolCallEffect` and `RuntimeToolException`, package `aiagent.api.tool` of
+> `aiagent-api`) is experimental since 8.11 and may change in an incompatible way in a minor release.
 
 A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
-definition next to the tools of the process and the agent executes the call, in process. The connector registers no
-runtime tool of its own; `RuntimeTools` has no tool until a runtime registers a bean. The rationale is in
-[ADR 016](../adr/016-runtime-tools.md). The contract of every type is in its javadoc; `RuntimeTool` is the entry point,
-and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small example.
+definition next to the tools of the process and the agent executes the call, in process. A built-in tool is a runtime tool
+the connector ships. The built-in tools `LoadDocumentTool` (`c8__load_document`) and `ReturnDocumentTool`
+(`c8__return_document`) are in `aiagent/tool/runtime/builtin` of `connector-aiagent` and use only this SPI.
+`BuiltInRuntimeToolsArchTest` limits their dependencies. `AgenticAiConnectorsAutoConfiguration` wires them as the beans
+`aiAgentLoadDocumentRuntimeTool` and `aiAgentReturnDocumentRuntimeTool`. A bean with the bean name of a built-in tool
+replaces it. A bean with another bean name and the name of a built-in tool fails the startup, because tool names are
+unique. The rationale is in [ADR 016](../adr/016-runtime-tools.md) and [ADR 018](../adr/018-document-flow.md). The
+contract of every type is in its javadoc; `RuntimeTool` is the entry point, and `RuntimeToolTestConfiguration` in the e2e
+module of the AI Agent is a small example.
 
 **To add a tool**
 
-1. Pick a name with a vendor prefix such as `acme_`; `c8__` is meant for the tools the connector ships. A tool of the
-   process must not have the name while the tool is enabled: the agent job fails with
-   `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`. No prefix is checked or reserved, only the exact name.
+1. Pick a name with a vendor prefix such as `acme_`; `c8__` is the prefix of the built-in tools. A tool of the process must
+   not have the name while the tool is enabled: the agent job fails with `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`. No prefix
+   is checked or reserved, only the exact name.
 2. Build the definition with `ToolDefinition.runtime(...)` and `LinkedHashMap`s for the schema: the order of a map such
    as `Map.of` differs between JVMs, and the order of the parameters is part of the configuration fingerprint.
 3. Implement `call`. Return `RuntimeToolResult.error(...)` or throw a `RuntimeToolException` for a failure the model can
@@ -356,7 +407,8 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
 
 **Execution contract**
 
-- *At least once.* A retried job executes the call again, so make side effects outside the agent idempotent.
+- *At least once.* A retried job executes the call again, so make side effects outside the agent idempotent. The effects of
+  an attempt that did not complete the job are discarded.
 - *Bounded execution time.* A call is executed in the thread of the job, without a timeout: stay well below the job timeout.
 - *Order and concurrency.* The results of a batch are applied in call order. `call` and `isEnabled` may be called from different
   threads, and a `RuntimeToolContext` is safe to read concurrently.
@@ -367,8 +419,19 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
   enabled when it is executed ("is not available"), a `RuntimeToolException` and `RuntimeToolResult.error` give an error
   result the model reads.
 
-**Documents.** A `DocumentContent` block in the result is a new document: after the calls of the message ran, the agent
-registers it with the tool call as its origin, and the model reads its handle only ([Document Extraction from Tool Call Results](#document-extraction-from-tool-call-results)). An error result registers nothing.
+**Document parameters.** A parameter that carries a document is declared with `DocumentParameter.documentSchema(...)`. The agent
+resolves it before the call: `RuntimeToolCall` holds the `AgentDocumentId` of the document, which `argumentsAs` binds to a
+property typed `AgentDocumentId`. A call with a value that is not the handle of a known document is rejected at admission,
+and the tool is not called. The tool gets the id of a known document and need not check it.
+
+**Documents.** `RuntimeToolContext#document(AgentDocumentId)` returns the `Document` of the connector SDK for a known
+document. A result holds a document as the `Document` of the connector SDK, and the model reads its handle; the Javadoc of
+`RuntimeToolResult` has the rules.
+
+**Effects.** `Success.withEffect(ToolCallEffect)` adds an effect, such as `ToolCallEffect.addDocumentContent(id)`, which
+adds the content of a document to the next request (`LoadDocumentTool`), or `ToolCallEffect.selectResponseDocument(key,
+id, description)`, which selects a document for the final response (`ReturnDocumentTool`); the Javadoc of `ToolCallEffect`
+has the rules.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the

@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -90,7 +89,9 @@ public class AgentInitializerImpl implements AgentInitializer {
           "Skipping agent instance creation: element was not marked with an agent definition");
     }
 
-    return AgentContext.empty().withMetadata(metadata).withFeatures(AgentFeatures.ofNewInstance());
+    return AgentContext.empty()
+        .withMetadata(metadata)
+        .withFeatures(executionContext.newInstanceFeatures());
   }
 
   private boolean hasAgentDefinitionKeyHeader(JobContext jobContext) {

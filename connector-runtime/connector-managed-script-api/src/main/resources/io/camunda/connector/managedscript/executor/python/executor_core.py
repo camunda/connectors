@@ -14,6 +14,7 @@ Runs on Python 3.10 or later.
 """
 
 import ctypes
+import functools
 import json
 import math
 import os
@@ -32,10 +33,17 @@ import time
 CONTRACT_VERSION = "1"
 CHILD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "child.py")
 MAX_OUTPUT_BYTES = 1_000_000
+# The default maximum nesting depth of the connector's JSON reader (Jackson StreamReadConstraints).
+MAX_NESTING_DEPTH = 1000
 MAX_LOG_BYTES = 4_096
 MAX_MESSAGE_LENGTH = 1024
 MAX_STACK_TRACE_LENGTH = 8192
-CHILD_MEMORY_BYTES = 256 * 1024 * 1024
+# The child's memory on a host shared with other processes, where the executor has no memory of its own.
+LOCAL_CHILD_MEMORY_MB = 256
+# Left to the wrapper and the interpreter of the child, out of the memory of an executor instance.
+MEMORY_MARGIN_MB = 128
+# What the child gets at least, however small the instance.
+MIN_CHILD_MEMORY_MB = 64
 DEFAULT_TIMEOUT_MS = 10_000
 SWEEP_ROUNDS = 5
 PR_SET_DUMPABLE = 4
@@ -162,12 +170,23 @@ def _harden():
         pass
 
 
-def _limit_memory():
+def child_memory_mb(memory_mb):
+    """The memory limit of the child, in MB, on an executor instance of ``memory_mb`` MB, or on a
+    host shared with other processes when ``memory_mb`` is None.
+    """
+    if memory_mb is None:
+        return LOCAL_CHILD_MEMORY_MB
+    if isinstance(memory_mb, bool) or not isinstance(memory_mb, int) or memory_mb <= 0:
+        raise ValueError(f"the memory of the executor must be a positive number of MB: {memory_mb!r}")
+    return max(MIN_CHILD_MEMORY_MB, memory_mb - MEMORY_MARGIN_MB)
+
+
+def _limit_memory(limit_bytes):
     """Runs in the child before exec: a script that allocates more gets a MemoryError."""
     if resource is None:
         return
     try:
-        resource.setrlimit(resource.RLIMIT_AS, (CHILD_MEMORY_BYTES, CHILD_MEMORY_BYTES))
+        resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
     except (ValueError, OSError):  # macOS does not support RLIMIT_AS
         pass
 
@@ -233,6 +252,21 @@ def _finite(text):
     if not math.isfinite(number):
         raise ValueError(f"{text} is out of range")
     return number
+
+
+def _check_nesting(response):
+    """Rejects a response nested deeper than the connector's JSON reader accepts.
+
+    The parser alone does not bound the depth: from Python 3.14 it is limited by the C stack, which
+    is unbounded when the stack size is unlimited.
+    """
+    pending = [(response, 1)] if isinstance(response, (dict, list)) else []
+    while pending:
+        value, depth = pending.pop()
+        if depth > MAX_NESTING_DEPTH:
+            raise ValueError(f"nested deeper than {MAX_NESTING_DEPTH} levels")
+        children = value.values() if isinstance(value, dict) else value
+        pending.extend((child, depth + 1) for child in children if isinstance(child, (dict, list)))
 
 
 def failure(code, message):
@@ -306,7 +340,7 @@ def _timeout_ms(event, deadline_ms):
     return max(1, int(min(requested, deadline_ms)))
 
 
-def _execute(event, workdir, deadline_ms):
+def _execute(event, workdir, deadline_ms, child_memory_bytes):
     """Returns the response, the script's logs and the pid of the child, or None."""
     with open(os.path.join(workdir, "user_script.py"), "w", encoding="utf-8") as handle:
         handle.write(event["script"])
@@ -333,7 +367,7 @@ def _execute(event, workdir, deadline_ms):
             stdout=stdout,
             stderr=stderr,
             start_new_session=True,  # own process group, killed as a whole on timeout
-            preexec_fn=_limit_memory,
+            preexec_fn=functools.partial(_limit_memory, child_memory_bytes),
         )
         try:
             child.stdin.write(json.dumps(request).encode("utf-8"))
@@ -363,17 +397,19 @@ def _execute(event, workdir, deadline_ms):
     try:
         # A script can write a response to fd 1 itself: NaN, Infinity and 1e999 are not JSON.
         response = json.loads(out, parse_constant=_reject_constant, parse_float=_finite)
+        _check_nesting(response)
         return _sanitize(response), logs, child.pid
-    except (ValueError, RecursionError):  # RecursionError: nesting deeper than the parser allows
+    except (ValueError, RecursionError):  # RecursionError: nesting deeper than the stack allows
         return failure("INVALID_RESULT", "the script wrote to standard output outside the contract"), logs, child.pid
 
 
 class Executor:
     """The executor of one instance: see create_executor."""
 
-    def __init__(self, local, tmp):
+    def __init__(self, local, tmp, memory_mb):
         self._local = local
         self._tmp = tmp
+        self._child_memory_bytes = child_memory_mb(memory_mb) * 1024 * 1024
         self._baseline_pids = None if local else _pids()
         self._baseline_tmp = None if local else _tree(tmp)
         if not local:
@@ -432,7 +468,7 @@ class Executor:
         try:
             # A missing or full temporary directory is a platform failure, not an exception.
             workdir = tempfile.mkdtemp(prefix="run-", dir=self._tmp)
-            response, logs, child_pid = _execute(event, workdir, deadline_ms)
+            response, logs, child_pid = _execute(event, workdir, deadline_ms, self._child_memory_bytes)
         except Exception as error:  # noqa: BLE001 - the executor must keep serving calls
             response = failure("PLATFORM_EXECUTION_FAILED", f"wrapper error: {type(error).__name__}: {error}")
         finally:
@@ -450,11 +486,13 @@ class Executor:
         return response
 
 
-def create_executor(local, tmp):
+def create_executor(local, tmp, memory_mb=None):
     """Creates the executor of one instance. Call it once, when the instance starts: on a cloud
     executor, what exists at that moment is kept after every call, and anything else is removed.
 
     :param local: True for a host shared with other processes
     :param tmp: the directory where every call gets a directory of its own
+    :param memory_mb: the memory of the executor instance, in MB, which the child gets but for a
+        margin; None on a host shared with other processes, where the child gets 256 MB
     """
-    return Executor(local, tmp)
+    return Executor(local, tmp, memory_mb)

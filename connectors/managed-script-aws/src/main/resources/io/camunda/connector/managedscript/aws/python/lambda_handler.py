@@ -14,6 +14,9 @@ import executor_core
 # Left to the wrapper, out of the remaining time of the function, to answer and clean up.
 SAFETY_MS = 1_000
 
+# The memory of the function, set by Lambda: the script gets it but for a margin.
+MEMORY_MB = int(os.environ["AWS_LAMBDA_FUNCTION_MEMORY_SIZE"])
+
 TMP = os.environ.get("EXECUTOR_TMP", "/tmp")
 
 # Lambda keeps /tmp when it restarts the runtime after a timeout or a crash: what a call left there
@@ -22,7 +25,7 @@ _left = executor_core.clear(TMP)
 if _left:
     raise RuntimeError("Cannot clear %s of a previous runtime: %s" % (TMP, ", ".join(_left)))
 
-executor = executor_core.create_executor(local=False, tmp=TMP)
+executor = executor_core.create_executor(local=False, tmp=TMP, memory_mb=MEMORY_MB)
 
 
 def handler(event, context):
