@@ -26,4 +26,5 @@ USER 1001:1001
 ENV CAMUNDA_CONNECTOR_RUNTIME_SAAS=true
 ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
 
-ENTRYPOINT ["java", "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", "-XX:+ExitOnOutOfMemoryError", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/tmp", "-cp", "/opt/app/*", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+# -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 (Java4Shell). Remove once the base JRE ships the fix.
+ENTRYPOINT ["java", "-XX:-UseBASE64Intrinsics", "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", "-XX:+ExitOnOutOfMemoryError", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/tmp", "-cp", "/opt/app/*", "org.springframework.boot.loader.launch.PropertiesLauncher"]
