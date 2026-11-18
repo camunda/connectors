@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -252,13 +253,37 @@ class OpenAiCompletionsResponseConverterTest {
 
     final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
 
-    assertThat(result.assistantMessage().toolCalls())
-        .containsExactly(
-            ToolCall.builder()
-                .id("call_1")
-                .name("lookup")
-                .arguments(Collections.singletonMap("order_id", null))
-                .build());
+    // the message id and the timestamp are generated, so the expected result takes them over
+    final AssistantMessage message = result.assistantMessage();
+    assertThat(result)
+        .isEqualTo(
+            new ChatResult.Completed(
+                AssistantMessage.builder()
+                    .id(message.id())
+                    .content(List.of())
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("call_1")
+                                .name("lookup")
+                                .arguments(Collections.singletonMap("order_id", null))
+                                .build()))
+                    .messageId("chatcmpl_123")
+                    .modelId("gpt-4o")
+                    .stopReason(StopReason.TOOL_USE)
+                    .metadata(
+                        Map.of(
+                            AssistantMessageMetadata.TIMESTAMP_KEY,
+                            message.metadata().get(AssistantMessageMetadata.TIMESTAMP_KEY),
+                            "openai",
+                            Map.of("stopReason", "tool_calls")))
+                    .build(),
+                AgentMetrics.builder()
+                    .modelCalls(1)
+                    .tokenUsage(AgentMetrics.TokenUsage.empty())
+                    .toolCalls(1)
+                    .executionTime(Duration.ofMillis(100))
+                    .build()));
   }
 
   @Test
