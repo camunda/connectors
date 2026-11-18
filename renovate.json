@@ -172,6 +172,13 @@
       "enabled": false
     },
     {
+      "description": "Keep the Connectors images on an LTS JDK. Non-LTS releases lose upstream security updates within six months, and release branches are cut from main, so a non-LTS base on main ends up shipped unsupported (see camunda/connectors#10560). Since JDK 21 an LTS ships every four releases (21, 25, 29, 33, ...), i.e. every major that is 1 modulo 4. The regex allows only those two-digit majors: an even tens digit with units 1, 5 or 9, or an odd tens digit with units 3 or 7. Minor, patch and digest updates within an LTS line still apply.",
+      "matchPackageNames": [
+        "reg.mini.dev/1212/openjre-base"
+      ],
+      "allowedVersions": "/^v([2468][159]|[3579][37])\\./"
+    },
+    {
         "description": "kafka-clients: stay on the Apache versioning track. The Confluent Platform builds (-ce/-ccs/-cp suffixes, e.g. 8.2.1-ce) are republished under the same org.apache.kafka coordinates via artifacts.camunda.com and must not be treated as upgrades to the Apache releases (x.y.z).",
         "matchPackageNames": [
           "org.apache.kafka:kafka-clients"
