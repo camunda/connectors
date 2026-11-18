@@ -12,6 +12,7 @@ import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.request.files.FilesCompleteUploadExternalRequest.FileDetails;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
+import com.slack.api.model.Message;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -160,9 +161,26 @@ public record ChatPostMessageData(
       // Slack only shows an uploaded file once it is shared in a channel; a file block cannot
       // display it. Share in the channel Slack resolved for the message, so names, users and
       // emails all work, and in the same thread when the message went to one.
-      fileUploader.shareFiles(uploadedFiles, chatPostMessageResponse.getChannel(), thread);
+      fileUploader.shareFiles(
+          uploadedFiles,
+          chatPostMessageResponse.getChannel(),
+          parentThreadTs(chatPostMessageResponse));
     }
     return new ChatPostMessageSlackResponse(chatPostMessageResponse);
+  }
+
+  /**
+   * Slack requires the parent message's ts when sharing files into a thread, never a reply's ts.
+   * The posted message carries the parent ts Slack resolved, even when the input names a reply.
+   */
+  private String parentThreadTs(ChatPostMessageResponse response) {
+    if (StringUtils.isBlank(thread)) {
+      return null;
+    }
+    Message message = response.getMessage();
+    return message != null && StringUtils.isNotBlank(message.getThreadTs())
+        ? message.getThreadTs()
+        : thread;
   }
 
   @AssertTrue(message = "Text or block content required to post a message")

@@ -164,7 +164,10 @@ class ChatPostMessageDataTest {
 
       when(chatPostMessageResponse.isOk()).thenReturn(true);
       when(chatPostMessageResponse.getChannel()).thenReturn(DM_CHANNEL_ID);
-      when(chatPostMessageResponse.getMessage()).thenReturn(new Message());
+      // The input thread may name a reply; Slack reports the parent ts on the posted message
+      var postedMessage = new Message();
+      postedMessage.setThreadTs("parent_ts");
+      when(chatPostMessageResponse.getMessage()).thenReturn(postedMessage);
       // When
       chatPostMessageData.invoke(methodsClient);
       // Then
@@ -177,7 +180,7 @@ class ChatPostMessageDataTest {
       var shareRequest = ArgumentCaptor.forClass(FilesCompleteUploadExternalRequest.class);
       verify(methodsClient).filesCompleteUploadExternal(shareRequest.capture());
       assertThat(shareRequest.getValue().getChannelId()).isEqualTo(DM_CHANNEL_ID);
-      assertThat(shareRequest.getValue().getThreadTs()).isEqualTo("thread_ts");
+      assertThat(shareRequest.getValue().getThreadTs()).isEqualTo("parent_ts");
       assertThat(shareRequest.getValue().getFiles()).hasSize(1);
     }
   }
