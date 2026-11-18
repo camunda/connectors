@@ -8,8 +8,8 @@ shadow_mode: true
 
 vault:
   anthropic_api_key:
-    path: secret/data/products/agentic-experience/github.com/apps/camunda/connectors/agentic-ai
-    field: ANTHROPIC_PR_REVIEW_AGENT_API_KEY
+    path: secret/data/products/agentic-experience/github.com/apps/camunda/connectors/agentic-ai/pr-review-agent
+    field: ANTHROPIC_API_KEY
 
 agent:
   model: claude-opus-5-5
