@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
@@ -26,10 +28,44 @@ public record ToolCall(
     this(id, name, arguments, null);
   }
 
-  public static ToolCallBuilder builder() {
-    return ToolCallBuilder.builder();
+  /**
+   * The call with the given arguments. Keeps a {@code null} value in the arguments, which a model
+   * can send explicitly and the immutable copy of the generated wither rejects.
+   */
+  @Override
+  public ToolCall withArguments(Map<String, Object> arguments) {
+    return new ToolCall(
+        id, name, Collections.unmodifiableMap(new LinkedHashMap<>(arguments)), metadata);
   }
 
+  public static ToolCallBuilder builder() {
+    return new ToolCallJacksonProxyBuilder();
+  }
+
+  /**
+   * The builder of {@link ToolCall#builder()} and of a call that is read from JSON. Keeps a {@code
+   * null} value in the arguments, which a model can send explicitly and the immutable copy of the
+   * generated builder rejects. Arguments that are not set or are {@code null} build as an empty
+   * map.
+   */
   @JsonPOJOBuilder(withPrefix = "")
-  public static class ToolCallJacksonProxyBuilder extends ToolCallBuilder {}
+  public static class ToolCallJacksonProxyBuilder extends ToolCallBuilder {
+    private @Nullable Map<String, Object> arguments;
+
+    @Override
+    public ToolCallBuilder arguments(@Nullable Map<String, Object> arguments) {
+      this.arguments = arguments;
+      return this;
+    }
+
+    @Override
+    public Map<String, Object> arguments() {
+      return arguments == null ? Map.of() : arguments;
+    }
+
+    @Override
+    public ToolCall build() {
+      return super.build().withArguments(arguments());
+    }
+  }
 }

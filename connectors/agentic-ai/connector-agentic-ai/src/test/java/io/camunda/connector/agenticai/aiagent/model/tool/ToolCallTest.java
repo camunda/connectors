@@ -10,8 +10,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 class ToolCallTest {
 
@@ -60,5 +63,43 @@ class ToolCallTest {
     final ToolCall roundTripped = objectMapper.readValue(json, ToolCall.class);
 
     assertThat(roundTripped).isEqualTo(toolCall);
+  }
+
+  @Test
+  void withArgumentsKeepsAnExplicitNullValue() {
+    final var arguments = new HashMap<String, Object>();
+    arguments.put("note", null);
+
+    final var resolved = new ToolCall("call-1", "upload", Map.of()).withArguments(arguments);
+
+    assertThat(resolved.arguments()).isEqualTo(Collections.singletonMap("note", null));
+  }
+
+  @Test
+  void theBuilderKeepsAnExplicitNullValue() {
+    final var arguments = new HashMap<String, Object>();
+    arguments.put("note", null);
+
+    final var call = ToolCall.builder().id("call-1").name("upload").arguments(arguments).build();
+
+    assertThat(call)
+        .isEqualTo(
+            new ToolCall("call-1", "upload", Collections.singletonMap("note", null), Map.of()));
+  }
+
+  @Test
+  void aCallWithAnExplicitNullValueIsSerializedWithItAndRoundTrips() throws Exception {
+    final var call =
+        new ToolCall("call-1", "upload", Collections.singletonMap("note", null), Map.of("k", "v"));
+
+    final String json = objectMapper.writeValueAsString(call);
+
+    JSONAssert.assertEquals(
+        """
+        {"id": "call-1", "name": "upload", "arguments": {"note": null}, "metadata": {"k": "v"}}
+        """,
+        json,
+        true);
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(call);
   }
 }
