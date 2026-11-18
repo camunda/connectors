@@ -18,6 +18,7 @@ import com.slack.api.methods.response.files.FilesGetUploadURLExternalResponse;
 import com.slack.api.model.File;
 import com.slack.api.util.http.SlackHttpClient;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.error.ConnectorException;
 import java.io.IOException;
 import java.util.List;
 import okhttp3.OkHttpClient;
@@ -34,6 +35,8 @@ public class FileUploader {
   public static final String EXTERNAL_URL_CALL_EX = "Error during external call: ";
   public static final String COMPLETE_UPLOAD_CALL_EX =
       "Error during filesCompleteUploadExternal call";
+  public static final String SHARE_FILES_ERROR_CODE = "SLACK_FILE_SHARE_FAILED";
+  private static final String NOT_IN_CHANNEL = "not_in_channel";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FileUploader.class);
 
@@ -86,9 +89,13 @@ public class FileUploader {
     if (completeUploadResp.isOk()) {
       return completeUploadResp.getFiles() == null ? List.of() : completeUploadResp.getFiles();
     }
-    String msg = COMPLETE_UPLOAD_CALL_EX + "\n Errors: " + completeUploadResp.getError();
+    String error = completeUploadResp.getError();
+    String msg = COMPLETE_UPLOAD_CALL_EX + "\n Errors: " + error;
+    if (NOT_IN_CHANNEL.equals(error)) {
+      msg += ". Add the Slack app to the channel so it can share files there.";
+    }
     LOGGER.error(msg);
-    throw new RuntimeException(msg);
+    throw new ConnectorException(SHARE_FILES_ERROR_CODE, msg);
   }
 
   private FilesGetUploadURLExternalResponse getFileUploadURL(

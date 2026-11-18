@@ -28,6 +28,7 @@ import com.slack.api.util.http.SlackHttpClient;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.runtime.test.document.TestDocument;
 import java.io.IOException;
@@ -169,12 +170,14 @@ class FileUploaderTest {
         .thenReturn(completeUploadResp);
     var fileDetails = List.of(FileDetails.builder().id(FILE_ID).title("fileName").build());
 
-    Exception ex =
+    ConnectorException ex =
         assertThrows(
-            RuntimeException.class, () -> fileUploader.shareFiles(fileDetails, "C123", null));
+            ConnectorException.class, () -> fileUploader.shareFiles(fileDetails, "C123", null));
 
+    assertThat(ex.getErrorCode()).isEqualTo(SHARE_FILES_ERROR_CODE);
     assertThat(ex.getMessage()).contains(completeUploadResp.getError());
     assertThat(ex.getMessage()).contains(COMPLETE_UPLOAD_CALL_EX);
+    assertThat(ex.getMessage()).contains("Add the Slack app to the channel");
   }
 
   private Document prepareDocument() {

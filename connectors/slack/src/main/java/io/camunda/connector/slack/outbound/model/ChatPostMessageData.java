@@ -146,15 +146,7 @@ public record ChatPostMessageData(
             : fileUploader.uploadDocuments(documents);
     ChatPostMessageResponse chatPostMessageResponse =
         methodsClient.chatPostMessage(requestBuilder.build());
-    if (chatPostMessageResponse.isOk() && !uploadedFiles.isEmpty()) {
-      // Slack only shows an uploaded file once it is shared in a channel; a file block cannot
-      // display it. Share in the channel Slack resolved for the message, so names, users and
-      // emails all work, and in the same thread when the message went to one.
-      fileUploader.shareFiles(uploadedFiles, chatPostMessageResponse.getChannel(), thread);
-    }
-    if (chatPostMessageResponse.isOk()) {
-      return new ChatPostMessageSlackResponse(chatPostMessageResponse);
-    } else {
+    if (!chatPostMessageResponse.isOk()) {
       String error = chatPostMessageResponse.getError();
       Object errors = chatPostMessageResponse.getErrors();
       String errorMessage =
@@ -164,6 +156,13 @@ public record ChatPostMessageData(
                   : "No additional error details");
       throw new RuntimeException(errorMessage);
     }
+    if (!uploadedFiles.isEmpty()) {
+      // Slack only shows an uploaded file once it is shared in a channel; a file block cannot
+      // display it. Share in the channel Slack resolved for the message, so names, users and
+      // emails all work, and in the same thread when the message went to one.
+      fileUploader.shareFiles(uploadedFiles, chatPostMessageResponse.getChannel(), thread);
+    }
+    return new ChatPostMessageSlackResponse(chatPostMessageResponse);
   }
 
   @AssertTrue(message = "Text or block content required to post a message")
