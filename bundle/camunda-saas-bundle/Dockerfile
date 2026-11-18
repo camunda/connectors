@@ -31,4 +31,5 @@ ENV CAMUNDA_CONNECTOR_RUNTIME_SAAS=true
 ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
 
 # Using entry point to allow downstream images to add JVM arguments using CMD
-ENTRYPOINT ["java", "-cp", "/opt/app/*", "io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication"]
+# -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 (Java4Shell). Remove once the base JRE ships the fix.
+ENTRYPOINT ["java", "-XX:-UseBASE64Intrinsics", "-cp", "/opt/app/*", "io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication"]
