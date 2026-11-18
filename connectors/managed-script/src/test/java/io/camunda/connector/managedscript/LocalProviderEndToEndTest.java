@@ -96,7 +96,8 @@ class LocalProviderEndToEndTest {
         ConnectorsObjectMapperSupplier.getCopy(),
         Duration.ofSeconds(30),
         Duration.ofSeconds(30),
-        Duration.ofSeconds(10));
+        Duration.ofSeconds(10),
+        TenantLimiter.unlimited());
   }
 
   /** Whether the provider has an interpreter for the language. */

@@ -35,6 +35,12 @@ public enum ErrorCode {
   /** Consumes one retry only when creating the executor again within the job did not help. */
   DEPLOYMENT_MISSING(Retries.CONSUME_ONE),
   PROVISIONING_PENDING(Retries.UNCHANGED),
+  /** The tenant of the job has as many scripts running as the runtime allows it. */
+  CONCURRENCY_LIMITED(Retries.UNCHANGED),
+  /**
+   * Keeps its retries when the runtime raises it for an invocation, unless the executor of the
+   * language has been throttled for longer than twice the provisioning timeout.
+   */
   PLATFORM_THROTTLED(Retries.CONSUME_ONE),
   PLATFORM_UNAVAILABLE(Retries.CONSUME_ONE),
   PLATFORM_REJECTED(Retries.NONE_LEFT),

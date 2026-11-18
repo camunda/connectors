@@ -40,6 +40,9 @@ camunda.connector.managed-code.execution-timeout=30s
 camunda.connector.managed-code.provisioning-timeout=2m
 camunda.connector.managed-code.grant-propagation-window=2m
 camunda.connector.managed-code.provisioning-retry-backoff=10s
+# Optional caps, unset by default
+camunda.connector.managed-code.max-jobs-active=<jobs>
+camunda.connector.managed-code.max-concurrent-scripts-per-tenant=<scripts>
 ```
 
 - `provider` names the managed-code provider. A provider implements the SPI of
@@ -67,8 +70,41 @@ camunda.connector.managed-code.provisioning-retry-backoff=10s
   measured once): it is tried again, and waiting jobs fail with `PROVISIONING_PENDING`. After the
   window, a denial is permanent (`PLATFORM_REJECTED`). `0s` turns it off.
 - `provisioning-retry-backoff` is the backoff of a job that failed because of the platform and
-  keeps its retries (`PROVISIONING_PENDING`, `PLATFORM_INTERRUPTED`), whatever the task's
-  `retryBackoff` header says. A failure that consumes a retry uses the task's `retryBackoff`.
+  keeps its retries (`PROVISIONING_PENDING`, `CONCURRENCY_LIMITED`, `PLATFORM_INTERRUPTED`, and
+  `PLATFORM_THROTTLED` until it lasts), whatever the task's `retryBackoff` header says. A failure
+  that consumes a retry uses the task's `retryBackoff`.
+- `max-jobs-active` is the most managed-script jobs a worker holds at once, hence the most scripts
+  it runs at once. Jobs beyond it stay with the broker, their retries untouched, until a slot frees
+  up. Unset, the worker takes `camunda.client.worker.defaults.max-jobs-active` (32 by default), as
+  any connector does. It wins over `camunda.client.worker.defaults`, and an override of the job
+  type in `camunda.client.worker.override` wins over it. The cap applies to each worker: one per
+  physical tenant, on each runtime instance. The scripts of a cluster that run at once are at most
+  this cap times its physical tenants times the runtime instances.
+- `max-concurrent-scripts-per-tenant` is the most scripts of one tenant, within its physical tenant,
+  that a runtime instance runs at once, so that one tenant cannot take every slot of `max-jobs-active`. A job beyond it fails
+  right away with `CONCURRENCY_LIMITED`, its retries unchanged, and is tried again after
+  `provisioning-retry-backoff`; it does not wait in the worker, where it would hold a slot that
+  other tenants need. Unset, a tenant has no limit of its own.
+
+#### Concurrency caps
+
+The executors of a cloud account or project are shared by every cluster of an environment: without
+caps, one cluster can use up the quotas of the others. The caps come from the configuration that
+Controller sets for each cluster:
+
+- In the runtime, `max-jobs-active` bounds the scripts a runtime instance runs, and
+  `max-concurrent-scripts-per-tenant` the share of one tenant.
+- On GCP, `gcp.max-instance-count` bounds the scripts of a language that run at once in the
+  cluster, whatever the number of runtime instances.
+- On AWS, the concurrency of Lambda is shared by every function of the account; the runtime cap
+  is what bounds a cluster.
+
+Keep `max-jobs-active`, times the physical tenants and the runtime instances, at or below the provider's cap, so that the
+provider does not throttle. A call the provider throttles anyway (Lambda `TooManyRequests`, HTTP
+429) fails with `PLATFORM_THROTTLED` and keeps its retries, so that a burst over the cap delays
+jobs instead of raising incidents. Once the executor of a language has been throttled for longer
+than twice `provisioning-timeout`, with no call answered otherwise in between, throttled jobs
+consume their retries, so that a cap too low for the load ends in an incident.
 
 ### Local provider
 

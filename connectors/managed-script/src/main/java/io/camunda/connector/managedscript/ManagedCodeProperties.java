@@ -24,6 +24,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *     is taken for grants that still propagate, and tried again (default 2m)
  * @param provisioningRetryBackoff backoff of a job that failed because of the platform and keeps
  *     its retries, whatever the task's {@code retryBackoff} header says (default 10s)
+ * @param maxJobsActive most managed-script jobs that one worker of this runtime holds at once,
+ *     hence most scripts it runs at once; jobs beyond it stay with the broker. Unset, the worker
+ *     takes {@code camunda.client.worker.defaults.max-jobs-active}, as any connector does
+ * @param maxConcurrentScriptsPerTenant most scripts of one tenant of a physical tenant that this
+ *     runtime runs at once, so that one tenant cannot take every job slot; a job beyond it fails
+ *     with {@code CONCURRENCY_LIMITED}, its retries unchanged. Unset, a tenant has no limit of its
+ *     own
  */
 @ConfigurationProperties(prefix = "camunda.connector.managed-code")
 public record ManagedCodeProperties(
@@ -33,7 +40,9 @@ public record ManagedCodeProperties(
     Duration executionTimeout,
     Duration provisioningTimeout,
     Duration grantPropagationWindow,
-    Duration provisioningRetryBackoff) {
+    Duration provisioningRetryBackoff,
+    Integer maxJobsActive,
+    Integer maxConcurrentScriptsPerTenant) {
 
   private static final Duration DEFAULT_PROVISIONING_TIMEOUT = Duration.ofMinutes(2);
   // IAM grants took 66 to 98 seconds to apply, measured once.
@@ -53,6 +62,15 @@ public record ManagedCodeProperties(
             : grantPropagationWindow;
     provisioningRetryBackoff =
         positive(provisioningRetryBackoff, DEFAULT_PROVISIONING_RETRY_BACKOFF);
+    requirePositive(maxJobsActive, "max-jobs-active");
+    requirePositive(maxConcurrentScriptsPerTenant, "max-concurrent-scripts-per-tenant");
+  }
+
+  private static void requirePositive(Integer value, String name) {
+    if (value != null && value < 1) {
+      throw new IllegalArgumentException(
+          "camunda.connector.managed-code.%s %d must be positive".formatted(name, value));
+    }
   }
 
   private static Duration positive(Duration value, Duration fallback) {
