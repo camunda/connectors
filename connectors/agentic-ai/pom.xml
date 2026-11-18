@@ -56,6 +56,7 @@
     <module>connector-aiagent</module>
     <module>agentic-ai-bundle</module>
     <module>agentic-ai-archunit-tests</module>
+    <module>agentic-ai-docs-lint</module>
   </modules>
 
   <dependencyManagement>

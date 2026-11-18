@@ -1,5 +1,7 @@
 # Agentic loop
 
+<!-- docs-lint: allow-names CompleteJobCommand: Zeebe client command -->
+
 This document provides a comprehensive, code-level reference for the AI Agent implementation within the Camunda
 Connectors `agentic-ai` module. It covers concepts, interaction patterns, data flow, concurrency challenges, and all
 nuances of the distributed agent loop.
@@ -183,11 +185,12 @@ SpringConnectorJobHandler.handle(jobClient, job)
   │    └─ Checks for error expressions (BPMN error handling)
   │
   └─ SpringConnectorJobHandler builds Zeebe command from response / failJob / throwBpmnError
-       └─ Asynchronous command execution via CommandWrapper
+       └─ Asynchronous command execution with retries
 ```
 
 ### The Complete Command Structure
 
+<!-- docs-lint: allow-java-block: the command builder reads clearer as code than as prose -->
 ```java
 jobClient.newCompleteCommand(job)
     .variables(completion.variables())    // {agentContext, toolCallResults/agent}
@@ -219,7 +222,7 @@ jobClient.newCompleteCommand(job)
 
 4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Determined in `AgentSubProcessRequestHandler.buildResponse()` from `conversation.hasInterruptedToolCallResultsInInvocation()`, which inspects the input messages of every turn of this invocation (the first round and the rounds that follow it in the same job) for any `ToolCallResult` carrying the `PROPERTY_INTERRUPTED` flag.
 
-5. **Async execution**: The complete command is sent asynchronously via `CommandWrapper` with up to 3 retries. This is important because:
+5. **Async execution**: The connector runtime sends the complete command asynchronously with up to 3 retries. This is important because:
    - The job may have been superseded (NOT_FOUND)
    - Network issues may occur
 
@@ -227,14 +230,9 @@ jobClient.newCompleteCommand(job)
 
 When the agent cannot proceed (e.g., not all tool call results are present yet, or discovery is in progress):
 
-```java
-return AgentSubProcessConnectorResponse.builder()
-    .completionConditionFulfilled(false)
-    .cancelRemainingInstances(false)
-    .build();
-// No agentResponse, no variables, no element activations
-// Just complete the job without doing anything → wait for next job
-```
+Without an agent response, `AgentSubProcessRequestHandler` returns an `AgentSubProcessConnectorResponse` with
+both flags `false`, no variables and no element activations. The job completes without changes, and the agent
+waits for the next job.
 
 ## What Happens When Tools Complete
 
@@ -276,7 +274,7 @@ t2      Tool B completes                Job #1 still processing...
         → Creates Job #2                (Job #1 is now STALE)
 
 t3                                      Job #1: Determines B is missing
-                                        → compose returns AgentInput.None
+                                        → compose returns CompositionResult.Deferred
                                         → handleNoOp (no agentResponse)
                                         → No LLM call made
                                         → Job #1 completion may get NOT_FOUND
@@ -294,17 +292,8 @@ t4                                      Job #2 picked up
 In `AgentConversationTurnInputComposerImpl.resolve`, when the last reconstructed turn ended with an
 `AssistantMessage` that has tool calls (`history.turns().getLast().hasToolCalls()`):
 
-```java
-final var processResults =
-    resolveProcessToolCallResults(
-        agentContext, previousTurn.processToolCalls(), agentInput.toolCallResults(), interruptMissingToolCalls);
-
-// either we have all results or we interrupted the missing tool calls
-// if incomplete, we wait on further tool call results to be added
-if (!processResults.complete()) {
-    return new CompositionResult.Deferred(processResults.arrivedResults());
-}
-```
+`resolve` resolves the results of the process tool calls with `resolveProcessToolCallResults`. When they are not
+complete, it returns `CompositionResult.Deferred` with the results that arrived so far.
 
 The method correlates and gateway (MCP/A2A) transforms the process results, then checks each process tool call of the last
 assistant message against them (`ProcessToolCallResults(arrivedResults, complete)`):
@@ -377,18 +366,9 @@ jobs apart from the `kind` and the `rejection` of the calls and the response doc
 `BaseAgentRequestHandler.converse` switches on the `CompositionResult` returned by
 `AgentConversationTurnInputComposer.resolve`:
 
-```java
-return switch (agentInputComposer.resolve(...)) {
-    case CompositionResult.Deferred(var arrivedResults) -> {
-        reportArrivedToolCallResults(..., arrivedResults, ...); // ADR 011 — report what's arrived so far
-        yield handleNoOp(executionContext);    // wait for more tool results
-    }
-    case CompositionResult.NoInput ignored ->
-        handleNoInput(executionContext);       // nothing to add; handler decides
-    case CompositionResult.Ready ready ->
-        proceed(..., answerLocalToolCalls(..., ready), ...); // local results, assemble, register the documents, call the LLM
-};
-```
+`CompositionResult.Deferred` reports the arrived results (ADR 011) and completes the job with `handleNoOp`.
+`CompositionResult.NoInput` calls `handleNoInput`. `CompositionResult.Ready` has the handler produce the tool call
+results of the local tool calls (`answerLocalToolCalls`), assemble the input, register the documents and call the LLM.
 
 This is the key gate: when tool results were incomplete the composer returns `CompositionResult.Deferred`,
 and `handleNoOp` completes the job as a no-op (the job worker waits for the next job, which will have
@@ -432,7 +412,7 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
 **Problem**: When a tool completes, Zeebe creates a new job. The previous job may still be processing. Completing the old job results in `NOT_FOUND`.
 
 **Mitigation**:
-- The `JobCallbackCommandWrapperFactory` retries up to 3 times with backoff
+- The connector runtime retries the complete command up to 3 times with backoff
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
 - Superseded jobs produce a `CommandIgnored` outcome — the conversation store receives `onJobCompletionFailed` with a `CommandIgnored` failure
 
@@ -450,7 +430,7 @@ A lease token is required for every agent-instance write, and the connector fail
 
 **Problem**: If tools A and B complete almost simultaneously, Job #1 (with only A's result) and Job #2 (with both results) may both attempt LLM calls.
 
-**Mitigation**: This CANNOT happen due to the missing-results check. Job #1 will see that B's result is missing, so `AgentConversationTurnInputComposer.compose` returns `AgentInput.None` and the handler completes as a no-op. Only Job #2 (with complete results) will call the LLM.
+**Mitigation**: This CANNOT happen due to the missing-results check. Job #1 will see that B's result is missing, so `AgentConversationTurnInputComposer.compose` returns `CompositionResult.Deferred` and the handler completes as a no-op. Only Job #2 (with complete results) will call the LLM.
 
 ### Challenge 4: Variable Scoping and Merging
 
@@ -485,18 +465,11 @@ Event handling is **exclusive to the Sub-process flavor**. In the AHSP, non-inte
 
 ### Event Result Identification
 
-The raw engine tool call results are pre-partitioned in `AgentInvocationInput.from`:
-
-```java
-// Partition tool call results: those WITH an id are tool results,
-// those WITHOUT are event results
-var partitioned =
-    engineToolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
-return new AgentInvocationInput(userPrompt, partitioned.get(true), partitioned.get(false));
-```
+`AgentInput#from` partitions the raw engine tool call results: results with an id go to
+`AgentInput#toolCallResults`, and results without an id go to `AgentInput#eventMessages`.
 
 Events produce `ToolCallResult` entries with `id = null`. `AgentConversationTurnInputComposerImpl.compose`
-reads them as `invocationInput.eventMessages()` (separate from `invocationInput.toolCallResults()`)
+reads them as `agentInput.eventMessages()` (separate from `agentInput.toolCallResults()`)
 and renders each via `createEventMessage`.
 
 ### Two Behaviors

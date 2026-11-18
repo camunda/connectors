@@ -1,5 +1,7 @@
 # Agentic AI Module: Agent Instructions
 
+<!-- docs-lint: allow-names Read: the Read tool of the coding agent -->
+
 The `agentic-ai` module implements Camunda's AI Agent connectors: an agentic orchestration system that
 runs LLM tool-calling loops inside BPMN processes. It ships in two flavors, an AI Agent Task (on a
 service task) and an AI Agent Sub-process (on an ad-hoc sub-process), plus supporting infrastructure
@@ -55,6 +57,7 @@ The module is split into Maven modules with a fixed dependency direction
 | `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client                                   | tools-schema, api, model, common                                      |
 | `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes                                      | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped                                           | all modules, in test scope                                            |
+| `agentic-ai-docs-lint`          | `docslint`                           | Checks that keep the docs in step with the modules and the code, not shipped                    | none                                                                  |
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
 or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
@@ -70,6 +73,7 @@ Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
 
 `agentic-ai-archunit-tests` holds the ArchUnit rules for the production classes of all modules (see its
 [README](agentic-ai-archunit-tests/README.md#key-types)). The class Javadoc of each architecture test describes what it checks.
+They skip `agentic-ai-docs-lint` on purpose, because it supports development only and is not deployed.
 
 - `PackageCyclesArchTest` allows the package cycles in `KNOWN_CYCLES`. When you break a cycle, delete its entry;
   never add one.
@@ -88,6 +92,29 @@ Run only the architecture tests with:
 it limits `-am` to the modules of `connectors/agentic-ai`. Without `-am`, the `agentic-ai-archunit-tests`
 module reads the jars of the other modules from the local Maven repository, so it checks the last install
 and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` runs the architecture tests too.
+
+### Docs checks
+
+`agentic-ai-docs-lint` holds the docs checks: the `DocsLint` engine, and `AgenticAiDocsTest` (plain JUnit),
+which applies it to the agentic AI docs and holds their paths and README layout. Each module
+README has the fixed sections and links the docs of its module. Relative links and anchors resolve. The
+docs hold no `java` code blocks, unless a `<!-- docs-lint: allow-java-block: reason -->` comment precedes the block. The types and members that the docs name in backticks exist in the
+repository sources, unless the doc allows the name with `<!-- docs-lint: allow-names Name: reason -->`. A doc
+that records removed code carries `<!-- docs-lint: history: reason -->`, which skips its types and members.
+`AgenticAiDocsSmokeTest` seeds one defect per rule in a small tree and proves that
+the config of `AgenticAiDocsTest` finds each. Run them with:
+
+```bash
+./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-docs-lint
+```
+
+A failure names the file and line, why it fails and what to verify. The code is the source of truth. A
+warning does not fail the test. The build log shows each warning as one line `WARN <path>:<line>: <what>`,
+and the JUnit report (the IDE test view) holds a `warning` entry with the why and the fix.
+
+Before you change the checks, read [`agentic-ai-docs-lint/AGENTS.md`](agentic-ai-docs-lint/AGENTS.md). It
+lists the rules of this file and of the implementation rules that the module deviates from, because it is
+a development tool and not production code.
 
 ## Start here, navigation
 
@@ -117,7 +144,7 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 | Loading document content (`c8__load_document`) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 018](docs/adr/018-document-flow.md) |
 | MCP integration                                                          | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md)                       |
 | A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
-| Example BPMN processes & configurations                                  | the `Examples` section of the connector module READMEs, [`examples/`](examples/)                                                                     |
+| Example BPMN processes & configurations                                  | the examples section of the connector module READMEs, [`examples/`](examples/)                                                                       |
 | Agent instance API (status, metrics, history reporting)                  | [`agent-instance.md`](connector-aiagent/docs/agent-instance.md)                                                                                      |
 | **Architectural invariants (what you must not break)**                   | [`design-guidelines.md`](docs/design-guidelines.md#architectural-invariants)                                                                         |
 | **Extension points** (add provider / contributor / store)                | [`extension-points.md`](docs/architecture/extension-points.md#extension-points)                                                                      |
@@ -409,10 +436,9 @@ properties, error codes, behavioral contracts), update the matching doc in the s
   ADR authoring rules live in `docs/adr/README.md`.
 - **`<module>/README.md`** and **`<module>/docs/`**: the purpose and key types of a module, and the docs
   about its types (data model, memory, tools, converters, providers, error codes, MCP, A2A). The
-  `## Docs` section of the README links every file in `<module>/docs/`.
+  [docs checks](#docs-checks) enforce the README layout and the links.
   `connector-aiagent/README.md` is generated: edit `connector-aiagent/README.peb`. It uses the shared
-  connector README layout, so it starts with the icon, `# AI Agent Task` and the description instead of
-  `# connector-aiagent`. `## Purpose`, `## Key types` and `## Docs` still come first after that.
+  connector README layout, so its title is `# AI Agent Task` instead of `# connector-aiagent`.
 - **`docs/architecture/`**: content that spans modules (the agentic loop, extension points, Spring
   auto-configuration).
 - **`docs/design-guidelines.md`**: the architectural invariants.
@@ -425,6 +451,8 @@ properties, error codes, behavioral contracts), update the matching doc in the s
   connectors (maintenance rules are in the Element templates section above).
   These READMEs serve users who pick or configure a template: which template fits which Camunda version
   and what a user selects. Put the details of how the templates are generated in `<module>/docs/`.
+
+After a doc change, run the [docs checks](#docs-checks).
 
 > `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
 > Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.

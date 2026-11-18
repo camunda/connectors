@@ -1,5 +1,7 @@
 # AWS AgentCore Memory Storage
 
+<!-- docs-lint: allow-names CreateEvent: AWS AgentCore API operation -->
+
 ## Overview
 
 This document covers the AWS Bedrock AgentCore Memory conversation store implementation. AgentCore Memory is an **event log optimized for conversational AI** with:

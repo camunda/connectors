@@ -13,6 +13,9 @@ they do not conflict with these rules. If they conflict, these rules apply, and 
 divergence. [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md) links the module operating rules (test
 levels, the Definition of Done, ADRs, architectural invariants).
 
+`agentic-ai-docs-lint` is a development tool and deviates from some of these rules. Its
+[`AGENTS.md`](../agentic-ai-docs-lint/AGENTS.md) lists the deviations. Do not flag them in a review.
+
 In a review, flag a problem that a build check can find, and name the check. In a review, flag a rule
 that conflicts with the change or that a build check in the change now enforces. A maintainer decides
 the follow-up.

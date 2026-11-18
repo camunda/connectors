@@ -38,6 +38,7 @@ the agent instance client.
 - [Native providers](docs/native-providers.md)
 - [System prompt composition](docs/system-prompt.md)
 - [Response handling](docs/response-handling.md)
+- [Document parameters](docs/document-parameters.md)
 - [Error codes](docs/error-codes.md)
 - [Process instance migration](docs/process-instance-migration.md)
 - [Agent instance integration](docs/agent-instance.md)

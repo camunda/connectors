@@ -1,5 +1,7 @@
 # Conversation memory
 
+<!-- docs-lint: allow-names ListEvents: AWS AgentCore API operation -->
+
 ## AgentConversation, ConversationSnapshot & MessageWindowFilter
 
 The in-process working representation of a conversation is the immutable `AgentConversation`
@@ -133,19 +135,8 @@ See the [`CustomMemoryStorageConfiguration`](../../connector-aiagent/src/main/ja
 
 ## ConversationSession Lifecycle
 
-`ConversationStore.createSession()` returns an `AutoCloseable` session. The handler manages it via try-with-resources:
-
-```java
-try (var session = store.createSession(executionContext, agentContext)) {
-    var loaded = session.loadMessages(agentContext).messages();   // load flat history
-    var history = TurnReconstructor.reconstruct(loaded);          // rebuild turns
-    // [compose input → rehydrate → call LLM → ingest]
-    var cursor = session.storeMessages(                           // persist
-        conversation.toAgentContext(),
-        ConversationStoreRequest.of(conversation.allMessages()));
-    conversation = conversation.withStoredConversation(cursor);   // assemble
-}
-```
+`ConversationStore.createSession()` returns an `AutoCloseable` session. `BaseAgentRequestHandler#converse`
+opens it with try-with-resources and keeps it open until the turn is stored:
 
 1. `ConversationStore.createSession()` creates and returns a session (the caller owns its lifecycle)
 2. `session.loadMessages(agentContext)` returns a `ConversationLoadResult` containing the stored flat
