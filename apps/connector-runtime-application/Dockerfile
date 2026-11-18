@@ -7,7 +7,7 @@ FROM --platform=$BUILDPLATFORM alpine:3.24@sha256:f59abe656b692d901e184be3445e08
 COPY target/*-with-dependencies.jar /tmp/runtime.jar
 RUN unzip -q /tmp/runtime.jar -d /tmp/runtime
 
-FROM reg.mini.dev/1212/openjre-base:v27.0.1-dev@sha256:208f8507e0637ab4341b41e06c109687d44a4ddb8b268bedc25bdcca3893e661
+FROM reg.mini.dev/1212/openjre-base:v25.0.5-dev@sha256:b90c5ee1385bc0c486b8351c81abefaf50076a4f6a4c64bb7461bc84ff09112f
 
 # If you don't have access to Minimus hardened base images, you can use public
 # base images like this instead on your own risk:
