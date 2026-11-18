@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -228,6 +229,36 @@ class OpenAiCompletionsResponseConverterTest {
                 .build());
     assertThat(result.assistantMessage().content()).isEmpty();
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.TOOL_USE);
+  }
+
+  @Test
+  void keepsExplicitNullValueInToolCallArguments() {
+    final ChatCompletion completion =
+        completionWithFinishReason(
+            "tool_calls",
+            """
+            {
+              "role": "assistant",
+              "content": null,
+              "tool_calls": [
+                {
+                  "id": "call_1",
+                  "type": "function",
+                  "function": {"name": "lookup", "arguments": "{\\"order_id\\":null}"}
+                }
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(
+            ToolCall.builder()
+                .id("call_1")
+                .name("lookup")
+                .arguments(Collections.singletonMap("order_id", null))
+                .build());
   }
 
   @Test
