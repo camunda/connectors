@@ -5,8 +5,8 @@ applyTo: "connectors/agentic-ai/**,connectors-e2e-test/connectors-e2e-test-agent
 # Agentic AI implementation rules
 
 These rules apply to `connectors/agentic-ai` and `connectors-e2e-test/connectors-e2e-test-agentic-ai`.
-Follow them when you plan a change and when you write code. In a review, flag each change that breaks
-a rule. Give the name of the rule.
+Follow them when you plan a change and when you write code. To review a change, follow
+[`code-review.md`](code-review.md).
 
 Follow the repo-wide connectors conventions in the repo-root [`AGENTS.md`](../../../AGENTS.md) where
 they do not conflict with these rules. If they conflict, these rules apply, and the PR states the
@@ -15,10 +15,6 @@ levels, the Definition of Done, ADRs, architectural invariants).
 
 `agentic-ai-docs-lint` is a development tool and deviates from some of these rules. Its
 [`AGENTS.md`](../agentic-ai-docs-lint/AGENTS.md) lists the deviations. Do not flag them in a review.
-
-In a review, flag a problem that a build check can find, and name the check. In a review, flag a rule
-that conflicts with the change or that a build check in the change now enforces. A maintainer decides
-the follow-up.
 
 ## Principles
 
@@ -277,8 +273,7 @@ below make this style specific.
     helper class.
   - An owner exists only when two callers need it now (see [Simplicity first](#simplicity-first)).
   - When the only way to avoid a copy is to refactor existing code, name it in the plan and ask, as
-    [Surgical changes](#surgical-changes) says. In a review, report existing copies as an advisory
-    consolidation.
+    [Surgical changes](#surgical-changes) says.
 - **Decide a mode once.** Resolve a per-instance mode, such as an agent instance feature, at one point
   into a value or a strategy. The steps below that point do not switch on the mode again. (P2)
 - **A required guard has one shared test.** When a domain rule requires the same guard in each
@@ -293,4 +288,4 @@ below make this style specific.
 - **Code agrees with the accepted ADRs.** When code diverges from an accepted ADR, the same change
   supersedes or extends the ADR with a new ADR, as the [ADR authoring rules](adr/README.md) say.
 
-For interfaces, follow the convention in [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md#architectural-invariants) (#9539).
+For interfaces, follow trait 4 of the [target architecture](target-architecture.md) (#9539).

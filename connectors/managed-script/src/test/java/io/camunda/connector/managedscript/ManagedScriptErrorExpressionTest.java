@@ -122,7 +122,8 @@ class ManagedScriptErrorExpressionTest {
                 ConnectorsObjectMapperSupplier.getCopy(),
                 Duration.ofSeconds(30),
                 Duration.ofSeconds(30),
-                Duration.ofSeconds(10)),
+                Duration.ofSeconds(10),
+                TenantLimiter.unlimited()),
             clients);
     final var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
     return new SpringConnectorJobHandler(

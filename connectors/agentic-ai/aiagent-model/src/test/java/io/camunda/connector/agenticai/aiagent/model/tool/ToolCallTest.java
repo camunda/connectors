@@ -8,12 +8,219 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 class ToolCallTest {
+
+  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+
+  @Test
+  void deserializesPreMetadataJsonWithEmptyMetadata() throws Exception {
+    // pre-metadata persisted JSON (no "metadata" key at all) must still deserialize; the
+    // generated Jackson builder defaults the missing field to an empty map, not literal null
+    // (unlike the 3-arg constructor below), but NON_EMPTY treats both the same on the wire
+    final String json =
+        "{\"id\": \"toolu_1\", \"name\": \"get_weather\", \"arguments\": {\"city\": \"Berlin\"}}";
+
+    final ToolCall toolCall = objectMapper.readValue(json, ToolCall.class);
+
+    assertThat(toolCall.id()).isEqualTo("toolu_1");
+    assertThat(toolCall.name()).isEqualTo("get_weather");
+    assertThat(toolCall.arguments()).containsEntry("city", "Berlin");
+    assertThat(toolCall.metadata()).isNullOrEmpty();
+  }
+
+  @Test
+  void threeArgConstructorDefaultsMetadataToNull() {
+    assertThat(new ToolCall("id", "name", Map.of()).metadata()).isNull();
+  }
+
+  @Test
+  void serializingNullMetadataOmitsTheKey() throws Exception {
+    final String json =
+        objectMapper.writeValueAsString(new ToolCall("toolu_1", "get_weather", Map.of()));
+
+    JSONAssert.assertEquals(
+        """
+        {"id": "toolu_1", "name": "get_weather", "arguments": {}}
+        """,
+        json,
+        true);
+  }
+
+  @Test
+  void roundTripsWithMetadataPopulated() throws Exception {
+    final ToolCall toolCall =
+        ToolCall.builder()
+            .id("toolu_1")
+            .name("get_weather")
+            .arguments(Map.of("city", "Berlin"))
+            .metadata(Map.of("anthropic", Map.of("caller", Map.of("type", "direct"))))
+            .build();
+
+    final String json = objectMapper.writeValueAsString(toolCall);
+    final ToolCall roundTripped = objectMapper.readValue(json, ToolCall.class);
+
+    assertThat(roundTripped).isEqualTo(toolCall);
+  }
+
+  @Test
+  void aProcessCallIsSerializedWithoutKind() throws Exception {
+    final String json =
+        objectMapper.writeValueAsString(
+            new ToolCall("toolu_1", "get_weather", Map.of("city", "Berlin")));
+
+    JSONAssert.assertEquals(
+        """
+        {"id": "toolu_1", "name": "get_weather", "arguments": {"city": "Berlin"}}
+        """,
+        json,
+        true);
+  }
+
+  @Test
+  void aRuntimeCallIsSerializedWithKind() throws Exception {
+    final var toolCall =
+        new ToolCall("toolu_1", "acme_note", Map.of(), Map.of("k", "v")).withKind(ToolKind.RUNTIME);
+
+    final String json = objectMapper.writeValueAsString(toolCall);
+
+    JSONAssert.assertEquals(
+        """
+        {
+          "id": "toolu_1",
+          "name": "acme_note",
+          "arguments": {},
+          "metadata": {"k": "v"},
+          "kind": "runtime"
+        }
+        """,
+        json,
+        true);
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
+  }
+
+  @Test
+  void jsonWithoutKindReadsAsProcess() throws Exception {
+    final String json = "{\"id\": \"toolu_1\", \"name\": \"get_weather\", \"arguments\": {}}";
+
+    assertThat(objectMapper.readValue(json, ToolCall.class).kind()).isEqualTo(ToolKind.PROCESS);
+  }
+
+  @Test
+  void jsonWithProcessKindReadsAsProcess() throws Exception {
+    final String json =
+        "{\"id\": \"toolu_1\", \"name\": \"get_weather\", \"arguments\": {}, \"kind\": \"PROCESS\"}";
+
+    assertThat(objectMapper.readValue(json, ToolCall.class).kind()).isEqualTo(ToolKind.PROCESS);
+  }
+
+  @Test
+  void theBuilderAndTheConstructorsDefaultToProcess() {
+    assertThat(ToolCall.builder().id("id").name("name").arguments(Map.of()).build().kind())
+        .isEqualTo(ToolKind.PROCESS);
+    assertThat(new ToolCall("id", "name", Map.of()).kind()).isEqualTo(ToolKind.PROCESS);
+    assertThat(new ToolCall("id", "name", Map.of(), Map.of("k", "v")).kind())
+        .isEqualTo(ToolKind.PROCESS);
+  }
+
+  @Test
+  void withKindReplacesOnlyTheKind() {
+    final var process = new ToolCall("id", "name", Map.of("a", 1), Map.of("k", "v"));
+
+    final var runtime = process.withKind(ToolKind.RUNTIME);
+
+    assertThat(runtime.kind()).isEqualTo(ToolKind.RUNTIME);
+    assertThat(runtime)
+        .isEqualTo(
+            new ToolCall("id", "name", Map.of("a", 1), Map.of("k", "v"), ToolKind.RUNTIME, null));
+    assertThat(runtime.withKind(ToolKind.PROCESS)).isEqualTo(process);
+  }
+
+  @Test
+  void aCallWithoutRejectionIsSerializedWithoutIt() throws Exception {
+    final String json =
+        objectMapper.writeValueAsString(new ToolCall("toolu_1", "get_weather", Map.of()));
+
+    assertThat(objectMapper.readTree(json).has("rejection")).isFalse();
+    assertThat(objectMapper.readValue(json, ToolCall.class).rejection()).isNull();
+  }
+
+  @Test
+  void aRejectedCallIsSerializedWithItsRejectionAndRoundTrips() throws Exception {
+    final var toolCall =
+        new ToolCall("toolu_1", "acme_unknown", Map.of("a", 1), Map.of("k", "v"))
+            .withRejection("The tool 'acme_unknown' does not exist.");
+
+    final String json = objectMapper.writeValueAsString(toolCall);
+
+    JSONAssert.assertEquals(
+        """
+        {
+          "id": "toolu_1",
+          "name": "acme_unknown",
+          "arguments": {"a": 1},
+          "metadata": {"k": "v"},
+          "rejection": "The tool 'acme_unknown' does not exist."
+        }
+        """,
+        json,
+        true);
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
+  }
+
+  @Test
+  void theResultSourceFollowsTheKindUnlessTheCallIsRejected() {
+    final var process = new ToolCall("id", "name", Map.of());
+    final var runtime = process.withKind(ToolKind.RUNTIME);
+
+    assertThat(process.resultSource()).isEqualTo(ToolCall.ResultSource.PROCESS);
+    assertThat(runtime.resultSource()).isEqualTo(ToolCall.ResultSource.RUNTIME);
+    assertThat(process.withRejection("no").resultSource())
+        .isEqualTo(ToolCall.ResultSource.REJECTED);
+    assertThat(runtime.withRejection("no").resultSource())
+        .isEqualTo(ToolCall.ResultSource.REJECTED);
+  }
+
+  @Test
+  void onlyACallOfTheProcessIsNotLocal() {
+    final var process = new ToolCall("id", "name", Map.of());
+
+    assertThat(process.isLocal()).isFalse();
+    assertThat(process.withKind(ToolKind.RUNTIME).isLocal()).isTrue();
+    assertThat(process.withRejection("no").isLocal()).isTrue();
+  }
+
+  @Test
+  void aRejectedRuntimeCallIsSerializedWithKindAndRejectionAndRoundTrips() throws Exception {
+    final var toolCall =
+        new ToolCall("toolu_1", "acme_note", Map.of(), Map.of("k", "v"))
+            .withKind(ToolKind.RUNTIME)
+            .withRejection("The argument 'a' is missing.");
+
+    final String json = objectMapper.writeValueAsString(toolCall);
+
+    JSONAssert.assertEquals(
+        """
+        {
+          "id": "toolu_1",
+          "name": "acme_note",
+          "arguments": {},
+          "metadata": {"k": "v"},
+          "kind": "runtime",
+          "rejection": "The argument 'a' is missing."
+        }
+        """,
+        json,
+        true);
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
+  }
 
   @Test
   void withArgumentsReplacesTheArgumentsAndKeepsEverythingElse() {
@@ -40,7 +247,34 @@ class ToolCallTest {
     arguments.put("note", null);
 
     final var resolved = new ToolCall("call-1", "upload", Map.of()).withArguments(arguments);
-
     assertThat(resolved.arguments()).isEqualTo(Collections.singletonMap("note", null));
+  }
+
+  @Test
+  void theBuilderKeepsAnExplicitNullValue() {
+    final var arguments = new HashMap<String, Object>();
+    arguments.put("note", null);
+
+    final var call = ToolCall.builder().id("call-1").name("upload").arguments(arguments).build();
+
+    assertThat(call)
+        .isEqualTo(
+            new ToolCall("call-1", "upload", Collections.singletonMap("note", null), Map.of()));
+  }
+
+  @Test
+  void aCallWithAnExplicitNullValueIsSerializedWithItAndRoundTrips() throws Exception {
+    final var call =
+        new ToolCall("call-1", "upload", Collections.singletonMap("note", null), Map.of("k", "v"));
+
+    final String json = objectMapper.writeValueAsString(call);
+
+    JSONAssert.assertEquals(
+        """
+        {"id": "call-1", "name": "upload", "arguments": {"note": null}, "metadata": {"k": "v"}}
+        """,
+        json,
+        true);
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(call);
   }
 }

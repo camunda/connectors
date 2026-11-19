@@ -110,7 +110,7 @@ jobs:
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: 'temurin'
-          java-version: '25.0.5+8.0.LTS'
+          java-version: '25.0.5+100000002.0.LTS'
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -340,7 +340,7 @@ jobs:
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: 'temurin'
-          java-version: '25.0.5+8.0.LTS'
+          java-version: '25.0.5+100000002.0.LTS'
 
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}

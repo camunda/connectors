@@ -140,14 +140,14 @@ limitations under the License.</license.inlineheader>
     <version.google-libraries-bom>26.94.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20261109-2.9.2</version.google-api-services-sheets>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>2.4.0</version.google-genai>
+    <version.google-genai>2.5.0</version.google-genai>
     <!-- overrides the Google libraries BOM for the whole Vertex AI family -->
     <version.google-cloud-vertexai>1.52.0</version.google-cloud-vertexai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
-    <version.httpcore5>5.4.4</version.httpcore5>
+    <version.httpcore5>5.5</version.httpcore5>
     <version.httpclient5>5.6.5</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
     <version.ayza>10.1.2</version.ayza>
@@ -235,7 +235,7 @@ limitations under the License.</license.inlineheader>
     <api.baseline.version>8.10.0</api.baseline.version>
 
     <!-- Null safety tooling -->
-    <version.error-prone>2.52.0</version.error-prone>
+    <version.error-prone>2.53.0</version.error-prone>
     <version.nullaway>0.14.4</version.nullaway>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
 

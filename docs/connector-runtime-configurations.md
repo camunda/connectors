@@ -40,6 +40,9 @@ camunda.connector.managed-code.execution-timeout=30s
 camunda.connector.managed-code.provisioning-timeout=2m
 camunda.connector.managed-code.grant-propagation-window=2m
 camunda.connector.managed-code.provisioning-retry-backoff=10s
+# Optional caps, unset by default
+camunda.connector.managed-code.max-jobs-active=<jobs>
+camunda.connector.managed-code.max-concurrent-scripts-per-tenant=<scripts>
 ```
 
 - `provider` names the managed-code provider. A provider implements the SPI of
@@ -67,8 +70,42 @@ camunda.connector.managed-code.provisioning-retry-backoff=10s
   measured once): it is tried again, and waiting jobs fail with `PROVISIONING_PENDING`. After the
   window, a denial is permanent (`PLATFORM_REJECTED`). `0s` turns it off.
 - `provisioning-retry-backoff` is the backoff of a job that failed because of the platform and
-  keeps its retries (`PROVISIONING_PENDING`, `PLATFORM_INTERRUPTED`), whatever the task's
-  `retryBackoff` header says. A failure that consumes a retry uses the task's `retryBackoff`.
+  keeps its retries (`PROVISIONING_PENDING`, `CONCURRENCY_LIMITED`, `PLATFORM_INTERRUPTED`, and
+  `PLATFORM_THROTTLED` until it lasts), whatever the task's `retryBackoff` header says. A failure
+  that consumes a retry uses the task's `retryBackoff`.
+- `max-jobs-active` is the most managed-script jobs a worker holds at once, hence the most scripts
+  it runs at once. Jobs beyond it stay with the broker, their retries untouched, until a slot frees
+  up. Unset, the worker takes `camunda.client.worker.defaults.max-jobs-active` (32 by default), as
+  any connector does. It wins over `camunda.client.worker.defaults`, and an override of the job
+  type in `camunda.client.worker.override` wins over it. The cap applies to each worker: one per
+  physical tenant, on each runtime instance. The scripts of a cluster that run at once are at most
+  this cap times its physical tenants times the runtime instances.
+- `max-concurrent-scripts-per-tenant` is the most scripts of one tenant, within its physical tenant,
+  that a runtime instance runs at once, so that one tenant cannot take every slot of `max-jobs-active`. A job beyond it fails
+  right away with `CONCURRENCY_LIMITED`, its retries unchanged, and is tried again after
+  `provisioning-retry-backoff`; it does not wait in the worker, where it would hold a slot that
+  other tenants need. Unset, a tenant has no limit of its own.
+
+#### Concurrency caps
+
+The executors of a cloud account or project are shared by every cluster of an environment: without
+caps, one cluster can use up the quotas of the others. The caps come from the configuration that
+Controller sets for each cluster:
+
+- In the runtime, `max-jobs-active` bounds the scripts a runtime instance runs, and
+  `max-concurrent-scripts-per-tenant` the share of one tenant.
+- On GCP, `gcp.max-instance-count` bounds the scripts of a language that run at once in the
+  cluster, whatever the number of runtime instances.
+- On AWS, the concurrency of Lambda is shared by every function of the account.
+  `aws.reserved-concurrency` bounds the scripts of a language that run at once in the cluster, and
+  reserves that much of the account for it; without it, the runtime cap is what bounds a cluster.
+
+Keep `max-jobs-active`, times the physical tenants and the runtime instances, at or below the provider's cap, so that the
+provider does not throttle. A call the provider throttles anyway (Lambda `TooManyRequests`, HTTP
+429) fails with `PLATFORM_THROTTLED` and keeps its retries, so that a burst over the cap delays
+jobs instead of raising incidents. Once the executor of a language has been throttled for longer
+than twice `provisioning-timeout`, with no call answered otherwise in between, throttled jobs
+consume their retries, so that a cap too low for the load ends in an incident.
 
 ### Local provider
 
@@ -118,6 +155,8 @@ camunda.connector.managed-code.aws.region=eu-central-1
 camunda.connector.managed-code.aws.execution-role-arn=arn:aws:iam::123456789012:role/camunda-ms-executor
 camunda.connector.managed-code.aws.memory-mb=512
 camunda.connector.managed-code.aws.log-retention-days=30
+# Optional, unset by default
+camunda.connector.managed-code.aws.reserved-concurrency=<executions>
 ```
 
 - An executor is named `<deployment-name-prefix><py|js>-<12 hex of the wrapper digest>`. When it is
@@ -138,6 +177,16 @@ camunda.connector.managed-code.aws.log-retention-days=30
   their input and secrets. Find out how the function was changed, then delete it: the runtime
   creates it again. The check reads nothing beyond `GetFunction`, so it needs no extra permission.
   It is not repeated on each call.
+- `aws.reserved-concurrency` reserves concurrency for each executor (`PutFunctionConcurrency`): it
+  bounds the scripts of a language that run at once in the cluster, and guarantees them that much
+  of the account's concurrency, which every function of the account shares. It is compared whenever
+  the provider makes an executor ready, and set again when it differs. Unset, no concurrency is
+  reserved, and a reservation made earlier is removed (`DeleteFunctionConcurrency`). Lambda keeps
+  at least 100 executions of the account unreserved: a reservation that would go below fails with
+  `PLATFORM_REJECTED`, and the message says so. A call beyond the reservation is throttled, see
+  [Concurrency caps](#concurrency-caps). A new wrapper version creates new executors, and the old
+  ones keep their reservation until they are deleted: leave room in the account for both, or the
+  new executors fail with `PLATFORM_REJECTED`.
 - `aws.region` is the region of the executors; without it, the SDK's default region chain applies
   (`AWS_REGION`, the profile). `aws.memory-mb` is between 128 and 10240 (default 512).
 - `aws.memory-mb` sizes the scripts: the wrapper reads the memory of the function from Lambda and
@@ -213,7 +262,9 @@ The **identity of the runtime** needs this minimal policy, limited to the prefix
         "lambda:GetFunction",
         "lambda:UpdateFunctionConfiguration",
         "lambda:InvokeFunction",
-        "lambda:TagResource"
+        "lambda:TagResource",
+        "lambda:PutFunctionConcurrency",
+        "lambda:DeleteFunctionConcurrency"
       ],
       "Resource": "arn:aws:lambda:<region>:<account>:function:<prefix>*"
     },
@@ -231,6 +282,12 @@ The **identity of the runtime** needs this minimal policy, limited to the prefix
   ]
 }
 ```
+
+`lambda:PutFunctionConcurrency` is needed only with `aws.reserved-concurrency`.
+`lambda:DeleteFunctionConcurrency` is needed whenever an executor holds a reservation while
+`aws.reserved-concurrency` is unset: keep it after unsetting the property, or after reserving
+concurrency on an executor by other means, or the executor does not become ready. `GetFunction`
+returns the reservation, so reading it needs no other permission.
 
 ### Google Cloud Run functions provider
 

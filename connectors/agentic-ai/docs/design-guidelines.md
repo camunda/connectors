@@ -39,7 +39,7 @@ review and the tests of the stores and SPIs enforce them.
     LangChain4j chat models (see
     [`langchain4j-chat-model.md`](../connector-aiagent/docs/langchain4j-chat-model.md#converter-chain-architecture)).
   - **Why**: a leak here re-couples the whole codebase to the framework and defeats I1.
-- **I3. Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
+- **I3 (deprecated). Interface in package root, `*Impl` alongside.** Existing public collaborators are interfaces
   (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
   `*Impl`. Wire impls as Spring beans, depend on the interface (constructor injection). The architecture tests check that a class
   named `FooImpl` implements the interface `Foo`; review checks the rest.
@@ -54,7 +54,9 @@ review and the tests of the stores and SPIs enforce them.
     overridden). Don't inject `*Impl` directly.
   - **Enforced by**: review checks that there is a single implementation and that it is registered as an
     overridable bean.
-  - [#9539](https://github.com/camunda/connectors/issues/9539) tracks a change to this convention.
+  - **Deprecated**: a new collaborator is a concrete `@ConditionalOnMissingBean` bean. Add an interface
+    only for an SPI or a seam with two or more adapters. Existing pairs stay.
+    [#9539](https://github.com/camunda/connectors/issues/9539) tracks the change.
 - **I4. SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
   gateway tool by implementing the SPI and registering a bean. See
   [Extension Points](architecture/extension-points.md#extension-points). Do not modify the core to

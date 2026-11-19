@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -26,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -228,6 +230,60 @@ class OpenAiCompletionsResponseConverterTest {
                 .build());
     assertThat(result.assistantMessage().content()).isEmpty();
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.TOOL_USE);
+  }
+
+  @Test
+  void keepsExplicitNullValueInToolCallArguments() {
+    final ChatCompletion completion =
+        completionWithFinishReason(
+            "tool_calls",
+            """
+            {
+              "role": "assistant",
+              "content": null,
+              "tool_calls": [
+                {
+                  "id": "call_1",
+                  "type": "function",
+                  "function": {"name": "lookup", "arguments": "{\\"order_id\\":null}"}
+                }
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    // the message id and the timestamp are generated, so the expected result takes them over
+    final AssistantMessage message = result.assistantMessage();
+    assertThat(result)
+        .isEqualTo(
+            new ChatResult.Completed(
+                AssistantMessage.builder()
+                    .id(message.id())
+                    .content(List.of())
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("call_1")
+                                .name("lookup")
+                                .arguments(Collections.singletonMap("order_id", null))
+                                .build()))
+                    .messageId("chatcmpl_123")
+                    .modelId("gpt-4o")
+                    .stopReason(StopReason.TOOL_USE)
+                    .metadata(
+                        Map.of(
+                            AssistantMessageMetadata.TIMESTAMP_KEY,
+                            message.metadata().get(AssistantMessageMetadata.TIMESTAMP_KEY),
+                            "openai",
+                            Map.of("stopReason", "tool_calls")))
+                    .build(),
+                AgentMetrics.builder()
+                    .modelCalls(1)
+                    .tokenUsage(AgentMetrics.TokenUsage.empty())
+                    .toolCalls(1)
+                    .executionTime(Duration.ofMillis(100))
+                    .build()));
   }
 
   @Test

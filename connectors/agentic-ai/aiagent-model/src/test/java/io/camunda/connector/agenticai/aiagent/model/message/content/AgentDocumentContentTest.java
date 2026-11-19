@@ -12,7 +12,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
-import io.camunda.connector.agenticai.testutil.TestDocuments;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 

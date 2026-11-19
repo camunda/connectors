@@ -13,6 +13,7 @@ import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.managedscript.ScriptResources.ResourceAccessDeniedException;
 import io.camunda.connector.managedscript.ScriptResources.ResourceNotVisibleException;
 import io.camunda.connector.managedscript.api.ErrorCode;
+import io.camunda.connector.managedscript.api.ErrorCode.Retries;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
@@ -22,6 +23,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -36,6 +38,12 @@ import org.slf4j.LoggerFactory;
  * <p>A job waits for the executor of its language up to the provisioning timeout, which also covers
  * making it ready again once after it was reported missing. Logs never contain the script, its
  * input or its output, nor failure messages, which can quote them.
+ *
+ * <p>A job beyond the scripts its tenant may run at once fails with {@code CONCURRENCY_LIMITED},
+ * and a job whose executor is throttled with {@code PLATFORM_THROTTLED}; both keep their retries,
+ * so that a burst over a cap delays jobs instead of raising incidents. A throttle that has lasted
+ * longer than twice the provisioning timeout consumes a retry, so that a cap that is too low for
+ * the load ends in an incident.
  */
 final class ManagedScriptJobHandler {
 
@@ -61,6 +69,10 @@ final class ManagedScriptJobHandler {
   private final Duration provisioningTimeout;
   private final Duration executionTimeout;
   private final Duration retryBackoff;
+  private final TenantLimiter tenants;
+
+  /** Since when the executor of each language has been throttled, without a call in between. */
+  private final Map<ScriptLanguage, Long> throttledSinceNanos = new ConcurrentHashMap<>();
 
   ManagedScriptJobHandler(
       ManagedCodeProvider provider,
@@ -69,7 +81,8 @@ final class ManagedScriptJobHandler {
       ObjectMapper objectMapper,
       Duration provisioningTimeout,
       Duration executionTimeout,
-      Duration retryBackoff) {
+      Duration retryBackoff,
+      TenantLimiter tenants) {
     this.provider = provider;
     this.readiness = readiness;
     this.resources = resources;
@@ -77,6 +90,7 @@ final class ManagedScriptJobHandler {
     this.provisioningTimeout = provisioningTimeout;
     this.executionTimeout = executionTimeout;
     this.retryBackoff = retryBackoff;
+    this.tenants = tenants;
   }
 
   /**
@@ -99,9 +113,25 @@ final class ManagedScriptJobHandler {
             ErrorCode.UNSUPPORTED_DEPENDENCIES, "Managed scripts do not support dependencies yet");
       }
       resourceKey = links.scriptResourceKey();
-      final var script = resources.get(camundaClient, physicalTenantId, resourceKey);
-      language = languageOf(script.name());
-      outcome = execute(job, input, language, script.content());
+      // Admitted before any wait, so that a tenant's jobs beyond its limit leave the worker at
+      // once.
+      final var permit = tenants.tryAcquire(physicalTenantId, job.getTenantId());
+      if (permit.isEmpty()) {
+        outcome =
+            failed(
+                job,
+                ErrorCode.CONCURRENCY_LIMITED,
+                "Tenant '%s' already runs %d scripts at once on this runtime; the job will be retried"
+                    .formatted(job.getTenantId(), tenants.limit()),
+                null,
+                null);
+      } else {
+        try (var held = permit.get()) {
+          final var script = resources.get(camundaClient, physicalTenantId, resourceKey);
+          language = languageOf(script.name());
+          outcome = execute(job, input, language, script.content());
+        }
+      }
     } catch (InvalidJobException e) {
       outcome = failed(job, e.code(), e.getMessage(), null, language);
     } catch (ResourceNotVisibleException e) {
@@ -168,14 +198,35 @@ final class ManagedScriptJobHandler {
     final long deadline = System.nanoTime() + provisioningTimeout.toNanos();
     var ready = readiness.start(language);
     awaitExecutor(language, ready, deadline);
-    var response = provider.execute(language, request);
+    var response = invoke(language, request);
     if (response != null && response.isDeploymentMissing()) {
       // Made ready again once within the job; missing again, it consumes a retry.
       ready = readiness.restart(language, ready);
       awaitExecutor(language, ready, deadline);
-      response = provider.execute(language, request);
+      response = invoke(language, request);
     }
     return outcome(job, language, response);
+  }
+
+  /** Calls the executor; any answer but a throttle ends the throttling of the language. */
+  private ExecutionResponse invoke(ScriptLanguage language, ExecutionRequest request) {
+    final ExecutionResponse response;
+    try {
+      response = provider.execute(language, request);
+    } catch (RuntimeException e) {
+      throttledSinceNanos.remove(language);
+      throw e;
+    }
+    if (!isThrottled(response)) {
+      throttledSinceNanos.remove(language);
+    }
+    return response;
+  }
+
+  private static boolean isThrottled(ExecutionResponse response) {
+    return response != null
+        && response.error() != null
+        && ErrorCode.PLATFORM_THROTTLED.name().equals(response.error().code());
   }
 
   private void awaitExecutor(
@@ -203,6 +254,7 @@ final class ManagedScriptJobHandler {
   }
 
   private Outcome outcome(JobContext job, ScriptLanguage language, ExecutionResponse response) {
+    final boolean throttled = isThrottled(response);
     if (response == null || response.outcome() == null) {
       return failed(
           job, ErrorCode.INVALID_RESULT, "The provider returned no outcome", null, language);
@@ -240,14 +292,38 @@ final class ManagedScriptJobHandler {
           null,
           language);
     }
+    if (throttled && !throttlingLasts(language)) {
+      return failed(job, code.get(), error.message(), null, language, Retries.UNCHANGED);
+    }
     return failed(job, code.get(), error.message(), error.stackTrace(), language);
+  }
+
+  /**
+   * Whether the executor of the language has been throttled for longer than twice the provisioning
+   * timeout, with no call answered otherwise in between. A cap reached under a burst frees up as
+   * scripts end; one reached for that long is too low for the load.
+   */
+  private boolean throttlingLasts(ScriptLanguage language) {
+    final long now = System.nanoTime();
+    final long since = throttledSinceNanos.computeIfAbsent(language, key -> now);
+    return now - since > provisioningTimeout.multipliedBy(2).toNanos();
   }
 
   /** Fails the job with the retries that the error code calls for. */
   private Outcome.Failed failed(
       JobContext job, ErrorCode code, String message, String stackTrace, ScriptLanguage language) {
+    return failed(job, code, message, stackTrace, language, code.retries());
+  }
+
+  private Outcome.Failed failed(
+      JobContext job,
+      ErrorCode code,
+      String message,
+      String stackTrace,
+      ScriptLanguage language,
+      Retries retries) {
     final var text = IncidentMessage.format(code, message, stackTrace, language);
-    return switch (code.retries()) {
+    return switch (retries) {
       case NONE_LEFT -> new Outcome.Failed(code.name(), text, 0, Duration.ZERO);
       // The modeler sets the backoff next to the retries a job consumes.
       case CONSUME_ONE -> new Outcome.Failed(code.name(), text, null, Duration.ZERO);

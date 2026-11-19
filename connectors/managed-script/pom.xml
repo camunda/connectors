@@ -48,6 +48,10 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
     <dependency>
       <groupId>io.camunda</groupId>
+      <artifactId>camunda-spring-boot-starter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda</groupId>
       <artifactId>camunda-client-java</artifactId>
     </dependency>
     <dependency>
@@ -93,11 +97,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda</groupId>
-      <artifactId>camunda-spring-boot-starter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

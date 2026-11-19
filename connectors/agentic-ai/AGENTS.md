@@ -33,6 +33,7 @@ Task guidance and architecture live in linked documents:
   from past review findings, and code design rules for new code
 - [`docs/documentation-rules.md`](docs/documentation-rules.md): where each doc goes and how to keep the
   docs up to date
+- [`docs/code-review.md`](docs/code-review.md): how to review a change, and when a human must approve
 - [`docs/target-architecture.md`](docs/target-architecture.md): target state of the module
 - [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
 - E2E tests [`AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md): e2e
@@ -280,6 +281,7 @@ The [target architecture](docs/target-architecture.md) shows the target state be
 
 Read the [implementation rules](docs/implementation-rules.md) and the
 [documentation rules](docs/documentation-rules.md) before you plan, implement or review a change.
+To review a change, follow [`docs/code-review.md`](docs/code-review.md).
 
 Before you design stored shapes, names, defaults, limits or observability, also read
 [`docs/design-guidelines.md`](docs/design-guidelines.md). Before you plan a structural change (a new
