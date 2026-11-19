@@ -44,9 +44,11 @@ process (`AgentToolsResolverImpl.loadAdHocToolsSchema`):
   fails the job with the error code `DOCUMENT_PARAMETER_SCHEMA_INVALID` (see [Error codes](error-codes.md)). For a
   parameter that takes text or a document, declare two parameters.
 - **Without the feature** (*Use document references* cleared, a v1 connector, or an instance created before 8.11), the
-  agent instance has no document parameters. A tool with the type `document` fails the job with the error code
-  `DOCUMENT_PARAMETER_SCHEMA_INVALID`, and the message asks to select *Use document references*. A tool without it keeps
-  its schema as authored. See [ADR 018](../../docs/adr/018-document-flow.md).
+  agent instance has no document parameters. A tool with the type `document`, and an enabled runtime tool with a
+  document parameter, fail the job with the error code `DOCUMENT_PARAMETER_SCHEMA_INVALID` before the model is called,
+  and the message says that the agent instance has no document reference support. An instance keeps its features, so
+  selecting *Use document references* helps only new instances; a running instance needs a process version without the
+  type `document`. A tool without it keeps its schema as authored. See [ADR 018](../../docs/adr/018-document-flow.md).
 
 The model passes the handle it read, also as a string that holds the object as JSON:
 

@@ -10,7 +10,8 @@ on every completion. Authoritative definition:
 **Features.** `AgentContext.features` is the set of features (an insertion-ordered JSON array of strings, omitted
 when empty) the agent instance was created with. A new agent instance gets the
 features of its execution when its context is created at its first job (`AgentInitializerImpl`, both flavors,
-`AgentExecutionContext.newInstanceFeatures()`). The v2 connectors give `AgentFeatures.ofNewInstance()` and the
+`AgentExecutionContext.newInstanceFeatures()`). The v2 connectors give `AgentFeatures.ofNewInstance(boolean)`: `runtimeTools`,
+and `documents` when the element has *Use document references* selected (`data.documents.references`). The
 deprecated v1 connectors give no feature. The features are `runtimeTools` (`AgentFeatures.RUNTIME_TOOLS`, the runtime tool
 facility) and `documents` (`AgentFeatures.DOCUMENTS`, the agent documents); a feature is read with
 `AgentContext.supports(String)`, and the document handling of the instance with `AgentContext.documentHandling()`.
@@ -70,8 +71,8 @@ variants exhaustively; none of them reads the feature or takes a `boolean`.
 The transient per-invocation request context, assembled fresh for each job activation and never
 persisted. It carries the job metadata, the document factory of the job (the document store of the physical tenant of
 the job), the inbound `AgentContext` and tool-call results, the features of a new agent instance
-(`newInstanceFeatures()`, `AgentFeatures.ofNewInstance()` by default), the LLM
-provider configuration, the system- and user-prompt configurations, and the memory, limits, event, and
+(`newInstanceFeatures()`, `AgentFeatures.ofNewInstance(boolean)` for the document references setting by default), the LLM
+provider configuration, the system- and user-prompt configurations, and the document, memory, limits, event, and
 response settings that shape the turn. Authoritative definition:
 [`AgentExecutionContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).
 

@@ -356,7 +356,7 @@ checks that the documents of a result are Camunda documents for an agent instanc
 effects of the results in `ToolCallResultsInputBuilder.build`, for both paths: the rounds of local tool calls only and the
 job that resolves a mixed batch. The builder is the one place that checks that an effect names a document known at the
 start of the batch or returned by the result, and that a result of an agent instance that does not track its documents has
-no effect. The input it returns carries the response documents the results selected, and the caller
+neither the effect `AddDocumentContent` nor `SelectResponseDocument`. The input it returns carries the response documents the results selected, and the caller
 applies it to its agent context (`TurnInput.applyTo`); the update is a function of the agent context and the results only.
 No state about the local tool calls is persisted between
 jobs apart from the `kind` and the `rejection` of the calls and the response documents of the agent context. See [ADR 016](../adr/016-runtime-tools.md).

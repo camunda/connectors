@@ -211,14 +211,15 @@ already used replaces its selection. The selections stay for the lifetime of the
 ([Response Handling](../../connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl)). A sub-process agent
 shows them as `agent.responseDocuments.<key>.document`.
 
-Every agent instance with the `documents` feature offers `c8__load_document` and `c8__return_document`. They cannot be
-switched off. A switch is a follow-up of [ADR 018](../adr/018-document-flow.md).
+Every agent instance with the `documents` feature offers `c8__load_document` and `c8__return_document`. The
+checkbox *Use document references* (`data.documents.references`, v2 templates, on by default) decides the feature of a new
+instance: with it off, the instance has neither tool ([ADR 018](../adr/018-document-flow.md#document-references-per-agent)).
 
-**The user prompt.** The documents of the user prompt are references with the delivery of the dropdown *Document
-delivery* (`data.userPrompt.documentDelivery`, v2 templates only, `reference` by default; an element without a value has
-the delivery `content`). With the delivery `content` the content of every document goes out with the prompt, with no size
-limit and no type check, and a document the provider cannot read fails the model call. Documents of events stay
-references, and so do those of the MCP and A2A gateway tools.
+**The user prompt.** The documents of the user prompt are references with the delivery of the dropdown *User prompt
+delivery* (`data.documents.userPromptDelivery`, [ADR 018](../adr/018-document-flow.md#delivery-reference-by-default-content-by-request-or-opt-in)).
+With the delivery `content` the content of every document goes out with the prompt, with no size limit and no type
+check, and a document the provider cannot read fails the model call. Documents of events stay references, and so do
+those of the MCP and A2A gateway tools.
 In an instance without the `documents` feature every document, also those of the user prompt, events and tool results,
 is added as content.
 
@@ -248,9 +249,12 @@ instance no feature) keeps the document handling of Camunda 8.10:
   and `name` for an external document) and the `DocumentContent`, as in ADR-004. Nothing is registered.
 - `documents` and `responseDocuments` stay empty and the response has no `responseDocuments`; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
 - Without the `runtimeTools` feature there are no runtime tools (`c8__load_document` and `c8__return_document` included), no mixed-batch handling and no tool name check ([Add a runtime tool](#add-a-runtime-tool)).
-- The document parameters of tool calls are not resolved or checked: the process gets the value the model sent as it is.
-- A tool must not have the type `document`: loading such a tool fails the job with `DOCUMENT_PARAMETER_SCHEMA_INVALID`.
-  Only an instance with the feature gets the handle schema ([Document parameters](../../connector-aiagent/docs/document-parameters.md)).
+- With the `runtimeTools` feature (a new instance with *Use document references* cleared), the built-in document tools are not enabled; other runtime tools are offered when they are enabled.
+- No tool takes a document: a tool of the process with the type `document`, or an enabled runtime tool with a document
+  parameter, fails the job with `DOCUMENT_PARAMETER_SCHEMA_INVALID` when the tools of a job are assembled, before the
+  model is called. An instance keeps its features, so selecting *Use document references* helps only new instances; a
+  running instance needs a process version without the type `document`
+  ([Document parameters](../../connector-aiagent/docs/document-parameters.md)).
 - The history reports the messages as stored.
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
@@ -394,6 +398,9 @@ module of the AI Agent is a small example.
    `RuntimeToolContext`, and is called when the tools of a job are assembled and again when a call is executed.
    Keep its answer stable while an agent instance runs: the tools are part of every model request, so a change
    invalidates the prompt cache of the provider and shows the model a different set of tools.
+   A tool with a document parameter, or one that returns the effect `AddDocumentContent` or `SelectResponseDocument`,
+   must not be enabled for an agent instance without the `documents` feature: the job fails. A document in the
+   content of a result works for every agent instance.
 5. Register the tool as a Spring bean of type `RuntimeTool`. `RuntimeTools` rejects blank and duplicate names and
    definitions that do not declare the kind `RUNTIME` at startup. The `runtimeTools` feature only decides whether the tools are
    offered: an agent instance without it is offered no runtime tool.
