@@ -11,19 +11,21 @@ import static java.util.stream.Collectors.toList;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.files.FilesCompleteUploadExternalRequest;
+import com.slack.api.methods.request.files.FilesCompleteUploadExternalRequest.FileDetails;
 import com.slack.api.methods.request.files.FilesGetUploadURLExternalRequest;
 import com.slack.api.methods.response.files.FilesCompleteUploadExternalResponse;
 import com.slack.api.methods.response.files.FilesGetUploadURLExternalResponse;
 import com.slack.api.model.File;
 import com.slack.api.util.http.SlackHttpClient;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.error.ConnectorException;
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +35,8 @@ public class FileUploader {
   public static final String EXTERNAL_URL_CALL_EX = "Error during external call: ";
   public static final String COMPLETE_UPLOAD_CALL_EX =
       "Error during filesCompleteUploadExternal call";
+  public static final String SHARE_FILES_ERROR_CODE = "SLACK_FILE_SHARE_FAILED";
+  private static final String NOT_IN_CHANNEL = "not_in_channel";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FileUploader.class);
 
@@ -42,7 +46,11 @@ public class FileUploader {
     this.methodsClient = methodsClient;
   }
 
-  public List<File> uploadDocuments(List<Document> documents) {
+  /**
+   * Uploads the documents to Slack without sharing them. Slack keeps uploaded files private to the
+   * app until {@link #shareFiles} completes the upload with a channel.
+   */
+  public List<FileDetails> uploadDocuments(List<Document> documents) {
     return documents.stream()
         .map(doc -> {
           try {
@@ -51,16 +59,49 @@ public class FileUploader {
             throw new RuntimeException(e);
           }
         })
-        .filter(Objects::nonNull)
         .collect(toList());
   }
 
-  private File uploadDocument(MethodsClient methodsClient, Document document)
+  private FileDetails uploadDocument(MethodsClient methodsClient, Document document)
       throws SlackApiException, IOException {
     FilesGetUploadURLExternalResponse externalURLUploadResponse =
         getFileUploadURL(methodsClient, document);
     uploadFileByURL(externalURLUploadResponse, document);
-    return completeFileUpload(externalURLUploadResponse, document);
+    return FileDetails.builder()
+        .id(externalURLUploadResponse.getFileId())
+        .title(document.metadata().getFileName())
+        .build();
+  }
+
+  /**
+   * Completes the uploads and shares the files in the given channel, inside the given thread when
+   * one is set. Slack posts them as a single message.
+   */
+  public List<File> shareFiles(List<FileDetails> files, String channelId, String threadTs) {
+    var request = FilesCompleteUploadExternalRequest.builder().files(files).channelId(channelId);
+    if (StringUtils.isNotBlank(threadTs)) {
+      request.threadTs(threadTs);
+    }
+    FilesCompleteUploadExternalResponse completeUploadResp;
+    try {
+      completeUploadResp = methodsClient.filesCompleteUploadExternal(request.build());
+    } catch (SlackApiException | IOException e) {
+      // The message is already posted, so every sharing failure carries the same error code
+      String msg = COMPLETE_UPLOAD_CALL_EX + "\n Errors: " + e.getMessage();
+      LOGGER.error(msg, e);
+      throw new ConnectorException(SHARE_FILES_ERROR_CODE, msg, e);
+    }
+
+    if (completeUploadResp.isOk()) {
+      return completeUploadResp.getFiles() == null ? List.of() : completeUploadResp.getFiles();
+    }
+    String error = completeUploadResp.getError();
+    String msg = COMPLETE_UPLOAD_CALL_EX + "\n Errors: " + error;
+    if (NOT_IN_CHANNEL.equals(error)) {
+      msg += ". Add the Slack app to the channel so it can share files there.";
+    }
+    LOGGER.error(msg);
+    throw new ConnectorException(SHARE_FILES_ERROR_CODE, msg);
   }
 
   private FilesGetUploadURLExternalResponse getFileUploadURL(
@@ -96,35 +137,6 @@ public class FileUploader {
         throw new RuntimeException(msg);
       }
     }
-  }
-
-  private File completeFileUpload(
-      FilesGetUploadURLExternalResponse uploadFileUrlResp, Document document)
-      throws SlackApiException, IOException {
-    FilesCompleteUploadExternalResponse completeUploadResp =
-        methodsClient.filesCompleteUploadExternal(
-            FilesCompleteUploadExternalRequest.builder()
-                .files(
-                    List.of(
-                        FilesCompleteUploadExternalRequest.FileDetails.builder()
-                            .id(uploadFileUrlResp.getFileId())
-                            .title(document.metadata().getFileName())
-                            .build()))
-                .build());
-
-    if (completeUploadResp.isOk()) {
-      List<File> files = completeUploadResp.getFiles();
-      return getFirst(files);
-    } else {
-      String msg = COMPLETE_UPLOAD_CALL_EX + "\n Errors: " + completeUploadResp.getError();
-      LOGGER.error(msg);
-      throw new RuntimeException(msg);
-    }
-  }
-
-  // In fact, we always have only one file in List
-  private File getFirst(List<File> files) {
-    return files == null || files.isEmpty() ? null : files.getFirst();
   }
 
   public MethodsClient getMethodsClient() {
