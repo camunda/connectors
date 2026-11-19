@@ -1403,6 +1403,17 @@ the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.
 See: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv
                 </regexMessage>
               </requireProperty>
+              <!-- LangChain4j community modules are built against one core release, so
+                   version.langchain4j-community must be ${version.langchain4j}-betaN. -->
+              <requireProperty>
+                <property>version.langchain4j-community</property>
+                <regex>^${version.langchain4j}-beta\d+$</regex>
+                <regexMessage>
+version.langchain4j-community (${version.langchain4j-community}) does not match version.langchain4j
+(${version.langchain4j}). LangChain4j community modules must use the beta built against the same core
+release: bump both properties together in parent/pom.xml.
+                </regexMessage>
+              </requireProperty>
             </rules>
           </configuration>
           <executions>
