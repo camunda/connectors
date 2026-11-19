@@ -117,7 +117,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.7</version.logback>
 
-    <version.aws-sdk2>2.59.3</version.aws-sdk2>
+    <version.aws-sdk2>2.59.4</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -140,7 +140,7 @@ limitations under the License.</license.inlineheader>
     <version.google-libraries-bom>26.94.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20261109-2.9.2</version.google-api-services-sheets>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>2.5.0</version.google-genai>
+    <version.google-genai>2.6.0</version.google-genai>
     <!-- overrides the Google libraries BOM for the whole Vertex AI family -->
     <version.google-cloud-vertexai>1.52.0</version.google-cloud-vertexai>
     <version.jsr305>3.0.2</version.jsr305>
