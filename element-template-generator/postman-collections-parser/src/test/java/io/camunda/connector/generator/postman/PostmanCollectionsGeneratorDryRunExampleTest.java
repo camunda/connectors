@@ -18,20 +18,66 @@ package io.camunda.connector.generator.postman;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.sun.net.httpserver.HttpServer;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.postman.utils.ObjectMapperProvider;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class PostmanCollectionsGeneratorDryRunExampleTest {
+
+  private static final String LOCAL_COLLECTION = "src/test/resources/operate-api-saas-bearer.json";
+  private static final String LOCALHOST = "localhost";
+  private static final String COLLECTION_URL_PATH = "/operate-api.postman_collection.json";
+
+  // Serves the collection over HTTP from the local machine, so the "fetch from a URL" cases do not
+  // depend on the internet (they failed with "Connection reset" on CI).
+  private static HttpServer collectionServer;
+
+  @BeforeAll
+  static void startCollectionServer() throws IOException {
+    collectionServer = HttpServer.create(new InetSocketAddress(LOCALHOST, 0), 0);
+    collectionServer.createContext(
+        COLLECTION_URL_PATH,
+        exchange -> {
+          byte[] body = Files.readAllBytes(Path.of(LOCAL_COLLECTION));
+          exchange.getResponseHeaders().add("Content-Type", "application/json");
+          exchange.sendResponseHeaders(200, body.length);
+          try (var responseBody = exchange.getResponseBody()) {
+            responseBody.write(body);
+          }
+        });
+    collectionServer.start();
+  }
+
+  @AfterAll
+  static void stopCollectionServer() {
+    if (collectionServer != null) {
+      collectionServer.stop(0);
+    }
+  }
+
+  private static String collectionUrl() {
+    // the host name, not the bound address: an IPv6 address would need brackets in a URL
+    return "http://"
+        + LOCALHOST
+        + ":"
+        + collectionServer.getAddress().getPort()
+        + COLLECTION_URL_PATH;
+  }
 
   @ParameterizedTest
   @MethodSource("commandLineArguments")
@@ -80,15 +126,13 @@ public class PostmanCollectionsGeneratorDryRunExampleTest {
                 "/1. Sending requests & inspecting responses/book",
                 "/1. Sending requests & inspecting responses/add book")),
 
-        // Test case 3: fetch from internet
-        Arguments.of(
-            List.of(
-                "https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json")),
+        // Test case 3: fetch from a URL
+        Arguments.of(List.of(collectionUrl())),
 
-        // Test case 4: from internet with operations
+        // Test case 4: from a URL with operations
         Arguments.of(
             List.of(
-                "https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json",
+                collectionUrl(),
                 "/Process instances/Search for process instances",
                 "/Process instances/Get process instance by key")),
 
