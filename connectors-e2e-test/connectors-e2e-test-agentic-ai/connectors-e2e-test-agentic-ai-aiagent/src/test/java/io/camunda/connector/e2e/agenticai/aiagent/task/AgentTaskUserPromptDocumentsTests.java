@@ -24,14 +24,16 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.ge
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentHandlePart;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOf;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.contentFollowsSentence;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
+import io.camunda.connector.e2e.agenticai.aiagent.fixtures.DocumentSetup;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
@@ -41,8 +43,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 @SlowTest
 public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
@@ -104,9 +105,9 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
   /**
    * The model loads the document of the user prompt with {@code c8__load_document}: the call is the
    * only one of its message and a runtime tool, so the agent answers it in the same job and calls
-   * the model again. With the default document delivery {@code reference} the first request shows
-   * the handle only. The load adds the content of the document: the result says that the content
-   * follows, and the message after the tool result holds it.
+   * the model again. With the default user prompt delivery {@code reference} the first request
+   * shows the handle only. The load adds the content of the document: the result says that the
+   * content follows, and the message after the tool result holds it.
    */
   @Test
   void loadsADocumentOfTheUserPromptWithTheLoadDocumentTool() throws Exception {
@@ -157,25 +158,25 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
               .hasNoToolCalls()
               .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(20, 40), 1))
               .hasResponseMessageText(FINAL_TEXT)
-              .hasResponseText(FINAL_TEXT);
-          final var registered =
-              assertHandleOfTheOnlyRegisteredDocument(
-                  handle, agentResponse.context().documents(), null, "text/plain", null);
-          assertThat(registered.origin()).isInstanceOf(AgentDocumentOrigin.UserMessage.class);
+              .hasResponseText(FINAL_TEXT)
+              .hasOnlyAgentDocumentSatisfying(document -> {
+                assertHandleOf(document, handle, null, "text/plain", null);
+                assertThat(document.origin()).isInstanceOf(AgentDocumentOrigin.UserMessage.class);
+              });
         });
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 
   /**
-   * The document delivery {@code content} puts the content of the prompt document in the user
-   * message of the first request, next to its handle. A process without a value for the delivery
-   * gets the content too. The model needs no {@code c8__load_document} call.
+   * The prompt document reaches the model by the document setup of the agent. With document
+   * references off the user message holds the content only, the model gets no built-in document
+   * tool and the agent instance does not track its documents. With the delivery {@code reference}
+   * it holds the handle only, and with the delivery {@code content} the handle and the content.
    */
-  @ParameterizedTest(name = "delivery: {0}")
-  @NullSource
-  @ValueSource(strings = "content")
-  void addsTheContentOfPromptDocuments(String delivery) throws Exception {
+  @ParameterizedTest(name = "{0}")
+  @EnumSource(DocumentSetup.class)
+  void givesThePromptDocumentToTheModelByTheDocumentSetup(DocumentSetup setup) throws Exception {
     final var filename = "test.pdf";
     final var initialUserPrompt = "Summarize the following document";
     final var responseText = "TL;DR: it is pretty interesting";
@@ -186,13 +187,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     final var zeebeTest =
         awaitProcessCompletion(
             createProcessInstance(
-                elementTemplate -> {
-                  final var configured =
-                      elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S");
-                  return delivery == null
-                      ? configured.withoutProperty("data.userPrompt.documentDelivery")
-                      : configured.property("data.userPrompt.documentDelivery", delivery);
-                },
+                setup,
                 Map.of(
                     "userPrompt",
                     initialUserPrompt,
@@ -202,28 +197,74 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertNoDocumentInternalsInLlmRequests(recorded.providerNeutralRequests());
     assertThat(recorded.modelCallCount()).isEqualTo(1);
-    assertToolSpecifications(recorded.lastRequest());
 
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.contentParts()).as("prompt text + handle + content").hasSize(3);
-    assertThat(userMessage.contentParts().get(0).path("text").asText())
-        .isEqualTo(initialUserPrompt);
-    assertDocumentHandlePart(userMessage.contentParts().get(1), filename);
-    assertDocumentContentBlockJson(userMessage.contentParts().get(2), filename);
+    final var parts = userMessage.contentParts();
+    assertThat(parts.get(0).path("text").asText()).isEqualTo(initialUserPrompt);
+    switch (setup) {
+      case REFERENCES_OFF -> {
+        assertThat(recorded.lastRequest().toolDefinitions())
+            .containsExactlyInAnyOrderElementsOf(expectedTools());
+        assertThat(parts).as("prompt text + content").hasSize(2);
+        assertDocumentContentBlockJson(parts.get(1), filename);
+      }
+      case REFERENCES_ON -> {
+        assertToolSpecifications(recorded.lastRequest());
+        assertThat(parts).as("prompt text + handle").hasSize(2);
+        assertDocumentHandlePart(parts.get(1), filename);
+      }
+      case USER_PROMPT_CONTENT -> {
+        assertToolSpecifications(recorded.lastRequest());
+        assertThat(parts).as("prompt text + handle + content").hasSize(3);
+        assertDocumentHandlePart(parts.get(1), filename);
+        assertDocumentContentBlockJson(parts.get(2), filename);
+      }
+    }
 
     assertAgentResponse(
         zeebeTest,
-        agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasNoToolCalls()
-                .hasResponseText(responseText));
+        agentResponse -> {
+          AgentResponseAssert.assertThat(agentResponse).isReady().hasResponseText(responseText);
+          assertThat(agentResponse.context().supports(AgentFeatures.DOCUMENTS))
+              .isEqualTo(setup.tracksDocuments());
+        });
   }
 
   /**
-   * Without a document delivery the content of every prompt document goes out with the prompt, so a
-   * document of a type the model provider cannot read fails the model call and raises an incident.
+   * An element without a value for the delivery gets the content of the prompt document next to its
+   * handle, as with the delivery {@code content}.
+   */
+  @Test
+  void addsTheContentOfPromptDocumentsWithoutADelivery() throws Exception {
+    final var filename = "test.pdf";
+    final var initialUserPrompt = "Summarize the following document";
+    final var responseText = "TL;DR: it is pretty interesting";
+
+    OpenAiCompletionsChatModelStubs.stubConversation(Turn.text(responseText, 10, 20));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    awaitProcessCompletion(
+        createProcessInstance(
+            elementTemplate -> elementTemplate.withoutProperty("data.documents.userPromptDelivery"),
+            Map.of(
+                "userPrompt",
+                initialUserPrompt,
+                "downloadUrls",
+                List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertToolSpecifications(recorded.lastRequest());
+    final var parts = recorded.lastRequest().messages().get(1).contentParts();
+    assertThat(parts).as("prompt text + handle + content").hasSize(3);
+    assertDocumentHandlePart(parts.get(1), filename);
+    assertDocumentContentBlockJson(parts.get(2), filename);
+  }
+
+  /**
+   * Without a user prompt delivery the content of every prompt document goes out with the prompt,
+   * so a document of a type the model provider cannot read fails the model call and raises an
+   * incident.
    */
   @Test
   void raisesIncidentWhenDocumentTypeIsNotSupportedWithoutADelivery() throws Exception {
@@ -231,7 +272,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
         awaitActiveIncidents(
             createProcessInstance(
                 elementTemplate ->
-                    elementTemplate.withoutProperty("data.userPrompt.documentDelivery"),
+                    elementTemplate.withoutProperty("data.documents.userPromptDelivery"),
                 Map.of(
                     "userPrompt",
                     "Summarize the following document",

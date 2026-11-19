@@ -18,35 +18,37 @@ package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.EXTRACTED_DOCUMENTS_PREAMBLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.firstDocumentReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
-import io.camunda.connector.document.jackson.DocumentReferenceModel;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.fixtures.DocumentSetup;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 /**
- * An agent instance that was created before the documents feature (its agent context carries no
- * features) keeps the document handling it was created with: documents as bare content, the tool
- * result documents as the reference JSON followed by a tag in the older attribute format and the
- * content, no {@code <doc id/>} tags, no agent documents and no built-in tools. The expectations
- * are the wire format of Camunda 8.10.
+ * An agent instance without the documents feature keeps the document handling of Camunda 8.10: an
+ * instance created before 8.11 (its agent context carries no features), and a new instance of an
+ * element with "Use document references" cleared. It has documents as bare content, the tool result
+ * documents as the reference JSON followed by a tag in the older attribute format and the content,
+ * no {@code <doc id/>} tags, no agent documents and no built-in tools. The expectations are the
+ * wire format of Camunda 8.10.
  */
 @SlowTest
-public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
-
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+public class AgentTaskUntrackedInstanceDocumentsTests extends BaseAgentTaskTest {
 
   /** The context of an agent instance that exists without features. */
   private static final Map<String, Object> LEGACY_AGENT_CONTEXT =
@@ -109,17 +111,46 @@ public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
           AgentResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasNoToolCalls()
-              .hasResponseText(responseText);
-          // the instance never gets features, agent documents or response documents
-          assertThat(agentResponse.context().features()).isEmpty();
-          assertThat(agentResponse.context().documents().all()).isEmpty();
+              .hasResponseText(responseText)
+              .hasFeatures()
+              .hasNoAgentDocuments();
           assertThat(agentResponse.context().responseDocuments()).isEmpty();
           assertThat(agentResponse.responseDocuments()).isEmpty();
         });
   }
 
-  @Test
-  void keepsToolResultDocumentsAsTheReferenceFollowedByTheOlderTagAndTheContent() throws Exception {
+  /** An agent instance without the documents feature, and how a test creates it. */
+  enum UntrackedInstance {
+    /** An instance created before 8.11, whose agent context has no features. */
+    WITHOUT_FEATURES(),
+    /** A new instance of an element with "Use document references" cleared. */
+    DOCUMENT_REFERENCES_OFF(AgentFeatures.RUNTIME_TOOLS);
+
+    private final String[] features;
+
+    UntrackedInstance(String... features) {
+      this.features = features;
+    }
+
+    /** The features of the agent instance. */
+    String[] features() {
+      return features.clone();
+    }
+  }
+
+  private ZeebeTest createProcessInstance(UntrackedInstance instance, String userPrompt)
+      throws IOException {
+    return switch (instance) {
+      case WITHOUT_FEATURES -> createProcessInstance(e -> e, variables(userPrompt));
+      case DOCUMENT_REFERENCES_OFF ->
+          createProcessInstance(DocumentSetup.REFERENCES_OFF, Map.of("userPrompt", userPrompt));
+    };
+  }
+
+  @ParameterizedTest
+  @EnumSource(UntrackedInstance.class)
+  void keepsToolResultDocumentsAsTheReferenceFollowedByTheOlderTagAndTheContent(
+      UntrackedInstance instance) throws Exception {
     final var fileUrl = wireMock.getHttpBaseUrl() + "/test.pdf";
     final var aiFinalResponseText = "The content type is 'application/pdf'";
 
@@ -133,8 +164,7 @@ public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
     enqueueUserFeedback(userSatisfiedFeedback());
 
     final var zeebeTest =
-        awaitProcessCompletion(
-            createProcessInstance(e -> e, variables("Go and download a document!")));
+        awaitProcessCompletion(createProcessInstance(instance, "Go and download a document!"));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
@@ -175,14 +205,16 @@ public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
           AgentResponseAssert.assertThat(agentResponse)
               .isReady()
               .hasNoToolCalls()
-              .hasResponseText(aiFinalResponseText);
-          assertThat(agentResponse.context().features()).isEmpty();
-          assertThat(agentResponse.context().documents().all()).isEmpty();
+              .hasResponseText(aiFinalResponseText)
+              .hasFeatures(instance.features())
+              .hasNoAgentDocuments();
         });
   }
 
-  @Test
-  void keepsExternalToolResultDocumentsAsTheirReferenceWithTheUrl() throws Exception {
+  @ParameterizedTest
+  @EnumSource(UntrackedInstance.class)
+  void keepsExternalToolResultDocumentsAsTheirReferenceWithTheUrl(UntrackedInstance instance)
+      throws Exception {
     final var docUrl = wireMock.getHttpBaseUrl() + "/test.pdf";
     final var docName = "Quarterly Report";
     final var aiFinalResponseText = "Referenced the external document.";
@@ -199,8 +231,7 @@ public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
         Turn.text(aiFinalResponseText, 11, 22));
     enqueueUserFeedback(userSatisfiedFeedback());
 
-    awaitProcessCompletion(
-        createProcessInstance(e -> e, variables("Reference an external document!")));
+    awaitProcessCompletion(createProcessInstance(instance, "Reference an external document!"));
 
     final var lastMessages =
         OpenAiCompletionsRecordedConversation.recorded().lastRequest().messages();
@@ -218,35 +249,5 @@ public class AgentTaskLegacyInstanceDocumentsTests extends BaseAgentTaskTest {
     final var parts = lastMessages.get(4).contentParts();
     assertThat(parts).hasSize(3);
     assertThat(parts.get(1).path("text").asText()).isEqualTo(expectedXmlTag);
-  }
-
-  /** The first document reference of the given kind in a serialized tool result. */
-  private static JsonNode firstDocumentReference(String toolResultText, String discriminator) {
-    final JsonNode root;
-    try {
-      root = OBJECT_MAPPER.readTree(toolResultText);
-    } catch (JsonProcessingException e) {
-      throw new AssertionError("Failed to parse tool result text as JSON: " + toolResultText, e);
-    }
-    return findDocumentReference(root, discriminator)
-        .orElseThrow(() ->
-            new AssertionError(
-                "No '%s' document reference found in tool result text: %s"
-                    .formatted(discriminator, toolResultText)));
-  }
-
-  private static java.util.Optional<JsonNode> findDocumentReference(
-      JsonNode node, String discriminator) {
-    if (node.isObject()
-        && discriminator.equals(node.path(DocumentReferenceModel.DISCRIMINATOR_KEY).asText(null))) {
-      return java.util.Optional.of(node);
-    }
-    for (var child : node) {
-      final var found = findDocumentReference(child, discriminator);
-      if (found.isPresent()) {
-        return found;
-      }
-    }
-    return java.util.Optional.empty();
   }
 }

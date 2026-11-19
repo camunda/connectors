@@ -25,11 +25,12 @@ import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
@@ -78,25 +79,21 @@ public final class ToolCallResultDocumentAssertions {
   private ToolCallResultDocumentAssertions() {}
 
   /**
-   * Asserts that the handle the model saw is the whole handle of the one document the agent
-   * registered: the agent documents hold exactly this document, the handle built from it is the
-   * expected one (every field), and the handle the model read is this handle as compact JSON, so
-   * that no store id or content hash reaches the model. The id is not a parameter: it is the hash
-   * of the identity of the document and comes from the registered document.
+   * Asserts that the handle the model saw is the whole handle of the agent document: the handle
+   * built from the document is the expected one (every field), and the handle the model read is
+   * this handle as compact JSON, so that no store id or content hash reaches the model. The id is
+   * not a parameter: it is the hash of the identity of the document and comes from the document.
    *
    * @param fileName the expected file name, or {@code null} if the handle has none
    * @param size the expected size, or {@code null} if the handle has none: the document store of
    *     the e2e tests keeps no size in the metadata of a document
-   * @return the registered agent document, for assertions on its origin and reference
    */
-  public static AgentDocument assertHandleOfTheOnlyRegisteredDocument(
+  public static void assertHandleOf(
+      AgentDocument registered,
       ParsedDocumentHandle seen,
-      AgentDocuments documents,
       @Nullable String fileName,
       String contentType,
       @Nullable Long size) {
-    assertThat(documents.all()).as("the registered agent documents").hasSize(1);
-    final var registered = documents.all().getFirst();
     final var expected =
         new AgentDocumentHandle(
             AgentDocumentHandle.TYPE, registered.id().value(), fileName, contentType, size);
@@ -106,7 +103,6 @@ public final class ToolCallResultDocumentAssertions {
     assertThat(seen.text())
         .as("the handle the model read")
         .isEqualTo(HANDLE_RENDERER.text(expected));
-    return registered;
   }
 
   /**
@@ -334,4 +330,33 @@ public final class ToolCallResultDocumentAssertions {
       @Nullable String contentType,
       @Nullable Long size,
       String text) {}
+
+  /** The first document reference of the given kind in a serialized tool result. */
+  public static JsonNode firstDocumentReference(String toolResultText, String discriminator) {
+    final JsonNode root;
+    try {
+      root = OBJECT_MAPPER.readTree(toolResultText);
+    } catch (JsonProcessingException e) {
+      throw new AssertionError("Failed to parse tool result text as JSON: " + toolResultText, e);
+    }
+    return findDocumentReference(root, discriminator)
+        .orElseThrow(() ->
+            new AssertionError(
+                "No '%s' document reference found in tool result text: %s"
+                    .formatted(discriminator, toolResultText)));
+  }
+
+  private static Optional<JsonNode> findDocumentReference(JsonNode node, String discriminator) {
+    if (node.isObject()
+        && discriminator.equals(node.path(DocumentReferenceModel.DISCRIMINATOR_KEY).asText(null))) {
+      return Optional.of(node);
+    }
+    for (var child : node) {
+      final var found = findDocumentReference(child, discriminator);
+      if (found.isPresent()) {
+        return found;
+      }
+    }
+    return Optional.empty();
+  }
 }

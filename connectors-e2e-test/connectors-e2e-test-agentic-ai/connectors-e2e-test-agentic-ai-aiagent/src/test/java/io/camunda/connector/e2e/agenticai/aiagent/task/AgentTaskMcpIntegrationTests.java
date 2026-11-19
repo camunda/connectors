@@ -17,7 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOf;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.common.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_TEXT;
@@ -373,9 +373,9 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
               .hasNoToolCalls()
               .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220), 1))
               .hasResponseMessageText(aiFinalResponseText)
-              .hasResponseText(aiFinalResponseText);
-          assertHandleOfTheOnlyRegisteredDocument(
-              documentHandle, agentResponse.context().documents(), null, "image/png", null);
+              .hasResponseText(aiFinalResponseText)
+              .hasOnlyAgentDocumentSatisfying(
+                  document -> assertHandleOf(document, documentHandle, null, "image/png", null));
         });
   }
 

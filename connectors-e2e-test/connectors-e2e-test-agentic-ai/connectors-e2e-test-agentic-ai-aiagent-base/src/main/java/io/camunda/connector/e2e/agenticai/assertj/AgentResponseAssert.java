@@ -21,6 +21,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
@@ -130,6 +131,33 @@ public class AgentResponseAssert extends AbstractAssert<AgentResponseAssert, Age
     Assertions.assertThat(actual.context().metadata()).isNotNull();
     Assertions.assertThat(actual.context().metadata().lastIterationKey())
         .isEqualTo(expectedLastIterationKey);
+    return this;
+  }
+
+  /** The agent instance has exactly these features, in this order. */
+  public AgentResponseAssert hasFeatures(String... features) {
+    isNotNull();
+    Assertions.assertThat(actual.context().features())
+        .as("agent instance features")
+        .containsExactly(features);
+    return this;
+  }
+
+  /** The agent knows no document. */
+  public AgentResponseAssert hasNoAgentDocuments() {
+    isNotNull();
+    Assertions.assertThat(actual.context().documents().all()).as("agent documents").isEmpty();
+    return this;
+  }
+
+  /** The agent knows exactly one document, which satisfies the assertions. */
+  public AgentResponseAssert hasOnlyAgentDocumentSatisfying(
+      ThrowingConsumer<AgentDocument> assertions) {
+    isNotNull();
+    Assertions.assertThat(actual.context().documents().all())
+        .as("agent documents")
+        .singleElement()
+        .satisfies(assertions);
     return this;
   }
 }

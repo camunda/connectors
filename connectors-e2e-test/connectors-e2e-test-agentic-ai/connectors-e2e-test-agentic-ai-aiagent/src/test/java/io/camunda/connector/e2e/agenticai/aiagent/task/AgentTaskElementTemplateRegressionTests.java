@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
@@ -28,7 +29,7 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * Verifies that AI Agent processes modeled against <em>older</em> element template versions keep
@@ -53,14 +54,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 public class AgentTaskElementTemplateRegressionTests extends BaseAgentTaskTest {
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "ai-agent-task-8.11.0.bpmn",
-        "ai-agent-task-8.10.0.bpmn",
-        "ai-agent-task-8.9.0.bpmn",
-        "ai-agent-task-8.8.0.bpmn"
-      })
-  void executesAgentWithToolCallingAndUserFeedback(String processFile) throws Exception {
+  @CsvSource({
+    "ai-agent-task-8.11.0.bpmn, true",
+    "ai-agent-task-8.10.0.bpmn, false",
+    "ai-agent-task-8.9.0.bpmn, false",
+    "ai-agent-task-8.8.0.bpmn, false"
+  })
+  void executesAgentWithToolCallingAndUserFeedback(String processFile, boolean tracksDocuments)
+      throws Exception {
     final var initialUserPrompt = "Explore some of your tools!";
     final var firstAiMessage =
         "The user asked me to call some of my tools. I will call the superflux calculation and the task with a text input schema as they look interesting to me.";
@@ -113,14 +114,17 @@ public class AgentTaskElementTemplateRegressionTests extends BaseAgentTaskTest {
 
     assertAgentResponse(
         zeebeTest,
-        agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasNoToolCalls()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 2))
-                .hasResponseText(finalAiMessage)
-                .hasNoResponseMessage()
-                .hasNoResponseJson());
+        agentResponse -> {
+          AgentResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasNoToolCalls()
+              .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 2))
+              .hasResponseText(finalAiMessage)
+              .hasNoResponseMessage()
+              .hasNoResponseJson();
+          assertThat(agentResponse.context().supports(AgentFeatures.DOCUMENTS))
+              .isEqualTo(tracksDocuments);
+        });
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
