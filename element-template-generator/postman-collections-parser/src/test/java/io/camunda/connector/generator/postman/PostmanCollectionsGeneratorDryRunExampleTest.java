@@ -24,7 +24,6 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.postman.utils.ObjectMapperProvider;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,6 +40,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class PostmanCollectionsGeneratorDryRunExampleTest {
 
   private static final String LOCAL_COLLECTION = "src/test/resources/operate-api-saas-bearer.json";
+  private static final String LOCALHOST = "localhost";
   private static final String COLLECTION_URL_PATH = "/operate-api.postman_collection.json";
 
   // Serves the collection over HTTP from the local machine, so the "fetch from a URL" cases do not
@@ -49,8 +49,7 @@ public class PostmanCollectionsGeneratorDryRunExampleTest {
 
   @BeforeAll
   static void startCollectionServer() throws IOException {
-    collectionServer =
-        HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+    collectionServer = HttpServer.create(new InetSocketAddress(LOCALHOST, 0), 0);
     collectionServer.createContext(
         COLLECTION_URL_PATH,
         exchange -> {
@@ -72,8 +71,9 @@ public class PostmanCollectionsGeneratorDryRunExampleTest {
   }
 
   private static String collectionUrl() {
+    // the host name, not the bound address: an IPv6 address would need brackets in a URL
     return "http://"
-        + collectionServer.getAddress().getHostString()
+        + LOCALHOST
         + ":"
         + collectionServer.getAddress().getPort()
         + COLLECTION_URL_PATH;
