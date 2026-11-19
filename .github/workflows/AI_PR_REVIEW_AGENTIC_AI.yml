@@ -38,7 +38,7 @@ jobs:
       # Vault login. Only the config job (no AI) uses it; the agent job does not get it.
       id-token: write
     # No release tag exists yet; pinned to main.
-    uses: camunda/pr-review-agent/.github/workflows/pr-review.yml@649c5afeaf4da3f81a9aa7c9fb13b4ad878a8d47 # main
+    uses: camunda/pr-review-agent/.github/workflows/pr-review.yml@5f44be82ff5d923a31af590f1a65c530a8b35db5 # main
     with:
       config: agentic-ai
       force_shadow_mode: true
