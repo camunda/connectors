@@ -33,4 +33,7 @@
 
 # Security-sensitive infrastructure
 /.github/ @camunda/connectors-core
+/.github/pr-review-agent/agentic-ai.yml @camunda/connectors-agentic-ai
+/.github/workflows/AI_PR_REVIEW_AGENTIC_AI.yml @camunda/connectors-agentic-ai @camunda/connectors-core
+/.github/instructions/agentic-ai-*.instructions.md @camunda/connectors-agentic-ai
 **/Dockerfile @camunda/connectors-core
