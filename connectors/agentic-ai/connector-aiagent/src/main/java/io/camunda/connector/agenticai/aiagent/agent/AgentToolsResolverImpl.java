@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.MisplacedDocumentTypeException;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -43,26 +42,20 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
   }
 
   /**
-   * Loads the tool definitions of the process. For an agent instance with the {@code documents}
-   * feature, the authored type {@code document} of a tool parameter becomes the schema of a
-   * document parameter (see {@link DocumentParameter#fromDocumentType}); without the feature, the
-   * schemas stay as authored.
+   * Loads the tool definitions of the process. The authored type {@code document} of a tool
+   * parameter becomes the schema of a document parameter (see {@link
+   * DocumentParameter#fromDocumentType}).
    *
    * @throws ConnectorException with code {@code DOCUMENT_PARAMETER_SCHEMA_INVALID} when a tool has
    *     the type {@code document} where no document parameter can sit
    */
   @Override
-  public AdHocToolsSchemaResponse loadAdHocToolsSchema(
-      AgentExecutionContext executionContext, AgentContext agentContext) {
+  public AdHocToolsSchemaResponse loadAdHocToolsSchema(AgentExecutionContext executionContext) {
     final var schema = toolsSchemaResolver.resolveAdHocToolsSchema(executionContext.toolElements());
-    return switch (agentContext.documentHandling()) {
-      case DocumentHandling.Untracked ignored -> schema;
-      case DocumentHandling.Tracked ignored ->
-          schema.withToolDefinitions(
-              schema.toolDefinitions().stream()
-                  .map(AgentToolsResolverImpl::withDocumentParameters)
-                  .toList());
-    };
+    return schema.withToolDefinitions(
+        schema.toolDefinitions().stream()
+            .map(AgentToolsResolverImpl::withDocumentParameters)
+            .toList());
   }
 
   private static ToolDefinition withDocumentParameters(ToolDefinition toolDefinition) {
@@ -83,7 +76,7 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
     LOGGER.warn(
         "Agent context tool definitions may be outdated compared to the current process definition. Re-loading tool definitions.");
 
-    final var adHocToolsSchema = loadAdHocToolsSchema(executionContext, agentContext);
+    final var adHocToolsSchema = loadAdHocToolsSchema(executionContext);
     validateGatewayToolDefinitionChanges(agentContext, adHocToolsSchema);
 
     return updateChangedToolDefinitions(agentContext, adHocToolsSchema);

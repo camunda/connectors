@@ -26,6 +26,9 @@ public sealed interface ToolCallEffect {
    * The content of a known document is added to the request that follows the tool results, once per
    * batch, also when an earlier turn added it.
    *
+   * <p>Only for an agent instance that tracks its documents: for any other, the effect fails the
+   * job. A document in the content of the result works for every agent instance.
+   *
    * @param id the id of a document the agent knows when the batch starts, or of a document the same
    *     result returns ({@link AgentDocumentId#of(Document)}). An unknown id fails the job.
    */
@@ -44,6 +47,9 @@ public sealed interface ToolCallEffect {
   /**
    * A known document is selected for the final response of the agent. Every later final response
    * carries the selection. A selection under a key that is already used replaces the earlier one.
+   *
+   * <p>Only for an agent instance that tracks its documents: for any other, the effect fails the
+   * job.
    *
    * @param key the key of the document in the response, see {@link
    *     ResponseDocumentSelection#KEY_PATTERN}

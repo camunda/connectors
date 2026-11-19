@@ -249,8 +249,8 @@ instance no feature) keeps the document handling of Camunda 8.10:
 - `documents` and `responseDocuments` stay empty and the response has no `responseDocuments`; the expander expands nothing, and a `Document` in a tool result renders as its reference JSON.
 - Without the `runtimeTools` feature there are no runtime tools (`c8__load_document` and `c8__return_document` included), no mixed-batch handling and no tool name check ([Add a runtime tool](#add-a-runtime-tool)).
 - The document parameters of tool calls are not resolved or checked: the process gets the value the model sent as it is.
-- A document parameter keeps the type `document` as authored; the tool schema is sent to the provider as it is. Only an
-  instance with the feature gets the handle schema ([Document parameters](../../connector-aiagent/docs/document-parameters.md)).
+- A tool must not have the type `document`: loading such a tool fails the job with `DOCUMENT_PARAMETER_SCHEMA_INVALID`.
+  Only an instance with the feature gets the handle schema ([Document parameters](../../connector-aiagent/docs/document-parameters.md)).
 - The history reports the messages as stored.
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.

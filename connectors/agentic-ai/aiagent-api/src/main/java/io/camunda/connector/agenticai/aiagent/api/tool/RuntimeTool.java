@@ -65,6 +65,11 @@ public interface RuntimeTool {
    * <p>Keep the answer stable while an agent instance runs. The tools are part of every model
    * request, so a change shows the model a different set of tools and invalidates the prompt cache
    * of the provider.
+   *
+   * <p>Return {@code false} for an agent instance that does not track its documents (see {@link
+   * RuntimeToolContext#agentContext()}) when the tool has a document parameter or returns the
+   * effect {@link ToolCallEffect.AddDocumentContent} or {@link
+   * ToolCallEffect.SelectResponseDocument}. Otherwise the job fails.
    */
   default boolean isEnabled(RuntimeToolContext context) {
     return true;

@@ -68,12 +68,11 @@ class AgentToolsResolverTest {
         GatewayToolDefinition.builder().type("mcpClient").name("gateway").build();
 
     @Test
-    void mapsTheDocumentTypeForAnInstanceWithTheDocumentsFeature() {
+    void mapsTheDocumentTypeToADocumentParameter() {
       when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(TOOL), List.of(GATEWAY_TOOL)));
 
-      final var result =
-          agentToolsResolver.loadAdHocToolsSchema(executionContext, withDocumentsFeature());
+      final var result = agentToolsResolver.loadAdHocToolsSchema(executionContext);
 
       assertThat(result.toolDefinitions())
           .containsExactly(
@@ -84,15 +83,6 @@ class AgentToolsResolverTest {
                       "properties",
                       Map.of("doc", DocumentParameter.documentSchema(null)))));
       assertThat(result.gatewayToolDefinitions()).containsExactly(GATEWAY_TOOL);
-    }
-
-    @Test
-    void keepsTheAuthoredSchemaForAnInstanceWithoutTheDocumentsFeature() {
-      final var schema = new AdHocToolsSchemaResponse(List.of(TOOL), List.of(GATEWAY_TOOL));
-      when(toolsSchemaResolver.resolveAdHocToolsSchema(any())).thenReturn(schema);
-
-      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, AgentContext.empty()))
-          .isEqualTo(schema);
     }
 
     @Test
@@ -115,8 +105,7 @@ class AgentToolsResolverTest {
                                           Map.of("type", "document"))))))),
                   List.of()));
 
-      assertThatThrownBy(() ->
-              agentToolsResolver.loadAdHocToolsSchema(executionContext, withDocumentsFeature()))
+      assertThatThrownBy(() -> agentToolsResolver.loadAdHocToolsSchema(executionContext))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> {

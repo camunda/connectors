@@ -125,6 +125,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
@@ -1590,6 +1591,75 @@ class AgentSubProcessRequestHandlerTest {
     verifyNoInteractions(chatModelRegistry, chatModel, agentInputComposer);
   }
 
+  static Stream<Map<String, Object>> documentParameterSchemas() {
+    return Stream.of(
+        DocumentParameter.documentSchema(null),
+        Map.of("type", "array", "items", DocumentParameter.documentSchema(null)),
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of("file", DocumentParameter.documentSchema(null))));
+  }
+
+  @ParameterizedTest
+  @MethodSource("documentParameterSchemas")
+  void failsWhenAToolOfTheProcessTakesADocumentAndTheAgentDoesNotTrackItsDocuments(
+      Map<String, Object> parameterSchema) {
+    final var untracked =
+        INITIAL_AGENT_CONTEXT
+            .withFeatures(List.of())
+            .withToolDefinitions(
+                List.of(
+                    ToolDefinition.builder()
+                        .name("tool")
+                        .inputSchema(
+                            Map.of(
+                                "type",
+                                "object",
+                                "properties",
+                                Map.of("attachments", parameterSchema)))
+                        .build()));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(untracked, List.of()));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_DOCUMENT_PARAMETER_SCHEMA_INVALID);
+              assertThat(e.getMessage())
+                  .isEqualTo(
+                      "Invalid tool 'tool'. Parameter 'attachments': The type 'document' requires an agent instance with document reference support.");
+            });
+
+    verifyNoInteractions(chatModelRegistry, chatModel, agentInputComposer);
+  }
+
+  @Test
+  void failsWhenAnEnabledRuntimeToolTakesADocumentAndTheAgentDoesNotTrackItsDocuments() {
+    UPLOAD_ENABLED.set(true);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(
+            new ReadyToConverse(
+                INITIAL_AGENT_CONTEXT.withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
+                List.of()));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(AgentErrorCodes.ERROR_CODE_DOCUMENT_PARAMETER_SCHEMA_INVALID);
+              assertThat(e.getMessage())
+                  .isEqualTo(
+                      "Invalid tool 'acme_upload': The tool takes a document, which requires an agent instance with document reference support.");
+            });
+
+    verifyNoInteractions(chatModelRegistry, chatModel, agentInputComposer);
+  }
+
   @Test
   void acceptsAToolOfTheProcessWithTheNameOfARuntimeToolThatIsNotEnabled() {
     final var hiddenToolOfTheProcess =
@@ -2974,31 +3044,6 @@ class AgentSubProcessRequestHandlerTest {
                             .name("getWeather")
                             .content(List.of(TextContent.textContent("Sunny")))
                             .build()));
-  }
-
-  @Test
-  void doesNotCheckDocumentParametersForAnAgentInstanceWithoutTheDocumentsFeature() {
-    mockSystemPrompt();
-    mockProceed(USER_MESSAGE);
-    when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(
-            new ReadyToConverse(
-                INITIAL_AGENT_CONTEXT
-                    .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
-                    .withToolDefinitions(TOOL_DEFINITIONS_WITH_UPLOAD),
-                List.of()));
-
-    final var call = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
-    mockChatModelExecution(AssistantMessage.builder().toolCalls(List.of(call)).build());
-    mockResponseHandler();
-
-    final var response = requestHandler.handleRequest(agentExecutionContext);
-
-    // the call goes to the process untagged
-    verify(chatModel, times(1)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
-    assertThat(response.responseValue().toolCalls())
-        .containsExactly(ToolCallProcessVariable.from(call));
   }
 
   @Test

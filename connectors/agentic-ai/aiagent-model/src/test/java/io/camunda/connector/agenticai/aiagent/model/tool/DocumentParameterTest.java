@@ -124,6 +124,34 @@ class DocumentParameterTest {
     assertThat(DocumentParameter.findAll(schema)).containsExactly(document(property("file")));
   }
 
+  static Stream<Map<String, Object>> schemas() {
+    final var withProperties = new LinkedHashMap<String, Object>();
+    withProperties.put("type", "object");
+    withProperties.put("properties", Map.of("text", string()));
+    withProperties.put("items", doc());
+    final var withAlternatives = new LinkedHashMap<>(object("text", string()));
+    withAlternatives.put("anyOf", List.of(object("file", doc())));
+    return Stream.of(
+        object("doc", doc()),
+        object("docs", Map.of("type", "array", "items", doc())),
+        object("rows", Map.of("type", "array", "items", object("file", doc()))),
+        object("text", string()),
+        object("text", Map.of("anyOf", List.of(string(), doc()))),
+        object("doc", Map.of("type", "document")),
+        object("p", object("type", string())),
+        object("both", withProperties),
+        withAlternatives,
+        doc(),
+        Map.of("type", "object"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("schemas")
+  void hasAnyFindsADocumentParameterExactlyWhenFindAllFindsOne(Map<String, Object> schema) {
+    assertThat(DocumentParameter.hasAny(schema))
+        .isEqualTo(!DocumentParameter.findAll(schema).isEmpty());
+  }
+
   @Test
   void aToolDefinitionLooksUpItsDocumentParametersInTheInputSchema() {
     final var definition =
