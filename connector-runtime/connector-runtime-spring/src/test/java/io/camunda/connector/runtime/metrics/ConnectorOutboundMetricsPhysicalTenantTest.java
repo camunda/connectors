@@ -24,6 +24,7 @@ import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.lang.ref.Reference;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -116,8 +117,11 @@ class ConnectorOutboundMetricsPhysicalTenantTest {
     var registry = new SimpleMeterRegistry();
     var recorder = new MicrometerMetricsRecorder(registry);
 
-    new ConnectorOutboundMetrics(recorder, registry, "tenant-a").recordCompleted(TYPE);
-    new ConnectorOutboundMetrics(recorder, registry, "tenant-b").recordCompleted(TYPE);
+    // The gauge holds its value weakly, so the instances must stay reachable until it is read.
+    var metricsA = new ConnectorOutboundMetrics(recorder, registry, "tenant-a");
+    var metricsB = new ConnectorOutboundMetrics(recorder, registry, "tenant-b");
+    metricsA.recordCompleted(TYPE);
+    metricsB.recordCompleted(TYPE);
 
     // one gauge per (type, physical tenant) — before #7965 the second registration silently
     // collided with the first one's, leaving that engine's timestamp invisible
@@ -130,6 +134,8 @@ class ConnectorOutboundMetricsPhysicalTenantTest {
                 .gauge()
                 .value())
         .isPositive();
+    Reference.reachabilityFence(metricsA);
+    Reference.reachabilityFence(metricsB);
   }
 
   @Test
@@ -190,7 +196,9 @@ class ConnectorOutboundMetricsPhysicalTenantTest {
   void aggregatorOutbound_scopesLastCompletedGaugeToTheFilteredPhysicalTenant() {
     var registry = new SimpleMeterRegistry();
     var recorder = new MicrometerMetricsRecorder(registry);
-    new ConnectorOutboundMetrics(recorder, registry, "tenant-a").recordCompleted(TYPE);
+    // The gauge holds its value weakly, so the instance must stay reachable until it is read.
+    var metrics = new ConnectorOutboundMetrics(recorder, registry, "tenant-a");
+    metrics.recordCompleted(TYPE);
 
     var tenantA =
         ConnectorMetricsAggregator.outbound(registry, TYPE, List.of("tenant-a"), "runtime-1");
@@ -199,6 +207,7 @@ class ConnectorOutboundMetricsPhysicalTenantTest {
 
     assertThat(tenantA.job().lastCompleted()).isNotNull();
     assertThat(tenantB.job().lastCompleted()).isNull();
+    Reference.reachabilityFence(metrics);
   }
 
   @Test
