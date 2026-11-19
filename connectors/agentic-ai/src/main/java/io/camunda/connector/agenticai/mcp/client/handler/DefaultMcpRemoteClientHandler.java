@@ -56,7 +56,7 @@ public class DefaultMcpRemoteClientHandler implements McpRemoteClientHandler {
       client = remoteClientRegistry.getClient(clientId, request.data().transport(), cacheable);
       return clientExecutor.execute(client, operation, filterOptions);
     } finally {
-      if (!cacheable && client != null) {
+      if (client != null && !remoteClientRegistry.shouldCache(cacheable)) {
         remoteClientRegistry.closeClient(clientId, client);
       }
     }
