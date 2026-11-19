@@ -78,6 +78,7 @@ import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
 import io.grpc.StatusRuntimeException;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -300,7 +301,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       var connectorResponse = getConnectorResponse(context);
 
       if (connectorResponse instanceof AdHocSubProcessConnectorResponse ahsp) {
-        InlineSizeGuard.check(objectMapper.writeValueAsBytes(ahsp.variables()).length);
+        checkOutputVariables(ahsp.variables());
         // AHSP responses provide their own variables; skip result expression evaluation
         return new ResultWithDeadline(
             new ConnectorResult.SuccessResult(connectorResponse, Map.of()), deadline, List.of());
@@ -314,7 +315,7 @@ public class SpringConnectorJobHandler implements JobHandler {
               job.getPhysicalTenantId(),
               createdDocuments);
       if (!responseVariables.isEmpty()) {
-        InlineSizeGuard.check(objectMapper.writeValueAsBytes(responseVariables).length);
+        checkOutputVariables(responseVariables);
       }
       return new ResultWithDeadline(
           new ConnectorResult.SuccessResult(connectorResponse, responseVariables),
@@ -327,6 +328,19 @@ public class SpringConnectorJobHandler implements JobHandler {
           deadline,
           createdDocuments);
     }
+  }
+
+  /**
+   * Fails, with a {@link io.camunda.connector.api.error.ConnectorInputException}, on the
+   * connector's output variables when Zeebe would refuse them: too large ({@link InlineSizeGuard})
+   * or holding an integer outside the range of {@code long} ({@link IntegerRangeGuard}). A refused
+   * completion would leave the job activated until it times out and runs again; an input error
+   * fails it without retries and still reaches the error expression.
+   */
+  private void checkOutputVariables(Object variables) throws IOException {
+    byte[] json = objectMapper.writeValueAsBytes(variables);
+    InlineSizeGuard.check(json.length);
+    IntegerRangeGuard.check(objectMapper.getFactory(), json);
   }
 
   /**

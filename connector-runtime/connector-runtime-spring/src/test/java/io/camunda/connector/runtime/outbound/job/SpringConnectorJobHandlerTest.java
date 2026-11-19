@@ -90,6 +90,8 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.grpc.Status;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -758,6 +760,134 @@ class SpringConnectorJobHandlerTest {
         assertThat(result.getVariable("nullVar")).isNull();
         assertThat(result.getVariable(resultVariable))
             .isEqualTo(Map.of("callStatus", Map.of("statusCode", "200 OK")));
+      }
+    }
+
+    /**
+     * Zeebe stores an integer as a signed 64-bit long. A command whose variables hold a larger one
+     * is refused, and a refused completion leaves the job activated: it times out, Zeebe hands it
+     * out again and the connector runs again, with no incident. So the runtime must fail the job
+     * before it sends the result, like an oversized result.
+     */
+    @Nested
+    class IntegerRangeTests {
+
+      private static final BigInteger TWO_TO_THE_63 = BigInteger.TWO.pow(63);
+
+      private record ResponseObject(int status, Object body) {}
+
+      private static Stream<Arguments> integersOutsideTheLongRange() {
+        return Stream.of(
+            Arguments.of("2^63", Map.of("value", TWO_TO_THE_63), "/result/value"),
+            Arguments.of(
+                "2^64 - 1",
+                Map.of("value", BigInteger.TWO.pow(64).subtract(BigInteger.ONE)),
+                "/result/value"),
+            Arguments.of("2^64", Map.of("value", BigInteger.TWO.pow(64)), "/result/value"),
+            Arguments.of(
+                "-2^63 - 1",
+                Map.of("value", TWO_TO_THE_63.negate().subtract(BigInteger.ONE)),
+                "/result/value"),
+            Arguments.of(
+                "nested in a map",
+                Map.of("order", Map.of("id", TWO_TO_THE_63)),
+                "/result/order/id"),
+            Arguments.of(
+                "nested in a list", Map.of("ids", List.of(1, TWO_TO_THE_63)), "/result/ids/1"),
+            Arguments.of(
+                "inside a response object",
+                new ResponseObject(200, Map.of("orderId", TWO_TO_THE_63)),
+                "/result/body/orderId"));
+      }
+
+      private static Stream<Arguments> numbersInsideTheRange() {
+        return Stream.of(
+            Arguments.of("Long.MAX_VALUE", Long.MAX_VALUE),
+            Arguments.of("Long.MIN_VALUE", Long.MIN_VALUE),
+            Arguments.of("2^63 - 1 as a BigInteger", TWO_TO_THE_63.subtract(BigInteger.ONE)),
+            Arguments.of("-2^63 as a BigInteger", TWO_TO_THE_63.negate()),
+            Arguments.of(
+                "a BigDecimal beyond the long range", new BigDecimal("92233720368547758080.5")),
+            Arguments.of("a BigDecimal with a large exponent", new BigDecimal("1E+400")));
+      }
+
+      @ParameterizedTest(name = "{0}")
+      @MethodSource("integersOutsideTheLongRange")
+      void shouldFailJobWithoutRetries_whenResultHoldsAnIntegerOutsideTheLongRange(
+          String description, Object response, String pointer) throws Exception {
+        // given
+        var jobHandler = newConnectorJobHandler(context -> response);
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withRetries(3)
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler, false);
+
+        // then - Zeebe would refuse the result, so this is an input error: an incident, no retry
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage())
+            .contains("outside the signed 64-bit range")
+            .contains("'" + pointer + "'");
+      }
+
+      @ParameterizedTest(name = "{0}")
+      @MethodSource("numbersInsideTheRange")
+      void shouldCompleteJob_whenResultHoldsANumberZeebeAccepts(String description, Object value)
+          throws Exception {
+        // given
+        var jobHandler = newConnectorJobHandler(context -> Map.of("value", value));
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler);
+
+        // then
+        assertThat(result.getVariable("result")).isEqualTo(Map.of("value", value));
+      }
+
+      @Test
+      void shouldApplyErrorExpression_whenResultHoldsAnIntegerOutsideTheLongRange()
+          throws Exception {
+        // given
+        var jobHandler = newConnectorJobHandler(context -> Map.of("orderId", TWO_TO_THE_63));
+        var errorExpression =
+            "=if error != null then bpmnError(\"OUT_OF_RANGE\", error.message) else null";
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withHeaders(
+                    Map.of(
+                        RESULT_VARIABLE_KEYWORD,
+                        "result",
+                        ERROR_EXPRESSION_KEYWORD,
+                        errorExpression))
+                .executeAndCaptureResult(jobHandler, false, true);
+
+        // then - the modeller can still route the failure, e.g. to an error boundary event
+        assertThat(result.getErrorCode()).isEqualTo("OUT_OF_RANGE");
+        assertThat(result.getErrorMessage()).contains("'/result/orderId'");
+      }
+
+      @Test
+      void shouldFailJobWithoutRetries_whenAdHocSubProcessVariablesHoldSuchAnInteger()
+          throws Exception {
+        // given
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(
+                null, Map.of("orderId", TWO_TO_THE_63), List.of(), false, false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+        // then
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage()).contains("'/orderId'");
       }
     }
   }
