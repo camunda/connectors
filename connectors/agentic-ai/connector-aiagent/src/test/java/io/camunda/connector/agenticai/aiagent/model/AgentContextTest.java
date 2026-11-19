@@ -294,7 +294,8 @@ class AgentContextTest {
                 .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
                 .documentHandling())
         .isEqualTo(new DocumentHandling.Untracked());
-    assertThat(AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()).documentHandling())
+    assertThat(
+            AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance(true)).documentHandling())
         .isEqualTo(new DocumentHandling.Tracked(AgentDocuments.empty()));
   }
 
@@ -401,7 +402,7 @@ class AgentContextTest {
 
   @Test
   void newInstanceFeaturesContainTheRuntimeToolsAndTheDocumentsFeature() {
-    final var context = AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+    final var context = AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance(true));
 
     assertThat(context.features()).containsExactly("runtimeTools", "documents");
     assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();

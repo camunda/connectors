@@ -136,7 +136,9 @@ class AgentConversationTurnInputComposerImplTest {
 
   @Test
   void firstTurn_withUserPrompt_returnsReady() {
-    var input = AgentInput.from(new UserPromptConfiguration("Hello?", List.of()), List.of());
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("Hello?", List.of()), DocumentDelivery.CONTENT, List.of());
     var history = TurnReconstructor.reconstruct(List.of());
     var result = resolve(CONFIG, CTX, history, input);
     assertThat(result).isInstanceOf(CompositionResult.Ready.class);
@@ -152,7 +154,9 @@ class AgentConversationTurnInputComposerImplTest {
 
   @Test
   void firstTurn_emptyPrompt_returnsNoInput() {
-    var input = AgentInput.from(new UserPromptConfiguration("", List.of()), List.of());
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("", List.of()), DocumentDelivery.CONTENT, List.of());
     var history = TurnReconstructor.reconstruct(List.of());
     var result = resolve(CONFIG, CTX, history, input);
     assertThat(result).isInstanceOf(CompositionResult.NoInput.class);
@@ -162,7 +166,10 @@ class AgentConversationTurnInputComposerImplTest {
   void toolResultsOnEmptyContext_throwsConnectorException() {
     // tool call results arriving with no previous conversation is a modeling error, not a no-op
     var input =
-        AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
+            TOOL_CALL_RESULTS);
     var history = TurnReconstructor.reconstruct(List.of());
 
     assertThatThrownBy(() -> resolve(CONFIG, CTX, history, input))
@@ -176,7 +183,10 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void toolResultTurn_allResultsPresent_returnsTheResultsAsOneMessageAndIngestsNoDocument() {
     var input =
-        AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
+            TOOL_CALL_RESULTS);
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
@@ -191,7 +201,10 @@ class AgentConversationTurnInputComposerImplTest {
   void toolResultTurn_missingResults_returnsNone() {
     List<ToolCallResult> partialResults = List.of(TOOL_CALL_RESULTS.getFirst());
     var input =
-        AgentInput.from(new UserPromptConfiguration("user input", List.of()), partialResults);
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
+            partialResults);
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
     var history = TurnReconstructor.reconstruct(storedMessages);
@@ -210,6 +223,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(TOOL_CALL_RESULTS.getFirst(), strayResult));
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
@@ -234,6 +248,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(
                 TOOL_CALL_RESULTS.getFirst(),
                 ToolCallResult.builder().content("An event occurred").build()));
@@ -262,8 +277,8 @@ class AgentConversationTurnInputComposerImplTest {
     var secondDocument = createDocument("story setting", "text/plain", "setting.txt");
     var input =
         AgentInput.from(
-            new UserPromptConfiguration(
-                "Tell me a story", List.of(document, secondDocument), delivery),
+            new UserPromptConfiguration("Tell me a story", List.of(document, secondDocument)),
+            delivery,
             List.of());
     var history = TurnReconstructor.reconstruct(List.of());
 
@@ -300,6 +315,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(TOOL_CALL_RESULTS.get(1), TOOL_CALL_RESULTS.get(0)));
     var history =
         TurnReconstructor.reconstruct(
@@ -328,6 +344,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(
                 TOOL_CALL_RESULTS.get(0),
                 TOOL_CALL_RESULTS.get(1),
@@ -361,6 +378,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(
                 TOOL_CALL_RESULTS.getFirst(),
                 ToolCallResult.builder().content("An event occurred").build()));
@@ -389,6 +407,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(TOOL_CALL_RESULTS.getFirst()));
     List<Message> storedMessages =
         List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS));
@@ -405,7 +424,11 @@ class AgentConversationTurnInputComposerImplTest {
   void continuingConversation_lastTurnHadNoToolCalls_addsUserPromptTurn() {
     // a non-empty history whose last assistant message has no tool calls: a new user prompt starts
     // the next turn rather than waiting for tool results
-    var input = AgentInput.from(new UserPromptConfiguration("And now?", List.of()), List.of());
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("And now?", List.of()),
+            DocumentDelivery.CONTENT,
+            List.of());
     var history =
         TurnReconstructor.reconstruct(
             List.of(
@@ -434,7 +457,10 @@ class AgentConversationTurnInputComposerImplTest {
         .thenReturn(transformedResults);
 
     var input =
-        AgentInput.from(new UserPromptConfiguration("user input", List.of()), TOOL_CALL_RESULTS);
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
+            TOOL_CALL_RESULTS);
     var history =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
@@ -453,6 +479,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(
                 ToolCallResult.builder()
                     .id("abcdef")
@@ -496,6 +523,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(
                 ToolCallResult.builder()
                     .id("abcdef")
@@ -538,6 +566,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(
                 ToolCallResult.builder()
                     .id("abcdef")
@@ -589,6 +618,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(
                 gatewayResultWithNestedDocument(weatherDoc),
                 ToolCallResult.builder()
@@ -621,6 +651,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(
                 gatewayResultWithNestedDocument(weatherDoc),
                 ToolCallResult.builder()
@@ -656,6 +687,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(
                 ToolCallResult.builder()
                     .id("abcdef")
@@ -708,6 +740,7 @@ class AgentConversationTurnInputComposerImplTest {
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
+            DocumentDelivery.CONTENT,
             List.of(
                 ToolCallResult.builder()
                     .id("abcdef")
@@ -743,6 +776,7 @@ class AgentConversationTurnInputComposerImplTest {
   private AgentInput inputWithTheEventOf(EventPayload payload) {
     return AgentInput.from(
         new UserPromptConfiguration("user input", List.of()),
+        DocumentDelivery.CONTENT,
         List.of(
             ToolCallResult.builder().id("abcdef").name("getWeather").content("sunny").build(),
             ToolCallResult.builder().id("fedcba").name("getDateTime").content("15:00").build(),
@@ -829,7 +863,9 @@ class AgentConversationTurnInputComposerImplTest {
 
   private static AgentInput inputWith(ToolCallResult... processResults) {
     return AgentInput.from(
-        new UserPromptConfiguration("user input", List.of()), List.of(processResults));
+        new UserPromptConfiguration("user input", List.of()),
+        DocumentDelivery.CONTENT,
+        List.of(processResults));
   }
 
   private static ToolCallBatch.Entry entryOf(ToolCallResultContent result) {
@@ -1111,7 +1147,9 @@ class AgentConversationTurnInputComposerImplTest {
 
   @Test
   void localToolCalls_areNotUnansweredForAPromptTurn() {
-    var input = AgentInput.from(new UserPromptConfiguration("Hello?", List.of()), List.of());
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("Hello?", List.of()), DocumentDelivery.CONTENT, List.of());
     var history =
         TurnReconstructor.reconstruct(List.of(userMessage("hi"), assistantMessage("hello")));
 

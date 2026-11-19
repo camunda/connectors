@@ -69,6 +69,12 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
               "Tools are optional features the AI Agent can use to perform specific tasks. Configure this if the agent should participate in a tools feedback loop.",
           openByDefault = false),
       @PropertyGroup(
+          id = "documents",
+          label = "Documents",
+          tooltip =
+              "Configure how the AI Agent gives the documents of the conversation to the model.",
+          openByDefault = false),
+      @PropertyGroup(
           id = "memory",
           label = "Memory",
           tooltip = "Configuration of the Agent's short-term/conversational memory.",

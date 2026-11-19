@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV2Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
@@ -52,6 +53,7 @@ public class AgentExecutionContextFactory
         request.data(),
         v1ChatModel(request.provider()),
         toolElementsResolver,
+        DocumentsConfiguration.REFERENCES_OFF,
         V1_NEW_INSTANCE_FEATURES);
   }
 
@@ -64,7 +66,8 @@ public class AgentExecutionContextFactory
         request.data(),
         request.provider(),
         toolElementsResolver,
-        AgentFeatures.ofNewInstance());
+        request.data().documents(),
+        AgentFeatures.ofNewInstance(request.data().documents().references()));
   }
 
   @Override
@@ -78,6 +81,7 @@ public class AgentExecutionContextFactory
         request.toolCallResults(),
         request.toolElements(),
         v1ChatModel(request.provider()),
+        DocumentsConfiguration.REFERENCES_OFF,
         V1_NEW_INSTANCE_FEATURES);
   }
 
@@ -92,7 +96,8 @@ public class AgentExecutionContextFactory
         request.toolCallResults(),
         request.toolElements(),
         request.provider(),
-        AgentFeatures.ofNewInstance());
+        request.data().documents(),
+        AgentFeatures.ofNewInstance(request.data().documents().references()));
   }
 
   private ChatModelConfiguration v1ChatModel(ProviderConfiguration provider) {

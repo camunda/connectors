@@ -414,6 +414,11 @@
     "tooltip" : "Tools are optional features the AI Agent can use to perform specific tasks. Configure this if the agent should participate in a tools feedback loop.",
     "openByDefault" : false
   }, {
+    "id" : "documents",
+    "label" : "Documents",
+    "tooltip" : "Configure how the AI Agent gives the documents of the conversation to the model.",
+    "openByDefault" : false
+  }, {
     "id" : "memory",
     "label" : "Memory",
     "tooltip" : "Configuration of the Agent's short-term/conversational memory.",
@@ -4341,25 +4346,6 @@
     "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details and supported file types.",
     "type" : "String"
   }, {
-    "id" : "data.userPrompt.documentDelivery",
-    "label" : "Document delivery",
-    "optional" : false,
-    "value" : "reference",
-    "group" : "userPrompt",
-    "binding" : {
-      "name" : "data.userPrompt.documentDelivery",
-      "type" : "zeebe:input"
-    },
-    "tooltip" : "Reference (recommended): the model loads the content of a document only when it needs it. Content: the model gets the full content of every document with the prompt, which uses more tokens.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Reference",
-      "value" : "reference"
-    }, {
-      "name" : "Content",
-      "value" : "content"
-    } ]
-  }, {
     "id" : "data.tools.containerElementId",
     "label" : "Ad-hoc sub-process ID",
     "description" : "ID of the sub-process that contains the tools the AI agent can use.",
@@ -4385,6 +4371,44 @@
     },
     "tooltip" : "This defines where to handle tool call results returned by the ad-hoc sub-process. Model this as part of your process and route it into the tools feedback loop. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Text"
+  }, {
+    "id" : "data.documents.references",
+    "label" : "Use document references",
+    "description" : "Give the model references to documents and tools to load and return them.",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
+    "group" : "documents",
+    "binding" : {
+      "name" : "data.documents.references",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "The model gets a reference to each document and loads or returns its content with tools when it needs it. When off, the model gets the content of every document, and tools cannot take documents as parameters.",
+    "type" : "Boolean"
+  }, {
+    "id" : "data.documents.userPromptDelivery",
+    "label" : "User prompt delivery",
+    "optional" : false,
+    "value" : "reference",
+    "group" : "documents",
+    "binding" : {
+      "name" : "data.documents.userPromptDelivery",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.documents.references",
+      "equals" : true,
+      "type" : "simple"
+    },
+    "tooltip" : "Reference (recommended): the model loads the content of a document of the user prompt only when it needs it. Content: the model gets the full content of every document with the prompt, which uses more tokens.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Reference",
+      "value" : "reference"
+    }, {
+      "name" : "Content",
+      "value" : "content"
+    } ]
   }, {
     "id" : "data.agentContext",
     "label" : "Agent context",

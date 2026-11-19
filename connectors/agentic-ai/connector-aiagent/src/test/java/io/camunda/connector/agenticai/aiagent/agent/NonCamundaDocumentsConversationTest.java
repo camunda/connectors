@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -96,11 +97,15 @@ class NonCamundaDocumentsConversationTest {
   }
 
   private static AgentInput prompt(String text, Document... documents) {
-    return AgentInput.from(new UserPromptConfiguration(text, List.of(documents)), List.of());
+    return AgentInput.from(
+        new UserPromptConfiguration(text, List.of(documents)), DocumentDelivery.CONTENT, List.of());
   }
 
   private static AgentInput results(ToolCallResult... results) {
-    return AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of(results));
+    return AgentInput.from(
+        new UserPromptConfiguration("user input", List.of()),
+        DocumentDelivery.CONTENT,
+        List.of(results));
   }
 
   private static ToolCallResult weather(Object content) {
@@ -245,7 +250,9 @@ class NonCamundaDocumentsConversationTest {
                 TRACKED,
                 firstTurn(),
                 AgentInput.from(
-                    new UserPromptConfiguration("", List.of()), List.of(event.build()))),
+                    new UserPromptConfiguration("", List.of()),
+                    DocumentDelivery.CONTENT,
+                    List.of(event.build()))),
         PREFIX + "an event contains an external document.");
   }
 
@@ -259,7 +266,10 @@ class NonCamundaDocumentsConversationTest {
                 CONFIG,
                 TRACKED,
                 firstTurn(),
-                AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(event))),
+                AgentInput.from(
+                    new UserPromptConfiguration("", List.of()),
+                    DocumentDelivery.CONTENT,
+                    List.of(event))),
         PREFIX + "an event contains an inline document.");
   }
 
@@ -273,7 +283,10 @@ class NonCamundaDocumentsConversationTest {
             CONFIG,
             UNTRACKED,
             firstTurn(),
-            AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(event)));
+            AgentInput.from(
+                new UserPromptConfiguration("", List.of()),
+                DocumentDelivery.CONTENT,
+                List.of(event)));
 
     final var input = assemble(result);
     assertThat(input.documents()).isEmpty();

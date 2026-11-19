@@ -47,7 +47,9 @@ public final class AgentInput {
   }
 
   public static AgentInput from(
-      UserPromptConfiguration userPrompt, List<ToolCallResult> toolCallResults) {
+      UserPromptConfiguration userPrompt,
+      DocumentDelivery documentDelivery,
+      List<ToolCallResult> toolCallResults) {
     Objects.requireNonNull(toolCallResults, "toolCallResults must not be null");
     var partitioned =
         toolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
@@ -55,9 +57,7 @@ public final class AgentInput {
         new UserPrompt(
             userPrompt.prompt(),
             userPrompt.documents() == null ? List.of() : userPrompt.documents(),
-            userPrompt.documentDelivery() == null
-                ? DocumentDelivery.CONTENT
-                : userPrompt.documentDelivery()),
+            documentDelivery),
         partitioned.getOrDefault(true, List.of()),
         partitioned.getOrDefault(false, List.of()));
   }

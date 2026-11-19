@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -123,7 +124,9 @@ class ToolResultDocumentRenderingTest {
                     CONTEXT,
                     previous,
                     AgentInput.from(
-                        new UserPromptConfiguration("user input", List.of()), results)));
+                        new UserPromptConfiguration("user input", List.of()),
+                        DocumentDelivery.CONTENT,
+                        results)));
 
     // the stored message holds the bare document as a reference and the nested one as it is
     final var stored = (ToolCallResultMessage) nextTurn.messages().getFirst();

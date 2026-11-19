@@ -26,7 +26,14 @@ public final class AgentFeatures {
 
   private AgentFeatures() {}
 
-  public static List<String> ofNewInstance() {
-    return List.of(RUNTIME_TOOLS, DOCUMENTS);
+  /**
+   * The features of a new agent instance of a v2 connector: the runtime tools, and the documents
+   * feature when the agent uses document references.
+   *
+   * @param documentReferences whether the instance tracks its documents, the document references
+   *     setting of the agent
+   */
+  public static List<String> ofNewInstance(boolean documentReferences) {
+    return documentReferences ? List.of(RUNTIME_TOOLS, DOCUMENTS) : List.of(RUNTIME_TOOLS);
   }
 }

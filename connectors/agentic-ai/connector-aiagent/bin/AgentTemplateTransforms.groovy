@@ -35,6 +35,16 @@ class AgentTemplateTransforms {
     }
 
     /**
+     * Returns the groups without the ones that hold only omitted properties, so leaving out every
+     * property of a group leaves no empty group behind.
+     */
+    static List withoutGroupsOfOmittedProperties(List groups, List properties, List<String> omittedPropertyIds) {
+        def omittedGroups = properties.findAll { it.id in omittedPropertyIds }.collect { it.group } as Set
+        def keptGroups = properties.findAll { !(it.id in omittedPropertyIds) }.collect { it.group } as Set
+        return groups.findAll { !(it.id in omittedGroups) || it.id in keptGroups }
+    }
+
+    /**
      * OpenAI's effort is declared per API family (a sibling of the model, like the other
      * per-family request parameters), so it's emitted before the model. Moves it after the model,
      * matching Anthropic and Bedrock.

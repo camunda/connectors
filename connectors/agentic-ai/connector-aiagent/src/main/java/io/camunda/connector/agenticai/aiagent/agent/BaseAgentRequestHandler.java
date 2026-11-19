@@ -142,7 +142,11 @@ public abstract class BaseAgentRequestHandler<
           executionContext
               .configuration()
               .withToolDefinitions(toolDefinitions(executionContext, agentContext));
-      final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
+      final var agentInput =
+          AgentInput.from(
+              configuration.userPrompt(),
+              configuration.documents().userPromptDelivery(),
+              toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
       final var loadedMessages = session.loadMessages(agentContext).messages();

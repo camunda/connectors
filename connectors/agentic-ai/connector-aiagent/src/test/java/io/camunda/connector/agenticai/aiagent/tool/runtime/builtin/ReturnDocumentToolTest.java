@@ -59,7 +59,7 @@ class ReturnDocumentToolTest {
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
 
   private static final AgentContext WITH_DOCUMENTS =
-      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance(true));
 
   private final ReturnDocumentTool tool = new ReturnDocumentTool();
   private final DocumentParameterResolver resolver =

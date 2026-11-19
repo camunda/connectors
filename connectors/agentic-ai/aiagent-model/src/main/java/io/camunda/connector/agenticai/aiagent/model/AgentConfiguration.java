@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
@@ -43,6 +44,7 @@ public record AgentConfiguration(
     ChatModelConfiguration chatModel,
     SystemPromptConfiguration systemPrompt,
     UserPromptConfiguration userPrompt,
+    DocumentsConfiguration documents,
     @Nullable MemoryConfiguration memory,
     @Nullable LimitsConfiguration limits,
     @Nullable EventHandlingConfiguration events,
@@ -63,6 +65,7 @@ public record AgentConfiguration(
           .defaultPropertyInclusion(JsonInclude.Value.ALL_ALWAYS)
           .build();
 
+  /** A configuration with document references off and without tool definitions. */
   public AgentConfiguration(
       ChatModelConfiguration chatModel,
       SystemPromptConfiguration systemPrompt,
@@ -71,7 +74,16 @@ public record AgentConfiguration(
       @Nullable LimitsConfiguration limits,
       @Nullable EventHandlingConfiguration events,
       @Nullable ResponseConfiguration response) {
-    this(chatModel, systemPrompt, userPrompt, memory, limits, events, response, List.of());
+    this(
+        chatModel,
+        systemPrompt,
+        userPrompt,
+        DocumentsConfiguration.REFERENCES_OFF,
+        memory,
+        limits,
+        events,
+        response,
+        List.of());
   }
 
   public int contextWindowSize() {
@@ -89,7 +101,15 @@ public record AgentConfiguration(
   /** Returns a copy carrying the given tool definitions in place of the current ones. */
   public AgentConfiguration withToolDefinitions(List<ToolDefinition> toolDefinitions) {
     return new AgentConfiguration(
-        chatModel, systemPrompt, userPrompt, memory, limits, events, response, toolDefinitions);
+        chatModel,
+        systemPrompt,
+        userPrompt,
+        documents,
+        memory,
+        limits,
+        events,
+        response,
+        toolDefinitions);
   }
 
   /**

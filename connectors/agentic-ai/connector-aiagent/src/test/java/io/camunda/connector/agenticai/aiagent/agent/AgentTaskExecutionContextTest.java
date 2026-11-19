@@ -16,6 +16,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
@@ -38,6 +40,9 @@ class AgentTaskExecutionContextTest {
   private static final Long PROCESS_DEFINITION_KEY = 123456789L;
   private static final String CONTAINER_ELEMENT_ID = "test-container-element-id";
 
+  private static final DocumentsConfiguration DOCUMENTS =
+      new DocumentsConfiguration(true, DocumentDelivery.REFERENCE);
+
   @Mock(answer = RETURNS_DEEP_STUBS)
   private JobContext jobContext;
 
@@ -57,7 +62,8 @@ class AgentTaskExecutionContextTest {
             agentRequestData,
             TEST_CHAT_MODEL,
             toolElementsResolver,
-            AgentFeatures.ofNewInstance());
+            DOCUMENTS,
+            AgentFeatures.ofNewInstance(true));
   }
 
   @Test
@@ -72,9 +78,15 @@ class AgentTaskExecutionContextTest {
             agentRequestData,
             TEST_CHAT_MODEL,
             toolElementsResolver,
+            DocumentsConfiguration.REFERENCES_OFF,
             List.of());
 
     assertThat(withoutFeatures.newInstanceFeatures()).isEmpty();
+  }
+
+  @Test
+  void carriesTheDocumentConfigurationItWasCreatedWith() {
+    assertThat(executionContext.configuration().documents()).isEqualTo(DOCUMENTS);
   }
 
   @Test
@@ -87,7 +99,8 @@ class AgentTaskExecutionContextTest {
             agentRequestData,
             TEST_CHAT_MODEL,
             toolElementsResolver,
-            AgentFeatures.ofNewInstance());
+            DOCUMENTS,
+            AgentFeatures.ofNewInstance(true));
 
     assertThat(context.documentFactory()).isSameAs(documentFactory);
   }

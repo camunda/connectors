@@ -122,7 +122,7 @@ class CamundaAgentInstanceClientTest {
   private static final HistoryDocuments NEW_INSTANCE =
       HistoryDocuments.of(
           TestAgentExecutionContext.withLimits(),
-          AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()));
+          AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance(true)));
 
   private static final long ELEMENT_INSTANCE_KEY = 77L;
 

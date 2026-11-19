@@ -209,10 +209,12 @@ class AgentV2ElementTemplateTest {
         "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
         "hybrid/agenticai-aiagent-job-worker-hybrid.json"
       })
-  void leavesTheDocumentDeliveryDropdownOutOfTheFrozenV1Templates(String file) throws IOException {
-    assertThat(template(file).get("properties").findValuesAsText("id"))
+  void leavesTheDocumentSettingsOutOfTheFrozenV1Templates(String file) throws IOException {
+    final var template = template(file);
+    assertThat(template.get("properties").findValuesAsText("id"))
         .contains("data.userPrompt.documents")
-        .doesNotContain("data.userPrompt.documentDelivery");
+        .doesNotContain("data.documents.userPromptDelivery", "data.documents.references");
+    assertThat(template.get("groups").findValuesAsText("id")).doesNotContain("documents");
   }
 
   @ParameterizedTest
@@ -223,9 +225,53 @@ class AgentV2ElementTemplateTest {
         "agenticai-ai-agent-subprocess.v2.json",
         "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
       })
-  void addsTheDocumentDeliveryDropdownToTheV2Templates(String file) throws IOException {
-    assertThat(template(file).get("properties").findValuesAsText("id"))
-        .contains("data.userPrompt.documents", "data.userPrompt.documentDelivery");
+  void addsTheUserPromptDeliveryAfterTheDocumentReferencesToTheV2Templates(String file)
+      throws IOException {
+    final var properties = template(file).get("properties");
+    final var ids = properties.findValuesAsText("id");
+    // a condition must not reference a property that comes later
+    assertThat(ids.indexOf("data.documents.userPromptDelivery"))
+        .isGreaterThan(ids.indexOf("data.documents.references"));
+    assertThat(named(properties, "id", "data.documents.userPromptDelivery").get("group").asText())
+        .isEqualTo("documents");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void turnsDocumentReferencesOnByDefaultInTheV2Templates(String file) throws IOException {
+    final var template = template(file);
+    final var groups = template.get("groups").findValuesAsText("id");
+    assertThat(groups).contains("tools", "documents", "memory");
+    assertThat(groups.indexOf("documents")).isEqualTo(groups.indexOf("tools") + 1);
+
+    final var references = named(template.get("properties"), "id", "data.documents.references");
+    assertThat(references.get("type").asText()).isEqualTo("Boolean");
+    assertThat(references.get("group").asText()).isEqualTo("documents");
+    assertThat(references.get("value").asBoolean()).isTrue();
+    assertThat(references.get("feel").asText()).isEqualTo("static");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void showsTheUserPromptDeliveryOnlyWithDocumentReferences(String file) throws IOException {
+    final var condition =
+        named(template(file).get("properties"), "id", "data.documents.userPromptDelivery")
+            .get("condition");
+    assertThat(condition.get("property").asText()).isEqualTo("data.documents.references");
+    assertThat(condition.get("equals").isBoolean()).isTrue();
+    assertThat(condition.get("equals").asBoolean()).isTrue();
   }
 
   private static JsonNode preset(JsonNode template, String id) {

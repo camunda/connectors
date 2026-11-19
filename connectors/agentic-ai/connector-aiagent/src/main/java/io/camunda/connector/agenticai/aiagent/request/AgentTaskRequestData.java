@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.request;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.agenticai.aiagent.memory.versioning.VersionedAgentContextDeserializer;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
@@ -42,6 +43,15 @@ public record AgentTaskRequestData(
     @Valid @NotNull PromptConfiguration.SystemPromptConfiguration systemPrompt,
     @Valid @NotNull PromptConfiguration.UserPromptConfiguration userPrompt,
     @Valid @Nullable ToolsConfiguration tools,
+    @Valid @NotNull DocumentsConfiguration documents,
     @Valid @Nullable MemoryTemplateConfiguration memory,
     @Valid @Nullable LimitsConfiguration limits,
-    @Valid @Nullable AgentTaskResponseConfiguration response) {}
+    @Valid @Nullable AgentTaskResponseConfiguration response) {
+
+  /** An element without document configuration has document references off. */
+  public AgentTaskRequestData {
+    if (documents == null) {
+      documents = DocumentsConfiguration.REFERENCES_OFF;
+    }
+  }
+}

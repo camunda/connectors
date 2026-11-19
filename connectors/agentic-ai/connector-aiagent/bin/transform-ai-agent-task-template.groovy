@@ -45,6 +45,8 @@ if (deprecationMessage && !json.name?.toString()?.endsWith(" (Deprecated)")) {
     json.name += " (Deprecated)"
 }
 
+json.put('groups', A.withoutGroupsOfOmittedProperties((List) json.get('groups'), properties, omittedPropertyIds))
+
 def updatedProperties = []
 
 properties.each { property ->

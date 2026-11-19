@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.memory.versioning.AgentContextSche
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -154,6 +155,7 @@ class LegacyDocumentConversationTest {
             TurnReconstructor.reconstruct(messagesOf(context), context.metadata()),
             AgentInput.from(
                 new UserPromptConfiguration("Next", List.of(promptDocument)),
+                DocumentDelivery.CONTENT,
                 List.of(eventResult)));
 
     assertThat(nextTurn.documents()).isEmpty();
@@ -203,7 +205,10 @@ class LegacyDocumentConversationTest {
             configuration(),
             context,
             TurnReconstructor.reconstruct(messages, context.metadata()),
-            AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(toolResult)));
+            AgentInput.from(
+                new UserPromptConfiguration("", List.of()),
+                DocumentDelivery.CONTENT,
+                List.of(toolResult)));
 
     assertThat(nextTurn.documents()).isEmpty();
     assertThat(nextTurn.messages()).hasSize(2);
@@ -232,7 +237,9 @@ class LegacyDocumentConversationTest {
             context,
             previous,
             AgentInput.from(
-                new UserPromptConfiguration("Next", List.of(newDocument("next.txt"))), List.of()));
+                new UserPromptConfiguration("Next", List.of(newDocument("next.txt"))),
+                DocumentDelivery.CONTENT,
+                List.of()));
 
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());

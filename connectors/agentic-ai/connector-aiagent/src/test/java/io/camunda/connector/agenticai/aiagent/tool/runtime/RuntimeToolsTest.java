@@ -80,7 +80,7 @@ class RuntimeToolsTest {
               null,
               null));
   private static final AgentContext NEW_INSTANCE =
-      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance(true));
   private static final AgentContext WITHOUT_FEATURES = AgentContext.empty();
 
   private static final String ALWAYS = "acme_always";
@@ -494,7 +494,7 @@ class RuntimeToolsTest {
         .execute(WITH_MEMORY, agentContext, List.of(runtimeCall("r1", "acme_reading", Map.of())));
 
     assertThat(seen)
-        .containsExactly(WITH_MEMORY, AgentFeatures.ofNewInstance(), Map.of("hello", "world"));
+        .containsExactly(WITH_MEMORY, AgentFeatures.ofNewInstance(true), Map.of("hello", "world"));
   }
 
   @Test

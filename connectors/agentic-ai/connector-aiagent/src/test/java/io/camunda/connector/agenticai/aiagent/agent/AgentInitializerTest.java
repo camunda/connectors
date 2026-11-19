@@ -143,7 +143,7 @@ class AgentInitializerTest {
       when(jobContext.getCustomHeaders())
           .thenReturn(Map.of("io.camunda.zeebe:agentDefinitionKey", "6755399441055744"));
       when(agentInstanceClient.create(any())).thenReturn(AgentInstanceKey.of(12345L));
-      when(executionContext.newInstanceFeatures()).thenReturn(AgentFeatures.ofNewInstance());
+      when(executionContext.newInstanceFeatures()).thenReturn(AgentFeatures.ofNewInstance(true));
 
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
@@ -164,7 +164,7 @@ class AgentInitializerTest {
                         AgentContext.empty()
                             .withState(AgentState.READY)
                             .withMetadata(expectedMetadata)
-                            .withFeatures(AgentFeatures.ofNewInstance()));
+                            .withFeatures(AgentFeatures.ofNewInstance(true)));
                 assertThat(res.toolCallResults()).isEmpty();
               });
 
@@ -173,7 +173,7 @@ class AgentInitializerTest {
 
     @Test
     void shouldCreateNewAgentInstanceWithTheNewInstanceFeaturesOfTheExecution() {
-      when(executionContext.newInstanceFeatures()).thenReturn(AgentFeatures.ofNewInstance());
+      when(executionContext.newInstanceFeatures()).thenReturn(AgentFeatures.ofNewInstance(true));
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));

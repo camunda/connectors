@@ -64,7 +64,7 @@ import org.mockito.Mockito;
 class AgentInstanceHistoryMapperTest {
 
   private static final AgentContext NEW_INSTANCE =
-      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance(true));
   private static final AgentContext WITH_DOCUMENTS =
       AgentContext.empty()
           .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
