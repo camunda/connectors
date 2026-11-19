@@ -92,7 +92,9 @@ Each operation is implemented by a package-private request class in the `rpc` su
   `McpSchema.CallToolRequest` built via `.meta(meta)`. Maps response
   content: `TextContent` → `McpTextContent`, `ImageContent`/`AudioContent` → `McpBlobContent` (Base64 decoded),
   `EmbeddedResource` → `McpEmbeddedResourceContent`, `ResourceLink` → `McpResourceLinkContent`,
-  `structuredContent` → `McpObjectContent`. Failures during the MCP call or response mapping are caught and returned as
+  `structuredContent` → `McpObjectContent`. A blank `TextContent` is left out, and a result that holds nothing else
+  gets a default text. The `isError` flag of the server's result is passed on. Failures during the MCP call or
+  response mapping are caught and returned as
   `McpClientCallToolResult` with `isError = true`; earlier validation/argument parsing failures (e.g.,
   `ConnectorException(MCP_CLIENT_INVALID_PARAMS)` or null tool name) propagate as exceptions to the caller.
 
