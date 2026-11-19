@@ -43,6 +43,7 @@ public abstract class BaseOrchestrationTest {
   // Operation dropdown values
   protected static final String SEARCH = "/search";
   protected static final String GET_BY_KEY = "/";
+  protected static final String GET_XML = "/xml";
 
   // A realistic Zeebe key: larger than an int, so it catches number formatting problems.
   protected static final String KEY = "2251799813685249";

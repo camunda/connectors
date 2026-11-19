@@ -10,8 +10,9 @@ This Connector reuses the base implementation of the [HTTP JSON Connector](../ht
 This Connector is read-only and supports the following operations:
 - Get by key (GET `/{entity}/{key}`)
 - Search (POST `/{entity}/search`)
+- Get XML (GET `/process-definitions/{key}/xml`, process definitions only)
 
-The operations above can be applied to the following Orchestration Cluster API v2 entities:
+Get by key and Search can be applied to the following Orchestration Cluster API v2 entities:
 - Process instances
 - Process definitions
 - Element instances
