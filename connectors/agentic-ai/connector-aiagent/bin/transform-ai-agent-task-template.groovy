@@ -19,6 +19,10 @@ def deprecationDocumentationRef = T.optionalProperty(binding, 'deprecationDocume
 // default
 def systemPromptOverrides = T.optionalProperty(binding, 'systemPromptOverrides')
 
+// optional: "templateId=id,id" tuples (one per line) of the properties to leave out, keyed by the
+// generated template's own id; a template whose id has no entry keeps every property
+def omittedProperties = T.optionalProperty(binding, 'omittedProperties')
+
 // optional: "true" for templates whose OpenAI provider has per-API-family effort properties
 def moveOpenAiEffortAfterModel = T.optionalProperty(binding, 'moveOpenAiEffortAfterModel')?.toString()?.toBoolean()
 
@@ -27,6 +31,7 @@ List properties = (List) json.get('properties')
 
 // this script never changes a template's own id, so it is the stable lookup key
 def systemPromptDefault = A.systemPromptOverride(systemPromptOverrides, (String) json.id)
+def omittedPropertyIds = A.omittedPropertyIds(omittedProperties, (String) json.id)
 if (systemPromptDefault) {
     T.requireIds(properties, ["data.systemPrompt.prompt"], "System prompt property")
 }
@@ -43,6 +48,10 @@ if (deprecationMessage && !json.name?.toString()?.endsWith(" (Deprecated)")) {
 def updatedProperties = []
 
 properties.each { property ->
+    if (property.id in omittedPropertyIds) {
+        return
+    }
+
     // never carry over a marker from the source template; this script adds its own below
     if (property.binding?.type == "zeebe:agentDefinition") {
         return

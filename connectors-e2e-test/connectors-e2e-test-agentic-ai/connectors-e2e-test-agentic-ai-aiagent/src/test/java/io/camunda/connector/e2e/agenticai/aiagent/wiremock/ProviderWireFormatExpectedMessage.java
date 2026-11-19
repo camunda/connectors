@@ -57,6 +57,15 @@ sealed interface ProviderWireFormatExpectedMessage {
   }
 
   /**
+   * A user message with the text and the handle of a document that is not loaded. The handle is the
+   * whole handle of a document that a process step downloaded from the test file {@code
+   * servedFile}.
+   */
+  static ProviderWireFormatExpectedMessage userWithDocumentHandle(String text, String servedFile) {
+    return user(ExpectedContentPart.text(text), ExpectedContentPart.documentHandle(servedFile));
+  }
+
+  /**
    * A user message with the text, the handle and the content of a loaded document. The handle is
    * the whole handle of a document that a process step downloaded from the test file {@code
    * servedFile}.

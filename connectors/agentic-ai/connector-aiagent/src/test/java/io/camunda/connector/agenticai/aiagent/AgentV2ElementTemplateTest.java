@@ -185,9 +185,11 @@ class AgentV2ElementTemplateTest {
     final var migratesFrom = template(file).path("metadata").path("migratesFrom");
     assertThat(migratesFrom).isEqualTo(recipe);
     assertThat(migratesFrom.has("$schema")).isFalse();
-    assertThat(migratesFrom.get("sources")).hasSize(1);
-    assertThat(migratesFrom.get("sources").get(0).get("sourceTemplateId").asText())
-        .isEqualTo(sourceTemplateId);
+    final var sources = migratesFrom.get("sources");
+    assertThat(sources).hasSize(2);
+    assertThat(sources.get(0).get("sourceTemplateId").asText()).isEqualTo(sourceTemplateId);
+    assertThat(sources.get(1).get("sourceTemplateId").asText())
+        .isEqualTo(template(file).get("id").asText());
   }
 
   private static JsonNode withoutElementKindTags(JsonNode template) {
@@ -197,6 +199,33 @@ class AgentV2ElementTemplateTest {
       ((ObjectNode) leaf).put("name", name.replaceFirst(ELEMENT_KIND_TAG, ""));
     }
     return copy;
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-aiagent-outbound-connector.json",
+        "agenticai-aiagent-job-worker.json",
+        "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+        "hybrid/agenticai-aiagent-job-worker-hybrid.json"
+      })
+  void leavesTheDocumentDeliveryDropdownOutOfTheFrozenV1Templates(String file) throws IOException {
+    assertThat(template(file).get("properties").findValuesAsText("id"))
+        .contains("data.userPrompt.documents")
+        .doesNotContain("data.userPrompt.documentDelivery");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void addsTheDocumentDeliveryDropdownToTheV2Templates(String file) throws IOException {
+    assertThat(template(file).get("properties").findValuesAsText("id"))
+        .contains("data.userPrompt.documents", "data.userPrompt.documentDelivery");
   }
 
   private static JsonNode preset(JsonNode template, String id) {

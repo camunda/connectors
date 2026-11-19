@@ -351,6 +351,19 @@
             "from" : "provider.googleVertexAi.model.parameters.topK",
             "to" : "provider.googleGemini.model.parameters.topK"
           } ]
+        }, {
+          "to" : "data.userPrompt.documentDelivery",
+          "set" : "content",
+          "note" : "The AI Agent can now give the model the documents of the user prompt as references instead of always sending their content. To keep the existing behavior, this update sets Document delivery to Content. Consider changing it to Reference."
+        } ]
+      }, {
+        "kind" : "upgrade",
+        "sourceTemplateId" : "io.camunda.connectors.agenticai.ai-agent-task.v2-hybrid",
+        "toVersion" : 5,
+        "paths" : [ {
+          "to" : "data.userPrompt.documentDelivery",
+          "set" : "content",
+          "note" : "The AI Agent can now give the model the documents of the user prompt as references instead of always sending their content. To keep the existing behavior, this update sets Document delivery to Content. Consider changing it to Reference."
         } ]
       } ]
     }
@@ -4332,6 +4345,25 @@
     },
     "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details and supported file types.",
     "type" : "String"
+  }, {
+    "id" : "data.userPrompt.documentDelivery",
+    "label" : "Document delivery",
+    "optional" : false,
+    "value" : "reference",
+    "group" : "userPrompt",
+    "binding" : {
+      "name" : "data.userPrompt.documentDelivery",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Reference (recommended): the model loads the content of a document only when it needs it. Content: the model gets the full content of every document with the prompt, which uses more tokens.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Reference",
+      "value" : "reference"
+    }, {
+      "name" : "Content",
+      "value" : "content"
+    } ]
   }, {
     "id" : "data.tools.containerElementId",
     "label" : "Ad-hoc sub-process ID",

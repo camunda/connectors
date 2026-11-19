@@ -70,6 +70,9 @@ T.requireIds(
     ] + (systemPromptDefault ? ["data.systemPrompt.prompt"] : []),
     "Properties in ${file}"
 )
+// the properties the build leaves out for the derived template's id (optional script property
+// "omittedProperties", "templateId=id,id" tuples, one per line)
+skipProperties += A.omittedPropertyIds(T.optionalProperty(binding, 'omittedProperties'), templateId)
 T.requireTaskDefinitionType((List) json.get('properties'))
 
 // never carry over a "deprecated" block from the source template; this script decides

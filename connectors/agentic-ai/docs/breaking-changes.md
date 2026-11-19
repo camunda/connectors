@@ -353,13 +353,18 @@ applies it to its persisted context, and the next round continues with the conte
   rejection of the tool calls of an assistant message once, when it receives the message. `ToolCall.resultSource()`
   (`PROCESS`, `RUNTIME` or `REJECTED`) and `ToolCall.isLocal()` derive who produces the tool call result; neither is
   written to JSON.
+- `PromptConfiguration.UserPromptConfiguration` gains `documentDelivery`, the delivery of the documents of the user
+  prompt, `null` when the process sets none; the two-argument constructor remains. `AgentInput.UserPrompt`, a record
+  without a builder, takes the `DocumentDelivery` as a third argument (`CONTENT` for the earlier behavior: the content of
+  every document).
 - The sealed `Content` interface permits `AgentDocumentContent` (content type `agent_document`). A `switch` over
   `Content` must handle it. A custom chat model provider never receives it: the agent expands it before the request is
   built.
 - For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
-  document goes out as content, as before. A document in a tool result is text, its handle, instead of a `DocumentContent` or
-  the reference JSON, and the content of a document follows in a user message only when the model loaded it with
-  `c8__load_document`. A custom `ChatModel` that handles `DocumentContent` in tool results
+  document goes out as its handle, and also as content when the delivery of the user prompt is `content` or not set. A
+  document in a tool result is text, its handle, instead of a `DocumentContent` or the reference JSON, and the content of
+  a document follows in a user message only when the model loaded it with `c8__load_document`. A custom `ChatModel`
+  that handles `DocumentContent` in tool results
   therefore sees text for these instances; instances without the feature, also the new instances of the v1 connectors,
   keep the earlier form.
 - New in the model: `AgentDocumentId`, the value type of a document id (persisted as a plain string), used by the agent

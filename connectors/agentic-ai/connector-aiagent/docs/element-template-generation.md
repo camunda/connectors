@@ -10,6 +10,14 @@ generated dropdowns. Edit preset defaults in
 [`../bin/transform-ai-agent-provider-steps.groovy`](../bin/transform-ai-agent-provider-steps.groovy), not
 the generated JSON.
 
+## Properties the frozen templates leave out
+
+A template can leave out properties of the request data it shares with other templates. The frozen v1
+templates use this to get no setting that was added after them. The `omittedProperties` property in
+[`../pom.xml`](../pom.xml) lists them as one `templateId=id,id` tuple per line, keyed by the id of the
+generated template. Both transform scripts drop the listed properties from the template with that id; a
+template without an entry keeps every property.
+
 ## Markers added by the transform scripts
 
 ### Agent definition marker

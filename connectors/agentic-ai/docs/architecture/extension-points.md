@@ -214,9 +214,11 @@ shows them as `agent.responseDocuments.<key>.document`.
 Every agent instance with the `documents` feature offers `c8__load_document` and `c8__return_document`. They cannot be
 switched off. A switch is a follow-up of [ADR 018](../adr/018-document-flow.md).
 
-**The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
-document goes out with the prompt, with no size limit and no type check, and a document the provider
-cannot read fails the model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
+**The user prompt.** The documents of the user prompt are references with the delivery of the dropdown *Document
+delivery* (`data.userPrompt.documentDelivery`, v2 templates only, `reference` by default; an element without a value has
+the delivery `content`). With the delivery `content` the content of every document goes out with the prompt, with no size
+limit and no type check, and a document the provider cannot read fails the model call. Documents of events stay
+references, and so do those of the MCP and A2A gateway tools.
 In an instance without the `documents` feature every document, also those of the user prompt, events and tool results,
 is added as content.
 

@@ -5,7 +5,7 @@
 
 ## Status
 
-**Proposed**. Extends [ADR 004](004-document-handling-in-tool-call-results.md), which stays as it is. Builds on the
+**Accepted**. Extends [ADR 004](004-document-handling-in-tool-call-results.md), which stays as it is. Builds on the
 runtime tools of [ADR 016](016-runtime-tools.md).
 
 ## Context and Problem Statement
@@ -153,18 +153,29 @@ document comes again with a different delivery.
 
 The default is `reference` for tool results and for a user prompt that sets `reference`. A user prompt without a
 delivery, as in a v1 template, behaves as before: all documents go to the model as content.
-The v2 templates set `reference` as the default.
+The v2 templates set `reference` as the default. A delivery applies only to an agent instance with the `documents`
+feature, which only the v2 connectors give to a new instance. The v1 templates have no delivery property, and an instance
+without the feature always sends the documents as content.
 
 Content goes into a request in two ways. Both use the same persisted form:
 
 * **On request.** The model calls the built-in tool `c8__load_document`. The model knows when it must read a document.
   The agent writes into the tool result that the content follows in the next message. The content follows in that
   message.
-* **By opt-in.** Only the process knows the documents before the model sees them. Thus only the user prompt (a dropdown)
-  and a tool activity (an extension property) can set `content`. This saves one model round trip per document. Events,
-  MCP tools and A2A tools use `reference`.
+* **By opt-in.** The process designer knows the documents of the user prompt before the model sees them. Thus the user
+  prompt can set `content` with a dropdown. This saves one model round trip per document. Tool results, events, MCP
+  tools and A2A tools use `reference`.
 
 The content stays in each request until its message leaves the window.
+
+Alternative: *an opt-in for each tool activity*, for example an extension property that sets `content` for the documents
+of the tool result. It is not part of this decision. No known process needs it, and `c8__load_document` gives the model
+the content of a tool document when the model needs it. A process designer can tell the model in the system prompt to
+load the documents of a tool. The opt-in can be added later without a migration: it is an optional field of the tool
+definition, and a stored tool definition without it reads as `reference`.
+
+Consequence accepted: the process designer cannot force the content of a tool document into the request. A model that
+answers from the handle alone does not read the content.
 
 ### No check of the content
 

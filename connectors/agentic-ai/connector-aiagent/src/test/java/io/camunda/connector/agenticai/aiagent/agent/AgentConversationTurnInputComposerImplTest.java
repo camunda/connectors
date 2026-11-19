@@ -65,6 +65,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class AgentConversationTurnInputComposerImplTest {
 
@@ -252,12 +254,17 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(messages.getLast()).isInstanceOf(UserMessage.class);
   }
 
-  @Test
-  void firstTurn_withUserPromptDocuments_addsTheReferencesWithTheDeliveryContent() {
+  @ParameterizedTest
+  @EnumSource(DocumentDelivery.class)
+  void firstTurn_withUserPromptDocuments_addsTheReferencesWithTheDeliveryOfThePrompt(
+      DocumentDelivery delivery) {
     var document = createDocument("story notes", "text/plain", "notes.txt");
+    var secondDocument = createDocument("story setting", "text/plain", "setting.txt");
     var input =
         AgentInput.from(
-            new UserPromptConfiguration("Tell me a story", List.of(document)), List.of());
+            new UserPromptConfiguration(
+                "Tell me a story", List.of(document, secondDocument), delivery),
+            List.of());
     var history = TurnReconstructor.reconstruct(List.of());
 
     var result = resolve(CONFIG, CTX, history, input);
@@ -266,11 +273,14 @@ class AgentConversationTurnInputComposerImplTest {
     var userMessage = (UserMessage) messagesOf(result).getFirst();
     assertThat(userMessage.content())
         .containsExactly(
-            textContent("Tell me a story"), documentReference(document, DocumentDelivery.CONTENT));
+            textContent("Tell me a story"),
+            documentReference(document, delivery),
+            documentReference(secondDocument, delivery));
     final var ingested = inputOf(result).documents();
+    final var origin = AgentDocumentOrigin.userMessage(userMessage.id());
     assertThat(ingested)
         .containsExactly(
-            AgentDocument.of(document, AgentDocumentOrigin.userMessage(userMessage.id())));
+            AgentDocument.of(document, origin), AgentDocument.of(secondDocument, origin));
     assertThat(
             TestDocuments.handleText(
                 AgentDocuments.empty().register(ingested), AgentDocumentId.of(document)))

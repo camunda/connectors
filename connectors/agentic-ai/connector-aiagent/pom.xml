@@ -31,6 +31,14 @@ io.camunda.connectors.agenticai.aiagent.v1-hybrid=${project.basedir}/element-tem
 io.camunda.connectors.agenticai.aiagent.jobworker.v1=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
 io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
     </systemPromptOverrides>
+    <!-- Per-template-id properties to leave out, one "templateId=id,id" tuple per line. A template
+         whose id has no entry here keeps every property. -->
+    <omittedProperties>
+io.camunda.connectors.agenticai.aiagent.v1=data.userPrompt.documentDelivery
+io.camunda.connectors.agenticai.aiagent.v1-hybrid=data.userPrompt.documentDelivery
+io.camunda.connectors.agenticai.aiagent.jobworker.v1=data.userPrompt.documentDelivery
+io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=data.userPrompt.documentDelivery
+    </omittedProperties>
   </properties>
 
   <licenses>
@@ -499,6 +507,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
                 </property>
+                <property>
+                  <name>omittedProperties</name>
+                  <value>${omittedProperties}</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -549,6 +561,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
                 </property>
+                <property>
+                  <name>omittedProperties</name>
+                  <value>${omittedProperties}</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -586,6 +602,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                 <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
+                </property>
+                <property>
+                  <name>omittedProperties</name>
+                  <value>${omittedProperties}</value>
                 </property>
               </properties>
             </configuration>
@@ -628,6 +648,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                 <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
+                </property>
+                <property>
+                  <name>omittedProperties</name>
+                  <value>${omittedProperties}</value>
                 </property>
               </properties>
             </configuration>
@@ -689,6 +713,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                   <value>${systemPromptOverrides}</value>
                 </property>
                 <property>
+                  <name>omittedProperties</name>
+                  <value>${omittedProperties}</value>
+                </property>
+                <property>
                   <name>moveOpenAiEffortAfterModel</name>
                   <value>true</value>
                 </property>
@@ -735,6 +763,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                   <value>${systemPromptOverrides}</value>
                 </property>
                 <property>
+                  <name>omittedProperties</name>
+                  <value>${omittedProperties}</value>
+                </property>
+                <property>
                   <name>moveOpenAiEffortAfterModel</name>
                   <value>true</value>
                 </property>
@@ -767,6 +799,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                 <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
+                </property>
+                <property>
+                  <name>omittedProperties</name>
+                  <value>${omittedProperties}</value>
                 </property>
                 <property>
                   <name>moveOpenAiEffortAfterModel</name>
@@ -805,6 +841,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                 <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
+                </property>
+                <property>
+                  <name>omittedProperties</name>
+                  <value>${omittedProperties}</value>
                 </property>
                 <property>
                   <name>moveOpenAiEffortAfterModel</name>

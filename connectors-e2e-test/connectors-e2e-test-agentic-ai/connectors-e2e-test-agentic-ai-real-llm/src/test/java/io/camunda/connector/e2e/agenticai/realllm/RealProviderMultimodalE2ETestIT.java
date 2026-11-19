@@ -75,7 +75,10 @@ class RealProviderMultimodalE2ETestIT extends RealProviderApiSmokeSupport {
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             DOCUMENT_BPMN_RESOURCE,
-            template -> template.property("data.userPrompt.documents", "=downloadedFiles"));
+            template ->
+                template
+                    .property("data.userPrompt.documents", "=downloadedFiles")
+                    .property("data.documents.userPromptDelivery", "content"));
 
     var instance =
         startAgent(
