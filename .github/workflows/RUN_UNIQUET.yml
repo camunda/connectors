@@ -36,10 +36,32 @@ jobs:
         run: |
           ./element-template-generator/uniquet/target/appassembler/bin/uniquet --output-file ./connector-templates.json  --ignore-file ./ignore-templates.json
 
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+
+      - name: Generate a GitHub token for connectors
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
+      # A PR created with GITHUB_TOKEN triggers no workflow, so its required checks
+      # never run. The app token also lets AUTO_MERGE_AUTOMATION_PR.yml merge it.
       - name: Create pull request to main branch
         uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           branch: single-file-element-template
           commit-message: "other(element-template): single element template file"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>

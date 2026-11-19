@@ -1,0 +1,219 @@
+---
+name: Auto-merge automation pull request
+
+# Approves and enables auto-merge on pull requests opened by the connectors
+# automation once their tests passed:
+# - backport PRs created by BACKPORT_PR.yml (backport-<n>-to-stable/X.Y -> stable/X.Y)
+# - release merge-back PRs created by the release process (release-X.Y.Z -> stable/X.Y)
+# - the single element template file PR created by RUN_UNIQUET.yml
+# - the npm package version bump PR created by PUBLISH_NPM_PACKAGE.yml
+# Each kind has its own eligibility checks. Anything that needed a human
+# (conflicts, extra commits, unexpected files) is left for manual review.
+#
+# Triggered via workflow_run so that this single file on main covers every
+# stable/* branch, regardless of the triggers of "Test branch" on that branch.
+on:
+  workflow_run:
+    workflows: [ "Test branch" ]
+    types: [ completed ]
+
+permissions: { }
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  auto-merge:
+    name: Approve and auto-merge automation PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # The run's actor is the one who opened the PR or pushed the tested commit,
+    # so this ensures nobody but the automation touched the PR last.
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.actor.login == 'team-connectors-int-automation[bot]' &&
+      (
+        startsWith(github.event.workflow_run.head_branch, 'backport-') ||
+        startsWith(github.event.workflow_run.head_branch, 'release-') ||
+        github.event.workflow_run.head_branch == 'single-file-element-template' ||
+        github.event.workflow_run.head_branch == 'chore/bump-npm-package-version'
+      )
+    permissions:
+      id-token: write  # Vault JWT login
+    steps:
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
+          # Must be a different app than the one creating the PRs,
+          # as GitHub does not allow approving your own pull request.
+          secrets: |
+            secret/data/products/connectors/ci/common BACKPORT_APPROVER_APP_ID;
+            secret/data/products/connectors/ci/common BACKPORT_APPROVER_APP_PRIVATE_KEY;
+
+      - name: Generate a GitHub token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.BACKPORT_APPROVER_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.BACKPORT_APPROVER_APP_PRIVATE_KEY }}
+
+      - name: Check PR eligibility
+        id: check
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          AUTOMATION_AUTHOR: app/team-connectors-int-automation
+          AUTOMATION_BOT: team-connectors-int-automation[bot]
+        run: |
+          skip() {
+            echo "Not auto-merging: $1"
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          # Fails unless the PR changes exactly the given files (any subset of them)
+          only_files() {
+            local unexpected
+            unexpected=$(gh api "repos/$REPO/pulls/$NUMBER/files" --paginate --jq '.[].filename' \
+              | grep -vxF -f <(printf '%s\n' "$@") || true)
+            [[ -z "$unexpected" ]] || skip "PR changes unexpected files: $(tr '\n' ' ' <<< "$unexpected")"
+          }
+
+          if [[ "$HEAD_BRANCH" =~ ^backport-[0-9]+-to-stable/ ]]; then
+            KIND=backport
+          elif [[ "$HEAD_BRANCH" =~ ^release-([0-9]+\.[0-9]+)\.[0-9]+$ ]]; then
+            KIND=release
+            RELEASE_VERSION=${HEAD_BRANCH#release-}
+            RELEASE_LINE=${BASH_REMATCH[1]}
+            EXPECTED_BASE="stable/${BASH_REMATCH[1]}"
+          elif [[ "$HEAD_BRANCH" == single-file-element-template ]]; then
+            KIND=element-templates
+            EXPECTED_BASE=main
+          elif [[ "$HEAD_BRANCH" == chore/bump-npm-package-version ]]; then
+            KIND=npm-bump
+            EXPECTED_BASE=main
+          else
+            skip "branch $HEAD_BRANCH is not created by the automation"
+          fi
+          echo "Branch $HEAD_BRANCH is a $KIND PR"
+
+          NUMBER=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number // empty')
+          [[ -n "$NUMBER" ]] || skip "no open PR for $HEAD_BRANCH"
+          echo "Checking PR #$NUMBER"
+
+          # Mergeability is computed asynchronously, wait for it before taking the
+          # snapshot below to keep the window until the approval small
+          for _ in 1 2 3 4 5; do
+            MERGEABLE=$(gh pr view "$NUMBER" --repo "$REPO" --json mergeable --jq .mergeable)
+            [[ "$MERGEABLE" == "UNKNOWN" ]] || break
+            sleep 10
+          done
+          [[ "$MERGEABLE" == "MERGEABLE" ]] || skip "PR is not mergeable ($MERGEABLE)"
+
+          PR=$(gh pr view "$NUMBER" --repo "$REPO" \
+            --json id,author,baseRefName,headRefOid,isDraft,autoMergeRequest)
+
+          [[ "$(jq -r .author.login <<< "$PR")" == "$AUTOMATION_AUTHOR" ]] || skip "PR not created by $AUTOMATION_AUTHOR"
+          [[ "$(jq -r .headRefOid <<< "$PR")" == "$HEAD_SHA" ]] || skip "tested commit $HEAD_SHA is no longer the PR head"
+          [[ "$(jq -r .isDraft <<< "$PR")" == "false" ]] || skip "PR is a draft"
+          [[ "$(jq -r .autoMergeRequest <<< "$PR")" == "null" ]] || skip "auto-merge already enabled"
+
+          BASE=$(jq -r .baseRefName <<< "$PR")
+          if [[ "$KIND" == backport ]]; then
+            [[ "$BASE" == stable/* ]] || skip "base branch is not stable/*"
+          else
+            [[ "$BASE" == "$EXPECTED_BASE" ]] || skip "base branch $BASE is not $EXPECTED_BASE"
+          fi
+
+          case "$KIND" in
+            backport)
+              # A PR that has ever been a draft had conflicts, even if nothing was pushed
+              # after the backport automation committed them
+              if gh api "repos/$REPO/issues/$NUMBER/timeline" --paginate --jq '.[].event' \
+                  | grep -qxE 'ready_for_review|convert_to_draft'; then
+                skip "PR was a draft at some point (cherry-pick had conflicts)"
+              fi
+              ;;
+
+            release)
+              # RELEASE.yaml pushes "ci: release version X.Y.Z" (tagged X.Y.Z), then
+              # "ci: set next snapshot version ...". Anything else on the branch, such as
+              # a fix pushed during QA, needs a human.
+              EXPECTED_COMMITS="^ci: (release version ${RELEASE_VERSION//./\\.}|set next snapshot version ${RELEASE_LINE//./\\.}\.[0-9]+-SNAPSHOT)$"
+              OTHER_COMMITS=$(gh api "repos/$REPO/pulls/$NUMBER/commits" --paginate --jq '.[].commit.message | split("\n")[0]' \
+                | grep -vxE "$EXPECTED_COMMITS" || true)
+              [[ -z "$OTHER_COMMITS" ]] || skip "PR has commits not made by the release workflow: $OTHER_COMMITS"
+
+              # The released commit, which the tag points to, must be on the branch
+              TAG_COMMIT=$(gh api "repos/$REPO/commits/refs/tags/$RELEASE_VERSION" --jq .sha 2>/dev/null) \
+                || skip "release tag $RELEASE_VERSION does not exist"
+              gh api "repos/$REPO/pulls/$NUMBER/commits" --paginate --jq '.[].sha' | grep -qxF "$TAG_COMMIT" \
+                || skip "release tag $RELEASE_VERSION ($TAG_COMMIT) is not part of the PR"
+
+              # The PR is opened after the release, so the actor of this run is whoever
+              # opened it, not who pushed the head. Check the pusher via the push-triggered runs.
+              PUSHERS=$(gh api "repos/$REPO/actions/runs?head_sha=$HEAD_SHA&event=push" \
+                --jq '[.workflow_runs[] | select(.head_branch == env.HEAD_BRANCH) | .actor.login] | unique | join(",")')
+              [[ "$PUSHERS" == "$AUTOMATION_BOT" ]] || skip "head commit not pushed by $AUTOMATION_BOT only (pushers: ${PUSHERS:-none})"
+              ;;
+
+            element-templates)
+              only_files connector-templates.json
+              ;;
+
+            npm-bump)
+              only_files element-template-generator/npm/package.json element-template-generator/npm/package-lock.json
+              ;;
+          esac
+
+          {
+            echo "eligible=true"
+            echo "kind=$KIND"
+            echo "number=$NUMBER"
+            echo "node-id=$(jq -r .id <<< "$PR")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Approve and enable auto-merge
+        if: steps.check.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          KIND: ${{ steps.check.outputs.kind }}
+          PR_NUMBER: ${{ steps.check.outputs.number }}
+          PR_NODE_ID: ${{ steps.check.outputs.node-id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          case "$KIND" in
+            backport) BODY="Auto-approved: clean backport of an already reviewed change, tests passed." ;;
+            release) BODY="Auto-approved: only the release workflow's version commits, tests passed." ;;
+            element-templates) BODY="Auto-approved: generated single element template file only, tests passed." ;;
+            npm-bump) BODY="Auto-approved: npm package version bump only, tests passed." ;;
+          esac
+
+          # Both the approval and auto-merge are bound to the tested commit
+          REVIEW_ID=$(gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" \
+            -f event=APPROVE -f commit_id="$HEAD_SHA" -f body="$BODY" \
+            --jq .id)
+
+          # Call the API directly to work around https://github.com/cli/cli/issues/8352;
+          # on merge queue branches this enqueues the PR once all requirements are met.
+          # expectedHeadOid makes this fail if the branch moved since it was checked.
+          # shellcheck disable=SC2016 # $id and $sha are GraphQL variables
+          if ! gh api graphql \
+              -f query='mutation($id: ID!, $sha: GitObjectID!) { enablePullRequestAutoMerge(input: {pullRequestId: $id, expectedHeadOid: $sha}) { clientMutationId } }' \
+              -f id="$PR_NODE_ID" -f sha="$HEAD_SHA"; then
+            echo "Enabling auto-merge failed, dismissing the approval"
+            gh api -X PUT "repos/$REPO/pulls/$PR_NUMBER/reviews/$REVIEW_ID/dismissals" \
+              -f message="Auto-merge could not be enabled for the tested commit, manual review required."
+            exit 1
+          fi
