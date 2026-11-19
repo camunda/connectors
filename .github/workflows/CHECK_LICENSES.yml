@@ -87,7 +87,7 @@ jobs:
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.13+9.0.LTS'
+          java-version: '21.0.13+100000002.0.LTS'
       - name: Update Maven settings.xml
         uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
