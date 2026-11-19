@@ -477,7 +477,7 @@ class DefaultMcpRemoteClientHandlerTest {
       final var request = createToolModeRequest(transport, true, LIST_TOOLS_OPERATION);
       final var expectedResult = new McpClientListToolsResult(List.of());
 
-      when(remoteClientRegistry.isCachingEnabled()).thenReturn(true);
+      when(remoteClientRegistry.shouldCache(true)).thenReturn(true);
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, true)).thenReturn(mcpClient);
       when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
@@ -498,8 +498,8 @@ class DefaultMcpRemoteClientHandlerTest {
 
       // the registry does not keep clients, so nothing else would ever close this one (and it must
       // not be closed behind the back of the running operation either)
-      when(remoteClientRegistry.isCachingEnabled()).thenReturn(false);
-      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(remoteClientRegistry.shouldCache(true)).thenReturn(false);
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, true)).thenReturn(mcpClient);
       when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 

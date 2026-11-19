@@ -35,13 +35,10 @@ public class DefaultMcpRemoteClientHandler implements McpRemoteClientHandler {
   @Override
   public McpClientResult handle(OutboundConnectorContext context, McpRemoteClientRequest request) {
     final var clientId = McpRemoteClientIdentifier.from(context);
-    // a registry that does not keep clients hands out a new one each time, which only this
-    // handler can close
     final var cacheable =
         Optional.ofNullable(request.data().options())
-                .map(McpRemoteClientOptionsConfiguration::clientCache)
-                .orElse(false)
-            && remoteClientRegistry.isCachingEnabled();
+            .map(McpRemoteClientOptionsConfiguration::clientCache)
+            .orElse(false);
     final var operation = request.data().connectorMode().toMcpClientOperation();
 
     LOGGER.debug("MCP({}): Handling operation '{}' on remote client", clientId, operation.method());
@@ -59,7 +56,7 @@ public class DefaultMcpRemoteClientHandler implements McpRemoteClientHandler {
       client = remoteClientRegistry.getClient(clientId, request.data().transport(), cacheable);
       return clientExecutor.execute(client, operation, filterOptions);
     } finally {
-      if (!cacheable && client != null) {
+      if (client != null && !remoteClientRegistry.shouldCache(cacheable)) {
         remoteClientRegistry.closeClient(clientId, client);
       }
     }

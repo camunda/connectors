@@ -203,15 +203,22 @@ class McpRemoteClientRegistryTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"true,3,true", "false,3,false", "true,0,false", "false,0,false"})
-  void reportsWhetherCachingIsEnabled(boolean enabled, long maximumSize, boolean expected) {
+  @CsvSource({
+    "true,3,true,true",
+    "true,3,false,false",
+    "false,3,true,false",
+    "true,0,true,false",
+    "false,0,true,false"
+  })
+  void cachesOnlyRequestedClientsAndOnlyWhenCachingIsEnabled(
+      boolean enabled, long maximumSize, boolean cacheable, boolean expected) {
     final var registry =
         new McpRemoteClientRegistry(
             createClientConfig(
                 new ClientCacheConfiguration(enabled, maximumSize, Duration.ofMinutes(10))),
             clientFactory);
 
-    assertThat(registry.isCachingEnabled()).isEqualTo(expected);
+    assertThat(registry.shouldCache(cacheable)).isEqualTo(expected);
   }
 
   @Test
