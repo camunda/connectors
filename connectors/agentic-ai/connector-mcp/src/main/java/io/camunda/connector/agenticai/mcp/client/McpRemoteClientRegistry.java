@@ -35,11 +35,26 @@ public class McpRemoteClientRegistry implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(McpRemoteClientRegistry.class);
 
   private final Cache<@NonNull McpRemoteClientIdentifier, McpClientDelegate> cache;
+  private final boolean cachingEnabled;
   private final McpClientFactory clientFactory;
 
   public McpRemoteClientRegistry(ClientConfiguration clientConfig, McpClientFactory clientFactory) {
     this.cache = createCache(clientConfig.cache());
+    this.cachingEnabled = clientConfig.cache().enabled() && clientConfig.cache().maximumSize() > 0;
     this.clientFactory = clientFactory;
+  }
+
+  /**
+   * Whether this registry keeps clients at all. When {@code false} (cache disabled or a maximum
+   * size of 0), {@link #getClient} never caches, whatever {@code cacheable} is, and the caller must
+   * close every client it gets.
+   *
+   * <p>A cache that cannot hold an entry is no substitute: Caffeine evicts such an entry
+   * asynchronously, and the eviction listener then closes a client that its caller may still be
+   * using.
+   */
+  public boolean isCachingEnabled() {
+    return cachingEnabled;
   }
 
   private Cache<@NonNull McpRemoteClientIdentifier, McpClientDelegate> createCache(
@@ -70,17 +85,20 @@ public class McpRemoteClientRegistry implements AutoCloseable {
    * <p>Use {@code cacheable=false} when authentication credentials are process-specific and should
    * not be shared across invocations.
    *
+   * <p>The same holds when {@link #isCachingEnabled() caching is disabled} for the registry: the
+   * client is then not cached, even for {@code cacheable=true}.
+   *
    * @param clientId The unique identifier for the client
    * @param transport The transport configuration
-   * @param cacheable If true, the client will be cached and reused; if false, a new client is
-   *     created each time and the caller must close it
+   * @param cacheable If true and caching is enabled, the client will be cached and reused;
+   *     otherwise a new client is created each time and the caller must close it
    * @return The MCP client instance
    */
   public McpClientDelegate getClient(
       McpRemoteClientIdentifier clientId,
       McpRemoteClientTransportConfiguration transport,
       boolean cacheable) {
-    if (cacheable) {
+    if (cacheable && cachingEnabled) {
       return this.cache.get(clientId, key -> this.createClient(clientId, transport));
     } else {
       LOGGER.debug("MCP({}): Creating non-cached remote HTTP client", clientId);

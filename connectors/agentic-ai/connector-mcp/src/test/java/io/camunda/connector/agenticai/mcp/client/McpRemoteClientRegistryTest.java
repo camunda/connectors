@@ -184,7 +184,6 @@ class McpRemoteClientRegistryTest {
     // with cache disabled or size=0, getClient with cacheable=true still doesn't cache
     final var resolvedClient1 =
         registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
-    Thread.sleep(Duration.ofMillis(10));
     final var resolvedClient2 =
         registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
 
@@ -195,6 +194,24 @@ class McpRemoteClientRegistryTest {
     // verify clients are created twice
     verify(clientFactory, times(2))
         .createClient(CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION);
+
+    // neither client was ever put in the cache: a cache entry would be evicted and closed
+    // asynchronously, possibly while the caller still uses the client
+    assertThat(getCache(registry).asMap()).isEmpty();
+    verify(client, never()).close();
+    verify(client2, never()).close();
+  }
+
+  @ParameterizedTest
+  @CsvSource({"true,3,true", "false,3,false", "true,0,false", "false,0,false"})
+  void reportsWhetherCachingIsEnabled(boolean enabled, long maximumSize, boolean expected) {
+    final var registry =
+        new McpRemoteClientRegistry(
+            createClientConfig(
+                new ClientCacheConfiguration(enabled, maximumSize, Duration.ofMinutes(10))),
+            clientFactory);
+
+    assertThat(registry.isCachingEnabled()).isEqualTo(expected);
   }
 
   @Test
