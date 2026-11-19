@@ -10,6 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -53,6 +55,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ChatPostMessageDataTest {
 
   private static final String USERID = "testUserId";
+  private static final String DM_CHANNEL_ID = "D0123456";
   private static final JsonNode EMPTY_JSON;
 
   static {
@@ -160,7 +163,11 @@ class ChatPostMessageDataTest {
           .thenReturn(chatPostMessageResponse);
 
       when(chatPostMessageResponse.isOk()).thenReturn(true);
-      when(chatPostMessageResponse.getMessage()).thenReturn(new Message());
+      when(chatPostMessageResponse.getChannel()).thenReturn(DM_CHANNEL_ID);
+      // The input thread may name a reply; Slack reports the parent ts on the posted message
+      var postedMessage = new Message();
+      postedMessage.setThreadTs("parent_ts");
+      when(chatPostMessageResponse.getMessage()).thenReturn(postedMessage);
       // When
       chatPostMessageData.invoke(methodsClient);
       // Then
@@ -168,9 +175,76 @@ class ChatPostMessageDataTest {
       assertThat(value.getChannel()).isEqualTo(USERID);
       assertThat(value.isLinkNames()).isTrue();
       assertThat(value.getText()).isEqualTo("test");
-      assertThat(value.getBlocks())
-          .anyMatch(block -> block instanceof com.slack.api.model.block.SectionBlock)
-          .anyMatch(block -> block instanceof com.slack.api.model.block.FileBlock);
+      assertThat(value.getBlocks()).isNull();
+
+      var shareRequest = ArgumentCaptor.forClass(FilesCompleteUploadExternalRequest.class);
+      verify(methodsClient).filesCompleteUploadExternal(shareRequest.capture());
+      assertThat(shareRequest.getValue().getChannelId()).isEqualTo(DM_CHANNEL_ID);
+      assertThat(shareRequest.getValue().getThreadTs()).isEqualTo("parent_ts");
+      assertThat(shareRequest.getValue().getFiles()).hasSize(1);
+    }
+  }
+
+  @Test
+  void invoke_WhenBlockMessageHasDocumentsWithoutThread_ShouldShareInChannel()
+      throws SlackApiException, IOException {
+    // Given
+    var blocks = ConnectorsObjectMapperSupplier.getCopy().readTree("[]");
+    ChatPostMessageData chatPostMessageData =
+        new ChatPostMessageData(
+            "#general", null, MessageType.messageBlock, "test", blocks, List.of(prepareDocument()));
+    mockGetExternalURL();
+    OkHttpClient okHttpClient = Mockito.mock(OkHttpClient.class, Answers.RETURNS_DEEP_STUBS);
+
+    try (MockedStatic<SlackHttpClient> slackHttpClient =
+        Mockito.mockStatic(SlackHttpClient.class)) {
+      slackHttpClient.when(() -> SlackHttpClient.buildOkHttpClient(any())).thenReturn(okHttpClient);
+      var response = mock(Response.class);
+      when(response.code()).thenReturn(200);
+      when(okHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
+      mockCompleteExternalURL();
+      when(methodsClient.chatPostMessage(chatPostMessageRequest.capture()))
+          .thenReturn(chatPostMessageResponse);
+      when(chatPostMessageResponse.isOk()).thenReturn(true);
+      when(chatPostMessageResponse.getChannel()).thenReturn("C0123456");
+      when(chatPostMessageResponse.getMessage()).thenReturn(new Message());
+      // When
+      chatPostMessageData.invoke(methodsClient);
+      // Then
+      assertThat(chatPostMessageRequest.getValue().getBlocks())
+          .noneMatch(block -> block instanceof com.slack.api.model.block.FileBlock);
+      var shareRequest = ArgumentCaptor.forClass(FilesCompleteUploadExternalRequest.class);
+      verify(methodsClient).filesCompleteUploadExternal(shareRequest.capture());
+      assertThat(shareRequest.getValue().getChannelId()).isEqualTo("C0123456");
+      assertThat(shareRequest.getValue().getThreadTs()).isNull();
+    }
+  }
+
+  @Test
+  void invoke_WhenPostMessageFails_ShouldNotShareFiles() throws SlackApiException, IOException {
+    // Given
+    ChatPostMessageData chatPostMessageData =
+        new ChatPostMessageData(
+            "#general", null, MessageType.plainText, "test", null, List.of(prepareDocument()));
+    mockGetExternalURL();
+    OkHttpClient okHttpClient = Mockito.mock(OkHttpClient.class, Answers.RETURNS_DEEP_STUBS);
+
+    try (MockedStatic<SlackHttpClient> slackHttpClient =
+        Mockito.mockStatic(SlackHttpClient.class)) {
+      slackHttpClient.when(() -> SlackHttpClient.buildOkHttpClient(any())).thenReturn(okHttpClient);
+      var response = mock(Response.class);
+      when(response.code()).thenReturn(200);
+      when(okHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
+      when(methodsClient.chatPostMessage(any(ChatPostMessageRequest.class)))
+          .thenReturn(chatPostMessageResponse);
+      when(chatPostMessageResponse.isOk()).thenReturn(false);
+      when(chatPostMessageResponse.getError()).thenReturn("channel_not_found");
+      // When
+      Throwable thrown = catchThrowable(() -> chatPostMessageData.invoke(methodsClient));
+      // Then
+      assertThat(thrown).hasMessageContaining("channel_not_found");
+      verify(methodsClient, never())
+          .filesCompleteUploadExternal(any(FilesCompleteUploadExternalRequest.class));
     }
   }
 
