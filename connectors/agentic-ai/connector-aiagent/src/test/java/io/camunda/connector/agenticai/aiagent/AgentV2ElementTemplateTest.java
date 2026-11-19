@@ -192,6 +192,32 @@ class AgentV2ElementTemplateTest {
         .isEqualTo(template(file).get("id").asText());
   }
 
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void turnsDocumentReferencesOffForEveryUpdatedElement(String file) throws IOException {
+    for (JsonNode source : template(file).path("metadata").path("migratesFrom").get("sources")) {
+      final var entries = source.get("paths").findParents("to");
+      assertThat(entries)
+          .filteredOn(entry -> entry.get("to").asText().equals("data.documents.references"))
+          .singleElement()
+          .satisfies(entry -> {
+            assertThat(entry.get("set").isBoolean()).isTrue();
+            assertThat(entry.get("set").asBoolean()).isFalse();
+            // no guard: an element of the source template never has the property
+            assertThat(entry.has("when")).isFalse();
+          });
+      assertThat(entries)
+          .extracting(entry -> entry.get("to").asText())
+          .doesNotContain("data.documents.userPromptDelivery");
+    }
+  }
+
   private static JsonNode withoutElementKindTags(JsonNode template) {
     final var copy = template.deepCopy();
     for (JsonNode leaf : copy.get("steps").findParents("presetId")) {
