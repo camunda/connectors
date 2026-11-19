@@ -1056,14 +1056,10 @@ limitations under the License.</license.inlineheader>
                 <banSnapshots>false</banSnapshots>
               </requirePluginVersions>
               <!-- CVE-2026-9563 guard: fails if langchain4j is bumped, as a reminder to check
-                   whether the parsson override can be removed (see version.parsson).
-                   Verified: langchain4j 1.24.0 (beta34) still resolves parsson 1.1.7 (via
-                   langchain4j-elasticsearch -> elasticsearch-java 9.3.1) and 1.1.4 (via
-                   langchain4j-opensearch -> opensearch-java 2.9.0), same as 1.23.0, so the
-                   override is still needed for both versions. -->
+                   whether the parsson override can be removed (see version.parsson). -->
               <requireProperty>
                 <property>version.langchain4j</property>
-                <regex>^1\.2[34]\.0$</regex>
+                <regex>^1\.23\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the parsson CVE-2026-9563 override can be removed.
 If the new langchain4j-elasticsearch and langchain4j-opensearch versions ship parsson &gt;= 1.1.8, remove the
