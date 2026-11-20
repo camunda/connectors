@@ -320,8 +320,8 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
 
 ### ErrorProne
 
-ErrorProne warnings fail the `main` compilation (`-Werror`); generated sources under
-`target/generated-sources` are excluded. Fix a finding, or suppress it with `@SuppressWarnings("<CheckName>")`
+ErrorProne warnings fail the `main` compilation (`-Werror`); generated classes (annotated `@Generated`)
+are skipped. Fix a finding, or suppress it with `@SuppressWarnings("<CheckName>")`
 on the narrowest scope plus a comment stating why. Test code is not checked.
 
 ### Definition of Done
