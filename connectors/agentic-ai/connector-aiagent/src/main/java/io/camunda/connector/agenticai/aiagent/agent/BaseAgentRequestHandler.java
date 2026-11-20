@@ -225,7 +225,8 @@ public abstract class BaseAgentRequestHandler<
 
   /** A tool takes a document only when the agent instance tracks its documents. */
   private static void requireNoDocumentParameter(ToolDefinition toolDefinition) {
-    if (!DocumentParameter.hasAny(toolDefinition.inputSchema())) {
+    final var documentParameters = toolDefinition.documentParameters();
+    if (documentParameters.isEmpty()) {
       return;
     }
     throw new ConnectorException(
@@ -233,16 +234,16 @@ public abstract class BaseAgentRequestHandler<
         switch (toolDefinition.kind()) {
           case PROCESS ->
               "Invalid tool '%s'. Parameter '%s': The type 'document' requires an agent instance with document reference support."
-                  .formatted(toolDefinition.name(), firstDocumentParameterName(toolDefinition));
+                  .formatted(toolDefinition.name(), parameterName(documentParameters.getFirst()));
           case RUNTIME ->
               "Invalid tool '%s': The tool takes a document, which requires an agent instance with document reference support."
                   .formatted(toolDefinition.name());
         });
   }
 
-  /** The name of the parameter that holds the first document parameter of the tool. */
-  private static String firstDocumentParameterName(ToolDefinition toolDefinition) {
-    return toolDefinition.documentParameters().getFirst().path().stream()
+  /** The name of the tool parameter that holds the document parameter. */
+  private static String parameterName(DocumentParameter documentParameter) {
+    return documentParameter.path().stream()
         .filter(DocumentParameter.Step.Property.class::isInstance)
         .map(step -> ((DocumentParameter.Step.Property) step).name())
         .findFirst()

@@ -104,11 +104,6 @@ public record DocumentParameter(List<Step> path) {
     return List.copyOf(parameters);
   }
 
-  /** Whether the input schema of a tool has a document parameter, as {@link #findAll} finds it. */
-  public static boolean hasAny(Map<String, Object> inputSchema) {
-    return !findAll(inputSchema).isEmpty();
-  }
-
   /**
    * The input schema of a tool with each authored type {@value #TYPE_DOCUMENT} turned into the
    * {@link #documentSchema schema of a document parameter}. The description of the authored node
