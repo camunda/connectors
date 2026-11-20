@@ -25,8 +25,16 @@ class AgenticAiModulesTest {
         "jar:file:/work/connector-a2a/target/connector-a2a-8.11.12.jar" + CLASS_FILE,
         "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-alpha1.jar" + CLASS_FILE,
         "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-alpha12.jar" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-alpha1.1.jar" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-alpha1.12.jar" + CLASS_FILE,
         "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-rc1.jar" + CLASS_FILE,
-        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-rc12.jar" + CLASS_FILE
+        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-rc12.jar" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-rc1.1.jar" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-foo.bar.jar" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.jar" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-alpha.jar" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-rc.jar" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-beta1.jar" + CLASS_FILE
       })
   void locatesClassesInTheModuleBuildOutput(final String location) {
     assertThat(AgenticAiModules.A2A_CLIENT.isLocatedIn(location)).isTrue();
@@ -35,11 +43,10 @@ class AgenticAiModulesTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.jar" + CLASS_FILE,
-        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-alpha.jar" + CLASS_FILE,
-        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-rc.jar" + CLASS_FILE,
-        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-beta1.jar" + CLASS_FILE,
-        "jar:file:/work/connector-a2a/target/connector-a2a-other-8.11.0.jar" + CLASS_FILE
+        "jar:file:/work/connector-a2a/target/connector-a2a-other-8.11.0.jar" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a.jar" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a-8.11.0-alpha1.jar.1" + CLASS_FILE,
+        "jar:file:/work/connector-a2a/target/connector-a2a-SNAPSHOT.jar" + CLASS_FILE
       })
   void doesNotLocateClassesOutsideTheModuleBuildOutput(final String location) {
     assertThat(AgenticAiModules.A2A_CLIENT.isLocatedIn(location)).isFalse();

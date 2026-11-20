@@ -13,7 +13,6 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * The Agentic AI Maven modules, the package roots they own, and the means to tell which module a
@@ -51,8 +50,6 @@ enum AgenticAiModules {
   static final String ROOT = "io.camunda.connector.agenticai";
 
   private static final String ARCHIVE_SEPARATOR = "!/";
-  private static final Pattern VERSION_AND_EXTENSION =
-      Pattern.compile("-\\d+\\.\\d+\\.\\d+(-SNAPSHOT|-alpha\\d+|-rc\\d+)?\\.jar");
 
   private final String artifactId;
   private final String layerName;
@@ -96,8 +93,8 @@ enum AgenticAiModules {
 
   /**
    * Resolves the module whose build output contains the class: either the reactor output directory
-   * {@code <artifactId>/target/classes} or a jar named {@code <artifactId>-<version>.jar}, where
-   * the version is a stable, alpha, release candidate or snapshot version.
+   * {@code <artifactId>/target/classes} or a jar named {@code <artifactId>-<version>.jar}. The
+   * version is any string that starts with a digit, so every version scheme is supported.
    */
   static Optional<AgenticAiModules> moduleOf(final JavaClass javaClass) {
     return javaClass
@@ -114,8 +111,10 @@ enum AgenticAiModules {
     final int archiveEnd = location.indexOf(ARCHIVE_SEPARATOR);
     final String archive = archiveEnd >= 0 ? location.substring(0, archiveEnd) : location;
     final String fileName = archive.substring(archive.lastIndexOf('/') + 1);
-    return fileName.startsWith(artifactId)
-        && VERSION_AND_EXTENSION.matcher(fileName.substring(artifactId.length())).matches();
+    final String prefix = artifactId + "-";
+    return fileName.endsWith(".jar")
+        && fileName.startsWith(prefix)
+        && Character.isDigit(fileName.charAt(prefix.length()));
   }
 
   static String pkg(final String relativePackage) {
