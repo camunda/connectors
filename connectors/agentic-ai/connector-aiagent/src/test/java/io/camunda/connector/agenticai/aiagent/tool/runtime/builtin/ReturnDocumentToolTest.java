@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -59,8 +60,7 @@ class ReturnDocumentToolTest {
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
 
   private static final AgentContext WITH_DOCUMENTS =
-      AgentContext.empty()
-          .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+      AgentContext.empty().withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
 
   private final ReturnDocumentTool tool = new ReturnDocumentTool();
   private final DocumentParameterResolver resolver =

@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
@@ -35,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
@@ -61,7 +61,7 @@ class NonCamundaDocumentsConversationTest {
   private static final AgentContext TRACKED =
       AgentContext.builder()
           .state(AgentState.READY)
-          .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+          .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
           .conversation(InProcessConversationContext.builder("conv").build())
           .build();
   private static final AgentContext UNTRACKED =

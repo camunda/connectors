@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
@@ -351,7 +352,7 @@ class LocalToolCallExecutorTest {
     final var tracked =
         AgentContext.builder()
             .state(AgentState.READY)
-            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+            .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
             .build();
     final var document = TestDocuments.createDocument("content", "report.txt");
     final var content = ObjectContent.objectContent(new Attachment("report", document));

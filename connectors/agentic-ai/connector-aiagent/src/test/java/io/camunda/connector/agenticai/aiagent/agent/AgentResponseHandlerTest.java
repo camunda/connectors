@@ -48,6 +48,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -492,7 +493,7 @@ class AgentResponseHandlerTest {
     }
 
     private AgentConversation conversation(ToolCall... calls) {
-      return conversation(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS), calls);
+      return conversation(TestAgentFeatures.DOCUMENT_REFERENCES_ON, calls);
     }
 
     /** The response to the text of the assistant message with the given tool calls. */

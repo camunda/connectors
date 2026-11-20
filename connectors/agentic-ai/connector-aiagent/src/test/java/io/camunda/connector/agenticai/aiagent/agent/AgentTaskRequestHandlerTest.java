@@ -47,7 +47,6 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -62,6 +61,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
@@ -82,7 +82,7 @@ class AgentTaskRequestHandlerTest {
 
   private static final AgentContext INITIAL_AGENT_CONTEXT =
       AgentContext.builder()
-          .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+          .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
           .state(AgentState.READY)
           .toolDefinitions(TOOL_DEFINITIONS)
           .build();
@@ -148,7 +148,7 @@ class AgentTaskRequestHandlerTest {
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
         AgentContext.builder()
-            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+            .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
             .state(AgentState.TOOL_DISCOVERY)
             .build();
 
@@ -171,7 +171,7 @@ class AgentTaskRequestHandlerTest {
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
         AgentContext.builder()
-            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+            .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
             .state(AgentState.TOOL_DISCOVERY)
             .build();
 
@@ -322,7 +322,7 @@ class AgentTaskRequestHandlerTest {
 
     final var contextAtLimit =
         AgentContext.builder()
-            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+            .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
             .state(AgentState.READY)
             .toolDefinitions(TOOL_DEFINITIONS)
             .metrics(new AgentMetrics(2, TokenUsage.empty(), 0))

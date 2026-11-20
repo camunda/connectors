@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -144,7 +145,7 @@ class AgentInitializerTest {
           .thenReturn(Map.of("io.camunda.zeebe:agentDefinitionKey", "6755399441055744"));
       when(agentInstanceClient.create(any())).thenReturn(AgentInstanceKey.of(12345L));
       when(executionContext.newInstanceFeatures())
-          .thenReturn(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+          .thenReturn(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
 
       when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
@@ -164,8 +165,7 @@ class AgentInitializerTest {
                         AgentContext.empty()
                             .withState(AgentState.READY)
                             .withMetadata(expectedMetadata)
-                            .withFeatures(
-                                List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS)));
+                            .withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON));
                 assertThat(res.toolCallResults()).isEmpty();
               });
 
@@ -175,7 +175,7 @@ class AgentInitializerTest {
     @Test
     void shouldCreateNewAgentInstanceWithTheNewInstanceFeaturesOfTheExecution() {
       when(executionContext.newInstanceFeatures())
-          .thenReturn(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+          .thenReturn(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
       when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 

@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -62,7 +63,7 @@ class AgentTaskExecutionContextTest {
             agentRequestData,
             TEST_CHAT_MODEL,
             toolElementsResolver,
-            List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+            TestAgentFeatures.DOCUMENT_REFERENCES_ON);
   }
 
   @Test
@@ -107,7 +108,7 @@ class AgentTaskExecutionContextTest {
             agentRequestData,
             TEST_CHAT_MODEL,
             toolElementsResolver,
-            List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+            TestAgentFeatures.DOCUMENT_REFERENCES_ON);
 
     assertThat(context.documentFactory()).isSameAs(documentFactory);
   }
