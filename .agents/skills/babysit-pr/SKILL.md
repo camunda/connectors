@@ -1,6 +1,6 @@
 ---
 name: babysit-pr
-description: Drive one or more camunda/connectors PRs (a merge plus its backports) to ready-to-merge — green CI, Copilot's review settled, every review thread handled — and enqueue them once approved. Use when asked to babysit, shepherd, watch, drive, or "get merged" PRs, or to fix CI and review comments until they land.
+description: Drive one or more camunda/connectors PRs (a merge plus its backports) to ready-to-merge — green CI, Copilot's review settled, every review thread handled — and arm auto-merge so they land as soon as a human approves. Use when asked to babysit, shepherd, watch, drive, or "get merged" PRs, or to fix CI and review comments until they land.
 ---
 
 # Babysit PR(s) to merge
@@ -8,9 +8,9 @@ description: Drive one or more camunda/connectors PRs (a merge plus its backport
 Ported from the camunda/camunda `babysit-pr` skill, extended: this one also **fixes** problems
 (real CI failures in the PR's own diff, review threads) instead of only rerunning flakes.
 
-Goal per PR: **green CI** + **Copilot settled** + **every review thread handled** → then enqueue if
-approved, otherwise report "ready, awaiting human approval" and stop. Never wait on a human review;
-the skill is re-invocable.
+Goal per PR: **green CI** + **Copilot settled** + **every review thread handled** → then arm auto-merge
+(it enqueues the PR once the human approval is in) and stop. Never wait on a human review; the skill
+is re-invocable.
 
 Owns its own loop. Invoke once; it tends the PR(s) across turns. No `/loop` wrapper.
 
@@ -35,7 +35,7 @@ All in `scripts/`, JSON on stdout. Use them instead of hand-writing `gh` / Graph
 | `review-threads.sh <pr>` | unresolved threads with their replies (`kind` human/bot; a human reply makes it human) |
 | `resolve-thread.sh <id> [--reply T] [--no-resolve]` | reply and/or resolve a thread |
 | `rerun-failed.sh <pr>` | rerun failed jobs, ≤3 reruns per run |
-| `enqueue.sh <pr> <headOid>` | enable auto-merge / enqueue, bound to the head commit the readiness check saw |
+| `enqueue.sh <pr> <headOid>` | enable auto-merge (enqueues once approved), bound to the head commit the readiness check saw |
 | `wait-for-change.sh <pr>...` | block until CI, Copilot, threads or state change |
 
 ## Hard rules
@@ -70,8 +70,8 @@ Unsure → **real**.
 
 One row per PR; repeat passes until every PR is terminal, then report.
 
-**Terminal:** ✅ merged · 🟢 ready, awaiting human approval · ⛔ needs author/user · 🔁✋ cap hit.
-**Not terminal:** 📥 enqueued — keep passing until it is ✅ merged or gets removed from the queue.
+**Terminal:** ✅ merged · 🟢 ready, auto-merge armed, awaiting human approval · ⛔ needs author/user · 🔁✋ cap hit.
+**Not terminal:** 📥 enqueued (approved, in the queue) — keep passing until it is ✅ merged or gets removed from the queue.
 
 **Each pass, per non-terminal PR:**
 
@@ -96,16 +96,20 @@ One row per PR; repeat passes until every PR is terminal, then report.
    [thread-triage](references/thread-triage.md). Batch all fixes into one push.
 5. **Done?** CI green (nothing failed/pending), Copilot `current` and `green` — or `blue`/`changes`
    with all of its points answered — and no unresolved thread except human ones awaiting the user.
-   - `reviewDecision == APPROVED` and not already enqueued → `scripts/enqueue.sh <pr> <headOid>` with the
-     `headOid` of the snapshot you just judged ready (enables auto-merge bound to it; on branches under the "Use Merge Queue" ruleset — `main`
-     and the recent `stable/*` — that enqueues the PR, elsewhere it arms auto-merge). Don't use
-     `gh pr merge --auto`: it needs an explicit strategy on non-queue branches. Enqueued =
-     `queue != null` **or** `autoMerge`: a queued PR may report `autoMerge: false`.
-   - Otherwise → 🟢 ready, awaiting human approval.
+   - Not already armed/enqueued, and no human thread left open awaiting the user → `scripts/enqueue.sh <pr> <headOid>`
+     with the `headOid` of the snapshot you just judged ready. Do it **whether or not the PR is approved**:
+     it enables auto-merge bound to that commit, and GitHub waits for the approval and the required
+     checks, then enqueues (on branches under the "Use Merge Queue" ruleset — `main` and the recent
+     `stable/*`) or merges. Don't use `gh pr merge --auto`: it needs an explicit strategy on non-queue
+     branches. Armed/enqueued = `queue != null` **or** `autoMerge`: a queued PR may report
+     `autoMerge: false`. A new push can drop auto-merge: re-arm it on the next pass.
+   - Then `reviewDecision == APPROVED` → 📥 enqueued; otherwise → 🟢 ready, auto-merge armed, awaiting
+     human approval (terminal).
+   - Human thread still open awaiting the user → don't arm; 🟢 ready, awaiting human approval, and list the thread under "Needs you".
    - Backports never take this step: the bot approves and auto-merges them
      (`AUTO_MERGE_BACKPORT_PR.yml`) while it is the sole pusher and tests pass.
-   - **Enqueued PRs stay under watch.** If it later shows `OPEN`, approved, green, not enqueued, it
-     was removed from the queue: look at its merge-group run
+   - **Enqueued PRs stay under watch.** If it later shows `OPEN`, approved, green, not enqueued (and
+     `autoMerge: false`), it was removed from the queue: look at its merge-group run
      (`gh run list --repo camunda/connectors --event merge_group --limit 10`, then the run's failed
      jobs). Flaky on the temp branch → re-enqueue (≤3× per PR; count them in the report). Real
      failure or removal by a concurrently merged change → ⛔.
