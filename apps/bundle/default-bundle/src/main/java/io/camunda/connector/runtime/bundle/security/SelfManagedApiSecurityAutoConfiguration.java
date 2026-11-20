@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.bundle.security;
 import io.camunda.connector.runtime.ConnectorsAutoConfiguration;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -36,6 +37,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 
 /**
@@ -72,6 +75,9 @@ public class SelfManagedApiSecurityAutoConfiguration {
   @Value("${" + SECURE_MANAGEMENT_API_PROPERTY + ":false}")
   private boolean secureManagementApi;
 
+  @Value("${spring.mvc.servlet.path:/}")
+  private String servletPath;
+
   private JwtDecoder jwtDecoder;
 
   /** First in the chain order, so no catch-all chain can claim the route ahead of it. */
@@ -79,8 +85,9 @@ public class SelfManagedApiSecurityAutoConfiguration {
   @Order(Ordered.HIGHEST_PRECEDENCE)
   public SecurityFilterChain selfManagedConfigurationValidationFilterChain(HttpSecurity http)
       throws Exception {
-    http.csrf(csrf -> csrf.ignoringRequestMatchers(PROTECTED_ROUTES))
-        .securityMatchers(matchers -> matchers.requestMatchers(PROTECTED_ROUTES))
+    var protectedRoutes = matchers(PROTECTED_ROUTES);
+    http.csrf(csrf -> csrf.ignoringRequestMatchers(protectedRoutes))
+        .securityMatchers(matchers -> matchers.requestMatchers(protectedRoutes))
         // Stateless, so a session from another route cannot satisfy authenticated() here.
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
@@ -105,23 +112,32 @@ public class SelfManagedApiSecurityAutoConfiguration {
   @Order(Ordered.HIGHEST_PRECEDENCE + 1)
   public SecurityFilterChain selfManagedManagementApiFilterChain(HttpSecurity http)
       throws Exception {
-    http.csrf(csrf -> csrf.ignoringRequestMatchers(MANAGEMENT_ROUTES))
-        .securityMatchers(matchers -> matchers.requestMatchers(MANAGEMENT_ROUTES))
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-    if (secureManagementApi) {
-      if (!StringUtils.hasText(issuer)) {
-        throw new IllegalStateException(
-            SECURE_MANAGEMENT_API_PROPERTY
-                + " requires camunda.connector.auth.self-managed.issuer and "
-                + "camunda.connector.auth.self-managed.audience to be set.");
-      }
-      http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-          .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
-    } else {
-      http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+    if (!secureManagementApi) {
+      return http.securityMatcher(request -> false).build();
     }
+    if (!StringUtils.hasText(issuer)) {
+      throw new IllegalStateException(
+          SECURE_MANAGEMENT_API_PROPERTY
+              + " requires camunda.connector.auth.self-managed.issuer and "
+              + "camunda.connector.auth.self-managed.audience to be set.");
+    }
+    var managementRoutes = matchers(MANAGEMENT_ROUTES);
+    http.csrf(csrf -> csrf.ignoringRequestMatchers(managementRoutes))
+        .securityMatchers(matchers -> matchers.requestMatchers(managementRoutes))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+        .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     return http.build();
+  }
+
+  private RequestMatcher[] matchers(String... patterns) {
+    var builder = PathPatternRequestMatcher.withDefaults();
+    var basePath = StringUtils.trimTrailingCharacter(servletPath, '/');
+    if (StringUtils.hasText(basePath)) {
+      builder = builder.basePath(basePath);
+    }
+    return Arrays.stream(patterns).map(builder::matcher).toArray(RequestMatcher[]::new);
   }
 
   private void rejectAuthenticationConfiguration() {
