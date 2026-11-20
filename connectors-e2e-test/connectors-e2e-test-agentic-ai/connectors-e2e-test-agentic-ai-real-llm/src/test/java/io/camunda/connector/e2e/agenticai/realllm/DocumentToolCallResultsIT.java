@@ -17,7 +17,10 @@
 package io.camunda.connector.e2e.agenticai.realllm;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH;
@@ -32,16 +35,23 @@ import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
+import io.camunda.connector.e2e.agenticai.aiagent.fixtures.DocumentSetup;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -54,6 +64,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.ResourceLoader;
 
 /**
@@ -66,6 +77,11 @@ import org.springframework.core.io.ResourceLoader;
  * row creates an agent instance without features: the model has no {@code c8__load_document} tool,
  * and the content of the documents follows the tool results in a message of the agent. The
  * assertions are the same for both, because they check what the model reports about the documents.
+ *
+ * <p>A v2 row also runs the nested documents with "Use document references" cleared, which sends
+ * the content of the documents after the tool results as a v1 row does. With document references, a
+ * v2 row passes a document to a tool with a document parameter and returns a document with {@code
+ * c8__return_document}.
  *
  * <p>Local-only: runs only when {@code RUN_NATIVE_LLM_E2E=true} and the row's API key is present.
  * Configure API keys via environment variables:
@@ -107,6 +123,13 @@ class DocumentToolCallResultsIT {
   private static final String DOC_HEADCOUNT_REPORT = DOC_DIR + "headcount-report.pdf";
   private static final String DOC_AUTHOR_INFO = DOC_DIR + "author-info.pdf";
 
+  /** The document the {@code Fetch_Report} tool returns as the cover page. */
+  private static final String DOC_COVER_PAGE = DOC_AUTHOR_INFO;
+
+  private static final String ARCHIVE_TOOL = "Archive_Document";
+  private static final String ARCHIVE_PATH = "/archive";
+  private static final String COVER_PAGE_KEY = "cover_page";
+
   private static final String SYSTEM_PROMPT =
       "You are a document analyst. Use the available tools to retrieve and analyze documents. "
           + "When reporting findings, always quote specific facts, numbers, dates, and names "
@@ -141,7 +164,7 @@ class DocumentToolCallResultsIT {
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providers")
+  @MethodSource({"providers", "v2ProvidersWithoutDocumentReferences"})
   void nestedStructureDocumentsFromToolCallResult(
       ProviderConfig provider, WireMockRuntimeInfo wireMock) {
     var processInstance =
@@ -167,6 +190,75 @@ class DocumentToolCallResultsIT {
             });
   }
 
+  /**
+   * The model archives the cover page with a tool that has a document parameter. The model passes
+   * the handle of the document, and the tool receives the bytes of the document.
+   */
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
+  @MethodSource("v2Providers")
+  void documentParameterOfToolReceivesTheDocument(
+      ProviderConfig provider, WireMockRuntimeInfo wireMock) throws IOException {
+    stubFor(post(urlPathEqualTo(ARCHIVE_PATH)).willReturn(aResponse().withStatus(200)));
+
+    var processInstance =
+        startProcess(
+            withArchiveTool(buildModel(provider)),
+            "Get the full report, then archive its cover page once. Archive no other document.",
+            reportUrls(wireMock),
+            Map.of("archiveUrl", wireMock.getHttpBaseUrl() + ARCHIVE_PATH));
+
+    awaitCompletionOrIncident(processInstance);
+    assertThat(processInstance).withAssertionTimeout(PROCESS_TIMEOUT).isCompleted();
+
+    var uploads = findAll(postRequestedFor(urlPathEqualTo(ARCHIVE_PATH)));
+    Assertions.assertThat(uploads).as("requests to the archive endpoint").hasSize(1);
+    var file = uploads.getFirst().getPart("file");
+    Assertions.assertThat(file).as("file part of the archive request").isNotNull();
+    Assertions.assertThat(file.getBody().asBytes())
+        .as("archived bytes")
+        .isEqualTo(new ClassPathResource("__files/" + DOC_COVER_PAGE).getContentAsByteArray());
+  }
+
+  /**
+   * The model returns the cover page with its final response. The response of the agent holds the
+   * document under the key the prompt names.
+   */
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
+  @MethodSource("v2Providers")
+  void returnedDocumentIsPartOfTheResponse(ProviderConfig provider, WireMockRuntimeInfo wireMock) {
+    var processInstance =
+        startProcess(
+            provider,
+            "Get the full report, then return its cover page with your final response under the "
+                + "key "
+                + COVER_PAGE_KEY
+                + ". Do not return any other document.",
+            reportUrls(wireMock));
+
+    awaitCompletionOrIncident(processInstance);
+    var coverPage = new AtomicReference<Map<?, ?>>();
+    assertThat(processInstance)
+        .withAssertionTimeout(PROCESS_TIMEOUT)
+        .isCompleted()
+        .hasVariableSatisfies(
+            "downloadedFiles", List.class, files -> coverPage.set((Map<?, ?>) files.get(2)))
+        .hasVariableSatisfies(
+            "agent",
+            Map.class,
+            agent -> {
+              logAgentResponse(provider, "returnDocument", agent);
+              var documents = (Map<?, ?>) agent.get("responseDocuments");
+              Assertions.assertThat(documents.keySet().stream().map(String::valueOf))
+                  .as("keys of the response documents")
+                  .containsExactly(COVER_PAGE_KEY);
+              var returned =
+                  (Map<?, ?>) ((Map<?, ?>) documents.get(COVER_PAGE_KEY)).get("document");
+              Assertions.assertThat(returned.get("documentId"))
+                  .as("id of the returned document")
+                  .isEqualTo(coverPage.get().get("documentId"));
+            });
+  }
+
   // ---------------------------------------------------------------------------
   // Provider configurations
   // ---------------------------------------------------------------------------
@@ -179,6 +271,16 @@ class DocumentToolCallResultsIT {
               + "REAL_LLM_PROVIDER_GROUP");
     }
     return selectedProviders.stream();
+  }
+
+  /** The selected v2 rows: only their agent instances can use document references. */
+  static Stream<ProviderConfig> v2Providers() {
+    return providers().filter(ProviderConfig::isV2);
+  }
+
+  /** The selected v2 rows with "Use document references" cleared. */
+  static Stream<ProviderConfig> v2ProvidersWithoutDocumentReferences() {
+    return v2Providers().map(ProviderConfig::withoutDocumentReferences);
   }
 
   private static Stream<ProviderConfig> providerCatalog() {
@@ -206,8 +308,10 @@ class DocumentToolCallResultsIT {
         // AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference
         bedrockV2("global.anthropic.claude-sonnet-5-5"),
         bedrockV2("eu.anthropic.claude-haiku-4-5-20251001-v1:0"),
-        // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model
-        bedrockV2("eu.amazon.nova-2-lite-v1:0"),
+        // AWS Bedrock, v2 (native Converse API); Amazon's own multimodal Converse model.
+        // Disabled for now: it can load a document twice, and Bedrock Converse rejects a request
+        // that holds a document twice (#10620).
+        bedrockV2("eu.amazon.nova-2-lite-v1:0").disabled(),
         // Google Gemini, v2, via Vertex AI
         googleGeminiVertexAiV2("gemini-3.8-flash", "global"),
         // Docker Model Runner (OpenAI-compatible)
@@ -486,7 +590,17 @@ class DocumentToolCallResultsIT {
 
   private ProcessInstanceEvent startProcess(
       ProviderConfig provider, String userPrompt, List<String> downloadUrls) {
-    var model = buildModel(provider);
+    return startProcess(buildModel(provider), userPrompt, downloadUrls, Map.of());
+  }
+
+  private ProcessInstanceEvent startProcess(
+      BpmnModelInstance model,
+      String userPrompt,
+      List<String> downloadUrls,
+      Map<String, Object> processVariables) {
+    var variables = new HashMap<String, Object>(processVariables);
+    variables.put("userPrompt", userPrompt);
+    variables.put("downloadUrls", downloadUrls);
 
     // deploy and wait for process definition to be available
     ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
@@ -495,10 +609,7 @@ class DocumentToolCallResultsIT {
         .newCreateInstanceCommand()
         .bpmnProcessId("CPT_Document_Tool_Call_Results")
         .latestVersion()
-        .variables(
-            Map.of(
-                "userPrompt", userPrompt,
-                "downloadUrls", downloadUrls))
+        .variables(variables)
         .send()
         .join();
   }
@@ -530,6 +641,25 @@ class DocumentToolCallResultsIT {
     } catch (Exception e) {
       throw new RuntimeException("Failed to build BPMN model for " + provider.label(), e);
     }
+  }
+
+  private static List<String> reportUrls(WireMockRuntimeInfo wireMock) {
+    return Stream.of(DOC_PROJECT_LAUNCH, DOC_HEADCOUNT_REPORT, DOC_AUTHOR_INFO)
+        .map(doc -> wireMock.getHttpBaseUrl() + "/" + doc)
+        .toList();
+  }
+
+  /**
+   * Moves the {@code Archive_Document} tool of the process into the ad-hoc sub-process of the
+   * agent. The tool takes a document as its {@code document} parameter, which an agent without
+   * document references rejects, so only the v2 scenario moves it.
+   */
+  private static BpmnModelInstance withArchiveTool(BpmnModelInstance model) {
+    final ServiceTask archive = model.getModelElementById(ARCHIVE_TOOL);
+    archive.getParentElement().removeChildElement(archive);
+    final AdHocSubProcess agent = model.getModelElementById("AI_Agent");
+    agent.addChildElement(archive);
+    return model;
   }
 
   private void logAgentResponse(ProviderConfig provider, String scenario, Object agent) {
@@ -576,6 +706,23 @@ class DocumentToolCallResultsIT {
     ProviderConfig disabled() {
       return new ProviderConfig(
           label, providerGroup, requiredEnvVars, false, elementTemplatePath, properties);
+    }
+
+    boolean isV2() {
+      return AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH.equals(elementTemplatePath);
+    }
+
+    /** The row with "Use document references" cleared. */
+    ProviderConfig withoutDocumentReferences() {
+      var withoutReferences = new HashMap<>(properties);
+      withoutReferences.putAll(DocumentSetup.REFERENCES_OFF.properties());
+      return new ProviderConfig(
+          label + " without document references",
+          providerGroup,
+          requiredEnvVars,
+          enabled,
+          elementTemplatePath,
+          Map.copyOf(withoutReferences));
     }
 
     boolean isEnabled() {

@@ -166,8 +166,10 @@ the test output for skipped parameterized invocations before treating a green ID
 coverage.
 
 `DocumentToolCallResultsIT` is explicitly included in the `it-real-llm` profile because it does not
-match the `*E2ETestIT` class pattern. Its active scenario deterministically checks the provider's
-final response for the facts contained in every nested document; it does not require a separate judge
+match the `*E2ETestIT` class pattern. Its scenarios deterministically check the provider's final
+response for the facts contained in every nested document, the bytes a tool with a document parameter
+receives, and the document the model returns; they do not require a separate judge model. They check
+the outcome only, not the agent context: the deterministic e2e tests cover how the content reaches the
 model. Add user-message document scenarios to `RealProviderMultimodalE2ETestIT`; add tool-result
 document scenarios to `DocumentToolCallResultsIT`, which owns compatibility coverage across legacy
 v1 and native v2 provider paths. Run it locally with `-Dgroups=document-tool-results` and set
