@@ -83,7 +83,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
 
   @Override
   protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
-    return mcpSupport.setRemoteClientUrls(model);
+    return mcpSupport.configureMcpClients(model);
   }
 
   @Test

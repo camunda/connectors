@@ -83,7 +83,7 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
 
   @Override
   protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
-    return mcpSupport.setRemoteClientUrls(model);
+    return mcpSupport.configureMcpClients(model);
   }
 
   @Test

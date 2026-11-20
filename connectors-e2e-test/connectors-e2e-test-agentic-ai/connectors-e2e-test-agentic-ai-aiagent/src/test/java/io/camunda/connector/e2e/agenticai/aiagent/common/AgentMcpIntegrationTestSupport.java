@@ -115,11 +115,15 @@ public class AgentMcpIntegrationTestSupport {
   }
 
   /**
-   * The server ports are known only at runtime, so the remote gateways get their URL here. Returns
-   * a customized copy and leaves the given model unchanged.
+   * Sets the runtime client ids of the local client gateways and the URLs of the remote gateways.
+   * The server ports are known only at runtime. Returns a customized copy and leaves the given
+   * model unchanged.
    */
-  public BpmnModelInstance setRemoteClientUrls(BpmnModelInstance model) {
+  public BpmnModelInstance configureMcpClients(BpmnModelInstance model) {
     final var customized = model.clone();
+    setLocalClientId(customized, "A_MCP_Client", McpTestServerTransport.STDIO);
+    setLocalClientId(customized, "A_HTTP_MCP_Client", McpTestServerTransport.HTTP);
+    setLocalClientId(customized, "Filesystem", McpTestServerTransport.SSE);
     setRemoteClientUrl(customized, "A_HTTP_Remote_MCP_Client", McpTestServerTransport.HTTP);
     setRemoteClientUrl(customized, "A_SSE_Remote_MCP_Client", McpTestServerTransport.SSE);
     return customized;
@@ -168,6 +172,12 @@ public class AgentMcpIntegrationTestSupport {
   }
 
   public record ExpectedToolResult(String toolCallId, String text) {}
+
+  private void setLocalClientId(
+      BpmnModelInstance model, String elementId, McpTestServerTransport transport) {
+    updateInputMappings(
+        model, elementId, Map.of("data.client.clientId", McpTestServers.clientId(transport)));
+  }
 
   private void setRemoteClientUrl(
       BpmnModelInstance model, String elementId, McpTestServerTransport transport) {
