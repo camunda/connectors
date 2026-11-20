@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.agenticai.realllm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.e2e.agenticai.aiagent.fixtures.DocumentSetup;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -181,8 +182,13 @@ class RealProviderSelectionTest {
 
     assertThat(RealProviderApiSmokeSupport.providersWithStructuredOutputAndTools()).isEmpty();
     assertThat(RealProviderApiSmokeSupport.providersWithStructuredOutputWithoutTools())
-        .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
-        .containsExactly("google-gemini-vertex-ai-v2/gemini-3.8-flash");
+        .singleElement()
+        .satisfies(provider -> {
+          assertThat(provider.label()).isEqualTo("google-gemini-vertex-ai-v2/gemini-3.8-flash");
+          assertThat(
+                  provider.propertiesFor(RealProviderApiSmokeSupport.Capability.STRUCTURED_OUTPUT))
+              .isEqualTo(DocumentSetup.REFERENCES_OFF.properties());
+        });
   }
 
   @Test
