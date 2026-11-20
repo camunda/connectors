@@ -21,13 +21,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration.McpTestServers;
 import io.camunda.connector.e2e.agenticai.McpTestServerTransport;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
+import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -58,6 +61,14 @@ public class AgentMcpIntegrationTestSupport {
           "mcp-session-id",
           "upgrade",
           "user-agent");
+
+  private static final List<String> GATEWAYS =
+      List.of(
+          "A_MCP_Client",
+          "A_HTTP_MCP_Client",
+          "A_HTTP_Remote_MCP_Client",
+          "A_SSE_Remote_MCP_Client",
+          "Filesystem_MCP_Flow");
 
   private static final Set<McpClientRegistry> WARMED_UP_REGISTRIES = ConcurrentHashMap.newKeySet();
 
@@ -118,6 +129,22 @@ public class AgentMcpIntegrationTestSupport {
     assertThat(echoed)
         .as("headers echoed for tool call %s", toolCallId)
         .isEqualTo(Map.of("x-dummy", expectedDummyValue));
+  }
+
+  /**
+   * Asserts how often each gateway element completed. Tool discovery activates every gateway once,
+   * and every tool call activates its gateway once more. The Filesystem gateway is a flow, so its
+   * inner Filesystem task completes as often as the flow element.
+   */
+  public void assertGatewayCompletions(
+      ProcessInstanceEvent processInstance, Map<String, Integer> toolCallsByGateway) {
+    for (final var gateway : GATEWAYS) {
+      final var expected = 1 + toolCallsByGateway.getOrDefault(gateway, 0);
+      CamundaAssert.assertThat(processInstance).hasCompletedElement(gateway, expected);
+      if (gateway.equals("Filesystem_MCP_Flow")) {
+        CamundaAssert.assertThat(processInstance).hasCompletedElement("Filesystem", expected);
+      }
+    }
   }
 
   private void setRemoteClientUrl(

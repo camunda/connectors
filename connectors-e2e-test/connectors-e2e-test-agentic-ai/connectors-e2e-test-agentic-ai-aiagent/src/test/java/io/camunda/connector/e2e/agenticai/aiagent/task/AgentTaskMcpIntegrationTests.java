@@ -117,6 +117,7 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
           .hasCompletedElementsInOrder("AI_Agent", gateway, "AI_Agent");
     }
 
+    mcpSupport.assertGatewayCompletions(zeebeTest.getProcessInstanceEvent(), Map.of());
     verify(agentInstanceClient).applyToolDiscoveryStart(any(), any());
   }
 
@@ -185,6 +186,14 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
                 .hasResponseMessageText(finalAiText)
                 .hasResponseText(finalAiText));
 
+    mcpSupport.assertGatewayCompletions(
+        zeebeTest.getProcessInstanceEvent(),
+        Map.of(
+            "A_MCP_Client", 1,
+            "A_HTTP_MCP_Client", 1,
+            "A_HTTP_Remote_MCP_Client", 2,
+            "A_SSE_Remote_MCP_Client", 1,
+            "Filesystem_MCP_Flow", 1));
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
     // tool discovery MUST NOT run again on the later iterations
     verify(agentInstanceClient).applyToolDiscoveryStart(any(), any());
@@ -237,5 +246,8 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
               .hasOnlyAgentDocumentSatisfying(
                   document -> assertHandleOf(document, documentHandle, null, "image/png", null));
         });
+
+    mcpSupport.assertGatewayCompletions(
+        zeebeTest.getProcessInstanceEvent(), Map.of("A_MCP_Client", 1));
   }
 }
