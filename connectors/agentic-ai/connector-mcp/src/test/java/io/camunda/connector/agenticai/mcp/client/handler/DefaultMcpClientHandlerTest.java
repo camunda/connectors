@@ -125,6 +125,33 @@ class DefaultMcpClientHandlerTest {
       assertThat(result).isEqualTo(expectedResult);
     }
 
+    @Test
+    void forwardsConfiguredMetaToExecutor_whenListingTools() {
+      final Map<String, Object> meta = Map.of("exampleMetaKey", "exampleMetaValue");
+      final var request =
+          new McpClientRequest(
+              new McpClientRequestData(
+                  CLIENT_CONFIG,
+                  new ToolModeConfiguration(
+                      LIST_TOOLS_OPERATION,
+                      meta,
+                      new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
+      final var expectedResult = new McpClientListToolsResult(List.of());
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .isEqualTo(McpClientOperation.of("tools/list", Map.of(), meta))),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
     @ParameterizedTest
     @MethodSource(
         "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpClientHandlerTest#mcpOperationArguments")
