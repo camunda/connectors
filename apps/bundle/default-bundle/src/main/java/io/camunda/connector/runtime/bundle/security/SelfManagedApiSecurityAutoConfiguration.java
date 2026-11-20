@@ -53,6 +53,13 @@ public class SelfManagedApiSecurityAutoConfiguration {
 
   private static final String PROTECTED_ROUTES = "/configurations/**";
 
+  private static final String[] MANAGEMENT_ROUTES = {
+    "/inbound", "/tenants/**", "/inbound-instances/**", "/outbound/**"
+  };
+
+  private static final String SECURE_MANAGEMENT_API_PROPERTY =
+      "camunda.connector.auth.self-managed.secure-management-api";
+
   @Value("${camunda.connector.auth.self-managed.issuer:}")
   private String issuer;
 
@@ -61,6 +68,11 @@ public class SelfManagedApiSecurityAutoConfiguration {
 
   @Value("${camunda.connector.configuration.validation.unsecured:false}")
   private boolean unsecured;
+
+  @Value("${" + SECURE_MANAGEMENT_API_PROPERTY + ":false}")
+  private boolean secureManagementApi;
+
+  private JwtDecoder jwtDecoder;
 
   /** First in the chain order, so no catch-all chain can claim the route ahead of it. */
   @Bean
@@ -89,29 +101,60 @@ public class SelfManagedApiSecurityAutoConfiguration {
     return http.build();
   }
 
+  @Bean
+  @Order(Ordered.HIGHEST_PRECEDENCE + 1)
+  public SecurityFilterChain selfManagedManagementApiFilterChain(HttpSecurity http)
+      throws Exception {
+    http.csrf(csrf -> csrf.ignoringRequestMatchers(MANAGEMENT_ROUTES))
+        .securityMatchers(matchers -> matchers.requestMatchers(MANAGEMENT_ROUTES))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+    if (secureManagementApi) {
+      if (!StringUtils.hasText(issuer)) {
+        throw new IllegalStateException(
+            SECURE_MANAGEMENT_API_PROPERTY
+                + " requires camunda.connector.auth.self-managed.issuer and "
+                + "camunda.connector.auth.self-managed.audience to be set.");
+      }
+      http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+          .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
+    } else {
+      http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+    }
+    return http.build();
+  }
+
   private void rejectAuthenticationConfiguration() {
-    if (StringUtils.hasText(issuer) || StringUtils.hasText(audience)) {
+    if (!secureManagementApi && (StringUtils.hasText(issuer) || StringUtils.hasText(audience))) {
       throw new IllegalStateException(
           "camunda.connector.configuration.validation.unsecured cannot be enabled together with "
               + "camunda.connector.auth.self-managed.issuer or "
-              + "camunda.connector.auth.self-managed.audience");
+              + "camunda.connector.auth.self-managed.audience, unless "
+              + SECURE_MANAGEMENT_API_PROPERTY
+              + " is enabled");
     }
   }
 
   private JwtDecoder jwtDecoder() {
+    if (jwtDecoder == null) {
+      jwtDecoder = createJwtDecoder();
+    }
+    return jwtDecoder;
+  }
+
+  private JwtDecoder createJwtDecoder() {
     if (!StringUtils.hasText(audience)) {
       throw new IllegalStateException(
           "camunda.connector.auth.self-managed.audience must be set when "
               + "camunda.connector.auth.self-managed.issuer is set. Without an audience, every "
-              + "token the issuer signs for any of its clients would be accepted on "
-              + PROTECTED_ROUTES
-              + ". Set it to the aud claim of the tokens Camunda Hub forwards to this runtime.");
+              + "token the issuer signs for any of its clients would be accepted. Set it to the "
+              + "aud claim of the tokens sent to this runtime.");
     }
-    NimbusJwtDecoder jwtDecoder = JwtDecoders.fromOidcIssuerLocation(issuer);
-    jwtDecoder.setJwtValidator(
+    NimbusJwtDecoder decoder = JwtDecoders.fromOidcIssuerLocation(issuer);
+    decoder.setJwtValidator(
         new DelegatingOAuth2TokenValidator<>(
             JwtValidators.createDefaultWithIssuer(issuer), new AudienceValidator(audience)));
-    return jwtDecoder;
+    return decoder;
   }
 
   private static void respondNotFound(

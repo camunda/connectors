@@ -123,6 +123,7 @@ public class ConnectorInstancesSecurityConfigurationTest {
   public void selfManagedChain_backsOffBehindTheConsoleChain() {
     assertThat(applicationContext.containsBean("selfManagedConfigurationValidationFilterChain"))
         .isFalse();
+    assertThat(applicationContext.containsBean("selfManagedManagementApiFilterChain")).isFalse();
   }
 
   @Test
