@@ -48,7 +48,6 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentRestorer;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
@@ -82,6 +81,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -122,7 +122,7 @@ class CamundaAgentInstanceClientTest {
   private static final HistoryDocuments NEW_INSTANCE =
       HistoryDocuments.of(
           TestAgentExecutionContext.withLimits(),
-          AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()));
+          AgentContext.empty().withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON));
 
   private static final long ELEMENT_INSTANCE_KEY = 77L;
 
@@ -1816,6 +1816,11 @@ class CamundaAgentInstanceClientTest {
     @Override
     public DocumentFactory documentFactory() {
       return TestDocuments.documentFactory();
+    }
+
+    @Override
+    public List<String> newInstanceFeatures() {
+      return TestAgentFeatures.DOCUMENT_REFERENCES_ON;
     }
 
     @Override

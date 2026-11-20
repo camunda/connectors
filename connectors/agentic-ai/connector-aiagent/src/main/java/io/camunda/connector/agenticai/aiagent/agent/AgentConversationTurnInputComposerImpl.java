@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
@@ -176,8 +175,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     switch (documentHandling) {
       case DocumentHandling.Tracked ignored -> {
-        // add the documents as blocks with the delivery content: the content is added when the
-        // model is called
+        // add the documents as blocks with the delivery of the user prompt: with the delivery
+        // content, the content is added when the model is called
         userPrompt.documents().stream()
             .filter(doc -> !AgentDocument.isSupported(doc))
             .findFirst()
@@ -188,7 +187,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         for (var doc : userPrompt.documents()) {
           content.add(
               AgentDocumentContent.of(AgentDocumentId.of(doc))
-                  .withDelivery(DocumentDelivery.CONTENT));
+                  .withDelivery(userPrompt.documentDelivery()));
           newDocuments.add(AgentDocument.of(doc, origin));
         }
       }

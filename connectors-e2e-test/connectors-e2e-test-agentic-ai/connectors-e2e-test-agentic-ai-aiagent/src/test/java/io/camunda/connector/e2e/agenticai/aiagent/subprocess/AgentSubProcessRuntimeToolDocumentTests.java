@@ -22,7 +22,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.UP
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.withUploadTool;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOf;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
@@ -205,10 +205,11 @@ public class AgentSubProcessRuntimeToolDocumentTests extends BaseAgentSubProcess
               AgentDocument.of(
                   reportRuntimeTool.created().getFirst(),
                   AgentDocumentOrigin.toolCall(REPORT_TOOL, CREATE_CALL_ID));
-          final var registered =
-              assertHandleOfTheOnlyRegisteredDocument(
-                  handle, agentResponse.context().documents(), REPORT_FILE, "text/plain", null);
-          assertThat(registered).isEqualTo(expectedEntry);
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .hasOnlyAgentDocumentSatisfying(document -> {
+                assertHandleOf(document, handle, REPORT_FILE, "text/plain", null);
+                assertThat(document).isEqualTo(expectedEntry);
+              });
         });
   }
 }

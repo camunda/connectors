@@ -16,8 +16,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -38,6 +41,9 @@ class AgentTaskExecutionContextTest {
   private static final Long PROCESS_DEFINITION_KEY = 123456789L;
   private static final String CONTAINER_ELEMENT_ID = "test-container-element-id";
 
+  private static final DocumentsConfiguration DOCUMENTS =
+      new DocumentsConfiguration(true, DocumentDelivery.REFERENCE);
+
   @Mock(answer = RETURNS_DEEP_STUBS)
   private JobContext jobContext;
 
@@ -57,7 +63,7 @@ class AgentTaskExecutionContextTest {
             agentRequestData,
             TEST_CHAT_MODEL,
             toolElementsResolver,
-            AgentFeatures.ofNewInstance());
+            TestAgentFeatures.DOCUMENT_REFERENCES_ON);
   }
 
   @Test
@@ -78,6 +84,21 @@ class AgentTaskExecutionContextTest {
   }
 
   @Test
+  void takesTheDocumentConfigurationFromTheRequestData() {
+    when(agentRequestData.documents()).thenReturn(DOCUMENTS);
+    final var context =
+        new AgentTaskExecutionContext(
+            jobContext,
+            TestDocuments.documentFactory(),
+            agentRequestData,
+            TEST_CHAT_MODEL,
+            toolElementsResolver,
+            List.of());
+
+    assertThat(context.configuration().documents()).isEqualTo(DOCUMENTS);
+  }
+
+  @Test
   void exposesTheDocumentFactoryOfTheJob() {
     final var documentFactory = mock(DocumentFactory.class);
     final var context =
@@ -87,7 +108,7 @@ class AgentTaskExecutionContextTest {
             agentRequestData,
             TEST_CHAT_MODEL,
             toolElementsResolver,
-            AgentFeatures.ofNewInstance());
+            TestAgentFeatures.DOCUMENT_REFERENCES_ON);
 
     assertThat(context.documentFactory()).isSameAs(documentFactory);
   }

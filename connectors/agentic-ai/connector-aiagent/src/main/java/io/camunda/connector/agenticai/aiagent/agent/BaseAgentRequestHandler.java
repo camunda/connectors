@@ -37,10 +37,12 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentIdCollisionException;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -142,7 +144,11 @@ public abstract class BaseAgentRequestHandler<
           executionContext
               .configuration()
               .withToolDefinitions(toolDefinitions(executionContext, agentContext));
-      final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
+      final var agentInput =
+          AgentInput.from(
+              configuration.userPrompt(),
+              configuration.documents().userPromptDelivery(),
+              toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
       final var loadedMessages = session.loadMessages(agentContext).messages();
@@ -186,7 +192,9 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * @throws ConnectorException if a tool of the process has the name of an enabled runtime tool
+   * @throws ConnectorException if a tool of the process has the name of an enabled runtime tool, or
+   *     with code {@code DOCUMENT_PARAMETER_SCHEMA_INVALID} if the agent instance does not track
+   *     its documents and a tool takes a document
    */
   private List<ToolDefinition> toolDefinitions(
       AgentExecutionContext executionContext, AgentContext agentContext) {
@@ -205,7 +213,41 @@ public abstract class BaseAgentRequestHandler<
               "Tool name conflict: the tool '%s' of the process has the name of a runtime tool of the AI Agent. Rename the tool in the process."
                   .formatted(name));
         });
-    return Stream.concat(processToolDefinitions.stream(), runtimeToolDefinitions.stream()).toList();
+    final var toolDefinitions =
+        Stream.concat(processToolDefinitions.stream(), runtimeToolDefinitions.stream()).toList();
+    switch (agentContext.documentHandling()) {
+      case DocumentHandling.Tracked ignored -> {}
+      case DocumentHandling.Untracked ignored ->
+          toolDefinitions.forEach(BaseAgentRequestHandler::requireNoDocumentParameter);
+    }
+    return toolDefinitions;
+  }
+
+  /** A tool takes a document only when the agent instance tracks its documents. */
+  private static void requireNoDocumentParameter(ToolDefinition toolDefinition) {
+    final var documentParameters = toolDefinition.documentParameters();
+    if (documentParameters.isEmpty()) {
+      return;
+    }
+    throw new ConnectorException(
+        AgentErrorCodes.ERROR_CODE_DOCUMENT_PARAMETER_SCHEMA_INVALID,
+        switch (toolDefinition.kind()) {
+          case PROCESS ->
+              "Invalid tool '%s'. Parameter '%s': The type 'document' requires an agent instance with document reference support."
+                  .formatted(toolDefinition.name(), parameterName(documentParameters.getFirst()));
+          case RUNTIME ->
+              "Invalid tool '%s': The tool takes a document, which requires an agent instance with document reference support."
+                  .formatted(toolDefinition.name());
+        });
+  }
+
+  /** The name of the tool parameter that holds the document parameter. */
+  private static String parameterName(DocumentParameter documentParameter) {
+    return documentParameter.path().stream()
+        .filter(DocumentParameter.Step.Property.class::isInstance)
+        .map(step -> ((DocumentParameter.Step.Property) step).name())
+        .findFirst()
+        .orElse("items");
   }
 
   /**

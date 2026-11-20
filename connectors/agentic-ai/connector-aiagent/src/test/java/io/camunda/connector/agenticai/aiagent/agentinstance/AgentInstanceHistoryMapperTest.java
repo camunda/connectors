@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -64,10 +65,9 @@ import org.mockito.Mockito;
 class AgentInstanceHistoryMapperTest {
 
   private static final AgentContext NEW_INSTANCE =
-      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+      AgentContext.empty().withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
   private static final AgentContext WITH_DOCUMENTS =
-      AgentContext.empty()
-          .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+      AgentContext.empty().withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
 
   private static final OffsetDateTime TURN_INGESTION_TIMESTAMP =
       OffsetDateTime.parse("2026-07-02T10:00:00Z");

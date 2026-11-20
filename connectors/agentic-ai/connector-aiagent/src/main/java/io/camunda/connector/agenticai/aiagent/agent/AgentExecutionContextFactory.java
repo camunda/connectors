@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV2Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
@@ -16,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfiguratio
 import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -64,7 +66,7 @@ public class AgentExecutionContextFactory
         request.data(),
         request.provider(),
         toolElementsResolver,
-        AgentFeatures.ofNewInstance());
+        v2NewInstanceFeatures(request.data().documents()));
   }
 
   @Override
@@ -92,7 +94,20 @@ public class AgentExecutionContextFactory
         request.toolCallResults(),
         request.toolElements(),
         request.provider(),
-        AgentFeatures.ofNewInstance());
+        v2NewInstanceFeatures(request.data().documents()));
+  }
+
+  /**
+   * The features of a new agent instance of a v2 connector: the runtime tools, and the documents
+   * feature when the agent uses document references.
+   */
+  private static List<String> v2NewInstanceFeatures(DocumentsConfiguration documents) {
+    final var features = new ArrayList<String>();
+    features.add(AgentFeatures.RUNTIME_TOOLS);
+    if (documents.references()) {
+      features.add(AgentFeatures.DOCUMENTS);
+    }
+    return List.copyOf(features);
   }
 
   private ChatModelConfiguration v1ChatModel(ProviderConfiguration provider) {

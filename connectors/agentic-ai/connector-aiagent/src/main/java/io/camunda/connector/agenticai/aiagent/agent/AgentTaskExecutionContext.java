@@ -51,11 +51,13 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
             chatModel,
             data.systemPrompt(),
             data.userPrompt(),
+            data.documents(),
             data.memory(),
             data.limits(),
             // the outbound connector flavor does not support event handling
             null,
-            data.response());
+            data.response(),
+            List.of());
   }
 
   @Override

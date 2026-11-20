@@ -73,6 +73,9 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-t
 - For AI Agent tests, extend `BaseAgentSubProcessTest` (sub-process flavor) or `BaseAgentTaskTest`
   (task flavor). Provider-specific tests extend the provider base classes below
   `aiagent.subprocess.provider` and `aiagent.task.provider`.
+- To run an AI Agent with a document setup (*Use document references* cleared, or selected with the user prompt delivery
+  `reference` or `content`), pass a `DocumentSetup` (`aiagent.fixtures`) as the element template modifier. Use
+  `@EnumSource(DocumentSetup.class)` when a scenario must hold for every setup.
 - The WireMock stubs of the LLM providers live in the `aiagent.wiremock` package. WireMock serves
   `__files` and `mappings` from `src/test/resources` of the module that runs the test, so put test
   files into the module that uses them.

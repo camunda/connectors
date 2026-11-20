@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -60,7 +61,7 @@ class ToolCallAdmissionTest {
 
   private static final AgentContext KNOWING_REPORT =
       AgentContext.empty()
-          .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+          .withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
           .withDocuments(
               AgentDocuments.empty()
                   .register(
@@ -127,8 +128,7 @@ class ToolCallAdmissionTest {
   @Test
   void aCallOfEitherKindWithADocumentParameterIsRejectedWhenTheAgentKnowsNoDocuments() {
     final var knowingNothing =
-        AgentContext.empty()
-            .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+        AgentContext.empty().withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
     final var processCall = new ToolCall("p1", "upload", Map.of("doc", REPORT_HANDLE));
     final var runtimeCall = new ToolCall("r1", "acme_upload", Map.of("doc", "bogus"));
     final var noDocuments =

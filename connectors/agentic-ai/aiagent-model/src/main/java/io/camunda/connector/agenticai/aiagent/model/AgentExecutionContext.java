@@ -25,12 +25,9 @@ public interface AgentExecutionContext {
 
   /**
    * The agent instance features (see {@link AgentFeatures}) that a new agent instance of this
-   * execution gets. The default is {@link AgentFeatures#ofNewInstance()}. An existing agent
-   * instance keeps the features it was created with.
+   * execution gets. An existing agent instance keeps the features it was created with.
    */
-  default List<String> newInstanceFeatures() {
-    return AgentFeatures.ofNewInstance();
-  }
+  List<String> newInstanceFeatures();
 
   /** Initial agent context object read from input variables, before further processing. */
   AgentContext initialAgentContext();
@@ -43,6 +40,6 @@ public interface AgentExecutionContext {
   /** Per-invocation user prompt (invocation input, not static configuration). */
   UserPromptConfiguration userPrompt();
 
-  /** Static per-invocation configuration (provider, prompts, memory, limits, events, response). */
+  /** Static per-invocation configuration. */
   AgentConfiguration configuration();
 }

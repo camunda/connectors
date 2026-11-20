@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCallImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContextImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
@@ -67,8 +68,7 @@ class LoadDocumentToolTest {
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
 
   private static final AgentContext WITH_DOCUMENTS =
-      AgentContext.empty()
-          .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+      AgentContext.empty().withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
 
   private final ObjectMapper objectMapper = objectMapperFor(InMemoryDocumentStore.INSTANCE);
   private final LoadDocumentTool tool = new LoadDocumentTool();

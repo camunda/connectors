@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import java.util.List;
-
 public final class AgentFeatures {
 
   /**
@@ -25,8 +23,4 @@ public final class AgentFeatures {
   public static final String DOCUMENTS = "documents";
 
   private AgentFeatures() {}
-
-  public static List<String> ofNewInstance() {
-    return List.of(RUNTIME_TOOLS, DOCUMENTS);
-  }
 }

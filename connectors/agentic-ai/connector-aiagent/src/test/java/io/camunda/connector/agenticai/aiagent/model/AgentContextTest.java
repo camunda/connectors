@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
@@ -294,7 +295,10 @@ class AgentContextTest {
                 .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
                 .documentHandling())
         .isEqualTo(new DocumentHandling.Untracked());
-    assertThat(AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance()).documentHandling())
+    assertThat(
+            AgentContext.empty()
+                .withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
+                .documentHandling())
         .isEqualTo(new DocumentHandling.Tracked(AgentDocuments.empty()));
   }
 
@@ -400,8 +404,8 @@ class AgentContextTest {
   }
 
   @Test
-  void newInstanceFeaturesContainTheRuntimeToolsAndTheDocumentsFeature() {
-    final var context = AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+  void supportsTheFeaturesItIsCreatedWith() {
+    final var context = AgentContext.empty().withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
 
     assertThat(context.features()).containsExactly("runtimeTools", "documents");
     assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();

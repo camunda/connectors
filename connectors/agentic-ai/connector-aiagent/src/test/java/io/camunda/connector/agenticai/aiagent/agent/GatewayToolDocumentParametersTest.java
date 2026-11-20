@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
@@ -36,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -55,8 +55,7 @@ import org.junit.jupiter.api.Test;
 class GatewayToolDocumentParametersTest {
 
   private static final String UPLOAD_TOOL = "FILES_files___upload";
-  private static final List<String> FEATURES =
-      List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS);
+  private static final List<String> FEATURES = TestAgentFeatures.DOCUMENT_REFERENCES_ON;
 
   private final Document report = createDocument("report", "report.txt");
   private final AgentDocumentId reportId = AgentDocumentId.of(report);

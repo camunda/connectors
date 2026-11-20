@@ -89,6 +89,8 @@
           <zeebe:input source="=if (is defined(followUpUserPrompt)) then []&#10;else downloadedFiles" target="data.userPrompt.documents" />
           <zeebe:input source="Agent_Tools" target="data.tools.containerElementId" />
           <zeebe:input source="=toolCallResults" target="data.tools.toolCallResults" />
+          <zeebe:input source="=true" target="data.documents.references" />
+          <zeebe:input source="reference" target="data.documents.userPromptDelivery" />
           <zeebe:input source="=agent.context" target="data.context" />
           <zeebe:input source="in-process" target="data.memory.storage.type" />
           <zeebe:input source="=50" target="data.memory.contextWindowSize" />

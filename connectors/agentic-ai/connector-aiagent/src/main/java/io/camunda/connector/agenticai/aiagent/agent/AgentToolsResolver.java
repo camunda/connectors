@@ -12,8 +12,7 @@ import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaRespons
 
 public interface AgentToolsResolver {
   /** Loads tool definitions for the given execution context. */
-  AdHocToolsSchemaResponse loadAdHocToolsSchema(
-      AgentExecutionContext executionContext, AgentContext agentContext);
+  AdHocToolsSchemaResponse loadAdHocToolsSchema(AgentExecutionContext executionContext);
 
   /**
    * Updates tool definitions after the agent detected a process definition migration, potentially

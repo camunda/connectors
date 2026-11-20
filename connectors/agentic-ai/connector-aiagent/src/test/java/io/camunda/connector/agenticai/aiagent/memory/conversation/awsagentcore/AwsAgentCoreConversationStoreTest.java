@@ -28,7 +28,6 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.m
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
@@ -49,6 +48,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -909,7 +909,7 @@ class AwsAgentCoreConversationStoreTest {
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
                     .build())
-            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+            .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
             .build()
             .withDocuments(AgentDocuments.of(List.of(entry)))
             .withResponseDocument(selection);

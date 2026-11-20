@@ -17,6 +17,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -87,18 +89,23 @@ class AgentExecutionContextFactoryTest {
   private static final EventHandlingConfiguration EVENTS =
       new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS);
 
+  private static final DocumentsConfiguration DOCUMENTS =
+      new DocumentsConfiguration(true, DocumentDelivery.REFERENCE);
+
   private static final AgentTaskRequestData TASK_DATA =
       new AgentTaskRequestData(
           AGENT_CONTEXT,
           SYSTEM_PROMPT,
           USER_PROMPT,
           new ToolsConfiguration(CONTAINER_ELEMENT_ID, TOOL_CALL_RESULTS),
+          DOCUMENTS,
           null,
           LIMITS,
           null);
 
   private static final AgentSubProcessRequestData SUB_PROCESS_DATA =
-      new AgentSubProcessRequestData(SYSTEM_PROMPT, USER_PROMPT, null, LIMITS, EVENTS, null);
+      new AgentSubProcessRequestData(
+          SYSTEM_PROMPT, USER_PROMPT, DOCUMENTS, null, LIMITS, EVENTS, null);
 
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver =
       (physicalTenantId, processDefinitionKey, adHocSubProcessId) ->
@@ -198,7 +205,15 @@ class AgentExecutionContextFactoryTest {
     assertThat(executionContext.configuration())
         .isEqualTo(
             new AgentConfiguration(
-                expectedChatModel, SYSTEM_PROMPT, USER_PROMPT, null, LIMITS, null, null));
+                expectedChatModel,
+                SYSTEM_PROMPT,
+                USER_PROMPT,
+                DOCUMENTS,
+                null,
+                LIMITS,
+                null,
+                null,
+                List.of()));
   }
 
   private void assertSubProcessContext(
@@ -207,7 +222,15 @@ class AgentExecutionContextFactoryTest {
     assertThat(executionContext.configuration())
         .isEqualTo(
             new AgentConfiguration(
-                expectedChatModel, SYSTEM_PROMPT, USER_PROMPT, null, LIMITS, EVENTS, null));
+                expectedChatModel,
+                SYSTEM_PROMPT,
+                USER_PROMPT,
+                DOCUMENTS,
+                null,
+                LIMITS,
+                EVENTS,
+                null,
+                List.of()));
   }
 
   private void assertJobAndAgentState(AgentExecutionContext executionContext) {

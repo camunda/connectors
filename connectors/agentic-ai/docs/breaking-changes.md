@@ -237,7 +237,7 @@ implement the response handler interface directly, hand only the process tool ca
 ### Gateway tool handlers
 
 `GatewayToolHandler.extractDocuments(ToolCallResult)` is called only for agent instances without the `documents` feature.
-An instance with the feature (every instance created by a v2 connector from 8.11 on) finds the documents of a result the way it renders
+An instance with the feature finds the documents of a result the way it renders
 them as handles for the model, at any depth and also inside typed records, whatever handler manages the result.
 
 Migration: none for the handler of an instance without the feature. A handler whose typed content holds a
@@ -298,13 +298,15 @@ applies it to its persisted context, and the next round continues with the conte
 
 ### Runtime tools and tool names
 
-- Agent instances created by a v2 connector from 8.11 on have the `runtimeTools` and the `documents` feature and are
-  offered the built-in runtime tools `c8__load_document` and `c8__return_document`, which the agent runs itself. An
+- Agent instances created by a v2 connector from 8.11 on have the `runtimeTools` feature. Those with the
+  `documents` feature are also offered the built-in runtime tools `c8__load_document` and
+  `c8__return_document`, which the agent runs itself. An
   agent job fails with the error code `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an
   enabled runtime tool; a runtime tool that is not enabled reserves no name. Give the runtime tools of your own runtime
   a name with a prefix of your own. The prefix `c8__` is for the tools the connector ships; no prefix is checked or
-  reserved, only the exact name. Agent instances created before, and new instances of the deprecated v1 connectors,
-  keep their behavior: they are offered no runtime tool and no name is checked.
+  reserved, only the exact name. Agent instances without the `documents` feature are offered neither built-in
+  tool, so the two names stay free in their processes. Agent instances created before, and new instances of the
+  deprecated v1 connectors, keep their behavior: they are offered no runtime tool and no name is checked.
 - Behavior change for every agent instance, with or without the `runtimeTools` feature, in both flavors: every tool call
   is matched against the tools offered in the job. A call of a tool name that is not offered, for example a name the model
   invented, no longer reaches the process. The agent rejects it once, when the model response arrives, and adds the tool
@@ -342,6 +344,16 @@ applies it to its persisted context, and the next round continues with the conte
 - The constructors of `AgentTaskExecutionContext` and `AgentSubProcessExecutionContext` that take an
   `AgentTaskV1Request` or an `AgentSubProcessV1Request` are removed. Migration: call the remaining constructor with the
   request data and the chat model configuration.
+- `AgentConfiguration` has the component `documents`, a `DocumentsConfiguration`: whether a new agent instance tracks its
+  documents (`references`) and the delivery of the documents of the user prompt (`userPromptDelivery`).
+  `AgentTaskRequestData` and `AgentSubProcessRequestData` have the component `documents` before `memory`. Migration:
+  the `AgentConfiguration` constructor with seven arguments, or `DocumentsConfiguration.REFERENCES_OFF`, keeps the 8.10
+  behavior.
+- `AgentInput.UserPrompt`, a record without a builder, has the `DocumentDelivery` of the user prompt as its third
+  component, and `AgentInput.from` takes it after the `UserPromptConfiguration`. Migration: pass
+  `DocumentDelivery.CONTENT`, the content of every document, for the 8.10 behavior.
+- `AgentToolsResolver.loadAdHocToolsSchema` takes only the `AgentExecutionContext`; the `AgentContext` argument is
+  removed. Migration: drop the argument.
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builder, or for `ToolCall` the constructors with three or four arguments and for `ToolDefinition` the constructor with
   three arguments: `AgentContext` (`documents`, the `AgentDocuments`, `features`, a list, and, as its last component,
@@ -357,7 +369,7 @@ applies it to its persisted context, and the next round continues with the conte
   `Content` must handle it. A custom chat model provider never receives it: the agent expands it before the request is
   built.
 - For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
-  document goes out as content, as before. A document in a tool result is text, its handle, instead of a `DocumentContent` or
+  document goes out as its handle with the delivery `reference`, and as content with the delivery `content`. A document in a tool result is text, its handle, instead of a `DocumentContent` or
   the reference JSON, and the content of a document follows in a user message only when the model loaded it with
   `c8__load_document`. A custom `ChatModel` that handles `DocumentContent` in tool results
   therefore sees text for these instances; instances without the feature, also the new instances of the v1 connectors,

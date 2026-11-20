@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
+import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessRequestData;
@@ -63,6 +64,7 @@ class AgentSubProcessV1FunctionTest {
           null,
           null,
           null,
+          null,
           null);
 
   private static final AgentSubProcessV1Request REQUEST =
@@ -95,6 +97,8 @@ class AgentSubProcessV1FunctionTest {
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
     assertThat(chatModel).isInstanceOf(AnthropicChatModelConfiguration.class).isSameAs(V2_PROVIDER);
     assertThat(executionContextCaptor.getValue().newInstanceFeatures()).isEmpty();
+    assertThat(executionContextCaptor.getValue().configuration().documents())
+        .isEqualTo(DocumentsConfiguration.REFERENCES_OFF);
   }
 
   @Test
@@ -111,5 +115,7 @@ class AgentSubProcessV1FunctionTest {
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
     assertThat(chatModel).isSameAs(V1_PROVIDER);
     assertThat(executionContextCaptor.getValue().newInstanceFeatures()).isEmpty();
+    assertThat(executionContextCaptor.getValue().configuration().documents())
+        .isEqualTo(DocumentsConfiguration.REFERENCES_OFF);
   }
 }

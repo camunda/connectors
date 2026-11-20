@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
@@ -36,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -256,7 +256,7 @@ class AgentResponseHandlerDocumentsTest {
     final var context =
         AgentContext.builder()
             .state(AgentState.READY)
-            .features(AgentFeatures.ofNewInstance())
+            .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
             .documents(AgentDocuments.empty().register(List.of(agentDocument)))
             .responseDocuments(
                 List.of(new ResponseDocumentSelection("data", agentDocument.id(), null)))
@@ -298,7 +298,7 @@ class AgentResponseHandlerDocumentsTest {
                         .name("getWeather")
                         .inputSchema(Map.of("type", "object"))
                         .build()))
-            .features(AgentFeatures.ofNewInstance())
+            .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
             .documents(agentDocuments)
             .responseDocuments(responseDocuments)
             .build();

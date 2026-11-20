@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.conversation;
 
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
@@ -29,7 +30,8 @@ public final class AgentInput {
    * UserPromptConfiguration} so the conversation turn composition does not depend on the request
    * DTO.
    */
-  public record UserPrompt(String prompt, List<Document> documents) {
+  public record UserPrompt(
+      String prompt, List<Document> documents, DocumentDelivery documentDelivery) {
     public UserPrompt {
       documents = List.copyOf(documents);
     }
@@ -45,14 +47,17 @@ public final class AgentInput {
   }
 
   public static AgentInput from(
-      UserPromptConfiguration userPrompt, List<ToolCallResult> toolCallResults) {
+      UserPromptConfiguration userPrompt,
+      DocumentDelivery userPromptDelivery,
+      List<ToolCallResult> toolCallResults) {
     Objects.requireNonNull(toolCallResults, "toolCallResults must not be null");
     var partitioned =
         toolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
     return new AgentInput(
         new UserPrompt(
             userPrompt.prompt(),
-            userPrompt.documents() == null ? List.of() : userPrompt.documents()),
+            userPrompt.documents() == null ? List.of() : userPrompt.documents(),
+            userPromptDelivery),
         partitioned.getOrDefault(true, List.of()),
         partitioned.getOrDefault(false, List.of()));
   }

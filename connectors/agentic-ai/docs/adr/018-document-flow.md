@@ -5,7 +5,7 @@
 
 ## Status
 
-**Proposed**. Extends [ADR 004](004-document-handling-in-tool-call-results.md), which stays as it is. Builds on the
+**Accepted**. Extends [ADR 004](004-document-handling-in-tool-call-results.md), which stays as it is. Builds on the
 runtime tools of [ADR 016](016-runtime-tools.md).
 
 ## Context and Problem Statement
@@ -145,6 +145,26 @@ Alternatives:
 Consequence accepted: the handle is the only identity of a document for the model. The model can identify a document
 without a file name by its content type only.
 
+### Document references per agent
+
+Each v2 agent turns document references on or off with the checkbox *Use document references*
+(`data.documents.references`, on by default). It decides the `documents` feature of a new instance
+([Instance features and the legacy path](#instance-features-and-the-legacy-path)). With references off, the model gets
+the content of every document and has no document tools.
+
+References pay off when the model reads only some of the documents. When the process designer knows that the model must
+read the content of every document, references off saves the model round trip of each load.
+
+* **Set when the instance is created.** The agent reads the setting when it creates the agent instance. A running
+  instance keeps its features, so a later change of the setting does not reach it.
+* **A missing value is off.** An element of an 8.10 template has no `data.documents`, so it keeps its behavior on 8.11.
+* **A template update turns it off.** The migration recipes of the v2 templates set `data.documents.references` to
+  `false`, with a note that suggests turning it on.
+* **Document parameters need references.** Without references the model gets no handle. An agent instance without
+  references offers no tool with a document parameter: a tool of the process with the type `document`, or an enabled
+  runtime tool with a document parameter, fails the job with `DOCUMENT_PARAMETER_SCHEMA_INVALID` before the model is
+  called, also for a v1 connector. The check runs once, on the complete list of offered tools.
+
 ### Delivery: `reference` by default, `content` by request or opt-in
 
 Each document block has a delivery. With `reference`, the model sees the handle. With `content`, the model sees the
@@ -153,18 +173,33 @@ document comes again with a different delivery.
 
 The default is `reference` for tool results and for a user prompt that sets `reference`. A user prompt without a
 delivery, as in a v1 template, behaves as before: all documents go to the model as content.
-The v2 templates set `reference` as the default.
+The v2 templates set `reference` as the default, with the dropdown *User prompt delivery*
+(`data.documents.userPromptDelivery`) next to *Use document references*. A delivery applies only to an agent instance
+with the `documents` feature, which a v2 connector gives to a new instance when *Use document references* is
+selected ([Document references per agent](#document-references-per-agent)). The v2 templates show the delivery only
+with *Use document references* selected, and the delivery `reference` with *Use document references* cleared fails the
+validation of the request. The v1 templates have no delivery property, and an instance without the feature always sends
+the documents as content.
 
 Content goes into a request in two ways. Both use the same persisted form:
 
 * **On request.** The model calls the built-in tool `c8__load_document`. The model knows when it must read a document.
   The agent writes into the tool result that the content follows in the next message. The content follows in that
   message.
-* **By opt-in.** Only the process knows the documents before the model sees them. Thus only the user prompt (a dropdown)
-  and a tool activity (an extension property) can set `content`. This saves one model round trip per document. Events,
-  MCP tools and A2A tools use `reference`.
+* **By opt-in.** The process designer knows the documents of the user prompt before the model sees them. Thus the user
+  prompt can set `content` with a dropdown. This saves one model round trip per document. Tool results and events use
+  `reference`.
 
 The content stays in each request until its message leaves the window.
+
+Alternative: *an opt-in for each tool activity*, for example an extension property that sets `content` for the documents
+of the tool result. It is not part of this decision. No known process needs it, and `c8__load_document` gives the model
+the content of a tool document when the model needs it. A process designer can tell the model in the system prompt to
+load the documents of a tool. The opt-in can be added later without a migration: it is an optional field of the tool
+definition, and a stored tool definition without it reads as `reference`.
+
+Consequence accepted: the process designer cannot force the content of a tool document into the request. A model that
+answers from the handle alone does not read the content.
 
 ### No check of the content
 
@@ -193,7 +228,8 @@ A document parameter is the parameter itself, the items of an array or a propert
 fails the job for a `document` anywhere else, such as in an `anyOf` or `oneOf` alternative or in a type array.
 
 The tool schema generation keeps the type `document` as authored. The agent maps it to the handle schema when it loads
-the tools of the process, and only for an instance with the `documents` feature. A handle schema means something only
+the tools of the process. An instance without the `documents` feature then fails the job for a tool with a document
+parameter ([Document references per agent](#document-references-per-agent)). A handle schema means something only
 next to the document registry and the resolution of the agent. The output of the ad-hoc tools schema connector has
 neither, so it keeps the authored schema.
 
@@ -292,8 +328,9 @@ includes a new instance of a v1 connector.
 ### Instance features and the legacy path
 
 The agent context lists the features of the agent instance: `runtimeTools` and `documents`. The agent sets the features
-when it creates the instance and does not add features later. A new instance of a v2 connector gets both features. A new
-instance of a deprecated v1 connector gets none, so a deployed process keeps its behavior. The `documents` feature selects the document handling:
+when it creates the instance and does not add features later. A new instance of a v2 connector gets `runtimeTools`, and
+`documents` when *Use document references* is selected. A new instance of a deprecated v1 connector gets none, so a
+deployed process keeps its behavior. The `documents` feature selects the document handling:
 `Untracked` without the feature, `Tracked` with it. Each step that treats documents matches both variants once and hands
 the result to the code below it.
 

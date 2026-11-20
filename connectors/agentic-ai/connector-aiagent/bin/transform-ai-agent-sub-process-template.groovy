@@ -70,6 +70,13 @@ T.requireIds(
     ] + (systemPromptDefault ? ["data.systemPrompt.prompt"] : []),
     "Properties in ${file}"
 )
+// the properties the build leaves out for the derived template's id (optional script property
+// "omittedProperties", "templateId=id,id" tuples, one per line)
+def templateOmissions = A.omittedPropertyIds(T.optionalProperty(binding, 'omittedProperties'), templateId)
+skipProperties += templateOmissions
+// only the omissions of the template id drop a group; the tools group of the task template stays
+json.put('groups', A.withoutGroupsOfOmittedProperties(
+    (List) json.get('groups'), (List) json.get('properties'), templateOmissions))
 T.requireTaskDefinitionType((List) json.get('properties'))
 
 // never carry over a "deprecated" block from the source template; this script decides

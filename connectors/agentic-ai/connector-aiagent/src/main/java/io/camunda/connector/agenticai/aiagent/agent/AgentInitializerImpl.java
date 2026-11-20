@@ -140,7 +140,7 @@ public class AgentInitializerImpl implements AgentInitializer {
       AgentContext agentContext,
       List<ToolCallResult> initialToolCallResults) {
     // add ad-hoc tool definitions to agent context
-    final var adHocToolsSchema = toolsResolver.loadAdHocToolsSchema(executionContext, agentContext);
+    final var adHocToolsSchema = toolsResolver.loadAdHocToolsSchema(executionContext);
     agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());
 
     if (CollectionUtils.isEmpty(adHocToolsSchema.gatewayToolDefinitions())) {

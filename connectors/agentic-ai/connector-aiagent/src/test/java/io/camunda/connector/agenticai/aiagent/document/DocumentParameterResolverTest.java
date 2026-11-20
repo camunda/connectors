@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -508,7 +509,7 @@ class DocumentParameterResolverTest {
 
   private AgentContext agentContext() {
     return AgentContext.empty()
-        .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+        .withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
         .withDocuments(documents)
         .withToolDefinitions(
             List.of(

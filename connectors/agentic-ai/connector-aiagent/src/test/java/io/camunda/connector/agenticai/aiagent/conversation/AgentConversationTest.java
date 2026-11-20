@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
@@ -52,7 +53,7 @@ class AgentConversationTest {
   private static final AgentContext BASE_CONTEXT =
       AgentContext.builder()
           .state(AgentState.READY)
-          .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+          .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
           .toolDefinitions(TOOL_DEFINITIONS)
           .build();
 

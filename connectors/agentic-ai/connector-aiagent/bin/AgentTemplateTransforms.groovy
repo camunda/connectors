@@ -26,6 +26,25 @@ class AgentTemplateTransforms {
     }
 
     /**
+     * Returns the ids of the properties to leave out for the template id from "templateId=id,id"
+     * lines, or an empty list if the template id has no entry.
+     */
+    static List<String> omittedPropertyIds(Object omissions, String templateId) {
+        def ids = TemplateTransforms.parseKeyValueLines(omissions)[templateId]
+        return ids ? ids.split(',').collect { it.trim() }.findAll { it } : []
+    }
+
+    /**
+     * Returns the groups without the ones that hold only omitted properties, so leaving out every
+     * property of a group leaves no empty group behind.
+     */
+    static List withoutGroupsOfOmittedProperties(List groups, List properties, List<String> omittedPropertyIds) {
+        def omittedGroups = properties.findAll { it.id in omittedPropertyIds }.collect { it.group } as Set
+        def keptGroups = properties.findAll { !(it.id in omittedPropertyIds) }.collect { it.group } as Set
+        return groups.findAll { !(it.id in omittedGroups) || it.id in keptGroups }
+    }
+
+    /**
      * OpenAI's effort is declared per API family (a sibling of the model, like the other
      * per-family request parameters), so it's emitted before the model. Moves it after the model,
      * matching Anthropic and Bedrock.

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.request;
 
+import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
@@ -16,7 +17,16 @@ import org.jspecify.annotations.Nullable;
 public record AgentSubProcessRequestData(
     @Valid @NotNull PromptConfiguration.SystemPromptConfiguration systemPrompt,
     @Valid @NotNull PromptConfiguration.UserPromptConfiguration userPrompt,
+    @Valid @NotNull DocumentsConfiguration documents,
     @Valid @Nullable MemoryTemplateConfiguration memory,
     @Valid @Nullable LimitsConfiguration limits,
     @Valid @Nullable EventHandlingConfiguration events,
-    @Valid @Nullable AgentSubProcessResponseConfiguration response) {}
+    @Valid @Nullable AgentSubProcessResponseConfiguration response) {
+
+  /** An element without document configuration has document references off. */
+  public AgentSubProcessRequestData {
+    if (documents == null) {
+      documents = DocumentsConfiguration.REFERENCES_OFF;
+    }
+  }
+}

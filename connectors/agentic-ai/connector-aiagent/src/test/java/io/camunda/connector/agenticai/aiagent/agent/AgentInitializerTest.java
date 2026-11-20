@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -143,10 +144,10 @@ class AgentInitializerTest {
       when(jobContext.getCustomHeaders())
           .thenReturn(Map.of("io.camunda.zeebe:agentDefinitionKey", "6755399441055744"));
       when(agentInstanceClient.create(any())).thenReturn(AgentInstanceKey.of(12345L));
-      when(executionContext.newInstanceFeatures()).thenReturn(AgentFeatures.ofNewInstance());
+      when(executionContext.newInstanceFeatures())
+          .thenReturn(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
 
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
       final var result = agentInitializer.initializeAgent(executionContext);
@@ -164,7 +165,7 @@ class AgentInitializerTest {
                         AgentContext.empty()
                             .withState(AgentState.READY)
                             .withMetadata(expectedMetadata)
-                            .withFeatures(AgentFeatures.ofNewInstance()));
+                            .withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON));
                 assertThat(res.toolCallResults()).isEmpty();
               });
 
@@ -173,9 +174,9 @@ class AgentInitializerTest {
 
     @Test
     void shouldCreateNewAgentInstanceWithTheNewInstanceFeaturesOfTheExecution() {
-      when(executionContext.newInstanceFeatures()).thenReturn(AgentFeatures.ofNewInstance());
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(executionContext.newInstanceFeatures())
+          .thenReturn(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
       final var result = agentInitializer.initializeAgent(executionContext);
@@ -194,8 +195,7 @@ class AgentInitializerTest {
     @Test
     void shouldCreateNewAgentInstanceWithoutFeaturesWhenTheExecutionGivesNone() {
       when(executionContext.newInstanceFeatures()).thenReturn(List.of());
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
       final var result = agentInitializer.initializeAgent(executionContext);
@@ -263,8 +263,7 @@ class AgentInitializerTest {
 
     @Test
     void shouldNotInitiateToolDiscoveryWhenNoToolElementsExist() {
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
       final var result = agentInitializer.initializeAgent(executionContext);
@@ -286,8 +285,7 @@ class AgentInitializerTest {
     @NullAndEmptySource
     void shouldReturnUpdatedAgentContextWithToolDefinitionsWhenNoGatewayToolsResolved(
         List<GatewayToolDefinition> gatewayToolDefinitions) {
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, gatewayToolDefinitions));
 
       final var result = agentInitializer.initializeAgent(executionContext);
@@ -312,8 +310,7 @@ class AgentInitializerTest {
     @NullAndEmptySource
     void shouldReturnUpdatedAgentContextWithToolDefinitionsWhenNoToolDiscoveryCallsReturned(
         List<ToolCall> toolDiscoveryToolCalls) {
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
 
       when(gatewayToolHandlers.initiateToolDiscovery(
@@ -351,8 +348,7 @@ class AgentInitializerTest {
                   .arguments(Map.of("method", "tools/list"))
                   .build());
 
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
 
       when(gatewayToolHandlers.initiateToolDiscovery(
@@ -695,8 +691,7 @@ class AgentInitializerTest {
       // null initialAgentContext → creates INITIALIZING context without agentInstanceKey
       when(agentInstanceClient.create(any(AgentExecutionContext.class)))
           .thenReturn(AgentInstanceKey.of(12345L));
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
       final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
@@ -713,8 +708,7 @@ class AgentInitializerTest {
       final var headers = new HashMap<String, String>();
       headers.put(AGENT_DEFINITION_KEY_HEADER, headerValue);
       when(jobContext.getCustomHeaders()).thenReturn(headers);
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
       final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
@@ -726,8 +720,7 @@ class AgentInitializerTest {
     @Test
     void shouldSkipAgentInstanceCreationWhenAgentDefinitionKeyHeaderMissing() {
       when(jobContext.getCustomHeaders()).thenReturn(Map.of("some-other-header", "value"));
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
       final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
@@ -739,8 +732,7 @@ class AgentInitializerTest {
     @Test
     void shouldSkipAgentInstanceCreationWhenCustomHeadersIsNull() {
       when(jobContext.getCustomHeaders()).thenReturn(null);
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
       final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
@@ -757,8 +749,7 @@ class AgentInitializerTest {
       final var agentContext =
           AgentContext.empty().withState(AgentState.INITIALIZING).withMetadata(existingMetadata);
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
-      when(toolsResolver.loadAdHocToolsSchema(
-              any(AgentExecutionContext.class), any(AgentContext.class)))
+      when(toolsResolver.loadAdHocToolsSchema(any(AgentExecutionContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
 
       agentInitializer.initializeAgent(executionContext);

@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.SUPERFLUX_PRODUCT_TOOL_NAME;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOfTheOnlyRegisteredDocument;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOf;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
@@ -127,9 +127,9 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
               .isReady()
               .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242), 1))
               .hasResponseMessageText(aiFinalResponseText)
-              .hasResponseText(aiFinalResponseText);
-          assertHandleOfTheOnlyRegisteredDocument(
-              documentHandle, agentResponse.context().documents(), null, mimeType, null);
+              .hasResponseText(aiFinalResponseText)
+              .hasOnlyAgentDocumentSatisfying(
+                  document -> assertHandleOf(document, documentHandle, null, mimeType, null));
         });
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);

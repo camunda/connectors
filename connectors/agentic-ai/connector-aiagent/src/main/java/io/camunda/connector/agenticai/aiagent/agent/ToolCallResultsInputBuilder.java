@@ -77,7 +77,8 @@ public class ToolCallResultsInputBuilder {
    *     documents holds a document that is not a Camunda document
    * @throws IllegalArgumentException if an effect of a result names a document that is neither
    *     known to {@code agentContext} as of the start of the batch nor returned by the result, or
-   *     if a result of an agent instance that does not track its documents has an effect
+   *     if a result of an agent instance that does not track its documents has the effect {@link
+   *     ToolCallEffect.AddDocumentContent} or {@link ToolCallEffect.SelectResponseDocument}
    * @throws AgentDocumentIdCollisionException if a document of a result that has an effect gets the
    *     id of a different document that the agent knows
    */
@@ -205,15 +206,22 @@ public class ToolCallResultsInputBuilder {
     return List.copyOf(all);
   }
 
+  /** The effect names a document by its id, which needs an agent that tracks its documents. */
+  private static IllegalArgumentException documentIdNotSupported(ToolCallBatch.Entry entry) {
+    return new IllegalArgumentException(
+        "The runtime tool '%s' refers to a document by its id, which an agent instance that does not track its documents does not support"
+            .formatted(entry.result().name()));
+  }
+
   private static TurnInput buildWithDocumentMessage(List<ToolCallBatch.Entry> entries) {
-    entries.stream()
-        .filter(entry -> !entry.effects().isEmpty())
-        .findFirst()
-        .ifPresent(entry -> {
-          throw new IllegalArgumentException(
-              "The runtime tool '%s' refers to a document by its id, which an agent instance that does not track its documents does not support"
-                  .formatted(entry.result().name()));
-        });
+    for (final var entry : entries) {
+      for (final var effect : entry.effects()) {
+        switch (effect) {
+          case ToolCallEffect.AddDocumentContent ignored -> throw documentIdNotSupported(entry);
+          case ToolCallEffect.SelectResponseDocument ignored -> throw documentIdNotSupported(entry);
+        }
+      }
+    }
     final var messages = new ArrayList<Message>();
     messages.add(toolCallResultMessage(entries.stream().map(ToolCallBatch.Entry::result).toList()));
 

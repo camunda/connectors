@@ -185,9 +185,37 @@ class AgentV2ElementTemplateTest {
     final var migratesFrom = template(file).path("metadata").path("migratesFrom");
     assertThat(migratesFrom).isEqualTo(recipe);
     assertThat(migratesFrom.has("$schema")).isFalse();
-    assertThat(migratesFrom.get("sources")).hasSize(1);
-    assertThat(migratesFrom.get("sources").get(0).get("sourceTemplateId").asText())
-        .isEqualTo(sourceTemplateId);
+    final var sources = migratesFrom.get("sources");
+    assertThat(sources).hasSize(2);
+    assertThat(sources.get(0).get("sourceTemplateId").asText()).isEqualTo(sourceTemplateId);
+    assertThat(sources.get(1).get("sourceTemplateId").asText())
+        .isEqualTo(template(file).get("id").asText());
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void turnsDocumentReferencesOffForEveryUpdatedElement(String file) throws IOException {
+    for (JsonNode source : template(file).path("metadata").path("migratesFrom").get("sources")) {
+      final var entries = source.get("paths").findParents("to");
+      assertThat(entries)
+          .filteredOn(entry -> entry.get("to").asText().equals("data.documents.references"))
+          .singleElement()
+          .satisfies(entry -> {
+            assertThat(entry.get("set").isBoolean()).isTrue();
+            assertThat(entry.get("set").asBoolean()).isFalse();
+            // no guard: an element of the source template never has the property
+            assertThat(entry.has("when")).isFalse();
+          });
+      assertThat(entries)
+          .extracting(entry -> entry.get("to").asText())
+          .doesNotContain("data.documents.userPromptDelivery");
+    }
   }
 
   private static JsonNode withoutElementKindTags(JsonNode template) {
@@ -197,6 +225,79 @@ class AgentV2ElementTemplateTest {
       ((ObjectNode) leaf).put("name", name.replaceFirst(ELEMENT_KIND_TAG, ""));
     }
     return copy;
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-aiagent-outbound-connector.json",
+        "agenticai-aiagent-job-worker.json",
+        "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+        "hybrid/agenticai-aiagent-job-worker-hybrid.json"
+      })
+  void leavesTheDocumentSettingsOutOfTheFrozenV1Templates(String file) throws IOException {
+    final var template = template(file);
+    assertThat(template.get("properties").findValuesAsText("id"))
+        .contains("data.userPrompt.documents")
+        .doesNotContain("data.documents.userPromptDelivery", "data.documents.references");
+    assertThat(template.get("groups").findValuesAsText("id")).doesNotContain("documents");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void addsTheUserPromptDeliveryAfterTheDocumentReferencesToTheV2Templates(String file)
+      throws IOException {
+    final var properties = template(file).get("properties");
+    final var ids = properties.findValuesAsText("id");
+    // a condition must not reference a property that comes later
+    assertThat(ids.indexOf("data.documents.userPromptDelivery"))
+        .isGreaterThan(ids.indexOf("data.documents.references"));
+    assertThat(named(properties, "id", "data.documents.userPromptDelivery").get("group").asText())
+        .isEqualTo("documents");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void turnsDocumentReferencesOnByDefaultInTheV2Templates(String file) throws IOException {
+    final var template = template(file);
+    final var groups = template.get("groups").findValuesAsText("id");
+    assertThat(groups).contains("tools", "documents", "memory");
+    assertThat(groups.indexOf("documents")).isEqualTo(groups.indexOf("tools") + 1);
+
+    final var references = named(template.get("properties"), "id", "data.documents.references");
+    assertThat(references.get("type").asText()).isEqualTo("Boolean");
+    assertThat(references.get("group").asText()).isEqualTo("documents");
+    assertThat(references.get("value").asBoolean()).isTrue();
+    assertThat(references.get("feel").asText()).isEqualTo("static");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void showsTheUserPromptDeliveryOnlyWithDocumentReferences(String file) throws IOException {
+    final var condition =
+        named(template(file).get("properties"), "id", "data.documents.userPromptDelivery")
+            .get("condition");
+    assertThat(condition.get("property").asText()).isEqualTo("data.documents.references");
+    assertThat(condition.get("equals").isBoolean()).isTrue();
+    assertThat(condition.get("equals").asBoolean()).isTrue();
   }
 
   private static JsonNode preset(JsonNode template, String id) {

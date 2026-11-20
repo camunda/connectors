@@ -51,10 +51,12 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
             chatModel,
             data.systemPrompt(),
             data.userPrompt(),
+            data.documents(),
             data.memory(),
             data.limits(),
             data.events(),
-            data.response());
+            data.response(),
+            List.of());
   }
 
   @Override

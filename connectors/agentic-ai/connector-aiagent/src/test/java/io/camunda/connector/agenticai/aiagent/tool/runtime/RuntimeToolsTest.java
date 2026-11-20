@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -80,7 +81,7 @@ class RuntimeToolsTest {
               null,
               null));
   private static final AgentContext NEW_INSTANCE =
-      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+      AgentContext.empty().withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
   private static final AgentContext WITHOUT_FEATURES = AgentContext.empty();
 
   private static final String ALWAYS = "acme_always";
@@ -494,7 +495,8 @@ class RuntimeToolsTest {
         .execute(WITH_MEMORY, agentContext, List.of(runtimeCall("r1", "acme_reading", Map.of())));
 
     assertThat(seen)
-        .containsExactly(WITH_MEMORY, AgentFeatures.ofNewInstance(), Map.of("hello", "world"));
+        .containsExactly(
+            WITH_MEMORY, TestAgentFeatures.DOCUMENT_REFERENCES_ON, Map.of("hello", "world"));
   }
 
   @Test
@@ -789,8 +791,7 @@ class RuntimeToolsTest {
   }
 
   private static AgentContext knowingWithDocumentsFeature(Document... documents) {
-    return knowing(documents)
-        .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+    return knowing(documents).withFeatures(TestAgentFeatures.DOCUMENT_REFERENCES_ON);
   }
 
   private static Map<String, Object> handleOf(Document document) {

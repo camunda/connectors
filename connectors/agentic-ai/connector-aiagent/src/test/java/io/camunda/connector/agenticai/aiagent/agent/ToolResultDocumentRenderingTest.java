@@ -26,10 +26,10 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -59,7 +60,7 @@ class ToolResultDocumentRenderingTest {
   private static final AgentContext CONTEXT =
       AgentContext.builder()
           .state(AgentState.READY)
-          .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+          .features(TestAgentFeatures.DOCUMENT_REFERENCES_ON)
           .conversation(InProcessConversationContext.builder("conv").build())
           .build();
   private static final AgentConfiguration CONFIGURATION =
@@ -123,7 +124,9 @@ class ToolResultDocumentRenderingTest {
                     CONTEXT,
                     previous,
                     AgentInput.from(
-                        new UserPromptConfiguration("user input", List.of()), results)));
+                        new UserPromptConfiguration("user input", List.of()),
+                        DocumentDelivery.CONTENT,
+                        results)));
 
     // the stored message holds the bare document as a reference and the nested one as it is
     final var stored = (ToolCallResultMessage) nextTurn.messages().getFirst();
