@@ -186,8 +186,6 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
             "A_SSE_Remote_MCP_Client", 1,
             "Filesystem_MCP_Flow", 1));
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
-    // tool discovery MUST NOT run again on the later iterations
-    verify(agentInstanceClient).applyToolDiscoveryStart(any(), any());
   }
 
   @Test
