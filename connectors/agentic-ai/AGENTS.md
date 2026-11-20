@@ -320,6 +320,7 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
 
 ### ErrorProne
 
+<!-- docs-lint: allow-names Generated: annotation emitted by record-builder in generated sources -->
 ErrorProne warnings fail the `main` compilation (`-Werror`); generated classes (annotated `@Generated`)
 are skipped. Fix a finding, or suppress it with `@SuppressWarnings("<CheckName>")`
 on the narrowest scope plus a comment stating why. Test code is not checked.
