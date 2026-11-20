@@ -48,7 +48,7 @@ public final class AgentInput {
 
   public static AgentInput from(
       UserPromptConfiguration userPrompt,
-      DocumentDelivery documentDelivery,
+      DocumentDelivery userPromptDelivery,
       List<ToolCallResult> toolCallResults) {
     Objects.requireNonNull(toolCallResults, "toolCallResults must not be null");
     var partitioned =
@@ -57,7 +57,7 @@ public final class AgentInput {
         new UserPrompt(
             userPrompt.prompt(),
             userPrompt.documents() == null ? List.of() : userPrompt.documents(),
-            documentDelivery),
+            userPromptDelivery),
         partitioned.getOrDefault(true, List.of()),
         partitioned.getOrDefault(false, List.of()));
   }
