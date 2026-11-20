@@ -166,7 +166,6 @@
           <zeebe:input source="resources/read" target="data.connectorMode.operation.type" />
           <zeebe:input source="echo-meta://client" target="data.connectorMode.operation.resourceUri" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
-          <zeebe:input source="=[&#34;resourceB&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -189,7 +188,6 @@
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/read" target="data.connectorMode.operation.type" />
           <zeebe:input source="echo-meta://remote-client" target="data.connectorMode.operation.resourceUri" />
-          <zeebe:input source="=[&#34;resourceA&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
