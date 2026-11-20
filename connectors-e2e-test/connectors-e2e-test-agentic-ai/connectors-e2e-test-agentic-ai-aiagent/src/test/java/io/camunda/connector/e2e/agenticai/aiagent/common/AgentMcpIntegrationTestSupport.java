@@ -162,6 +162,9 @@ public class AgentMcpIntegrationTestSupport {
    */
   public void assertGatewayCompletions(
       ProcessInstanceEvent processInstance, Map<String, Integer> toolCallsByGateway) {
+    assertThat(GATEWAYS)
+        .as("gateways named in the expected tool calls")
+        .containsAll(toolCallsByGateway.keySet());
     for (final var gateway : GATEWAYS) {
       final var expected = 1 + toolCallsByGateway.getOrDefault(gateway, 0);
       CamundaAssert.assertThat(processInstance).hasCompletedElement(gateway, expected);
