@@ -56,14 +56,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 @Import(McpTestServerConfiguration.class)
 class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
 
-  private static final List<String> GATEWAYS =
-      List.of(
-          "A_MCP_Client",
-          "A_HTTP_MCP_Client",
-          "A_HTTP_Remote_MCP_Client",
-          "A_SSE_Remote_MCP_Client",
-          "Filesystem_MCP_Flow");
-
   @Value("classpath:agentic-ai-connectors-mcp.bpmn")
   protected Resource testProcessWithMcp;
 
@@ -109,10 +101,9 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
             });
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-        .hasCompletedElements(GATEWAYS.toArray(String[]::new))
         .hasCompletedElementsInOrder("AI_Agent", "AI_Agent", "User_Feedback");
 
-    for (final var gateway : GATEWAYS) {
+    for (final var gateway : AgentMcpIntegrationTestSupport.GATEWAYS) {
       CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
           .hasCompletedElementsInOrder("AI_Agent", gateway, "AI_Agent");
     }

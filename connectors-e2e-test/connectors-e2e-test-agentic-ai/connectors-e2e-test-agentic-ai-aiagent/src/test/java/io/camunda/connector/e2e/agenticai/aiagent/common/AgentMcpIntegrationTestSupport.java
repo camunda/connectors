@@ -62,7 +62,7 @@ public class AgentMcpIntegrationTestSupport {
           "upgrade",
           "user-agent");
 
-  private static final List<String> GATEWAYS =
+  public static final List<String> GATEWAYS =
       List.of(
           "A_MCP_Client",
           "A_HTTP_MCP_Client",
