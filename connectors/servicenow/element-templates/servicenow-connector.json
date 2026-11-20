@@ -1721,10 +1721,20 @@
           },
           "group": "authentication",
           "binding": {
-            "name": "authentication.username",
+            "name": "parameters.username",
             "type": "property"
           },
           "type": "String"
+        },
+        {
+          "id": "usernameValue",
+          "value": "${username}",
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.username",
+            "type": "property"
+          },
+          "type": "Hidden"
         },
         {
           "id": "authentication.password",

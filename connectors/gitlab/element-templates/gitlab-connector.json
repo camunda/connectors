@@ -2558,10 +2558,20 @@
           },
           "group": "authentication",
           "binding": {
-            "name": "baseUrl",
+            "name": "parameters.baseUrl",
             "type": "property"
           },
           "type": "String"
+        },
+        {
+          "id": "baseUrlValue",
+          "value": "${baseUrl}",
+          "group": "authentication",
+          "binding": {
+            "name": "baseUrl",
+            "type": "property"
+          },
+          "type": "Hidden"
         },
         {
           "id": "authentication.value",

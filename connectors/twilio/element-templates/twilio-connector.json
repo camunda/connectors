@@ -1105,10 +1105,25 @@
           },
           "group": "authentication",
           "binding": {
-            "name": "authentication.username",
+            "name": "parameters.apiKeySid",
             "type": "property"
           },
           "type": "String"
+        },
+        {
+          "id": "usernameKeyValue",
+          "value": "${apiKeySid}",
+          "condition": {
+            "property": "twilioAuthType",
+            "equals": "apiKeySecret",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.username",
+            "type": "property"
+          },
+          "type": "Hidden"
         },
         {
           "id": "authentication.usernameSid",
