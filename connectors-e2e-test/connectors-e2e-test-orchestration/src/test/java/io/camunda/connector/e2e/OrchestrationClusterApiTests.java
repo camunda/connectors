@@ -24,6 +24,7 @@ import static io.camunda.process.test.api.CamundaAssert.assertThatUserTask;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaProcessTestContext;
@@ -126,6 +127,30 @@ public class OrchestrationClusterApiTests extends BaseOrchestrationTest {
         .hasVariable("foundState", "ACTIVE");
   }
 
+  /** The API answers this operation with XML, not JSON, so the body has to arrive as text. */
+  @Test
+  void getProcessDefinitionXml() {
+    var processId = uniqueProcessId();
+    var definitionKey =
+        startWaitingInstanceEvents(processId, 1).getFirst().getProcessDefinitionKey();
+
+    var template =
+        template("/process-definitions", GET_XML)
+            .propertyByBinding("input.internal_key", "=definitionKey")
+            .propertyByBinding(
+                "resultExpression",
+                ("={xmlIsText: response.body instance of string,"
+                        + " xmlHasProcess: contains(response.body, \"%s\")}")
+                    .formatted(processId));
+    var test =
+        run(applyTemplate(template), Map.of("definitionKey", definitionKey))
+            .waitForProcessCompletion();
+
+    assertThat(test.getProcessInstanceEvent())
+        .hasVariable("xmlIsText", true)
+        .hasVariable("xmlHasProcess", true);
+  }
+
   @Test
   void searchUserTasks() {
     var processId = uniqueProcessId();
@@ -162,6 +187,12 @@ public class OrchestrationClusterApiTests extends BaseOrchestrationTest {
    * can find them.
    */
   private List<Long> startWaitingInstances(String processId, int count) {
+    return startWaitingInstanceEvents(processId, count).stream()
+        .map(ProcessInstanceEvent::getProcessInstanceKey)
+        .toList();
+  }
+
+  private List<ProcessInstanceEvent> startWaitingInstanceEvents(String processId, int count) {
     var waitingProcess =
         Bpmn.createExecutableProcess(processId)
             .startEvent()
@@ -175,7 +206,7 @@ public class OrchestrationClusterApiTests extends BaseOrchestrationTest {
         .send()
         .join();
 
-    var keys = new ArrayList<Long>();
+    var instances = new ArrayList<ProcessInstanceEvent>();
     for (int i = 0; i < count; i++) {
       var instance =
           camundaClient
@@ -186,8 +217,8 @@ public class OrchestrationClusterApiTests extends BaseOrchestrationTest {
               .join();
       // Waits until the instance shows up in search, which lags a moment behind the engine.
       assertThat(instance).isActive();
-      keys.add(instance.getProcessInstanceKey());
+      instances.add(instance);
     }
-    return keys;
+    return instances;
   }
 }

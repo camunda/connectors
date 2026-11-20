@@ -102,6 +102,63 @@ public class OrchestrationTemplateMappingTests extends BaseOrchestrationTest {
     assertThat(variables.has("body")).isFalse();
   }
 
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("keys")
+  void getProcessDefinitionXmlPutsTheKeyBeforeTheXmlSuffix(
+      String key, Map<String, Object> processVariables) {
+    var template =
+        saasTemplate("/process-definitions", GET_XML).propertyByBinding("input.internal_key", key);
+
+    var variables = evaluate(applyTemplate(template), processVariables);
+
+    assertThat(variables.get("url").asText())
+        .isEqualTo(SAAS_API + "/process-definitions/" + KEY + "/xml");
+    assertThat(variables.get("method").asText()).isEqualTo("get");
+    assertThat(variables.has("body")).isFalse();
+  }
+
+  @Test
+  void getProcessDefinitionXmlAfterUserEditsEntityOperationAndKey() {
+    var template =
+        saasTemplate("/process-definitions", GET_XML).propertyByBinding("input.internal_key", KEY);
+    var model =
+        moveInputsToEnd(
+            applyTemplate(template),
+            "input.internal_endpoint",
+            "input.internal_operation",
+            "input.internal_key");
+
+    var variables = evaluate(model);
+
+    assertThat(variables.get("url").asText())
+        .isEqualTo(SAAS_API + "/process-definitions/" + KEY + "/xml");
+  }
+
+  @Test
+  void selfManagedGetProcessDefinitionXmlUsesBaseUrl() {
+    var template =
+        selfManagedTemplate(
+                "/process-definitions", GET_XML, SM_API, "https://idp.example.com/oauth/token")
+            .propertyByBinding("input.internal_key", KEY);
+
+    var variables = evaluate(applyTemplate(template));
+
+    assertThat(variables.get("url").asText())
+        .isEqualTo(SM_API + "/process-definitions/" + KEY + "/xml");
+    assertThat(variables.get("method").asText()).isEqualTo("get");
+  }
+
+  @Test
+  void getProcessDefinitionXmlWithUnsetVariableGivesNullUrl() {
+    var template =
+        saasTemplate("/process-definitions", GET_XML)
+            .propertyByBinding("input.internal_key", "=definitionKey");
+
+    var variables = evaluate(applyTemplate(template));
+
+    assertThat(variables.get("url").isNull()).isTrue();
+  }
+
   @Test
   void getByKeyWithUnsetVariableGivesNullUrl() {
     var template =
