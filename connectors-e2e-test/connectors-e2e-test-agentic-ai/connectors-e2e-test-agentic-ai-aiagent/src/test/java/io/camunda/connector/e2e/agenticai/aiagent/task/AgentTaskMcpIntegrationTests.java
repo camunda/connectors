@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
-import static io.camunda.connector.e2e.agenticai.BpmnUtil.updateInputMappings;
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertHandleOf;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentHandle;
@@ -25,18 +24,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration;
 import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration.McpTestServers;
-import io.camunda.connector.e2e.agenticai.McpTestServerTransport;
+import io.camunda.connector.e2e.agenticai.aiagent.common.AgentMcpIntegrationTestSupport;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
-import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -44,7 +42,7 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,25 +56,38 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 @Import(McpTestServerConfiguration.class)
 class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
 
-  private static final String ECHOED_META = "{\"exampleMetaKey\":\"exampleMetaValue\"}";
+  private static final List<String> GATEWAYS =
+      List.of(
+          "A_MCP_Client",
+          "A_HTTP_MCP_Client",
+          "A_HTTP_Remote_MCP_Client",
+          "A_SSE_Remote_MCP_Client",
+          "Filesystem_MCP_Flow");
 
   @Value("classpath:agentic-ai-connectors-mcp.bpmn")
   protected Resource testProcessWithMcp;
 
   @Autowired private McpTestServers mcpTestServers;
+  @Autowired private McpClientRegistry mcpClientRegistry;
   @MockitoSpyBean private AgentInstanceClient agentInstanceClient;
+
+  private AgentMcpIntegrationTestSupport mcpSupport;
+
+  @BeforeEach
+  void setUpMcpSupport() {
+    mcpSupport =
+        new AgentMcpIntegrationTestSupport(mcpTestServers, mcpClientRegistry, objectMapper);
+    mcpSupport.warmUpStdioClient();
+  }
 
   @Override
   protected List<ToolDefinition> expectedTools() {
     return EXPECTED_MCP_TOOL_SPECIFICATIONS;
   }
 
-  /** The server ports are known only at runtime, so the remote gateways get their URL here. */
   @Override
   protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
-    setRemoteClientUrl(model, "A_HTTP_Remote_MCP_Client", McpTestServerTransport.HTTP);
-    setRemoteClientUrl(model, "A_SSE_Remote_MCP_Client", McpTestServerTransport.SSE);
-    return model;
+    return mcpSupport.setRemoteClientUrls(model);
   }
 
   @Test
@@ -98,13 +109,13 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
             });
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-        .hasCompletedElements(
-            "A_MCP_Client",
-            "A_HTTP_MCP_Client",
-            "A_HTTP_Remote_MCP_Client",
-            "A_SSE_Remote_MCP_Client",
-            "Filesystem_MCP_Flow")
+        .hasCompletedElements(GATEWAYS.toArray(String[]::new))
         .hasCompletedElementsInOrder("AI_Agent", "AI_Agent", "User_Feedback");
+
+    for (final var gateway : GATEWAYS) {
+      CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+          .hasCompletedElementsInOrder("AI_Agent", gateway, "AI_Agent");
+    }
 
     verify(agentInstanceClient).applyToolDiscoveryStart(any(), any());
   }
@@ -141,7 +152,6 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
-    // echoHeaders returns every request header, so only X-Dummy is asserted
     assertConversationMessages(
         recorded.lastRequest(),
         ExpectedMessage.system(SYSTEM_PROMPT),
@@ -154,7 +164,7 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
             "MCP_A_HTTP_Remote_MCP_Client___echoHeaders",
             "MCP_A_SSE_Remote_MCP_Client___echoHeaders",
             "MCP_Filesystem_MCP_Flow___uppercase"),
-        ExpectedMessage.toolCallResult("stdio111", ECHOED_META),
+        ExpectedMessage.toolCallResult("stdio111", AgentMcpIntegrationTestSupport.ECHOED_META),
         ExpectedMessage.toolCallResult("http222", "8"),
         ExpectedMessage.toolCallResult("remote333", "{}"),
         ExpectedMessage.toolCallResult("remote444", null),
@@ -162,8 +172,8 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
         ExpectedMessage.toolCallResult("sse666", "HELLO"),
         ExpectedMessage.assistant(secondAiText),
         ExpectedMessage.user("Ok thanks, anything else?"));
-    assertEchoedDummyHeader(recorded.lastRequest(), "remote444", "HTTP");
-    assertEchoedDummyHeader(recorded.lastRequest(), "remote555", "SSE");
+    mcpSupport.assertEchoedHeaders(recorded.lastRequest(), "remote444", "HTTP");
+    mcpSupport.assertEchoedHeaders(recorded.lastRequest(), "remote555", "SSE");
 
     assertAgentResponse(
         zeebeTest,
@@ -227,29 +237,5 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
               .hasOnlyAgentDocumentSatisfying(
                   document -> assertHandleOf(document, documentHandle, null, "image/png", null));
         });
-  }
-
-  private void setRemoteClientUrl(
-      BpmnModelInstance model, String elementId, McpTestServerTransport transport) {
-    final var urlTarget = transport.remoteConnectorInputMappingPrefix() + ".url";
-    final var url = mcpTestServers.remoteClientInputMappings(transport).get(urlTarget);
-    updateInputMappings(model, elementId, Map.of(urlTarget, url));
-  }
-
-  /** The HTTP client can send the header name in lower case. */
-  private void assertEchoedDummyHeader(
-      RecordedChatRequest request, String toolCallId, String expectedValue) throws IOException {
-    final var toolResult =
-        request.messages().stream()
-            .filter(message -> toolCallId.equals(message.toolCallId()))
-            .findFirst()
-            .orElseThrow();
-    final var headers = new TreeMap<String, Object>(String.CASE_INSENSITIVE_ORDER);
-    headers.putAll(
-        objectMapper.readValue(
-            toolResult.textContent(), new TypeReference<Map<String, Object>>() {}));
-    assertThat(headers.get("X-Dummy"))
-        .as("X-Dummy header echoed for tool call %s", toolCallId)
-        .isEqualTo(expectedValue);
   }
 }
