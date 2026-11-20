@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfiguratio
 import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -53,7 +54,6 @@ public class AgentExecutionContextFactory
         request.data(),
         v1ChatModel(request.provider()),
         toolElementsResolver,
-        DocumentsConfiguration.REFERENCES_OFF,
         V1_NEW_INSTANCE_FEATURES);
   }
 
@@ -66,8 +66,7 @@ public class AgentExecutionContextFactory
         request.data(),
         request.provider(),
         toolElementsResolver,
-        request.data().documents(),
-        AgentFeatures.ofNewInstance(request.data().documents().references()));
+        v2NewInstanceFeatures(request.data().documents()));
   }
 
   @Override
@@ -81,7 +80,6 @@ public class AgentExecutionContextFactory
         request.toolCallResults(),
         request.toolElements(),
         v1ChatModel(request.provider()),
-        DocumentsConfiguration.REFERENCES_OFF,
         V1_NEW_INSTANCE_FEATURES);
   }
 
@@ -96,8 +94,20 @@ public class AgentExecutionContextFactory
         request.toolCallResults(),
         request.toolElements(),
         request.provider(),
-        request.data().documents(),
-        AgentFeatures.ofNewInstance(request.data().documents().references()));
+        v2NewInstanceFeatures(request.data().documents()));
+  }
+
+  /**
+   * The features of a new agent instance of a v2 connector: the runtime tools, and the documents
+   * feature when the agent uses document references.
+   */
+  private static List<String> v2NewInstanceFeatures(DocumentsConfiguration documents) {
+    final var features = new ArrayList<String>();
+    features.add(AgentFeatures.RUNTIME_TOOLS);
+    if (documents.references()) {
+      features.add(AgentFeatures.DOCUMENTS);
+    }
+    return List.copyOf(features);
   }
 
   private ChatModelConfiguration v1ChatModel(ProviderConfiguration provider) {

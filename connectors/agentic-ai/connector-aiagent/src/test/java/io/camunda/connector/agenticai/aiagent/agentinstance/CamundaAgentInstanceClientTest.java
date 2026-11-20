@@ -122,7 +122,8 @@ class CamundaAgentInstanceClientTest {
   private static final HistoryDocuments NEW_INSTANCE =
       HistoryDocuments.of(
           TestAgentExecutionContext.withLimits(),
-          AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance(true)));
+          AgentContext.empty()
+              .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS)));
 
   private static final long ELEMENT_INSTANCE_KEY = 77L;
 
@@ -1816,6 +1817,11 @@ class CamundaAgentInstanceClientTest {
     @Override
     public DocumentFactory documentFactory() {
       return TestDocuments.documentFactory();
+    }
+
+    @Override
+    public List<String> newInstanceFeatures() {
+      return List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS);
     }
 
     @Override

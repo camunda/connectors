@@ -256,7 +256,7 @@ class AgentResponseHandlerDocumentsTest {
     final var context =
         AgentContext.builder()
             .state(AgentState.READY)
-            .features(AgentFeatures.ofNewInstance(true))
+            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
             .documents(AgentDocuments.empty().register(List.of(agentDocument)))
             .responseDocuments(
                 List.of(new ResponseDocumentSelection("data", agentDocument.id(), null)))
@@ -298,7 +298,7 @@ class AgentResponseHandlerDocumentsTest {
                         .name("getWeather")
                         .inputSchema(Map.of("type", "object"))
                         .build()))
-            .features(AgentFeatures.ofNewInstance(true))
+            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
             .documents(agentDocuments)
             .responseDocuments(responseDocuments)
             .build();

@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -41,7 +40,6 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
       AgentTaskRequestData data,
       ChatModelConfiguration chatModel,
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      DocumentsConfiguration documents,
       List<String> newInstanceFeatures) {
     this.jobContext = jobContext;
     this.documentFactory = documentFactory;
@@ -53,7 +51,7 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
             chatModel,
             data.systemPrompt(),
             data.userPrompt(),
-            documents,
+            data.documents(),
             data.memory(),
             data.limits(),
             // the outbound connector flavor does not support event handling

@@ -62,8 +62,7 @@ class AgentTaskExecutionContextTest {
             agentRequestData,
             TEST_CHAT_MODEL,
             toolElementsResolver,
-            DOCUMENTS,
-            AgentFeatures.ofNewInstance(true));
+            List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
   }
 
   @Test
@@ -78,15 +77,24 @@ class AgentTaskExecutionContextTest {
             agentRequestData,
             TEST_CHAT_MODEL,
             toolElementsResolver,
-            DocumentsConfiguration.REFERENCES_OFF,
             List.of());
 
     assertThat(withoutFeatures.newInstanceFeatures()).isEmpty();
   }
 
   @Test
-  void carriesTheDocumentConfigurationItWasCreatedWith() {
-    assertThat(executionContext.configuration().documents()).isEqualTo(DOCUMENTS);
+  void takesTheDocumentConfigurationFromTheRequestData() {
+    when(agentRequestData.documents()).thenReturn(DOCUMENTS);
+    final var context =
+        new AgentTaskExecutionContext(
+            jobContext,
+            TestDocuments.documentFactory(),
+            agentRequestData,
+            TEST_CHAT_MODEL,
+            toolElementsResolver,
+            List.of());
+
+    assertThat(context.configuration().documents()).isEqualTo(DOCUMENTS);
   }
 
   @Test
@@ -99,8 +107,7 @@ class AgentTaskExecutionContextTest {
             agentRequestData,
             TEST_CHAT_MODEL,
             toolElementsResolver,
-            DOCUMENTS,
-            AgentFeatures.ofNewInstance(true));
+            List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
 
     assertThat(context.documentFactory()).isSameAs(documentFactory);
   }

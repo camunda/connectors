@@ -345,12 +345,10 @@ applies it to its persisted context, and the next round continues with the conte
   `AgentTaskV1Request` or an `AgentSubProcessV1Request` are removed. Migration: call the remaining constructor with the
   request data and the chat model configuration.
 - `AgentConfiguration` has the component `documents`, a `DocumentsConfiguration`: whether a new agent instance tracks its
-  documents (`references`) and the delivery of the documents of the user prompt (`userPromptDelivery`). The default
-  `AgentExecutionContext.newInstanceFeatures()` derives the features of a new agent instance from it. The constructors
-  of `AgentTaskExecutionContext` and `AgentSubProcessExecutionContext` take the `DocumentsConfiguration` before
-  `newInstanceFeatures`, and `AgentTaskRequestData` and `AgentSubProcessRequestData` have the component `documents`
-  before `memory`. Migration: the `AgentConfiguration` constructor with seven arguments, or
-  `DocumentsConfiguration.REFERENCES_OFF`, keeps the 8.10 behavior.
+  documents (`references`) and the delivery of the documents of the user prompt (`userPromptDelivery`).
+  `AgentTaskRequestData` and `AgentSubProcessRequestData` have the component `documents` before `memory`. Migration:
+  the `AgentConfiguration` constructor with seven arguments, or `DocumentsConfiguration.REFERENCES_OFF`, keeps the 8.10
+  behavior.
 - `AgentInput.UserPrompt`, a record without a builder, has the `DocumentDelivery` of the user prompt as its third
   component, and `AgentInput.from` takes it after the `UserPromptConfiguration`. Migration: pass
   `DocumentDelivery.CONTENT`, the content of every document, for the 8.10 behavior.

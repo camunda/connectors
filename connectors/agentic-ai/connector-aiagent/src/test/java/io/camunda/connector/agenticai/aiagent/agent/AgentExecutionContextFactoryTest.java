@@ -89,26 +89,23 @@ class AgentExecutionContextFactoryTest {
   private static final EventHandlingConfiguration EVENTS =
       new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS);
 
+  private static final DocumentsConfiguration DOCUMENTS =
+      new DocumentsConfiguration(true, DocumentDelivery.REFERENCE);
+
   private static final AgentTaskRequestData TASK_DATA =
       new AgentTaskRequestData(
           AGENT_CONTEXT,
           SYSTEM_PROMPT,
           USER_PROMPT,
           new ToolsConfiguration(CONTAINER_ELEMENT_ID, TOOL_CALL_RESULTS),
-          new DocumentsConfiguration(true, DocumentDelivery.REFERENCE),
+          DOCUMENTS,
           null,
           LIMITS,
           null);
 
   private static final AgentSubProcessRequestData SUB_PROCESS_DATA =
       new AgentSubProcessRequestData(
-          SYSTEM_PROMPT,
-          USER_PROMPT,
-          new DocumentsConfiguration(true, DocumentDelivery.REFERENCE),
-          null,
-          LIMITS,
-          EVENTS,
-          null);
+          SYSTEM_PROMPT, USER_PROMPT, DOCUMENTS, null, LIMITS, EVENTS, null);
 
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver =
       (physicalTenantId, processDefinitionKey, adHocSubProcessId) ->
@@ -127,7 +124,7 @@ class AgentExecutionContextFactoryTest {
     var executionContext =
         factory(true).taskContext(context, new AgentTaskV1Request(V1_PROVIDER, TASK_DATA));
 
-    assertTaskContext(executionContext, V1_PROVIDER_AS_V2, DocumentsConfiguration.REFERENCES_OFF);
+    assertTaskContext(executionContext, V1_PROVIDER_AS_V2);
   }
 
   @Test
@@ -135,7 +132,7 @@ class AgentExecutionContextFactoryTest {
     var executionContext =
         factory(false).taskContext(context, new AgentTaskV1Request(V1_PROVIDER, TASK_DATA));
 
-    assertTaskContext(executionContext, V1_PROVIDER, DocumentsConfiguration.REFERENCES_OFF);
+    assertTaskContext(executionContext, V1_PROVIDER);
   }
 
   @Test
@@ -143,10 +140,7 @@ class AgentExecutionContextFactoryTest {
     var executionContext =
         factory(true).taskContext(context, new AgentTaskV2Request(V2_PROVIDER, TASK_DATA));
 
-    assertTaskContext(
-        executionContext,
-        V2_PROVIDER,
-        new DocumentsConfiguration(true, DocumentDelivery.REFERENCE));
+    assertTaskContext(executionContext, V2_PROVIDER);
   }
 
   @Test
@@ -162,8 +156,7 @@ class AgentExecutionContextFactoryTest {
                     V1_PROVIDER,
                     SUB_PROCESS_DATA));
 
-    assertSubProcessContext(
-        executionContext, V1_PROVIDER_AS_V2, DocumentsConfiguration.REFERENCES_OFF);
+    assertSubProcessContext(executionContext, V1_PROVIDER_AS_V2);
   }
 
   @Test
@@ -179,7 +172,7 @@ class AgentExecutionContextFactoryTest {
                     V1_PROVIDER,
                     SUB_PROCESS_DATA));
 
-    assertSubProcessContext(executionContext, V1_PROVIDER, DocumentsConfiguration.REFERENCES_OFF);
+    assertSubProcessContext(executionContext, V1_PROVIDER);
   }
 
   @Test
@@ -195,10 +188,7 @@ class AgentExecutionContextFactoryTest {
                     V2_PROVIDER,
                     SUB_PROCESS_DATA));
 
-    assertSubProcessContext(
-        executionContext,
-        V2_PROVIDER,
-        new DocumentsConfiguration(true, DocumentDelivery.REFERENCE));
+    assertSubProcessContext(executionContext, V2_PROVIDER);
   }
 
   private AgentExecutionContextFactory factory(boolean rewriteV1ProviderConfigToV2) {
@@ -210,9 +200,7 @@ class AgentExecutionContextFactoryTest {
   }
 
   private void assertTaskContext(
-      AgentTaskExecutionContext executionContext,
-      ChatModelConfiguration expectedChatModel,
-      DocumentsConfiguration expectedDocuments) {
+      AgentTaskExecutionContext executionContext, ChatModelConfiguration expectedChatModel) {
     assertJobAndAgentState(executionContext);
     assertThat(executionContext.configuration())
         .isEqualTo(
@@ -220,7 +208,7 @@ class AgentExecutionContextFactoryTest {
                 expectedChatModel,
                 SYSTEM_PROMPT,
                 USER_PROMPT,
-                expectedDocuments,
+                DOCUMENTS,
                 null,
                 LIMITS,
                 null,
@@ -229,9 +217,7 @@ class AgentExecutionContextFactoryTest {
   }
 
   private void assertSubProcessContext(
-      AgentSubProcessExecutionContext executionContext,
-      ChatModelConfiguration expectedChatModel,
-      DocumentsConfiguration expectedDocuments) {
+      AgentSubProcessExecutionContext executionContext, ChatModelConfiguration expectedChatModel) {
     assertJobAndAgentState(executionContext);
     assertThat(executionContext.configuration())
         .isEqualTo(
@@ -239,7 +225,7 @@ class AgentExecutionContextFactoryTest {
                 expectedChatModel,
                 SYSTEM_PROMPT,
                 USER_PROMPT,
-                expectedDocuments,
+                DOCUMENTS,
                 null,
                 LIMITS,
                 EVENTS,

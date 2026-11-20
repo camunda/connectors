@@ -82,7 +82,7 @@ class AgentTaskRequestHandlerTest {
 
   private static final AgentContext INITIAL_AGENT_CONTEXT =
       AgentContext.builder()
-          .features(AgentFeatures.ofNewInstance(true))
+          .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
           .state(AgentState.READY)
           .toolDefinitions(TOOL_DEFINITIONS)
           .build();
@@ -148,7 +148,7 @@ class AgentTaskRequestHandlerTest {
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
         AgentContext.builder()
-            .features(AgentFeatures.ofNewInstance(true))
+            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
             .state(AgentState.TOOL_DISCOVERY)
             .build();
 
@@ -171,7 +171,7 @@ class AgentTaskRequestHandlerTest {
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
         AgentContext.builder()
-            .features(AgentFeatures.ofNewInstance(true))
+            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
             .state(AgentState.TOOL_DISCOVERY)
             .build();
 
@@ -322,7 +322,7 @@ class AgentTaskRequestHandlerTest {
 
     final var contextAtLimit =
         AgentContext.builder()
-            .features(AgentFeatures.ofNewInstance(true))
+            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
             .state(AgentState.READY)
             .toolDefinitions(TOOL_DEFINITIONS)
             .metrics(new AgentMetrics(2, TokenUsage.empty(), 0))

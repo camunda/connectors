@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import java.util.List;
-
 public final class AgentFeatures {
 
   /**
@@ -25,15 +23,4 @@ public final class AgentFeatures {
   public static final String DOCUMENTS = "documents";
 
   private AgentFeatures() {}
-
-  /**
-   * The features of a new agent instance of a v2 connector: the runtime tools, and the documents
-   * feature when the agent uses document references.
-   *
-   * @param documentReferences whether the instance tracks its documents, the document references
-   *     setting of the agent
-   */
-  public static List<String> ofNewInstance(boolean documentReferences) {
-    return documentReferences ? List.of(RUNTIME_TOOLS, DOCUMENTS) : List.of(RUNTIME_TOOLS);
-  }
 }
