@@ -90,12 +90,13 @@ public class McpTestServerConfiguration {
   }
 
   private static void removeStdioContainers() {
-    final var ids =
-        docker("ps", "-aq", "--filter", "label=" + McpTestServerTransport.STDIO_CONTAINER_LABEL)
-            .output()
-            .split("\\s+");
+    final var list =
+        docker("ps", "-aq", "--filter", "label=" + McpTestServerTransport.STDIO_CONTAINER_LABEL);
+    if (list.exitCode() != 0) {
+      return;
+    }
     final var args = new ArrayList<>(List.of("rm", "-f"));
-    Arrays.stream(ids).filter(id -> !id.isBlank()).forEach(args::add);
+    Arrays.stream(list.output().split("\\s+")).filter(id -> !id.isBlank()).forEach(args::add);
     if (args.size() > 2) {
       docker(args.toArray(String[]::new));
     }
