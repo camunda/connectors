@@ -92,7 +92,7 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.23.0</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.23.0</version.jackson-datatype-jsr310>
-    <version.hibernate-validator>9.1.6.Final</version.hibernate-validator>
+    <version.hibernate-validator>9.2.0.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <!-- CVE-2026-59171: org.json transitive override (connector-kafka -> kafka-json-schema-provider
          -> everit-json-schema). Remove once the Confluent schema-registry artifacts ship an
@@ -160,7 +160,7 @@ limitations under the License.</license.inlineheader>
          Ref: https://spring.io/security/cve-2026-47874/ -->
     <version.reactor-netty>1.4.0</version.reactor-netty>
 
-    <version.microsoft-graph>6.72.0</version.microsoft-graph>
+    <version.microsoft-graph>6.74.0</version.microsoft-graph>
     <version.azure-identity>1.19.0</version.azure-identity>
     <version.azure-core>1.61.0</version.azure-core>
     <version.azure-cosmos>4.83.0</version.azure-cosmos>
