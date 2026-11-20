@@ -24,11 +24,11 @@ public record DocumentsConfiguration(
     @TemplateProperty(
             group = "documents",
             label = "Use document references",
-            description =
-                "Give the model references to documents and tools to load and return them.",
+            description = "The model loads documents on demand and can pass them to tools.",
             tooltip =
-                "The model gets a reference to each document and loads or returns its content with tools when it needs it. "
-                    + "When off, the model gets the content of every document, and tools cannot take documents as parameters.",
+                "The model gets a short reference for each document instead of its content, and uses tools to load or return a document. "
+                    + "This saves tokens for large or many documents. "
+                    + "When cleared, the model gets the full content of every document, and tools cannot take documents as parameters.",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValue = "true",
             defaultValueType = TemplateProperty.DefaultValueType.Boolean)
