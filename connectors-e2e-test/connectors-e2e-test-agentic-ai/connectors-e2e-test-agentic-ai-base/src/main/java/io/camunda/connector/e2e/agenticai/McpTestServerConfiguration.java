@@ -35,8 +35,9 @@ import org.springframework.test.context.DynamicPropertyRegistrar;
 import org.testcontainers.containers.GenericContainer;
 
 /**
- * Starts mcp-test-server with the HTTP and the SSE profile, and configures one runtime MCP client
- * per {@link McpTestServerTransport}. The client ids come from {@link McpTestServers#clientId}.
+ * Starts one mcp-test-server for Streamable HTTP (default profile) and one for SSE (profile {@code
+ * transport-sse}), and configures one runtime MCP client per {@link McpTestServerTransport}. The
+ * client ids come from {@link McpTestServers#clientId}.
  *
  * <p>The stdio client starts the server with the docker CLI when it handles its first job. The
  * configuration fails when the docker CLI does not work, and pulls the image for it.
