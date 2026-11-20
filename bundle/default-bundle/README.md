@@ -37,3 +37,32 @@
 - Operate is now integrated into the core distribution
 - Updated port configurations for both webhook and Operate interface
 - Improved compatibility with current connector implementations
+
+## Securing the management API
+
+The management API lists every active connector, including the raw properties of inbound connector
+elements (webhook paths, authentication type, activation and correlation expressions). It is open
+by default. To require a token on it, set:
+
+| Property | Environment variable |
+|---|---|
+| `camunda.connector.auth.self-managed.secure-management-api` | `CAMUNDA_CONNECTOR_AUTH_SELF_MANAGED_SECURE_MANAGEMENT_API` |
+| `camunda.connector.auth.self-managed.issuer` | `CAMUNDA_CONNECTOR_AUTH_SELF_MANAGED_ISSUER` |
+| `camunda.connector.auth.self-managed.audience` | `CAMUNDA_CONNECTOR_AUTH_SELF_MANAGED_AUDIENCE` |
+
+- `issuer` — OIDC issuer URL. Its discovery endpoint must be reachable from the runtime at startup,
+  and its JWKS endpoint must be reachable when tokens are validated.
+- `audience` — the `aud` claim carried by the tokens sent to this runtime.
+
+Both must be set when `secure-management-api` is enabled, or the runtime fails to start. Requests
+are then accepted only with an `Authorization: Bearer <token>` that verifies against that issuer's
+keys, is unexpired, and carries the configured audience. There is no role or claim check beyond
+that. The protected routes are:
+
+- `/inbound` (exact path only)
+- `/tenants/**`
+- `/inbound-instances/**`
+
+Webhook endpoints (`/inbound/{context}`) and `/actuator/**` stay unauthenticated. Anything that
+calls the protected routes, such as monitoring scripts, must send a bearer token from the
+configured issuer.

@@ -18,10 +18,20 @@ package io.camunda.connector.test.utils.oidc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.RSAPublicKeySpec;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 class MockOidcServerTest {
@@ -74,6 +84,67 @@ class MockOidcServerTest {
 
       assertThat(response.statusCode()).isEqualTo(401);
     }
+  }
+
+  @Test
+  void shouldIssueTokenVerifiableAgainstServedJwks() throws Exception {
+    try (var server = MockOidcServer.start()) {
+      var token =
+          server.token().subject("someone").audience("connectors").expiresAt(inOneHour()).sign();
+
+      var parts = token.split("\\.");
+      assertThat(parts).hasSize(3);
+      assertThat(decode(parts[0])).contains("\"alg\":\"RS256\"").contains("\"kid\":\"test-key\"");
+      assertThat(decode(parts[1]))
+          .contains("\"iss\":\"" + server.issuer() + "\"")
+          .contains("\"sub\":\"someone\"")
+          .contains("\"aud\":[\"connectors\"]");
+      assertThat(verifiesAgainstJwks(server, parts)).isTrue();
+    }
+  }
+
+  @Test
+  void shouldIssueTokenNotVerifiableAgainstAnotherServersJwks() throws Exception {
+    try (var server = MockOidcServer.start();
+        var otherServer = MockOidcServer.start()) {
+      var foreignToken = otherServer.token().issuer(server.issuer()).sign();
+
+      assertThat(verifiesAgainstJwks(server, foreignToken.split("\\."))).isFalse();
+    }
+  }
+
+  private boolean verifiesAgainstJwks(MockOidcServer server, String[] tokenParts) throws Exception {
+    var jwks =
+        httpClient
+            .send(
+                HttpRequest.newBuilder(URI.create(server.issuer() + "/oauth2/jwks")).GET().build(),
+                BodyHandlers.ofString())
+            .body();
+
+    var signature = Signature.getInstance("SHA256withRSA");
+    signature.initVerify(publicKeyOf(jwks));
+    signature.update((tokenParts[0] + "." + tokenParts[1]).getBytes(StandardCharsets.UTF_8));
+    return signature.verify(Base64.getUrlDecoder().decode(tokenParts[2]));
+  }
+
+  private static PublicKey publicKeyOf(String jwks) throws Exception {
+    var modulus = new BigInteger(1, Base64.getUrlDecoder().decode(jwkMember(jwks, "n")));
+    var exponent = new BigInteger(1, Base64.getUrlDecoder().decode(jwkMember(jwks, "e")));
+    return KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(modulus, exponent));
+  }
+
+  private static String jwkMember(String jwks, String name) {
+    var matcher = Pattern.compile("\"" + name + "\"\\s*:\\s*\"([^\"]+)\"").matcher(jwks);
+    assertThat(matcher.find()).as("JWK member '%s' in %s", name, jwks).isTrue();
+    return matcher.group(1);
+  }
+
+  private static String decode(String base64UrlPart) {
+    return new String(Base64.getUrlDecoder().decode(base64UrlPart), StandardCharsets.UTF_8);
+  }
+
+  private static Instant inOneHour() {
+    return Instant.now().plus(Duration.ofHours(1));
   }
 
   @Test

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.saas;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -29,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -80,6 +82,8 @@ public class InboundInstancesSecurityConfigurationTest {
 
   @Autowired private MockMvc mvc;
 
+  @Autowired private ApplicationContext applicationContext;
+
   @Test
   public void inboundInstancesEndpoint_noAuth_returns401() throws Exception {
     mvc.perform(get("/inbound-instances")).andExpect(status().isUnauthorized());
@@ -88,5 +92,15 @@ public class InboundInstancesSecurityConfigurationTest {
   @Test
   public void inboundInstancesEndpoint_withAuth_returns200() throws Exception {
     mvc.perform(get("/inbound-instances").with(jwt())).andExpect(status().isOk());
+  }
+
+  @Test
+  public void selfManagedChain_backsOffBehindTheConsoleChain() {
+    assertThat(applicationContext.containsBean("selfManagedManagementApiFilterChain")).isFalse();
+  }
+
+  @Test
+  public void inboundEndpoint_noAuth_returns401() throws Exception {
+    mvc.perform(get("/inbound")).andExpect(status().isUnauthorized());
   }
 }
