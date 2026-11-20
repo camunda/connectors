@@ -154,7 +154,7 @@ limitations under the License.</license.inlineheader>
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
     <version.lz4-java>1.14.1</version.lz4-java>
 
-    <version.microsoft-graph>6.72.0</version.microsoft-graph>
+    <version.microsoft-graph>6.74.0</version.microsoft-graph>
     <version.azure-identity>1.19.0</version.azure-identity>
 
     <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
