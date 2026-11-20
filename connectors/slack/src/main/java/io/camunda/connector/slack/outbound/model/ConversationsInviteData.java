@@ -77,9 +77,8 @@ public record ConversationsInviteData(
                     notEmpty = true,
                     pattern =
                         @Pattern(
-                            value = "^(=|([-_a-z0-9]{1,80}$))",
-                            message =
-                                "May contain up to 80 lowercase letters, digits, underscores, and dashes")),
+                            value = "^(=|([A-Za-z0-9]{1,80}$))",
+                            message = "May contain up to 80 letters and digits")),
             feel = FeelMode.optional)
         String channelId,
     @TemplateProperty(

@@ -1,4 +1,4 @@
-FROM reg.mini.dev/1212/openjre-base:v25.0.5-dev@sha256:b90c5ee1385bc0c486b8351c81abefaf50076a4f6a4c64bb7461bc84ff09112f
+FROM reg.mini.dev/1212/openjre-base:v25.0.5-dev@sha256:a842c75d2f4ddaabdcc8261d04bf6f80f77004386a6f69ea65b4eb310f146bb0
 
 VOLUME /tmp
 
@@ -26,4 +26,5 @@ USER 1001:1001
 ENV CAMUNDA_CONNECTOR_RUNTIME_SAAS=true
 ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
 
-ENTRYPOINT ["java", "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", "-XX:+ExitOnOutOfMemoryError", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/tmp", "-cp", "/opt/app/*", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+# -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 (Java4Shell). Remove once the base JRE ships the fix.
+ENTRYPOINT ["java", "-XX:-UseBASE64Intrinsics", "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", "-XX:+ExitOnOutOfMemoryError", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/tmp", "-cp", "/opt/app/*", "org.springframework.boot.loader.launch.PropertiesLauncher"]

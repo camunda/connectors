@@ -379,8 +379,11 @@ McpClientDelegate createClient(String clientId, McpClientConfiguration config);
 
 - Caffeine `Cache<McpRemoteClientIdentifier, McpClientDelegate>`
 - Key: `McpRemoteClientIdentifier(processDefinitionKey: Long, elementId: String)`
-- `getClient(id, transport, cacheable)`: if `cacheable=true`, uses cache; if `false`, creates new client (caller
-  responsible for closing)
+- `getClient(id, transport, cacheable)`: if `shouldCache(cacheable)`, uses cache; otherwise creates
+  a new client (caller responsible for closing)
+- `shouldCache(cacheable)` is `false` when the cache is disabled or `maximumSize` is `0`. The registry then never caches,
+  and `DefaultMcpRemoteClientHandler` closes the client after the operation even if the request asks for
+  `clientCache`. A cache of size 0 would evict the client asynchronously and close it while it may still be in use.
 - Eviction listener auto-closes evicted clients
 - Default: max 15 entries, expires 10 minutes after last access
 
