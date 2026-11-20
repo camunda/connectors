@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.mcp.authentication;
 
+import io.camunda.connector.e2e.agenticai.McpTestServerTransport;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;

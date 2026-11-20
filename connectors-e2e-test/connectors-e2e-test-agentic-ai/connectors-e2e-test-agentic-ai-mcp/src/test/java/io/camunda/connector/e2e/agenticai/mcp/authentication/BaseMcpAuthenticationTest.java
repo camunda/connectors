@@ -128,7 +128,7 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                 st,
                 Map.of(
                     "data.connectorMode.standaloneModeFilters.tools.excluded",
-                    "=[\"add\", \"base64Encode\", \"base64Decode\", \"divide\", \"multiply\", \"subtract\", \"failTool\"]")));
+                    "=[\"add\", \"base64Encode\", \"base64Decode\", \"divide\", \"multiply\", \"subtract\", \"failTool\", \"echoHeaders\", \"image\"]")));
 
     updateInputMappings(
         bpmnModel,
@@ -146,7 +146,7 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                 remoteClientProperties.mcpRemoteClientInputMappings(
                     Map.of(
                         "data.connectorMode.standaloneModeFilters.tools.excluded",
-                        "=[\"uppercase\", \"lowercase\", \"divide\", \"multiply\", \"subtract\", \"failTool\", \"echoMeta\"]"))));
+                        "=[\"uppercase\", \"lowercase\", \"divide\", \"multiply\", \"subtract\", \"failTool\", \"echoMeta\", \"echoHeaders\", \"image\"]"))));
 
     updateInputMappings(
         bpmnModel,
