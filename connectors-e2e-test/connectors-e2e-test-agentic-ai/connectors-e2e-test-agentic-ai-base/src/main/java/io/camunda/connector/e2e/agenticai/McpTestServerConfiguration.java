@@ -24,6 +24,7 @@ import io.camunda.connector.test.utils.DockerImages;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -40,13 +41,21 @@ import org.testcontainers.containers.GenericContainer;
  * client ids come from {@link McpTestServers#clientId}.
  *
  * <p>The stdio client starts the server with the docker CLI when it handles its first job. The
- * configuration fails when the docker CLI does not work, and pulls the image for it.
+ * configuration fails when the docker CLI does not work, and pulls the image for it. A server that
+ * ignores the closed stdin keeps its container running, so a JVM shutdown hook removes the stdio
+ * containers of this JVM. The hook runs at JVM exit and not at context close, because all contexts
+ * of a JVM share the label.
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class McpTestServerConfiguration {
 
   private static final String IMAGE = DockerImages.get("mcp-test-server");
   private static final int PORT = 12001;
+
+  static {
+    Runtime.getRuntime()
+        .addShutdownHook(new Thread(McpTestServerConfiguration::removeStdioContainers));
+  }
 
   @Bean
   public GenericContainer<?> mcpTestServerHttp() {
@@ -79,6 +88,18 @@ public class McpTestServerConfiguration {
         .ifPresent(profile -> container.withEnv("SPRING_PROFILES_ACTIVE", profile));
     container.start();
     return container;
+  }
+
+  private static void removeStdioContainers() {
+    final var ids =
+        docker("ps", "-aq", "--filter", "label=" + McpTestServerTransport.STDIO_CONTAINER_LABEL)
+            .output()
+            .split("\\s+");
+    final var args = new ArrayList<>(List.of("rm", "-f"));
+    Arrays.stream(ids).filter(id -> !id.isBlank()).forEach(args::add);
+    if (args.size() > 2) {
+      docker(args.toArray(String[]::new));
+    }
   }
 
   private static String baseUrl(GenericContainer<?> container) {

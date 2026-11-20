@@ -20,6 +20,7 @@ import io.camunda.connector.test.utils.DockerImages;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 public enum McpTestServerTransport {
   HTTP(null, "http", "/mcp"),
@@ -47,6 +48,8 @@ public enum McpTestServerTransport {
               "--rm",
               "--pull=never",
               "--no-healthcheck",
+              "--label",
+              STDIO_CONTAINER_LABEL,
               "-e",
               "SPRING_PROFILES_ACTIVE",
               DockerImages.get("mcp-test-server"));
@@ -61,6 +64,9 @@ public enum McpTestServerTransport {
           getTestServerProfile().orElseThrow());
     }
   };
+
+  /** Marks the stdio containers of this JVM, so that the test base can remove leftovers. */
+  static final String STDIO_CONTAINER_LABEL = "mcp-test-server-stdio=" + UUID.randomUUID();
 
   private static final String SPRING_CONFIG_CLIENTS_PREFIX =
       "camunda.connector.agenticai.mcp.client.clients";
