@@ -8,7 +8,6 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
-          <zeebe:input source="=[&#34;toolB&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="2" />
@@ -36,7 +35,6 @@
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
           <zeebe:input source="toolA" target="data.connectorMode.operation.toolName" />
           <zeebe:input source="={&#10;  paramA1: &#34;someValue&#34;,&#10;  paramA2: 3&#10;}" target="data.connectorMode.operation.toolArguments" />
-          <zeebe:input source="=[&#34;toolB&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="2" />
@@ -59,7 +57,6 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
-          <zeebe:input source="=[&#34;toolA&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="2" />
@@ -84,7 +81,6 @@
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
           <zeebe:input source="toolC" target="data.connectorMode.operation.toolName" />
           <zeebe:input source="={&#10;  paramC1: &#34;someOtherValue&#34;&#10;}" target="data.connectorMode.operation.toolArguments" />
-          <zeebe:input source="=[&#34;toolA&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="2" />
