@@ -76,6 +76,10 @@ final class ChunkedContentChatCompletionAccumulator {
     return chatCompletion;
   }
 
+  // deprecation: the replacement of _additionalProperties() (_allProperties()) also returns the
+  // declared fields, which would then be copied as additional properties. The system fingerprint
+  // has no replacement and is passed through as sent.
+  @SuppressWarnings("deprecation")
   ChatCompletionChunk accumulate(ChatCompletionChunk chunk) {
     final ChatCompletion.Builder builder = ensureChatCompletionBuilder();
 
@@ -130,6 +134,8 @@ final class ChunkedContentChatCompletionAccumulator {
     return chatCompletionBuilder;
   }
 
+  // deprecation: see accumulate(ChatCompletionChunk)
+  @SuppressWarnings("deprecation")
   private void accumulateMessage(long index, ChatCompletionChunk.Choice.Delta delta) {
     final ChatCompletionMessage.Builder messageBuilder =
         messageBuilders.computeIfAbsent(index, i -> ChatCompletionMessage.builder());
@@ -148,6 +154,8 @@ final class ChunkedContentChatCompletionAccumulator {
     messageBuilder.putAllAdditionalProperties(delta._additionalProperties());
   }
 
+  // deprecation: see accumulate(ChatCompletionChunk)
+  @SuppressWarnings("deprecation")
   private void accumulateToolCall(
       long index, ChatCompletionChunk.Choice.Delta.ToolCall deltaToolCall) {
     final long toolCallIndex = deltaToolCall.index();

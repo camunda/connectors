@@ -29,12 +29,17 @@ public class AwsSdkHttpProxySupport {
     this.proxyConfiguration = proxyConfiguration;
   }
 
+  // deprecation: the AWS SDK deprecates its Apache 4 based HTTP client; its replacement is a
+  // separate artifact and changes the type that callers pass to the AWS clients
+  @SuppressWarnings("deprecation")
   public ApacheHttpClient.Builder httpClientBuilder(@Nullable URI endpointOverride) {
     String schemeName =
         endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
     return ApacheHttpClient.builder().proxyConfiguration(awsProxyConfiguration(schemeName));
   }
 
+  // deprecation: see httpClientBuilder(URI)
+  @SuppressWarnings("deprecation")
   software.amazon.awssdk.http.apache.ProxyConfiguration awsProxyConfiguration(String schemeName) {
     software.amazon.awssdk.http.apache.ProxyConfiguration.Builder awsProxyConfigBuilder =
         software.amazon.awssdk.http.apache.ProxyConfiguration.builder()

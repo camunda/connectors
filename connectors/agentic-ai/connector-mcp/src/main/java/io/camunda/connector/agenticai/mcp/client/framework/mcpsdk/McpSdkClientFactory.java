@@ -46,6 +46,9 @@ public class McpSdkClientFactory implements McpClientFactory {
   @Override
   public McpClientDelegate createClient(
       String clientId, McpClientConfigurationProperties.McpClientConfiguration config) {
+    // deprecation: the MCP spec deprecates roots, but the client keeps declaring that it does not
+    // support them; dropping the call would remove the capability from the initialize request
+    @SuppressWarnings("deprecation")
     var clientBuilder =
         McpClient.sync(createTransport(config))
             .clientInfo(
@@ -101,13 +104,16 @@ public class McpSdkClientFactory implements McpClientFactory {
                 ProtocolVersions.MCP_2025_03_26,
                 ProtocolVersions.MCP_2025_06_18,
                 ProtocolVersions.MCP_2025_11_25))
-        .httpRequestCustomizer((request, method, uri, protocolVersion, context) -> {
+        .addHttpRequestCustomizer((request, method, uri, protocolVersion, context) -> {
           var headers = headerSupplier.get();
           headers.forEach(request::header);
         })
         .build();
   }
 
+  // deprecation: the SSE transport is deprecated in the MCP SDK without a replacement, and the
+  // connector still offers it as a transport option
+  @SuppressWarnings("deprecation")
   private HttpClientSseClientTransport createSseTransport(
       McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration sseConfig) {
     var headerSuppliers = headersSupplierFactory.createHttpHeadersSupplier(sseConfig);
@@ -116,7 +122,7 @@ public class McpSdkClientFactory implements McpClientFactory {
         .sseEndpoint(sseConfig.url()) // see https://github.com/camunda/connectors/issues/6393
         .customizeClient(proxyConfigurator::configure)
         .connectTimeout(timeout(sseConfig.timeout()))
-        .httpRequestCustomizer((request, method, uri, protocolVersion, context) -> {
+        .addHttpRequestCustomizer((request, method, uri, protocolVersion, context) -> {
           var headers = headerSuppliers.get();
           headers.forEach(request::header);
         })
