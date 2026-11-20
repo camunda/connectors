@@ -14,18 +14,59 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.mcp.authentication;
+package io.camunda.connector.e2e.agenticai;
 
+import io.camunda.connector.test.utils.DockerImages;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public enum McpTestServerTransport {
   HTTP(null, "http", "/mcp"),
-  SSE("transport-sse", "sse", "/sse");
+  SSE("transport-sse", "sse", "/sse"),
+
+  /**
+   * The client starts its own server container with the docker CLI, so {@link
+   * #applySpringConfigProperties} ignores the server base URL. The remote client connector has no
+   * stdio transport.
+   */
+  STDIO("transport-stdio", "stdio", null) {
+    @Override
+    public void applySpringConfigProperties(
+        Map<String, String> properties, String clientName, String mcpServerBaseUrl) {
+      final var clientPrefix = springConfigClientPrefix(clientName);
+      properties.put(clientPrefix + ".type", "stdio");
+      properties.put(clientPrefix + ".initialization-timeout", STDIO_INITIALIZATION_TIMEOUT);
+      properties.put(clientPrefix + ".tool-execution-timeout", MCP_CLIENT_TIMEOUT);
+      properties.put(clientPrefix + ".stdio.command", "docker");
+
+      final var args =
+          List.of(
+              "run",
+              "-i",
+              "--rm",
+              "--pull=never",
+              "--no-healthcheck",
+              "-e",
+              "SPRING_PROFILES_ACTIVE",
+              DockerImages.get("mcp-test-server"));
+      for (int i = 0; i < args.size(); i++) {
+        properties.put("%s.stdio.args[%d]".formatted(clientPrefix, i), args.get(i));
+      }
+
+      // The profile MUST reach the container through the client env, so that broken env
+      // forwarding (#7163) fails the stdio tests.
+      properties.put(
+          clientPrefix + ".stdio.env[SPRING_PROFILES_ACTIVE]",
+          getTestServerProfile().orElseThrow());
+    }
+  };
 
   private static final String SPRING_CONFIG_CLIENTS_PREFIX =
       "camunda.connector.agenticai.mcp.client.clients";
   private static final String MCP_CLIENT_TIMEOUT = "PT3S";
+  // covers the container start and the start of the server in the container
+  private static final String STDIO_INITIALIZATION_TIMEOUT = "PT30S";
 
   private final String testServerProfile;
   private final String type;
@@ -45,7 +86,7 @@ public enum McpTestServerTransport {
     return springConfigClientPrefix(clientName) + "." + type;
   }
 
-  private String springConfigClientPrefix(String clientName) {
+  private static String springConfigClientPrefix(String clientName) {
     return SPRING_CONFIG_CLIENTS_PREFIX + "." + clientName;
   }
 
