@@ -62,32 +62,44 @@ public interface AgentToolSpecifications {
   }
 
   // ── MCP tools ───────────────────────────────────────────────────────────────
-  // MCP tool schemas originate from the MCP server and are passed through without modification.
-  // They do not include a "required" key unless the MCP server specifies one.
+  // The tools of mcp-test-server that the tool filters of the gateways select. The schemas are
+  // passed through from the server without modification.
 
   private static ToolDefinition mcpTool(
-      String prefixedName, String description, Map<String, Object> properties) {
+      String prefixedName,
+      String description,
+      Map<String, Object> properties,
+      List<String> required) {
     return ToolDefinition.builder()
         .name(prefixedName)
         .description(description)
-        .inputSchema(Map.of("type", "object", "properties", properties))
+        .inputSchema(
+            Map.of(
+                "$schema",
+                "https://json-schema.org/draft/2020-12/schema",
+                "type",
+                "object",
+                "properties",
+                properties,
+                "required",
+                required))
         .build();
   }
 
-  private static Map<String, Object> mcpToolAProperties() {
-    return Map.of(
-        "paramA1", Map.of("type", "string", "description", "The first parameter"),
-        "paramA2", Map.of("type", "number", "description", "The second parameter"));
+  private static ToolDefinition mcpEchoMetaTool(String gatewayElementId) {
+    return mcpTool(
+        "MCP_%s___echoMeta".formatted(gatewayElementId),
+        "Echo the MCP _meta data provided with the tool call request",
+        Map.of(),
+        List.of());
   }
 
-  private static Map<String, Object> mcpToolBProperties() {
-    return Map.of(
-        "paramB1", Map.of("type", "string", "description", "The first parameter"),
-        "paramB2", Map.of("type", "string", "enum", List.of("A", "B", "C")));
-  }
-
-  private static Map<String, Object> mcpToolCProperties() {
-    return Map.of("paramC1", Map.of("type", "string", "description", "The first parameter"));
+  private static ToolDefinition mcpEchoHeadersTool(String gatewayElementId) {
+    return mcpTool(
+        "MCP_%s___echoHeaders".formatted(gatewayElementId),
+        "Echo the HTTP request headers provided with the tool call request",
+        Map.of(),
+        List.of());
   }
 
   List<ToolDefinition> EXPECTED_MCP_TOOL_SPECIFICATIONS =
@@ -96,15 +108,24 @@ public interface AgentToolSpecifications {
           EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(SUPERFLUX_PRODUCT_TOOL_NAME),
           EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(SEARCH_THE_WEB_TOOL_NAME),
           EXPECTED_TOOL_SPECIFICATIONS_BY_NAME.get(DOWNLOAD_A_FILE_TOOL_NAME),
-          mcpTool("MCP_A_MCP_Client___toolA", "The first tool", mcpToolAProperties()),
-          mcpTool("MCP_A_MCP_Client___toolC", "The third tool", mcpToolCProperties()),
-          mcpTool("MCP_A_HTTP_Remote_MCP_Client___toolA", "The first tool", mcpToolAProperties()),
-          mcpTool("MCP_A_HTTP_Remote_MCP_Client___toolC", "The third tool", mcpToolCProperties()),
-          mcpTool("MCP_A_SSE_Remote_MCP_Client___toolA", "The first tool", mcpToolAProperties()),
-          mcpTool("MCP_A_SSE_Remote_MCP_Client___toolC", "The third tool", mcpToolCProperties()),
-          mcpTool("MCP_Filesystem_MCP_Flow___toolA", "The first tool", mcpToolAProperties()),
-          mcpTool("MCP_Filesystem_MCP_Flow___toolB", "The second tool", mcpToolBProperties()),
-          mcpTool("MCP_Filesystem_MCP_Flow___toolC", "The third tool", mcpToolCProperties()));
+          mcpEchoMetaTool("A_MCP_Client"),
+          mcpTool("MCP_A_MCP_Client___image", "Return a small PNG image", Map.of(), List.of()),
+          mcpTool(
+              "MCP_A_HTTP_MCP_Client___add",
+              "Add two numbers",
+              Map.of(
+                  "a", Map.of("type", "integer", "format", "int32"),
+                  "b", Map.of("type", "integer", "format", "int32")),
+              List.of("a", "b")),
+          mcpEchoMetaTool("A_HTTP_Remote_MCP_Client"),
+          mcpEchoHeadersTool("A_HTTP_Remote_MCP_Client"),
+          mcpEchoHeadersTool("A_SSE_Remote_MCP_Client"),
+          mcpTool(
+              "MCP_Filesystem_MCP_Flow___uppercase",
+              "Uppercase the provided message",
+              Map.of(
+                  "message", Map.of("type", "string", "description", "The message to uppercase")),
+              List.of("message")));
 
   // ── A2A tools ───────────────────────────────────────────────────────────────
   // A2A tool input schema is loaded from a2a/tool-input-schema.json in the connector resources.
