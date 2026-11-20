@@ -35,7 +35,7 @@ All in `scripts/`, JSON on stdout. Use them instead of hand-writing `gh` / Graph
 | `review-threads.sh <pr>` | unresolved threads with their replies (`kind` human/bot; a human reply makes it human) |
 | `resolve-thread.sh <id> [--reply T] [--no-resolve]` | reply and/or resolve a thread |
 | `rerun-failed.sh <pr>` | rerun failed jobs, ≤3 reruns per run |
-| `enqueue.sh <pr>` | enable auto-merge / enqueue, bound to the inspected head commit |
+| `enqueue.sh <pr> <headOid>` | enable auto-merge / enqueue, bound to the head commit the readiness check saw |
 | `wait-for-change.sh <pr>...` | block until CI, Copilot, threads or state change |
 
 ## Hard rules
@@ -96,8 +96,8 @@ One row per PR; repeat passes until every PR is terminal, then report.
    [thread-triage](references/thread-triage.md). Batch all fixes into one push.
 5. **Done?** CI green (nothing failed/pending), Copilot `current` and `green` — or `blue`/`changes`
    with all of its points answered — and no unresolved thread except human ones awaiting the user.
-   - `reviewDecision == APPROVED` and not already enqueued → `scripts/enqueue.sh <pr>` (enables
-     auto-merge bound to the inspected head; on branches under the "Use Merge Queue" ruleset — `main`
+   - `reviewDecision == APPROVED` and not already enqueued → `scripts/enqueue.sh <pr> <headOid>` with the
+     `headOid` of the snapshot you just judged ready (enables auto-merge bound to it; on branches under the "Use Merge Queue" ruleset — `main`
      and the recent `stable/*` — that enqueues the PR, elsewhere it arms auto-merge). Don't use
      `gh pr merge --auto`: it needs an explicit strategy on non-queue branches. Enqueued =
      `queue != null` **or** `autoMerge`: a queued PR may report `autoMerge: false`.
