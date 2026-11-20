@@ -100,7 +100,7 @@ limitations under the License.</license.inlineheader>
          tools.jackson:jackson-bom >= 3.1.6.
          Ref: https://github.com/FasterXML/jackson-databind/security/advisories/GHSA-q4xh-88c3-wmh7 -->
     <version.jackson3-bom>3.3.0</version.jackson3-bom>
-    <version.hibernate-validator>9.1.6.Final</version.hibernate-validator>
+    <version.hibernate-validator>9.2.0.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.greenmail>2.1.15</version.greenmail>
     <version.xmlunit>2.14.0</version.xmlunit>
