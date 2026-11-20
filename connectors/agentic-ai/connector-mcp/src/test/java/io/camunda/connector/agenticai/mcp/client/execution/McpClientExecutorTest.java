@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
@@ -62,6 +63,21 @@ class McpClientExecutorTest {
 
     assertThat(result).isEqualTo(expectedResult);
     verify(delegate).listTools(TOOL_FILTERS, META);
+    verifyNoMoreInteractions(delegate);
+  }
+
+  @Test
+  void callsDelegateOnce_whenCallingTool() {
+    final var params = Map.<String, Object>of("name", "tool", "arguments", Map.of());
+    final var expectedResult = new McpClientCallToolResult("tool", List.of(), false);
+    when(delegate.callTool(params, TOOL_FILTERS, META)).thenReturn(expectedResult);
+
+    final var result =
+        executor.execute(
+            delegate, McpClientOperation.of("tools/call", params, META), FILTER_OPTIONS);
+
+    assertThat(result).isEqualTo(expectedResult);
+    verify(delegate).callTool(params, TOOL_FILTERS, META);
     verifyNoMoreInteractions(delegate);
   }
 
