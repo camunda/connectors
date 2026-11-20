@@ -9,6 +9,7 @@
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
+          <zeebe:input source="=[&#34;echo&#34;, &#34;echoMeta&#34;]" target="data.connectorMode.standaloneModeFilters.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -34,9 +35,10 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
-          <zeebe:input source="toolA" target="data.connectorMode.operation.toolName" />
-          <zeebe:input source="={&#10;  paramA1: &#34;someValue&#34;,&#10;  paramA2: 3&#10;}" target="data.connectorMode.operation.toolArguments" />
+          <zeebe:input source="echoMeta" target="data.connectorMode.operation.toolName" />
+          <zeebe:input source="={}" target="data.connectorMode.operation.toolArguments" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
+          <zeebe:input source="=[&#34;echo&#34;, &#34;echoMeta&#34;]" target="data.connectorMode.standaloneModeFilters.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -59,6 +61,7 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
+          <zeebe:input source="=[&#34;add&#34;, &#34;greet&#34;]" target="data.connectorMode.standaloneModeFilters.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -81,8 +84,9 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
-          <zeebe:input source="toolC" target="data.connectorMode.operation.toolName" />
-          <zeebe:input source="={&#10;  paramC1: &#34;someOtherValue&#34;&#10;}" target="data.connectorMode.operation.toolArguments" />
+          <zeebe:input source="add" target="data.connectorMode.operation.toolName" />
+          <zeebe:input source="={a: 5, b: 3}" target="data.connectorMode.operation.toolArguments" />
+          <zeebe:input source="=[&#34;add&#34;, &#34;greet&#34;]" target="data.connectorMode.standaloneModeFilters.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -141,7 +145,7 @@
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/list" target="data.connectorMode.operation.type" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
-          <zeebe:input source="=[&#34;resourceB&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
+          <zeebe:input source="=[&#34;file://cookbook-essentials.pdf&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -160,7 +164,7 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/read" target="data.connectorMode.operation.type" />
-          <zeebe:input source="resourceA" target="data.connectorMode.operation.resourceUri" />
+          <zeebe:input source="echo-meta://client" target="data.connectorMode.operation.resourceUri" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
           <zeebe:input source="=[&#34;resourceB&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
@@ -184,7 +188,7 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/read" target="data.connectorMode.operation.type" />
-          <zeebe:input source="resourceC" target="data.connectorMode.operation.resourceUri" />
+          <zeebe:input source="echo-meta://remote-client" target="data.connectorMode.operation.resourceUri" />
           <zeebe:input source="=[&#34;resourceA&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -207,7 +211,7 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/list" target="data.connectorMode.operation.type" />
-          <zeebe:input source="=[&#34;resourceA&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
+          <zeebe:input source="=[&#34;file://jokes-guide.md&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -270,7 +274,7 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/read" target="data.connectorMode.operation.type" />
-          <zeebe:input source="resource-a-1" target="data.connectorMode.operation.resourceUri" />
+          <zeebe:input source="echo-meta://client-template" target="data.connectorMode.operation.resourceUri" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -293,7 +297,7 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/read" target="data.connectorMode.operation.type" />
-          <zeebe:input source="resource-a-1" target="data.connectorMode.operation.resourceUri" />
+          <zeebe:input source="echo-meta://remote-client-template" target="data.connectorMode.operation.resourceUri" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -356,7 +360,7 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="prompts/list" target="data.connectorMode.operation.type" />
-          <zeebe:input source="=[&#34;promptC&#34;]" target="data.connectorMode.standaloneModeFilters.prompts.excluded" />
+          <zeebe:input source="=[&#34;echo-meta&#34;]" target="data.connectorMode.standaloneModeFilters.prompts.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -376,7 +380,7 @@
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="prompts/list" target="data.connectorMode.operation.type" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
-          <zeebe:input source="=[&#34;promptB&#34;]" target="data.connectorMode.standaloneModeFilters.prompts.excluded" />
+          <zeebe:input source="=[&#34;get-greeting&#34;]" target="data.connectorMode.standaloneModeFilters.prompts.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -395,8 +399,8 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="prompts/get" target="data.connectorMode.operation.type" />
-          <zeebe:input source="promptA" target="data.connectorMode.operation.promptName" />
-          <zeebe:input source="={&#10;  &#34;aName&#34;: &#34;nameA&#34;&#10;}" target="data.connectorMode.operation.promptArguments" />
+          <zeebe:input source="echo-meta" target="data.connectorMode.operation.promptName" />
+          <zeebe:input source="={}" target="data.connectorMode.operation.promptArguments" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -419,8 +423,8 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="prompts/get" target="data.connectorMode.operation.type" />
-          <zeebe:input source="promptC" target="data.connectorMode.operation.promptName" />
-          <zeebe:input source="={&#10;  &#34;cName&#34;: &#34;nameC&#34;&#10;}" target="data.connectorMode.operation.promptArguments" />
+          <zeebe:input source="get-greeting" target="data.connectorMode.operation.promptName" />
+          <zeebe:input source="={name: &#34;Jane&#34;}" target="data.connectorMode.operation.promptArguments" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
