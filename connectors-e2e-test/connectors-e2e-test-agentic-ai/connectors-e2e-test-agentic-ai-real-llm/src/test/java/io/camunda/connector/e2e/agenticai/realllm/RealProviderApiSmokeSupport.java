@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.fixtures.DocumentSetup;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -647,24 +648,26 @@ abstract class RealProviderApiSmokeSupport {
                 Capability.STRUCTURED_OUTPUT, Map.of(),
                 Capability.STRUCTURED_OUTPUT_WITH_TOOLS, Map.of(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of())),
-        // Gemini 3.8 produces schema-conforming JSON without tools, but can repeatedly reissue an
-        // already-completed tool call when tools and a response schema are combined.
+        // Gemini 3.7+ Flash calls tools instead of answering when JSON mode and tools are combined,
+        // so the structured output check turns document references off: the agent then has no
+        // built-in document tools.
         googleGeminiV2(
             "gemini-3.8-flash",
             Map.of(
                 Capability.STRUCTURED_OUTPUT,
-                Map.of(),
+                DocumentSetup.REFERENCES_OFF.properties(),
                 Capability.MULTIMODAL_USER_MESSAGE,
                 Map.of(),
                 Capability.PROMPT_CACHING,
                 Map.of(),
                 Capability.REASONING,
                 Map.of("provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"))),
+        // Structured output with document references off, as for the row above.
         googleGeminiVertexAiV2(
             "gemini-3.8-flash",
             "global",
             Map.of(
-                Capability.STRUCTURED_OUTPUT, Map.of(),
+                Capability.STRUCTURED_OUTPUT, DocumentSetup.REFERENCES_OFF.properties(),
                 Capability.MULTIMODAL_USER_MESSAGE, Map.of(),
                 Capability.PROMPT_CACHING, Map.of(),
                 Capability.REASONING,

@@ -90,11 +90,13 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             MULTI_TOOL_BPMN_RESOURCE,
-            template ->
-                template
-                    .property("data.response.format.type", "json")
-                    .property("data.response.format.schema", "=" + MULTI_TOOL_RESPONSE_SCHEMA)
-                    .property("data.response.format.schemaName", "ClassifiedAccess"));
+            template -> {
+              provider.propertiesFor(Capability.STRUCTURED_OUTPUT).forEach(template::property);
+              template
+                  .property("data.response.format.type", "json")
+                  .property("data.response.format.schema", "=" + MULTI_TOOL_RESPONSE_SCHEMA)
+                  .property("data.response.format.schemaName", "ClassifiedAccess");
+            });
 
     var instance =
         startAgent(
@@ -136,11 +138,13 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            template ->
-                template
-                    .property("data.response.format.type", "json")
-                    .property("data.response.format.schema", "=" + RESPONSE_SCHEMA)
-                    .property("data.response.format.schemaName", "ClassifiedFact"));
+            template -> {
+              provider.propertiesFor(Capability.STRUCTURED_OUTPUT).forEach(template::property);
+              template
+                  .property("data.response.format.type", "json")
+                  .property("data.response.format.schema", "=" + RESPONSE_SCHEMA)
+                  .property("data.response.format.schemaName", "ClassifiedFact");
+            });
 
     var instance =
         startAgent(
@@ -176,11 +180,13 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
             provider,
             AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH,
             NO_TOOL_BPMN_RESOURCE,
-            template ->
-                template
-                    .property("data.response.format.type", "json")
-                    .property("data.response.format.schema", "=" + RESPONSE_SCHEMA)
-                    .property("data.response.format.schemaName", "DirectFact"));
+            template -> {
+              provider.propertiesFor(Capability.STRUCTURED_OUTPUT).forEach(template::property);
+              template
+                  .property("data.response.format.type", "json")
+                  .property("data.response.format.schema", "=" + RESPONSE_SCHEMA)
+                  .property("data.response.format.schemaName", "DirectFact");
+            });
 
     var instance =
         startAgent(
