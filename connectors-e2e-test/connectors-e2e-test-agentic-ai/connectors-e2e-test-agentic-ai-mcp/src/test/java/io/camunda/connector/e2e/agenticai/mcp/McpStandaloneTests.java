@@ -64,6 +64,9 @@ import org.springframework.test.context.TestPropertySource;
 @Import(McpTestServerConfiguration.class)
 public class McpStandaloneTests extends BaseAgenticAiTest {
 
+  /** The first stdio task of a run starts the server container. */
+  private static final Duration STDIO_START_TIMEOUT = Duration.ofMinutes(1);
+
   private static final String JSON_SCHEMA = "https://json-schema.org/draft/2020-12/schema";
 
   private static final McpToolDefinition ECHO_META_TOOL =
@@ -169,8 +172,6 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
               new PromptArgument("name", "User's name", true),
               new PromptArgument(
                   "preferredLanguage", "User's preferred greeting language", false)));
-
-  private static boolean stdioClientStarted;
 
   @Autowired private McpTestServers mcpTestServers;
 
@@ -364,16 +365,13 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   }
 
   private ProcessInstanceEvent executeProcess(BpmnModelInstance bpmnModel, String path) {
-    return awaitProcessCompletion(createProcessInstance(bpmnModel, Map.of("path", path)))
+    return awaitProcessCompletion(
+            createProcessInstance(bpmnModel, Map.of("path", path)), STDIO_START_TIMEOUT)
         .getProcessInstanceEvent();
   }
 
   private BpmnModelInstance bootstrapTestProcess(Fixture fixture, McpTestServerTransport transport)
       throws IOException {
-    if (transport == McpTestServerTransport.STDIO) {
-      startStdioClient();
-    }
-
     BpmnModelInstance bpmnModel =
         Bpmn.readModelFromStream(new ClassPathResource(fixture.resource).getInputStream());
 
@@ -389,33 +387,6 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                 bpmnModel, serviceTask, mcpTestServers.remoteClientInputMappings(transport)));
 
     return bpmnModel;
-  }
-
-  /**
-   * Runs one task on the stdio client, so that the start of its server container does not count
-   * against the wait of the first stdio test process. The client stays open for the Spring context.
-   */
-  private void startStdioClient() {
-    if (stdioClientStarted) {
-      return;
-    }
-
-    final var model =
-        Bpmn.createExecutableProcess("MCP_Stdio_Client_Start")
-            .startEvent()
-            .serviceTask(
-                "Start_Stdio_Client",
-                task ->
-                    task.zeebeJobType("io.camunda.agenticai:mcpclient:1")
-                        .zeebeInput(
-                            McpTestServers.clientId(McpTestServerTransport.STDIO),
-                            "data.client.clientId")
-                        .zeebeInput("standalone", "data.connectorMode.type")
-                        .zeebeInput("tools/list", "data.connectorMode.operation.type"))
-            .endEvent()
-            .done();
-    awaitProcessCompletion(createProcessInstance(model, Map.of()), Duration.ofMinutes(2));
-    stdioClientStarted = true;
   }
 
   /**
