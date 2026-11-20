@@ -42,6 +42,8 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,17 +119,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
     final var finalAiText = "No.";
 
     OpenAiCompletionsChatModelStubs.stubConversation(
-        Turn.toolCalls(
-            firstAiText,
-            10,
-            20,
-            ToolCall.of("stdio111", "MCP_A_MCP_Client___echoMeta", "{}"),
-            ToolCall.of("http222", "MCP_A_HTTP_MCP_Client___add", "{\"a\": 5, \"b\": 3}"),
-            ToolCall.of("remote333", "MCP_A_HTTP_Remote_MCP_Client___echoMeta", "{}"),
-            ToolCall.of("remote444", "MCP_A_HTTP_Remote_MCP_Client___echoHeaders", "{}"),
-            ToolCall.of("remote555", "MCP_A_SSE_Remote_MCP_Client___echoHeaders", "{}"),
-            ToolCall.of(
-                "sse666", "MCP_Filesystem_MCP_Flow___uppercase", "{\"message\": \"hello\"}")),
+        Turn.toolCalls(firstAiText, 10, 20, AgentMcpIntegrationTestSupport.toolCalls()),
         Turn.text(secondAiText, 100, 200),
         Turn.text(finalAiText, 11, 22));
 
@@ -143,26 +135,21 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
 
     assertConversationMessages(
         recorded.lastRequest(),
-        ExpectedMessage.system(SYSTEM_PROMPT),
-        ExpectedMessage.user(initialUserPrompt),
-        ExpectedMessage.assistantWithToolCalls(
-            firstAiText,
-            "MCP_A_MCP_Client___echoMeta",
-            "MCP_A_HTTP_MCP_Client___add",
-            "MCP_A_HTTP_Remote_MCP_Client___echoMeta",
-            "MCP_A_HTTP_Remote_MCP_Client___echoHeaders",
-            "MCP_A_SSE_Remote_MCP_Client___echoHeaders",
-            "MCP_Filesystem_MCP_Flow___uppercase"),
-        ExpectedMessage.toolCallResult("stdio111", AgentMcpIntegrationTestSupport.ECHOED_META),
-        ExpectedMessage.toolCallResult("http222", "8"),
-        ExpectedMessage.toolCallResult("remote333", "{}"),
-        ExpectedMessage.toolCallResult("remote444", null),
-        ExpectedMessage.toolCallResult("remote555", null),
-        ExpectedMessage.toolCallResult("sse666", "HELLO"),
-        ExpectedMessage.assistant(secondAiText),
-        ExpectedMessage.user("Ok thanks, anything else?"));
-    mcpSupport.assertEchoedHeaders(recorded.lastRequest(), "remote444", "HTTP");
-    mcpSupport.assertEchoedHeaders(recorded.lastRequest(), "remote555", "SSE");
+        Stream.of(
+                Stream.of(
+                    ExpectedMessage.system(SYSTEM_PROMPT),
+                    ExpectedMessage.user(initialUserPrompt),
+                    ExpectedMessage.assistantWithToolCalls(
+                        firstAiText, AgentMcpIntegrationTestSupport.toolCallNames())),
+                AgentMcpIntegrationTestSupport.expectedToolResults().stream()
+                    .map(result ->
+                        ExpectedMessage.toolCallResult(result.toolCallId(), result.text())),
+                Stream.of(
+                    ExpectedMessage.assistant(secondAiText),
+                    ExpectedMessage.user("Ok thanks, anything else?")))
+            .flatMap(Function.identity())
+            .toArray(ExpectedMessage[]::new));
+    mcpSupport.assertEchoedHeaders(recorded.lastRequest());
 
     assertAgentResponse(
         zeebeTest,
@@ -174,13 +161,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
                 .hasResponseText(finalAiText));
 
     mcpSupport.assertGatewayCompletions(
-        zeebeTest.getProcessInstanceEvent(),
-        Map.of(
-            "A_MCP_Client", 1,
-            "A_HTTP_MCP_Client", 1,
-            "A_HTTP_Remote_MCP_Client", 2,
-            "A_SSE_Remote_MCP_Client", 1,
-            "Filesystem_MCP_Flow", 1));
+        zeebeTest.getProcessInstanceEvent(), AgentMcpIntegrationTestSupport.TOOL_CALLS_BY_GATEWAY);
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 
