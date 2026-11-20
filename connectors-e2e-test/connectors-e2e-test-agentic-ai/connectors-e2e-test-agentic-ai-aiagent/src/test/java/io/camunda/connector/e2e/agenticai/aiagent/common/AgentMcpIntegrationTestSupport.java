@@ -83,8 +83,8 @@ public class AgentMcpIntegrationTestSupport {
 
   /**
    * Starts the stdio client once per Spring context, so that the start of its server container does
-   * not count against the process wait of the first test. A failure only fails the assertions that
-   * need the stdio client.
+   * not count against the process wait of the first test. A failure is logged and does not fail the
+   * Spring context. The tests then fail on the stdio gateway.
    */
   public void warmUpStdioClient() {
     if (!WARMED_UP_REGISTRIES.add(mcpClientRegistry)) {
