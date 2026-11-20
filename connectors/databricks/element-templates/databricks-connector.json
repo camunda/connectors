@@ -1653,11 +1653,11 @@
           "value" : "oauth-client-credentials-flow",
           "choices" : [
             {
-              "name" : "OAuth 2.0 client credentials",
+              "name" : "OAuth M2M (service principal)",
               "value" : "oauth-client-credentials-flow"
             },
             {
-              "name" : "Bearer token",
+              "name" : "Personal access token (testing only)",
               "value" : "bearer"
             }
           ],
@@ -1755,7 +1755,7 @@
         },
         {
           "id" : "authentication.token",
-          "label" : "Bearer token",
+          "label" : "Personal access token",
           "constraints" : {
             "notEmpty" : true
           },
