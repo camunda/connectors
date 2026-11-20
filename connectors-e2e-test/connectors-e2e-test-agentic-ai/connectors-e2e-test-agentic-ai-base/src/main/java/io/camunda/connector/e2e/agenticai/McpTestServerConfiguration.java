@@ -17,10 +17,10 @@
 package io.camunda.connector.e2e.agenticai;
 
 import static io.camunda.connector.e2e.agenticai.McpTestServerTransport.HTTP;
+import static io.camunda.connector.e2e.agenticai.McpTestServerTransport.IMAGE;
 import static io.camunda.connector.e2e.agenticai.McpTestServerTransport.SSE;
 import static io.camunda.connector.e2e.agenticai.McpTestServerTransport.STDIO;
 
-import io.camunda.connector.test.utils.DockerImages;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -49,7 +49,6 @@ import org.testcontainers.containers.GenericContainer;
 @TestConfiguration(proxyBeanMethods = false)
 public class McpTestServerConfiguration {
 
-  private static final String IMAGE = DockerImages.get("mcp-test-server");
   private static final int PORT = 12001;
 
   static {
