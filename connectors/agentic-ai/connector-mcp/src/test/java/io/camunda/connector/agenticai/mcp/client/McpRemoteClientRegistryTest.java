@@ -149,6 +149,63 @@ class McpRemoteClientRegistryTest {
   }
 
   @Test
+  void createsStreamableHttpRemoteMcpClientWithoutTimeout() {
+    final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
+
+    when(clientFactory.createClient(
+            CLIENT_ID.toString(),
+            new McpClientConfiguration(
+                true,
+                McpClientType.HTTP,
+                null,
+                new StreamableHttpMcpClientTransportConfiguration(
+                    STREAMABLE_HTTP_URL, HTTP_HEADERS, NO_AUTHENTICATION, null),
+                null,
+                null,
+                null,
+                null)))
+        .thenReturn(client);
+
+    final var resolvedClient =
+        registry.getClient(
+            CLIENT_ID,
+            new StreamableHttpMcpRemoteClientTransportConfiguration(
+                new StreamableHttpMcpRemoteClientConnection(
+                    null, STREAMABLE_HTTP_URL, HTTP_HEADERS, null)),
+            false);
+
+    assertThat(resolvedClient).isNotNull().isSameAs(this.client);
+  }
+
+  @Test
+  void createsSseRemoteMcpClientWithoutTimeout() {
+    final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
+
+    when(clientFactory.createClient(
+            CLIENT_ID.toString(),
+            new McpClientConfiguration(
+                true,
+                McpClientType.SSE,
+                null,
+                null,
+                new SseHttpMcpClientTransportConfiguration(
+                    SSE_URL, HTTP_HEADERS, NO_AUTHENTICATION, null),
+                null,
+                null,
+                null)))
+        .thenReturn(client);
+
+    final var resolvedClient =
+        registry.getClient(
+            CLIENT_ID,
+            new SseHttpMcpRemoteClientTransportConfiguration(
+                new SseHttpMcpRemoteClientConnection(null, SSE_URL, HTTP_HEADERS, null)),
+            false);
+
+    assertThat(resolvedClient).isNotNull().isSameAs(this.client);
+  }
+
+  @Test
   void returnsCachedValue() {
     final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
 
