@@ -109,13 +109,12 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>4.2.0</version.spring-boot>
-    <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
-         spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
-         Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
-    <version.amqp-client>5.38.0</version.amqp-client>
     <version.netty>4.2.21.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.8</version.logback>
+    <!-- Spring Boot 4.2 no longer manages org.codehaus.janino:janino (4.1.x managed 3.1.12). It is required at
+         runtime by the <if> conditionals in logback-spring.xml, so it is pinned here. -->
+    <version.janino>3.1.12</version.janino>
 
     <version.aws-sdk2>2.59.5</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
@@ -331,6 +330,13 @@ limitations under the License.</license.inlineheader>
         <version>${version.spring-boot}</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+
+      <!-- Not managed by the Spring Boot 4.2 BOM anymore, see version.janino -->
+      <dependency>
+        <groupId>org.codehaus.janino</groupId>
+        <artifactId>janino</artifactId>
+        <version>${version.janino}</version>
       </dependency>
 
       <!-- Override Spring Boot BOM postgresql pin -->
@@ -979,16 +985,6 @@ limitations under the License.</license.inlineheader>
         <version>${version.lz4-java}</version>
       </dependency>
 
-      <!-- Temporary override: remove once spring-boot-dependencies manages
-           rabbit-amqp-client >= 5.34.0. Guarded by the version.spring-boot enforcer rule below.
-           Setting Spring Boot's own rabbit-amqp-client.version property would not work here:
-           a same-named property does not override a dependency-management import. -->
-      <dependency>
-        <groupId>com.rabbitmq</groupId>
-        <artifactId>amqp-client</artifactId>
-        <version>${version.amqp-client}</version>
-      </dependency>
-
       <dependency>
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
@@ -1353,35 +1349,17 @@ the parsson dependencyManagement entry, and this enforcer rule from parent/pom.x
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-9563
                 </regexMessage>
               </requireProperty>
-              <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx guard: fails if version.spring-boot is
-                   bumped, as a reminder to check whether the amqp-client override can be removed
-                   (see version.amqp-client). spring-boot-dependencies manages
-                   com.rabbitmq:amqp-client via its own rabbit-amqp-client.version property.
-                   Confirmed still needed as of spring-boot 4.1.2: its BOM ships
-                   rabbit-amqp-client.version 5.30.0, still short of the 5.34.0 fix. -->
-              <requireProperty>
-                <property>version.spring-boot</property>
-                <regex>^4\.1\.2$</regex>
-                <regexMessage>
-version.spring-boot was changed! Check if the amqp-client CVE-2026-63337 override can be removed.
-If the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.34.0 (confirm with
-`mvn dependency:tree -Dincludes=com.rabbitmq:amqp-client`, not just the property), remove the
-version.amqp-client property, the amqp-client dependencyManagement entry, and this enforcer rule
-from parent/pom.xml.
-See: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx
-                </regexMessage>
-              </requireProperty>
               <!-- CVE-2026-68497 / GHSA-q4xh-88c3-wmh7 guard: fails if version.spring-boot is
                    bumped, as a reminder to check whether the jackson3-bom override can be removed
                    (see version.jackson3-bom). spring-boot-dependencies manages
                    tools.jackson:jackson-bom via its own jackson-bom.version property, separate from
                    the legacy com.fasterxml.jackson:jackson-bom line already overridden above - it is
-                   not covered by that override. As of spring-boot 4.1.2 its
-                   BOM ships jackson-bom.version 3.1.7, which has the 3.1.6 fix, but the override is
-                   kept because it pins 3.2.4 - removing it would downgrade Jackson 3 to 3.1.7. -->
+                   not covered by that override. As of spring-boot 4.2.0 its
+                   BOM ships jackson-bom.version 3.1.8, which has the 3.1.6 fix, but the override is
+                   kept because it pins 3.3.0 - removing it would downgrade Jackson 3 to 3.1.8. -->
               <requireProperty>
                 <property>version.spring-boot</property>
-                <regex>^4\.1\.2$</regex>
+                <regex>^4\.2\.0$</regex>
                 <regexMessage>
 version.spring-boot was changed! Check if the jackson3-bom CVE-2026-68497 override can be removed.
 If the new spring-boot-dependencies BOM ships tools.jackson:jackson-bom &gt;= 3.1.6 (confirm with
