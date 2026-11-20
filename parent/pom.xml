@@ -176,7 +176,7 @@ limitations under the License.</license.inlineheader>
               https://advisories.gitlab.com/maven/org.mariadb.jdbc/mariadb-java-client/CVE-2026-55857/ -->
     <version.mariadb-java-client>3.5.11</version.mariadb-java-client>
 
-    <version.microsoft-graph>6.72.0</version.microsoft-graph>
+    <version.microsoft-graph>6.74.0</version.microsoft-graph>
     <version.azure-identity>1.19.0</version.azure-identity>
 
     <version.bouncycastle.bcpkix>1.87</version.bouncycastle.bcpkix>
