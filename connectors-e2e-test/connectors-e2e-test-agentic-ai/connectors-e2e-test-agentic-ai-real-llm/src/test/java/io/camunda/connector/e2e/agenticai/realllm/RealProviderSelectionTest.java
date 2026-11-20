@@ -138,6 +138,25 @@ class RealProviderSelectionTest {
   }
 
   @Test
+  void shouldSelectOpenRouterDocumentProvidersOnlyWhenGroupIsOpenRouter() {
+    environment.set("OPENROUTER_API_KEY", "key").set("REAL_LLM_PROVIDER_GROUP", "openrouter");
+
+    assertThat(DocumentToolCallResultsIT.providers())
+        .extracting(DocumentToolCallResultsIT.ProviderConfig::label)
+        .containsExactly(
+            "openrouter-v2/openai/gpt-oss-20b",
+            "openrouter-v2/qwen/qwen3.8-27b",
+            "openrouter-v2/google/gemma-4-31b-it",
+            "openrouter-v2/z-ai/glm-5.3-flash");
+
+    environment.set("REAL_LLM_PROVIDER_GROUP", "openai").set("OPENAI_API_KEY", "key");
+
+    assertThat(DocumentToolCallResultsIT.providers())
+        .extracting(DocumentToolCallResultsIT.ProviderConfig::label)
+        .noneMatch(label -> label.startsWith("openrouter-v2/"));
+  }
+
+  @Test
   void shouldSelectMistralRowsOnlyWhenGroupIsMistral() {
     environment.set("MISTRAL_API_KEY", "key");
     environment.set("REAL_LLM_PROVIDER_GROUP", "mistral");

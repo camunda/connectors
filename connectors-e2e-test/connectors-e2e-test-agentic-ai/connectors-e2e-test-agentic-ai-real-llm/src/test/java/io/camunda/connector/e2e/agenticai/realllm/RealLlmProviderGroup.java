@@ -24,6 +24,7 @@ enum RealLlmProviderGroup {
   BEDROCK,
   ANTHROPIC,
   MISTRAL,
+  OPENROUTER,
   LOCAL;
 
   boolean isSelected() {

@@ -92,6 +92,7 @@ import org.springframework.core.io.ResourceLoader;
  *   <li>{@code ANTHROPIC_BEDROCK_API_KEY} / {@code ANTHROPIC_BEDROCK_REGION} - Anthropic's native
  *       AWS Bedrock Mantle backend credentials (region defaults to us-east-1)
  *   <li>{@code AWS_BEDROCK_ACCESS_KEY} / {@code AWS_BEDROCK_SECRET_KEY} - AWS Bedrock credentials
+ *   <li>{@code OPENROUTER_API_KEY} - OpenRouter API key
  *   <li>{@code DOCKER_MODEL_RUNNER_URL} - OpenAI-compatible endpoint (default:
  *       http://localhost:12434/engines/llama.cpp/v1)
  *   <li>{@code OLLAMA_URL} - Ollama OpenAI-compatible endpoint (default: http://localhost:11434/v1)
@@ -314,6 +315,11 @@ class DocumentToolCallResultsIT {
         bedrockV2("eu.amazon.nova-2-lite-v1:0").disabled(),
         // Google Gemini, v2, via Vertex AI
         googleGeminiVertexAiV2("gemini-3.8-flash", "global"),
+        // Small open-weight models via OpenRouter, one per model family
+        openRouterV2("openai/gpt-oss-20b"),
+        openRouterV2("qwen/qwen3.8-27b"),
+        openRouterV2("google/gemma-4-31b-it"),
+        openRouterV2("z-ai/glm-5.3-flash"),
         // Docker Model Runner (OpenAI-compatible)
         dockerModelRunnerV1("ai/gemma4:latest").disabled(),
         dockerModelRunnerV1("ai/qwen3.6:latest").disabled(),
@@ -505,6 +511,40 @@ class DocumentToolCallResultsIT {
             "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
             envOrPlaceholder("GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON"),
             "provider.googleGemini.model.model",
+            model));
+  }
+
+  /**
+   * OpenRouter, v2, via the OpenAI custom backend. The file-parser plugin parses PDFs for models
+   * without native PDF input; only the US host accepts its engines.
+   */
+  static ProviderConfig openRouterV2(String model) {
+    return new ProviderConfig(
+        "openrouter-v2/" + model,
+        RealLlmProviderGroup.OPENROUTER,
+        List.of("OPENROUTER_API_KEY"),
+        AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+        Map.of(
+            "provider.type",
+            "openai",
+            "provider.openai.backend.type",
+            "custom",
+            "provider.openai.backend.custom.endpoint",
+            "https://us.openrouter.ai/api/v1",
+            "provider.openai.backend.custom.authentication.type",
+            "apiKey",
+            "provider.openai.backend.custom.authentication.apiKey",
+            envOrPlaceholder("OPENROUTER_API_KEY"),
+            "provider.openai.backend.custom.bodyProperties",
+            """
+            ={
+              provider: {require_parameters: true, data_collection: "deny", zdr: true},
+              plugins: [{id: "file-parser", pdf: {engine: "mistral-ocr"}}]
+            }
+            """,
+            "provider.openai.api.type",
+            "completions",
+            "provider.openai.model.model",
             model));
   }
 
