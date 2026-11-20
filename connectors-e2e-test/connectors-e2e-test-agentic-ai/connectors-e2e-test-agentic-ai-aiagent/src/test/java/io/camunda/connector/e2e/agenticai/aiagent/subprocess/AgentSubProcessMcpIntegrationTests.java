@@ -179,6 +179,8 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
                 .hasResponseText(finalAiText));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
+    // tool discovery MUST NOT run again on the later iterations
+    verify(agentInstanceClient).applyToolDiscoveryStart(any(), any());
   }
 
   @Test
@@ -236,7 +238,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
     updateInputMappings(model, elementId, Map.of(urlTarget, url));
   }
 
-  /** The HTTP client MAY send the header name in lower case. */
+  /** The HTTP client can send the header name in lower case. */
   private void assertEchoedDummyHeader(
       RecordedChatRequest request, String toolCallId, String expectedValue) throws IOException {
     final var toolResult =
