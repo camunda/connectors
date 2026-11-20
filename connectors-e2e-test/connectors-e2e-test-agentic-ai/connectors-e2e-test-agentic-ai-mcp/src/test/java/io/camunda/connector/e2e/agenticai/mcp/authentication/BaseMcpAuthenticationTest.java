@@ -130,13 +130,6 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                     "data.connectorMode.standaloneModeFilters.tools.included",
                     "=[\"uppercase\", \"lowercase\", \"echo\", \"greet\", \"echoMeta\"]")));
 
-    updateInputMappings(
-        bpmnModel,
-        "Client_Call_Tool",
-        Map.ofEntries(
-            Map.entry("data.connectorMode.operation.toolName", "echoMeta"),
-            Map.entry("data.connectorMode.operation.toolArguments", "={}")));
-
     // MCP Remote Client
     serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpremoteclient"))
         .forEach(st ->
@@ -147,13 +140,6 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                     Map.of(
                         "data.connectorMode.standaloneModeFilters.tools.included",
                         "=[\"add\", \"echo\", \"base64Encode\", \"base64Decode\", \"greet\"]"))));
-
-    updateInputMappings(
-        bpmnModel,
-        "Remote_Client_Call_Tool",
-        Map.ofEntries(
-            Map.entry("data.connectorMode.operation.toolName", "add"),
-            Map.entry("data.connectorMode.operation.toolArguments", "={ a: 5, b: 3 }")));
 
     ZeebeTest zeebeTest =
         awaitProcessCompletion(createProcessInstance(bpmnModel, Map.of("path", "tools")));

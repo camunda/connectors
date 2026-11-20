@@ -12,6 +12,7 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
+          <zeebe:input source="=[&#34;echo&#34;, &#34;echoMeta&#34;]" target="data.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="1" />
@@ -37,8 +38,9 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
-          <zeebe:input source="toolA" target="data.connectorMode.operation.toolName" />
-          <zeebe:input source="={&#10;  paramA1: &#34;someValue&#34;,&#10;  paramA2: 3&#10;}" target="data.connectorMode.operation.toolArguments" />
+          <zeebe:input source="echoMeta" target="data.connectorMode.operation.toolName" />
+          <zeebe:input source="={}" target="data.connectorMode.operation.toolArguments" />
+          <zeebe:input source="=[&#34;echo&#34;, &#34;echoMeta&#34;]" target="data.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="1" />
@@ -60,6 +62,7 @@
           <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
+          <zeebe:input source="=[&#34;add&#34;, &#34;greet&#34;]" target="data.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="1" />
@@ -81,8 +84,9 @@
           <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
-          <zeebe:input source="toolC" target="data.connectorMode.operation.toolName" />
-          <zeebe:input source="={&#10;  paramC1: &#34;someOtherValue&#34;&#10;}" target="data.connectorMode.operation.toolArguments" />
+          <zeebe:input source="add" target="data.connectorMode.operation.toolName" />
+          <zeebe:input source="={a: 5, b: 3}" target="data.connectorMode.operation.toolArguments" />
+          <zeebe:input source="=[&#34;add&#34;, &#34;greet&#34;]" target="data.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="1" />

@@ -205,34 +205,6 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   @MethodSource("toolsRows")
   void toolsListAndCall(Fixture fixture, McpTestServerTransport transport) throws IOException {
     BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
-    updateInputMappings(
-        bpmnModel,
-        "Client_List_Tools",
-        Map.of(fixture.toolsFilter("included"), "=[\"echo\", \"echoMeta\"]"));
-    updateInputMappings(
-        bpmnModel,
-        "Client_Call_Tool",
-        Map.of(
-            fixture.toolsFilter("included"),
-            "=[\"echo\", \"echoMeta\"]",
-            "data.connectorMode.operation.toolName",
-            "echoMeta",
-            "data.connectorMode.operation.toolArguments",
-            "={}"));
-    updateInputMappings(
-        bpmnModel,
-        "Remote_Client_List_Tools",
-        Map.of(fixture.toolsFilter("included"), "=[\"add\", \"greet\"]"));
-    updateInputMappings(
-        bpmnModel,
-        "Remote_Client_Call_Tool",
-        Map.of(
-            fixture.toolsFilter("included"),
-            "=[\"add\", \"greet\"]",
-            "data.connectorMode.operation.toolName",
-            "add",
-            "data.connectorMode.operation.toolArguments",
-            "={a: 5, b: 3}"));
 
     CamundaAssert.assertThat(executeProcess(bpmnModel, Path.TOOLS))
         .hasVariableSatisfies(
@@ -268,26 +240,6 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   @MethodSource("resourcesRows")
   void resourcesListAndRead(Fixture fixture, McpTestServerTransport transport) throws IOException {
     BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
-    updateInputMappings(
-        bpmnModel,
-        "Client_List_Resources",
-        Map.of(
-            "data.connectorMode.standaloneModeFilters.resources.excluded",
-            "=[\"file://cookbook-essentials.pdf\"]"));
-    updateInputMappings(
-        bpmnModel,
-        "Client_Read_Resource",
-        Map.of("data.connectorMode.operation.resourceUri", "echo-meta://client"));
-    updateInputMappings(
-        bpmnModel,
-        "Remote_Client_List_Resources",
-        Map.of(
-            "data.connectorMode.standaloneModeFilters.resources.excluded",
-            "=[\"file://jokes-guide.md\"]"));
-    updateInputMappings(
-        bpmnModel,
-        "Remote_Client_Read_Resource",
-        Map.of("data.connectorMode.operation.resourceUri", "echo-meta://remote-client"));
 
     CamundaAssert.assertThat(executeProcess(bpmnModel, Path.RESOURCES))
         .hasVariableSatisfies(
@@ -331,14 +283,6 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   void resourceTemplatesListAndRead(Fixture fixture, McpTestServerTransport transport)
       throws IOException {
     BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
-    updateInputMappings(
-        bpmnModel,
-        "Client_Read_Resource_Template",
-        Map.of("data.connectorMode.operation.resourceUri", "echo-meta://client-template"));
-    updateInputMappings(
-        bpmnModel,
-        "Remote_Client_Read_Resource_Template",
-        Map.of("data.connectorMode.operation.resourceUri", "echo-meta://remote-client-template"));
 
     CamundaAssert.assertThat(executeProcess(bpmnModel, Path.RESOURCE_TEMPLATES))
         .hasVariableSatisfies(
@@ -387,30 +331,6 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   @MethodSource("promptsRows")
   void promptsListAndGet(Fixture fixture, McpTestServerTransport transport) throws IOException {
     BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
-    updateInputMappings(
-        bpmnModel,
-        "Client_List_Prompts",
-        Map.of("data.connectorMode.standaloneModeFilters.prompts.excluded", "=[\"get-greeting\"]"));
-    updateInputMappings(
-        bpmnModel,
-        "Client_Get_Prompt",
-        Map.of(
-            "data.connectorMode.operation.promptName",
-            "echo-meta",
-            "data.connectorMode.operation.promptArguments",
-            "={}"));
-    updateInputMappings(
-        bpmnModel,
-        "Remote_Client_List_Prompts",
-        Map.of("data.connectorMode.standaloneModeFilters.prompts.excluded", "=[\"echo-meta\"]"));
-    updateInputMappings(
-        bpmnModel,
-        "Remote_Client_Get_Prompt",
-        Map.of(
-            "data.connectorMode.operation.promptName",
-            "get-greeting",
-            "data.connectorMode.operation.promptArguments",
-            "={name: \"Jane\"}"));
 
     CamundaAssert.assertThat(executeProcess(bpmnModel, Path.PROMPTS))
         .hasVariableSatisfies(
@@ -529,32 +449,18 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
    * supports. Only the v3 fixture sets {@code meta} on its local client tasks.
    */
   enum Fixture {
-    V1("regression/mcp-connectors-standalone-v0.bpmn", "data.tools", false, EnumSet.of(Path.TOOLS)),
-    V2(
-        "regression/mcp-connectors-standalone-v2.bpmn",
-        "data.connectorMode.standaloneModeFilters.tools",
-        false,
-        EnumSet.allOf(Path.class)),
-    V3(
-        "mcp-connectors-standalone.bpmn",
-        "data.connectorMode.standaloneModeFilters.tools",
-        true,
-        EnumSet.allOf(Path.class));
+    V1("regression/mcp-connectors-standalone-v0.bpmn", false, EnumSet.of(Path.TOOLS)),
+    V2("regression/mcp-connectors-standalone-v2.bpmn", false, EnumSet.allOf(Path.class)),
+    V3("mcp-connectors-standalone.bpmn", true, EnumSet.allOf(Path.class));
 
     private final String resource;
-    private final String toolsFilterPrefix;
     private final boolean setsMeta;
     private final Set<Path> paths;
 
-    Fixture(String resource, String toolsFilterPrefix, boolean setsMeta, Set<Path> paths) {
+    Fixture(String resource, boolean setsMeta, Set<Path> paths) {
       this.resource = resource;
-      this.toolsFilterPrefix = toolsFilterPrefix;
       this.setsMeta = setsMeta;
       this.paths = paths;
-    }
-
-    String toolsFilter(String list) {
-      return toolsFilterPrefix + "." + list;
     }
 
     /** The {@code _meta} that the echo tool, resource and prompt return for a local client task. */
