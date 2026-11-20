@@ -27,7 +27,7 @@ import static org.mockito.Mockito.verify;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration;
 import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration.McpTestServers;
 import io.camunda.connector.e2e.agenticai.aiagent.common.AgentMcpIntegrationTestSupport;
@@ -60,16 +60,18 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
   protected Resource testProcessWithMcp;
 
   @Autowired private McpTestServers mcpTestServers;
-  @Autowired private McpClientRegistry mcpClientRegistry;
   @MockitoSpyBean private AgentInstanceClient agentInstanceClient;
 
   private AgentMcpIntegrationTestSupport mcpSupport;
 
   @BeforeEach
   void setUpMcpSupport() {
-    mcpSupport =
-        new AgentMcpIntegrationTestSupport(mcpTestServers, mcpClientRegistry, objectMapper);
-    mcpSupport.warmUpStdioClient();
+    mcpSupport = new AgentMcpIntegrationTestSupport(mcpTestServers, objectMapper);
+  }
+
+  @Override
+  protected ZeebeTest awaitProcessCompletion(ZeebeTest zeebeTest) {
+    return awaitProcessCompletion(zeebeTest, AgentMcpIntegrationTestSupport.STDIO_START_TIMEOUT);
   }
 
   @Override

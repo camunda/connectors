@@ -22,27 +22,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ProcessInstanceEvent;
-import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
-import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration.McpTestServers;
 import io.camunda.connector.e2e.agenticai.McpTestServerTransport;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class AgentMcpIntegrationTestSupport {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(AgentMcpIntegrationTestSupport.class);
+  /** The first stdio task of a run starts the server container. */
+  public static final Duration STDIO_START_TIMEOUT = Duration.ofMinutes(1);
 
   public static final String ECHOED_META = "{\"exampleMetaKey\":\"exampleMetaValue\"}";
 
@@ -70,18 +66,11 @@ public class AgentMcpIntegrationTestSupport {
           "A_SSE_Remote_MCP_Client",
           "Filesystem_MCP_Flow");
 
-  private static final Set<McpClientRegistry> WARMED_UP_REGISTRIES = ConcurrentHashMap.newKeySet();
-
   private final McpTestServers mcpTestServers;
-  private final McpClientRegistry mcpClientRegistry;
   private final ObjectMapper objectMapper;
 
-  public AgentMcpIntegrationTestSupport(
-      McpTestServers mcpTestServers,
-      McpClientRegistry mcpClientRegistry,
-      ObjectMapper objectMapper) {
+  public AgentMcpIntegrationTestSupport(McpTestServers mcpTestServers, ObjectMapper objectMapper) {
     this.mcpTestServers = mcpTestServers;
-    this.mcpClientRegistry = mcpClientRegistry;
     this.objectMapper = objectMapper;
   }
 
@@ -90,25 +79,6 @@ public class AgentMcpIntegrationTestSupport {
     setRemoteClientUrl(model, "A_HTTP_Remote_MCP_Client", McpTestServerTransport.HTTP);
     setRemoteClientUrl(model, "A_SSE_Remote_MCP_Client", McpTestServerTransport.SSE);
     return model;
-  }
-
-  /**
-   * Starts the stdio client once per Spring context, so that the start of its server container does
-   * not count against the process wait of the first test. A failure is logged and does not fail the
-   * Spring context. The tests then fail on the stdio gateway.
-   */
-  public void warmUpStdioClient() {
-    if (!WARMED_UP_REGISTRIES.add(mcpClientRegistry)) {
-      return;
-    }
-
-    try {
-      mcpClientRegistry
-          .getClient(McpTestServers.clientId(McpTestServerTransport.STDIO))
-          .listTools(AllowDenyList.allowingEverything(), Map.of());
-    } catch (Exception e) {
-      LOGGER.warn("Failed to warm up the stdio MCP client", e);
-    }
   }
 
   /** Asserts that the headers echoed for the tool call are exactly the configured ones. */
