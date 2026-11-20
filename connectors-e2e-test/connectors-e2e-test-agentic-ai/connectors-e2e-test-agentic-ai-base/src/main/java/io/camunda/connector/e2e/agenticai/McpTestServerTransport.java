@@ -58,7 +58,7 @@ public enum McpTestServerTransport {
       }
 
       // The profile MUST reach the container through the client env, so that broken env
-      // forwarding (#7163) fails the stdio tests.
+      // forwarding fails the stdio tests.
       properties.put(
           clientPrefix + ".stdio.env[SPRING_PROFILES_ACTIVE]",
           getTestServerProfile().orElseThrow());
