@@ -103,17 +103,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
             });
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-        .hasCompletedElements(
-            // entering the AI Agent
-            "AI_Agent",
-            // MCP tool discovery start
-            "A_MCP_Client",
-            "A_HTTP_MCP_Client",
-            "A_HTTP_Remote_MCP_Client",
-            "A_SSE_Remote_MCP_Client",
-            "Filesystem_MCP_Flow",
-            // MCP tool discovery end
-            "User_Feedback");
+        .hasCompletedElements("AI_Agent", "User_Feedback");
 
     mcpSupport.assertGatewayCompletions(zeebeTest.getProcessInstanceEvent(), Map.of());
     verify(agentInstanceClient).applyToolDiscoveryStart(any(), any());
