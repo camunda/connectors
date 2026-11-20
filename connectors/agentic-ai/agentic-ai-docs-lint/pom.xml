@@ -30,7 +30,7 @@
   </licenses>
 
   <properties>
-    <version.commonmark>0.32.0</version.commonmark>
+    <version.commonmark>0.33.0</version.commonmark>
   </properties>
 
   <dependencies>
