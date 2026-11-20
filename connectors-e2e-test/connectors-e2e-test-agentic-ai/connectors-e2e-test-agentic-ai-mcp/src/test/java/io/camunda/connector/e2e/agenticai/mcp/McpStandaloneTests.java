@@ -48,10 +48,8 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -176,37 +174,27 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
 
   @Autowired private McpTestServers mcpTestServers;
 
-  static Stream<Arguments> toolsRows() {
-    return rows(Path.TOOLS);
+  static Stream<Arguments> allFixtureRows() {
+    return rows(Fixture.values());
   }
 
-  static Stream<Arguments> resourcesRows() {
-    return rows(Path.RESOURCES);
+  static Stream<Arguments> v2AndV3FixtureRows() {
+    return rows(Fixture.V2, Fixture.V3);
   }
 
-  static Stream<Arguments> resourceTemplatesRows() {
-    return rows(Path.RESOURCE_TEMPLATES);
-  }
-
-  static Stream<Arguments> promptsRows() {
-    return rows(Path.PROMPTS);
-  }
-
-  /** One row per transport for each fixture whose template supports the path. */
-  private static Stream<Arguments> rows(Path path) {
-    return Arrays.stream(Fixture.values())
-        .filter(fixture -> fixture.paths.contains(path))
+  private static Stream<Arguments> rows(Fixture... fixtures) {
+    return Arrays.stream(fixtures)
         .flatMap(fixture ->
             Arrays.stream(McpTestServerTransport.values())
                 .map(transport -> Arguments.of(fixture, transport)));
   }
 
   @ParameterizedTest(name = "{0} {1}")
-  @MethodSource("toolsRows")
+  @MethodSource("allFixtureRows")
   void toolsListAndCall(Fixture fixture, McpTestServerTransport transport) throws IOException {
     BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
 
-    CamundaAssert.assertThat(executeProcess(bpmnModel, Path.TOOLS))
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "tools"))
         .hasVariableSatisfies(
             "clientListToolsResult",
             McpClientListToolsResult.class,
@@ -237,11 +225,11 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   }
 
   @ParameterizedTest(name = "{0} {1}")
-  @MethodSource("resourcesRows")
+  @MethodSource("v2AndV3FixtureRows")
   void resourcesListAndRead(Fixture fixture, McpTestServerTransport transport) throws IOException {
     BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
 
-    CamundaAssert.assertThat(executeProcess(bpmnModel, Path.RESOURCES))
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "resources"))
         .hasVariableSatisfies(
             "clientCallListResourcesResult",
             McpClientListResourcesResult.class,
@@ -279,12 +267,12 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   }
 
   @ParameterizedTest(name = "{0} {1}")
-  @MethodSource("resourceTemplatesRows")
+  @MethodSource("v2AndV3FixtureRows")
   void resourceTemplatesListAndRead(Fixture fixture, McpTestServerTransport transport)
       throws IOException {
     BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
 
-    CamundaAssert.assertThat(executeProcess(bpmnModel, Path.RESOURCE_TEMPLATES))
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "resourceTemplates"))
         .hasVariableSatisfies(
             "clientCallListResourceTemplatesResult",
             McpClientListResourceTemplatesResult.class,
@@ -328,11 +316,11 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   }
 
   @ParameterizedTest(name = "{0} {1}")
-  @MethodSource("promptsRows")
+  @MethodSource("v2AndV3FixtureRows")
   void promptsListAndGet(Fixture fixture, McpTestServerTransport transport) throws IOException {
     BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
 
-    CamundaAssert.assertThat(executeProcess(bpmnModel, Path.PROMPTS))
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "prompts"))
         .hasVariableSatisfies(
             "clientCallListPromptsResult",
             McpClientListPromptsResult.class,
@@ -375,8 +363,8 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                                         """))))));
   }
 
-  private ProcessInstanceEvent executeProcess(BpmnModelInstance bpmnModel, Path path) {
-    return awaitProcessCompletion(createProcessInstance(bpmnModel, Map.of("path", path.value)))
+  private ProcessInstanceEvent executeProcess(BpmnModelInstance bpmnModel, String path) {
+    return awaitProcessCompletion(createProcessInstance(bpmnModel, Map.of("path", path)))
         .getProcessInstanceEvent();
   }
 
@@ -430,37 +418,22 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
     stdioClientStarted = true;
   }
 
-  /** The paths of the fixtures, selected by the {@code path} process variable. */
-  enum Path {
-    TOOLS("tools"),
-    RESOURCES("resources"),
-    RESOURCE_TEMPLATES("resourceTemplates"),
-    PROMPTS("prompts");
-
-    private final String value;
-
-    Path(String value) {
-      this.value = value;
-    }
-  }
-
   /**
-   * A BPMN fixture per MCP client element template version, with the paths that its template
-   * supports. Only the v3 fixture sets {@code meta} on its local client tasks.
+   * A BPMN fixture per MCP client element template version. The resource, resource template and
+   * prompt paths need the V2 and V3 templates. Only the v3 fixture sets {@code meta} on its local
+   * client tasks.
    */
   enum Fixture {
-    V1("regression/mcp-connectors-standalone-v0.bpmn", false, EnumSet.of(Path.TOOLS)),
-    V2("regression/mcp-connectors-standalone-v2.bpmn", false, EnumSet.allOf(Path.class)),
-    V3("mcp-connectors-standalone.bpmn", true, EnumSet.allOf(Path.class));
+    V1("regression/mcp-connectors-standalone-v0.bpmn", false),
+    V2("regression/mcp-connectors-standalone-v2.bpmn", false),
+    V3("mcp-connectors-standalone.bpmn", true);
 
     private final String resource;
     private final boolean setsMeta;
-    private final Set<Path> paths;
 
-    Fixture(String resource, boolean setsMeta, Set<Path> paths) {
+    Fixture(String resource, boolean setsMeta) {
       this.resource = resource;
       this.setsMeta = setsMeta;
-      this.paths = paths;
     }
 
     /** The {@code _meta} that the echo tool, resource and prompt return for a local client task. */
