@@ -29,6 +29,19 @@ assert_eq "a/B.java" "$(printf '%s' "$out" | jq -r '.[0].path')" "path"
 assert_eq "https://x/T2" "$(printf '%s' "$out" | jq -r '.[0].url')" "url"
 assert_eq "false" "$(printf '%s' "$out" | jq -r '.[0].outdated')" "outdated"
 
+# replies: a human reply turns a bot-started thread into a human one; replies are exposed
+jq -n '{data:{repository:{pullRequest:{reviewThreads:{pageInfo:{hasNextPage:false,endCursor:""},nodes:[{
+  id:"R1",isResolved:false,isOutdated:false,path:"p",line:1,
+  comments:{totalCount:3,nodes:[
+    {author:{login:"copilot-pull-request-reviewer",__typename:"Bot"},body:"first",url:"u1"},
+    {author:{login:"alice",__typename:"User"},body:"I disagree",url:"u2"},
+    {author:{login:"copilot-pull-request-reviewer",__typename:"Bot"},body:"ack",url:"u3"}]}}]}}}}}' > "$FAKE_GH_DIR/graphql-1.json"
+rm -f "$FAKE_GH_DIR/.n"
+out=$(bash "$SCRIPT_DIR/review-threads.sh" 1)
+assert_eq "human" "$(printf '%s' "$out" | jq -r '.[0].kind')" "bot thread with a human reply is human"
+assert_eq "alice:I disagree bot:ack" "$(printf '%s' "$out" | jq -r '[.[0].replies[]|"\(if .kind=="bot" then "bot" else .author end):\(.body)"]|join(" ")')" "replies exposed"
+assert_eq "first" "$(printf '%s' "$out" | jq -r '.[0].body')" "first comment stays in body"
+
 # pagination
 rm -f "$FAKE_GH_DIR/.n" "$FAKE_GH_DIR/calls.log"
 page true CUR1 "$(thread P1 false alice)" > "$FAKE_GH_DIR/graphql-1.json"

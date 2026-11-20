@@ -32,9 +32,10 @@ All in `scripts/`, JSON on stdout. Use them instead of hand-writing `gh` / Graph
 |---|---|
 | `pr-state.sh <pr>` | snapshot: state, draft, mergeable, reviewDecision, autoMerge, checks (failed with run ids / pending / passed), Copilot verdict, unresolved threads |
 | `copilot-verdict.sh <pr>` | Copilot's latest verdict and whether it covers the current head |
-| `review-threads.sh <pr>` | unresolved threads (`kind` human/bot) |
+| `review-threads.sh <pr>` | unresolved threads with their replies (`kind` human/bot; a human reply makes it human) |
 | `resolve-thread.sh <id> [--reply T] [--no-resolve]` | reply and/or resolve a thread |
 | `rerun-failed.sh <pr>` | rerun failed jobs, ≤3 reruns per run |
+| `enqueue.sh <pr>` | enable auto-merge / enqueue, bound to the inspected head commit |
 | `wait-for-change.sh <pr>...` | block until CI, Copilot, threads or state change |
 
 ## Hard rules
@@ -95,10 +96,11 @@ One row per PR; repeat passes until every PR is terminal, then report.
    [thread-triage](references/thread-triage.md). Batch all fixes into one push.
 5. **Done?** CI green (nothing failed/pending), Copilot `current` and `green` — or `blue`/`changes`
    with all of its points answered — and no unresolved thread except human ones awaiting the user.
-   - `reviewDecision == APPROVED` and not already enqueued → `gh pr merge <pr> --repo
-     camunda/connectors --auto` (it enqueues on branches under the "Use Merge Queue" ruleset — `main`
-     and the recent `stable/*` — and arms auto-merge elsewhere). Enqueued = `queue != null` **or**
-     `autoMerge`: a queued PR may report `autoMerge: false`.
+   - `reviewDecision == APPROVED` and not already enqueued → `scripts/enqueue.sh <pr>` (enables
+     auto-merge bound to the inspected head; on branches under the "Use Merge Queue" ruleset — `main`
+     and the recent `stable/*` — that enqueues the PR, elsewhere it arms auto-merge). Don't use
+     `gh pr merge --auto`: it needs an explicit strategy on non-queue branches. Enqueued =
+     `queue != null` **or** `autoMerge`: a queued PR may report `autoMerge: false`.
    - Otherwise → 🟢 ready, awaiting human approval.
    - Backports never take this step: the bot approves and auto-merges them
      (`AUTO_MERGE_BACKPORT_PR.yml`) while it is the sole pusher and tests pass.

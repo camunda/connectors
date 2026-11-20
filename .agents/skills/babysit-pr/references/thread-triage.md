@@ -1,7 +1,9 @@
 # Review thread triage
 
-Input: `scripts/review-threads.sh <pr>` (unresolved threads; `kind` = `bot` for Copilot,
-`github-actions` and `*[bot]` accounts, `human` for everyone else).
+Input: `scripts/review-threads.sh <pr>` (unresolved threads with their `replies`; `kind` = `bot` for
+Copilot, `github-actions` and other GitHub Bot accounts, `human` for everyone else — a bot thread
+that has a human reply counts as human). **Read the replies before choosing an outcome**: a
+reviewer's clarification or objection can change it.
 
 Pick exactly one outcome per thread:
 
@@ -18,9 +20,10 @@ with outcome 2 instead of hardening for each one. After 2 fix rounds, stop and a
 
 ## Human threads
 
-Resolve only when you fixed the point (outcome 1) or opened a follow-up the reviewer can see
-(outcome 3). If you disagree, reply with the reason using `--no-resolve`, leave the thread open, and
-list it in the report for the user — the reviewer decides, not the skill.
+Resolve only when you fixed the point (outcome 1). For a decline (outcome 2) or a follow-up
+(outcome 3), reply with the reason or the link using `--no-resolve`, leave the thread open, and
+list it in the report under "Needs you" — a follow-up doesn't mean the reviewer agreed to defer the
+change; the reviewer decides, not the skill.
 
 ## Replies
 
