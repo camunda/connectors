@@ -52,7 +52,7 @@ public enum McpTestServerTransport {
               STDIO_CONTAINER_LABEL,
               "-e",
               "SPRING_PROFILES_ACTIVE",
-              DockerImages.get("mcp-test-server"));
+              IMAGE);
       for (int i = 0; i < args.size(); i++) {
         properties.put("%s.stdio.args[%d]".formatted(clientPrefix, i), args.get(i));
       }
@@ -64,6 +64,9 @@ public enum McpTestServerTransport {
           getTestServerProfile().orElseThrow());
     }
   };
+
+  /** The image of every mcp-test-server container, including the ones the stdio client starts. */
+  static final String IMAGE = DockerImages.get("mcp-test-server");
 
   /** Marks the stdio containers of this JVM, so that the test base can remove leftovers. */
   static final String STDIO_CONTAINER_LABEL = "mcp-test-server-stdio=" + UUID.randomUUID();
