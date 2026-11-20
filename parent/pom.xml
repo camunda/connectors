@@ -109,12 +109,12 @@ limitations under the License.</license.inlineheader>
     <version.log4j>2.26.1</version.log4j>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.59.4</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.59.5</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.59.4</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.59.5</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.59.4</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.59.5</version.aws-sdk-secretsmanager>
 
     <version.google-api-client>2.9.2</version.google-api-client>
 
@@ -171,7 +171,7 @@ limitations under the License.</license.inlineheader>
 
     <version.sendGrid>4.10.3</version.sendGrid>
 
-    <version.slack>1.55.0</version.slack>
+    <version.slack>1.56.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
