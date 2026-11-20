@@ -621,7 +621,7 @@
           },
           "group": "authentication",
           "binding": {
-            "name": "authentication.oauthTokenEndpoint",
+            "name": "parameters.oauthTokenEndpoint",
             "type": "property"
           },
           "type": "String"
@@ -643,10 +643,40 @@
           },
           "group": "authentication",
           "binding": {
-            "name": "baseUrl",
+            "name": "parameters.baseUrl",
             "type": "property"
           },
           "type": "String"
+        },
+        {
+          "id": "oauthTokenEndpointSmValue",
+          "value": "${oauthTokenEndpoint}",
+          "condition": {
+            "property": "deployment",
+            "equals": "sm",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.oauthTokenEndpoint",
+            "type": "property"
+          },
+          "type": "Hidden"
+        },
+        {
+          "id": "baseUrlSmValue",
+          "value": "${baseUrl}",
+          "condition": {
+            "property": "deployment",
+            "equals": "sm",
+            "type": "simple"
+          },
+          "group": "authentication",
+          "binding": {
+            "name": "baseUrl",
+            "type": "property"
+          },
+          "type": "Hidden"
         },
         {
           "id": "authentication.clientId",
