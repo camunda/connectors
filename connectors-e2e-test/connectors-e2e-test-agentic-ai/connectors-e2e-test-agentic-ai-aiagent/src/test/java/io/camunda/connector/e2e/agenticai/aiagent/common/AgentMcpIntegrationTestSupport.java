@@ -74,11 +74,15 @@ public class AgentMcpIntegrationTestSupport {
     this.objectMapper = objectMapper;
   }
 
-  /** The server ports are known only at runtime, so the remote gateways get their URL here. */
+  /**
+   * The server ports are known only at runtime, so the remote gateways get their URL here. Returns
+   * a customized copy and leaves the given model unchanged.
+   */
   public BpmnModelInstance setRemoteClientUrls(BpmnModelInstance model) {
-    setRemoteClientUrl(model, "A_HTTP_Remote_MCP_Client", McpTestServerTransport.HTTP);
-    setRemoteClientUrl(model, "A_SSE_Remote_MCP_Client", McpTestServerTransport.SSE);
-    return model;
+    final var customized = model.clone();
+    setRemoteClientUrl(customized, "A_HTTP_Remote_MCP_Client", McpTestServerTransport.HTTP);
+    setRemoteClientUrl(customized, "A_SSE_Remote_MCP_Client", McpTestServerTransport.SSE);
+    return customized;
   }
 
   /** Asserts that the headers echoed for the tool call are exactly the configured ones. */
