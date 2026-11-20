@@ -46,8 +46,9 @@ public class McpSdkClientFactory implements McpClientFactory {
   @Override
   public McpClientDelegate createClient(
       String clientId, McpClientConfigurationProperties.McpClientConfiguration config) {
-    // deprecation: the MCP spec deprecates roots, but the client keeps declaring that it does not
-    // support them; dropping the call would remove the capability from the initialize request
+    // deprecation: the MCP spec deprecates roots, but the client keeps advertising the roots
+    // capability (without list-change notifications) in the initialize request, so servers see the
+    // same capabilities as before; dropping the call would remove it
     @SuppressWarnings("deprecation")
     var clientBuilder =
         McpClient.sync(createTransport(config))
