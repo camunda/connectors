@@ -16,13 +16,20 @@
  */
 package io.camunda.connector.runtime.saas;
 
+import io.camunda.connector.runtime.bundle.security.SelfManagedApiSecurityAutoConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 
 @SpringBootApplication(exclude = {ElasticsearchRestClientAutoConfiguration.class})
-@ComponentScan(basePackages = "io.camunda.connector")
+@ComponentScan(
+    basePackages = "io.camunda.connector",
+    excludeFilters =
+        @ComponentScan.Filter(
+            type = FilterType.ASSIGNABLE_TYPE,
+            classes = SelfManagedApiSecurityAutoConfiguration.class))
 public class SaaSConnectorRuntimeApplication {
 
   public static void main(String[] args) {
