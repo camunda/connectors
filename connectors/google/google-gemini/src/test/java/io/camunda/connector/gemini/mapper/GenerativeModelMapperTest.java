@@ -10,13 +10,18 @@ import static com.google.cloud.vertexai.api.SafetySetting.HarmBlockThreshold.*;
 import static io.camunda.connector.gemini.TestUtil.readValue;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.cloud.vertexai.api.*;
 import io.camunda.connector.gemini.model.GeminiRequest;
+import io.camunda.connector.gemini.model.ModelVersion;
 import io.camunda.connector.gemini.supplier.VertexAISupplier;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class GenerativeModelMapperTest {
 
@@ -38,7 +43,7 @@ class GenerativeModelMapperTest {
     var generativeModel =
         generativeModelMapper.map(requestData, VertexAISupplier.getVertexAI(geminiRequest));
 
-    assertThat(generativeModel.getModelName()).isEqualTo(requestData.model().getVersion());
+    assertThat(generativeModel.getModelName()).isEqualTo(requestData.resolveModelName());
     assertThat(generativeModel.getGenerationConfig()).isEqualTo(prepareGenConfForAllFields());
     assertThat(generativeModel.getSafetySettings())
         .containsExactlyInAnyOrderElementsOf(
@@ -57,7 +62,7 @@ class GenerativeModelMapperTest {
     var generativeModel =
         generativeModelMapper.map(requestData, VertexAISupplier.getVertexAI(geminiRequest));
 
-    assertThat(generativeModel.getModelName()).isEqualTo(requestData.model().getVersion());
+    assertThat(generativeModel.getModelName()).isEqualTo(requestData.resolveModelName());
     assertThat(generativeModel.getGenerationConfig())
         .isEqualTo(prepareGenConfigForRequiredFields());
     assertThat(generativeModel.getSafetySettings())
@@ -74,6 +79,41 @@ class GenerativeModelMapperTest {
         .setSeed(1)
         .addAllStopSequences(List.of("text1", "text2"))
         .build();
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "gemini-future-model,stale-custom-model,gemini-future-model",
+    "gemini-2.5-flash,stale-custom-model,gemini-2.5-flash",
+    "CUSTOM,gemini-custom-model,gemini-custom-model",
+    "custom,gemini-custom-model,gemini-custom-model"
+  })
+  void mapsFreeTextAndLegacyCustomModels(String model, String customModel, String expected)
+      throws Exception {
+    assertMappedModel(model, customModel, expected);
+  }
+
+  @ParameterizedTest
+  @EnumSource(ModelVersion.class)
+  void mapsEveryLegacyDropdownSelection(ModelVersion model) throws Exception {
+    assertMappedModel(
+        model.name(),
+        "gemini-custom-model",
+        model == ModelVersion.CUSTOM ? "gemini-custom-model" : model.getVersion());
+  }
+
+  private void assertMappedModel(String model, String customModel, String expected)
+      throws Exception {
+    var json = readValue("src/test/resources/only_required_fields_model.json", ObjectNode.class);
+    var input = (ObjectNode) json.path("input");
+    input.put("model", model);
+    input.put("customModelName", customModel);
+    var request = ConnectorsObjectMapperSupplier.getCopy().treeToValue(json, GeminiRequest.class);
+
+    var mapped =
+        generativeModelMapper.map(request.getInput(), VertexAISupplier.getVertexAI(request));
+
+    assertThat(mapped.getModelName()).isEqualTo(expected);
   }
 
   private GenerationConfig prepareGenConfigForRequiredFields() {

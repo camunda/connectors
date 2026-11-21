@@ -25,6 +25,7 @@ import io.camunda.connector.validator.core.Severity;
 import io.camunda.connector.validator.core.SuppressionFilter;
 import io.camunda.connector.validator.core.TemplateFinder;
 import io.camunda.connector.validator.core.TemplateLoader;
+import io.camunda.connector.validator.rule.AiModelInputRule;
 import io.camunda.connector.validator.rule.BrTagRule;
 import io.camunda.connector.validator.rule.ConditionPropertyOrderRule;
 import io.camunda.connector.validator.rule.ConditionTargetExistsRule;
@@ -190,6 +191,7 @@ public class ValidatorCommand implements Callable<Integer> {
         new ConditionPropertyOrderRule(),
         new GroupTargetExistsRule(),
         new DefaultValueInChoicesRule(),
+        new AiModelInputRule(),
         new UniqueGroupIdRule(),
         new UniquePropertyIdRule(),
         new EmptyGroupRule(),

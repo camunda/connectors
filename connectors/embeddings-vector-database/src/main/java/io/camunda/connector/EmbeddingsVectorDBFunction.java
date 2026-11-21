@@ -23,7 +23,7 @@ import io.camunda.connector.model.EmbeddingsVectorDBRequest;
     name = "Embeddings Vector DB Outbound Connector",
     description = "Embed and download documents with vector databases",
     inputDataClass = EmbeddingsVectorDBRequest.class,
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "query", label = "Query"),

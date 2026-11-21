@@ -126,16 +126,19 @@ public class DefaultEmbeddingModelFactory {
   private EmbeddingModel createBedrockEmbeddingModel(
       BedrockEmbeddingModelProvider bedrockEmbeddingModelProvider) {
     final var bedrock = bedrockEmbeddingModelProvider.bedrock();
+    final var modelName = bedrock.resolveSelectedModelName();
+    final var titanV2 =
+        !BedrockModels.Custom.name().equalsIgnoreCase(bedrock.modelName())
+            && BedrockModels.TitanEmbedTextV2.getModelName().equals(modelName);
 
     var builder =
         BedrockTitanEmbeddingModel.builder()
-            .model(bedrock.resolveSelectedModelName())
+            .model(modelName)
             .dimensions(
-                bedrock.modelName() == BedrockModels.TitanEmbedTextV2
+                titanV2 && bedrock.dimensions() != null
                     ? bedrock.dimensions().getDimensions()
                     : null)
-            .normalize(
-                bedrock.modelName() == BedrockModels.TitanEmbedTextV2 ? bedrock.normalize() : null)
+            .normalize(titanV2 ? bedrock.normalize() : null)
             .maxRetries(bedrock.maxRetries());
 
     var bedrockClientBuilder =

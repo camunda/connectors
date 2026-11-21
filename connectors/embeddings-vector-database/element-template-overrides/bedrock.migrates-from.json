@@ -1,0 +1,40 @@
+{
+  "$schema": "https://raw.githubusercontent.com/camunda/c8ctl/main/default-plugins/element-template/migration/migrates-from.schema.json",
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "kind": "upgrade",
+      "sourceTemplateId": "io.camunda.connectors.EmbeddingsVectorDB.v1",
+      "toVersion": 5,
+      "paths": [
+        {
+          "from": "embeddingModelProvider.bedrock.customModelName",
+          "to": "embeddingModelProvider.bedrock.modelName",
+          "when": {
+            "path": "embeddingModelProvider.bedrock.modelName",
+            "equals": "Custom"
+          },
+          "note": "The legacy custom model name is copied into Model."
+        },
+        {
+          "to": "embeddingModelProvider.bedrock.dimensions",
+          "set": "D1024",
+          "when": {
+            "path": "embeddingModelProvider.bedrock.modelName",
+            "equals": "Custom"
+          },
+          "note": "Dimensions preserve the Amazon Titan V2 default used by legacy custom models."
+        },
+        {
+          "to": "embeddingModelProvider.bedrock.normalize",
+          "set": true,
+          "when": {
+            "path": "embeddingModelProvider.bedrock.modelName",
+            "equals": "Custom"
+          },
+          "note": "Normalization preserves the Amazon Titan V2 default used by legacy custom models."
+        }
+      ]
+    }
+  ]
+}
