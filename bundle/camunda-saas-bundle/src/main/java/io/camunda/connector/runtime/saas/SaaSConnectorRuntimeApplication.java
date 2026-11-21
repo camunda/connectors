@@ -19,9 +19,16 @@ package io.camunda.connector.runtime.saas;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 
 @SpringBootApplication
-@ComponentScan(basePackages = "io.camunda.connector")
+@ComponentScan(
+    basePackages = "io.camunda.connector",
+    excludeFilters =
+        @ComponentScan.Filter(
+            type = FilterType.REGEX,
+            pattern =
+                "io\\.camunda\\.connector\\.runtime\\.bundle\\.security\\.SelfManagedApiSecurityAutoConfiguration"))
 public class SaaSConnectorRuntimeApplication {
 
   public static void main(String[] args) {
