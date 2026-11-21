@@ -111,12 +111,12 @@ limitations under the License.</license.inlineheader>
     <version.log4j>2.26.1</version.log4j>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.59.6</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.59.7</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.59.6</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.59.7</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.59.6</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.59.7</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -214,7 +214,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.2</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.11.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.12.0</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
     <plugin.version.revapi-maven-plugin>0.15.1</plugin.version.revapi-maven-plugin>
     <version.revapi-java>0.28.4</version.revapi-java>
