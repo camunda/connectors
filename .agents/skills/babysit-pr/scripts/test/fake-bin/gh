@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Fake gh for tests: serves fixture JSON from $FAKE_GH_DIR and logs every call.
+printf '%s\n' "$*" >> "$FAKE_GH_DIR/calls.log"
+case "$1 $2" in
+  "pr view") cat "$FAKE_GH_DIR/pr-view.json" ;;
+  "api graphql")
+    case "$*" in
+      *mutation*) echo '{}' ;;
+      *)
+        n=$(($(cat "$FAKE_GH_DIR/.n" 2>/dev/null || echo 0) + 1))
+        echo "$n" > "$FAKE_GH_DIR/.n"
+        cat "$FAKE_GH_DIR/graphql-$n.json"
+        ;;
+    esac
+    ;;
+  "run view") cat "$FAKE_GH_DIR/run-$3.json" ;;
+  "run rerun") ;;
+  *) exit 99 ;;
+esac
