@@ -27,6 +27,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.app.ConnectorRuntimeApplication;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.stream.Stream;
@@ -37,6 +41,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -47,6 +52,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
@@ -94,6 +100,24 @@ class SelfManagedManagementApiSecurityTest {
     return response.getStatus();
   }
 
+  private static int rawStatus(int port, String requestLine, String... headers) throws Exception {
+    var request =
+        new StringBuilder(requestLine)
+            .append(" HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n");
+    for (String header : headers) {
+      request.append(header).append("\r\n");
+    }
+    request.append("\r\n");
+    try (var socket = new Socket("localhost", port)) {
+      socket.setSoTimeout(10_000);
+      socket.getOutputStream().write(request.toString().getBytes(StandardCharsets.ISO_8859_1));
+      var reader =
+          new BufferedReader(
+              new InputStreamReader(socket.getInputStream(), StandardCharsets.ISO_8859_1));
+      return Integer.parseInt(reader.readLine().split(" ")[1]);
+    }
+  }
+
   @Nested
   @SpringBootTest(
       webEnvironment = WebEnvironment.RANDOM_PORT,
@@ -106,6 +130,9 @@ class SelfManagedManagementApiSecurityTest {
     public CamundaClient camundaClient;
 
     @Autowired private MockMvc mvc;
+
+    @Value("${local.server.port}")
+    private int port;
 
     @Test
     void managementRoutes_stayOpen() throws Exception {
@@ -124,6 +151,18 @@ class SelfManagedManagementApiSecurityTest {
     @Test
     void healthProbe_staysAnonymous() throws Exception {
       assertThat(statusOf(mvc, get("/actuator/health"))).isNotIn(401, 403);
+    }
+
+    @Test
+    void requestHandling_matchesTheRuntimeWithoutSpringSecurity() throws Exception {
+      assertThat(rawStatus(port, "GET /inbound/my-webhook;jsessionid=abc")).isEqualTo(404);
+      assertThat(rawStatus(port, "GET //inbound/my-webhook")).isEqualTo(500);
+      assertThat(rawStatus(port, "GET /inbound/my%2Fwebhook")).isEqualTo(400);
+      assertThat(rawStatus(port, "GET /inbound/my%25webhook")).isEqualTo(404);
+      assertThat(
+              rawStatus(
+                  port, "POST /inbound/my-webhook", "X-Custom: a\u0007b", "Content-Length: 0"))
+          .isEqualTo(400);
     }
   }
 
@@ -158,6 +197,9 @@ class SelfManagedManagementApiSecurityTest {
     public CamundaClient camundaClient;
 
     @Autowired private MockMvc mvc;
+
+    @Value("${local.server.port}")
+    private int port;
 
     @Test
     void managementRoutes_withoutToken_areDenied() throws Exception {
@@ -237,12 +279,61 @@ class SelfManagedManagementApiSecurityTest {
       assertThat(statusOf(mvc, get("/actuator/health"))).isNotIn(401, 403);
     }
 
+    @Test
+    void requestFirewall_rejectsPathParametersButLetsWebhooksThrough() throws Exception {
+      assertThat(rawStatus(port, "GET /inbound;x=1")).isEqualTo(400);
+      assertThat(rawStatus(port, "GET /inbound/my-webhook")).isNotIn(401, 403);
+    }
+
     private static MockOidcServer.TokenBuilder acceptableToken() {
       return OIDC_SERVER.token().audience(AUDIENCE);
     }
 
     private static RequestBuilder withToken(MockHttpServletRequestBuilder request, String token) {
       return request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+    }
+  }
+
+  @Nested
+  @SpringBootTest(
+      webEnvironment = WebEnvironment.RANDOM_PORT,
+      classes = ConnectorRuntimeApplication.class,
+      properties = {
+        "spring.mvc.servlet.path=/api",
+        "camunda.connector.auth.self-managed.audience=" + AUDIENCE,
+        SECURE_MANAGEMENT_API + "=true"
+      })
+  @DirtiesContext
+  class WhenSecuredUnderAServletPath {
+
+    private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
+
+    @DynamicPropertySource
+    static void registerOidcProperties(DynamicPropertyRegistry registry) {
+      registry.add("camunda.connector.auth.self-managed.issuer", OIDC_SERVER::issuer);
+    }
+
+    @AfterAll
+    static void stopOidcServer() {
+      OIDC_SERVER.close();
+    }
+
+    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
+    public CamundaClient camundaClient;
+
+    @Value("${local.server.port}")
+    private int port;
+
+    @Test
+    void managementRoutes_withoutToken_areDenied() throws Exception {
+      for (String path : READABLE_ROUTES) {
+        assertThat(rawStatus(port, "GET /api" + path)).as("GET /api%s", path).isEqualTo(401);
+      }
+    }
+
+    @Test
+    void webhook_staysAnonymous() throws Exception {
+      assertThat(rawStatus(port, "GET /api/inbound/my-webhook")).isNotIn(401, 403);
     }
   }
 
@@ -381,6 +472,40 @@ class SelfManagedManagementApiSecurityTest {
     @Test
     void listing_stillRequiresAToken() throws Exception {
       mvc.perform(get("/inbound")).andExpect(status().isUnauthorized());
+    }
+  }
+
+  @TestConfiguration
+  static class AuthenticatedCatchAllChain {
+
+    @Bean
+    @Order(0)
+    SecurityFilterChain authenticatedCatchAll(HttpSecurity http) throws Exception {
+      return http.securityMatchers(matchers -> matchers.requestMatchers("/**"))
+          .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+          .httpBasic(Customizer.withDefaults())
+          .build();
+    }
+  }
+
+  @Nested
+  @SpringBootTest(
+      webEnvironment = WebEnvironment.RANDOM_PORT,
+      classes = {ConnectorRuntimeApplication.class, AuthenticatedCatchAllChain.class})
+  @DirtiesContext
+  @AutoConfigureMockMvc
+  class ByDefaultWithAnApplicationChain {
+
+    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
+    public CamundaClient camundaClient;
+
+    @Autowired private MockMvc mvc;
+
+    @Test
+    void managementRoutes_followTheApplicationChain() throws Exception {
+      for (String path : READABLE_ROUTES) {
+        assertThat(statusOf(mvc, get(path))).as("GET %s", path).isEqualTo(401);
+      }
     }
   }
 }

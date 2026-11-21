@@ -66,6 +66,10 @@ role or claim check beyond that. The protected routes are:
 
 Webhook endpoints (`/inbound/{context}`) and `/actuator/**` stay unauthenticated.
 
+Once `secure-management-api` is enabled, Spring Security's request firewall applies to all requests,
+webhooks included: requests with `;`, encoded slashes or `//` in the path are rejected with `400`.
+With the property disabled, request handling is unchanged.
+
 Camunda Hub's connector management views call `/inbound-instances/**`. They keep working only with a
 `BEARER_TOKEN`-auth cluster registration. With `NONE`-auth, Hub sends no token, so these views stop
 working once this property is enabled. Anything else that calls these routes, such as monitoring

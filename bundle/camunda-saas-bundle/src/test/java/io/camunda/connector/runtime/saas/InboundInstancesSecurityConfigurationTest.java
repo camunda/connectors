@@ -31,6 +31,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.ApplicationContext;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -102,5 +103,12 @@ public class InboundInstancesSecurityConfigurationTest {
   @Test
   public void selfManagedChain_backsOffBehindTheConsoleChain() {
     assertThat(applicationContext.containsBean("selfManagedManagementApiFilterChain")).isFalse();
+    assertThat(applicationContext.containsBean("selfManagedRequestFirewallCustomizer")).isFalse();
+    assertThat(applicationContext.getBeansOfType(WebSecurityCustomizer.class)).isEmpty();
+  }
+
+  @Test
+  public void managementRequest_withPathParameter_isRejectedByTheStrictFirewall() throws Exception {
+    mvc.perform(get("/inbound;x=1")).andExpect(status().isBadRequest());
   }
 }
