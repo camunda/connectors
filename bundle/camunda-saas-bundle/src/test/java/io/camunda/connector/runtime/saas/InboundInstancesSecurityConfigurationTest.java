@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.runtime.bundle.security.SelfManagedApiSecurityAutoConfiguration;
 import io.camunda.connector.test.utils.oidc.MockOidcServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -96,7 +97,16 @@ public class InboundInstancesSecurityConfigurationTest {
 
   @Test
   public void selfManagedChain_backsOffBehindTheConsoleChain() {
+    assertThat(
+            applicationContext.getBeanNamesForType(SelfManagedApiSecurityAutoConfiguration.class))
+        .isEmpty();
     assertThat(applicationContext.containsBean("selfManagedManagementApiFilterChain")).isFalse();
+    assertThat(applicationContext.containsBean("selfManagedRequestFirewallCustomizer")).isFalse();
+  }
+
+  @Test
+  public void managementPath_withASemicolon_isRejectedByTheStrictFirewall() throws Exception {
+    mvc.perform(get("/inbound;x=1")).andExpect(status().isBadRequest());
   }
 
   @Test

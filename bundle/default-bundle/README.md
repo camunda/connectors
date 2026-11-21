@@ -66,3 +66,7 @@ that. The protected routes are:
 Webhook endpoints (`/inbound/{context}`) and `/actuator/**` stay unauthenticated. Anything that
 calls the protected routes, such as monitoring scripts, must send a bearer token from the
 configured issuer.
+
+Once `secure-management-api` is enabled, Spring Security's request firewall applies to every
+request, webhooks included: requests with `;`, an encoded slash or `//` in the path are rejected
+with `400`. With the flag off, request handling is unchanged.
