@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.bundle.security;
 import io.camunda.connector.runtime.ConnectorsAutoConfiguration;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -36,6 +37,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 
 /**
@@ -53,6 +56,13 @@ public class SelfManagedApiSecurityAutoConfiguration {
 
   private static final String PROTECTED_ROUTES = "/configurations/**";
 
+  private static final String[] MANAGEMENT_ROUTES = {
+    "/inbound", "/tenants/**", "/inbound-instances/**", "/outbound/**"
+  };
+
+  private static final String SECURE_MANAGEMENT_API_PROPERTY =
+      "camunda.connector.auth.self-managed.secure-management-api";
+
   @Value("${camunda.connector.auth.self-managed.issuer:}")
   private String issuer;
 
@@ -62,13 +72,22 @@ public class SelfManagedApiSecurityAutoConfiguration {
   @Value("${camunda.connector.configuration.validation.unsecured:false}")
   private boolean unsecured;
 
+  @Value("${" + SECURE_MANAGEMENT_API_PROPERTY + ":false}")
+  private boolean secureManagementApi;
+
+  @Value("${spring.mvc.servlet.path:/}")
+  private String servletPath;
+
+  private JwtDecoder jwtDecoder;
+
   /** First in the chain order, so no catch-all chain can claim the route ahead of it. */
   @Bean
   @Order(Ordered.HIGHEST_PRECEDENCE)
   public SecurityFilterChain selfManagedConfigurationValidationFilterChain(HttpSecurity http)
       throws Exception {
-    http.csrf(csrf -> csrf.ignoringRequestMatchers(PROTECTED_ROUTES))
-        .securityMatchers(matchers -> matchers.requestMatchers(PROTECTED_ROUTES))
+    var protectedRoutes = matchers(PROTECTED_ROUTES);
+    http.csrf(csrf -> csrf.ignoringRequestMatchers(protectedRoutes))
+        .securityMatchers(matchers -> matchers.requestMatchers(protectedRoutes))
         // Stateless, so a session from another route cannot satisfy authenticated() here.
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
@@ -89,29 +108,69 @@ public class SelfManagedApiSecurityAutoConfiguration {
     return http.build();
   }
 
+  @Bean
+  @Order(Ordered.HIGHEST_PRECEDENCE + 1)
+  public SecurityFilterChain selfManagedManagementApiFilterChain(HttpSecurity http)
+      throws Exception {
+    if (!secureManagementApi) {
+      return http.securityMatcher(request -> false).build();
+    }
+    if (!StringUtils.hasText(issuer)) {
+      throw new IllegalStateException(
+          SECURE_MANAGEMENT_API_PROPERTY
+              + " requires camunda.connector.auth.self-managed.issuer and "
+              + "camunda.connector.auth.self-managed.audience to be set.");
+    }
+    var managementRoutes = matchers(MANAGEMENT_ROUTES);
+    http.csrf(csrf -> csrf.ignoringRequestMatchers(managementRoutes))
+        .securityMatchers(matchers -> matchers.requestMatchers(managementRoutes))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+        .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
+    return http.build();
+  }
+
+  private RequestMatcher[] matchers(String... patterns) {
+    var builder = PathPatternRequestMatcher.withDefaults();
+    var basePath = StringUtils.trimTrailingCharacter(servletPath, '/');
+    if (StringUtils.hasText(basePath)) {
+      builder = builder.basePath(basePath);
+    }
+    return Arrays.stream(patterns).map(builder::matcher).toArray(RequestMatcher[]::new);
+  }
+
   private void rejectAuthenticationConfiguration() {
-    if (StringUtils.hasText(issuer) || StringUtils.hasText(audience)) {
+    if (!secureManagementApi && (StringUtils.hasText(issuer) || StringUtils.hasText(audience))) {
       throw new IllegalStateException(
           "camunda.connector.configuration.validation.unsecured cannot be enabled together with "
               + "camunda.connector.auth.self-managed.issuer or "
-              + "camunda.connector.auth.self-managed.audience");
+              + "camunda.connector.auth.self-managed.audience, unless "
+              + SECURE_MANAGEMENT_API_PROPERTY
+              + " is enabled");
     }
   }
 
   private JwtDecoder jwtDecoder() {
+    if (jwtDecoder == null) {
+      jwtDecoder = createJwtDecoder();
+    }
+    return jwtDecoder;
+  }
+
+  private JwtDecoder createJwtDecoder() {
     if (!StringUtils.hasText(audience)) {
       throw new IllegalStateException(
           "camunda.connector.auth.self-managed.audience must be set when "
               + "camunda.connector.auth.self-managed.issuer is set. Without an audience, every "
-              + "token the issuer signs for any of its clients would be accepted on "
-              + PROTECTED_ROUTES
-              + ". Set it to the aud claim of the tokens Camunda Hub forwards to this runtime.");
+              + "token the issuer signs for any of its clients would be accepted. Set it to the "
+              + "aud claim of the tokens sent to this runtime.");
     }
-    NimbusJwtDecoder jwtDecoder = JwtDecoders.fromOidcIssuerLocation(issuer);
-    jwtDecoder.setJwtValidator(
+    NimbusJwtDecoder decoder = JwtDecoders.fromOidcIssuerLocation(issuer);
+    decoder.setJwtValidator(
         new DelegatingOAuth2TokenValidator<>(
             JwtValidators.createDefaultWithIssuer(issuer), new AudienceValidator(audience)));
-    return jwtDecoder;
+    return decoder;
   }
 
   private static void respondNotFound(
