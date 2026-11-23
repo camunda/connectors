@@ -7,7 +7,7 @@ Do not require non-compiling tests.
 Accept a complete user-facing feature with an e2e test through customer-available interfaces.
 Use CPT with BPMN, templates and process variables, or the exposed API. Assert customer-visible
 results, including required observability. For integration-dependent behavior, follow the
-[integration-target rules](#integration-targets). Each test asserts the whole observable outcome
+[integration-target rules](#integration-targets). Each test asserts the outcome it is about
 ([domain rule 6](implementation-rules.md#domain-rules)).
 
 ## Choosing e2e vs unit tests (mandatory decision)
@@ -33,7 +33,7 @@ the principle: does correctness depend on the engine and BPMN wiring?
 ## Unit tests
 
 These rules apply [P4](implementation-rules.md#principles): each test protects one behavior that a
-plausible change can break. Pin the whole outcome ([domain rule 6](implementation-rules.md#domain-rules))
+plausible change can break. Pin the outcome the test is about ([domain rule 6](implementation-rules.md#domain-rules))
 at the level of the unit that owns it. The test level decision above stays mandatory.
 
 - **A test lives in the test of the unit that it exercises.** A test class tests the unit it is named

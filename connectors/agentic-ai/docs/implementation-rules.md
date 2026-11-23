@@ -190,17 +190,14 @@ that caused it.
    - In a review, flag a Javadoc, comment or document that claims a guarantee (fencing, ordering,
      idempotency) that the other system does not enforce.
    - Why: older docs claimed fencing that the engine did not do. (#8342)
-6. **Tests pin the whole observable outcome.** An assertion covers the complete result and the number
-   of interactions, not a subset. This rule applies to all test code, including the e2e module.
-   - Compare complete payloads, schemas and messages. Do not assert only some of their fields.
-   - Prefer equality assertions (`isEqualTo`, `containsExactly`) to `contains`.
-   - Compare JSON with `JSONAssert` in strict mode, on the full object. Do not use `contains` on JSON
-     text. Example: `CamundaDocumentConversationStoreTest`.
-   - When code calls an external system in a loop or a retry, assert the exact number of calls.
-   - In a review, flag a change that removes or weakens an assertion, unless the behavior changed on
-     purpose and the PR says so.
-   - In this module: compare the full input schema of a tool definition. Assert the number of model
-     requests in an agentic loop test, for example `modelCallCount()`.
+6. **Tests pin the outcome they are about.** Prefer assertions that cover the complete result of the
+   behavior under test over a few of its fields. Choose the scope per test: a test of one detail may
+   assert only that detail. This rule applies to all test code, including the e2e module.
+   - Prefer equality assertions (`isEqualTo`, `containsExactly`) to `contains`. Compare JSON with
+     `JSONAssert` in strict mode. Example: `CamundaDocumentConversationStoreTest`.
+   - When code calls an external system in a loop or a retry, assert the exact number of calls. In an
+     agentic loop test, assert the number of model requests, for example `modelCallCount()`.
+   - In a review, flag a change that removes or weakens an assertion without a reason in the PR.
    - Why: a partial assertion lets a regression pass. A schema regression and an extra loop iteration
      passed this way. (#7463, #6999) (P4)
 
