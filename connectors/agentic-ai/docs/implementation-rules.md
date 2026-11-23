@@ -130,9 +130,15 @@ effects. A good name does not replace a Javadoc that the rules below require.
 Each rule gives a principle, the location in this module where it applies, and the review finding
 that caused it.
 
-1. **Changes are compatible with running processes.** A process that runs today MUST continue to
-   deploy and run after the change. A new field or capability MUST NOT change behavior when nobody
-   sets it. In this module:
+1. **Changes are compatible with running processes.** A process that runs on the baseline MUST
+   continue to deploy and run after the change. A new field or capability MUST NOT change behavior
+   when nobody sets it. The baseline:
+   - On `main`: the latest minor release, for example 8.10 while `main` develops 8.11. What is new on
+     `main` since then, including alpha releases, may still change.
+   - On a backport: each `stable/*` branch the fix reaches. A process on 8.10 keeps its behavior after
+     the backport to `stable/8.10`, unless that behavior is the bug the fix corrects.
+
+   In this module:
    - A new element template field is optional. It has no default value, or a default value that keeps
      the current behavior. This also applies to a field in a new optional object.
      (#5904, #7765)
@@ -151,7 +157,7 @@ that caused it.
    - Text that users or stored state can see is a wire format. Examples: the text of the agent
      instance history, the format of a timestamp, the JSON of a document handle. Gate a change of it
      on an agent instance feature, or record it in [`docs/breaking-changes.md`](breaking-changes.md).
-     (#9631)
+     A format that the baseline does not have may change without either. (#9631)
    - Why: a running process instance continues on the new connector version without a redeployment.
 2. **Check the source before you use vendor-specific data.** Data is valid only in the system that
    made it. An ID keeps its meaning.
