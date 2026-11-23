@@ -22,7 +22,7 @@ public class ClassificationRequestData extends DocumentRequestData {
       label = "AI converse parameters",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
-      defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5\n}",
+      placeholder = "={ modelId: \"<model id>\" }",
       binding = @TemplateProperty.PropertyBinding(name = "converseData"),
       feel = FeelMode.optional)
   ConverseData converseData;

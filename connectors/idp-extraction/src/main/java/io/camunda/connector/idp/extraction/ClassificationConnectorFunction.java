@@ -18,7 +18,7 @@ import io.camunda.connector.idp.extraction.service.ClassificationService;
     inputVariables = {"extractor", "ai", "input"},
     type = "io.camunda:idp-classification-connector-template:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.9",
     id = "io.camunda.connector.IdpClassificationOutBoundTemplate.v1",
     name = "IDP Classification Outbound Connector",
     version = 3,

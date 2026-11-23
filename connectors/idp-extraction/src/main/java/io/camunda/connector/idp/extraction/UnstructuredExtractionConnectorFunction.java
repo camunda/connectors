@@ -23,7 +23,7 @@ import io.camunda.connector.idp.extraction.service.UnstructuredService;
     inputVariables = {"extractor", "ai", "input"},
     type = "io.camunda:idp-unstructured-connector-template:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.9",
     id = "io.camunda.connector.IdpUnstructuredExtractionOutBoundTemplate.v1",
     name = "IDP Unstructured Extraction Outbound Connector",
     version = 3,
