@@ -10,13 +10,16 @@ import io.camunda.connector.agenticai.aiagent.AgentProcessVariables;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessConnectorResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentFlavor;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
+import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +44,9 @@ public class AgentSubProcessRequestHandler
       RuntimeTools runtimeTools,
       ToolCallAdmission toolCallAdmission,
       LocalToolCallExecutor localToolCallExecutor,
-      DocumentExpander documentExpander) {
+      DocumentExpander documentExpander,
+      AgentLifecycleDispatcher lifecycleDispatcher,
+      Clock clock) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -53,7 +58,14 @@ public class AgentSubProcessRequestHandler
         runtimeTools,
         toolCallAdmission,
         localToolCallExecutor,
-        documentExpander);
+        documentExpander,
+        lifecycleDispatcher,
+        clock);
+  }
+
+  @Override
+  protected AgentFlavor flavor() {
+    return AgentFlavor.SUB_PROCESS;
   }
 
   @Override

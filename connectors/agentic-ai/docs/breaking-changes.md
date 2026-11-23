@@ -14,6 +14,10 @@ This list is curated: it covers the obvious extension points (SPIs and replaceab
 most common code changes, not every moved class or changed signature. Compile your extension against
 the new version to find the rest.
 
+Types marked `@Experimental` in `aiagent-api` (the runtime tool SPI and the agent lifecycle listener API) are
+excluded from any compatibility guarantee: they can change or disappear in any release without a migration
+path, and changes to them are not tracked here.
+
 ## Camunda 8.10 to 8.11
 
 Summary of what changes for a custom extension. Details follow in the linked sections.
@@ -26,7 +30,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Turn input composer and response handler](#turn-input-composer-and-response-handler) | Custom `AgentConversationTurnInputComposer` and `AgentResponseHandler` |
 | [Gateway tool handlers](#gateway-tool-handlers)              | Custom `GatewayToolHandler` that overrides `extractDocuments` |
 | [Agent instance client and mappers](#agent-instance-client-and-mappers)      | Custom `AgentInstanceClient`, `AgentInstanceHistoryMapper`, `AgentInstanceToolMapper` |
-| [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers or the AI Agent connector functions |
+| [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs or subclasses the request handlers or constructs the AI Agent connector functions; runtimes that define several `Clock` beans |
 | [Conversation window](#conversation-window)                                  | Code that calls `AgentConversation.window`                      |
 | [Runtime tools and tool names](#runtime-tools-and-tool-names)                | Processes with a tool element named like a runtime tool        |
 | [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records (`AgentContext`, `ToolCall`), switches over `Content` |
@@ -270,6 +274,15 @@ constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandle
 never with a `DocumentFactory` bean. The
 auto-configuration provides these beans and the two built-in runtime tools, each `@ConditionalOnMissingBean`. A custom bean
 built with `new` needs the extra arguments; inject them as beans.
+
+The request handler constructors also take an `AgentLifecycleDispatcher` and a `java.time.Clock` as their last two
+parameters, and `BaseAgentRequestHandler` has the abstract method `flavor()`, which a custom subclass must implement. The
+auto-configuration provides the `agentLifecycleDispatcher` bean, which collects the `AgentLifecycleListener` beans, and the
+`aiAgentClock` bean (`Clock.systemUTC()`). The clock bean backs off when the runtime defines a `Clock` bean of its own,
+and the handler beans use whichever `Clock` bean is present. A runtime that defines several unqualified `Clock` beans
+must mark one of them `@Primary`, otherwise the handler beans fail to start. The agent lifecycle listener API is new
+and `@Experimental`; the OpenTelemetry tracing module (`aiagent-otel`) is new as well and does nothing unless
+`camunda.connector.agenticai.aiagent.tracing.enabled` is `true`.
 
 The constructors of the AI Agent connector functions take the execution context factory of their flavor and the
 request handler:

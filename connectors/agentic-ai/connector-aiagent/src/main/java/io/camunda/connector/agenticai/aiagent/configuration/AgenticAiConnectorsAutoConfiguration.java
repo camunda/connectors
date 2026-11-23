@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceToolMap
 import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentLifecycleListener;
 import io.camunda.connector.agenticai.aiagent.api.systemprompt.SystemPromptContributor;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
@@ -45,6 +46,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.con
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -73,7 +75,9 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
+import java.time.Clock;
 import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -93,6 +97,12 @@ import org.springframework.context.annotation.Scope;
   AgenticAiNativeProvidersConfiguration.class
 })
 public class AgenticAiConnectorsAutoConfiguration {
+
+  /**
+   * Size limit of the state one lifecycle listener keeps in the agent context, measured as the
+   * length of its JSON serialization in UTF-8 bytes.
+   */
+  private static final int MAX_LIFECYCLE_LISTENER_STATE_BYTES = 4096;
 
   @Bean
   @ConditionalOnMissingBean
@@ -313,6 +323,22 @@ public class AgenticAiConnectorsAutoConfiguration {
     return new V1ToV2ProviderConfigurationMapperImpl(configuration.aiagent().chatModel());
   }
 
+  /** The time source of the agent request handlers and, when present, of the tracing listener. */
+  @Bean
+  @ConditionalOnMissingBean
+  public Clock aiAgentClock() {
+    return Clock.systemUTC();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgentLifecycleDispatcher agentLifecycleDispatcher(
+      ObjectProvider<AgentLifecycleListener> listeners,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new AgentLifecycleDispatcher(
+        listeners.orderedStream().toList(), objectMapper, MAX_LIFECYCLE_LISTENER_STATE_BYTES);
+  }
+
   @Bean
   @ConditionalOnMissingBean({
     AgentTaskExecutionContextFactory.class,
@@ -344,7 +370,9 @@ public class AgenticAiConnectorsAutoConfiguration {
       RuntimeTools runtimeTools,
       ToolCallAdmission toolCallAdmission,
       LocalToolCallExecutor localToolCallExecutor,
-      DocumentExpander documentExpander) {
+      DocumentExpander documentExpander,
+      AgentLifecycleDispatcher lifecycleDispatcher,
+      Clock clock) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -356,7 +384,9 @@ public class AgenticAiConnectorsAutoConfiguration {
         runtimeTools,
         toolCallAdmission,
         localToolCallExecutor,
-        documentExpander);
+        documentExpander,
+        lifecycleDispatcher,
+        clock);
   }
 
   @Bean
@@ -388,7 +418,9 @@ public class AgenticAiConnectorsAutoConfiguration {
       RuntimeTools runtimeTools,
       ToolCallAdmission toolCallAdmission,
       LocalToolCallExecutor localToolCallExecutor,
-      DocumentExpander documentExpander) {
+      DocumentExpander documentExpander,
+      AgentLifecycleDispatcher lifecycleDispatcher,
+      Clock clock) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -400,7 +432,9 @@ public class AgenticAiConnectorsAutoConfiguration {
         runtimeTools,
         toolCallAdmission,
         localToolCallExecutor,
-        documentExpander);
+        documentExpander,
+        lifecycleDispatcher,
+        clock);
   }
 
   @Bean

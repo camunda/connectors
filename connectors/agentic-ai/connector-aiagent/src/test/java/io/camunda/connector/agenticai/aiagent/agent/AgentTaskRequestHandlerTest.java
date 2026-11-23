@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
@@ -42,6 +43,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -65,7 +67,10 @@ import io.camunda.connector.agenticai.testutil.TestAgentFeatures;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -113,6 +118,8 @@ class AgentTaskRequestHandlerTest {
   @Spy private ToolCallResultsInputBuilder resultsInputBuilder = new ToolCallResultsInputBuilder();
 
   @Spy private DocumentExpander documentExpander = TestDocuments.documentExpander();
+  private AgentLifecycleDispatcher lifecycleDispatcher =
+      new AgentLifecycleDispatcher(List.of(), new ObjectMapper(), 4096);
 
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 
@@ -134,7 +141,9 @@ class AgentTaskRequestHandlerTest {
             runtimeTools,
             new ToolCallAdmission(new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE)),
             new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer()),
-            documentExpander);
+            documentExpander,
+            lifecycleDispatcher,
+            Clock.fixed(Instant.parse("2026-10-19T09:00:00Z"), ZoneOffset.UTC));
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
