@@ -77,7 +77,8 @@ Write the minimum code that solves the problem. Write nothing speculative.
 
 Change only what the task needs. Clean up only your own changes.
 
-- Do not improve adjacent code, comments or formatting.
+- Do not improve adjacent code, comments or formatting. A small correction (a typo, a stale name, a
+  wrong sentence) in a file that the change already edits is allowed.
 - Do not refactor code that works. Ask before each refactor, also a small one.
 - Tell about dead code that is not related to your change. Do not remove it unless you get a request.
 - Remove the variables and functions that your change made unused.
