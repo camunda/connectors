@@ -31,6 +31,7 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration;
 import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration.McpTestServers;
 import io.camunda.connector.e2e.agenticai.aiagent.common.AgentMcpIntegrationTestSupport;
+import io.camunda.connector.e2e.agenticai.aiagent.common.AgentMcpStdioWarmUp;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -55,7 +56,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
-@Import(McpTestServerConfiguration.class)
+@Import({McpTestServerConfiguration.class, AgentMcpStdioWarmUp.class})
 public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest {
 
   @Value("classpath:agentic-ai-ahsp-connectors-mcp.bpmn")
