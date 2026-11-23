@@ -68,7 +68,10 @@ public enum McpTestServerTransport {
   /** The image of every mcp-test-server container, including the ones the stdio client starts. */
   static final String IMAGE = DockerImages.get("mcp-test-server");
 
-  /** Marks the stdio containers of this JVM, so that the test base can remove leftovers. */
+  /**
+   * Marks the stdio containers of this JVM, so that the shutdown hook in {@link
+   * McpTestServerConfiguration} can remove leftovers.
+   */
   static final String STDIO_CONTAINER_LABEL = "mcp-test-server-stdio=" + UUID.randomUUID();
 
   private static final String SPRING_CONFIG_CLIENTS_PREFIX =
