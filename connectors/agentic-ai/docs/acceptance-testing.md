@@ -30,6 +30,10 @@ the principle: does correctness depend on the engine and BPMN wiring?
     - prompt composition, schema generation, content/tool conversion
     - response formatting, error messages, pure transformations
 
+When the change needs an e2e test, or adds or changes one, add the `e2e-tests` label to the PR. CI
+then runs all e2e modules on each push. Without the label, the e2e tests run only nightly, after the
+merge.
+
 ## Unit tests
 
 These rules apply [P4](implementation-rules.md#principles): each test protects one behavior that a

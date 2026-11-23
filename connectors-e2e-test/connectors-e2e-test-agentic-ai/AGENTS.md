@@ -66,7 +66,8 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-t
   pass `-Dsurefire.failIfNoSpecifiedTests=false`, because `-Dtest` matches no test in the upstream
   modules.
 - Running the full e2e suite is slow. Search the e2e modules for tests relevant to your change and run
-  those selectively. Ensure that all e2e tests pass after completing a major work item.
+  those selectively. CI runs all e2e modules on a PR with the `e2e-tests` label, and nightly on `main`
+  and the `stable/*` branches.
 
 ## Writing tests
 
