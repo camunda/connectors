@@ -350,3 +350,127 @@ jobs:
         uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
         with:
           build_status: ${{ job.status }}
+
+  # Boots the default-bundle Docker image we actually ship and fails if the runtime does not
+  # start. run-tests runs the runtime in-process on Maven's per-jar classpath, so it never sees
+  # the packaged jar or image; INC-9269 (hibernate-validator 9.2.0 crash-looping the 8.8 bundle)
+  # merged with every check green because of that gap.
+  # Runs in parallel with run-tests and finishes well before it, so it adds no wall-clock time.
+  # Internal only: the Minimus base image needs registry credentials from Vault. On fork PRs the
+  # job is skipped (a skipped required check counts as passing).
+  smoke-start-bundle:
+    if: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) }}
+    runs-on: gcp-core-8-default
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          persist-credentials: false
+
+      # Inlined rather than using .github/actions/maven-cache-key: this job checks out the
+      # PR head, which may predate that action. Keep the line derivation in sync with it.
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        env:
+          REF: ${{ github.event.merge_group.base_ref || github.base_ref || github.ref_name }}
+          SUFFIX: internal
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          ref="${REF#refs/heads/}"
+          if [[ "$ref" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          else
+            line=8.9
+          fi
+          prefix="${RUNNER_OS}-maven-${line}-"
+          echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "key=${prefix}${HASH}-${SUFFIX}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ steps.maven-cache-key.outputs.key }}
+          restore-keys: |
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
+
+      - name: Restore Maven wrapper cache
+        uses: ./.github/actions/cache-maven-wrapper
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.13+100000002.0.LTS'
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc  # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: jwt
+          role: ${{ secrets.VAULT_JWT_ROLE }}
+          path: ${{ secrets.VAULT_JWT_PATH }}
+          jwtGithubAudience: ${{ secrets.VAULT_JWT_AUDIENCE }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
+
+      - name: Create internal Maven settings.xml (Nexus mirror)
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - name: Package default bundle (skip tests & checks)
+        run: ./mvnw --batch-mode package -DskipTests -Dquickly -T 1C '-P!autoFormat' --projects bundle/default-bundle --also-make
+
+      - name: Login to Minimus
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          registry: reg.mini.dev
+          username: minimus
+          password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
+
+      - name: Build default bundle image (local only, not pushed)
+        run: docker build --tag connectors-bundle:smoke bundle/default-bundle/
+
+      - name: Start image and wait for the runtime to come up
+        run: ./.github/workflows/scripts/smoke-start-image.sh connectors-bundle:smoke 180
+
+      - name: Validate telemetry refs
+        id: telemetry-ref-safety
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref || github.event.merge_group.head_ref }}
+          BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+        run: |
+          case "$HEAD_REF$BASE_REF" in
+            *['$`"']*)
+              echo "::warning::Build status not submitted because a branch name contains unsupported characters."
+              exit 1
+              ;;
+          esac
+
+      - name: Submit build status
+        if: always() && steps.telemetry-ref-safety.outcome == 'success'
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
