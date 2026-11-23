@@ -68,8 +68,8 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
   private final boolean failOnUnresolved;
 
   /**
-   * Leaves a reported reference that does not resolve in place (ADR-0007, Decision 7). Outbound, the
-   * reference text then reaches the remote service, which rejects it and fails the job.
+   * Leaves a reported reference that does not resolve in place (ADR-0007, Decision 7). Outbound,
+   * the reference text then reaches the remote service, which rejects it and fails the job.
    */
   public SecretResolvingResultProcessor(SecretReferenceResolver resolver) {
     this(resolver, false);
@@ -82,15 +82,16 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
   }
 
   /**
-   * Refuses a result in which a reported reference does not resolve, instead of leaving it in place.
+   * Refuses a result in which a reported reference does not resolve, instead of leaving it in
+   * place.
    *
    * <p>For inbound connectors. There the bound value is often what incoming requests are checked
    * against — a webhook password, an HMAC key — so leaving the reference text in place would make
    * that text, which anyone who can read the model or credential can see, the accepted secret.
    *
-   * <p>Uses {@link SecretReferenceResolver#resolveOrFail}, so a cluster that could not be reached or
-   * read fails the bind too, rather than being treated as a secret that is simply missing. Either
-   * way the connector is not activated with the reference text as its value.
+   * <p>Uses {@link SecretReferenceResolver#resolveOrFail}, so a cluster that could not be reached
+   * or read fails the bind too, rather than being treated as a secret that is simply missing.
+   * Either way the connector is not activated with the reference text as its value.
    */
   public static SecretResolvingResultProcessor failingOnUnresolvedReferences(
       SecretReferenceResolver resolver) {
