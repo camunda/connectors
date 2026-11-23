@@ -254,9 +254,7 @@ class DocumentToolCallResultsIT {
                   .containsExactly(COVER_PAGE_KEY);
               var returned =
                   (Map<?, ?>) ((Map<?, ?>) documents.get(COVER_PAGE_KEY)).get("document");
-              Assertions.assertThat(returned.get("documentId"))
-                  .as("id of the returned document")
-                  .isEqualTo(coverPage.get().get("documentId"));
+              Assertions.assertThat(returned).as("returned document").isEqualTo(coverPage.get());
             });
   }
 
