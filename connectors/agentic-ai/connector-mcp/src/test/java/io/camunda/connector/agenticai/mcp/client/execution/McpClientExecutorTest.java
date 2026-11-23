@@ -16,10 +16,12 @@ import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
 import io.camunda.connector.api.document.DocumentFactory;
 import java.util.List;
 import java.util.Map;
@@ -122,6 +124,36 @@ class McpClientExecutorTest {
 
     assertThat(result).isEqualTo(expectedResult);
     verify(delegate).listPrompts(PROMPT_FILTERS, META);
+    verifyNoMoreInteractions(delegate);
+  }
+
+  @Test
+  void forwardsMeta_whenReadingResource() {
+    final var params = Map.<String, Object>of("uri", "file://resource");
+    final var expectedResult = new McpClientReadResourceResult(List.of());
+    when(delegate.readResource(params, RESOURCE_FILTERS, META)).thenReturn(expectedResult);
+
+    final var result =
+        executor.execute(
+            delegate, McpClientOperation.of("resources/read", params, META), FILTER_OPTIONS);
+
+    assertThat(result).isEqualTo(expectedResult);
+    verify(delegate).readResource(params, RESOURCE_FILTERS, META);
+    verifyNoMoreInteractions(delegate);
+  }
+
+  @Test
+  void forwardsMeta_whenGettingPrompt() {
+    final var params = Map.<String, Object>of("name", "prompt");
+    final var expectedResult = new McpClientGetPromptResult("prompt", List.of());
+    when(delegate.getPrompt(params, PROMPT_FILTERS, META)).thenReturn(expectedResult);
+
+    final var result =
+        executor.execute(
+            delegate, McpClientOperation.of("prompts/get", params, META), FILTER_OPTIONS);
+
+    assertThat(result).isEqualTo(expectedResult);
+    verify(delegate).getPrompt(params, PROMPT_FILTERS, META);
     verifyNoMoreInteractions(delegate);
   }
 }

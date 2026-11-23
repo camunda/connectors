@@ -13,6 +13,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
@@ -128,14 +130,7 @@ class DefaultMcpClientHandlerTest {
     @Test
     void forwardsConfiguredMetaToExecutor_whenListingTools() {
       final Map<String, Object> meta = Map.of("exampleMetaKey", "exampleMetaValue");
-      final var request =
-          new McpClientRequest(
-              new McpClientRequestData(
-                  CLIENT_CONFIG,
-                  new ToolModeConfiguration(
-                      LIST_TOOLS_OPERATION,
-                      meta,
-                      new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
+      final var request = createToolModeRequest(LIST_TOOLS_OPERATION, meta);
       final var expectedResult = new McpClientListToolsResult(List.of());
 
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
@@ -150,6 +145,9 @@ class DefaultMcpClientHandlerTest {
       final var result = handler.handle(context, request);
 
       assertThat(result).isEqualTo(expectedResult);
+      verify(clientExecutor)
+          .execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER));
+      verifyNoMoreInteractions(clientExecutor);
     }
 
     @ParameterizedTest
@@ -416,12 +414,17 @@ class DefaultMcpClientHandlerTest {
   }
 
   private McpClientRequest createToolModeRequest(McpClientOperationConfiguration operation) {
+    return createToolModeRequest(operation, null);
+  }
+
+  private McpClientRequest createToolModeRequest(
+      McpClientOperationConfiguration operation, Map<String, Object> meta) {
     return new McpClientRequest(
         new McpClientRequestData(
             CLIENT_CONFIG,
             new ToolModeConfiguration(
                 operation,
-                null,
+                meta,
                 new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
   }
 
