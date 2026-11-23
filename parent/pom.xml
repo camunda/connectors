@@ -1437,6 +1437,7 @@ See: https://github.com/luben/zstd-jni/security/advisories
             <version>1.10.0</version>
             <configuration>
               <flattenMode>ossrh</flattenMode>
+              <outputDirectory>${project.basedir}</outputDirectory>
               <updatePomFile>true</updatePomFile>
               <pomElements>
                 <properties>keep</properties>
