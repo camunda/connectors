@@ -107,7 +107,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasCompletedElements("AI_Agent", "User_Feedback");
 
-    mcpSupport.assertGatewayCompletions(zeebeTest.getProcessInstanceEvent(), Map.of());
+    mcpSupport.assertGatewayCompletionsOfToolDiscoveryOnly(zeebeTest.getProcessInstanceEvent());
     verify(agentInstanceClient).applyToolDiscoveryStart(any(), any());
   }
 

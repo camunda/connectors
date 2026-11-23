@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class AgentMcpIntegrationTestSupport {
 
@@ -144,15 +144,23 @@ public class AgentMcpIntegrationTestSupport {
             .filter(message -> toolCallId.equals(message.toolCallId()))
             .findFirst()
             .orElseThrow();
-    final Map<String, Object> echoed = new TreeMap<>();
-    objectMapper
-        .readValue(toolResult.textContent(), new TypeReference<Map<String, Object>>() {})
-        .forEach((name, value) -> echoed.put(name.toLowerCase(Locale.ROOT), value));
-    TRANSPORT_HEADERS.forEach(echoed::remove);
+    final Map<String, Object> echoed =
+        objectMapper
+            .readValue(toolResult.textContent(), new TypeReference<Map<String, Object>>() {})
+            .entrySet()
+            .stream()
+            .map(entry -> Map.entry(entry.getKey().toLowerCase(Locale.ROOT), entry.getValue()))
+            .filter(entry -> !TRANSPORT_HEADERS.contains(entry.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     assertThat(echoed)
         .as("headers echoed for tool call %s", toolCallId)
         .isEqualTo(Map.of("x-dummy", expectedDummyValue));
+  }
+
+  /** Asserts that every gateway element completed once, for scenarios without MCP tool calls. */
+  public void assertGatewayCompletionsOfToolDiscoveryOnly(ProcessInstanceEvent processInstance) {
+    assertGatewayCompletions(processInstance, Map.of());
   }
 
   /**

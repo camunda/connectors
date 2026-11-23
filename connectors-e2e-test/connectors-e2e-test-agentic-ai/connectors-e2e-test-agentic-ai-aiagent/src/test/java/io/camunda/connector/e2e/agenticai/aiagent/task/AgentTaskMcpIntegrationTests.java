@@ -112,7 +112,7 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
           .hasCompletedElementsInOrder("AI_Agent", gateway, "AI_Agent");
     }
 
-    mcpSupport.assertGatewayCompletions(zeebeTest.getProcessInstanceEvent(), Map.of());
+    mcpSupport.assertGatewayCompletionsOfToolDiscoveryOnly(zeebeTest.getProcessInstanceEvent());
     verify(agentInstanceClient).applyToolDiscoveryStart(any(), any());
   }
 
