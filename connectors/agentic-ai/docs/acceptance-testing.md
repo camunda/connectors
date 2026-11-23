@@ -14,7 +14,7 @@ results, including required observability. For integration-dependent behavior, f
 
 Choose the test level before implementing each code change; an e2e test is not required for every
 change. If you add none for a change that touches the element template or behavioral characteristics,
-say why. If requirements
+say why. In a stack of PRs, the reason can name the later PR that adds the e2e test. If requirements
 are unclear, ask before starting. The examples below are illustrative, not exhaustive; reason from
 the principle: does correctness depend on the engine and BPMN wiring?
 
