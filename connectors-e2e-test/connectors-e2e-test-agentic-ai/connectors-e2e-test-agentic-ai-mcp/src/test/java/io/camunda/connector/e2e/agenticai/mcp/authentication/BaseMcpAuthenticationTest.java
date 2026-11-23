@@ -88,7 +88,9 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                 st,
                 remoteClientProperties.mcpRemoteClientInputMappings(Map.of(), false)));
 
-    ZeebeTest zeebeTest = createProcessInstance(bpmnModel, Map.of("path", "tools"));
+    ZeebeTest zeebeTest =
+        createProcessInstance(
+            bpmnModel, Map.of("path", "tools", "runLocal", true, "runRemote", true));
 
     Awaitility.with()
         .pollInSameThread()
@@ -142,7 +144,9 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                         "=[\"add\", \"echo\", \"base64Encode\", \"base64Decode\", \"greet\"]"))));
 
     ZeebeTest zeebeTest =
-        awaitProcessCompletion(createProcessInstance(bpmnModel, Map.of("path", "tools")));
+        awaitProcessCompletion(
+            createProcessInstance(
+                bpmnModel, Map.of("path", "tools", "runLocal", true, "runRemote", true)));
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableSatisfies(
