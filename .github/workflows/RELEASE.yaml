@@ -456,11 +456,11 @@ jobs:
           if [[ "${{ inputs.version }}" == *"rc"* ]]; then
             echo "Version contains 'rc' - deploying to Artifactory only"
           else
-            echo "Version does not contain 'rc' - deploying to Artifactory and Maven Central (Staging)"
+            echo "Version does not contain 'rc' - deploying to Artifactory and publishing to Maven Central"
           fi
 
       # Match Maven deployment credentials by server id rather than repository origin.
-      - name: Deploy artifacts to Artifactory and Maven Central (Staging)
+      - name: Deploy artifacts to Artifactory and publish to Maven Central
         if: "! contains(inputs.version, 'rc')"
         run: ./mvnw -U deploy -Dmaven.repository.credentialScope=id -DskipTests -PcheckFormat -Pcentral-sonatype-publish -DdeploymentName=connectors-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
         env:
