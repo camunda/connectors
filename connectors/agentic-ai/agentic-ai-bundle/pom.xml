@@ -61,5 +61,10 @@
       <artifactId>aiagent-a2a-integration</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-otel</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>
