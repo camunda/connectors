@@ -135,7 +135,7 @@ limitations under the License.</license.inlineheader>
          tika-parser-apple-module that pulls dd-plist >= 1.30. The enforcer reminder for this
          override lives in that module's pom, because version.apache-tika is declared there.
          Ref: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3 -->
-    <version.ddplist>1.30</version.ddplist>
+    <version.ddplist>1.31</version.ddplist>
 
     <version.google-api-client>2.9.2</version.google-api-client>
 
