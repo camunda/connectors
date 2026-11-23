@@ -1626,8 +1626,8 @@
           "constraints" : {
             "notEmpty" : true,
             "pattern" : {
-              "value" : "^https://.*$",
-              "message" : "Must be a https URL"
+              "value" : "^(https://[^/\\s?#]+/?|\\{\\{secrets\\..+\\}\\})$",
+              "message" : "Must be an https URL or a {{secrets.NAME}} placeholder"
             }
           },
           "group" : "authentication",

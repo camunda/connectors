@@ -608,11 +608,7 @@
           "id": "authentication.oauthTokenEndpointSm",
           "label": "OAuth token endpoint",
           "constraints": {
-            "notEmpty": true,
-            "pattern": {
-              "value": "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
-              "message": "Must be a http(s) URL"
-            }
+            "notEmpty": true
           },
           "condition": {
             "property": "deployment",
@@ -630,11 +626,7 @@
           "id": "baseUrlSm",
           "label": "Base URL",
           "constraints": {
-            "notEmpty": true,
-            "pattern": {
-              "value": "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
-              "message": "Must be a http(s) URL"
-            }
+            "notEmpty": true
           },
           "condition": {
             "property": "deployment",

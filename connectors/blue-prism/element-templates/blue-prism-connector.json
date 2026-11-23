@@ -839,11 +839,7 @@
           "id": "authentication.oauthTokenEndpoint",
           "label": "OAuth 2.0 token endpoint",
           "constraints": {
-            "notEmpty": true,
-            "pattern": {
-              "value": "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
-              "message": "Must be a http(s) URL"
-            }
+            "notEmpty": true
           },
           "condition": {
             "property": "authenticationType",
@@ -914,11 +910,7 @@
           "label": "Blue Prism API base URL",
           "tooltip": "For example https://blueprism.myservice.com:5678",
           "constraints": {
-            "notEmpty": true,
-            "pattern": {
-              "value": "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
-              "message": "Must be a http(s) URL"
-            }
+            "notEmpty": true
           },
           "group": "authentication",
           "binding": {
