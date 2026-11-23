@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.client.api.command.FailJobCommandStep1;
@@ -808,7 +809,10 @@ class SpringConnectorJobHandlerTest {
             Arguments.of("-2^63 as a BigInteger", TWO_TO_THE_63.negate()),
             Arguments.of(
                 "a BigDecimal beyond the long range", new BigDecimal("92233720368547758080.5")),
-            Arguments.of("a BigDecimal with a large exponent", new BigDecimal("1E+400")));
+            Arguments.of("a BigDecimal with a large exponent", new BigDecimal("1E+400")),
+            Arguments.of(
+                "a BigDecimal longer than Jackson's default number length",
+                new BigDecimal("0." + "1".repeat(StreamReadConstraints.DEFAULT_MAX_NUM_LEN))));
       }
 
       @ParameterizedTest(name = "{0}")
@@ -938,6 +942,82 @@ class SpringConnectorJobHandlerTest {
         assertThat(result.elementActivations()).hasSize(1);
         assertThat(result.elementActivations().get(0).elementId()).isEqualTo("task1");
         assertThat(result.elementActivations().get(0).variables()).isEmpty();
+      }
+
+      /**
+       * An ad-hoc sub-process response skips the result expression, so nothing reads its variables
+       * before the guard does. The guard's read must not stop at Jackson's default limits: that
+       * exception is a generic error, which costs a retry.
+       */
+      private static Stream<Arguments> adHocSubProcessResponsesWithAVeryLongInteger() {
+        var longInteger = BigInteger.TEN.pow(StreamReadConstraints.DEFAULT_MAX_NUM_LEN);
+        return Stream.of(
+            Arguments.of(
+                "in the sub-process variables",
+                new TestAdHocSubProcessResponse(
+                    null, Map.of("orderId", longInteger), List.of(), false, false),
+                "at '/orderId'"),
+            Arguments.of(
+                "in an activation's variables",
+                new TestAdHocSubProcessResponse(
+                    null,
+                    Map.of(),
+                    List.of(
+                        new TestAdHocSubProcessResponse.TestElementActivation(
+                            "cancelOrder", Map.of("orderId", longInteger))),
+                    false,
+                    false),
+                "element 'cancelOrder'"));
+      }
+
+      @ParameterizedTest(name = "{0}")
+      @MethodSource("adHocSubProcessResponsesWithAVeryLongInteger")
+      void shouldFailJobWithoutRetries_whenAnIntegerIsLongerThanJacksonsDefaultNumberLength(
+          String description, TestAdHocSubProcessResponse ahspResponse, String where)
+          throws Exception {
+        // given - 10^1000 has 1001 digits, one more than Jackson reads by default
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+        // then
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage())
+            .contains("outside the signed 64-bit range")
+            .contains(where);
+      }
+
+      @Test
+      void shouldFailJobWithoutRetries_whenAPropertyNameIsLongerThanZeebeReads() throws Exception {
+        // given - Zeebe reads names with Jackson's default limit of 50,000 characters
+        var name = "a".repeat(StreamReadConstraints.DEFAULT_MAX_NAME_LEN + 1);
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(null, Map.of(name, 1), List.of(), false, false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+        // then - Zeebe would refuse it too, so this is an input error, no retry
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage())
+            .contains("Name length (" + (StreamReadConstraints.DEFAULT_MAX_NAME_LEN + 1) + ")");
+      }
+
+      @Test
+      void shouldCompleteJob_whenAPropertyNameIsAsLongAsZeebeReads() throws Exception {
+        // given
+        var name = "a".repeat(StreamReadConstraints.DEFAULT_MAX_NAME_LEN);
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(null, Map.of(name, 1), List.of(), false, false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(jobHandler);
+
+        // then
+        assertThat(result.variables()).isEqualTo(Map.of(name, 1));
       }
     }
   }
