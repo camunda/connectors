@@ -255,7 +255,8 @@ below make this style specific.
   Example: `DocumentMimeTypes`. Do not add `*Util` or `*Utils` classes.
 - **Wire the main collaborators with dependency injection.** Make each service a Spring bean with
   `@ConditionalOnMissingBean`, also when it has no interface. A user can then replace it with a bean
-  of their own. Example: `aiAgentInstanceToolMapper` for `AgentInstanceToolMapper`. Create a small
+  of their own. Do not make such a bean class or its public methods `final`, so a user can also extend
+  it. Example: `aiAgentInstanceToolMapper` for `AgentInstanceToolMapper`. Create a small
   helper with `new` inside its owner. When a bean is a good candidate for a public interface (for
   example an SPI that users can implement), say so in the plan or the PR. The team decides about the
   interface.
