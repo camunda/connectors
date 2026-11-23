@@ -119,6 +119,8 @@ public class OpenAiCompletionsRequestConverter {
     return builder.build();
   }
 
+  // deprecation: maxTokens is deprecated by OpenAI, but OpenAI-compatible APIs still require it
+  @SuppressWarnings("deprecation")
   private void applyModelParameters(
       ChatCompletionCreateParams.Builder builder, CompletionsRequestSpec spec) {
     // maxCompletionTokens (OpenAI's current wire name) and maxTokens (the older name several

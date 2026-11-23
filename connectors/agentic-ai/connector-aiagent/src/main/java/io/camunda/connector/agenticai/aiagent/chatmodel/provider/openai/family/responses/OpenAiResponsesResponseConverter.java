@@ -333,6 +333,7 @@ public class OpenAiResponsesResponseConverter {
    * {@code encrypted_content}/{@code id} do), so leaving it un-stripped costs nothing but the
    * deduplication.
    */
+  @SuppressWarnings("deprecation") // _allProperties() also holds the declared fields
   private boolean canReconstructSummaryFromText(ResponseReasoningItem reasoning) {
     final List<ResponseReasoningItem.Summary> summary = reasoning.summary();
     return summary.size() == 1 && summary.get(0)._additionalProperties().isEmpty();
