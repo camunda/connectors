@@ -82,6 +82,8 @@ Start each finding with one code. These are the codes of the AI PR review bot.
 - 🙃 Nitpick. The likelihood and the effect on end users are both low.
 - 💭 A rule discussion or an open design question. Nothing has to change in this PR.
 
+A rule break with low likelihood and low end-user effect, such as wording or placement, is 🔧, not ❌.
+
 Rate the likelihood and the end-user severity (`high`, `medium` or `low`) of each ❌, ❓ and 🔧
 finding.
 
