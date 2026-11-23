@@ -23,7 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-@SuppressWarnings("deprecation")
 @ExtendWith(MockitoExtension.class)
 class McpSdkMcpClientDelegateTest {
 
@@ -36,10 +35,29 @@ class McpSdkMcpClientDelegateTest {
     return new McpSdkMcpClientDelegate("testClient", mcpClient, new ObjectMapper());
   }
 
+  @SuppressWarnings("deprecation")
+  private static McpSchema.ListToolsResult emptyTools() {
+    return new McpSchema.ListToolsResult(Collections.emptyList(), null);
+  }
+
+  @SuppressWarnings("deprecation")
+  private static McpSchema.ListResourcesResult emptyResources() {
+    return new McpSchema.ListResourcesResult(Collections.emptyList(), null);
+  }
+
+  @SuppressWarnings("deprecation")
+  private static McpSchema.ListResourceTemplatesResult emptyResourceTemplates() {
+    return new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null);
+  }
+
+  @SuppressWarnings("deprecation")
+  private static McpSchema.ListPromptsResult emptyPrompts() {
+    return new McpSchema.ListPromptsResult(Collections.emptyList(), null);
+  }
+
   @Test
   void listToolsPassesMetaToTheSdkClient() {
-    when(mcpClient.listTools(isNull(), same(META)))
-        .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null));
+    when(mcpClient.listTools(isNull(), same(META))).thenReturn(emptyTools());
 
     testee().listTools(FILTER, META);
 
@@ -49,8 +67,7 @@ class McpSdkMcpClientDelegateTest {
 
   @Test
   void listToolsWithEmptyMetaUsesTheSdkClientWithoutMeta() {
-    when(mcpClient.listTools())
-        .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null));
+    when(mcpClient.listTools()).thenReturn(emptyTools());
 
     testee().listTools(FILTER, Map.of());
 
@@ -60,8 +77,7 @@ class McpSdkMcpClientDelegateTest {
 
   @Test
   void listResourcesPassesMetaToTheSdkClient() {
-    when(mcpClient.listResources(isNull(), same(META)))
-        .thenReturn(new McpSchema.ListResourcesResult(Collections.emptyList(), null));
+    when(mcpClient.listResources(isNull(), same(META))).thenReturn(emptyResources());
 
     testee().listResources(FILTER, META);
 
@@ -71,8 +87,7 @@ class McpSdkMcpClientDelegateTest {
 
   @Test
   void listResourcesWithEmptyMetaUsesTheSdkClientWithoutMeta() {
-    when(mcpClient.listResources())
-        .thenReturn(new McpSchema.ListResourcesResult(Collections.emptyList(), null));
+    when(mcpClient.listResources()).thenReturn(emptyResources());
 
     testee().listResources(FILTER, Map.of());
 
@@ -83,7 +98,7 @@ class McpSdkMcpClientDelegateTest {
   @Test
   void listResourceTemplatesPassesMetaToTheSdkClient() {
     when(mcpClient.listResourceTemplates(isNull(), same(META)))
-        .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
+        .thenReturn(emptyResourceTemplates());
 
     testee().listResourceTemplates(FILTER, META);
 
@@ -93,8 +108,7 @@ class McpSdkMcpClientDelegateTest {
 
   @Test
   void listResourceTemplatesWithEmptyMetaUsesTheSdkClientWithoutMeta() {
-    when(mcpClient.listResourceTemplates())
-        .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
+    when(mcpClient.listResourceTemplates()).thenReturn(emptyResourceTemplates());
 
     testee().listResourceTemplates(FILTER, Map.of());
 
@@ -104,8 +118,7 @@ class McpSdkMcpClientDelegateTest {
 
   @Test
   void listPromptsPassesMetaToTheSdkClient() {
-    when(mcpClient.listPrompts(isNull(), same(META)))
-        .thenReturn(new McpSchema.ListPromptsResult(Collections.emptyList(), null));
+    when(mcpClient.listPrompts(isNull(), same(META))).thenReturn(emptyPrompts());
 
     testee().listPrompts(FILTER, META);
 
@@ -115,8 +128,7 @@ class McpSdkMcpClientDelegateTest {
 
   @Test
   void listPromptsWithEmptyMetaUsesTheSdkClientWithoutMeta() {
-    when(mcpClient.listPrompts())
-        .thenReturn(new McpSchema.ListPromptsResult(Collections.emptyList(), null));
+    when(mcpClient.listPrompts()).thenReturn(emptyPrompts());
 
     testee().listPrompts(FILTER, Map.of());
 
