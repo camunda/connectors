@@ -594,6 +594,33 @@ class HttpJsonFunctionServiceCredentialTest {
   }
 
   @Test
+  void rootPathParameterEndingTheTokenEndpointIsKept() {
+    var variables =
+        """
+        {
+          "method": "get",
+          "relativeUrl": "/api",
+          "serviceAuthenticationConfiguration": {
+            "baseUrl": "http://localhost:8080",
+            "parameters": { "path": "/" },
+            "authentication": {
+              "type": "oauth-client-credentials-flow",
+              "oauthTokenEndpoint": "http://localhost:8080${path}",
+              "clientId": "id",
+              "clientSecret": "secret",
+              "clientAuthentication": "credentialsBody"
+            }
+          }
+        }
+        """;
+
+    var request = context(variables).bindVariables(HttpJsonRequest.class);
+
+    assertThat(((OAuthAuthentication) request.getAuthentication()).oauthTokenEndpoint())
+        .isEqualTo("http://localhost:8080/");
+  }
+
+  @Test
   void unresolvedPlaceholderInTheBasicUsernameIsRejected() {
     var variables =
         """

@@ -111,13 +111,12 @@ public record ServiceAuthenticationConfiguration(
       var name = value.substring(start + 2, end);
       var parameter = parameters.get(name);
       var replacement =
-          parameter == null ? null : urlValues ? urlPart(parameter, false) : parameter;
+          parameter == null
+              ? null
+              : urlValues ? urlPart(parameter, end + 1 == value.length()) : parameter;
       if (replacement == null || replacement.isEmpty()) {
         throw new IllegalArgumentException(
             "The credential refers to parameter '" + name + "', which has no value");
-      }
-      if (urlValues && end + 1 == value.length()) {
-        replacement = urlPart(parameter, true);
       }
       result.append(value, copied, start).append(replacement);
       copied = end + 1;
