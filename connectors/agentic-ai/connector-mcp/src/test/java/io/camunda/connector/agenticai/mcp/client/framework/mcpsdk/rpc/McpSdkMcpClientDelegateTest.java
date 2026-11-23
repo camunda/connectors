@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+@SuppressWarnings("deprecation")
 @ExtendWith(MockitoExtension.class)
 class McpSdkMcpClientDelegateTest {
 
