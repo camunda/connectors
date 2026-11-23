@@ -61,7 +61,7 @@ import org.springframework.test.context.TestPropertySource;
 
 @SlowTest
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
-@Import(McpTestServerConfiguration.class)
+@Import({McpTestServerConfiguration.class, McpStdioWarmUp.class})
 public class McpStandaloneTests extends BaseAgenticAiTest {
 
   /** The first stdio task of a run starts the server container. */

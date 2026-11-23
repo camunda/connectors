@@ -37,8 +37,8 @@ public enum McpTestServerTransport {
         Map<String, String> properties, String clientName, String mcpServerBaseUrl) {
       final var clientPrefix = springConfigClientPrefix(clientName);
       properties.put(clientPrefix + ".type", "stdio");
-      properties.put(clientPrefix + ".initialization-timeout", STDIO_INITIALIZATION_TIMEOUT);
-      properties.put(clientPrefix + ".tool-execution-timeout", MCP_CLIENT_TIMEOUT);
+      properties.put(clientPrefix + ".initialization-timeout", STDIO_TIMEOUT);
+      properties.put(clientPrefix + ".tool-execution-timeout", STDIO_TIMEOUT);
       properties.put(clientPrefix + ".stdio.command", "docker");
 
       final var args =
@@ -77,8 +77,9 @@ public enum McpTestServerTransport {
   private static final String SPRING_CONFIG_CLIENTS_PREFIX =
       "camunda.connector.agenticai.mcp.client.clients";
   private static final String MCP_CLIENT_TIMEOUT = "PT3S";
-  // covers the container start and the start of the server in the container
-  private static final String STDIO_INITIALIZATION_TIMEOUT = "PT30S";
+  // covers the container start and the start of the server in the container, also on a loaded
+  // runner
+  private static final String STDIO_TIMEOUT = "PT2M";
 
   private final String testServerProfile;
   private final String type;
