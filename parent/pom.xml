@@ -216,7 +216,7 @@ limitations under the License.</license.inlineheader>
     <version.langchain4j>1.24.0</version.langchain4j>
     <version.mcp-sdk>2.2.0</version.mcp-sdk>
     <version.elasticsearch-java>8.19.25</version.elasticsearch-java>
-    <version.elasticsearch-rest-client>8.19.25</version.elasticsearch-rest-client>
+    <version.elasticsearch-rest-client>8.19.26</version.elasticsearch-rest-client>
 
     <version.scala>3.10.1</version.scala>
 
@@ -334,7 +334,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <version>42.7.14</version>
+        <version>42.7.15</version>
       </dependency>
 
       <!-- gRPC BOM - the version has to be equal or greater than the one from the Camunda client -->
