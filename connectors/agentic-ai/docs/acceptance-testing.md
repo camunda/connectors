@@ -51,9 +51,10 @@ at the level of the unit that owns it. The test level decision above stays manda
   with their constructors or builders. Test a core decision without mocks. Example:
   `AgentConversationTest`. A build check can find a mock of a record or a domain type.
   ([P4](implementation-rules.md#principles))
-- **Test shared behavior once.** Test the behavior of a base class in one place. A flavor test covers
-  only what the flavor changes. A PR can delete a duplicate test when it names the test that keeps the
-  coverage. ([P4](implementation-rules.md#principles))
+- **Test shared behavior once.** In unit and component tests, test the behavior of a base class in one
+  place. A flavor test covers only what the flavor changes. A PR can delete a duplicate test when it
+  names the test that keeps the coverage. E2e tests cover the AI Agent Task and the AI Agent
+  Sub-process separately, because their BPMN models differ. ([P4](implementation-rules.md#principles))
 - **Assert outcomes. Verify only interactions with the edges.** Assert the returned value or state.
   Use `verify` and `inOrder` only for calls to an external system, where domain rule 6 needs the
   number of calls. ([P4](implementation-rules.md#principles))
