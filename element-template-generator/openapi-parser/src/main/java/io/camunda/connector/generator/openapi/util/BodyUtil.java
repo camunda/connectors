@@ -120,7 +120,7 @@ public class BodyUtil {
       for (java.util.Map.Entry<String, Schema> entry : entries) {
         var propertySchema = ParameterUtil.getSchemaOrFromComponents(entry.getValue(), components);
         var name = entry.getKey();
-        if ("object".equals(propertySchema.getType()) || "array".equals(propertySchema.getType())) {
+        if (isContainerType(ParameterUtil.typeOf(propertySchema))) {
           throw new IllegalArgumentException(
               "Complex objects are not supported in detailed request bodies");
         }
@@ -138,16 +138,15 @@ public class BodyUtil {
 
   static HttpOperationProperty fromSchema(String name, Schema<?> schema, Components components) {
     schema = ParameterUtil.getSchemaOrFromComponents(schema, components);
+    var type = ParameterUtil.typeOf(schema);
 
     if (schema.getEnum() != null) {
       return HttpOperationProperty.createEnumProperty(
           name, Target.BODY, schema.getDescription(), true, schema.getEnum());
-    } else if (schema.getType().equals("boolean")) {
+    } else if (type.equals("boolean")) {
       return HttpOperationProperty.createEnumProperty(
           name, Target.BODY, schema.getDescription(), true, Arrays.asList("true", "false"));
-    } else if (schema.getType().equals("string")
-        || schema.getType().equals("integer")
-        || schema.getType().equals("number")) {
+    } else if (type.equals("string") || type.equals("integer") || type.equals("number")) {
       return HttpOperationProperty.createStringProperty(
           name,
           Target.BODY,
@@ -155,7 +154,7 @@ public class BodyUtil {
           true,
           ParameterUtil.getExampleFromSchema(schema, components));
     }
-    throw new IllegalArgumentException("Unsupported parameter type: " + schema.getType());
+    throw new IllegalArgumentException("Unsupported parameter type: " + type);
   }
 
   private static String buildRawBodyExample(Schema<?> schema, Components components) {
@@ -166,19 +165,41 @@ public class BodyUtil {
   // complex objects are difficult to visually break down into fields
   // this includes objects with nested objects, arrays, or a combination of both
   private static boolean isComplexSchema(Schema<?> schema, Components components) {
+    if (hasUnresolvableInternalRef(schema, components)) {
+      return true;
+    }
     schema = ParameterUtil.getSchemaOrFromComponents(schema, components);
-    if (schema == null || schema.getType() == null) {
+    var type = ParameterUtil.typeOf(schema);
+    if (type == null) {
       return false;
     }
-    if (schema.getType().equals("array")) {
+    if (type.equals("array")) {
       return isComplexSchema(schema.getItems(), components);
     }
-    if (schema.getType().equals("object") && schema.getProperties() != null) {
+    if (type.equals("object") && schema.getProperties() != null) {
       return schema.getProperties().values().stream()
-          .map(s -> ParameterUtil.getSchemaOrFromComponents(s, components))
-          .anyMatch(s -> "object".equals(s.getType()) || "array".equals(s.getType()));
+          .anyMatch(s ->
+              hasUnresolvableInternalRef(s, components)
+                  || isContainerType(
+                      ParameterUtil.typeOf(
+                          ParameterUtil.getSchemaOrFromComponents(s, components))));
     }
     return false;
+  }
+
+  private static boolean isContainerType(String type) {
+    return "object".equals(type) || "array".equals(type);
+  }
+
+  // Only '#/components/schemas/...' references can be resolved. Other references inside the
+  // document, such as '#/paths/...', are kept in a raw body instead of being broken into fields.
+  private static boolean hasUnresolvableInternalRef(Schema<?> schema, Components components) {
+    if (schema == null || schema.get$ref() == null || !schema.get$ref().startsWith("#/")) {
+      return false;
+    }
+    return !schema.get$ref().startsWith("#/components/schemas/")
+        || components == null
+        || components.getSchemas() == null;
   }
 
   public sealed interface BodyParseResult permits BodyParseResult.Detailed, BodyParseResult.Raw {

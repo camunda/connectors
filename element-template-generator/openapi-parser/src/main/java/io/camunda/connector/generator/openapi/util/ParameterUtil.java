@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.openapi.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -103,11 +104,12 @@ public class ParameterUtil {
       example = getExampleFromSchema(parameter.getSchema(), components);
     }
     var schema = getSchemaOrFromComponents(parameter.getSchema(), components);
+    var type = typeOf(schema);
 
-    if (Objects.isNull(schema.getType())
-        || schema.getType().equals("string")
-        || schema.getType().equals("integer")
-        || schema.getType().equals("number")) {
+    if (Objects.isNull(type)
+        || type.equals("string")
+        || type.equals("integer")
+        || type.equals("number")) {
       return HttpOperationProperty.createStringProperty(
           name,
           targetMapping.get(parameter.getIn()),
@@ -121,14 +123,14 @@ public class ParameterUtil {
           parameter.getDescription(),
           parameter.getRequired() != null && parameter.getRequired(),
           schema.getEnum());
-    } else if (schema.getType().equals("boolean")) {
+    } else if (type.equals("boolean")) {
       return HttpOperationProperty.createEnumProperty(
           name,
           targetMapping.get(parameter.getIn()),
           parameter.getDescription(),
           parameter.getRequired() != null && parameter.getRequired(),
           Arrays.asList("true", "false"));
-    } else if (schema.getType().equals("object") || schema.getType().equals("array")) {
+    } else if (type.equals("object") || type.equals("array")) {
       return HttpOperationProperty.createFeelProperty(
           name,
           targetMapping.get(parameter.getIn()),
@@ -136,7 +138,31 @@ public class ParameterUtil {
           parameter.getRequired() != null && parameter.getRequired(),
           example);
     }
-    throw new IllegalArgumentException("Unsupported parameter type: " + schema.getType());
+    throw new IllegalArgumentException("Unsupported parameter type: " + type);
+  }
+
+  /**
+   * Returns the single type of a schema, for both OpenAPI 3.0 and 3.1 documents.
+   *
+   * <p>For 3.0 documents, the parser sets {@link Schema#getType()}. For 3.1 documents, it sets
+   * {@link Schema#getTypes()} instead and {@link Schema#getType()} returns {@code null}. In 3.1, a
+   * nullable value is written as a type array such as {@code [string, "null"]}, so the {@code
+   * "null"} entry is ignored.
+   *
+   * @return the type, or {@code null} if the schema declares no type or more than one non-null type
+   */
+  public static String typeOf(Schema<?> schema) {
+    if (schema == null) {
+      return null;
+    }
+    if (schema.getType() != null) {
+      return schema.getType();
+    }
+    if (schema.getTypes() == null) {
+      return null;
+    }
+    var nonNullTypes = schema.getTypes().stream().filter(t -> !"null".equals(t)).toList();
+    return nonNullTypes.size() == 1 ? nonNullTypes.getFirst() : null;
   }
 
   public static String getExampleFromSchema(Schema schema, Components components) {
@@ -145,12 +171,23 @@ public class ParameterUtil {
       return null;
     }
     if (schema.getExample() != null) {
-      return schema.getExample().toString();
+      return exampleToString(schema.getExample());
     }
     if (schema.getExamples() != null && !schema.getExamples().isEmpty()) {
-      return schema.getExamples().get(0).toString();
+      return exampleToString(schema.getExamples().get(0));
     }
     return generateFakeDataStringFromSchema(schema, components);
+  }
+
+  /**
+   * The parser can return an OpenAPI 3.1 {@code examples} entry as a {@link JsonNode}. The {@code
+   * toString()} of a text node keeps its JSON quotes, so plain values are read as text instead.
+   */
+  private static String exampleToString(Object example) {
+    if (example instanceof JsonNode node && node.isValueNode()) {
+      return node.asText();
+    }
+    return example.toString();
   }
 
   public static Schema<?> getSchemaOrFromComponents(Schema<?> schema, Components components) {
@@ -197,7 +234,7 @@ public class ParameterUtil {
 
   private static Object generateFakeDataFromSchema(
       Schema<?> schema, Components components, HashSet<Schema<?>> visitedSchemas) {
-    switch (schema.getType()) {
+    switch (typeOf(schema)) {
       case "string" -> {
         return "string";
       }
