@@ -300,6 +300,14 @@ below make this style specific.
   provider needs, such as the content types all providers accept or an exception every content
   converter throws, lives in `chatmodel.provider`. Why: the two integrations change
   independently, and a shared helper couples them.
+- **Member order.** Order the members of a class as constants, fields, constructors, then methods.
+  Prefer nested types at the end. Put them at the top when the class reads better that way, and
+  between methods only when that is the best place. Why: a reader sees the state of a class before
+  its behavior.
+- **Consistent parameter order.** Related methods, such as the methods of one type or the overloads
+  of one method, take the parameters they share in the same order. A method that takes both the
+  execution context and the agent context takes them in this order: `AgentExecutionContext`, then
+  `AgentContext`. Why: a caller can rely on the order without reading each signature.
 - **Code agrees with the accepted ADRs.** When code diverges from an accepted ADR, the same change
   supersedes or extends the ADR with a new ADR, as the [ADR authoring rules](adr/README.md) say.
 
