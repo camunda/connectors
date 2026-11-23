@@ -110,13 +110,19 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>4.2.0</version.spring-boot>
+    <version.spring-boot>4.1.2</version.spring-boot>
+    <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx: amqp-client transitive override — remove once
+         spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
+         Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
+    <version.amqp-client>5.38.0</version.amqp-client>
+    <!-- mariadb-java-client transitive override: connectors/jdbc/pom.xml declares 3.5.11 directly,
+         but spring-boot-dependencies' managed mariadb.version (3.5.10 on spring-boot 4.1.2) overrides
+         that declaration in every module importing this parent, including the bundles. Remove once
+         spring-boot-dependencies manages org.mariadb.jdbc:mariadb-java-client >= 3.5.11. -->
+    <version.mariadb-java-client>3.5.11</version.mariadb-java-client>
     <version.netty>4.2.21.Final</version.netty>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.8</version.logback>
-    <!-- Spring Boot 4.2 no longer manages org.codehaus.janino:janino (4.1.x managed 3.1.12). It is required at
-         runtime by the <if> conditionals in logback-spring.xml, so it is pinned here. -->
-    <version.janino>3.1.12</version.janino>
 
     <version.aws-sdk2>2.59.7</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
@@ -296,18 +302,19 @@ limitations under the License.</license.inlineheader>
         <type>pom</type>
       </dependency>
 
-      <!-- Not managed by the Spring Boot 4.2 BOM anymore, see version.janino -->
-      <dependency>
-        <groupId>org.codehaus.janino</groupId>
-        <artifactId>janino</artifactId>
-        <version>${version.janino}</version>
-      </dependency>
-
       <!-- Override Spring Boot BOM postgresql pin -->
       <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
         <version>42.7.14</version>
+      </dependency>
+
+      <!-- Temporary override: remove once spring-boot-dependencies manages
+           mariadb-java-client >= 3.5.11. Guarded by the version.spring-boot enforcer rule below. -->
+      <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client</artifactId>
+        <version>${version.mariadb-java-client}</version>
       </dependency>
 
       <!-- gRPC BOM - the version has to be equal or greater than the one from the Camunda client -->
@@ -742,6 +749,16 @@ limitations under the License.</license.inlineheader>
         <version>${version.lz4-java}</version>
       </dependency>
 
+      <!-- Temporary override: remove once spring-boot-dependencies manages
+           rabbit-amqp-client >= 5.34.0. Guarded by the version.spring-boot enforcer rule below.
+           Setting Spring Boot's own rabbit-amqp-client.version property would not work here:
+           a same-named property does not override a dependency-management import. -->
+      <dependency>
+        <groupId>com.rabbitmq</groupId>
+        <artifactId>amqp-client</artifactId>
+        <version>${version.amqp-client}</version>
+      </dependency>
+
       <dependency>
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
@@ -1152,6 +1169,56 @@ be removed. If the new box-java-sdk version ships zstd-jni &gt;= 1.5.7-14, remov
 version.zstd-jni property, the zstd-jni dependencyManagement entry, and this enforcer rule
 from parent/pom.xml.
 See: https://github.com/luben/zstd-jni/security/advisories
+                </regexMessage>
+              </requireProperty>
+              <!-- Spring Boot 4.2 guard (https://github.com/camunda/connectors/issues/10745): Spring Boot 4.2
+                   removed org.springframework.boot.env.EnvironmentPostProcessor. camunda-spring-boot-starter
+                   8.9.x up to and including 8.9.29 registers CamundaClientPropertiesPostProcessor under that
+                   removed key, so on Spring Boot 4.2 it never runs: an OIDC setup without an explicit
+                   camunda.client.auth.method (e.g. the Helm chart) silently falls back to no credentials. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.[01]\.\d+$</regex>
+                <regexMessage>
+Spring Boot 4.2+ is not compatible with the camunda-spring-boot-starter used on stable/8.9 (see
+https://github.com/camunda/connectors/issues/10745). Only raise version.spring-boot to 4.2+ once
+version.camunda includes the camunda/camunda backport of PR #60293 (EnvironmentPostProcessor moved
+to org.springframework.boot), then remove this enforcer rule.
+                </regexMessage>
+              </requireProperty>
+              <!-- CVE-2026-63337 / GHSA-jh4v-gfqj-7rhx guard: fails if version.spring-boot is
+                   bumped, as a reminder to check whether the amqp-client override can be removed
+                   (see version.amqp-client). spring-boot-dependencies manages
+                   com.rabbitmq:amqp-client via its own rabbit-amqp-client.version property.
+                   Confirmed still needed as of spring-boot 4.1.2: its BOM ships
+                   rabbit-amqp-client.version 5.30.0, still short of the 5.34.0 fix. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.2$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the amqp-client CVE-2026-63337 override can be removed.
+To check whether the new spring-boot-dependencies BOM ships com.rabbitmq:amqp-client &gt;= 5.34.0,
+temporarily remove the amqp-client dependencyManagement entry (the override masks the BOM-managed
+version), then run `mvn dependency:tree -Dincludes=com.rabbitmq:amqp-client` on both bundle modules.
+If both resolve &gt;= 5.34.0, remove the version.amqp-client property, the dependencyManagement entry,
+and this enforcer rule from parent/pom.xml; otherwise restore the entry.
+See: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx
+                </regexMessage>
+              </requireProperty>
+              <!-- mariadb-java-client guard: fails if version.spring-boot is bumped, as a reminder to
+                   check whether the mariadb-java-client override can be removed (see
+                   version.mariadb-java-client). Confirmed still needed as of spring-boot 4.1.2: its
+                   BOM ships mariadb.version 3.5.10. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.2$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the mariadb-java-client override can be removed.
+To check whether the new spring-boot-dependencies BOM ships org.mariadb.jdbc:mariadb-java-client
+&gt;= 3.5.11, temporarily remove the mariadb-java-client dependencyManagement entry (the override masks
+the BOM-managed version), then run `mvn dependency:tree -Dincludes=org.mariadb.jdbc:mariadb-java-client`
+on both bundle modules. If both resolve &gt;= 3.5.11, remove the version.mariadb-java-client property,
+the dependencyManagement entry, and this enforcer rule from parent/pom.xml; otherwise restore the entry.
                 </regexMessage>
               </requireProperty>
             </rules>
