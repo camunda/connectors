@@ -20,7 +20,7 @@ same moments.
 The execution model shapes what such an extension point can promise. An agent run is spread over many
 stateless job executions that can run on different runtime instances. Tool calls are BPMN activities
 that can take days. Jobs fail, retry, time out, and are superseded. Only a few code paths persist the
-agent context: the dispatch of gateway tool discovery and the completion of a turn. A consumer that
+agent context: the dispatch of gateway tool discovery and the agent response of a job that called the model. A consumer that
 needs state across jobs, such as a trace identity, has no place to keep it that survives a job
 boundary.
 
@@ -74,12 +74,13 @@ The decision comprises:
 
   | Category | Callbacks | Contract |
   |---|---|---|
-  | Notifications | job started, tool discovery dispatched, job deferred, turn started, model round started and outcome, job failed, job completed, job completion failed | Failure-isolated: the framework catches and logs every consumer exception, keeps registration order, and runs consumers on the job thread. A notification cannot change the job. |
-  | State contribution | tool discovery dispatched, turn completed | Returns a value only. The framework checks it and writes it into the consumer's own namespace of the agent context, only on paths that already persist the context. An exception or an invalid value drops the contribution. |
-  | Model-round pairing | model round started, then completed or failed | Owned by the framework with try/finally on the same thread. A consumer can neither skip nor alter the model call, and a throwing consumer still gets its round closed. |
+  | Notifications | job started, tool discovery dispatched, job deferred, turn started and outcome, job failed, job completed, job completion failed | Failure-isolated: the framework catches and logs every consumer exception, keeps registration order, and runs consumers on the job thread. A notification cannot change the job. |
+  | State contribution | tool discovery dispatched, agent response created | Returns a value only. The framework checks it and writes it into the consumer's own namespace of the agent context, only on paths that already persist the context. An exception or an invalid value drops the contribution. |
+  | Turn pairing | turn started, then completed or failed | Owned by the framework with try/finally on the same thread. A consumer can neither skip nor alter the model call, and a throwing consumer still gets its turn closed. |
 
-  Tool discovery dispatched and turn started are reported after the lease-fenced agent instance write of
-  that step succeeded, so they identify a job that held the lease at that point. A job that fails before
+  A turn is one call to the chat model, as in the glossary of the module. Tool discovery dispatched and the
+  first turn started of a job are reported after the lease-fenced agent instance write of that step
+  succeeded, so they identify a job that held the lease at that point. A job that fails before
   that write, because it reached the model call limit or was superseded, reports job failed without them.
 
   Events are built lazily: the framework builds an event only when at least one listener takes part in the
@@ -90,7 +91,7 @@ The decision comprises:
 
 * **D3 — Consumer state rides on the two existing persist points and nowhere else.** The agent context
   is persisted by the completion command of exactly two paths: the dispatch of gateway tool discovery,
-  and the completion of a turn. Jobs that complete without an agent response (deferred partial
+  and the agent response of a job that ran turns. Jobs that complete without an agent response (deferred partial
   results, no input) persist nothing, and a failed or superseded job's completion never lands. A
   consumer's state is therefore written only where the framework already writes, and is lost together
   with the job that produced it. A consumer must treat lost state as "start over", which for tracing
@@ -105,7 +106,7 @@ The decision comprises:
   | Path | Persists the agent context | State contribution |
   |---|---|---|
   | Tool discovery dispatched | Yes | Yes |
-  | Turn completed (tool calls issued or final answer) | Yes | Yes |
+  | Agent response created (tool calls issued or final answer) | Yes | Yes |
   | Job deferred (partial tool results) | No | No |
   | No input | No | No |
   | Job failed or completion rejected | No | No |
@@ -121,17 +122,17 @@ The decision comprises:
   initialization and composition result types, so the internal state machine does not leak into the
   API. Events fire for both flavors; the flavor is part of the event so that a consumer can restrict
   itself. A deferred partial-result job has its own event, which most consumers ignore, so that "open
-  lazily" decisions stay in the consumer. The tool results consumed by a turn carry the engine's
-  completion time and no start time, because the engine runs tools as BPMN activities and the connector
-  sees neither their start nor their end. A consumer that needs the time the tool calls were dispatched
-  records it itself when it contributes state at the completion of the issuing turn. Tools that the
-  connector runtime will answer itself inside the job are not BPMN activities: they will need their own
-  event with measured start and end, emitted by the job that runs them.
+  lazily" decisions stay in the consumer. The tool results consumed by a turn carry their
+  completion time. A result of a process tool carries no start time, because the engine runs process tools
+  as BPMN activities and the connector sees neither their start nor their end. A consumer that needs the
+  time the tool calls were dispatched records it itself when it contributes state with the agent response
+  of the issuing job. The agent runs runtime tools itself inside a job, so their results also carry the
+  measured start, and the call of each result tells whether the process, a runtime tool or the rejection
+  of the call produced it.
 
-* **D6 — The extension point is experimental.** A marker annotation in `aiagent-api` flags every type
-  of it. The types are excluded from the planned API compatibility check of `aiagent-api` and
-  `aiagent-model`, and changes to them are listed in the breaking changes document without a migration
-  guarantee. The event set may change once the first consumer has been validated against real
+* **D6 — The extension point is experimental.** The experimental marker annotation of `aiagent-api`
+  flags every type of it. The API compatibility check of `aiagent-api` ignores the marked types, and the
+  breaking changes document does not list changes to them. The event set may change once the first consumer has been validated against real
   backends.
 
 * **D7 — The agent instance history client is not a consumer.** Its call sites correspond one to one
@@ -214,8 +215,8 @@ The decision comprises:
   reads its own clock (chosen); the framework and its consumers share one injectable clock source in the
   runtime for deterministic tests.
 * **Asynchronous delivery.** A queue between the job and the listeners would keep slow consumers off the job
-  thread. It needs bounded buffers, loss handling and ordering rules, and it breaks the pairing of model
-  round callbacks around the call. Synchronous, failure-isolated delivery (chosen) keeps the contract simple,
+  thread. It needs bounded buffers, loss handling and ordering rules, and it breaks the pairing of turn
+  callbacks around the model call. Synchronous, failure-isolated delivery (chosen) keeps the contract simple,
   and a consumer that needs a queue can build one.
 
 ## Follow-up

@@ -56,16 +56,18 @@ The module is split into Maven modules with a fixed dependency direction
 | `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                                                           | common                                                                |
 | `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                                                             | connector-a2a, api, model, common                                     |
 | `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client                                   | tools-schema, api, model, common                                      |
-| `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes                                      | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
+| `aiagent-otel`                  | `otel`                               | OpenTelemetry GenAI tracing of the AI Agent as a lifecycle listener, inert unless enabled      | api, model, common                                                    |
+| `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors, gateway tool integrations and extensions, for runtimes                         | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations, otel |
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped                                           | all modules, in test scope                                            |
 | `agentic-ai-docs-lint`          | `docslint`                           | Checks that keep the docs in step with the modules and the code, not shipped                    | none                                                                  |
 
-Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
-or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
+Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients,
+integrations or extensions. Extensions (`aiagent-otel`) implement extension points of `aiagent-api`, and no module
+depends on them. Package roots are relative to `io.camunda.connector.agenticai`;
 put new classes under the root of their module, and no Java package spans several modules. Each module has its own
 auto-configuration, element templates and icons.
 All artifacts use the group `io.camunda.connector.agenticai`. Runtimes that ship all agentic AI connectors (the
-bundles) depend on `agentic-ai-bundle` with `<type>pom</type>`; add a new connector or integration there. The e2e
+bundles) depend on `agentic-ai-bundle` with `<type>pom</type>`; add a new connector, integration or extension there. The e2e
 modules depend on the connector modules they test instead (see the
 [e2e tests `AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#modules)).
 Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
@@ -151,6 +153,7 @@ a development tool and not production code.
 | Agent instance API (status, metrics, history reporting)                  | [`agent-instance.md`](connector-aiagent/docs/agent-instance.md)                                                                                      |
 | **Architectural invariants (what you must not break)**                   | [`design-guidelines.md`](docs/design-guidelines.md#architectural-invariants)                                                                         |
 | **Extension points** (add provider / contributor / store)                | [`extension-points.md`](docs/architecture/extension-points.md#extension-points)                                                                      |
+| Agent lifecycle listeners, OpenTelemetry GenAI tracing (experimental)     | [`agent-lifecycle-listener.md`](aiagent-api/docs/agent-lifecycle-listener.md), [`opentelemetry-tracing.md`](aiagent-otel/docs/opentelemetry-tracing.md) |
 | Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](connector-aiagent/docs/native-providers.md)                                                                                  |
 
 ## Mental model
@@ -211,6 +214,10 @@ High-frequency traps (detail behind each link):
 - **Sub-process config frozen at AHSP entry**: input mappings evaluate once, so config/migration changes don't reach a
   running instance (Task flavor re-evaluates per iteration).
   [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md).
+- **Lifecycle listener state is written only on persisting paths**: a listener's state (for example the tracing
+  run state under `lifecycle:otel-tracing` in `AgentContext.properties`) is stored only by the jobs that persist
+  the agent context. A listener must treat missing state as "start over". The rules for the state:
+  [`agent-lifecycle-listener.md`](aiagent-api/docs/agent-lifecycle-listener.md#contract).
 - **Migration blocked cases**: removing/renaming tools or adding/removing gateway tools fails; adding tools or changing
   descriptions is allowed. [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md).
 - **`toolCallResult = ""` scoping trick**: the empty default keeps the variable local to the tool element so it doesn't

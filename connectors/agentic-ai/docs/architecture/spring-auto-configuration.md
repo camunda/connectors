@@ -13,11 +13,12 @@ The agentic AI connectors are wired by several Spring Boot auto-configurations, 
 | `A2aClientAgenticToolAutoConfiguration`        | `A2aClientAutoConfiguration`                                   | A2A gateway tool beans for the AI Agent                                                   |
 | `McpClientAutoConfiguration`                   | common                                                         | MCP client connector configurations (see [`mcp-client.md`](../../connector-mcp/docs/mcp-client.md#spring-configuration))    |
 | `McpClientAgenticToolAutoConfiguration`        | `McpClientAutoConfiguration`                                   | MCP gateway tool beans for the AI Agent                                                   |
-| `AgenticAiConnectorsAutoConfiguration`         | common, tools schema                                           | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries, AWS SDK and Azure HTTP proxy support) |
+| `AgenticAiConnectorsAutoConfiguration`         | common, tools schema                                           | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries, the agent lifecycle dispatcher, AWS SDK and Azure HTTP proxy support) |
+| `AgentTracingAutoConfiguration` (`aiagent-otel`) | Spring Boot's `OpenTelemetrySdkAutoConfiguration`            | `AgentTracingListener`, only with `aiagent.tracing.enabled=true` and an `OpenTelemetry` bean ([OpenTelemetry tracing](../../aiagent-otel/docs/opentelemetry-tracing.md)) |
 
-The AI Agent does not reference the MCP and A2A integrations. It collects every `GatewayToolHandler`
-and `SystemPromptContributor` bean through list injection, so the order of the integration
-auto-configurations does not matter.
+The AI Agent does not reference the MCP and A2A integrations or the tracing module. It collects every
+`GatewayToolHandler`, `SystemPromptContributor` and `AgentLifecycleListener` bean through list or provider
+injection, so the order of the integration auto-configurations does not matter.
 
 `AgenticAiConnectorsAutoConfiguration` imports:
 - `AgenticAiLangChain4JFrameworkConfiguration`: LangChain4j converter chain, imports `AgenticAiLangChain4JChatModelConfiguration` for the `ChatModelFactory` beans of the v1 provider configurations
@@ -49,6 +50,9 @@ the AI Agent Sub-process functions (`camunda.connector.agenticai.aiagent.job-wor
 | `camunda.connector.agenticai.aiagent.outbound-connector.enabled`  | `true`       | AI Agent Task connector (v1 and v2)     |
 | `camunda.connector.agenticai.aiagent.job-worker.enabled`          | `true`       | AI Agent Sub-process job worker (v1 and v2) |
 | `camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled` | `true`     | Ad-Hoc Tools Schema connector     |
+| `camunda.connector.agenticai.aiagent.tracing.enabled`             | `false`      | OpenTelemetry GenAI tracing listener |
+| `camunda.connector.agenticai.aiagent.tracing.capture-content`     | `false`      | Prompts, tool arguments and results, and error messages on the spans |
+| `camunda.connector.agenticai.aiagent.tracing.cluster-id`          | unset        | Optional prefix of the session id |
 
 ## Key Configuration Defaults
 

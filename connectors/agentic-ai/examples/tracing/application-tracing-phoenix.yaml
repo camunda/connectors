@@ -1,0 +1,27 @@
+# Spring profile for the AI Agent runtime that sends agent traces to the local Arize Phoenix
+# (docker-compose.phoenix.yml). Activate with SPRING_PROFILES_ACTIVE=tracing-phoenix.
+# Needs the OpenTelemetry jars described in the README ("Runtime recipe").
+camunda:
+  connector:
+    agenticai:
+      aiagent:
+        tracing:
+          enabled: true
+          capture-content: true # prompts, completions and tool data land in the backend: local use only
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0 # Boot's default is 0.1, which would keep only one run in ten
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:6006/v1/traces
+          transport: http # OTLP/HTTP with protobuf bodies (Phoenix rejects JSON)
+
+spring:
+  autoconfigure:
+    # Observation-to-span bridge: keeps other connectors, inbound webhooks and actuator calls untraced.
+    # To be verified, see the README. This replaces any spring.autoconfigure.exclude list set elsewhere.
+    exclude: org.springframework.boot.micrometer.tracing.autoconfigure.MicrometerTracingAutoConfiguration

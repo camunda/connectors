@@ -108,7 +108,8 @@ The decision comprises:
     spans and by the trace window.
   * **`invoke_agent {element id}`** spans cover one job doing agent work (tool discovery or a turn), with
     the job's real duration.
-  * **`chat {model}`** spans cover every model call round, including provider continuation rounds, with
+  * **`chat {model}`** spans cover every turn, that is every model call, including the turns that continue a
+    response the provider paused, with
     the provider, requested and response model, token usage, finish reason, and response id. Token usage is
     set only on `chat` spans, so that summing over a trace or a session counts every model call once and
     covers the same calls as the metrics of the agent instance. Input tokens include the cache read and
@@ -116,15 +117,20 @@ The decision comprises:
     tokens apart from their cache counts. The totals of a trace and a session therefore equal the sum of all
     token categories of the agent instance metrics (input, output, cache read and cache write); only the
     place where cache and reasoning tokens are displayed differs.
-  * **`execute_tool {tool}`** spans cover one consumed tool result, from the time the issuing job recorded
-    its turn to the engine's completion of the tool, and are emitted by the job that consumes the result.
+  * **`execute_tool {tool}`** spans cover one consumed tool result and are emitted by the job that consumes
+    the result. A span of a process tool runs from the time the issuing job created its agent response to the
+    engine's completion of the tool.
     Each is a child of the `invoke_agent` span of the job that issued the call (for a gateway tool
     discovery call, the job that dispatched the discovery), so it starts inside its parent and ends after
     it, the shape of an asynchronous operation. The issuing job records the time when it persists its run
-    state at the end of the turn, and the consuming job starts the span at that time. The start never
+    state with its agent response, and the consuming job starts the span at that time. The start never
     lies after the end, because the clocks of worker and engine can differ, and a state without a
     recorded time starts the span at the start of the consuming job. When the state does not name the
-    issuing job, the span is a child of the `invoke_agent` span of the consuming job.
+    issuing job, the span is a child of the `invoke_agent` span of the consuming job. The agent answers the
+    calls of runtime tools and the calls it rejects itself, inside the consuming job. Their spans are children
+    of that job's `invoke_agent` span: a runtime tool covers its measured execution, and a rejected call is a
+    span without duration with status Error and `error.type=tool_call_rejected`. The attribute
+    `camunda.agent.tool.result_source` tells the three apart.
 
 * **D4 — The session is the agent instance, and only Sub-process agents with an agent instance are
   traced.** Every span carries the agent instance key, prefixed with an operator-configured cluster id when
@@ -139,12 +145,12 @@ The decision comprises:
   that point. A job that completes without either, such as a partial-results job, exports nothing. A failed
   activation ends its `invoke_agent` span with its outcome and error type, and exports the anchor when it
   started the run, and its model calls and token usage remain visible. This includes a job that fails before
-  its turn starts (for example at the model call limit), which reports no turn start. A superseded activation
+  its first turn starts (for example at the model call limit), which reports no turn start. A superseded activation
   is not a failure of the agent. The fenced write rejects a superseded duplicate before it reports a turn
   start, so a duplicate that fails there exports nothing, not even an anchor, and the activation that took
   over is the only one that exports the spans. The anchor of a run is exported when the run-starting job
-  reports its turn start or tool discovery dispatch, or fails. A job that is
-  superseded after its turn started, or whose completion the engine ignores, ends its spans with outcome
+  reports its first turn start or tool discovery dispatch, or fails. A job that is
+  superseded after its first turn started, or whose completion the engine ignores, ends its spans with outcome
   `superseded` and `error.type=job_superseded` and leaves the status unset, so its wasted spend stays
   visible. `chat` spans are exported when their model call ends, so the token usage of a call counts even
   when the turn it belongs to is rejected afterwards. `execute_tool` spans are emitted only by the job that
@@ -176,14 +182,15 @@ The decision comprises:
   policy is resolved once per job, so a later per-agent override needs no change at the emit sites. A
   redaction hook and a size cap belong in the production milestone.
 
-* **D8 — Provider SDK built-in tracing is disabled when agent tracing is enabled.** The Anthropic SDK
-  emits its own GenAI client spans, with token usage and optional content, and propagates trace context to
-  the provider, whenever a global OpenTelemetry instance is registered, which a Java agent does and
-  Spring's OpenTelemetry module does not. With agent tracing on, those spans would duplicate the generation
-  data and token counts of the `chat` spans in the backends and add trace headers to provider requests, so
-  the connector builds its Anthropic client with SDK tracing off, and only then. With agent tracing off, the
-  SDK keeps its default behavior. The other provider clients carry no OpenTelemetry instrumentation.
-  Provider HTTP child spans are a production-milestone decision.
+* **D8 — Provider SDK built-in tracing is disabled.** The Anthropic SDK emits its own GenAI client spans,
+  with token usage and optional content, and propagates trace context to the provider, whenever a global
+  OpenTelemetry instance is registered, which a Java agent does and Spring's OpenTelemetry module does not.
+  Those spans would duplicate the generation data and token counts of the `chat` spans in the backends and
+  add trace headers to provider requests, so the connector always builds its Anthropic client with SDK
+  tracing off. Whether agent tracing is active depends on the runtime (the tracing property, an
+  `OpenTelemetry` bean and the flavor of the agent), and the client must not decide it from the property
+  alone. The other provider clients carry no OpenTelemetry instrumentation. Provider HTTP child spans are a
+  production-milestone decision.
 
 * **D9 — The attribute vocabulary is pinned in one place, and attribute names track upstream.** The
   GenAI conventions are in Development status. One mapping class pinned to a commit of the upstream
@@ -213,9 +220,9 @@ discovery is on.
 | Job | Trigger | Persists the context | Spans exported | Run state after |
 |---|---|---|---|---|
 | 1, Mon 09:00:00 | Activation, tool discovery dispatched | Yes | Anchor (marker without duration), `invoke_agent` (discovery) | Open, new trace T1, issuer job 1 |
-| 2, Mon 09:00:01 | Discovery results, first turn | Yes | `invoke_agent`, `chat` round 1 (4 s, tokens, finish reason tool call) | Open, issuer job 2, issued 09:00:06 |
+| 2, Mon 09:00:01 | Discovery results, first turn | Yes | `invoke_agent`, `chat` (4 s, tokens, finish reason tool call) | Open, issuer job 2, issued 09:00:06 |
 | 3, Mon 09:00:08 | Tool A completes | No (deferred) | None | Unchanged |
-| 4, Wed 09:00 | Tool B completes after two days | Yes | `invoke_agent`, `chat` round 1 (final answer), `execute_tool` A (Mon 09:00:06 to 09:00:08), `execute_tool` B (Mon 09:00:06 to Wed 09:00), both below job 2's `invoke_agent` | Closed |
+| 4, Wed 09:00 | Tool B completes after two days | Yes | `invoke_agent`, `chat` (final answer), `execute_tool` A (Mon 09:00:06 to 09:00:08), `execute_tool` B (Mon 09:00:06 to Wed 09:00), both below job 2's `invoke_agent` | Closed |
 | 5, Wed 09:30 | Event message | Yes | New anchor, `invoke_agent`, `chat` | Open, new trace T2, same session |
 
 ```text
@@ -223,19 +230,19 @@ Session prod-eu:2251799813685260
 Trace T1  "travel_helper run" (run-start marker, no duration)
 ├─ invoke_agent travel_helper  job 1 (tool discovery)
 ├─ invoke_agent travel_helper  job 2
-│  ├─ chat  round 1  (tokens, finish=tool call)
+│  ├─ chat  (tokens, finish=tool call)
 │  ├─ execute_tool  Search flights   (Mon 09:00:06 → 09:00:08)
 │  └─ execute_tool  Manager approval (Mon 09:00:06 → Wed 09:00)
 └─ invoke_agent travel_helper  job 4 (Wed)
-   └─ chat  round 1  (finish=stop, final answer)
+   └─ chat  (finish=stop, final answer)
 Trace T2  "travel_helper run"  (same session, no link)
 └─ invoke_agent travel_helper  job 5 → chat
 ```
 
-`chat` spans are exported when each model round ends. The `execute_tool` spans are exported by job 4, the job
+`chat` spans are exported when each turn ends. The `execute_tool` spans are exported by job 4, the job
 that consumes the results, but they hang below job 2, which issued the calls, and start after it started.
 `invoke_agent` is exported when the job ends: after the engine accepted the job completion, or when the job fails or its completion is
-rejected. The anchor is exported when the run-starting job reports its turn start or tool discovery dispatch. If job 4's first attempt fails after its model call, it exports `invoke_agent` (failed) and the
+rejected. The anchor is exported when the run-starting job reports its first turn start or tool discovery dispatch. If job 4's first attempt fails after its model call, it exports `invoke_agent` (failed) and the
 `chat` span with its tokens and persists nothing; the retry exports a second `invoke_agent` and `chat` and
 the two `execute_tool` spans once. If job 1's first attempt fails, it exports its own failed trace in the
 same session, and the retry starts the run's trace. A duplicate activation of job 4 that is superseded
@@ -277,10 +284,10 @@ process.
 
 | Area | Conventions | AI Agent | Reason |
 |---|---|---|---|
-| Root of a run | One `invoke_agent` span covers an agent invocation, and no wrapper root span is defined | A synthetic anchor `<element id> run`, a zero-duration marker at the start of the run, without `gen_ai.operation.name` and without an output; the final answer is on the last `invoke_agent` span and on the `chat` span of the last round | A module that depends only on the OpenTelemetry API cannot export a span under an id it handed out earlier and cannot extend a span it exported, so the root cannot cover the run: it marks the start. The final answer is not known to it. A GenAI operation on it would distort the durations of `invoke_agent` |
+| Root of a run | One `invoke_agent` span covers an agent invocation, and no wrapper root span is defined | A synthetic anchor `<element id> run`, a zero-duration marker at the start of the run, without `gen_ai.operation.name` and without an output; the final answer is on the last `invoke_agent` span and on the `chat` span of the last turn | A module that depends only on the OpenTelemetry API cannot export a span under an id it handed out earlier and cannot extend a span it exported, so the root cannot cover the run: it marks the start. The final answer is not known to it. A GenAI operation on it would distort the durations of `invoke_agent` |
 | Agent invocations | One `invoke_agent` span per invocation | One `invoke_agent` span per job, so a run has several | A run is spread over several stateless jobs, and each span covers one job's real duration |
-| Tool span timing | The span covers the real execution, and its attributes are set at creation | The span is created by the job that consumes the result, with its name and attributes, as a child of the `invoke_agent` span of the job that issued the call, with an explicit start that the issuing job recorded when it persisted its turn; the end is the engine's completion time | The connector sees neither the start nor the end of a tool, because the engine runs it. The start is early by the time it takes to store the conversation and complete the job, and the span outlives its parent |
-| Tool failures | A failed operation has error status and `error.type` | Not distinguishable: a tool result shows `completed`, or `cancelled` when interrupted, and a tool incident has no span | A tool result carries no structured error signal today (see Follow-up) |
+| Tool span timing | The span covers the real execution, and its attributes are set at creation | The span is created by the job that consumes the result, with its name and attributes, as a child of the `invoke_agent` span of the job that issued the call, with an explicit start that the issuing job recorded when it persisted its agent response; the end is the engine's completion time. Runtime tools and rejected calls run inside the job that answers them and cover their measured execution | The connector sees neither the start nor the end of a tool, because the engine runs it. The start is early by the time it takes to store the conversation and complete the job, and the span outlives its parent |
+| Tool failures | A failed operation has error status and `error.type` | Not distinguishable: a tool result shows `completed`, or `cancelled` when interrupted, and a tool incident has no span. Only a call that the agent rejects has error status and `error.type=tool_call_rejected` | A tool result carries no structured error signal today (see Follow-up) |
 | Agent name | `gen_ai.agent.name` is the name of the agent, and a stable agent id is recommended only for hosted agents | `gen_ai.agent.name` is the BPMN element id, and there is no `gen_ai.agent.id` | The element id is the stable name in the process model. Agent instance keys are transient, so they are no agent id |
 | Conversation id | Set from an identifier that is readily available | The agent instance key, prefixed with the operator-set cluster id when one is configured | Conforms: the engine assigns the key, and it links to Operate. The prefix keeps clusters apart in one backend project |
 | Content | Opt-in | Opt-in through one switch for all content | Conforms, with a coarser granularity than per attribute; redaction is a production-milestone item |
@@ -404,11 +411,11 @@ and any SDK configuration, spans visible while a run is in progress, and simplic
   * *Derive it from the id of the assistant message that issued the call (chosen against).* The message id
     carries the creation time, so no state would be needed. It couples tracing to an id format that is an
     implementation detail of the message model, and it cannot express tools that start later than their
-    message, such as the tools the connector runtime will answer itself.
+    message, such as the runtime tools of a message that also calls process tools.
   * *Start at the consuming job.* It needs no state, but the span then starts days after the tool was
     dispatched and its duration is wrong.
   * *Record the dispatch time in the consumer state (chosen).* The issuing job stores the time when it
-    persists its turn. It costs one optional field.
+    persists its agent response. It costs one optional field.
 * **Parent of a tool span.**
   * *The `invoke_agent` span of the consuming job.* It needs no state, but the tool then starts before its
     parent and the tree suggests the wrong job ran it.
