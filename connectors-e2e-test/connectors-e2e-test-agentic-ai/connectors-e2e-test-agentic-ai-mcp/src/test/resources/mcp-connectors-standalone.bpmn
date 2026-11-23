@@ -253,7 +253,6 @@
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/templates/list" target="data.connectorMode.operation.type" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
-          <zeebe:input source="=[&#34;resource-b-{number}&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -317,7 +316,6 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/templates/list" target="data.connectorMode.operation.type" />
-          <zeebe:input source="=[&#34;resource-c-{number}&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
