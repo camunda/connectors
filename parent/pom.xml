@@ -1425,6 +1425,7 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-49844
             <version>1.10.0</version>
             <configuration>
               <flattenMode>ossrh</flattenMode>
+              <outputDirectory>${project.basedir}</outputDirectory>
               <updatePomFile>true</updatePomFile>
               <pomElements>
                 <properties>keep</properties>
