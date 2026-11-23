@@ -224,9 +224,10 @@ below make this style specific.
   not change its arguments. A private method can add items to a local accumulator. Example: do not
   write `void addToolCalls(List<ToolCall> target, ...)` that adds items to the list from the caller.
   Write `List<ToolCall> toolCalls(...)` that returns a new list.
-- **Sealed and exhaustive.** Make a closed hierarchy `sealed`. Match it with a pattern `switch` that has
-  no `default` branch. Then a new subtype causes a compile error at each location that does not handle
-  it. Do not write a chain of `instanceof` checks. Example: `AgentInitializationResult` and its
+- **Sealed and exhaustive.** Make a closed hierarchy `sealed`. When the handling differs per subtype,
+  match it with a pattern `switch` without `default`, so a new subtype causes a compile error where it
+  is not handled. When only one subtype needs special handling, use `instanceof` or a `switch` with
+  `default`. Example: `AgentInitializationResult` and its
   `switch` in `BaseAgentRequestHandler.handleRequest`. (P3)
 - **A new sealed subtype is one that most `switch` sites handle.** Before you add a subtype to a sealed type that
   many locations match, count the arms that can only throw. When most of them throw, carry the value
