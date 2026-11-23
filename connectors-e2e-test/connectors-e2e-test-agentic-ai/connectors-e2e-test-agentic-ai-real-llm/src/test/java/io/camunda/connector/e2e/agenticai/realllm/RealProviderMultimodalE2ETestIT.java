@@ -21,6 +21,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -134,6 +135,9 @@ class RealProviderMultimodalE2ETestIT extends RealProviderApiSmokeSupport {
                 List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH)));
 
     assertResponseTextContains(instance, "Zypherion");
+    // the tools of the process return the same document, so the model must not have used them
+    assertThat(instance)
+        .hasNotActivatedElements("Analyze_Single_Document", "Search_Documents", "Fetch_Report");
   }
 
   // ---------------------------------------------------------------------------
