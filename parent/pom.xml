@@ -1528,6 +1528,7 @@ See: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv
             <version>1.10.0</version>
             <configuration>
               <flattenMode>ossrh</flattenMode>
+              <outputDirectory>${project.basedir}</outputDirectory>
               <updatePomFile>true</updatePomFile>
               <pomElements>
                 <properties>keep</properties>
