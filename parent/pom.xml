@@ -1506,6 +1506,21 @@ See: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv
               <groupId>org.sonatype.central</groupId>
               <artifactId>central-publishing-maven-plugin</artifactId>
               <extensions>true</extensions>
+              <executions>
+                <!-- camunda-release-parent sets autoPublish=false on this execution, which left every release
+                     staged until someone clicked "Publish" on the Central Portal. Publish automatically and wait
+                     until the artifacts are public, so a failed publication fails the release workflow instead of
+                     going unnoticed. This must override the execution, not the plugin: execution configuration
+                     wins. RC deploys are unaffected: they skip Central altogether (-Dskip.central.release=true). -->
+                <execution>
+                  <id>central-deploy</id>
+                  <configuration>
+                    <autoPublish>true</autoPublish>
+                    <waitUntil>PUBLISHED</waitUntil>
+                    <waitMaxTime>3600</waitMaxTime>
+                  </configuration>
+                </execution>
+              </executions>
               <configuration>
                 <excludeArtifacts>connector-runtime-bundle-saas,connector-runtime-bundle,connector-runtime-application,element-template-validator</excludeArtifacts>
               </configuration>
