@@ -59,6 +59,8 @@ import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -92,6 +94,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private static final String REDACTION_UNAVAILABLE_MESSAGE =
       "Message withheld: could not verify it does not contain a secret value";
+
+  private static final Map<String, Object> WITHHELD_DATA =
+      Map.of("withheld", "Data withheld: could not verify it does not contain a secret value");
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -625,17 +630,27 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   // an unmaskable health can't be verified as a repeat either, so it must never be deduped away
   private static boolean isWithheld(Health health) {
-    return health.getError() != null
-        && REDACTION_UNAVAILABLE_MESSAGE.equals(health.getError().message());
+    return (health.getError() != null
+            && REDACTION_UNAVAILABLE_MESSAGE.equals(health.getError().message()))
+        || WITHHELD_DATA.equals(health.getDetails());
   }
 
   private @Nullable Health redactHealth(@Nullable Health health) {
-    if (health == null || health.getError() == null) {
-      return health;
+    if (health == null) {
+      return null;
     }
+    var redacted = health;
     var error = health.getError();
-    return health.withError(
-        new Health.Error(redactMessage(error.code()), redactMessage(error.message())));
+    if (error != null) {
+      redacted =
+          redacted.withError(
+              new Health.Error(redactMessage(error.code()), redactMessage(error.message())));
+    }
+    var details = health.getDetails();
+    if (details != null && !details.isEmpty()) {
+      redacted = redacted.withDetails(redactData(details));
+    }
+    return redacted;
   }
 
   private Activity redact(Activity activity) {
@@ -644,8 +659,56 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         activity.tag(),
         activity.timestamp(),
         redactMessage(activity.message()),
-        activity.data(),
+        redactData(activity.data()),
         redactHealth(activity.healthChange()));
+  }
+
+  // structured health details and activity data, masked the same way as messages
+  private @Nullable Map<String, Object> redactData(@Nullable Map<String, Object> data) {
+    if (data == null || data.isEmpty()) {
+      return data;
+    }
+    var secrets = secretValuesForRedaction();
+    if (secrets == null) {
+      return WITHHELD_DATA;
+    }
+    if (secrets.isEmpty()) {
+      return data;
+    }
+    var redacted = new LinkedHashMap<String, Object>();
+    data.forEach((key, value) ->
+        redacted.put(SecretUtil.hideSecretsFromMessage(key, secrets), redactValue(value, secrets)));
+    return redacted;
+  }
+
+  private static @Nullable Object redactValue(@Nullable Object value, List<String> secrets) {
+    if (value == null
+        || value instanceof Number
+        || value instanceof Boolean
+        || value instanceof Enum<?>) {
+      return value;
+    }
+    if (value instanceof String text) {
+      return SecretUtil.hideSecretsFromMessage(text, secrets);
+    }
+    if (value instanceof Map<?, ?> map) {
+      var redacted = new LinkedHashMap<Object, Object>();
+      map.forEach(
+          (key, nested) -> redacted.put(redactValue(key, secrets), redactValue(nested, secrets)));
+      return redacted;
+    }
+    if (value instanceof Collection<?> collection) {
+      var redacted = new ArrayList<Object>(collection.size());
+      collection.forEach(nested -> redacted.add(redactValue(nested, secrets)));
+      return redacted;
+    }
+    if (value instanceof Object[] array) {
+      return redactValue(Arrays.asList(array), secrets);
+    }
+    // any other object is kept as it is, unless its string form carries a secret
+    var text = String.valueOf(value);
+    var masked = SecretUtil.hideSecretsFromMessage(text, secrets);
+    return masked.equals(text) ? value : masked;
   }
 
   @Override

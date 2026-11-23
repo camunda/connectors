@@ -880,6 +880,143 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void reportHealth_masksASecretInTheDetails() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when the reported health carries the resolved value in its details, also nested
+    context.reportHealth(
+        Health.up(
+            Map.of(
+                "detail",
+                "token was bar",
+                "nested",
+                Map.of("values", List.of("bar", 42)),
+                "port",
+                8080)));
+
+    // then it is masked in the stored health, in the health change and in the log message
+    var details = context.getHealth().getDetails();
+    assertThat(details)
+        .containsEntry("detail", "token was ***")
+        .containsEntry("nested", Map.of("values", List.of("***", 42)))
+        .containsEntry("port", 8080);
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> {
+          assertThat(log.message()).doesNotContain("bar");
+          assertThat(log.healthChange().getDetails()).isEqualTo(details);
+        });
+  }
+
+  @Test
+  void reportHealth_withholdsDetailsWhenSecretValuesCannotBeFetched() {
+    // given a provider that fails to resolve the declared secret
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var failingProvider = mock(SecretProvider.class);
+    when(failingProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var context =
+        new InboundConnectorContextImpl(
+            failingProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when an UP health is reported twice with details that may hold the value
+    context.reportHealth(Health.up("detail", "token was bar"));
+    context.reportHealth(Health.up("detail", "token was bar"));
+
+    // then the details are withheld, and an unverifiable health is never deduped
+    assertThat(context.getHealth().getDetails().toString())
+        .doesNotContain("bar")
+        .contains("withheld");
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs).hasSize(2).allSatisfy(log -> assertThat(log.message()).doesNotContain("bar"));
+  }
+
+  @Test
+  void log_masksASecretInTheActivityData() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when an activity's data carries the resolved value, as a value and as a key
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withMessage("received")
+            .withData(Map.of("header", "Bearer bar", "bar", true, "count", 3)));
+
+    // then the logged data has the value masked and keeps everything else as it was
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log ->
+            assertThat(log.data())
+                .containsOnly(
+                    Map.entry("header", "Bearer ***"),
+                    Map.entry("***", true),
+                    Map.entry("count", 3)));
+  }
+
+  @Test
+  void log_withholdsActivityDataWhenSecretValuesCannotBeFetched() {
+    // given a provider that fails to resolve the declared secret
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var failingProvider = mock(SecretProvider.class);
+    when(failingProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var context =
+        new InboundConnectorContextImpl(
+            failingProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    context.log(activity -> activity.withSeverity(Severity.INFO).withData("header", "Bearer bar"));
+
+    // then the raw data is withheld rather than published unmasked
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> {
+          assertThat(log.data().toString()).doesNotContain("bar").contains("withheld");
+        });
+  }
+
+  @Test
   void log_masksASecretThatRotatedAfterItWasBound() {
     // given a provider that resolves FOO to one value at bind time and a different one on re-read
     var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
