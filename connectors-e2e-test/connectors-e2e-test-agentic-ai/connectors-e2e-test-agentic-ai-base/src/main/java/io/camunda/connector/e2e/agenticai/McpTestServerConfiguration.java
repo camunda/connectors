@@ -156,15 +156,21 @@ public class McpTestServerConfiguration {
     }
 
     /**
-     * Input mappings of a remote MCP client task for the given transport. The remote client
-     * connector has no stdio transport, so {@code STDIO} uses the HTTP server.
+     * Input mappings of a remote MCP client task for the given transport.
+     *
+     * @throws IllegalArgumentException for {@code STDIO}, which the remote client connector does
+     *     not support
      */
     public Map<String, String> remoteClientInputMappings(McpTestServerTransport transport) {
+      final var baseUrl =
+          switch (transport) {
+            case HTTP -> httpBaseUrl;
+            case SSE -> sseBaseUrl;
+            case STDIO ->
+                throw new IllegalArgumentException("The remote MCP client has no stdio transport");
+          };
       final var inputMappings = new LinkedHashMap<String, String>();
-      switch (transport) {
-        case HTTP, STDIO -> HTTP.applyRemoteConnectorInputMappings(inputMappings, httpBaseUrl);
-        case SSE -> SSE.applyRemoteConnectorInputMappings(inputMappings, sseBaseUrl);
-      }
+      transport.applyRemoteConnectorInputMappings(inputMappings, baseUrl);
       return inputMappings;
     }
 

@@ -45,6 +45,7 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
@@ -175,27 +176,45 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
 
   @Autowired private McpTestServers mcpTestServers;
 
-  static Stream<Arguments> allFixtureRows() {
-    return rows(Fixture.values());
+  static Stream<Arguments> localAllFixtureRows() {
+    return localRows(Fixture.values());
   }
 
-  static Stream<Arguments> v2AndV3FixtureRows() {
-    return rows(Fixture.V2, Fixture.V3);
+  static Stream<Arguments> localV2AndV3FixtureRows() {
+    return localRows(Fixture.V2, Fixture.V3);
   }
 
-  private static Stream<Arguments> rows(Fixture... fixtures) {
+  static Stream<Arguments> remoteAllFixtureRows() {
+    return remoteRows(Fixture.values());
+  }
+
+  static Stream<Arguments> remoteV2AndV3FixtureRows() {
+    return remoteRows(Fixture.V2, Fixture.V3);
+  }
+
+  private static Stream<Arguments> localRows(Fixture... fixtures) {
+    return rows(
+        List.of(
+            McpTestServerTransport.HTTP, McpTestServerTransport.SSE, McpTestServerTransport.STDIO),
+        fixtures);
+  }
+
+  private static Stream<Arguments> remoteRows(Fixture... fixtures) {
+    return rows(List.of(McpTestServerTransport.HTTP, McpTestServerTransport.SSE), fixtures);
+  }
+
+  private static Stream<Arguments> rows(
+      List<McpTestServerTransport> transports, Fixture... fixtures) {
     return Arrays.stream(fixtures)
-        .flatMap(fixture ->
-            Arrays.stream(McpTestServerTransport.values())
-                .map(transport -> Arguments.of(fixture, transport)));
+        .flatMap(fixture -> transports.stream().map(transport -> Arguments.of(fixture, transport)));
   }
 
   @ParameterizedTest(name = "{0} {1}")
-  @MethodSource("allFixtureRows")
-  void toolsListAndCall(Fixture fixture, McpTestServerTransport transport) throws IOException {
-    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
+  @MethodSource("localAllFixtureRows")
+  void localToolsListAndCall(Fixture fixture, McpTestServerTransport transport) throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.LOCAL);
 
-    CamundaAssert.assertThat(executeProcess(bpmnModel, "tools"))
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "tools", ClientKind.LOCAL))
         .hasVariableSatisfies(
             "clientListToolsResult",
             McpClientListToolsResult.class,
@@ -209,7 +228,16 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                 assertThat(result)
                     .isEqualTo(
                         new McpClientCallToolResult(
-                            "echoMeta", List.of(textContent(fixture.echoedMeta())), false)))
+                            "echoMeta", List.of(textContent(fixture.echoedMeta())), false)));
+  }
+
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("remoteAllFixtureRows")
+  void remoteToolsListAndCall(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.REMOTE);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "tools", ClientKind.REMOTE))
         .hasVariableSatisfies(
             "remoteClientListToolsResult",
             McpClientListToolsResult.class,
@@ -226,11 +254,12 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   }
 
   @ParameterizedTest(name = "{0} {1}")
-  @MethodSource("v2AndV3FixtureRows")
-  void resourcesListAndRead(Fixture fixture, McpTestServerTransport transport) throws IOException {
-    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
+  @MethodSource("localV2AndV3FixtureRows")
+  void localResourcesListAndRead(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.LOCAL);
 
-    CamundaAssert.assertThat(executeProcess(bpmnModel, "resources"))
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "resources", ClientKind.LOCAL))
         .hasVariableSatisfies(
             "clientCallListResourcesResult",
             McpClientListResourcesResult.class,
@@ -248,7 +277,16 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                                 new TextResourceData(
                                     "echo-meta://client",
                                     "application/json",
-                                    fixture.echoedMeta())))))
+                                    fixture.echoedMeta())))));
+  }
+
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("remoteV2AndV3FixtureRows")
+  void remoteResourcesListAndRead(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.REMOTE);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "resources", ClientKind.REMOTE))
         .hasVariableSatisfies(
             "remoteClientListResourcesResult",
             McpClientListResourcesResult.class,
@@ -268,12 +306,12 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   }
 
   @ParameterizedTest(name = "{0} {1}")
-  @MethodSource("v2AndV3FixtureRows")
-  void resourceTemplatesListAndRead(Fixture fixture, McpTestServerTransport transport)
+  @MethodSource("localV2AndV3FixtureRows")
+  void localResourceTemplatesListAndRead(Fixture fixture, McpTestServerTransport transport)
       throws IOException {
-    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.LOCAL);
 
-    CamundaAssert.assertThat(executeProcess(bpmnModel, "resourceTemplates"))
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "resourceTemplates", ClientKind.LOCAL))
         .hasVariableSatisfies(
             "clientCallListResourceTemplatesResult",
             McpClientListResourceTemplatesResult.class,
@@ -293,7 +331,16 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                                 new TextResourceData(
                                     "echo-meta://client-template",
                                     "application/json",
-                                    fixture.echoedMeta())))))
+                                    fixture.echoedMeta())))));
+  }
+
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("remoteV2AndV3FixtureRows")
+  void remoteResourceTemplatesListAndRead(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.REMOTE);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "resourceTemplates", ClientKind.REMOTE))
         .hasVariableSatisfies(
             "remoteClientListResourceTemplatesResult",
             McpClientListResourceTemplatesResult.class,
@@ -317,11 +364,12 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   }
 
   @ParameterizedTest(name = "{0} {1}")
-  @MethodSource("v2AndV3FixtureRows")
-  void promptsListAndGet(Fixture fixture, McpTestServerTransport transport) throws IOException {
-    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport);
+  @MethodSource("localV2AndV3FixtureRows")
+  void localPromptsListAndGet(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.LOCAL);
 
-    CamundaAssert.assertThat(executeProcess(bpmnModel, "prompts"))
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "prompts", ClientKind.LOCAL))
         .hasVariableSatisfies(
             "clientCallListPromptsResult",
             McpClientListPromptsResult.class,
@@ -337,7 +385,17 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                         new McpClientGetPromptResult(
                             "Echo Meta Prompt",
                             List.of(
-                                new PromptMessage("user", new TextMessage(fixture.echoedMeta()))))))
+                                new PromptMessage(
+                                    "user", new TextMessage(fixture.echoedMeta()))))));
+  }
+
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("remoteV2AndV3FixtureRows")
+  void remotePromptsListAndGet(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.REMOTE);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "prompts", ClientKind.REMOTE))
         .hasVariableSatisfies(
             "remoteClientListPromptsResult",
             McpClientListPromptsResult.class,
@@ -364,29 +422,58 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                                         """))))));
   }
 
-  private ProcessInstanceEvent executeProcess(BpmnModelInstance bpmnModel, String path) {
-    return awaitProcessCompletion(
-            createProcessInstance(bpmnModel, Map.of("path", path)), STDIO_START_TIMEOUT)
-        .getProcessInstanceEvent();
+  private ProcessInstanceEvent executeProcess(
+      BpmnModelInstance bpmnModel, String path, ClientKind clientKind) {
+    final var processInstanceEvent =
+        awaitProcessCompletion(
+                createProcessInstance(bpmnModel, clientKind.startVariables(path)),
+                STDIO_START_TIMEOUT)
+            .getProcessInstanceEvent();
+
+    final var skippedTaskIds =
+        serviceTasksByType(bpmnModel, type -> type.startsWith(clientKind.other().taskTypePrefix))
+            .stream()
+            .map(ServiceTask::getId)
+            .toArray(String[]::new);
+    CamundaAssert.assertThat(processInstanceEvent).hasNotActivatedElements(skippedTaskIds);
+
+    return processInstanceEvent;
   }
 
-  private BpmnModelInstance bootstrapTestProcess(Fixture fixture, McpTestServerTransport transport)
-      throws IOException {
+  private BpmnModelInstance bootstrapTestProcess(
+      Fixture fixture, McpTestServerTransport transport, ClientKind clientKind) throws IOException {
     BpmnModelInstance bpmnModel =
         Bpmn.readModelFromStream(new ClassPathResource(fixture.resource).getInputStream());
 
-    serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpclient"))
-        .forEach(serviceTask ->
-            updateInputMappings(
-                bpmnModel,
-                serviceTask,
-                Map.of("data.client.clientId", McpTestServers.clientId(transport))));
-    serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpremoteclient"))
-        .forEach(serviceTask ->
-            updateInputMappings(
-                bpmnModel, serviceTask, mcpTestServers.remoteClientInputMappings(transport)));
+    final var inputMappings =
+        switch (clientKind) {
+          case LOCAL -> Map.of("data.client.clientId", McpTestServers.clientId(transport));
+          case REMOTE -> mcpTestServers.remoteClientInputMappings(transport);
+        };
+    serviceTasksByType(bpmnModel, type -> type.startsWith(clientKind.taskTypePrefix))
+        .forEach(serviceTask -> updateInputMappings(bpmnModel, serviceTask, inputMappings));
 
     return bpmnModel;
+  }
+
+  /** The client chain that a process instance runs. The other chain MUST stay untouched. */
+  enum ClientKind {
+    LOCAL("io.camunda.agenticai:mcpclient"),
+    REMOTE("io.camunda.agenticai:mcpremoteclient");
+
+    private final String taskTypePrefix;
+
+    ClientKind(String taskTypePrefix) {
+      this.taskTypePrefix = taskTypePrefix;
+    }
+
+    ClientKind other() {
+      return this == LOCAL ? REMOTE : LOCAL;
+    }
+
+    Map<String, Object> startVariables(String path) {
+      return Map.of("path", path, "runLocal", this == LOCAL, "runRemote", this == REMOTE);
+    }
   }
 
   /**
