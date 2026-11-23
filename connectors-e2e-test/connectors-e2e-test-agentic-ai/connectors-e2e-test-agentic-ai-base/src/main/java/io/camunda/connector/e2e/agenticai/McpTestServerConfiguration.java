@@ -23,12 +23,17 @@ import static io.camunda.connector.e2e.agenticai.McpTestServerTransport.STDIO;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -50,6 +55,8 @@ import org.testcontainers.containers.GenericContainer;
 public class McpTestServerConfiguration {
 
   private static final int PORT = 12001;
+  private static final Duration DOCKER_COMMAND_TIMEOUT = Duration.ofSeconds(30);
+  private static final Duration DOCKER_PULL_TIMEOUT = Duration.ofMinutes(10);
 
   static {
     Runtime.getRuntime()
@@ -120,7 +127,7 @@ public class McpTestServerConfiguration {
     }
 
     if (docker("image", "inspect", IMAGE).exitCode() != 0) {
-      final var pull = docker("pull", IMAGE);
+      final var pull = docker(DOCKER_PULL_TIMEOUT, "pull", IMAGE);
       if (pull.exitCode() != 0) {
         throw new IllegalStateException(
             "Failed to pull %s with the docker CLI:%n%s".formatted(IMAGE, pull.output()));
@@ -129,17 +136,37 @@ public class McpTestServerConfiguration {
   }
 
   private static DockerResult docker(String... args) {
+    return docker(DOCKER_COMMAND_TIMEOUT, args);
+  }
+
+  private static DockerResult docker(Duration timeout, String... args) {
     final var command = new ArrayList<String>();
     command.add("docker");
     command.addAll(List.of(args));
+    Process process = null;
     try {
-      final var process = new ProcessBuilder(command).redirectErrorStream(true).start();
+      process = new ProcessBuilder(command).redirectErrorStream(true).start();
+      final var processOutput = process.getInputStream();
       final var output =
-          new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-      return new DockerResult(process.waitFor(), output);
-    } catch (IOException e) {
+          CompletableFuture.supplyAsync(() -> {
+            try {
+              return new String(processOutput.readAllBytes(), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+              return e.toString();
+            }
+          });
+      if (!process.waitFor(timeout.toSeconds(), TimeUnit.SECONDS)) {
+        process.destroyForcibly();
+        return new DockerResult(-1, "'%s' timed out after %s".formatted(command, timeout));
+      }
+      return new DockerResult(
+          process.exitValue(), output.get(timeout.toSeconds(), TimeUnit.SECONDS));
+    } catch (IOException | ExecutionException | TimeoutException e) {
       return new DockerResult(-1, e.toString());
     } catch (InterruptedException e) {
+      if (process != null) {
+        process.destroyForcibly();
+      }
       Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
