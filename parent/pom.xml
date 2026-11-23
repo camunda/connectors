@@ -1525,9 +1525,10 @@ See: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>flatten-maven-plugin</artifactId>
-            <version>1.9.0</version>
+            <version>1.10.0</version>
             <configuration>
               <flattenMode>ossrh</flattenMode>
+              <outputDirectory>${project.basedir}</outputDirectory>
               <updatePomFile>true</updatePomFile>
               <pomElements>
                 <properties>keep</properties>
