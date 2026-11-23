@@ -148,6 +148,9 @@ that caused it.
      the value they have. Keep the old default in the template versions whose users expect it, and
      state the change in the PR. Example: v1 keeps the old default system prompt through a
      per-template override. (#9036)
+   - A new template version may change a default for newly placed elements. Its migration recipe
+     keeps the old value when users update an element, an absent value keeps the old behavior at
+     runtime, and the PR states the change.
    - Do not deprecate a template version that users must update from. Web Modeler shows no Update
      action for a deprecated template. (#8896)
    - Read the state that an earlier connector version stored. Example: messages without an ID load,
