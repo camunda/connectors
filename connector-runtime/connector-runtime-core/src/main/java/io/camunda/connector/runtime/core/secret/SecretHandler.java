@@ -49,6 +49,8 @@ public class SecretHandler {
             resolvedValues.add(value);
             // the serialized job JSON carries this form, not the raw value, when it differs
             resolvedValues.add(SecretUtil.jsonEscape(value));
+            // a JSON pointer naming a property that holds the value escapes '~' and '/'
+            resolvedValues.add(value.replace("~", "~0").replace("/", "~1"));
             return value;
           }
           LOG.debug(

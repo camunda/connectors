@@ -74,6 +74,7 @@ import io.camunda.connector.api.outbound.JobCompletionListener;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
@@ -110,6 +111,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -1018,6 +1020,93 @@ class SpringConnectorJobHandlerTest {
 
         // then
         assertThat(result.variables()).isEqualTo(Map.of(name, 1));
+      }
+
+      /**
+       * The ad-hoc sub-process path, where the guard is the first reader: a decimal longer than
+       * Jackson's default number length must still complete, as Zeebe accepts it.
+       */
+      @Test
+      void shouldCompleteJob_whenAdHocSubProcessVariablesHoldADecimalLongerThanTheDefaultLength()
+          throws Exception {
+        // given
+        var decimal = new BigDecimal("0." + "1".repeat(StreamReadConstraints.DEFAULT_MAX_NUM_LEN));
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(
+                null, Map.of("ratio", decimal), List.of(), false, false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(jobHandler);
+
+        // then
+        assertThat(result.variables()).isEqualTo(Map.of("ratio", decimal));
+      }
+
+      private static final String SECRET_WITH_POINTER_CHARACTERS = "token/part~suffix";
+
+      private record SecretInput(String token) {}
+
+      /**
+       * A connector can use a resolved secret as a property name. The JSON pointer in the message
+       * escapes {@code /} as {@code ~1} and {@code ~} as {@code ~0}, so the secret must be masked
+       * in that form too.
+       */
+      private static Stream<Arguments> responsesWithSuchAnIntegerUnderASecretKey() {
+        return Stream.of(
+            Arguments.of(
+                "in the result variables",
+                (Function<String, Object>) secret -> Map.of("ids", Map.of(secret, TWO_TO_THE_63)),
+                "'/result/ids/***'"),
+            Arguments.of(
+                "in an activation's variables",
+                (Function<String, Object>)
+                    secret ->
+                        new TestAdHocSubProcessResponse(
+                            null,
+                            Map.of(),
+                            List.of(
+                                new TestAdHocSubProcessResponse.TestElementActivation(
+                                    "cancelOrder", Map.of(secret, TWO_TO_THE_63))),
+                            false,
+                            false),
+                "'/***'"));
+      }
+
+      @ParameterizedTest(name = "{0}")
+      @MethodSource("responsesWithSuchAnIntegerUnderASecretKey")
+      void shouldMaskTheSecret_whenSuchAnIntegerIsUnderAPropertyNamedByASecret(
+          String description, Function<String, Object> responseForSecret, String pointer)
+          throws Exception {
+        // given
+        var secretProvider =
+            new SecretProvider() {
+              @Override
+              public String getSecret(String name, SecretContext context) {
+                return SECRET_WITH_POINTER_CHARACTERS;
+              }
+            };
+        var jobHandler =
+            newConnectorJobHandler(
+                context ->
+                    responseForSecret.apply(context.bindVariables(SecretInput.class).token()),
+                new SecretProviderAggregator(List.of(secretProvider)));
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withVariables("{ \"token\" : \"{{secrets.TOKEN}}\" }")
+                .withRetries(3)
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler, false);
+
+        // then
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage())
+            .contains("outside the signed 64-bit range")
+            .contains(pointer)
+            .doesNotContain("token~1part~0suffix")
+            .doesNotContain(SECRET_WITH_POINTER_CHARACTERS);
       }
     }
   }
