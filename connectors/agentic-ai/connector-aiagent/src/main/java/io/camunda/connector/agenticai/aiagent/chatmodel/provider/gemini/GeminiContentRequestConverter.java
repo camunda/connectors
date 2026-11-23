@@ -61,6 +61,13 @@ public class GeminiContentRequestConverter {
   private static final String ROLE_USER = "user";
   private static final String ROLE_MODEL = "model";
 
+  /**
+   * Namespace under which conversations persisted by earlier connector versions (the v1 Google
+   * Vertex AI provider on LangChain4j) keep the thought signature of a tool call. Key and encoding
+   * equal those of {@link GeminiChatModelConfiguration#GOOGLE_GEMINI_ID}.
+   */
+  private static final String LEGACY_VERTEX_AI_NAMESPACE = "google-vertex-ai";
+
   private final GeminiContentConverter contentConverter;
 
   public GeminiContentRequestConverter(GeminiContentConverter contentConverter) {
@@ -261,9 +268,10 @@ public class GeminiContentRequestConverter {
    * replayed {@code functionCall} dropped it. {@code
    * GeminiContentResponseConverter#toolCallMetadata} captures that signature onto {@link
    * ToolCall#metadata()}, namespaced under {@link GeminiChatModelConfiguration#GOOGLE_GEMINI_ID};
-   * this reads it back from that same key. Absent for a Gemini 2.5 response (no signature to begin
-   * with) or a conversation persisted before this was captured -- the field is omitted rather than
-   * failing in that case.
+   * this reads it back from that same key, and falls back to {@link #LEGACY_VERTEX_AI_NAMESPACE}
+   * for a conversation persisted by an earlier connector version. Absent for a Gemini 2.5 response
+   * (no signature to begin with) or a conversation persisted before this was captured -- the field
+   * is omitted rather than failing in that case.
    */
   private Part toFunctionCallPart(ToolCall toolCall) {
     final Part part =
@@ -284,7 +292,10 @@ public class GeminiContentRequestConverter {
     if (toolCallMetadata == null) {
       return null;
     }
-    final Object namespaced = toolCallMetadata.get(GeminiChatModelConfiguration.GOOGLE_GEMINI_ID);
+    final Object namespaced =
+        toolCallMetadata.get(GeminiChatModelConfiguration.GOOGLE_GEMINI_ID) instanceof Map<?, ?> own
+            ? own
+            : toolCallMetadata.get(LEGACY_VERTEX_AI_NAMESPACE);
     if (!(namespaced instanceof Map<?, ?> namespacedMetadata)) {
       return null;
     }

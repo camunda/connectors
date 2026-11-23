@@ -427,6 +427,45 @@ class GeminiContentRequestConverterTest {
   }
 
   @Test
+  void restoresThoughtSignatureFromLegacyVertexAiNamespace() {
+    final var signatureBytes = "legacy-sig".getBytes(StandardCharsets.UTF_8);
+    final var metadata =
+        Map.<String, Object>of(
+            "google-vertex-ai",
+            Map.of(
+                GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
+                Base64.getEncoder().encodeToString(signatureBytes)));
+
+    final var contents = converter.toContents(snapshotWithToolCallMetadata(metadata));
+
+    assertThat(contents)
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(modelContentWithFunctionCall(signatureBytes)));
+  }
+
+  @Test
+  void prefersGoogleGeminiNamespaceOverLegacyVertexAiNamespace() {
+    final var geminiSignatureBytes = "gemini-sig".getBytes(StandardCharsets.UTF_8);
+    final var legacySignatureBytes = "legacy-sig".getBytes(StandardCharsets.UTF_8);
+    final var metadata =
+        Map.<String, Object>of(
+            GeminiChatModelConfiguration.GOOGLE_GEMINI_ID,
+            Map.of(
+                GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
+                Base64.getEncoder().encodeToString(geminiSignatureBytes)),
+            "google-vertex-ai",
+            Map.of(
+                GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
+                Base64.getEncoder().encodeToString(legacySignatureBytes)));
+
+    final var contents = converter.toContents(snapshotWithToolCallMetadata(metadata));
+
+    assertThat(contents)
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(modelContentWithFunctionCall(geminiSignatureBytes)));
+  }
+
+  @Test
   void omitsThoughtSignatureWhenOnlyAnUnrelatedNamespaceIsPresentOnToolCallMetadata() {
     final var metadata =
         Map.<String, Object>of(
