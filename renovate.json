@@ -203,6 +203,16 @@
       "allowedVersions": "!/^1\\.58\\.0$/"
     },
     {
+      "description": "hibernate-validator 9.2 pulls in hibernate-accessor, a multi-release jar whose pre-Java-24 classes need io.smallrye:smallrye-classfile, which it does not declare. The stable/8.8 bundle is built with maven-shade-plugin, which drops the Multi-Release manifest entry, so the JVM loads those classes and the runtime fails to start with NoClassDefFoundError: io/smallrye/classfile/ClassFileElement (INC-9269, camunda/connectors#10721). stable/8.9 and later use Spring Boot repackaging and are unaffected. Keep stable/8.8 on 9.1.x. Renovate reads this file from the default branch, so the rule has to live here.",
+      "matchBaseBranches": [
+        "stable/8.8"
+      ],
+      "matchPackageNames": [
+        "org.hibernate.validator:hibernate-validator"
+      ],
+      "allowedVersions": "<9.2.0"
+    },
+    {
       "description": "Disable minor/major updates for maven-surefire-plugin and maven-failsafe-plugin — 3.6.0 breaks the build in two ways. First, it removed the `hourly` RunOrder configured in parent/pom.xml, so every module fails at surefire:test before a single test runs. Second, once a supported runOrder is set, Byte Buddy can no longer self-attach its agent inside the forked JVM (\"Could not self-attach to current VM using external process\"), so System Stubs' EnvironmentVariableMocker and Mockito's inline MockMaker both fail to initialise — 390 errors in connector-runtime-core alone. Upgrading needs a real migration: a supported runOrder plus an explicit -javaagent (or surefire classloader settings) so the agent no longer relies on self-attach. Patch updates on the 3.5.x line are unaffected. maven-failsafe-plugin is listed because connectors-e2e-test-agentic-ai pins it to the same plugin.version.maven-surefire-plugin property, so leaving it unblocked would let Renovate bump the shared property through that dependency instead.",
       "matchUpdateTypes": [
         "major",
