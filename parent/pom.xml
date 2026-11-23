@@ -92,7 +92,9 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.23.0</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.23.0</version.jackson-datatype-jsr310>
-    <version.hibernate-validator>9.2.0.Final</version.hibernate-validator>
+    <!-- 9.2 pulls in hibernate-accessor, a multi-release jar whose pre-Java-24 classes need io.smallrye:smallrye-classfile.
+         The shaded 8.8 bundle is not multi-release, so the JVM loads those classes and the runtime fails to start (INC-9269). -->
+    <version.hibernate-validator>9.1.6.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <!-- CVE-2026-59171: org.json transitive override (connector-kafka -> kafka-json-schema-provider
          -> everit-json-schema). Remove once the Confluent schema-registry artifacts ship an
