@@ -1426,6 +1426,9 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-49844
             <configuration>
               <flattenMode>ossrh</flattenMode>
               <updatePomFile>true</updatePomFile>
+              <!-- flatten-maven-plugin 1.10.0 defaults this to target/; keep the pre-1.10.0 default so that
+                   project.getFile().getParent() stays the module directory (element template generation) -->
+              <outputDirectory>${project.basedir}</outputDirectory>
               <pomElements>
                 <properties>keep</properties>
                 <dependencyManagement>keep</dependencyManagement>
