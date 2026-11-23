@@ -115,3 +115,13 @@ jobs:
           provenance: false
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
+
+      # Boot the image we just pushed and fail if the runtime does not start. The test suites
+      # run the runtime in-process on Maven's per-jar classpath and never exercise the shaded
+      # bundle jar, so a startup crash in the shipped image (INC-9269: hibernate-validator 9.2.0
+      # needs Multi-Release, which the shaded jar lacks) merged with every check green.
+      # Reuses the image built above, so it adds well under a minute to this job.
+      - name: Start bundle-default image and wait for the runtime to come up
+        env:
+          IMAGE: registry.camunda.cloud/team-connectors/connectors-bundle:pr-${{ github.sha }}
+        run: ./.github/workflows/scripts/smoke-start-image.sh "${IMAGE}" 180
