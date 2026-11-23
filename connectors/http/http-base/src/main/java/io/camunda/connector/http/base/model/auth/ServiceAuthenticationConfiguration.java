@@ -12,7 +12,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Pattern;
 import java.util.Map;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
@@ -66,9 +65,7 @@ public record ServiceAuthenticationConfiguration(
     baseUrl =
         baseUrl == null || baseUrl.isBlank()
             ? null
-            : expand(baseUrl, parameters, ServiceAuthenticationConfiguration::urlPart)
-                .strip()
-                .replaceAll("/+$", "");
+            : expand(baseUrl, parameters, true).strip().replaceAll("/+$", "");
   }
 
   public ServiceAuthenticationConfiguration(Authentication authentication) {
@@ -90,13 +87,17 @@ public record ServiceAuthenticationConfiguration(
    * A value that goes into a URL is cleaned first, so that a host typed with a trailing slash or a
    * stray space does not leave a double slash or a space in the result. Values that must stay
    * exact, such as a username, are used as typed.
+   *
+   * <p>The trailing slashes are only removed when more text follows the placeholder, because that
+   * is where they would double up. A value that ends the template, such as a complete token
+   * endpoint, keeps its trailing slash.
    */
-  private static String urlPart(String value) {
-    return value.strip().replaceAll("/+$", "");
+  private static String urlPart(String value, boolean endsTemplate) {
+    var stripped = value.strip();
+    return endsTemplate ? stripped : stripped.replaceAll("/+$", "");
   }
 
-  private static String expand(
-      String value, Map<String, String> parameters, UnaryOperator<String> clean) {
+  private static String expand(String value, Map<String, String> parameters, boolean urlValues) {
     if (value == null) {
       return null;
     }
@@ -108,10 +109,15 @@ public record ServiceAuthenticationConfiguration(
         break;
       }
       var name = value.substring(start + 2, end);
-      var replacement = parameters.get(name) == null ? null : clean.apply(parameters.get(name));
+      var parameter = parameters.get(name);
+      var replacement =
+          parameter == null ? null : urlValues ? urlPart(parameter, false) : parameter;
       if (replacement == null || replacement.isEmpty()) {
         throw new IllegalArgumentException(
             "The credential refers to parameter '" + name + "', which has no value");
+      }
+      if (urlValues && end + 1 == value.length()) {
+        replacement = urlPart(parameter, true);
       }
       result.append(value, copied, start).append(replacement);
       copied = end + 1;
@@ -121,12 +127,11 @@ public record ServiceAuthenticationConfiguration(
 
   private static Authentication expand(Authentication authentication, Map<String, String> p) {
     if (authentication instanceof BasicAuthentication basic) {
-      return new BasicAuthentication(
-          expand(basic.username(), p, UnaryOperator.identity()), basic.password());
+      return new BasicAuthentication(expand(basic.username(), p, false), basic.password());
     }
     if (authentication instanceof OAuthAuthentication oauth) {
       return new OAuthAuthentication(
-          expand(oauth.oauthTokenEndpoint(), p, ServiceAuthenticationConfiguration::urlPart),
+          expand(oauth.oauthTokenEndpoint(), p, true),
           oauth.clientId(),
           oauth.clientSecret(),
           oauth.audience(),
