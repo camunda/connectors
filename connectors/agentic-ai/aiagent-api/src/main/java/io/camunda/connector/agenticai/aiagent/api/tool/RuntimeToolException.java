@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
-import io.camunda.connector.agenticai.common.annotation.Experimental;
+import io.camunda.connector.agenticai.aiagent.api.Experimental;
 
 /**
  * Thrown by a runtime tool to report a failure the model can act on, as a shorthand for returning
