@@ -114,12 +114,15 @@ effects. A good name does not replace a Javadoc that the rules below require.
   precondition. When a reader must read a caller across that boundary to understand a precondition,
   document the coupling in an ADR or a reference doc, not in the Javadoc.
 - A Javadoc describes the code as it is. It does not tell about a change or an intent. Do not write
-  "now", "no longer", "the new behavior", "previously", "instead of", "replaces", "after this change", "for the
-  time being" or "until". Do not name a PR, an issue, a stack step or future work. Put the history in
+  a sentence that tells about a change, for example with "now", "no longer", "the new behavior",
+  "previously", "replaces", "after this change", "for the time being" or "until". Judge the sentence,
+  not the word. Do not name a PR, an issue, a stack step or future work. Put the history in
   the commit message, the PR, an ADR or [`docs/breaking-changes.md`](breaking-changes.md).
 - Each claim in a Javadoc MUST be true for the code of the same commit, on each path, also for a job
   that runs again. Example: a job that runs again creates new message IDs, so a Javadoc must not claim
-  that it computes the same result. A claim that the code does not enforce is a defect.
+  that it computes the same result. A claim that the code does not enforce is a defect. Fix the claim,
+  and add code that enforces it only when the failure is reachable. Prefer stating what the code does
+  over "always" and "never".
 - A commit that changes the behavior or the signature of a method updates, in the same commit, all
   affected Javadoc (including the method and its class) and current-state reference documentation that
   names the method. This also applies to a later commit in the same PR. Merged ADRs and historical
