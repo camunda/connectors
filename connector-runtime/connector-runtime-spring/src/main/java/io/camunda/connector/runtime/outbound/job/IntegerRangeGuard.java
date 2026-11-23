@@ -43,16 +43,42 @@ final class IntegerRangeGuard {
    *     of {@code long}
    */
   static void check(JsonFactory jsonFactory, byte[] json) throws IOException {
+    String pointer = firstIntegerOutsideLongRange(jsonFactory, json);
+    if (pointer != null) {
+      throw new ConnectorInputException(
+          "Output variables hold an integer outside the signed 64-bit range that Zeebe accepts, at '%s'. Leave it out of the output, for example with a result expression."
+              .formatted(pointer));
+    }
+  }
+
+  /**
+   * Like {@link #check(JsonFactory, byte[])}, for the variables of an element that an ad-hoc
+   * sub-process activates, such as an AI Agent's tool call. The completion command sends them too.
+   *
+   * @param elementId the element to activate, named in the error
+   */
+  static void checkElementActivation(JsonFactory jsonFactory, byte[] json, String elementId)
+      throws IOException {
+    String pointer = firstIntegerOutsideLongRange(jsonFactory, json);
+    if (pointer != null) {
+      throw new ConnectorInputException(
+          "The variables for the activated element '%s' hold an integer outside the signed 64-bit range that Zeebe accepts, at '%s'."
+              .formatted(elementId, pointer));
+    }
+  }
+
+  /** The JSON pointer of the first integer outside the range of {@code long}, or {@code null}. */
+  private static String firstIntegerOutsideLongRange(JsonFactory jsonFactory, byte[] json)
+      throws IOException {
     try (JsonParser parser = jsonFactory.createParser(json)) {
       JsonToken token;
       while ((token = parser.nextToken()) != null) {
         if (token == JsonToken.VALUE_NUMBER_INT
             && parser.getNumberType() == JsonParser.NumberType.BIG_INTEGER) {
-          throw new ConnectorInputException(
-              "Output variables hold an integer outside the signed 64-bit range that Zeebe accepts, at '%s'. Leave it out of the output, for example with a result expression."
-                  .formatted(parser.getParsingContext().pathAsPointer()));
+          return parser.getParsingContext().pathAsPointer().toString();
         }
       }
     }
+    return null;
   }
 }

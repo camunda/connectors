@@ -889,6 +889,56 @@ class SpringConnectorJobHandlerTest {
         assertThat(result.getRetries()).isEqualTo(0);
         assertThat(result.getErrorMessage()).contains("'/orderId'");
       }
+
+      @Test
+      void shouldFailJobWithoutRetries_whenAnElementActivationHoldsSuchAnInteger()
+          throws Exception {
+        // given - the completion also sends each activation's variables, e.g. an AI Agent's tool
+        // call, so the sub-process variables being fine is not enough
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(
+                null,
+                Map.of(),
+                List.of(
+                    new TestAdHocSubProcessResponse.TestElementActivation(
+                        "lookupOrder", Map.of("orderId", 42)),
+                    new TestAdHocSubProcessResponse.TestElementActivation(
+                        "cancelOrder", Map.of("orderId", TWO_TO_THE_63))),
+                false,
+                false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+        // then
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage())
+            .contains("outside the signed 64-bit range")
+            .contains("'cancelOrder'")
+            .contains("'/orderId'");
+      }
+
+      @Test
+      void shouldCompleteJob_whenAnElementActivationHasNullVariables() throws Exception {
+        // given
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(
+                null,
+                Map.of(),
+                List.of(new TestAdHocSubProcessResponse.TestElementActivation("task1", null)),
+                false,
+                false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(jobHandler);
+
+        // then
+        assertThat(result.elementActivations()).hasSize(1);
+        assertThat(result.elementActivations().get(0).elementId()).isEqualTo("task1");
+        assertThat(result.elementActivations().get(0).variables()).isEmpty();
+      }
     }
   }
 

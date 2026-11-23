@@ -302,6 +302,7 @@ public class SpringConnectorJobHandler implements JobHandler {
 
       if (connectorResponse instanceof AdHocSubProcessConnectorResponse ahsp) {
         checkOutputVariables(ahsp.variables());
+        checkElementActivationVariables(ahsp.elementActivations());
         // AHSP responses provide their own variables; skip result expression evaluation
         return new ResultWithDeadline(
             new ConnectorResult.SuccessResult(connectorResponse, Map.of()), deadline, List.of());
@@ -341,6 +342,22 @@ public class SpringConnectorJobHandler implements JobHandler {
     byte[] json = objectMapper.writeValueAsBytes(variables);
     InlineSizeGuard.check(json.length);
     IntegerRangeGuard.check(objectMapper.getFactory(), json);
+  }
+
+  /**
+   * The ad-hoc sub-process completion also sends the variables of each element it activates, such
+   * as an AI Agent's tool call, so they get the integer check too. Only that check: the size guard
+   * has never covered them.
+   */
+  private void checkElementActivationVariables(List<ElementActivation> elementActivations)
+      throws IOException {
+    for (ElementActivation activation :
+        requireNonNullElse(elementActivations, List.<ElementActivation>of())) {
+      IntegerRangeGuard.checkElementActivation(
+          objectMapper.getFactory(),
+          objectMapper.writeValueAsBytes(activation.variables()),
+          activation.elementId());
+    }
   }
 
   /**
