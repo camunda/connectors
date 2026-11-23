@@ -54,6 +54,7 @@ import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
+import io.camunda.connector.runtime.core.secret.SecretFailureDiagnostic;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.io.IOException;
@@ -148,8 +149,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         FeelExpressionEvaluatorBuilder.camundaClient(camundaClient)
             .tenantId(connectorDetails.tenantId())
             .objectMapper(objectMapper)
+            // inbound properties are often what incoming requests are checked against, so an
+            // unresolved reference must fail the bind rather than become the accepted secret
             .resultProcessor(
-                new SecretResolvingResultProcessor(new SecretReferenceResolver(camundaClient)))
+                SecretResolvingResultProcessor.failingOnUnresolvedReferences(
+                    new SecretReferenceResolver(camundaClient)))
             .build();
   }
 
@@ -426,12 +430,14 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       return result;
     } catch (IOException | FeelEngineWrapperException e) {
       throw new RuntimeException(
-          "Failed to bind process instance properties to "
-              + cls.getName()
-              + " using FEEL evaluation/deserialization"
-              + " (tenantId="
-              + connectorDetails.tenantId()
-              + ")",
+          withSecretDiagnostic(
+              "Failed to bind process instance properties to "
+                  + cls.getName()
+                  + " using FEEL evaluation/deserialization"
+                  + " (tenantId="
+                  + connectorDetails.tenantId()
+                  + ")",
+              e),
           e);
     }
   }
@@ -463,13 +469,31 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       return result;
     } catch (IOException | FeelEngineWrapperException e) {
       throw new RuntimeException(
-          "Failed to bind element properties to "
-              + cls.getName()
-              + " using FEEL evaluation/deserialization (tenantId="
-              + connectorDetails.tenantId()
-              + ")",
+          withSecretDiagnostic(
+              "Failed to bind element properties to "
+                  + cls.getName()
+                  + " using FEEL evaluation/deserialization (tenantId="
+                  + connectorDetails.tenantId()
+                  + ")",
+              e),
           e);
     }
+  }
+
+  /**
+   * Appends the reason a secret could not be used, when the failure carries one the runtime wrote
+   * itself. The activation health only shows the top-level message, and without this it would say
+   * that binding failed but not which secret reference to fix.
+   */
+  private static String withSecretDiagnostic(String message, Throwable failure) {
+    var cause = failure;
+    for (int depth = 0; cause != null && depth < 16; depth++) {
+      if (cause instanceof SecretFailureDiagnostic diagnostic) {
+        return message + ": " + diagnostic.publishableMessage();
+      }
+      cause = cause.getCause();
+    }
+    return message;
   }
 
   /**
