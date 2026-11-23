@@ -37,7 +37,8 @@ specific rule. When they conflict, the review names the rule for revision.
     or later.
   - Test: name the typical next change (a new input source, a new provider, a new content type, a
     wire format change) and count the production files that it edits. Do not count sealed `switch`
-    arms, because the compiler finds them.
+    arms that handle the new subtype, because the compiler finds them. Arms that can only reject it
+    are a design smell (see *A new sealed subtype is one that most `switch` sites handle*).
 - **P4. Each test protects one behavior that a plausible change can break.**
   - Why: a test without a purpose costs review time and refactor time and finds nothing. A test that
     mirrors the implementation breaks on every refactor and lets a behavior change pass.
