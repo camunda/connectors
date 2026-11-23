@@ -39,6 +39,88 @@ public class OpenApi31Test {
 
   private static final String SPEC_31 = "src/test/resources/example-openapi-3.1.yaml";
 
+  // language=yaml
+  private static final String NULLABLE_SPEC_30 =
+      """
+      openapi: 3.0.3
+      info:
+        title: Pet Store
+        version: 1.0.0
+      servers:
+        - url: https://api.example.com
+      paths:
+        /pets:
+          get:
+            operationId: listPets
+            parameters:
+              - name: vaccinated
+                in: query
+                schema:
+                  type: boolean
+                  nullable: true
+            responses:
+              '200':
+                description: The pets.
+          post:
+            operationId: createPet
+            requestBody:
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      nickname:
+                        type: string
+                        nullable: true
+                        example: Rex
+                      age:
+                        type: integer
+                        nullable: true
+            responses:
+              '201':
+                description: Created.
+      """;
+
+  // the same API as NULLABLE_SPEC_30, written with OpenAPI 3.1 type arrays
+  // language=yaml
+  private static final String NULLABLE_SPEC_31 =
+      """
+      openapi: 3.1.0
+      info:
+        title: Pet Store
+        version: 1.0.0
+      servers:
+        - url: https://api.example.com
+      paths:
+        /pets:
+          get:
+            operationId: listPets
+            parameters:
+              - name: vaccinated
+                in: query
+                schema:
+                  type: [boolean, "null"]
+            responses:
+              '200':
+                description: The pets.
+          post:
+            operationId: createPet
+            requestBody:
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      nickname:
+                        type: [string, "null"]
+                        examples: [null, Rex]
+                      age:
+                        type: [integer, "null"]
+            responses:
+              '201':
+                description: Created.
+      """;
+
   private final OpenApiOutboundTemplateGenerator generator = new OpenApiOutboundTemplateGenerator();
 
   @Test
@@ -114,6 +196,51 @@ public class OpenApi31Test {
     var properties31 = mapper.writeValueAsString(generateFromContent(specWithVersion("3.1.0")));
 
     assertThat(properties31).isEqualTo(properties30);
+  }
+
+  @Test
+  void generate_nullableTypeArrays_matchNullableIn30() throws Exception {
+    var mapper = new ObjectMapper();
+
+    var properties30 = mapper.writeValueAsString(generateFromContent(NULLABLE_SPEC_30));
+    var properties31 = mapper.writeValueAsString(generateFromContent(NULLABLE_SPEC_31));
+
+    assertThat(properties31).isEqualTo(properties30);
+  }
+
+  @Test
+  void generate_arrayBodyWithoutItems_staysSupportedWithRawBody() {
+    // language=yaml
+    var spec =
+        """
+        openapi: 3.1.0
+        info:
+          title: Pet Store
+          version: 1.0.0
+        servers:
+          - url: https://api.example.com
+        paths:
+          /pets/batch:
+            post:
+              operationId: createPets
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      type: array
+              responses:
+                '201':
+                  description: Created.
+        """;
+
+    var scan = generator.scan(new OpenApiGenerationSource(List.of(spec)));
+    assertThat(scan.additionalData())
+        .asInstanceOf(InstanceOfAssertFactories.list(OperationParseResult.class))
+        .extracting(OperationParseResult::id, OperationParseResult::supported)
+        .containsExactly(tuple("createPets", true));
+
+    var properties = generateFromContent(spec);
+    assertThat(properties).extracting(Property::getId).contains("createPets_body");
   }
 
   private ElementTemplate generate(String source) {

@@ -143,6 +143,9 @@ public class BodyUtil {
     if (schema.getEnum() != null) {
       return HttpOperationProperty.createEnumProperty(
           name, Target.BODY, schema.getDescription(), true, schema.getEnum());
+    } else if (type == null) {
+      // no type, or several non-null types (OpenAPI 3.1); the caller falls back to a raw body
+      throw new IllegalArgumentException("Body property '" + name + "' has no single type");
     } else if (type.equals("boolean")) {
       return HttpOperationProperty.createEnumProperty(
           name, Target.BODY, schema.getDescription(), true, Arrays.asList("true", "false"));
@@ -174,7 +177,8 @@ public class BodyUtil {
       return false;
     }
     if (type.equals("array")) {
-      return isComplexSchema(schema.getItems(), components);
+      // an array without 'items' (or with only 3.1 'prefixItems') stays a raw body
+      return schema.getItems() == null || isComplexSchema(schema.getItems(), components);
     }
     if (type.equals("object") && schema.getProperties() != null) {
       return schema.getProperties().values().stream()

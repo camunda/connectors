@@ -173,8 +173,13 @@ public class ParameterUtil {
     if (schema.getExample() != null) {
       return exampleToString(schema.getExample());
     }
-    if (schema.getExamples() != null && !schema.getExamples().isEmpty()) {
-      return exampleToString(schema.getExamples().get(0));
+    if (schema.getExamples() != null) {
+      // nullable 3.1 values often list null as an example; prefill the first real value instead
+      for (Object example : schema.getExamples()) {
+        if (example != null && !(example instanceof JsonNode node && node.isNull())) {
+          return exampleToString(example);
+        }
+      }
     }
     return generateFakeDataStringFromSchema(schema, components);
   }
