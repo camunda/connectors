@@ -218,7 +218,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-exec-plugin>3.7.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.2.0</plugin.version.maven-install-plugin>
     <plugin.version.license>5.1.2</plugin.version.license>
-    <plugin.version.license.codehaus>2.9.0</plugin.version.license.codehaus>
+    <plugin.version.license.codehaus>2.10.0</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
@@ -1434,7 +1434,7 @@ See: https://github.com/luben/zstd-jni/security/advisories
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>flatten-maven-plugin</artifactId>
-            <version>1.9.0</version>
+            <version>1.10.0</version>
             <configuration>
               <flattenMode>ossrh</flattenMode>
               <updatePomFile>true</updatePomFile>
