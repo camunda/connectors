@@ -290,8 +290,10 @@ below make this style specific.
   provider tag comparison that [domain rule 2](#domain-rules) requires in each converter. (P2)
 - **Exceptions belong to their contract.** When a Javadoc in `aiagent-api` requires an exception, the
   exception class is in `aiagent-api`.
-- **Native providers and LangChain4j share no code.** A native SDK provider and the LangChain4j
-  integration do not share helpers or exception types. Why: the two integrations change
+- **Native providers and LangChain4j share no integration code.** A native SDK provider and the
+  LangChain4j integration do not share helpers or exception types of one integration. Code that every
+  provider needs, such as the content types all providers accept or an exception every content
+  converter throws, lives in `chatmodel.provider`. Why: the two integrations change
   independently, and a shared helper couples them.
 - **Code agrees with the accepted ADRs.** When code diverges from an accepted ADR, the same change
   supersedes or extends the ADR with a new ADR, as the [ADR authoring rules](adr/README.md) say.
