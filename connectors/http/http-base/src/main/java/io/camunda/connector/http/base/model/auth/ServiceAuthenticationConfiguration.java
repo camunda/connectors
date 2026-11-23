@@ -48,6 +48,7 @@ public record ServiceAuthenticationConfiguration(
     @Pattern(
             regexp = RestAuthenticationConfiguration.URL_PATTERN,
             message = "Must be a http(s) URL")
+        @Pattern(regexp = "^[^?#]*$", message = "Base URL must not contain a query or fragment")
         @VerifiedHost(isUri = true)
         String baseUrl,
     Map<String, String> parameters) {
