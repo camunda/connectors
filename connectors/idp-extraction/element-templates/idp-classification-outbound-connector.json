@@ -14,7 +14,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.10"
+    "camunda" : "^8.9"
   },
   "groups" : [ {
     "id" : "input",
@@ -49,13 +49,13 @@
     "id" : "input.converseData",
     "label" : "AI converse parameters",
     "optional" : false,
-    "value" : "={\n  modelId: \"\",\n  temperature: 0.5\n}",
     "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.converseData",
       "type" : "zeebe:input"
     },
+    "placeholder" : "={ modelId: \"<model id>\" }",
     "type" : "Text"
   }, {
     "id" : "input.documentTypes",
