@@ -15,7 +15,7 @@ class AllowDenyListTest {
 
   @Test
   void passesOnlyAllowedNames_whenOnlyAllowedIsSet() {
-    final var list = new AllowDenyList(List.of("a"), List.of());
+    final var list = AllowDenyList.of(List.of("a"), List.of());
 
     assertThat(list.isPassing("a")).isTrue();
     assertThat(list.isPassing("b")).isFalse();
@@ -23,7 +23,7 @@ class AllowDenyListTest {
 
   @Test
   void passesAllButDeniedNames_whenOnlyDeniedIsSet() {
-    final var list = new AllowDenyList(List.of(), List.of("a"));
+    final var list = AllowDenyList.of(List.of(), List.of("a"));
 
     assertThat(list.isPassing("a")).isFalse();
     assertThat(list.isPassing("b")).isTrue();
@@ -31,7 +31,7 @@ class AllowDenyListTest {
 
   @Test
   void passesEveryName_whenBothListsAreEmpty() {
-    final var list = new AllowDenyList(List.of(), List.of());
+    final var list = AllowDenyList.of(List.of(), List.of());
 
     assertThat(list.isPassing("a")).isTrue();
     assertThat(list.isPassing("b")).isTrue();
@@ -39,7 +39,7 @@ class AllowDenyListTest {
 
   @Test
   void rejectsName_whenItIsAllowedAndDenied() {
-    final var list = new AllowDenyList(List.of("a", "b"), List.of("a"));
+    final var list = AllowDenyList.of(List.of("a", "b"), List.of("a"));
 
     assertThat(list.isPassing("a")).isFalse();
     assertThat(list.isPassing("b")).isTrue();
