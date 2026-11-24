@@ -69,7 +69,7 @@ public sealed interface McpConnectorModeConfiguration
               feel = FeelMode.required,
               optional = true)
           @Nullable Map<String, Object> meta,
-      @Valid McpClientToolModeFiltersConfiguration toolModeFilters)
+      @Valid @Nullable McpClientToolModeFiltersConfiguration toolModeFilters)
       implements McpConnectorModeConfiguration {
 
     @TemplateProperty(ignore = true)
@@ -113,7 +113,7 @@ public sealed interface McpConnectorModeConfiguration
               feel = FeelMode.required,
               optional = true)
           @Nullable Map<String, Object> meta,
-      @Valid McpClientStandaloneFiltersConfiguration standaloneModeFilters)
+      @Valid @Nullable McpClientStandaloneFiltersConfiguration standaloneModeFilters)
       implements McpConnectorModeConfiguration {
 
     @TemplateProperty(ignore = true)

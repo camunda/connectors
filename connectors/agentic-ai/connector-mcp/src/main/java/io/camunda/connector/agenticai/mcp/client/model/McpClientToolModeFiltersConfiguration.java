@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.model;
 
 import jakarta.validation.Valid;
+import org.jspecify.annotations.Nullable;
 
 public record McpClientToolModeFiltersConfiguration(
-    @Valid McpClientToolsFilterConfiguration tools) {}
+    @Valid @Nullable McpClientToolsFilterConfiguration tools) {}
