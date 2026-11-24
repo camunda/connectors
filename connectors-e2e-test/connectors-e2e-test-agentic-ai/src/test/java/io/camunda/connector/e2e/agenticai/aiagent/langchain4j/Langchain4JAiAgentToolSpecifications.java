@@ -122,89 +122,61 @@ public interface Langchain4JAiAgentToolSpecifications {
           DOWNLOAD_A_FILE_TOOL,
           AN_EVENT_TOOL);
 
+  // The tools of mcp-test-server that the tool filters of the gateways select.
+
+  private static ToolSpecification mcpTool(
+      String prefixedName, String description, JsonObjectSchema parameters) {
+    return ToolSpecification.builder()
+        .name(prefixedName)
+        .description(description)
+        .parameters(parameters)
+        .build();
+  }
+
+  private static ToolSpecification mcpToolWithoutParameters(
+      String prefixedName, String description) {
+    return mcpTool(
+        prefixedName, description, JsonObjectSchema.builder().required(List.of()).build());
+  }
+
+  private static ToolSpecification mcpEchoMetaTool(String gatewayElementId) {
+    return mcpToolWithoutParameters(
+        "MCP_%s___echoMeta".formatted(gatewayElementId),
+        "Echo the MCP _meta data provided with the tool call request");
+  }
+
+  private static ToolSpecification mcpEchoHeadersTool(String gatewayElementId) {
+    return mcpToolWithoutParameters(
+        "MCP_%s___echoHeaders".formatted(gatewayElementId),
+        "Echo the HTTP request headers provided with the tool call request");
+  }
+
   List<ToolSpecification> EXPECTED_MCP_TOOL_SPECIFICATIONS =
       List.of(
           GET_DATE_AND_TIME_TOOL,
           SUPERFLUX_PRODUCT_TOOL,
           SEARCH_THE_WEB_TOOL,
           DOWNLOAD_A_FILE_TOOL,
-          ToolSpecification.builder()
-              .name("MCP_A_MCP_Client___toolA")
-              .description("The first tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramA1", "The first parameter")
-                      .addNumberProperty("paramA2", "The second parameter")
-                      .build())
-              .build(),
-          ToolSpecification.builder()
-              .name("MCP_A_MCP_Client___toolC")
-              .description("The third tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramC1", "The first parameter")
-                      .build())
-              .build(),
-          ToolSpecification.builder()
-              .name("MCP_A_HTTP_Remote_MCP_Client___toolA")
-              .description("The first tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramA1", "The first parameter")
-                      .addNumberProperty("paramA2", "The second parameter")
-                      .build())
-              .build(),
-          ToolSpecification.builder()
-              .name("MCP_A_HTTP_Remote_MCP_Client___toolC")
-              .description("The third tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramC1", "The first parameter")
-                      .build())
-              .build(),
-          ToolSpecification.builder()
-              .name("MCP_A_SSE_Remote_MCP_Client___toolA")
-              .description("The first tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramA1", "The first parameter")
-                      .addNumberProperty("paramA2", "The second parameter")
-                      .build())
-              .build(),
-          ToolSpecification.builder()
-              .name("MCP_A_SSE_Remote_MCP_Client___toolC")
-              .description("The third tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramC1", "The first parameter")
-                      .build())
-              .build(),
-          ToolSpecification.builder()
-              .name("MCP_Filesystem_MCP_Flow___toolA")
-              .description("The first tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramA1", "The first parameter")
-                      .addNumberProperty("paramA2", "The second parameter")
-                      .build())
-              .build(),
-          ToolSpecification.builder()
-              .name("MCP_Filesystem_MCP_Flow___toolB")
-              .description("The second tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramB1", "The first parameter")
-                      .addEnumProperty("paramB2", List.of("A", "B", "C"))
-                      .build())
-              .build(),
-          ToolSpecification.builder()
-              .name("MCP_Filesystem_MCP_Flow___toolC")
-              .description("The third tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramC1", "The first parameter")
-                      .build())
-              .build());
+          mcpEchoMetaTool("A_MCP_Client"),
+          mcpToolWithoutParameters("MCP_A_MCP_Client___image", "Return a small PNG image"),
+          mcpTool(
+              "MCP_A_HTTP_MCP_Client___add",
+              "Add two numbers",
+              JsonObjectSchema.builder()
+                  .addIntegerProperty("a")
+                  .addIntegerProperty("b")
+                  .required("a", "b")
+                  .build()),
+          mcpEchoMetaTool("A_HTTP_Remote_MCP_Client"),
+          mcpEchoHeadersTool("A_HTTP_Remote_MCP_Client"),
+          mcpEchoHeadersTool("A_SSE_Remote_MCP_Client"),
+          mcpTool(
+              "MCP_Filesystem_MCP_Flow___uppercase",
+              "Uppercase the provided message",
+              JsonObjectSchema.builder()
+                  .addStringProperty("message", "The message to uppercase")
+                  .required("message")
+                  .build()));
 
   JsonObjectSchema A2A_JSON_OBJECT_SCHEMA =
       JsonObjectSchema.builder()
@@ -256,36 +228,5 @@ public interface Langchain4JAiAgentToolSpecifications {
                   {"name":"Exchange rate agent","description":"Helps with exchanging currency rates","skills":[{"id":"currency-exchange","name":"Currency Exchange","description":"Get currency exchange rates","tags":["currency","exchange"],"examples":["What's the exchange rate from USD to EUR?","Convert 100 GBP to JPY."],"inputModes":["text"],"outputModes":["text"]}],"kind":"agentCard"}\
                   """)
               .parameters(A2A_JSON_OBJECT_SCHEMA)
-              .build());
-
-  // individual tools provided by a specific MCP client - expected resolved specifications are
-  // prefixed with the MCP client name
-  List<ToolSpecification> MCP_TOOL_SPECIFICATIONS =
-      List.of(
-          ToolSpecification.builder()
-              .name("toolA")
-              .description("The first tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramA1", "The first parameter")
-                      .addNumberProperty("paramA2", "The second parameter")
-                      .build())
-              .build(),
-          ToolSpecification.builder()
-              .name("toolB")
-              .description("The second tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramB1", "The first parameter")
-                      .addEnumProperty("paramB2", List.of("A", "B", "C"))
-                      .build())
-              .build(),
-          ToolSpecification.builder()
-              .name("toolC")
-              .description("The third tool")
-              .parameters(
-                  JsonObjectSchema.builder()
-                      .addStringProperty("paramC1", "The first parameter")
-                      .build())
               .build());
 }
