@@ -29,11 +29,11 @@ principle conflict, follow the principle and report a 💭 that names the rule.
     hides a defect.
   - Test: cover the body. From the name, the parameter types and the return type, write down what the
     method does with each input. If the body does more, or something different, the name fails.
-- **P2. Each piece of logic has one home. The home hides its steps.**
-  - Why: a copy of a step drifts from the original, and a caller that must order the steps can order
-    them wrongly.
+- **P2. Each piece of logic has one home. The home hides its operations.**
+  - Why: a copy of an operation drifts from the original, and a caller that must order the operations
+    can order them wrongly.
   - Test: for each rule that the change adds, count the functions that implement it. The answer is
-    one. A caller can use the home without knowing the order of its internal steps.
+    one. A caller can use the home without knowing the order of its internal operations.
 - **P3. A typical next change touches few files, and the compiler finds each one.**
   - Why: a change that must edit many files, each repeating the same rule, misses one of them sooner
     or later.
@@ -101,8 +101,8 @@ effects. A good name does not replace a Javadoc that the rules below require.
   gets. Do not give a new method that makes a decision a generic verb such as `handle`, `process` or
   `do`. Existing names keep their name. Example: `AgentConfiguration.withToolDefinitions` returns the
   configuration with these tool definitions. (P1)
-- **One level of abstraction per method.** A method either calls named steps in order, or does one
-  step. Do not mix calls to domain methods with field-level construction and loops. (P1)
+- **One level of abstraction per method.** A method either calls named operations in order, or does
+  one operation. Do not mix calls to domain methods with field-level construction and loops. (P1)
 - **A test name states the scenario and the expected outcome.** Example:
   `CompositionResultTest.readyRejectsToolCallsTogetherWithAUserPrompt`. (P1)
 
@@ -167,10 +167,11 @@ that caused it.
      and `AgentContextSchemaMigration` migrates older stored agent contexts. (#8318)
    - Keep the agent state through a process instance migration. Example: the agent kept its
      `agentInstanceKey` only after the fix in #9164.
-   - Treat text that users see, and data that is stored, as a public format. Examples: the text of
-     the agent instance history, the format of a timestamp, the JSON of a document handle. Gate a
-     change of it on an agent instance feature, or record it in [`docs/breaking-changes.md`](breaking-changes.md).
-     A format that the baseline does not have may change without either. (#9631)
+   - Treat text that process developers or operators see, and persisted state, as a public format.
+     Examples: the text of the agent instance history, the format of a timestamp, the JSON of a
+     document handle. Gate a change of it on an agent instance feature, or record it in
+     [`docs/breaking-changes.md`](breaking-changes.md). A format that the baseline does not have may
+     change without either. (#9631)
    - Why: a running process instance continues on the new connector version without a redeployment.
 2. **Check the source before you use provider-specific data.** Data is valid only in the system that
    made it. An ID keeps its meaning.
@@ -285,10 +286,10 @@ for example `AgentInitializer` in `BaseAgentRequestHandler`.
 - **One owner per invariant.** When a rule must be true on more than one entry path, one function
   enforces it. Example: when each input that enters the conversation must be validated, the user
   prompt, event and tool result paths call the same validation function. A caller
-  does not call the steps in sequence, and does not choose between two implementations of the same
-  step. (P2)
+  does not call the operations in sequence, and does not choose between two implementations of the
+  same operation. (P2)
   - A change that adds such a rule adds one function and one call to it per path.
-  - Do not add a second copy of a sequence of domain steps. Put the sequence on the domain type that
+  - Do not add a second copy of a sequence of domain operations. Put the sequence on the domain type that
     owns the data, as "Rich domain models" says, and call it from each path. The home is never a
     helper class.
   - An owner exists only when two callers need it now (see [Simplicity first](#simplicity-first)).

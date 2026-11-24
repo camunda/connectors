@@ -89,7 +89,8 @@ this PR. A declared deviation from a rule is not such a decision.
 
 Rate the likelihood and the end-user severity (`high`, `medium` or `low`) of each ❌, ❓ and 🔧
 finding. End users are the people who use the released connectors: process developers, operators
-and extension developers. A problem that affects only contributors or CI has `low` end-user severity.
+and extension developers, and, through the process, business users. A problem that affects only
+contributors or CI has `low` end-user severity.
 
 ## Human review required
 
