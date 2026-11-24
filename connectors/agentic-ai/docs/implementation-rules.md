@@ -6,7 +6,7 @@ applyTo: "connectors/agentic-ai/**,connectors-e2e-test/connectors-e2e-test-agent
 
 These rules apply to `connectors/agentic-ai` and `connectors-e2e-test/connectors-e2e-test-agentic-ai`.
 Follow them when you plan a change and when you write code. To review a change, follow
-[`code-review.md`](code-review.md).
+[`code-review.md`](code-review.md). In a review, a rule that says to ask becomes a ❓ finding.
 
 Follow the repo-wide connectors conventions in the repo-root [`AGENTS.md`](../../../AGENTS.md) where
 they do not conflict with these rules. If they conflict, these rules apply, and the PR states the
@@ -62,10 +62,11 @@ location that the change must reach:
 - **Running process instances:** instances that started on an earlier connector version, and process
   instance migration. See [domain rule 1](#domain-rules).
 
-The plan names each location, or says why the change does not apply to it.
+The plan or the PR description names each location, or says why the change does not apply to it.
 
-**State the change footprint.** For each concept that the change adds, the plan lists its production
-files. It names the typical next change and the files that this change will touch. (P3)
+**State the change footprint.** For each concept that the change adds, the plan or the PR description
+lists its production files. It names the typical next change and the files that this change will
+touch. (P3)
 
 ## Simplicity first
 
@@ -81,11 +82,11 @@ Change only what the issue or the request needs. Clean up only your own changes.
 
 - Do not improve adjacent code, comments or formatting. A small correction (a typo, a stale name, a
   wrong sentence) in a file that the change already edits is allowed.
-- Do not refactor code that works. Ask before each refactor, also a small one.
+- Do not refactor code that works. Ask the user before each refactor, also a small one.
 - Tell about dead code that is not related to your change. Do not remove it unless you get a request.
 - Remove the variables and functions that your change made unused.
-- When the change leaves related code redundant or inconsistent, name it in the plan with the risk of
-  keeping it and the risk of changing it, and ask.
+- When the change leaves related code redundant or inconsistent, name it in the plan or the PR description
+  with the risk of keeping it and the risk of changing it, and ask the user.
 
 ## Names
 
@@ -266,8 +267,8 @@ for example `AgentInitializer` in `BaseAgentRequestHandler`.
   of their own. Do not make such a bean class or its public methods `final`, so a user can also extend
   it. Example: `aiAgentInstanceToolMapper` for `AgentInstanceToolMapper`. Create a small
   helper with `new` inside its owner. When a bean is a good candidate for a public interface (for
-  example an SPI that users can implement), say so in the plan or the PR. The team decides about the
-  interface.
+  example an SPI that users can implement), say so in the plan or the PR description. The team
+  decides about the interface.
 - **One reason to change per class.** When an orchestrator gets a new responsibility, move it into a
   named step. Do not add one more method to the orchestrator. Example: `BaseAgentRequestHandler` calls
   `AgentInitializer` and `AgentConversationTurnInputComposer` as steps. A named step hides a decision
@@ -289,8 +290,8 @@ for example `AgentInitializer` in `BaseAgentRequestHandler`.
     owns the data, as "Rich domain models" says, and call it from each path. The home is never a
     helper class.
   - An owner exists only when two callers need it now (see [Simplicity first](#simplicity-first)).
-  - When the only way to avoid a copy is to refactor existing code, name it in the plan and ask, as
-    [Surgical changes](#surgical-changes) says.
+  - When the only way to avoid a copy is to refactor existing code, name it in the plan or the PR
+    description and ask the user, as [Surgical changes](#surgical-changes) says.
 - **Decide a mode once per step.** Resolve a per-instance mode, such as an agent instance feature, once
   per step with an exhaustive `switch` into a value or a strategy. Within the step, do not switch on it
   again, and never branch on a `boolean` or `supports(...)`. (P2)

@@ -3,7 +3,7 @@
 <!-- docs-lint: allow-names Foo, FooImpl, Impl: placeholders of a naming rule -->
 
 Follow existing patterns, agreed requirements and relevant checks when choosing persisted state,
-customer-facing names, defaults or limits. If these do not resolve the choice, ask for the missing
+customer-facing names, defaults or limits. If these do not resolve the choice, ask the user for the missing
 requirements before choosing. State new contract decisions and their rationale in the PR description,
 including the pattern or requirement they follow. A passing API compatibility check alone does not
 justify a product name or a default.
