@@ -340,8 +340,8 @@ Before claiming a change is complete:
 - [ ] New stored-shape, customer-facing naming, default or limit decisions and their rationale are
   stated in the PR description per the [design guidelines](docs/design-guidelines.md).
 - [ ] Real-provider changes meet the [coverage requirements](docs/acceptance-testing.md#real-provider-coverage).
-- [ ] Element templates regenerated with the repo-root [element templates checks](../../AGENTS.md#element-templates)
-  if template properties changed; check the JSON diff.
+- [ ] If template properties changed, the repo-root [element templates checks](../../AGENTS.md#element-templates)
+  pass (regeneration, validator, `spotless:check`); check the JSON diff.
 - [ ] The change follows the [implementation rules](docs/implementation-rules.md).
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Each Javadoc and each document that names a changed method agrees with the code at the last commit of the PR.
