@@ -88,6 +88,7 @@ class McpSdkMcpClientDelegateTest {
         assertThat(testee.listTools(FILTER, Map.of()).toolDefinitions())
             .extracting(McpToolDefinition::name)
             .containsExactly(ALLOWED);
+        verify(client).listTools();
       }
     },
     CALL_TOOL {
@@ -151,6 +152,7 @@ class McpSdkMcpClientDelegateTest {
         assertThat(testee.listResources(FILTER, Map.of()).resources())
             .extracting(ResourceDescription::uri)
             .containsExactly(ALLOWED);
+        verify(client).listResources();
       }
     },
     READ_RESOURCE {
@@ -216,6 +218,7 @@ class McpSdkMcpClientDelegateTest {
         assertThat(testee.listResourceTemplates(FILTER, Map.of()).resourceTemplates())
             .extracting(ResourceTemplate::uriTemplate)
             .containsExactly(ALLOWED);
+        verify(client).listResourceTemplates();
       }
     },
     LIST_PROMPTS {
@@ -240,6 +243,7 @@ class McpSdkMcpClientDelegateTest {
         assertThat(testee.listPrompts(FILTER, Map.of()).promptDescriptions())
             .extracting(PromptDescription::name)
             .containsExactly(ALLOWED);
+        verify(client).listPrompts();
       }
     },
     GET_PROMPT {
