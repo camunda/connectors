@@ -15,6 +15,9 @@ they do not conflict with these rules. If they conflict, these rules apply, and 
 divergence. [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md) links the module operating rules (test
 levels, the Definition of Done, ADRs, architectural invariants).
 
+Before you change a module, read its `README.md` and `docs/`, and the Javadoc of the types and
+annotations you use. Rules stated there apply like the rules here.
+
 `agentic-ai-docs-lint` is a development tool and deviates from some of these rules. Its
 [`AGENTS.md`](../agentic-ai-docs-lint/AGENTS.md) lists the deviations. Do not flag them in a review.
 

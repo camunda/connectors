@@ -29,7 +29,8 @@ These documents are the only rules. Do not invent rules. Read the parts that app
 5. The repo-root [`AGENTS.md`](../../../AGENTS.md), where the module docs do not cover a topic.
 6. The e2e [`AGENTS.md`](../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md), when
    the change touches e2e tests.
-7. The `README.md` and `docs/` of each module that the change touches.
+7. The `README.md` and `docs/` of each module that the change touches or uses, and the Javadoc of the
+   types and annotations that the changed code uses. Rules stated there apply like the rules here.
 8. [`acceptance-testing.md`](acceptance-testing.md): the test level, the e2e decision and the
    real-provider coverage for a provider change. Check the tests of the change against it.
 
