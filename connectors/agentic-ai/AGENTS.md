@@ -247,8 +247,8 @@ High-frequency traps (detail behind each link):
   until one is persisted and reloaded, so a test that compares an independently built expected message fails on `id`.
   [`data-model.md`](aiagent-model/docs/data-model.md#message-identity), [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
 - **Map and set order of `@AgenticAiRecord` builders differs between JVMs**: no hash, id or value compared across
-  runs may depend on it; its Javadoc has the rules. `AgentConfiguration.fingerprint()` sorts map keys with
-  `SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS` ([`agent-instance.md`](connector-aiagent/docs/agent-instance.md#conversation-history-items)).
+  runs may depend on it; its Javadoc has the rules. `AgentConfiguration.fingerprint()` sorts the keys of every map
+  at any depth with `SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS` ([`agent-instance.md`](connector-aiagent/docs/agent-instance.md#conversation-history-items)).
 
 ## Working in this module
 

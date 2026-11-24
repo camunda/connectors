@@ -22,9 +22,9 @@ import java.lang.annotation.Target;
  *
  * <p>The builder copies each map and set with {@code Map.copyOf} and {@code Set.copyOf}. Their
  * iteration order changes with every JVM start. A hash, an id or any value compared across runs
- * must not depend on it: sort the map keys where the value is computed, carry a meaningful order as
- * a list, and put no set into a hashed value, because no mapper flag sorts a set. Do not work
- * around the copy with another annotation or collection type.
+ * must not depend on it: sort the keys of every map at any depth where the value is computed, carry
+ * a meaningful order as a list, and put no set into a hashed value, because no mapper flag sorts a
+ * set. Do not work around the copy with another annotation or collection type.
  */
 @JacksonAnnotationsInside
 @JsonInclude(JsonInclude.Include.NON_NULL)
