@@ -88,7 +88,9 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                 st,
                 remoteClientProperties.mcpRemoteClientInputMappings(Map.of(), false)));
 
-    ZeebeTest zeebeTest = createProcessInstance(bpmnModel, Map.of("path", "tools"));
+    ZeebeTest zeebeTest =
+        createProcessInstance(
+            bpmnModel, Map.of("path", "tools", "runLocal", true, "runRemote", true));
 
     Awaitility.with()
         .pollInSameThread()
@@ -127,15 +129,8 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                 bpmnModel,
                 st,
                 Map.of(
-                    "data.connectorMode.standaloneModeFilters.tools.excluded",
-                    "=[\"add\", \"base64Encode\", \"base64Decode\", \"divide\", \"multiply\", \"subtract\", \"failTool\"]")));
-
-    updateInputMappings(
-        bpmnModel,
-        "Client_Call_Tool",
-        Map.ofEntries(
-            Map.entry("data.connectorMode.operation.toolName", "echoMeta"),
-            Map.entry("data.connectorMode.operation.toolArguments", "={}")));
+                    "data.connectorMode.standaloneModeFilters.tools.included",
+                    "=[\"uppercase\", \"lowercase\", \"echo\", \"greet\", \"echoMeta\"]")));
 
     // MCP Remote Client
     serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpremoteclient"))
@@ -145,18 +140,13 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                 st,
                 remoteClientProperties.mcpRemoteClientInputMappings(
                     Map.of(
-                        "data.connectorMode.standaloneModeFilters.tools.excluded",
-                        "=[\"uppercase\", \"lowercase\", \"divide\", \"multiply\", \"subtract\", \"failTool\", \"echoMeta\"]"))));
-
-    updateInputMappings(
-        bpmnModel,
-        "Remote_Client_Call_Tool",
-        Map.ofEntries(
-            Map.entry("data.connectorMode.operation.toolName", "add"),
-            Map.entry("data.connectorMode.operation.toolArguments", "={ a: 5, b: 3 }")));
+                        "data.connectorMode.standaloneModeFilters.tools.included",
+                        "=[\"add\", \"echo\", \"base64Encode\", \"base64Decode\", \"greet\"]"))));
 
     ZeebeTest zeebeTest =
-        createProcessInstance(bpmnModel, Map.of("path", "tools")).waitForProcessCompletion();
+        createProcessInstance(
+                bpmnModel, Map.of("path", "tools", "runLocal", true, "runRemote", true))
+            .waitForProcessCompletion();
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableSatisfies(
