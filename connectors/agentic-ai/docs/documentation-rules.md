@@ -63,7 +63,7 @@ configuration property or an error code.
 
 Do not copy code into a doc. Name the type and member in backticks, for example
 `GatewayToolHandler#resolveElementId`, and write 1 or 2 sentences about the contract. JSON, YAML and
-Mermaid fences are fine.
+Mermaid fences are allowed.
 
 ## Checks
 
@@ -78,5 +78,5 @@ review cover that.
 
 ## In a review
 
-Comment when a pull request changes behavior in a module and does not update the README, the docs of
-that module, or the architecture doc that names the changed type.
+Report a finding when a pull request changes behavior in a module and does not update the README, the
+docs of that module, or the architecture doc that names the changed type.
