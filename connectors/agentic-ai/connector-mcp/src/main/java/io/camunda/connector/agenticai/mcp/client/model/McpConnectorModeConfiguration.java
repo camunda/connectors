@@ -23,7 +23,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import org.apache.commons.collections4.MapUtils;
 import org.jspecify.annotations.Nullable;
 
@@ -49,11 +48,6 @@ public sealed interface McpConnectorModeConfiguration
   McpClientOperation toMcpClientOperation();
 
   Optional<FilterOptions> createFilterOptions();
-
-  private static <T> AllowDenyList allowDenyListOrAllowingEverything(
-      @Nullable T filter, Function<T, AllowDenyList> toAllowDenyList) {
-    return filter == null ? AllowDenyList.allowingEverything() : toAllowDenyList.apply(filter);
-  }
 
   @TemplateSubType(id = AI_AGENT_TOOL_ID, label = "AI Agent tool")
   record ToolModeConfiguration(
@@ -90,9 +84,9 @@ public sealed interface McpConnectorModeConfiguration
               ? null
               : FilterOptionsBuilder.builder()
                   .toolFilters(
-                      allowDenyListOrAllowingEverything(
-                          toolModeFilters.tools(),
-                          McpClientToolsFilterConfiguration::toAllowDenyList))
+                      toolModeFilters.tools() != null
+                          ? toolModeFilters.tools().toAllowDenyList()
+                          : AllowDenyList.allowingEverything())
                   .build();
 
       return Optional.ofNullable(result);
@@ -132,17 +126,17 @@ public sealed interface McpConnectorModeConfiguration
               ? null
               : FilterOptionsBuilder.builder()
                   .toolFilters(
-                      allowDenyListOrAllowingEverything(
-                          standaloneModeFilters.tools(),
-                          McpClientToolsFilterConfiguration::toAllowDenyList))
+                      standaloneModeFilters.tools() != null
+                          ? standaloneModeFilters.tools().toAllowDenyList()
+                          : AllowDenyList.allowingEverything())
                   .resourceFilters(
-                      allowDenyListOrAllowingEverything(
-                          standaloneModeFilters.resources(),
-                          McpClientResourcesFilterConfiguration::toAllowDenyList))
+                      standaloneModeFilters.resources() != null
+                          ? standaloneModeFilters.resources().toAllowDenyList()
+                          : AllowDenyList.allowingEverything())
                   .promptFilters(
-                      allowDenyListOrAllowingEverything(
-                          standaloneModeFilters.prompts(),
-                          McpClientPromptsFilterConfiguration::toAllowDenyList))
+                      standaloneModeFilters.prompts() != null
+                          ? standaloneModeFilters.prompts().toAllowDenyList()
+                          : AllowDenyList.allowingEverything())
                   .build();
 
       return Optional.ofNullable(result);
