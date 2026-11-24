@@ -46,9 +46,31 @@ class OpenApiOverlayTest {
             """);
 
     assertThat(result.at("/servers").findValuesAsText("url"))
-        .containsExactly("https://b.example", "https://c.example");
+        .containsExactly("https://a.example", "https://b.example", "https://c.example");
     assertThat(result.at("/components/schemas/A/type").asText()).isEqualTo("string");
     assertThat(result.at("/components/securitySchemes/k/type").asText()).isEqualTo("apiKey");
+  }
+
+  @Test
+  void replacesPrimitivesAndRejectsIncompatibleMerges() throws Exception {
+    JsonNode result =
+        apply(
+            """
+            {"overlay": "1.0.0", "actions": [
+              {"target": "$", "update": {"openapi": "3.1.1"}}
+            ]}
+            """);
+
+    assertThat(result.at("/openapi").asText()).isEqualTo("3.1.1");
+    assertThatThrownBy(() ->
+            apply(
+                """
+                {"overlay": "1.0.0", "actions": [
+                  {"target": "$", "update": {"servers": {"url": "https://b.example"}}}
+                ]}
+                """))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("cannot merge");
   }
 
   @Test

@@ -26,10 +26,12 @@ import java.util.Map;
  * document to an OpenAPI spec, so Camunda's additions to a vendor spec are kept apart from the
  * vendor's own text.
  *
- * <p>Supports both action kinds: {@code update} (objects merge recursively, arrays append) and
- * {@code remove}. Unlike the Overlay specification, an action whose target matches nothing is an
- * error: when the vendor changes its spec, the generator should fail rather than silently drop a
- * fix.
+ * <p>Supports both action kinds, {@code update} and {@code remove}. An update merges by the rules
+ * of <a href="https://spec.openapis.org/overlay/v1.1.0.html">Overlay 1.1</a>, which clarify 1.0:
+ * objects merge recursively, arrays are concatenated, a primitive replaces a primitive, and any
+ * other combination is an error. Unlike the Overlay specification, an action whose target matches
+ * nothing is an error: when the vendor changes its spec, the generator should fail rather than
+ * silently drop a fix.
  */
 final class OpenApiOverlay {
 
@@ -88,11 +90,28 @@ final class OpenApiOverlay {
   private static void merge(JsonNode node, JsonNode update, String target) {
     if (node instanceof ObjectNode object && update instanceof ObjectNode updateObject) {
       for (Map.Entry<String, JsonNode> field : updateObject.properties()) {
-        JsonNode existing = object.get(field.getKey());
-        if (existing instanceof ObjectNode && field.getValue() instanceof ObjectNode) {
-          merge(existing, field.getValue(), target);
+        String name = field.getKey();
+        JsonNode existing = object.get(name);
+        JsonNode value = field.getValue();
+        if (existing == null || existing.isNull()) {
+          object.set(name, value.deepCopy());
+        } else if (existing.isObject() && value.isObject()) {
+          merge(existing, value, target);
+        } else if (existing instanceof ArrayNode existingArray && value.isArray()) {
+          value.forEach(element -> existingArray.add(element.deepCopy()));
+        } else if (existing.isValueNode() && value.isValueNode()) {
+          object.set(name, value.deepCopy());
         } else {
-          object.set(field.getKey(), field.getValue().deepCopy());
+          throw new IllegalStateException(
+              "Overlay update for '"
+                  + target
+                  + "' cannot merge a "
+                  + value.getNodeType()
+                  + " into the existing "
+                  + existing.getNodeType()
+                  + " property '"
+                  + name
+                  + "'");
         }
       }
     } else if (node instanceof ArrayNode array) {
