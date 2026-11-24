@@ -24,8 +24,8 @@ These documents are the only rules. Do not invent rules. Read the parts that app
 1. [`implementation-rules.md`](implementation-rules.md): all sections.
 2. [`design-guidelines.md`](design-guidelines.md)
 3. [`target-architecture.md`](target-architecture.md)
-4. [`AGENTS.md`](../AGENTS.md): all sections. Start with Gotchas, Architectural invariants, Null
-   safety, Definition of Done and Extension points.
+4. [`AGENTS.md`](../AGENTS.md): the sections that apply to the change. Start with Gotchas, Null
+   safety and Definition of Done.
 5. The repo-root [`AGENTS.md`](../../../AGENTS.md), where the module docs do not cover a topic.
 6. The e2e [`AGENTS.md`](../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md), when
    the change touches e2e tests.
