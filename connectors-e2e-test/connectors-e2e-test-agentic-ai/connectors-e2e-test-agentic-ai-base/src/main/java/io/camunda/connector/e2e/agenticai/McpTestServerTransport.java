@@ -68,18 +68,11 @@ public enum McpTestServerTransport {
   /** The image of every mcp-test-server container, including the ones the stdio client starts. */
   static final String IMAGE = DockerImages.get("mcp-test-server");
 
-  /** The label key of the stdio containers. */
-  static final String STDIO_CONTAINER_LABEL_KEY = "mcp-test-server-stdio";
-
   /**
-   * Marks the stdio containers of this JVM. The value starts with the PID of the JVM, so that a
-   * later run can tell leftovers of a dead JVM from the containers of a parallel run.
+   * Marks the stdio containers of this JVM, so that the shutdown hook in {@link
+   * McpTestServerConfiguration} can remove them.
    */
-  static final String STDIO_CONTAINER_LABEL_VALUE =
-      ProcessHandle.current().pid() + "-" + UUID.randomUUID();
-
-  static final String STDIO_CONTAINER_LABEL =
-      STDIO_CONTAINER_LABEL_KEY + "=" + STDIO_CONTAINER_LABEL_VALUE;
+  static final String STDIO_CONTAINER_LABEL = "mcp-test-server-stdio=" + UUID.randomUUID();
 
   private static final String SPRING_CONFIG_CLIENTS_PREFIX =
       "camunda.connector.agenticai.mcp.client.clients";
