@@ -69,9 +69,12 @@ extensionProperties = {
 - `GatewayToolCallTransformer#transformToolCalls` maps the tool calls of the LLM to the gateway element, and
   `GatewayToolCallTransformer#transformToolCallResults` maps the results back to the tool names of the LLM.
 
-`transformToolCallResults` returns one result for each input result, with the same `id`. A handler sets only the
-`name` and the `content`: the registry sets the `completedAt` and the `properties` of the input result with the same
-`id`, and resolves a missing `elementId` from the `name`.
+`GatewayToolHandler#transformToolCallResults` returns one result for each input result. Each returned result keeps
+the `id` of the input result and sets the `name` and the `content`. The handler does not need to copy the
+`completedAt`, the `properties` or the `elementId`. For each returned result whose `id` matches an input result, the
+registry sets the `completedAt` of the input result when the handler left it empty, and merges the `properties`: the
+input entries first, then the handler entries, which win on the same key. The registry fills a missing `elementId`
+from the `name`.
 
 ### Gateway Tool Handler Registry
 
@@ -81,8 +84,8 @@ extensionProperties = {
 - **Discovery result check**: All handlers must report all results present
 - **Discovery result processing**: Groups results by handler type, merges discovered tool definitions into agent context
 - **Tool call transformation**: Chains through all handlers (each transforms its own tool calls, passes others through)
-- **Tool call result transformation**: Same chaining for results, then sets the `completedAt` and `properties` of each
-  input result and fills a missing `elementId`
+- **Tool call result transformation**: Same chaining for results, then fills a missing `completedAt` from the input
+  result, merges the `properties` of the input result and fills a missing `elementId`
 
 ### Discovery Flow (State Machine Integration)
 

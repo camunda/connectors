@@ -173,17 +173,34 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
             .filter(result -> result.id() != null)
             .collect(Collectors.toMap(ToolCallResult::id, Function.identity()));
     return transformedToolCallResults.stream()
-        .map(result -> withCompletedAtAndPropertiesOf(result, inputsById.get(result.id())))
+        .map(result -> withFieldsFromInput(result, inputsById.get(result.id())))
         .map(this::withElementId)
         .toList();
   }
 
-  private static ToolCallResult withCompletedAtAndPropertiesOf(
+  private static ToolCallResult withFieldsFromInput(
       ToolCallResult result, @Nullable ToolCallResult input) {
     if (input == null) {
       return result;
     }
-    return result.withCompletedAt(input.completedAt()).withProperties(input.properties());
+    final var completedAt =
+        result.completedAt() != null ? result.completedAt() : input.completedAt();
+    return result
+        .withCompletedAt(completedAt)
+        .withProperties(mergedProperties(input.properties(), result.properties()));
+  }
+
+  private static Map<String, Object> mergedProperties(
+      @Nullable Map<String, Object> inputProperties,
+      @Nullable Map<String, Object> handlerProperties) {
+    final var merged = new LinkedHashMap<String, Object>();
+    if (inputProperties != null) {
+      merged.putAll(inputProperties);
+    }
+    if (handlerProperties != null) {
+      merged.putAll(handlerProperties);
+    }
+    return Map.copyOf(merged);
   }
 
   private ToolCallResult withElementId(ToolCallResult result) {

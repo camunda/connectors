@@ -40,6 +40,19 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
    */
   String resolveElementId(String toolName);
 
+  /**
+   * Maps the tool call results of the gateway elements of this handler back to the tool names of
+   * the LLM.
+   *
+   * <p>Returns one result for each input result. Each returned result keeps the {@code id} of its
+   * input result and sets the {@code name} and the {@code content}. It does not need to copy the
+   * {@code completedAt}, the {@code properties} or the {@code elementId} of the input result. The
+   * agent keeps the values that the handler sets.
+   */
+  @Override
+  List<ToolCallResult> transformToolCallResults(
+      AgentContext agentContext, List<ToolCallResult> toolCallResults);
+
   GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
 

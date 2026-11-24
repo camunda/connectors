@@ -48,6 +48,19 @@ public interface GatewayToolHandlerRegistry extends GatewayToolCallTransformer {
 
   Optional<GatewayToolHandler> handlerForToolDefinition(String toolName);
 
+  /**
+   * Passes the tool call results through each registered handler in turn.
+   *
+   * <p>For each returned result whose {@code id} matches an input result, sets the {@code
+   * completedAt} of the input result when the handler left it {@code null}, and merges the {@code
+   * properties}: the entries of the input result first, then the entries of the handler, which win
+   * on the same key. For each returned result with a {@code name} and without an {@code elementId},
+   * resolves the {@code elementId} from the {@code name}.
+   */
+  @Override
+  List<ToolCallResult> transformToolCallResults(
+      AgentContext agentContext, List<ToolCallResult> toolCallResults);
+
   GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
 
