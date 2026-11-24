@@ -1,45 +1,61 @@
 # Agentic AI Module: Agent Instructions
 
-<!-- docs-lint: allow-names Read: the Read tool of the coding agent -->
-
 The `agentic-ai` module implements Camunda's AI Agent connectors: an agentic orchestration system that
 runs LLM tool-calling loops inside BPMN processes. It ships in two flavors, an AI Agent Task (on a
 service task) and an AI Agent Sub-process (on an ad-hoc sub-process), plus supporting infrastructure
 for tool calling, conversation memory, gateway tools (MCP, A2A), and event handling.
 
-## How to use this document
+## Documentation
 
-This file is a router and operating-rules layer. It is not the architecture reference. It orients an
-agent working in the module (new to it or returning) and routes it to the right resource:
+Read before you act:
 
-1. Build the minimal [mental model](#mental-model) below.
-2. Use [Start here, navigation](#start-here-navigation) to jump to the exact reference section for
-   your task. Read that section by anchor or `Read` offset rather than the whole file.
-3. Follow the [testing rules](docs/acceptance-testing.md) and
-   [Definition of Done](#definition-of-done) before declaring a change complete.
+- Before you plan, implement or review a change: [`docs/implementation-rules.md`](docs/implementation-rules.md),
+  how to approach a change, domain rules from past review findings, and code design rules for new code, and
+  [`docs/documentation-rules.md`](docs/documentation-rules.md), where each doc goes and how to keep the docs up
+  to date.
+- To review a change: [`docs/code-review.md`](docs/code-review.md), including when a human must approve.
+- For every code change: [`docs/acceptance-testing.md`](docs/acceptance-testing.md), the test level, feature
+  acceptance and provider coverage.
+- Before you design stored shapes, names, defaults, limits or observability:
+  [`docs/design-guidelines.md`](docs/design-guidelines.md), the invariants, contract decisions and
+  [ADR criteria](docs/design-guidelines.md#architecture-decision-records).
+- Before you change module structure or extension points: the
+  [architectural invariants](docs/design-guidelines.md#architectural-invariants). Before you plan a structural
+  change (a new module, collaborator, SPI or cross-module policy): the
+  [target architecture](docs/target-architecture.md), the target state beyond the invariants.
+- Before you write or revise an ADR in [`docs/adr/`](docs/adr/): its [authoring rules](docs/adr/README.md).
+- Help text of element templates: [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md).
+- E2E tests: the e2e [`AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md), with
+  the e2e modules, running e2e tests and real-LLM CPT coverage.
+- Repo-wide build, commit, PR, CI, spotless, license and element-template conventions: the repo-root
+  [`AGENTS.md`](../../AGENTS.md). They are not duplicated here.
 
-Task guidance and architecture live in linked documents:
+Update the docs in the same change as the code. Follow the
+[documentation rules](docs/documentation-rules.md): where each doc goes, how to find the docs that a
+change affects, and the [docs checks](#docs-checks). Each fact has one home: a
+module doc, a doc in `docs/`, or a Javadoc. This file holds rules and links (mental model, navigation,
+glossary, gotchas, build and test commands). Do not restate the details of a fact here (values, formats,
+field lists, order, steps or semantics). Link to its home. A rule may name a type, a field or an error code
+as a pointer to that home.
 
-- [`docs/design-guidelines.md`](docs/design-guidelines.md): invariants, contract decisions and ADRs
-- [`docs/acceptance-testing.md`](docs/acceptance-testing.md): test selection, feature acceptance and provider coverage
-- [`docs/architecture/`](docs/architecture/): content that spans modules (the agentic loop, extension
-  points, Spring auto-configuration)
-- `<module>/README.md`: purpose, key types and docs of each module. Docs about the types of one module
-  are in `<module>/docs/`.
-- [`docs/adr/`](docs/adr/): architecture decision records
-- [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md): help text conventions for
-  element templates
-- [`docs/implementation-rules.md`](docs/implementation-rules.md): how to approach a change, domain rules
-  from past review findings, and code design rules for new code
-- [`docs/documentation-rules.md`](docs/documentation-rules.md): where each doc goes and how to keep the
-  docs up to date
-- [`docs/code-review.md`](docs/code-review.md): how to review a change, and when a human must approve
-- [`docs/target-architecture.md`](docs/target-architecture.md): target state of the module
-- [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
-- E2E tests [`AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md): e2e
-  modules, running e2e tests, real-LLM CPT coverage
-- Repo-root [`AGENTS.md`](../../AGENTS.md): repo-wide build, commit, PR, CI, spotless, license, and
-  element-template conventions. These are not duplicated here.
+- `<module>/README.md` and `<module>/docs/`: the purpose and key types of a module, and the docs about its
+  types (data model, memory, tools, converters, providers, error codes, MCP, A2A). The
+  [docs checks](#docs-checks) enforce the README layout and the links. `connector-aiagent/README.md` is
+  generated: edit `connector-aiagent/README.peb`. It uses the shared connector README layout, so its title is
+  `# AI Agent Task` instead of `# connector-aiagent`.
+- [`docs/architecture/`](docs/architecture/): content that spans modules (the agentic loop, extension points,
+  Spring auto-configuration).
+- [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions (SPIs, public
+  classes and packages, persisted data, job types, configuration). Add an entry in the same change that
+  introduces the break, under the section of the release in development, with the old and new API and a
+  migration hint. The public docs link to it.
+- `<connector module>/element-templates/README.md` and the index
+  `connector-agentic-ai/element-templates/README.md`: update them for template version bumps, moves to
+  `versioned/` and new connectors (see [Element templates](#element-templates)). These READMEs serve users who
+  pick or configure a template: which template fits which Camunda version and what a user selects. Put the
+  details of how the templates are generated in `<module>/docs/`.
+
+After a doc change, run the [docs checks](#docs-checks).
 
 ## Modules
 
@@ -70,7 +86,6 @@ All artifacts use the group `io.camunda.connector.agenticai`. Runtimes that ship
 bundles) depend on `agentic-ai-bundle` with `<type>pom</type>`; add a new connector or integration there. The e2e
 modules depend on the connector modules they test instead (see the
 [e2e tests `AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#modules)).
-Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
 
 ### Architecture tests
 
@@ -151,8 +166,9 @@ a development tool and not production code.
 | A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
 | Example BPMN processes & configurations                                  | the examples section of the connector module READMEs, [`examples/`](examples/)                                                                       |
 | Agent instance API (status, metrics, history reporting)                  | [`agent-instance.md`](connector-aiagent/docs/agent-instance.md)                                                                                      |
+| Key entry points (connector functions of both flavors, shared orchestrator, Spring wiring) | [key types of `connector-aiagent`](connector-aiagent/README.md#key-types)                                                  |
 | **Architectural invariants (what you must not break)**                   | [`design-guidelines.md`](docs/design-guidelines.md#architectural-invariants)                                                                         |
-| **Extension points** (add provider / contributor / store)                | [`extension-points.md`](docs/architecture/extension-points.md#extension-points)                                                                      |
+| **Extension points**: add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool or a runtime tool by implementing the SPI and registering a Spring bean. A process tool must not have the name of a runtime tool that is enabled. | SPI and reference implementation per type: [`extension-points.md`](docs/architecture/extension-points.md#extension-points); gateway tools: [Gateway Tool Pattern](docs/architecture/extension-points.md#gateway-tool-pattern); runtime tools: [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 016](docs/adr/016-runtime-tools.md) |
 | Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](connector-aiagent/docs/native-providers.md)                                                                                  |
 
 ## Mental model
@@ -169,10 +185,8 @@ tool results plus events), calls the LLM, stores memory, and completes; tool cal
 elements and continue the loop, no tool calls finishes it. Zeebe appends each tool result to
 `toolCallResults` and creates a new job; if results are still incomplete the worker no-ops and waits.
 
-Full flavor comparison (tool source, config-per-iteration, completion) and the loop diagram:
-[`flavors.md`](connector-aiagent/docs/flavors.md) and [`agentic-loop.md`](docs/architecture/agentic-loop.md#the-agentic-loop--distributed-execution-model)
-(mechanics in [Job Completion](docs/architecture/agentic-loop.md#job-completion--the-heart-of-the-distributed-loop) and
-[What Happens When Tools Complete](docs/architecture/agentic-loop.md#what-happens-when-tools-complete)).
+Flavor comparison and loop diagram: [`flavors.md`](connector-aiagent/docs/flavors.md) and
+[`agentic-loop.md`](docs/architecture/agentic-loop.md#the-agentic-loop--distributed-execution-model).
 
 ## Glossary
 
@@ -272,35 +286,15 @@ High-frequency traps (detail behind each link):
   No mapper flag sorts a set, so a hashed value must not contain one. Do not add a record annotation or a special
   collection type to work around the copy. [`agent-instance.md`](connector-aiagent/docs/agent-instance.md#conversation-history-items).
 
-## Architectural invariants
-
-Before changing module structure or extension points, read the
-[architectural invariants](docs/design-guidelines.md#architectural-invariants).
-
-The [target architecture](docs/target-architecture.md) shows the target state beyond the invariants.
-
 ## Working in this module
-
-Read the [implementation rules](docs/implementation-rules.md) and the
-[documentation rules](docs/documentation-rules.md) before you plan, implement or review a change.
-To review a change, follow [`docs/code-review.md`](docs/code-review.md).
-
-Before you design stored shapes, names, defaults, limits or observability, also read
-[`docs/design-guidelines.md`](docs/design-guidelines.md). Before you plan a structural change (a new
-module, collaborator, SPI or cross-module policy), also read the
-[target architecture](docs/target-architecture.md). The sections below are the module specifics.
 
 ### Building & testing
 
 ```bash
-mvn clean install -f connectors/agentic-ai/pom.xml               # build the module, including tests
-mvn clean install -DskipTests -f connectors/agentic-ai/pom.xml   # build the module, skipping tests
-mvn test -f connectors/agentic-ai/pom.xml                        # unit / integration tests
+./mvnw clean install -f connectors/agentic-ai/pom.xml               # build all modules, including tests
+./mvnw clean install -DskipTests -f connectors/agentic-ai/pom.xml   # build all modules, skipping tests
+./mvnw test -f connectors/agentic-ai/pom.xml                        # unit / integration tests
 ```
-
-For every code change, follow [`docs/acceptance-testing.md`](docs/acceptance-testing.md) to choose
-the test level and establish feature acceptance. Repo-wide build/commit/PR/CI/spotless/license rules
-live in the repo-root [`AGENTS.md`](../../AGENTS.md).
 
 ### Null safety
 
@@ -315,10 +309,10 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
   package under that module's `src/main/java`, so it also catches pre-existing gaps, not just the one
   you added):
   ```bash
-  cd connectors/agentic-ai/<module>
-  mvn org.codehaus.gmavenplus:gmavenplus-plugin:5.1.0:execute -Dscripts="file:///$(pwd)/../connector-aiagent/bin/generate-package-info.groovy"
+  ./mvnw -f connectors/agentic-ai/<module>/pom.xml org.codehaus.gmavenplus:gmavenplus-plugin:5.1.0:execute \
+    -Dscripts="file:///$(pwd)/connectors/agentic-ai/connector-aiagent/bin/generate-package-info.groovy"
   ```
-  Run `mvn license:format` on the module afterwards — the script doesn't stamp the license header — then
+  Run `./mvnw license:format` on the module afterwards — the script doesn't stamp the license header — then
   commit the generated file(s).
 
 ### ErrorProne
@@ -332,8 +326,8 @@ on the narrowest scope plus a comment stating why. Test code is not checked.
 
 Before claiming a change is complete:
 
-- [ ] Module builds (`mvn clean install -f connectors/agentic-ai/pom.xml`).
-   - [ ] If deviating from the `mvn install` command, ensure `mvn spotless:apply` and `mvn license:format` run clean (pre-commit hooks enforce these).
+- [ ] Module builds (`./mvnw clean install -f connectors/agentic-ai/pom.xml`).
+   - [ ] If deviating from the `./mvnw install` command, ensure `./mvnw spotless:apply` and `./mvnw license:format` run clean (pre-commit hooks enforce these).
 - [ ] Relevant unit, component or integration tests added/updated and passing.
 - [ ] E2E test decision made per the [testing rules](docs/acceptance-testing.md#choosing-e2e-vs-unit-tests-mandatory-decision): test added, reason stated, or question asked.
 - [ ] User-facing features meet the [acceptance rules](docs/acceptance-testing.md).
@@ -343,20 +337,12 @@ Before claiming a change is complete:
 - [ ] If template properties changed, the repo-root [element templates checks](../../AGENTS.md#element-templates)
   pass (regeneration, validator, `spotless:check`); check the JSON diff.
 - [ ] The change follows the [implementation rules](docs/implementation-rules.md).
-- [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
+- [ ] Documentation updated per [Documentation](#documentation).
 - [ ] Each Javadoc and each document that names a changed method agrees with the code at the last commit of the PR.
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
   The [API compatibility check](../../docs/api-compatibility.md) states from when it gates `aiagent-api`
   and `aiagent-model`. Accept a break that it reports in the module's `api-changes.json` with a link to
   its `breaking-changes.md` anchor.
-
-## Extension points
-
-Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
-tool by implementing the SPI and registering a Spring bean. A process tool must not have the name of a runtime tool that is enabled.
-Where to start (SPI + reference implementation per type): [Extension Points](docs/architecture/extension-points.md#extension-points) (gateway tools:
-[Gateway Tool Pattern](docs/architecture/extension-points.md#gateway-tool-pattern); runtime tools:
-[Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool) and [ADR 016](docs/adr/016-runtime-tools.md)).
 
 ## Element templates
 
@@ -425,48 +411,4 @@ The transform scripts add the hidden `zeebe:agentDefinition` marker to every AI 
 `deprecated` block to the current v1 templates. Which templates carry them and how the scripts add them:
 [Markers added by the transform scripts](connector-aiagent/docs/element-template-generation.md#markers-added-by-the-transform-scripts).
 
-## Key entry points
-
-The connector functions of both flavors, the shared orchestrator and the Spring wiring are listed in
-the [key types of `connector-aiagent`](connector-aiagent/README.md#key-types).
-
-## Architecture decision records
-
-When planning a significant technical decision, use the
-[ADR criteria](docs/design-guidelines.md#architecture-decision-records).
-When writing or revising an ADR, read the [authoring rules](docs/adr/README.md).
-
-## Keeping documentation up to date
-
-Update the docs in the same change as the code. Follow the
-[documentation rules](docs/documentation-rules.md): where each doc goes, how to find the docs that a
-change affects, and the [docs checks](#docs-checks).
-
-- **`AGENTS.md`** (this file): rules and links (mental model, navigation, glossary, gotchas,
-  build/test commands). Each fact has one home: a module doc, a doc in `docs/`, or a Javadoc. Do not
-  restate its details here (values, formats, field lists, order, steps or semantics). Link to its home.
-  A rule may name a type, a field or an error code as a pointer to that home.
-  Design rules live in `docs/design-guidelines.md`; testing rules live in `docs/acceptance-testing.md`;
-  ADR authoring rules live in `docs/adr/README.md`.
-- **`<module>/README.md`** and **`<module>/docs/`**: the purpose and key types of a module, and the docs
-  about its types (data model, memory, tools, converters, providers, error codes, MCP, A2A). The
-  [docs checks](#docs-checks) enforce the README layout and the links.
-  `connector-aiagent/README.md` is generated: edit `connector-aiagent/README.peb`. It uses the shared
-  connector README layout, so its title is `# AI Agent Task` instead of `# connector-aiagent`.
-- **`docs/architecture/`**: content that spans modules (the agentic loop, extension points, Spring
-  auto-configuration).
-- **`docs/design-guidelines.md`**: the architectural invariants.
-- **`docs/breaking-changes.md`**: breaking changes for custom extensions (SPIs, public classes and
-  packages, persisted data, job types, configuration). Add an entry in the same change that
-  introduces the break, under the section of the release in development, with the old and new API
-  and a migration hint. The public docs link to it.
-- **`<connector module>/element-templates/README.md`** and the index
-  **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new
-  connectors (maintenance rules are in the Element templates section above).
-  These READMEs serve users who pick or configure a template: which template fits which Camunda version
-  and what a user selects. Put the details of how the templates are generated in `<module>/docs/`.
-
-After a doc change, run the [docs checks](#docs-checks).
-
-> `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
-> Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.
+> Edit `AGENTS.md`; `CLAUDE.md` only imports it.
