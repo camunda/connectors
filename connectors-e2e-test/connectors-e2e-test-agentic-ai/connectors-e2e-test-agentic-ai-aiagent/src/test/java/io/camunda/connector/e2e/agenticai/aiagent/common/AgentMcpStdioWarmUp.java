@@ -28,7 +28,7 @@ import org.springframework.context.annotation.Bean;
  * Starts the stdio MCP server before the first test. The stdio client starts its server container
  * with its first request, and the start is slow on a loaded runner. This request starts the
  * container and initializes the cached client, so the tests find a running server. A failed start
- * fails the context with the cause, and not every stdio row with a timeout.
+ * fails the context with the cause, and not every stdio test with a timeout.
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class AgentMcpStdioWarmUp {
