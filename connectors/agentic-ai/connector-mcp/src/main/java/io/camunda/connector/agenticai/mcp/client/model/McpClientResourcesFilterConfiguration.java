@@ -13,7 +13,6 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
-import org.jspecify.annotations.Nullable;
 
 public record McpClientResourcesFilterConfiguration(
     @FEEL
@@ -25,7 +24,7 @@ public record McpClientResourcesFilterConfiguration(
             type = TemplateProperty.PropertyType.Text,
             feel = FeelMode.required,
             optional = true)
-        @Nullable List<@NotBlank String> included,
+        List<@NotBlank String> included,
     @FEEL
         @TemplateProperty(
             group = "filters",
@@ -35,7 +34,7 @@ public record McpClientResourcesFilterConfiguration(
             type = TemplateProperty.PropertyType.Text,
             feel = FeelMode.required,
             optional = true)
-        @Nullable List<@NotBlank String> excluded) {
+        List<@NotBlank String> excluded) {
 
   public AllowDenyList toAllowDenyList() {
     return AllowDenyListBuilder.builder().allowed(included).denied(excluded).build();
