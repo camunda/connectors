@@ -338,6 +338,7 @@ class LangChain4JBridgeTest {
     public ChatModel create(ChatModelConfiguration configuration) {
       return new LangChain4JChatModel(
           model,
+          configuration,
           chatMessageConverter(),
           new ToolSpecificationConverterImpl(new JsonSchemaConverter(OBJECT_MAPPER)),
           new JsonSchemaConverter(OBJECT_MAPPER));
@@ -358,11 +359,11 @@ class LangChain4JBridgeTest {
     public ChatModel create(ChatModelConfiguration configuration) {
       return new LangChain4JChatModel(
           model,
+          configuration,
           chatMessageConverter(),
           new ToolSpecificationConverterImpl(new JsonSchemaConverter(OBJECT_MAPPER)),
           new JsonSchemaConverter(OBJECT_MAPPER),
           new ToolCallMetadataCodec(
-              configuration.provider(),
               (toolCallId, attributes) ->
                   attributes.get("signature_" + toolCallId) instanceof String signature
                       ? Map.of("signature", signature)
@@ -396,6 +397,7 @@ class LangChain4JBridgeTest {
     public ChatModel create(ChatModelConfiguration configuration) {
       return new LangChain4JChatModel(
           model,
+          configuration,
           chatMessageConverter(),
           new ToolSpecificationConverterImpl(new JsonSchemaConverter(OBJECT_MAPPER)),
           new JsonSchemaConverter(OBJECT_MAPPER));

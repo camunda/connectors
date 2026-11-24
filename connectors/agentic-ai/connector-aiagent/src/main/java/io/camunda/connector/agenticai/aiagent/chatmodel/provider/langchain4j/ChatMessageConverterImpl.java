@@ -96,12 +96,16 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   @Override
   public dev.langchain4j.data.message.AiMessage fromAssistantMessage(
-      AssistantMessage assistantMessage, ToolCallMetadataCodec toolCallMetadataCodec) {
-    return fromAssistantMessageBuilder(assistantMessage, toolCallMetadataCodec).build();
+      AssistantMessage assistantMessage,
+      String provider,
+      ToolCallMetadataCodec toolCallMetadataCodec) {
+    return fromAssistantMessageBuilder(assistantMessage, provider, toolCallMetadataCodec).build();
   }
 
   protected dev.langchain4j.data.message.AiMessage.Builder fromAssistantMessageBuilder(
-      AssistantMessage assistantMessage, ToolCallMetadataCodec toolCallMetadataCodec) {
+      AssistantMessage assistantMessage,
+      String provider,
+      ToolCallMetadataCodec toolCallMetadataCodec) {
     final var builder = AiMessage.builder();
 
     if (!CollectionUtils.isEmpty(assistantMessage.content())) {
@@ -124,7 +128,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       builder.toolExecutionRequests(toolExecutionRequests);
     }
 
-    final var attributes = toolCallAttributes(assistantMessage, toolCallMetadataCodec);
+    final var attributes = toolCallAttributes(assistantMessage, provider, toolCallMetadataCodec);
     if (!attributes.isEmpty()) {
       builder.attributes(attributes);
     }
@@ -136,10 +140,12 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
    * Provider tool call metadata carries data the provider requires us to echo back verbatim on the
    * next request, e.g. Gemini 3 thought signatures. This is provider-specific data, kept separate
    * from {@link #serializedChatResponseMetadata}. What is safe to restore is provider-specific -
-   * see {@link ToolCallMetadataCodec}. Only the entry of the provider of the codec is restored.
+   * see {@link ToolCallMetadataCodec}. Only the entry of the given provider is restored.
    */
   protected Map<String, Object> toolCallAttributes(
-      AssistantMessage assistantMessage, ToolCallMetadataCodec toolCallMetadataCodec) {
+      AssistantMessage assistantMessage,
+      String provider,
+      ToolCallMetadataCodec toolCallMetadataCodec) {
     if (CollectionUtils.isEmpty(assistantMessage.toolCalls())) {
       return Map.of();
     }
@@ -150,8 +156,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
         continue;
       }
 
-      if (toolCall.metadata().get(toolCallMetadataCodec.provider())
-              instanceof Map<?, ?> providerMetadata
+      if (toolCall.metadata().get(provider) instanceof Map<?, ?> providerMetadata
           && !providerMetadata.isEmpty()) {
         attributes.putAll(toolCallMetadataCodec.reader().read(toolCall.id(), providerMetadata));
       }
@@ -162,12 +167,12 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   @Override
   public AssistantMessage toAssistantMessage(
-      ChatResponse chatResponse, ToolCallMetadataCodec toolCallMetadataCodec) {
-    return toAssistantMessageBuilder(chatResponse, toolCallMetadataCodec).build();
+      ChatResponse chatResponse, String provider, ToolCallMetadataCodec toolCallMetadataCodec) {
+    return toAssistantMessageBuilder(chatResponse, provider, toolCallMetadataCodec).build();
   }
 
   protected AssistantMessageBuilder toAssistantMessageBuilder(
-      ChatResponse chatResponse, ToolCallMetadataCodec toolCallMetadataCodec) {
+      ChatResponse chatResponse, String provider, ToolCallMetadataCodec toolCallMetadataCodec) {
     final var builder = AssistantMessage.builder();
 
     if (chatResponse.metadata() != null) {
@@ -195,7 +200,8 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     final var toolCalls =
         aiMessage.toolExecutionRequests().stream()
             .map(toolCallConverter::asToolCall)
-            .map(toolCall -> writeToolCallMetadata(toolCall, aiMessage, toolCallMetadataCodec))
+            .map(toolCall ->
+                writeToolCallMetadata(toolCall, aiMessage, provider, toolCallMetadataCodec))
             .toList();
 
     builder.toolCalls(toolCalls);
@@ -204,7 +210,10 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   }
 
   private ToolCall writeToolCallMetadata(
-      ToolCall toolCall, AiMessage aiMessage, ToolCallMetadataCodec toolCallMetadataCodec) {
+      ToolCall toolCall,
+      AiMessage aiMessage,
+      String provider,
+      ToolCallMetadataCodec toolCallMetadataCodec) {
     if (CollectionUtils.isEmpty(aiMessage.attributes())) {
       return toolCall;
     }
@@ -213,7 +222,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
         toolCallMetadataCodec.writer().write(toolCall.id(), aiMessage.attributes());
     return providerMetadata.isEmpty()
         ? toolCall
-        : toolCall.withMetadata(Map.of(toolCallMetadataCodec.provider(), providerMetadata));
+        : toolCall.withMetadata(Map.of(provider, providerMetadata));
   }
 
   private static StopReason toStopReason(FinishReason finishReason) {

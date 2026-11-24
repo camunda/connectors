@@ -17,12 +17,13 @@ import java.util.List;
 
 public interface ChatMessageConverter {
 
-  default List<ChatMessage> map(Message message, ToolCallMetadataCodec toolCallMetadataCodec) {
+  default List<ChatMessage> map(
+      Message message, String provider, ToolCallMetadataCodec toolCallMetadataCodec) {
     return switch (message) {
       case SystemMessage systemMessage -> List.of(fromSystemMessage(systemMessage));
       case UserMessage userMessage -> List.of(fromUserMessage(userMessage));
       case AssistantMessage assistantMessage ->
-          List.of(fromAssistantMessage(assistantMessage, toolCallMetadataCodec));
+          List.of(fromAssistantMessage(assistantMessage, provider, toolCallMetadataCodec));
       case ToolCallResultMessage toolCallResultMessage ->
           fromToolCallResultMessage(toolCallResultMessage).stream()
               .map(ChatMessage.class::cast)
@@ -32,9 +33,9 @@ public interface ChatMessageConverter {
   }
 
   default List<ChatMessage> map(
-      List<Message> messages, ToolCallMetadataCodec toolCallMetadataCodec) {
+      List<Message> messages, String provider, ToolCallMetadataCodec toolCallMetadataCodec) {
     return messages.stream()
-        .map(message -> map(message, toolCallMetadataCodec))
+        .map(message -> map(message, provider, toolCallMetadataCodec))
         .flatMap(List::stream)
         .toList();
   }
@@ -44,10 +45,12 @@ public interface ChatMessageConverter {
   dev.langchain4j.data.message.UserMessage fromUserMessage(UserMessage userMessage);
 
   dev.langchain4j.data.message.AiMessage fromAssistantMessage(
-      AssistantMessage assistantMessage, ToolCallMetadataCodec toolCallMetadataCodec);
+      AssistantMessage assistantMessage,
+      String provider,
+      ToolCallMetadataCodec toolCallMetadataCodec);
 
   AssistantMessage toAssistantMessage(
-      ChatResponse chatResponse, ToolCallMetadataCodec toolCallMetadataCodec);
+      ChatResponse chatResponse, String provider, ToolCallMetadataCodec toolCallMetadataCodec);
 
   List<dev.langchain4j.data.message.ToolExecutionResultMessage> fromToolCallResultMessage(
       ToolCallResultMessage toolCallResultMessage);

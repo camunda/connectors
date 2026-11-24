@@ -15,15 +15,15 @@ LangChain4j provider stack ([ADR 014](../../docs/adr/014-route-v1-requests-throu
   `camunda.connector.agenticai.aiagent.langchain4j.enabled` switches it on. The registry picks a custom
   `ChatModelFactory` bean through `ChatModelFactory#supports`.
 - `LangChain4JChatModel` is the `ChatModel` implementation and the entry point of the bridge. A custom factory builds
-  the underlying LangChain4j model and wraps it in a `LangChain4JChatModel`. The constructor without a codec and a
+  the underlying LangChain4j model and wraps it in a `LangChain4JChatModel`. The model takes the chat model configuration and keeps only its provider ID. The constructor without a codec and a
   mapper uses no provider data and the base token usage. The other constructor takes a `ToolCallMetadataCodec` and a
   token usage mapper. The model converts the domain conversation and the tool definitions to LangChain4j types, runs
   one `chat()` call while timing it, and converts the response
   back. It maps a content filter finish reason to `ContentFilteredException`. LangChain4j has no
   pause semantics, so it always returns `ChatResult.Completed`.
 - A `ToolCallMetadataCodec` carries provider data that the model must get back verbatim, for example thought
-  signatures, through `ToolCall#metadata()`. `ToolCallMetadataCodec#none` carries nothing.
-  `ChatMessageConverterImpl` persists the written data under the provider ID of the codec and gives the reader only
+  signatures, through `ToolCall#metadata()`. `ToolCallMetadataCodec#NONE` carries nothing.
+  `ChatMessageConverterImpl` persists the written data under the provider ID of the chat model configuration and gives the reader only
   that entry.
 - `ChatModelHttpProxySupport` creates a JDK `HttpClient` builder with the proxy settings of the connector, for
   LangChain4j models that take an `HttpClientBuilder`.

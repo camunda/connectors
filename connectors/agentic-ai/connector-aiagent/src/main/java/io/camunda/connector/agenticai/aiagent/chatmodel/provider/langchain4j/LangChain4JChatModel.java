@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jso
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetricsTokenUsageBuilder;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
@@ -51,6 +52,7 @@ public class LangChain4JChatModel implements ChatModel {
   private static final Logger LOG = LoggerFactory.getLogger(LangChain4JChatModel.class);
 
   private final CloseableChatModel chatModel;
+  private final String provider;
   private final ChatMessageConverter chatMessageConverter;
   private final ToolSpecificationConverter toolSpecificationConverter;
   private final JsonSchemaConverter jsonSchemaConverter;
@@ -59,38 +61,46 @@ public class LangChain4JChatModel implements ChatModel {
 
   /**
    * Creates a model that carries no provider data through the tool calls ({@link
-   * ToolCallMetadataCodec#none()}) and maps the base token usage ({@link #mapTokenUsage}).
+   * ToolCallMetadataCodec#NONE}) and maps the base token usage ({@link #mapTokenUsage}).
    *
    * @param chatModel the LangChain4j model. The connector closes it with this model.
+   * @param configuration the chat model configuration. The model keeps only its provider ID, which
+   *     is the namespace of the data that the tool calls carry.
    */
   public LangChain4JChatModel(
       CloseableChatModel chatModel,
+      ChatModelConfiguration configuration,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     this(
         chatModel,
+        configuration,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,
-        ToolCallMetadataCodec.none(),
+        ToolCallMetadataCodec.NONE,
         LangChain4JChatModel::mapTokenUsage);
   }
 
   /**
    * @param chatModel the LangChain4j model. The connector closes it with this model.
+   * @param configuration the chat model configuration. The model keeps only its provider ID, which
+   *     is the namespace of the data that the tool calls carry.
    * @param toolCallMetadataCodec carries provider data through the tool calls
    * @param tokenUsageMapper maps the token usage of a response. A mapper that adds the cache or
    *     reasoning token detail of its provider starts from {@link #baseTokenUsageBuilder}.
    */
   public LangChain4JChatModel(
       CloseableChatModel chatModel,
+      ChatModelConfiguration configuration,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter,
       ToolCallMetadataCodec toolCallMetadataCodec,
       Function<@Nullable TokenUsage, AgentMetrics.TokenUsage> tokenUsageMapper) {
     this.chatModel = chatModel;
+    this.provider = configuration.provider();
     this.chatMessageConverter = chatMessageConverter;
     this.toolSpecificationConverter = toolSpecificationConverter;
     this.jsonSchemaConverter = jsonSchemaConverter;
@@ -124,7 +134,8 @@ public class LangChain4JChatModel implements ChatModel {
     final var executionContext = request.executionContext();
     final var snapshot = request.snapshot();
 
-    final var messages = chatMessageConverter.map(snapshot.messages(), toolCallMetadataCodec);
+    final var messages =
+        chatMessageConverter.map(snapshot.messages(), provider, toolCallMetadataCodec);
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(snapshot.toolDefinitions());
 
@@ -138,7 +149,7 @@ public class LangChain4JChatModel implements ChatModel {
     final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
 
     final AssistantMessage assistantMessage =
-        chatMessageConverter.toAssistantMessage(chatResponse, toolCallMetadataCodec);
+        chatMessageConverter.toAssistantMessage(chatResponse, provider, toolCallMetadataCodec);
     final var metrics = buildMetrics(chatResponse, assistantMessage, executionTime);
 
     if (assistantMessage.stopReason() instanceof UnknownStopReason unknown

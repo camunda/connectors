@@ -104,6 +104,7 @@ public class AcmeChatModelFactory implements ChatModelFactory {
 
     return new LangChain4JChatModel(
         new CloseableChatModelDelegate(model, httpClientBuilder),
+        custom,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter);
@@ -152,15 +153,14 @@ LangChain4j returns this data as attributes of the `AiMessage` and expects it ag
   calls into it. Make each key unique per tool call, for example by including the tool call ID, as the example below
   does.
 
-The connector stores the result under the provider ID of the codec (`acme` here), and passes only your own entry to the
-reader. The constructor without a codec carries nothing.
+The connector stores the result under the provider ID of the configuration you pass to the model (`acme` here, the
+provider type of the custom configuration), and passes only your own entry to the reader. The constructor without a codec carries nothing.
 
 <!-- docs-lint: allow-java-block: the example of the codec reads clearer as code than as prose -->
 
 ```java
 final var codec =
     new ToolCallMetadataCodec(
-        "acme",
         (toolCallId, attributes) ->
             attributes.get("signature_" + toolCallId) instanceof String signature
                 ? Map.of("signature", signature)
@@ -172,6 +172,7 @@ final var codec =
 
 return new LangChain4JChatModel(
     closeableModel,
+    configuration,
     chatMessageConverter,
     toolSpecificationConverter,
     jsonSchemaConverter,

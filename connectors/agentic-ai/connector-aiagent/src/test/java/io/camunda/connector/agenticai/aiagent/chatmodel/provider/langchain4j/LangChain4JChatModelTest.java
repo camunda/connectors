@@ -13,7 +13,6 @@ import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupp
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -40,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.too
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -48,6 +48,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
@@ -95,8 +96,12 @@ class LangChain4JChatModelTest {
   private static final ConversationSnapshot SNAPSHOT =
       new ConversationSnapshot(INPUT_MESSAGES, TOOL_DEFINITIONS);
 
-  private static final ToolCallMetadataCodec TOOL_CALL_METADATA_CODEC =
-      ToolCallMetadataCodec.none("test-provider");
+  private static final String PROVIDER = "test-provider";
+
+  private static final ChatModelConfiguration CONFIGURATION =
+      new CustomProviderConfiguration(PROVIDER, "test-model", Map.of());
+
+  private static final ToolCallMetadataCodec TOOL_CALL_METADATA_CODEC = ToolCallMetadataCodec.NONE;
 
   @Mock private ChatMessageConverter chatMessageConverter;
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
@@ -118,12 +123,15 @@ class LangChain4JChatModelTest {
     lenient().when(chatModel.chat(chatRequestCaptor.capture())).thenReturn(chatResponse);
     lenient().when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
     lenient()
-        .when(chatMessageConverter.toAssistantMessage(chatResponse, TOOL_CALL_METADATA_CODEC))
+        .when(
+            chatMessageConverter.toAssistantMessage(
+                chatResponse, PROVIDER, TOOL_CALL_METADATA_CODEC))
         .thenReturn(ASSISTANT_MESSAGE);
 
     api =
         new LangChain4JChatModel(
             chatModel,
+            CONFIGURATION,
             chatMessageConverter,
             toolSpecificationConverter,
             jsonSchemaConverter,
@@ -141,7 +149,7 @@ class LangChain4JChatModelTest {
   // stubbed per-test rather than in setUp() (not every test calls execute(), e.g.
   // closeClosesTheUnderlyingChatModel), so a strict, non-lenient stub is used only where needed
   private void mockChatMessageConverterMapsInputMessages() {
-    when(chatMessageConverter.map(INPUT_MESSAGES, TOOL_CALL_METADATA_CODEC))
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER, TOOL_CALL_METADATA_CODEC))
         .thenReturn(L4J_MESSAGES);
   }
 
@@ -167,7 +175,7 @@ class LangChain4JChatModelTest {
   @Test
   void throwsContentFilteredExceptionForContentFilteredResponse() {
     reset(chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, TOOL_CALL_METADATA_CODEC))
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER, TOOL_CALL_METADATA_CODEC))
         .thenReturn(L4J_MESSAGES);
     when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
 
@@ -175,7 +183,7 @@ class LangChain4JChatModelTest {
         AssistantMessage.builder()
             .stopReason(new StopReason.UnknownStopReason("CONTENT_FILTER"))
             .build();
-    when(chatMessageConverter.toAssistantMessage(chatResponse, TOOL_CALL_METADATA_CODEC))
+    when(chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, TOOL_CALL_METADATA_CODEC))
         .thenReturn(filteredAssistantMessage);
 
     assertThatThrownBy(() -> api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT)))
@@ -191,7 +199,7 @@ class LangChain4JChatModelTest {
   @Test
   void wrapsUnderlyingExceptionsInConnectorException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, TOOL_CALL_METADATA_CODEC))
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER, TOOL_CALL_METADATA_CODEC))
         .thenReturn(L4J_MESSAGES);
 
     final var cause = new ModelNotFoundException("Model 'dummy' was not found");
@@ -211,7 +219,7 @@ class LangChain4JChatModelTest {
   @Test
   void usesExceptionClassIfNoMessageIncludedInException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, TOOL_CALL_METADATA_CODEC))
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER, TOOL_CALL_METADATA_CODEC))
         .thenReturn(L4J_MESSAGES);
 
     final var cause = new UnresolvedModelServerException((String) null);
@@ -407,15 +415,19 @@ class LangChain4JChatModelTest {
 
     @Test
     void theConstructorWithoutCodecAndMapperUsesTheDefaultTokenUsageMapping() {
-      when(chatMessageConverter.map(eq(INPUT_MESSAGES), any(ToolCallMetadataCodec.class)))
+      when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER, ToolCallMetadataCodec.NONE))
           .thenReturn(L4J_MESSAGES);
       when(chatMessageConverter.toAssistantMessage(
-              eq(chatResponse), any(ToolCallMetadataCodec.class)))
+              chatResponse, PROVIDER, ToolCallMetadataCodec.NONE))
           .thenReturn(ASSISTANT_MESSAGE);
 
       final var result =
           new LangChain4JChatModel(
-                  chatModel, chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter)
+                  chatModel,
+                  CONFIGURATION,
+                  chatMessageConverter,
+                  toolSpecificationConverter,
+                  jsonSchemaConverter)
               .execute(new ChatRequest(createExecutionContext(), SNAPSHOT));
 
       assertThat(result.metrics().tokenUsage()).isEqualTo(new AgentMetrics.TokenUsage(5, 6));

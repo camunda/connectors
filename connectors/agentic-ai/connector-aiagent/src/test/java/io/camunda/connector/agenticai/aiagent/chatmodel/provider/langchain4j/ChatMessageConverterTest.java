@@ -64,16 +64,12 @@ class ChatMessageConverterTest {
   private static final String PROVIDER = "test-provider";
   private static final String OTHER_PROVIDER = "other-provider";
 
-  /** A codec that carries no data. */
-  private static final ToolCallMetadataCodec NO_METADATA = ToolCallMetadataCodec.none(PROVIDER);
-
   /**
    * Echoes the thought signature of a provider through the tool call metadata, the way a custom
    * LangChain4j backed Gemini factory would.
    */
   private static final ToolCallMetadataCodec THOUGHT_SIGNATURE_CODEC =
       new ToolCallMetadataCodec(
-          PROVIDER,
           (toolCallId, attributes) ->
               attributes.get("thought_signature_" + toolCallId) instanceof String signature
                   ? Map.of("thoughtSignature", signature)
@@ -213,7 +209,9 @@ class ChatMessageConverterTest {
     AssistantMessage assistantMessage =
         AssistantMessage.builder().content(List.of(textContent("Test assistant message"))).build();
 
-    AiMessage result = chatMessageConverter.fromAssistantMessage(assistantMessage, NO_METADATA);
+    AiMessage result =
+        chatMessageConverter.fromAssistantMessage(
+            assistantMessage, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.text()).isEqualTo("Test assistant message");
     assertThat(result.toolExecutionRequests()).isEmpty();
@@ -223,7 +221,9 @@ class ChatMessageConverterTest {
   void fromAssistantMessage_withoutAnyContent_returnsAiMessage() {
     AssistantMessage assistantMessage = AssistantMessage.builder().build();
 
-    AiMessage result = chatMessageConverter.fromAssistantMessage(assistantMessage, NO_METADATA);
+    AiMessage result =
+        chatMessageConverter.fromAssistantMessage(
+            assistantMessage, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.text()).isNull();
     assertThat(result.toolExecutionRequests()).isEmpty();
@@ -241,7 +241,9 @@ class ChatMessageConverterTest {
     ToolExecutionRequest toolExecutionRequest = mock(ToolExecutionRequest.class);
     when(toolCallConverter.asToolExecutionRequest(toolCall)).thenReturn(toolExecutionRequest);
 
-    AiMessage result = chatMessageConverter.fromAssistantMessage(assistantMessage, NO_METADATA);
+    AiMessage result =
+        chatMessageConverter.fromAssistantMessage(
+            assistantMessage, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.text()).isEqualTo("Test message");
     assertThat(result.toolExecutionRequests()).hasSize(1);
@@ -259,8 +261,9 @@ class ChatMessageConverterTest {
                     DocumentContent.documentContent(mock(Document.class))))
             .build();
 
-    assertThatThrownBy(
-            () -> chatMessageConverter.fromAssistantMessage(assistantMessage, NO_METADATA))
+    assertThatThrownBy(() ->
+            chatMessageConverter.fromAssistantMessage(
+                assistantMessage, PROVIDER, ToolCallMetadataCodec.NONE))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
             "AiMessage currently only supports a single TextContent block, 3 content blocks found instead.");
@@ -303,7 +306,7 @@ class ChatMessageConverterTest {
     when(toolCallConverter.asToolCall(toolExecutionRequest)).thenReturn(toolCall);
 
     final var assistantMessage =
-        chatMessageConverter.toAssistantMessage(chatResponse, THOUGHT_SIGNATURE_CODEC);
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, THOUGHT_SIGNATURE_CODEC);
 
     assertThat(assistantMessage.toolCalls()).hasSize(1);
 
@@ -317,7 +320,7 @@ class ChatMessageConverterTest {
 
     assertThat(
             chatMessageConverter
-                .fromAssistantMessage(assistantMessage, THOUGHT_SIGNATURE_CODEC)
+                .fromAssistantMessage(assistantMessage, PROVIDER, THOUGHT_SIGNATURE_CODEC)
                 .attributes())
         .isEqualTo(Map.of("thought_signature_toolCallId", "c2lnbmF0dXJl"));
   }
@@ -337,7 +340,8 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse, NO_METADATA);
+    final var result =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.metadata().get("framework"))
         .asInstanceOf(InstanceOfAssertFactories.MAP)
@@ -377,7 +381,7 @@ class ChatMessageConverterTest {
     when(toolCallConverter.asToolCall(toolExecutionRequest)).thenReturn(toolCall);
 
     final var result =
-        chatMessageConverter.toAssistantMessage(chatResponse, THOUGHT_SIGNATURE_CODEC);
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, THOUGHT_SIGNATURE_CODEC);
 
     assertThat(result.toolCalls()).hasSize(1);
     assertThat(result.toolCalls().getFirst().metadata()).isNullOrEmpty();
@@ -405,7 +409,8 @@ class ChatMessageConverterTest {
     final var toolCall = ToolCall.builder().id("toolCallId").name("toolName").build();
     when(toolCallConverter.asToolCall(toolExecutionRequest)).thenReturn(toolCall);
 
-    final var assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse, NO_METADATA);
+    final var assistantMessage =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(assistantMessage.toolCalls()).hasSize(1);
     assertThat(assistantMessage.toolCalls().getFirst().metadata()).isNullOrEmpty();
@@ -416,7 +421,6 @@ class ChatMessageConverterTest {
     final var writerCalls = new ArrayList<Map.Entry<String, Map<String, Object>>>();
     final var codec =
         new ToolCallMetadataCodec(
-            PROVIDER,
             (toolCallId, attributes) -> {
               writerCalls.add(entry(toolCallId, attributes));
               return Map.of();
@@ -437,7 +441,8 @@ class ChatMessageConverterTest {
     final var toolCall = ToolCall.builder().id("toolCallId").name("toolName").build();
     when(toolCallConverter.asToolCall(toolExecutionRequest)).thenReturn(toolCall);
 
-    final var assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse, codec);
+    final var assistantMessage =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, codec);
 
     assertThat(writerCalls).containsExactly(entry("toolCallId", attributes));
     assertThat(assistantMessage.toolCalls()).hasSize(1);
@@ -462,7 +467,9 @@ class ChatMessageConverterTest {
         .thenReturn(mock(ToolExecutionRequest.class));
 
     assertThat(
-            chatMessageConverter.fromAssistantMessage(assistantMessage, NO_METADATA).attributes())
+            chatMessageConverter
+                .fromAssistantMessage(assistantMessage, PROVIDER, ToolCallMetadataCodec.NONE)
+                .attributes())
         .isEmpty();
   }
 
@@ -483,7 +490,6 @@ class ChatMessageConverterTest {
     final var readerCalls = new ArrayList<Map.Entry<String, Map<?, ?>>>();
     final var codec =
         new ToolCallMetadataCodec(
-            PROVIDER,
             (toolCallId, attributes) -> Map.of(),
             (toolCallId, providerMetadata) -> {
               readerCalls.add(entry(toolCallId, providerMetadata));
@@ -493,7 +499,10 @@ class ChatMessageConverterTest {
     when(toolCallConverter.asToolExecutionRequest(toolCall))
         .thenReturn(mock(ToolExecutionRequest.class));
 
-    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage, codec).attributes())
+    assertThat(
+            chatMessageConverter
+                .fromAssistantMessage(assistantMessage, PROVIDER, codec)
+                .attributes())
         .isEmpty();
     assertThat(readerCalls).isEmpty();
   }
@@ -520,7 +529,6 @@ class ChatMessageConverterTest {
     final var readerCalls = new ArrayList<Map.Entry<String, Map<?, ?>>>();
     final var codec =
         new ToolCallMetadataCodec(
-            PROVIDER,
             (toolCallId, attributes) -> Map.of(),
             (toolCallId, providerMetadata) -> {
               readerCalls.add(entry(toolCallId, providerMetadata));
@@ -530,7 +538,10 @@ class ChatMessageConverterTest {
     when(toolCallConverter.asToolExecutionRequest(toolCall))
         .thenReturn(mock(ToolExecutionRequest.class));
 
-    assertThat(chatMessageConverter.fromAssistantMessage(assistantMessage, codec).attributes())
+    assertThat(
+            chatMessageConverter
+                .fromAssistantMessage(assistantMessage, PROVIDER, codec)
+                .attributes())
         .isEqualTo(Map.of("thought_signature_toolCallId", "own-signature"));
     assertThat(readerCalls)
         .containsExactly(entry("toolCallId", Map.of("thoughtSignature", "own-signature")));
@@ -551,7 +562,8 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse, NO_METADATA);
+    final var result =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.content())
         .hasSize(1)
@@ -592,7 +604,8 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse, NO_METADATA);
+    final var result =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.metadata().get("framework"))
         .asInstanceOf(InstanceOfAssertFactories.MAP)
@@ -619,7 +632,8 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse, NO_METADATA);
+    final var result =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.content()).isEmpty();
 
@@ -641,7 +655,8 @@ class ChatMessageConverterTest {
 
     final var chatResponse = new ChatResponse.Builder().aiMessage(aiMessage).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse, NO_METADATA);
+    final var result =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.content()).isEmpty();
   }
@@ -651,7 +666,8 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(AiMessage.builder().build()).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse, NO_METADATA);
+    final var result =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.metadata()).containsKey("framework");
     assertThat(result.metadata().get("framework"))
@@ -677,7 +693,8 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse, NO_METADATA);
+    final var result =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.stopReason()).isEqualTo(expectedStopReason);
   }
@@ -706,7 +723,8 @@ class ChatMessageConverterTest {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
 
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse, NO_METADATA);
+    final var result =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.modelId()).isNull();
     assertThat(result.messageId()).isNull();
@@ -728,7 +746,8 @@ class ChatMessageConverterTest {
     ToolCall toolCall = ToolCall.builder().id("toolCallId").name("toolName").build();
     when(toolCallConverter.asToolCall(toolExecutionRequest)).thenReturn(toolCall);
 
-    AssistantMessage result = chatMessageConverter.toAssistantMessage(chatResponse, NO_METADATA);
+    AssistantMessage result =
+        chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result.toolCalls()).hasSize(1).containsExactly(toolCall);
   }
@@ -760,7 +779,8 @@ class ChatMessageConverterTest {
     SystemMessage systemMessage =
         SystemMessage.builder().content(List.of(textContent("Test system message"))).build();
 
-    List<ChatMessage> result = chatMessageConverter.map(systemMessage, NO_METADATA);
+    List<ChatMessage> result =
+        chatMessageConverter.map(systemMessage, PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result)
         .hasSize(1)
@@ -780,7 +800,8 @@ class ChatMessageConverterTest {
         UserMessage.builder().content(List.of(textContent("User message"))).build();
 
     List<ChatMessage> result =
-        chatMessageConverter.map(List.of(systemMessage, userMessage), NO_METADATA);
+        chatMessageConverter.map(
+            List.of(systemMessage, userMessage), PROVIDER, ToolCallMetadataCodec.NONE);
 
     assertThat(result).hasSize(2);
     assertThat(result.get(0)).isInstanceOf(dev.langchain4j.data.message.SystemMessage.class);
@@ -802,7 +823,8 @@ class ChatMessageConverterTest {
           }
         };
 
-    assertThatThrownBy(() -> chatMessageConverter.map(unknownMessage, NO_METADATA))
+    assertThatThrownBy(
+            () -> chatMessageConverter.map(unknownMessage, PROVIDER, ToolCallMetadataCodec.NONE))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Unknown message type");
   }

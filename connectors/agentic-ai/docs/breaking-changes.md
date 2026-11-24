@@ -442,7 +442,7 @@ custom factory:
 - `ToolCallMetadataDecorator` is replaced by a `ToolCallMetadataCodec`, which you pass to the constructor of `LangChain4JChatModel`.
 - The token usage mapping `mapTokenUsage` moves to `LangChain4JChatModel#mapTokenUsage`. To map more detail, use the
   constructor of `LangChain4JChatModel` with your own mapper.
-- `ChatMessageConverter` and `LangChain4JChatModel` take a `ToolCallMetadataCodec` instead of the v1 `ProviderConfiguration`.
+- `LangChain4JChatModel` takes the `ChatModelConfiguration` and a `ToolCallMetadataCodec`, and `ChatMessageConverter` takes the provider ID and a `ToolCallMetadataCodec`, instead of the v1 `ProviderConfiguration`.
 - The v1 `ProviderConfiguration` records no longer implement `ChatModelConfiguration`.
 
 ## Camunda 8.9 to 8.10

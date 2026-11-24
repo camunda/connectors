@@ -69,7 +69,7 @@ configuration type that implements `ChatModelConfiguration` directly.
 
 Some providers, such as Gemini 3 with its thought signatures, require data from a response to come back verbatim on the
 next request. A factory carries this data through the tool calls with a `ToolCallMetadataCodec` that it passes to the
-chat model. The connector persists what the writer of the codec returns under the provider ID of the codec, and gives
+chat model. The connector persists what the writer of the codec returns under the provider ID of the configuration, and gives
 the reader only that entry. The factory owns the codec because it knows its provider and its configuration type, and a
 bean for all providers would have to switch on the configuration. The connector owns the namespace so that a provider cannot read the data of another provider,
 for example after a process instance migration switches the provider.

@@ -15,16 +15,19 @@ import java.util.Map;
  * {@code AiMessage}.
  *
  * <p>The {@link ChatMessageConverter} owns the namespace. It persists the data that the {@link
- * Writer} returns under {@link #provider()}, and gives the {@link Reader} only the entry of that
- * provider. A provider can therefore never read the data of another provider, for example after a
- * process instance migration switches the provider.
+ * Writer} returns under the provider ID of the chat model configuration, and gives the {@link
+ * Reader} only the entry of that provider. A provider can therefore never read the data of another
+ * provider, for example after a process instance migration switches the provider.
  *
- * @param provider the provider ID that the data is persisted under, the provider of the chat model
- *     configuration
  * @param writer extracts the data to persist from the attributes of a response
  * @param reader restores the attributes of a replayed message from the persisted data
  */
-public record ToolCallMetadataCodec(String provider, Writer writer, Reader reader) {
+public record ToolCallMetadataCodec(Writer writer, Reader reader) {
+
+  /** A codec that carries no data. */
+  public static final ToolCallMetadataCodec NONE =
+      new ToolCallMetadataCodec(
+          (toolCallId, attributes) -> Map.of(), (toolCallId, metadata) -> Map.of());
 
   /** Extracts the data to persist for one tool call from the attributes of a response. */
   @FunctionalInterface
@@ -53,16 +56,5 @@ public record ToolCallMetadataCodec(String provider, Writer writer, Reader reade
      *     call ID
      */
     Map<String, Object> read(String toolCallId, Map<?, ?> providerMetadata);
-  }
-
-  /** A codec that carries no data. The provider ID is not used then, since nothing is stored. */
-  public static ToolCallMetadataCodec none() {
-    return none("langchain4j");
-  }
-
-  /** A codec that carries no data under the given provider ID. */
-  public static ToolCallMetadataCodec none(String provider) {
-    return new ToolCallMetadataCodec(
-        provider, (toolCallId, attributes) -> Map.of(), (id, md) -> Map.of());
   }
 }

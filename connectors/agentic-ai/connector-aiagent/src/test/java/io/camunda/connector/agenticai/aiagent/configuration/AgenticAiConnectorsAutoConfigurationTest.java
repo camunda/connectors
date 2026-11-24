@@ -276,6 +276,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           public ChatModel create(ChatModelConfiguration configuration) {
             return new LangChain4JChatModel(
                 mock(CloseableChatModel.class),
+                configuration,
                 chatMessageConverter,
                 toolSpecificationConverter,
                 jsonSchemaConverter);
