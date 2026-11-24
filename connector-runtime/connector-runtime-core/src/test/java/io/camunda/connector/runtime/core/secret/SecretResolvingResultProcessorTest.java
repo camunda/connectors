@@ -17,10 +17,13 @@
 package io.camunda.connector.runtime.core.secret;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.response.SecretReference;
+import io.camunda.connector.feel.EvaluationResultRejectedException;
+import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor.UnresolvedSecretReferenceException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -252,6 +255,71 @@ class SecretResolvingResultProcessorTest {
     assertThat(result).isEqualTo(expected);
   }
 
+  @Test
+  void failingVariantRejectsAReportedReferenceThatDoesNotResolve() {
+    var failing = SecretResolvingResultProcessor.failingOnUnresolvedReferences(resolver);
+
+    assertThatThrownBy(() -> failing.process("camunda.secrets.MISSING", references("MISSING")))
+        .isInstanceOf(UnresolvedSecretReferenceException.class)
+        .isInstanceOf(EvaluationResultRejectedException.class)
+        .hasMessageContaining("camunda.secrets.MISSING could not be resolved");
+    assertThat(resolver.strictRequests).containsExactly(List.of("camunda.secrets.MISSING"));
+  }
+
+  @Test
+  void failingVariantNamesOnlyTheReferencesThatDidNotResolve() {
+    resolver.holds("camunda.secrets.A", "a-value");
+    var failing = SecretResolvingResultProcessor.failingOnUnresolvedReferences(resolver);
+
+    assertThatThrownBy(
+            () -> failing.process("camunda.secrets.A camunda.secrets.B", references("A", "B")))
+        .hasMessageContaining("camunda.secrets.B could not be resolved")
+        .hasMessageNotContaining("camunda.secrets.A")
+        .hasMessageNotContaining("a-value");
+  }
+
+  @Test
+  void failingVariantSubstitutesWhenEveryReportedReferenceResolves() {
+    resolver.holds("camunda.secrets.TOKEN", "tok-1");
+    var failing = SecretResolvingResultProcessor.failingOnUnresolvedReferences(resolver);
+
+    Object result =
+        failing.process(
+            Map.of("Authorization", "Bearer camunda.secrets.TOKEN"), references("TOKEN"));
+
+    assertThat(result).isEqualTo(Map.of("Authorization", "Bearer tok-1"));
+    assertThat(resolver.requested).isEmpty();
+  }
+
+  @Test
+  void failingVariantLetsAFailedLookupPropagate() {
+    // A cluster that could not be reached is not a missing secret, so it is not reported as one,
+    // but it fails the result as well.
+    resolver.unreachable = true;
+    var failing = SecretResolvingResultProcessor.failingOnUnresolvedReferences(resolver);
+
+    assertThatThrownBy(() -> failing.process("camunda.secrets.TOKEN", references("TOKEN")))
+        .isInstanceOf(SecretReferenceResolver.SecretResolutionFailedException.class);
+  }
+
+  @Test
+  void failingVariantLeavesReferenceShapedTextTheClusterDidNotReport() {
+    var failing = SecretResolvingResultProcessor.failingOnUnresolvedReferences(resolver);
+
+    Object result = failing.process("camunda.secrets.FROM_DATA", List.of());
+
+    assertThat(result).isEqualTo("camunda.secrets.FROM_DATA");
+    assertThat(resolver.strictRequests).isEmpty();
+  }
+
+  @Test
+  void defaultVariantStillLeavesAnUnresolvedReportedReferenceInPlace() {
+    Object result = processor.process("camunda.secrets.MISSING", references("MISSING"));
+
+    assertThat(result).isEqualTo("camunda.secrets.MISSING");
+    assertThat(resolver.strictRequests).isEmpty();
+  }
+
   private static List<SecretReference> references(String... names) {
     return Arrays.stream(names).map(name -> reference("default", name)).toList();
   }
@@ -267,6 +335,8 @@ class SecretResolvingResultProcessorTest {
   private static final class RecordingResolver extends SecretReferenceResolver {
     private final Map<String, String> values = new LinkedHashMap<>();
     private final List<List<String>> requested = new ArrayList<>();
+    private final List<List<String>> strictRequests = new ArrayList<>();
+    private boolean unreachable;
 
     private RecordingResolver() {
       super(null);
@@ -279,6 +349,19 @@ class SecretResolvingResultProcessorTest {
     @Override
     public Map<String, String> resolve(Collection<String> references) {
       requested.add(List.copyOf(references));
+      return lookUp(references);
+    }
+
+    @Override
+    public Map<String, String> resolveOrFail(Collection<String> references) {
+      strictRequests.add(List.copyOf(references));
+      if (unreachable) {
+        throw new SecretResolutionFailedException(references.size(), "java.net.ConnectException");
+      }
+      return lookUp(references);
+    }
+
+    private Map<String, String> lookUp(Collection<String> references) {
       Map<String, String> resolved = new LinkedHashMap<>();
       references.stream().filter(values::containsKey).forEach(r -> resolved.put(r, values.get(r)));
       return resolved;
