@@ -8,8 +8,6 @@ package io.camunda.connector.agenticai.mcp.client.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
@@ -22,16 +20,11 @@ class McpConnectorModeConfigurationFilterOptionsTest {
 
   private static final AllowDenyList EVERYTHING = AllowDenyList.allowingEverything();
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-
   @Test
-  void toolMode_mapsIncludedAndExcludedToolsToAllowedAndDenied() throws JsonProcessingException {
+  void toolMode_mapsIncludedAndExcludedToolsToAllowedAndDenied() {
     final var filters =
-        read(
-            """
-            {"tools": {"included": ["a", "b"], "excluded": ["c"]}}\
-            """,
-            McpClientToolModeFiltersConfiguration.class);
+        new McpClientToolModeFiltersConfiguration(
+            new McpClientToolsFilterConfiguration(List.of("a", "b"), List.of("c")));
 
     final var options = toolMode(filters).createFilterOptions().orElseThrow();
 
@@ -39,8 +32,8 @@ class McpConnectorModeConfigurationFilterOptionsTest {
   }
 
   @Test
-  void toolMode_allowsEverything_whenToolsFilterIsMissing() throws JsonProcessingException {
-    final var filters = read("{}", McpClientToolModeFiltersConfiguration.class);
+  void toolMode_allowsEverything_whenToolsFilterIsMissing() {
+    final var filters = new McpClientToolModeFiltersConfiguration(null);
 
     final var options = toolMode(filters).createFilterOptions().orElseThrow();
 
@@ -53,18 +46,12 @@ class McpConnectorModeConfigurationFilterOptionsTest {
   }
 
   @Test
-  void standalone_mapsIncludedAndExcludedOfEveryPrimitiveToAllowedAndDenied()
-      throws JsonProcessingException {
+  void standalone_mapsIncludedAndExcludedOfEveryPrimitiveToAllowedAndDenied() {
     final var filters =
-        read(
-            """
-            {
-              "tools": {"included": ["t1"], "excluded": ["t2"]},
-              "resources": {"included": ["r1"], "excluded": ["r2"]},
-              "prompts": {"included": ["p1"], "excluded": ["p2"]}
-            }\
-            """,
-            McpClientStandaloneFiltersConfiguration.class);
+        new McpClientStandaloneFiltersConfiguration(
+            new McpClientToolsFilterConfiguration(List.of("t1"), List.of("t2")),
+            new McpClientResourcesFilterConfiguration(List.of("r1"), List.of("r2")),
+            new McpClientPromptsFilterConfiguration(List.of("p1"), List.of("p2")));
 
     final var options = standalone(filters).createFilterOptions().orElseThrow();
 
@@ -75,17 +62,12 @@ class McpConnectorModeConfigurationFilterOptionsTest {
   }
 
   @Test
-  void standalone_mapsOnlyExcludedToDenied_forEveryPrimitive() throws JsonProcessingException {
+  void standalone_mapsOnlyExcludedToDenied_forEveryPrimitive() {
     final var filters =
-        read(
-            """
-            {
-              "tools": {"excluded": ["t"]},
-              "resources": {"excluded": ["r"]},
-              "prompts": {"excluded": ["p"]}
-            }\
-            """,
-            McpClientStandaloneFiltersConfiguration.class);
+        new McpClientStandaloneFiltersConfiguration(
+            new McpClientToolsFilterConfiguration(null, List.of("t")),
+            new McpClientResourcesFilterConfiguration(null, List.of("r")),
+            new McpClientPromptsFilterConfiguration(null, List.of("p")));
 
     final var options = standalone(filters).createFilterOptions().orElseThrow();
 
@@ -95,13 +77,10 @@ class McpConnectorModeConfigurationFilterOptionsTest {
   }
 
   @Test
-  void standalone_keepsPrimitivesIndependent() throws JsonProcessingException {
+  void standalone_keepsPrimitivesIndependent() {
     final var filters =
-        read(
-            """
-            {"resources": {"excluded": ["r"]}}\
-            """,
-            McpClientStandaloneFiltersConfiguration.class);
+        new McpClientStandaloneFiltersConfiguration(
+            null, new McpClientResourcesFilterConfiguration(null, List.of("r")), null);
 
     final var options = standalone(filters).createFilterOptions().orElseThrow();
 
@@ -113,10 +92,6 @@ class McpConnectorModeConfigurationFilterOptionsTest {
   @Test
   void standalone_hasNoFilterOptions_whenFiltersAreMissing() {
     assertThat(standalone(null).createFilterOptions()).isEmpty();
-  }
-
-  private <T> T read(String json, Class<T> type) throws JsonProcessingException {
-    return objectMapper.readValue(json, type);
   }
 
   private static ToolModeConfiguration toolMode(McpClientToolModeFiltersConfiguration filters) {
