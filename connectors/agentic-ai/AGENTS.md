@@ -210,74 +210,49 @@ conversation and turn types (everything else below).
 
 High-frequency traps (detail behind each link):
 
-- **Job supersession / `NOT_FOUND`**: a completing tool creates a new job; the stale in-flight job may be rejected.
-  The AI Agent connectors (v1 and v2, both flavors) use job leasing; the gateway, MCP and A2A connectors do not. An
-  agent instance update for a job that is no longer active fails with the non-retryable `AGENT_INSTANCE_SUPERSEDED`
-  and takes no ordinary retry (ADR 013).
+- **Job supersession / `NOT_FOUND`**: a completing tool creates a new job, so a stale in-flight job may be rejected.
+  An agent instance update for an inactive job fails with the non-retryable `AGENT_INSTANCE_SUPERSEDED`.
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions),
   [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
-- **Partial tool results → no-op (but not silent)**: incomplete results make the composer return `Deferred` and the
-  worker completes without an LLM call — expected, not a bug — but it now also reports whichever results have
-  arrived so far to agent instance history first (ADR 011). E2e tests asserting `verifyNoMoreInteractions` on
+- **Partial tool results → no-op (but not silent)**: with incomplete results the worker completes without an LLM call,
+  after it reports the arrived results to agent instance history. E2e tests asserting `verifyNoMoreInteractions` on
   `AgentInstanceClient` for a multi-tool-call turn with staggered completion times must account for this call.
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete).
-- **Write-ahead, pointer-based store contract**: `storeMessages` writes a new location; `loadMessages` follows the
-  `AgentContext` pointer. Never overwrite what the current pointer references.
+- **Write-ahead, pointer-based store contract**: never overwrite what the current `AgentContext` pointer references.
   [`conversation-store-spi.md`](aiagent-api/docs/conversation-store-spi.md#storage-contract).
-- **Sub-process config frozen at AHSP entry**: input mappings evaluate once, so config/migration changes don't reach a
-  running instance (Task flavor re-evaluates per iteration).
+- **Sub-process config frozen at AHSP entry**: config and migration changes don't reach a running instance (the Task
+  flavor re-evaluates per iteration). [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md).
+- **Migration blocked cases**: removing or renaming tools and adding or removing gateway tools fails.
   [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md).
-- **Migration blocked cases**: removing/renaming tools or adding/removing gateway tools fails; adding tools or changing
-  descriptions is allowed. [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md).
-- **`toolCallResult = ""` scoping trick**: the empty default keeps the variable local to the tool element so it doesn't
-  bubble up to the AHSP scope.
+- **`toolCallResult = ""` scoping trick**: the empty default keeps the variable local to the tool element.
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#job-completion--the-heart-of-the-distributed-loop).
-- **Events have `id = null`**: tool-call results without an id are event results, partitioned from real tool results.
+- **Events have `id = null`**: tool-call results without an id are event results.
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#event-handling).
-- **Gateway `transformToolCallResults` must carry `completedAt` forward**: MCP/A2A handlers rebuild a
-  new `ToolCallResult` when unwrapping the gateway envelope. Copy `completedAt` explicitly: unlike `elementId`, it has
-  no fallback resolution.
+- **Gateway `transformToolCallResults` must carry `completedAt` forward**: copy it into the rebuilt `ToolCallResult`;
+  unlike `elementId`, it has no fallback resolution.
   [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-handler-interface), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
-- **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
-  instance creates its context (`AgentInitializerImpl`). Never add a feature to a context that exists without it.
-  Resolve `AgentContext.documentHandling()` (`Untracked` or `Tracked`) once per step with an exhaustive `switch`;
-  never branch on `supports(AgentFeatures.DOCUMENTS)` or a `boolean` parameter. Gate new behavior that changes the wire format or the
-  persisted shape on a feature and keep the legacy path covered by `LegacyDocumentConversationTest`. The one
-  deliberate exception is the admission and the rejection of tool calls (next item), which applies to every agent
-  instance. What each feature gates, and why: [`data-model.md`](aiagent-model/docs/data-model.md),
-  [ADR 018](docs/adr/018-document-flow.md), [ADR 016](docs/adr/016-runtime-tools.md).
-- **Tool calls are admitted once, and the agent produces the tool call results of local tool calls itself**: before an
-  assistant message enters the conversation, `ToolCallAdmission` sets `ToolCall.kind` and, for a call that must not be
-  carried out, `ToolCall.rejection`. Nothing computes either again. This applies to every agent instance, with or
-  without the `runtimeTools` feature. Every conversation store must keep both fields. A rejected call gets its
-  rejection as its tool call result and is never executed, also when a runtime tool of that name is enabled later. The
-  calls of runtime tools are executed in `LocalToolCallExecutor` only. Local tool calls (`ToolCall.isLocal()`),
-  interrupting events and batches that mix local and process tool calls:
-  [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete),
+- **Agent instance features gate behavior per instance**: never add a feature to an existing context. Resolve
+  `AgentContext.documentHandling()` (`Untracked` or `Tracked`) once per step with an exhaustive `switch`;
+  never branch on `supports(AgentFeatures.DOCUMENTS)` or a `boolean` parameter. Gate a new wire format or persisted
+  shape on a feature and keep the legacy path covered by `LegacyDocumentConversationTest`; tool call admission is the
+  one exception. [`data-model.md`](aiagent-model/docs/data-model.md), [ADR 016](docs/adr/016-runtime-tools.md),
+  [ADR 018](docs/adr/018-document-flow.md).
+- **Tool calls are admitted once, for every agent instance**: `ToolCallAdmission` sets `ToolCall.kind` and
+  `ToolCall.rejection`; nothing computes them again, every conversation store keeps both, and a rejected call is never
+  executed. [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete),
   [`document-parameters.md`](connector-aiagent/docs/document-parameters.md), [ADR 016](docs/adr/016-runtime-tools.md).
-- **Documents are persisted as references and expanded for the model**: for a `Tracked` instance the conversation holds
-  document blocks (`AgentDocumentContent`), and `AgentContext.documents` holds the agent documents they stand for.
-  `DocumentExpander` turns the blocks into handles and content after the window, so the providers have no document
-  specific code. A provider never receives an `AgentDocumentContent`: every provider content converter fails with
-  `UnexpandedAgentDocumentException` on one. A `Tracked` instance accepts only Camunda documents
-  (`AgentDocument.isSupported`). The document id, the handle, the expansion, the history and the error codes are in
+- **Documents are persisted as references and expanded for the model**: a `Tracked` instance stores document blocks
+  that `DocumentExpander` expands after the window, and accepts only Camunda documents. A provider never receives an
+  `AgentDocumentContent`: every provider content converter fails with `UnexpandedAgentDocumentException` on one. Name
+  new document types per [document type naming](aiagent-model/docs/data-model.md#document-type-naming). Details:
   [`data-model.md`](aiagent-model/docs/data-model.md),
   [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results),
-  [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter)
-  and [`agent-instance.md`](connector-aiagent/docs/agent-instance.md#conversation-history-items). The reasons are in
+  [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter),
+  [`agent-instance.md`](connector-aiagent/docs/agent-instance.md#conversation-history-items),
   [ADR 018](docs/adr/018-document-flow.md).
-  Naming: a type of the agent document registry carries the `AgentDocument` prefix: the entry, a part of one entry, the
-  list of entries, and a failure about an entry (`AgentDocument`, `AgentDocumentId`, `AgentDocumentOrigin`,
-  `AgentDocumentHandle`, `AgentDocumentContent`, `AgentDocuments`, `AgentDocumentIdCollisionException`,
-  `UnexpandedAgentDocumentException`). A type for any document of the SDK or for a setting of the instance keeps the
-  `Document` prefix (`DocumentContent`, `DocumentHandling`, `DocumentDelivery`). A class that does work is named by its
-  task (`DocumentExpander`, `DocumentRestorer`), and a type of another concept by that concept (`HistoryDocuments`).
-  The word "handle" is the JSON object the model reads (`AgentDocumentHandle`), never the SDK `DocumentReference`.
-- **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
-  messages with identical content have *different* ids. Stability only holds once a message has
-  been persisted and reloaded (or the exact same instance is reused) — tests that independently
-  construct an "expected" message and compare it for equality against one built by the code under
-  test will fail on `id` alone. [`data-model.md`](aiagent-model/docs/data-model.md#message-identity), [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
+- **`Message.id()` is random per construction**: two freshly built messages with equal content have different ids
+  until one is persisted and reloaded, so a test that compares an independently built expected message fails on `id`.
+  [`data-model.md`](aiagent-model/docs/data-model.md#message-identity), [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
 - **Map iteration order differs between JVMs after a record builder copied the map**: the `@AgenticAiRecord`
   builders copy maps and sets with `Map.copyOf` and `Set.copyOf`, whose iteration order changes with every JVM start.
   Never let a hash, an id or any value compared across runs depend on that order. Sort the map keys where the value

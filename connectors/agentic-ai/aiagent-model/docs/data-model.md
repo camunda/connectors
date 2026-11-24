@@ -65,6 +65,16 @@ derived from the `documents` feature and not persisted: `Untracked`, or `Tracked
 tool call results input builder, the document expander, the history mapper and the agent instance client match both
 variants exhaustively; none of them reads the feature or takes a `boolean`.
 
+## Document type naming
+
+A type of the agent document registry carries the `AgentDocument` prefix: the entry, a part of one entry, the list of
+entries, and a failure about an entry (`AgentDocument`, `AgentDocumentId`, `AgentDocumentOrigin`, `AgentDocumentHandle`,
+`AgentDocumentContent`, `AgentDocuments`, `AgentDocumentIdCollisionException`, `UnexpandedAgentDocumentException`). A
+type for any document of the SDK or for a setting of the instance keeps the `Document` prefix (`DocumentContent`,
+`DocumentHandling`, `DocumentDelivery`). A class that does work is named by its task (`DocumentExpander`,
+`DocumentRestorer`), and a type of another concept by that concept (`HistoryDocuments`). The word "handle" is the JSON
+object the model reads (`AgentDocumentHandle`), never the SDK `DocumentReference`.
+
 ## AgentExecutionContext (the transient request context)
 
 The transient per-invocation request context, assembled fresh for each job activation and never
