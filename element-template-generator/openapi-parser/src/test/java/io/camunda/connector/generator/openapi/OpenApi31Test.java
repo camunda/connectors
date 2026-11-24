@@ -29,6 +29,8 @@ import io.camunda.connector.generator.dsl.http.OperationParseResult;
 import java.util.List;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * OpenAPI 3.1 writes schema types as {@code types} (a set, which may include {@code "null"}), while
@@ -241,6 +243,117 @@ public class OpenApi31Test {
 
     var properties = generateFromContent(spec);
     assertThat(properties).extracting(Property::getId).contains("createPets_body");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"3.0.3", "3.1.0"})
+  void generate_recursiveArrayBody_staysSupportedWithRawBody(String version) {
+    // language=yaml
+    var spec =
+        """
+        openapi: %s
+        info:
+          title: Nested
+          version: 1.0.0
+        servers:
+          - url: https://api.example.com
+        paths:
+          /with-example:
+            post:
+              operationId: withExample
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/NestedWithExample'
+              responses:
+                '204':
+                  description: Done.
+          /without-example:
+            post:
+              operationId: withoutExample
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Nested'
+              responses:
+                '204':
+                  description: Done.
+        components:
+          schemas:
+            NestedWithExample:
+              type: array
+              items:
+                $ref: '#/components/schemas/NestedWithExample'
+              example: [[]]
+            Nested:
+              type: array
+              items:
+                $ref: '#/components/schemas/Nested'
+        """
+            .formatted(version);
+
+    var scan = generator.scan(new OpenApiGenerationSource(List.of(spec)));
+    assertThat(scan.additionalData())
+        .asInstanceOf(InstanceOfAssertFactories.list(OperationParseResult.class))
+        .extracting(OperationParseResult::id, OperationParseResult::supported)
+        .containsExactlyInAnyOrder(tuple("withExample", true), tuple("withoutExample", true));
+
+    var properties = generateFromContent(spec);
+    assertThat(property(properties, "withExample_body").getValue())
+        .asString()
+        .isEqualToIgnoringWhitespace("=[[]]");
+    assertThat(property(properties, "withoutExample_body").getValue())
+        .asString()
+        .isEqualToIgnoringWhitespace("=[[]]");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"3.0.3", "3.1.0"})
+  void generate_rawStringBody_keepsQuotes(String version) {
+    var example = version.startsWith("3.0") ? "example: hello" : "examples: [hello]";
+    // language=yaml
+    var spec =
+        """
+        openapi: %s
+        info:
+          title: Messages
+          version: 1.0.0
+        servers:
+          - url: https://api.example.com
+        paths:
+          /messages:
+            post:
+              operationId: sendMessage
+              requestBody:
+                content:
+                  text/plain:
+                    schema:
+                      type: string
+                      %s
+              responses:
+                '204':
+                  description: Sent.
+        """
+            .formatted(version, example);
+
+    var properties =
+        generator
+            .generate(
+                new OpenApiGenerationSource(List.of(spec, "--raw-body")),
+                (GeneratorConfiguration) null)
+            .getFirst()
+            .properties();
+
+    assertThat(property(properties, "sendMessage_body").getValue()).isEqualTo("=\"hello\"");
+  }
+
+  private static Property property(List<Property> properties, String id) {
+    return properties.stream()
+        .filter(p -> id.equals(p.getId()))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("No property with id " + id));
   }
 
   private ElementTemplate generate(String source) {

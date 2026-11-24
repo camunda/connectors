@@ -263,11 +263,19 @@ public class ParameterUtil {
         return nested;
       }
       case "array" -> {
+        // an array that contains itself would otherwise recurse until the stack overflows
+        if (visitedSchemas.contains(schema)) {
+          return new Object[0];
+        }
+        visitedSchemas.add(schema);
+
         var items = getSchemaOrFromComponents(schema.getItems(), components);
         if (items.getEnum() != null && !items.getEnum().isEmpty()) {
           return items.getEnum();
         }
-        return new Object[] {generateFakeDataFromSchema(items, components)};
+        return new Object[] {
+          generateFakeDataFromSchema(items, components, new HashSet<>(visitedSchemas))
+        };
       }
       case "integer", "number" -> {
         return 0;

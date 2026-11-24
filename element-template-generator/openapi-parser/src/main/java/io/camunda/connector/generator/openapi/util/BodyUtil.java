@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.openapi.util;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.generator.dsl.http.HttpFeelBuilder;
@@ -29,9 +30,11 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
 public class BodyUtil {
 
@@ -162,23 +165,42 @@ public class BodyUtil {
 
   private static String buildRawBodyExample(Schema<?> schema, Components components) {
     var schemaExample = ParameterUtil.getExampleFromSchema(schema, components);
-    return Optional.ofNullable(schemaExample).orElse("");
+    if (schemaExample == null) {
+      return "";
+    }
+    // The raw body is used as a FEEL expression ("=" + body). A string must keep its quotes,
+    // otherwise FEEL reads it as a variable name.
+    var resolved = ParameterUtil.getSchemaOrFromComponents(schema, components);
+    if ("string".equals(ParameterUtil.typeOf(resolved))) {
+      return "\"" + new String(JsonStringEncoder.getInstance().quoteAsString(schemaExample)) + "\"";
+    }
+    return schemaExample;
   }
 
   // complex objects are difficult to visually break down into fields
   // this includes objects with nested objects, arrays, or a combination of both
   private static boolean isComplexSchema(Schema<?> schema, Components components) {
+    return isComplexSchema(schema, components, Collections.newSetFromMap(new IdentityHashMap<>()));
+  }
+
+  private static boolean isComplexSchema(
+      Schema<?> schema, Components components, Set<Schema<?>> visitedSchemas) {
     if (hasUnresolvableInternalRef(schema, components)) {
       return true;
     }
     schema = ParameterUtil.getSchemaOrFromComponents(schema, components);
+    if (schema != null && !visitedSchemas.add(schema)) {
+      // a schema that contains itself, such as an array of itself, stays a raw body
+      return true;
+    }
     var type = ParameterUtil.typeOf(schema);
     if (type == null) {
       return false;
     }
     if (type.equals("array")) {
       // an array without 'items' (or with only 3.1 'prefixItems') stays a raw body
-      return schema.getItems() == null || isComplexSchema(schema.getItems(), components);
+      return schema.getItems() == null
+          || isComplexSchema(schema.getItems(), components, visitedSchemas);
     }
     if (type.equals("object") && schema.getProperties() != null) {
       return schema.getProperties().values().stream()
