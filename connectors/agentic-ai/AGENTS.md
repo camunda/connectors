@@ -51,7 +51,7 @@ as a pointer to that home.
   migration hint. The public docs link to it.
 - `<connector module>/element-templates/README.md` and the index
   `connector-agentic-ai/element-templates/README.md`: update them for template version bumps, moves to
-  `versioned/` and new connectors (see [Element templates](#element-templates)). These READMEs serve users who
+  `versioned/` and new connectors by the [README rules](connector-aiagent/docs/element-template-generation.md#element-template-readmes). These READMEs serve users who
   pick or configure a template: which template fits which Camunda version and what a user selects. Put the
   details of how the templates are generated in `<module>/docs/`.
 
@@ -321,57 +321,30 @@ Before claiming a change is complete:
 
 ## Element templates
 
-The JSON element templates are **generated**, not hand-edited. They are produced from the
-`@ElementTemplate`-annotated connector functions and their bound data models (`@TemplateProperty`
-fields), so the source of truth is the Java, not the JSON. The template version comes from the
-annotation's `version` attribute on the connector function; bumping it there bumps the generated
-template. The AI Agent Sub-process template is in turn derived from the AI Agent Task
-template via `connector-aiagent/bin/transform-ai-agent-sub-process-template.groovy` (gmavenplus-plugin, `process-classes`
-phase); the same script also derives the v2 AI Agent Sub-process template from the v2 AI Agent Task template.
-
-The transform scripts in `connector-aiagent/bin/` and `connector-a2a/bin/` find properties by hard-coded
-ids. They share generic helpers through [`bin/TemplateTransforms.groovy`](bin/TemplateTransforms.groovy), which
-fails the build when an expected property id or anchor is missing; AI Agent specific helpers live in
-[`connector-aiagent/bin/AgentTemplateTransforms.groovy`](connector-aiagent/bin/AgentTemplateTransforms.groovy). When you rename a property a script
-looks up, update the script in the same change. `AgentElementTemplateTransformsTest` (`connector-aiagent`)
-and `A2aElementTemplateTransformsTest` (`connector-a2a`) assert what the scripts inject into the
-generated JSON. They check what the scripts change, not property order, so reordering properties
-doesn't require test changes; review any generated template diff instead.
-
-To regenerate, run the repo-root [element templates checks](../../AGENTS.md#element-templates), check the
-JSON diff and commit it; never edit the generated JSON by hand. For the generation mechanism and annotation reference, see the
+The JSON element templates are generated from the `@ElementTemplate`-annotated connector functions and their
+bound data models (`@TemplateProperty` fields). Never hand-edit the JSON. The template version is the `version`
+attribute of the annotation. To regenerate, run the repo-root [element templates checks](../../AGENTS.md#element-templates),
+check the JSON diff and commit it. Generation mechanism and annotation reference: the
 [element template generator documentation](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-sdk/#element-template-generation).
-When a version is bumped, a template moves into `versioned/`, or a connector is added, also update the
-README in the `element-templates` folder of the connector module (for example
-[`connector-aiagent/element-templates/README.md`](connector-aiagent/element-templates/README.md)) following
-these rules. The index of all modules is
-[`connector-agentic-ai/element-templates/README.md`](connector-agentic-ai/element-templates/README.md). It
-stays at the path the templates had before the module split because external documentation links to it,
-and the `element-templates` symlink in this directory points to it.
 
-1. **Identify the new minimum Camunda version** by checking the `engines.camunda` field of the new
-   template (e.g. `^8.10`).
-2. **Same minimum as the current top row**: bump the top row's template version and keep its link
-   pointing to the latest `./<file>.json` in this folder. The superseded version moves into `versioned/`
-   but is not listed (the table shows only the latest template per minimum Camunda version).
-3. **Higher minimum than the current top row**: insert a new top row with the new minimum Camunda
-   version and template version, and move the previous top row's link under `versioned/`. Skip
-   template versions so the previous minor keeps room for patch releases: use the smallest multiple
-   of 5 that leaves at least two versions free (7 to 10 for Camunda 8.10, 1 to 5 for Camunda 8.11).
-   The patch releases of the previous minor take the skipped versions on its `stable/*` branch. The
-   validator rule `current-version-bump` expects the highest `versioned/` snapshot plus one, so
-   suppress it for the bumped templates in the `element-template-suppressions.json` of the module.
-   The next regular bump fails on the unused suppression; remove it then.
-4. **AI Agent has two tables** (Task and Sub-process) sharing the same version numbers. Update both.
-5. **New connector**: in an existing module, add a section to the README of the module with an intro
-   paragraph linking to the `docs.camunda.io` overview page. In a new module, add a README like the
-   existing ones, including the "Which template do I need?" section, and add the module to the table
-   and the sections of the index in the same order as the existing ones (AI Agent, MCP Client, A2A,
-   Ad-hoc tools schema).
+The AI Agent Sub-process templates (v1 and v2) are derived from the AI Agent Task templates by
+`connector-aiagent/bin/transform-ai-agent-sub-process-template.groovy` (gmavenplus-plugin, `process-classes` phase).
+The transform scripts in `connector-aiagent/bin/` and `connector-a2a/bin/` find properties by hard-coded ids. Their
+shared helpers in [`bin/TemplateTransforms.groovy`](bin/TemplateTransforms.groovy) fail the build when an expected
+property id or anchor is missing; AI Agent specific helpers live in
+[`connector-aiagent/bin/AgentTemplateTransforms.groovy`](connector-aiagent/bin/AgentTemplateTransforms.groovy). When you
+rename a property a script looks up, update the script in the same change. `AgentElementTemplateTransformsTest`
+(`connector-aiagent`) and `A2aElementTemplateTransformsTest` (`connector-a2a`) assert what the scripts inject, not
+property order; review any generated template diff.
 
-Do not list `hybrid/` templates in the README. They are intentionally omitted.
+When a version is bumped, a template moves into `versioned/`, or a connector is added, update the element template
+READMEs by the [README rules](connector-aiagent/docs/element-template-generation.md#element-template-readmes). The index
+of all modules, [`connector-agentic-ai/element-templates/README.md`](connector-agentic-ai/element-templates/README.md),
+stays at the path the templates had before the module split because external documentation links to it, and the
+`element-templates` symlink in this directory points to it.
 
-When the `engines.camunda` minimum of the AI Agent templates is bumped (rule 3 above), also add regression
+When the `engines.camunda` minimum of the AI Agent templates is bumped (rule 3 of the
+[README rules](connector-aiagent/docs/element-template-generation.md#element-template-readmes)), also add regression
 fixtures for the new template generation in the same change, as described in
 [Element template regression fixtures](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#element-template-regression-fixtures).
 
