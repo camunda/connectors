@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinitionBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -32,6 +33,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ListToolsRequestTest {
 
   private static final AllowDenyList EMPTY_FILTER = AllowDenyList.allowingEverything();
+  private static final Map<String, Object> INPUT_SCHEMA =
+      Map.of(
+          "type", "object",
+          "properties",
+              Map.of("toolArg", Map.of("type", "string", "description", "A tool argument")),
+          "required", List.of("toolArg"));
 
   @Mock private McpSyncClient mcpClient;
 
@@ -115,6 +122,27 @@ class ListToolsRequestTest {
   }
 
   @Test
+  void filtersTools_whenToolDenied() {
+    final var toolSpec1 = createTool("allowed-tool", "Allowed Tool", "Allowed tool");
+    final var toolSpec2 = createTool("blocked-tool", "Blocked Tool", "Blocked tool");
+    final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-tool")).build();
+    final var expectedToolDefinition =
+        McpToolDefinitionBuilder.builder()
+            .name("allowed-tool")
+            .title("Allowed Tool")
+            .description("Allowed tool")
+            .inputSchema(INPUT_SCHEMA)
+            .build();
+
+    when(mcpClient.listTools())
+        .thenReturn(McpSchema.ListToolsResult.builder(List.of(toolSpec1, toolSpec2)).build());
+
+    final var result = testee.execute(mcpClient, filter, Map.of());
+
+    assertThat(result).isEqualTo(new McpClientListToolsResult(List.of(expectedToolDefinition)));
+  }
+
+  @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
     final var meta = McpRpcTestFixtures.EXAMPLE_META;
     when(mcpClient.listTools(isNull(), eq(meta)))
@@ -137,15 +165,6 @@ class ListToolsRequestTest {
   }
 
   private McpSchema.Tool createTool(String name, String title, String description) {
-    return McpSchema.Tool.builder(
-            name,
-            Map.of(
-                "type", "object",
-                "properties",
-                    Map.of("toolArg", Map.of("type", "string", "description", "A tool argument")),
-                "required", List.of("toolArg")))
-        .title(title)
-        .description(description)
-        .build();
+    return McpSchema.Tool.builder(name, INPUT_SCHEMA).title(title).description(description).build();
   }
 }
