@@ -24,6 +24,7 @@
     <module>aws</module>
     <module>box</module>
     <module>csv</module>
+    <module>elevenlabs</module>
     <module>email</module>
     <module>google</module>
     <module>http</module>

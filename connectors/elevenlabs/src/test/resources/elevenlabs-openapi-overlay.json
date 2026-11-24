@@ -1,0 +1,52 @@
+{
+  "overlay": "1.0.0",
+  "info": {
+    "title": "Camunda additions to the ElevenLabs OpenAPI spec",
+    "version": "1.0.0"
+  },
+  "actions": [
+    {
+      "target": "$",
+      "description": "The published spec declares no servers. Add the global API and the data residency endpoints.",
+      "update": {
+        "servers": [
+          {
+            "url": "https://api.elevenlabs.io",
+            "description": "Global"
+          },
+          {
+            "url": "https://api.eu.residency.elevenlabs.io",
+            "description": "EU data residency"
+          },
+          {
+            "url": "https://api.in.residency.elevenlabs.io",
+            "description": "India data residency"
+          }
+        ],
+        "security": [
+          {
+            "xiApiKey": []
+          }
+        ]
+      }
+    },
+    {
+      "target": "$.components",
+      "description": "The published spec declares no security schemes. Every operation authenticates with the xi-api-key header.",
+      "update": {
+        "securitySchemes": {
+          "xiApiKey": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "xi-api-key"
+          }
+        }
+      }
+    },
+    {
+      "target": "$.paths.*.*.parameters[?(@.name == 'xi-api-key')]",
+      "description": "Each operation also declares xi-api-key as an optional header parameter. The security scheme above sends it, so drop the parameter.",
+      "remove": true
+    }
+  ]
+}

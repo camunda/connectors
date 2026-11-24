@@ -1,0 +1,1653 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "ElevenLabs Outbound Connector",
+  "id" : "io.camunda.connectors.ElevenLabs.v1",
+  "description" : "Generate speech, transcribe audio and run AI voice calls with ElevenLabs",
+  "keywords" : [
+    "ElevenLabs",
+    "text to speech",
+    "speech to text",
+    "transcription",
+    "voice",
+    "AI voice agent",
+    "outbound call",
+    "batch call"
+  ],
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/elevenlabs/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [
+    "bpmn:Task"
+  ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.11"
+  },
+  "groups" : [
+    {
+      "id" : "operation",
+      "label" : "Operation"
+    },
+    {
+      "id" : "server",
+      "label" : "Server"
+    },
+    {
+      "id" : "authentication",
+      "label" : "Authentication"
+    },
+    {
+      "id" : "parameters",
+      "label" : "Parameters"
+    },
+    {
+      "id" : "requestBody",
+      "label" : "Request body"
+    },
+    {
+      "id" : "url",
+      "label" : "URL"
+    },
+    {
+      "id" : "output",
+      "label" : "Output mapping"
+    },
+    {
+      "id" : "error",
+      "label" : "Error handling"
+    },
+    {
+      "id" : "retries",
+      "label" : "Retries"
+    }
+  ],
+  "properties" : [
+    {
+      "id" : "operationId",
+      "label" : "Operation",
+      "value" : "text_to_speech_full",
+      "group" : "operation",
+      "binding" : {
+        "name" : "operationId",
+        "type" : "zeebe:input"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Text to speech",
+          "value" : "text_to_speech_full"
+        },
+        {
+          "name" : "List voices",
+          "value" : "get_user_voices_v2"
+        },
+        {
+          "name" : "Submit batch call",
+          "value" : "create_batch_call"
+        },
+        {
+          "name" : "Get batch call",
+          "value" : "get_batch_call"
+        },
+        {
+          "name" : "Get conversation",
+          "value" : "get_conversation_history_route"
+        },
+        {
+          "name" : "Transcribe audio",
+          "value" : "speech_to_text"
+        },
+        {
+          "name" : "Get transcript",
+          "value" : "get_transcript_by_id"
+        }
+      ]
+    },
+    {
+      "id" : "baseUrl",
+      "label" : "Server",
+      "value" : "https://api.elevenlabs.io",
+      "group" : "server",
+      "binding" : {
+        "name" : "baseUrl",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "ElevenLabs API endpoint. The data residency endpoints need an ElevenLabs enterprise plan with data residency.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Global",
+          "value" : "https://api.elevenlabs.io"
+        },
+        {
+          "name" : "EU data residency",
+          "value" : "https://api.eu.residency.elevenlabs.io"
+        },
+        {
+          "name" : "India data residency",
+          "value" : "https://api.in.residency.elevenlabs.io"
+        }
+      ]
+    },
+    {
+      "id" : "serviceAuthenticationConfiguration",
+      "label" : "Authentication credential",
+      "optional" : true,
+      "group" : "authentication",
+      "binding" : {
+        "name" : "serviceAuthenticationConfiguration",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Choose a reusable ElevenLabs credential, or configure the one-time API key below.",
+      "type" : "Configuration",
+      "configurationTemplate" : "io.camunda.connectors:elevenlabs-authentication:1"
+    },
+    {
+      "id" : "authType",
+      "value" : "apiKey.xi-api-key",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authType",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "apiKey.xi-api-key",
+      "value" : "apiKey",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "authentication.apiKeyLocation.xi-api-key",
+      "value" : "headers",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.apiKeyLocation",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "authentication.name.xi-api-key",
+      "label" : "API key name",
+      "optional" : false,
+      "value" : "xi-api-key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.name",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "authentication.value.xi-api-key",
+      "label" : "API key",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.value",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "tooltip" : "ElevenLabs API key, sent in the xi-api-key header. Create one in the <a href='https://elevenlabs.io/app/settings/api-keys' target='_blank'>ElevenLabs dashboard</a>.",
+      "type" : "String",
+      "secret" : true
+    },
+    {
+      "id" : "text_to_speech_full_path_voice_id",
+      "label" : "Voice ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "voice_id",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "text_to_speech_full",
+        "type" : "simple"
+      },
+      "tooltip" : "Voice ID to be used, you can use https://api.elevenlabs.io/v1/voices to list all the available voices.",
+      "placeholder" : "21m00Tcm4TlvDq8ikWAM",
+      "type" : "String"
+    },
+    {
+      "id" : "text_to_speech_full_query_enable_logging",
+      "label" : "Enable logging",
+      "optional" : true,
+      "group" : "parameters",
+      "binding" : {
+        "name" : "enable_logging",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "text_to_speech_full",
+        "type" : "simple"
+      },
+      "tooltip" : "When enable_logging is set to false zero retention mode will be used for the request. This will mean history features are unavailable for this request, including request stitching. Zero retention mode may only be used by enterprise customers.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "true",
+          "value" : "true"
+        },
+        {
+          "name" : "false",
+          "value" : "false"
+        }
+      ]
+    },
+    {
+      "id" : "text_to_speech_full_query_optimize_streaming_latency",
+      "label" : "Optimize streaming latency",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "optimize_streaming_latency",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "text_to_speech_full",
+        "type" : "simple"
+      },
+      "tooltip" : "You can turn on latency optimizations at some cost of quality. The best possible final latency varies by model. Possible values:\n0 - default mode (no latency optimizations)\n1 - normal latency optimizations (about 50% of possible latency improvement of option 3)\n2 - strong latency optimizations (about 75% of possible latency improvement of option 3)\n3 - max latency optimizations\n4 - max latency optimizations, but also with text normalizer turned off for even more latency savings (best latency, but can mispronounce eg numbers and dates).\n\nDefaults to None.\n",
+      "type" : "String"
+    },
+    {
+      "id" : "text_to_speech_full_query_output_format",
+      "label" : "Output format",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "output_format",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "text_to_speech_full",
+        "type" : "simple"
+      },
+      "tooltip" : "Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM and WAV formats with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs.",
+      "placeholder" : "mp3_44100_128",
+      "type" : "String"
+    },
+    {
+      "id" : "text_to_speech_full_$path",
+      "value" : "=\"/v1/text-to-speech/\"+voice_id",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "text_to_speech_full",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "text_to_speech_full_$headers",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "text_to_speech_full",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "text_to_speech_full_$queryParameters",
+      "value" : "=context(get entries({output_format: output_format, enable_logging: enable_logging, optimize_streaming_latency: optimize_streaming_latency})[value != null])",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "text_to_speech_full",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "text_to_speech_full_$method",
+      "value" : "POST",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "text_to_speech_full",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_user_voices_v2_query_next_page_token",
+      "label" : "Next page token",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "next_page_token",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "The next page token to use for pagination. Returned from the previous request. Use this in combination with the has_more flag for reliable pagination.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_page_size",
+      "label" : "Page size",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "page_size",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "How many voices to return at maximum. Can not exceed 100, defaults to 10. Page 0 may include more voices due to default voices being included.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_search",
+      "label" : "Search",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "search",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Search term to filter voices by. Searches in name, description, labels, category.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_sort",
+      "label" : "Sort",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "sort",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Which field to sort by, one of 'created_at_unix' or 'name'. 'created_at_unix' may not be available for older voices.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_sort_direction",
+      "label" : "Sort direction",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "sort_direction",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Which direction to sort the voices in. 'asc' or 'desc'.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_voice_type",
+      "label" : "Voice type",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "voice_type",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Type of the voice to filter by. One of 'personal', 'community', 'default', 'workspace', 'non-default', 'non-community', 'saved'. 'non-default' is equal to all but 'default'. 'non-community' is equal to 'personal' and 'workspace' combined (excludes library copies). 'saved' is equal to non-default, but includes default voices if they have been added to a collection.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_category",
+      "label" : "Category",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "category",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Category of the voice to filter by. One of 'premade', 'cloned', 'generated', 'professional'",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_fine_tuning_state",
+      "label" : "Fine tuning state",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "fine_tuning_state",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "State of the voice's fine tuning to filter by. Applicable only to professional voices clones. One of 'draft', 'not_verified', 'not_started', 'queued', 'fine_tuning', 'fine_tuned', 'failed', 'delayed'",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_collection_id",
+      "label" : "Collection ID",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "collection_id",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Collection ID to filter voices by.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_gender",
+      "label" : "Gender",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "gender",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Gender used for filtering, based on the voice's 'gender' label.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_age",
+      "label" : "Age",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "age",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Age used for filtering, based on the voice's 'age' label.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_language",
+      "label" : "Language",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "language",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Languages used for filtering, based on the voice's 'language' label. Voices matching any of the given languages are returned.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_accent",
+      "label" : "Accent",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "accent",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Accent used for filtering, based on the voice's 'accent' label.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_use_cases",
+      "label" : "Use cases",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "use_cases",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Use cases used for filtering, based on the voice's 'use_case' label. Voices matching any of the given use cases are returned.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_min_notice_period_days",
+      "label" : "Min notice period days",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "min_notice_period_days",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Filter to voices whose sharing notice period is at least the given number of days.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_include_custom_rates",
+      "label" : "Include custom rates",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "include_custom_rates",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Whether to include voices that have a custom sharing rate. Defaults to including them.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_include_live_moderated",
+      "label" : "Include live moderated",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "include_live_moderated",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Whether to include voices that have live moderation enabled. Defaults to including them.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_high_quality",
+      "label" : "High quality",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "high_quality",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "When true, only return studio-quality voices (those whose category is 'high_quality').",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_query_include_total_count",
+      "label" : "Include total count",
+      "optional" : true,
+      "group" : "parameters",
+      "binding" : {
+        "name" : "include_total_count",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Whether to include the total count of voices found in the response. NOTE: The total_count value is a live snapshot and may change between requests as users create, modify, or delete voices. For pagination, rely on the has_more flag instead. Only enable this when you actually need the total count (e.g., for display purposes), as it incurs a performance cost.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "true",
+          "value" : "true"
+        },
+        {
+          "name" : "false",
+          "value" : "false"
+        }
+      ]
+    },
+    {
+      "id" : "get_user_voices_v2_query_voice_ids",
+      "label" : "Voice IDs",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "voice_ids",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "tooltip" : "Voice IDs to lookup by. Maximum 100 voice IDs.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_user_voices_v2_$path",
+      "value" : "=\"/v2/voices\"",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_user_voices_v2_$headers",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_user_voices_v2_$queryParameters",
+      "value" : "=context(get entries({include_custom_rates: include_custom_rates, gender: gender, language: language, sort: sort, use_cases: use_cases, voice_ids: voice_ids, accent: accent, collection_id: collection_id, high_quality: high_quality, sort_direction: sort_direction, search: search, voice_type: voice_type, next_page_token: next_page_token, fine_tuning_state: fine_tuning_state, min_notice_period_days: min_notice_period_days, include_total_count: include_total_count, category: category, include_live_moderated: include_live_moderated, age: age, page_size: page_size})[value != null])",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_user_voices_v2_$method",
+      "value" : "GET",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_user_voices_v2",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "speech_to_text_query_token",
+      "label" : "Token",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "token",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "speech_to_text",
+        "type" : "simple"
+      },
+      "tooltip" : "A single-use authentication token created via POST /v1/single-use-token/batch_scribe. This token can only be used once and expires after 15 minutes. Alternative to API key or bearer token authentication for frontend clients.",
+      "type" : "String"
+    },
+    {
+      "id" : "speech_to_text_query_enable_logging",
+      "label" : "Enable logging",
+      "optional" : true,
+      "group" : "parameters",
+      "binding" : {
+        "name" : "enable_logging",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "speech_to_text",
+        "type" : "simple"
+      },
+      "tooltip" : "When enable_logging is set to false zero retention mode will be used for the request. This will mean log and transcript storage features are unavailable for this request. Zero retention mode may only be used by enterprise customers.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "true",
+          "value" : "true"
+        },
+        {
+          "name" : "false",
+          "value" : "false"
+        }
+      ]
+    },
+    {
+      "id" : "speech_to_text_header_Content-Type",
+      "label" : "Content- type",
+      "description" : "",
+      "optional" : false,
+      "value" : "multipart/form-data",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "parameters",
+      "binding" : {
+        "name" : "Content_Type",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "speech_to_text",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "speech_to_text_$path",
+      "value" : "=\"/v1/speech-to-text\"",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "speech_to_text",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "speech_to_text_$headers",
+      "value" : "={Content-Type: Content_Type}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "speech_to_text",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "speech_to_text_$queryParameters",
+      "value" : "=context(get entries({enable_logging: enable_logging, token: token})[value != null])",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "speech_to_text",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "speech_to_text_$method",
+      "value" : "POST",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "speech_to_text",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_transcript_by_id_path_transcription_id",
+      "label" : "Transcription ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "transcription_id",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_transcript_by_id",
+        "type" : "simple"
+      },
+      "tooltip" : "The unique ID of the transcript to retrieve",
+      "type" : "String"
+    },
+    {
+      "id" : "get_transcript_by_id_$path",
+      "value" : "=\"/v1/speech-to-text/transcripts/\"+transcription_id",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_transcript_by_id",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_transcript_by_id_$headers",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_transcript_by_id",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_transcript_by_id_$queryParameters",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_transcript_by_id",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_transcript_by_id_$method",
+      "value" : "GET",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_transcript_by_id",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_conversation_history_route_path_conversation_id",
+      "label" : "Conversation ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "conversation_id",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_conversation_history_route",
+        "type" : "simple"
+      },
+      "tooltip" : "The id of the conversation you're taking the action on.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_conversation_history_route_query_format",
+      "label" : "Format",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "format",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_conversation_history_route",
+        "type" : "simple"
+      },
+      "tooltip" : "Response format. Defaults to 'json'. Set to 'opentelemetry' for an OTLP-compatible trace payload using the same structure as the post-call webhook.",
+      "type" : "String"
+    },
+    {
+      "id" : "get_conversation_history_route_$path",
+      "value" : "=\"/v1/convai/conversations/\"+conversation_id",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_conversation_history_route",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_conversation_history_route_$headers",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_conversation_history_route",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_conversation_history_route_$queryParameters",
+      "value" : "=context(get entries({format: format})[value != null])",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_conversation_history_route",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_conversation_history_route_$method",
+      "value" : "GET",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_conversation_history_route",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "create_batch_call_$path",
+      "value" : "=\"/v1/convai/batch-calling/submit\"",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "create_batch_call",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "create_batch_call_$headers",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "create_batch_call",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "create_batch_call_$queryParameters",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "create_batch_call",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "create_batch_call_$method",
+      "value" : "POST",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "create_batch_call",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_batch_call_path_batch_id",
+      "label" : "Batch ID",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "batch_id",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_batch_call",
+        "type" : "simple"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "get_batch_call_$path",
+      "value" : "=\"/v1/convai/batch-calling/\"+batch_id",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_batch_call",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_batch_call_$headers",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_batch_call",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_batch_call_$queryParameters",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_batch_call",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "get_batch_call_$method",
+      "value" : "GET",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "get_batch_call",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "text_to_speech_full_body",
+      "label" : "Request body",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "required",
+      "group" : "requestBody",
+      "binding" : {
+        "name" : "body",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "text_to_speech_full",
+        "type" : "simple"
+      },
+      "tooltip" : "Request body as a FEEL context. Required fields: text. See the <a href='https://elevenlabs.io/docs/api-reference/text-to-speech/convert' target='_blank'>ElevenLabs API reference</a>.",
+      "placeholder" : "={\n  text: \"Your order has shipped.\",\n  model_id: \"eleven_multilingual_v2\"\n}",
+      "type" : "String"
+    },
+    {
+      "id" : "speech_to_text_body",
+      "label" : "Request body",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "required",
+      "group" : "requestBody",
+      "binding" : {
+        "name" : "body",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "speech_to_text",
+        "type" : "simple"
+      },
+      "tooltip" : "Request body as a FEEL context. Required fields: model_id, and file (a document) or cloud_storage_url. See the <a href='https://elevenlabs.io/docs/api-reference/speech-to-text/convert' target='_blank'>ElevenLabs API reference</a>.",
+      "placeholder" : "={\n  model_id: \"scribe_v1\",\n  file: audioDocument\n}",
+      "type" : "String"
+    },
+    {
+      "id" : "create_batch_call_body",
+      "label" : "Request body",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "required",
+      "group" : "requestBody",
+      "binding" : {
+        "name" : "body",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "create_batch_call",
+        "type" : "simple"
+      },
+      "tooltip" : "Request body as a FEEL context. Required fields: call_name, agent_id, recipients. See the <a href='https://elevenlabs.io/docs/api-reference/batch-calling/create' target='_blank'>ElevenLabs API reference</a>.",
+      "placeholder" : "={\n  call_name: \"Renewal reminders\",\n  agent_id: \"your-agent-id\",\n  agent_phone_number_id: \"your-phone-number-id\",\n  recipients: [{phone_number: \"+15551234567\"}]\n}",
+      "type" : "String"
+    },
+    {
+      "id" : "url",
+      "value" : "= baseUrl + operationPath",
+      "group" : "url",
+      "binding" : {
+        "name" : "url",
+        "type" : "zeebe:input"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "resultVariable",
+      "label" : "Result variable",
+      "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultVariable",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "resultExpression",
+      "label" : "Result expression",
+      "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+      "feel" : "required",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultExpression",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Text"
+    },
+    {
+      "id" : "documentReturnFormat",
+      "label" : "Response format",
+      "value" : "DOCUMENT",
+      "group" : "output",
+      "binding" : {
+        "name" : "documentReturnFormat.choice",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "text_to_speech_full",
+        "type" : "simple"
+      },
+      "tooltip" : "How the response body is returned. Document reference stores the generated audio in the document store and returns a reference to it in response.document.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Document reference",
+          "value" : "DOCUMENT"
+        },
+        {
+          "name" : "as text",
+          "value" : "TEXT"
+        },
+        {
+          "name" : "as JSON",
+          "value" : "JSON"
+        }
+      ]
+    },
+    {
+      "id" : "documentReturnFormatEncoding",
+      "label" : "Encoding",
+      "value" : "UTF-8",
+      "feel" : "optional",
+      "group" : "output",
+      "binding" : {
+        "name" : "documentReturnFormat.encoding",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "allMatch" : [
+          {
+            "property" : "operationId",
+            "equals" : "text_to_speech_full",
+            "type" : "simple"
+          },
+          {
+            "property" : "documentReturnFormat",
+            "equals" : "TEXT",
+            "type" : "simple"
+          }
+        ]
+      },
+      "tooltip" : "Character set used to decode the response. Default UTF-8.",
+      "type" : "String"
+    },
+    {
+      "id" : "errorExpression",
+      "label" : "Error expression",
+      "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "feel" : "required",
+      "group" : "error",
+      "binding" : {
+        "key" : "errorExpression",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Text"
+    },
+    {
+      "id" : "retryCount",
+      "label" : "Retries",
+      "description" : "Number of retries",
+      "value" : "0",
+      "feel" : "optional",
+      "group" : "retries",
+      "binding" : {
+        "property" : "retries",
+        "type" : "zeebe:taskDefinition"
+      },
+      "tooltip" : "Number of retries. Defaults to 0: a retried call or generation is placed and billed again.",
+      "type" : "String"
+    },
+    {
+      "id" : "retryBackoff",
+      "label" : "Retry backoff",
+      "description" : "ISO-8601 duration to wait between retries",
+      "value" : "PT30S",
+      "group" : "retries",
+      "binding" : {
+        "key" : "retryBackoff",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "jobTimeout",
+      "label" : "Job timeout",
+      "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+      "optional" : true,
+      "group" : "retries",
+      "binding" : {
+        "key" : "jobTimeout",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "String"
+    },
+    {
+      "value" : "io.camunda:http-json:1",
+      "binding" : {
+        "property" : "type",
+        "type" : "zeebe:taskDefinition"
+      },
+      "type" : "Hidden"
+    }
+  ],
+  "steps" : [
+    {
+      "name" : "Text to speech",
+      "description" : "Generate an ElevenLabs audio file from text and store it as a document",
+      "keywords" : [
+        "text to speech",
+        "TTS",
+        "generate audio",
+        "voice",
+        "speech synthesis"
+      ],
+      "presetId" : "text_to_speech_full"
+    },
+    {
+      "name" : "List voices",
+      "description" : "List the ElevenLabs voices available to your account, to find a voice ID",
+      "keywords" : [
+        "list voices",
+        "voice ID",
+        "search voices",
+        "find voice"
+      ],
+      "presetId" : "get_user_voices_v2"
+    },
+    {
+      "name" : "Submit batch call",
+      "description" : "Let an ElevenLabs agent call a list of phone numbers",
+      "keywords" : [
+        "batch call",
+        "call list",
+        "bulk calls",
+        "outbound campaign",
+        "voice agent"
+      ],
+      "presetId" : "create_batch_call"
+    },
+    {
+      "name" : "Get batch call",
+      "description" : "Get the progress and per-recipient status of an ElevenLabs batch call",
+      "keywords" : [
+        "batch call status",
+        "call progress",
+        "get batch call"
+      ],
+      "presetId" : "get_batch_call"
+    },
+    {
+      "name" : "Get conversation",
+      "description" : "Get the transcript and outcome of an ElevenLabs agent conversation",
+      "keywords" : [
+        "conversation",
+        "call transcript",
+        "call outcome",
+        "get conversation"
+      ],
+      "presetId" : "get_conversation_history_route"
+    },
+    {
+      "name" : "Transcribe audio",
+      "description" : "Transcribe an audio or video document to text with ElevenLabs",
+      "keywords" : [
+        "speech to text",
+        "STT",
+        "transcribe",
+        "transcription",
+        "audio to text"
+      ],
+      "presetId" : "speech_to_text"
+    },
+    {
+      "name" : "Get transcript",
+      "description" : "Get the result of an asynchronous ElevenLabs transcription",
+      "keywords" : [
+        "get transcript",
+        "transcription result",
+        "async transcription"
+      ],
+      "presetId" : "get_transcript_by_id"
+    }
+  ],
+  "presets" : [
+    {
+      "id" : "text_to_speech_full",
+      "properties" : {
+        "operationId" : "text_to_speech_full"
+      }
+    },
+    {
+      "id" : "get_user_voices_v2",
+      "properties" : {
+        "operationId" : "get_user_voices_v2"
+      }
+    },
+    {
+      "id" : "create_batch_call",
+      "properties" : {
+        "operationId" : "create_batch_call"
+      }
+    },
+    {
+      "id" : "get_batch_call",
+      "properties" : {
+        "operationId" : "get_batch_call"
+      }
+    },
+    {
+      "id" : "get_conversation_history_route",
+      "properties" : {
+        "operationId" : "get_conversation_history_route"
+      }
+    },
+    {
+      "id" : "speech_to_text",
+      "properties" : {
+        "operationId" : "speech_to_text"
+      }
+    },
+    {
+      "id" : "get_transcript_by_id",
+      "properties" : {
+        "operationId" : "get_transcript_by_id"
+      }
+    }
+  ],
+  "configurationTemplates" : [
+    {
+      "id" : "io.camunda.connectors:elevenlabs-authentication:1",
+      "kind" : "CREDENTIAL",
+      "version" : 1,
+      "name" : "ElevenLabs Authentication",
+      "properties" : [
+        {
+          "id" : "authentication.type",
+          "value" : "apiKey",
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.type",
+            "type" : "property"
+          },
+          "type" : "Hidden"
+        },
+        {
+          "id" : "authentication.apiKeyLocation",
+          "value" : "headers",
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.apiKeyLocation",
+            "type" : "property"
+          },
+          "type" : "Hidden"
+        },
+        {
+          "id" : "authentication.name",
+          "value" : "xi-api-key",
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.name",
+            "type" : "property"
+          },
+          "type" : "Hidden"
+        },
+        {
+          "id" : "authentication.value",
+          "label" : "API key",
+          "constraints" : {
+            "notEmpty" : true
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.value",
+            "type" : "property"
+          },
+          "tooltip" : "ElevenLabs API key, sent in the xi-api-key header. Create one in the <a href='https://elevenlabs.io/app/settings/api-keys' target='_blank'>ElevenLabs dashboard</a>.",
+          "type" : "String",
+          "secret" : true
+        }
+      ]
+    }
+  ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48cmVjdCB4PSI1IiB5PSIyIiB3aWR0aD0iMi41IiBoZWlnaHQ9IjE0IiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iMTAuNSIgeT0iMiIgd2lkdGg9IjIuNSIgaGVpZ2h0PSIxNCIgZmlsbD0iIzAwMCIvPjwvc3ZnPgo="
+  }
+}
