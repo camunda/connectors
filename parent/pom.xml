@@ -118,7 +118,7 @@ limitations under the License.</license.inlineheader>
          runtime by the <if> conditionals in logback-spring.xml, so it is pinned here. -->
     <version.janino>3.1.12</version.janino>
 
-    <version.aws-sdk2>2.59.7</version.aws-sdk2>
+    <version.aws-sdk2>2.59.8</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -187,7 +187,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-28</version.zstd-jni>
+    <version.zstd-jni>1.5.7-29</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
