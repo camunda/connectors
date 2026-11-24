@@ -7,6 +7,8 @@ applyTo: "connectors/agentic-ai/**,connectors-e2e-test/connectors-e2e-test-agent
 These rules apply to `connectors/agentic-ai` and `connectors-e2e-test/connectors-e2e-test-agentic-ai`.
 Follow them when you plan a change and when you write code. To review a change, follow
 [`code-review.md`](code-review.md). In a review, a rule that says to ask becomes a ❓ finding.
+An imperative sentence is required. "Never" forbids. "Prefer" sets a default; a deviation states its
+reason in the PR.
 
 Follow the repo-wide connectors conventions in the repo-root [`AGENTS.md`](../../../AGENTS.md) where
 they do not conflict with these rules. If they conflict, these rules apply, and the PR states the
@@ -19,8 +21,8 @@ levels, the Definition of Done, ADRs, architectural invariants).
 ## Principles
 
 The rules below apply four principles. A rule that applies a principle ends with it, for example
-`(P2)`. When no rule names a case, reason from the principle and cite it. A principle wins over a
-specific rule. When they conflict, the review names the rule for revision.
+`(P2)`. When no rule names a case, reason from the principle and cite it. When a rule and a
+principle conflict, follow the principle and report a 💭 that names the rule.
 
 - **P1. A reader predicts the behavior from the name.**
   - Why: a reviewer reads the call sites more often than the bodies, so a name that hides a decision
@@ -121,7 +123,7 @@ effects. A good name does not replace a Javadoc that the rules below require.
   "previously", "replaces", "after this change", "for the time being" or "until". Judge the sentence,
   not the word. Do not name a PR, an issue, a stacked PR or future work. Put the history in
   the commit message, the PR, an ADR or [`docs/breaking-changes.md`](breaking-changes.md).
-- Each claim in a Javadoc MUST be true for the code of the same commit, on each path, also for a job
+- Each claim in a Javadoc must be true for the code of the same commit, on each path, also for a job
   that runs again. Example: a job that runs again creates new message IDs, so a Javadoc must not claim
   that it computes the same result. A claim that the code does not enforce is a defect. Fix the claim,
   and add code that enforces it only when the failure is reachable. Prefer stating what the code does
@@ -138,8 +140,8 @@ effects. A good name does not replace a Javadoc that the rules below require.
 Each rule gives a principle, the location in this module where it applies, and the review finding
 that caused it.
 
-1. **Changes are compatible with running processes.** A process that runs on the baseline MUST
-   continue to deploy and run after the change. A new field or capability MUST NOT change behavior
+1. **Changes are compatible with running processes.** A process that runs on the baseline must
+   continue to deploy and run after the change. A new field or capability must not change behavior
    when nobody sets it. The baseline:
    - On `main`: the latest minor release, for example 8.10 while `main` develops 8.11. What is new on
      `main` since then, including alpha releases, may still change.
@@ -174,7 +176,7 @@ that caused it.
    made it. An ID keeps its meaning.
    - In this module: when you write content that only one provider can use, tag it with that provider.
      Examples: `ReasoningContent` and `ProviderContent` have a `provider` field.
-   - A provider converter MUST compare the tag, and MUST drop reasoning, provider-native content and
+   - A provider converter must compare the tag, and must drop reasoning, provider-native content and
      IDs from a different provider. Use `AnthropicContentConverter` as the example.
    - Map a protocol ID only to the field with the same meaning. Example: use the output item ID, not
      the response ID.

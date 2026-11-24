@@ -41,7 +41,7 @@ I1 to I3. Review checks the rest, and with the tests of the stores and SPIs, the
     LangChain4j chat models (see
     [`langchain4j-chat-model.md`](../connector-aiagent/docs/langchain4j-chat-model.md#converter-chain-architecture)).
   - **Why**: a leak here re-couples the whole codebase to the framework and defeats I1.
-- **I3 (deprecated). Interface in package root, `*Impl` alongside.** Existing pairs stay: public collaborators such as
+- **I3 (legacy convention). Interface in package root, `*Impl` alongside.** Existing pairs stay: public collaborators such as
   `AgentToolsResolver`, `ConversationStoreRegistry` and `SystemPromptComposer` are interfaces with a `FooImpl` in the
   same package, registered as an overridable Spring bean and injected by the interface, never as `*Impl`. The
   architecture tests check that a class named `FooImpl` implements the interface `Foo`. A class that implements one
