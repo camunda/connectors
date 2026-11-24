@@ -104,10 +104,11 @@ number:
 4. The change adds a dependency.
 5. The PR description declares a deviation from a rule. The declaration never removes a finding.
 
-The path rules in `.github/pr-review-agent/agentic-ai.yml` also require a human, whatever the review
-finds. They cover released element templates, element template migration recipes, `aiagent-api`, `aiagent-model`, `api-changes.json`, the rule documents
-(`implementation-rules.md`, `design-guidelines.md`, `target-architecture.md`, `code-review.md`,
-`breaking-changes.md`, `acceptance-testing.md`, the module `AGENTS.md`), and authentication, credential and outbound proxy code.
+The path rules in [`.github/pr-review-agent/agentic-ai.yml`](../../../.github/pr-review-agent/agentic-ai.yml), the
+source of truth, also require a human, whatever the review finds: released element templates, element template
+migration recipes, `aiagent-api`, `aiagent-model`, `api-changes.json`, the rule documents (the module `AGENTS.md`,
+`implementation-rules.md`, `design-guidelines.md`, `target-architecture.md`, `code-review.md`, `breaking-changes.md`,
+`acceptance-testing.md`), and authentication, credential and outbound proxy code.
 
 A review that finds none of these does not need a human because of this section. It can still need one
 for other reasons, such as a blocking finding or low confidence.
