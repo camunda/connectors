@@ -166,7 +166,8 @@ prompt caching remain manual because their cache placement is opportunistic: uns
 `-Dit.test`; native capability legs, including `DocumentToolCallResultsIT`, are selected by their
 JUnit groups.
 
-To select the structured-output class instead, replace `-Dgroups=core-smoke` in that command with
+To select the structured-output class instead, replace `-Dgroups=core-smoke` in the command of
+[Run one native capability from the host](README.md#run-one-native-capability-from-the-host) with
 `-Dit.test=RealProviderStructuredOutputE2ETestIT`.
 
 For JetBrains IDEs, create a JUnit run configuration for the capability-specific `*E2ETestIT` class.
