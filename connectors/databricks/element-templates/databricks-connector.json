@@ -1626,8 +1626,8 @@
           "constraints" : {
             "notEmpty" : true,
             "pattern" : {
-              "value" : "^(https://[^/\\s?#]+/?|\\{\\{secrets\\..+\\}\\})$",
-              "message" : "Must be an https URL or a {{secrets.NAME}} placeholder"
+              "value" : "^(https://[^/\\s?#]+/?|camunda\\.secrets\\.[A-Za-z0-9_-]+)$",
+              "message" : "Must be an https URL or a camunda.secrets.NAME reference"
             }
           },
           "group" : "authentication",

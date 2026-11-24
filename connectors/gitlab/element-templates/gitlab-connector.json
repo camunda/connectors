@@ -2552,8 +2552,8 @@
           "constraints": {
             "notEmpty": true,
             "pattern": {
-              "value": "^((https?://|\\{\\{secrets\\..+\\}\\}).*$)",
-              "message": "Must be a http(s) URL"
+              "value": "^((https?://|camunda\\.secrets\\.).*$)",
+              "message": "Must be a http(s) URL or a camunda.secrets.NAME reference"
             }
           },
           "group": "authentication",
