@@ -582,6 +582,13 @@
       "id" : "get_user_voices_v2_query_language",
       "label" : "Language",
       "optional" : true,
+      "constraints" : {
+        "notEmpty" : false,
+        "pattern" : {
+          "value" : "^[^,]*$",
+          "message" : "Enter a single value."
+        }
+      },
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -593,7 +600,7 @@
         "equals" : "get_user_voices_v2",
         "type" : "simple"
       },
-      "tooltip" : "Languages used for filtering, based on the voice's 'language' label. Voices matching any of the given languages are returned.",
+      "tooltip" : "Languages used for filtering, based on the voice's 'language' label. Voices matching any of the given languages are returned. One value only. To filter by several values, run the operation once per value.",
       "type" : "String"
     },
     {
@@ -618,6 +625,13 @@
       "id" : "get_user_voices_v2_query_use_cases",
       "label" : "Use cases",
       "optional" : true,
+      "constraints" : {
+        "notEmpty" : false,
+        "pattern" : {
+          "value" : "^[^,]*$",
+          "message" : "Enter a single value."
+        }
+      },
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -629,7 +643,7 @@
         "equals" : "get_user_voices_v2",
         "type" : "simple"
       },
-      "tooltip" : "Use cases used for filtering, based on the voice's 'use_case' label. Voices matching any of the given use cases are returned.",
+      "tooltip" : "Use cases used for filtering, based on the voice's 'use_case' label. Voices matching any of the given use cases are returned. One value only. To filter by several values, run the operation once per value.",
       "type" : "String"
     },
     {
@@ -735,6 +749,13 @@
       "id" : "get_user_voices_v2_query_voice_ids",
       "label" : "Voice IDs",
       "optional" : true,
+      "constraints" : {
+        "notEmpty" : false,
+        "pattern" : {
+          "value" : "^[^,]*$",
+          "message" : "Enter a single value."
+        }
+      },
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -746,7 +767,7 @@
         "equals" : "get_user_voices_v2",
         "type" : "simple"
       },
-      "tooltip" : "Voice IDs to lookup by. Maximum 100 voice IDs.",
+      "tooltip" : "Voice IDs to lookup by. Maximum 100 voice IDs. One value only. To filter by several values, run the operation once per value.",
       "type" : "String"
     },
     {

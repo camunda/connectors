@@ -22,13 +22,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.binaryEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.camunda.client.CamundaClient;
@@ -132,6 +131,7 @@ class ElevenLabsTests {
 
   @Test
   void listVoicesSendsOnlyTheQueryParametersThatAreSet() {
+    // Only the set filters are sent, and an array filter such as language sends its one value.
     wm.stubFor(
         get(urlPathEqualTo("/v2/voices"))
             .withHeader("xi-api-key", equalTo(API_KEY))
@@ -143,13 +143,17 @@ class ElevenLabsTests {
     File listVoices =
         template("get_user_voices_v2")
             .property("get_user_voices_v2_query_page_size", "5")
+            .property("get_user_voices_v2_query_language", "en")
             .property("resultExpression", "={voiceId: response.body.voices[1].voice_id}")
             .writeTo(new File(tempDir, "voices.json"));
 
     var test = run(apply(singleTask("listVoices"), listVoices, "listVoices"));
 
     assertThat(test.getProcessInstanceEvent()).hasVariable("voiceId", "voice123");
-    wm.verify(getRequestedFor(urlEqualTo("/v2/voices?page_size=5")));
+    var request = wm.getAllServeEvents().getFirst().getRequest();
+    assertThat(request.getQueryParams().keySet())
+        .containsExactlyInAnyOrder("page_size", "language");
+    assertThat(request.queryParameter("language").values()).containsExactly("en");
   }
 
   @Test

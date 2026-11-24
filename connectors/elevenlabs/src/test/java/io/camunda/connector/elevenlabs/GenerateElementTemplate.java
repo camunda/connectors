@@ -236,7 +236,9 @@ public class GenerateElementTemplate {
             TEMPLATE_VERSION,
             null,
             Map.of());
-    return curate(generator.generate(source, configuration).getFirst());
+    return curate(
+        generator.generate(source, configuration).getFirst(),
+        arrayQueryParameterIds(patchedSpec()));
   }
 
   /**
@@ -244,14 +246,56 @@ public class GenerateElementTemplate {
    * content first, then the operation IDs. External references are never resolved.
    */
   static OpenApiGenerationSource generationSource() throws IOException {
-    ObjectMapper mapper = new ObjectMapper();
-    JsonNode spec = readResource(mapper, "/elevenlabs-openapi.json");
-    JsonNode overlay = readResource(mapper, "/elevenlabs-openapi-overlay.json");
     List<String> parameters = new ArrayList<>();
-    parameters.add(mapper.writeValueAsString(OpenApiOverlay.apply(spec, overlay)));
+    parameters.add(new ObjectMapper().writeValueAsString(patchedSpec()));
     parameters.addAll(OPERATION_IDS);
     parameters.add("--no-resolve-refs");
     return new OpenApiGenerationSource(parameters);
+  }
+
+  /** The pinned spec with the overlay applied. */
+  static JsonNode patchedSpec() throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode spec = readResource(mapper, "/elevenlabs-openapi.json");
+    JsonNode overlay = readResource(mapper, "/elevenlabs-openapi-overlay.json");
+    return OpenApiOverlay.apply(spec, overlay);
+  }
+
+  /**
+   * Property IDs of the curated operations' array-valued query parameters, in the OpenAPI
+   * generator's {@code <operationId>_query_<name>} form.
+   */
+  static Set<String> arrayQueryParameterIds(JsonNode spec) {
+    Set<String> ids = new LinkedHashSet<>();
+    for (JsonNode path : spec.path("paths")) {
+      for (JsonNode operation : path) {
+        String operationId = operation.path("operationId").asText(null);
+        if (operationId == null || !OPERATION_IDS.contains(operationId)) {
+          continue;
+        }
+        for (JsonNode parameter : operation.path("parameters")) {
+          if (parameter.has("$ref")) {
+            parameter = spec.at(parameter.get("$ref").asText().substring(1));
+          }
+          if ("query".equals(parameter.path("in").asText()) && isArray(parameter.path("schema"))) {
+            ids.add(operationId + "_query_" + parameter.path("name").asText());
+          }
+        }
+      }
+    }
+    return ids;
+  }
+
+  private static boolean isArray(JsonNode schema) {
+    if ("array".equals(schema.path("type").asText())) {
+      return true;
+    }
+    for (JsonNode option : schema.path("anyOf")) {
+      if ("array".equals(option.path("type").asText())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -265,6 +309,10 @@ public class GenerateElementTemplate {
    *       read as words ({@code Voice ID}, not {@code Voice_id}), and help text moves to tooltips.
    *   <li>Query parameters: an unset optional parameter would be sent as an empty {@code ?gender}.
    *       Null entries are dropped from the query map.
+   *   <li>Array query parameters: http-json sends query parameters as a string map, so it cannot
+   *       send {@code language=en&language=es}. ElevenLabs reads a comma-separated value as one
+   *       value and silently returns nothing, and a FEEL list does not bind. These fields take one
+   *       value, enforced by a pattern that rejects commas.
    *   <li>Request bodies get a label, an example and a link to the API reference.
    *   <li>Authentication: a reusable ElevenLabs credential, with the inline API key as fallback.
    *   <li>Text to speech returns audio, so it defaults to "Document reference".
@@ -272,7 +320,7 @@ public class GenerateElementTemplate {
    *       generation.
    * </ul>
    */
-  static ElementTemplate curate(ElementTemplate raw) {
+  static ElementTemplate curate(ElementTemplate raw, Set<String> arrayQueryParameterIds) {
     Map<String, Operation> operationsById =
         OPERATIONS.stream()
             .collect(Collectors.toMap(Operation::id, op -> op, (a, b) -> a, LinkedHashMap::new));
@@ -282,7 +330,7 @@ public class GenerateElementTemplate {
       if ("authentication".equals(property.getGroup())) {
         continue;
       }
-      properties.add(curateProperty(property, operationsById));
+      properties.add(curateProperty(property, operationsById, arrayQueryParameterIds));
     }
 
     ElementTemplateBuilder builder =
@@ -342,7 +390,8 @@ public class GenerateElementTemplate {
         .build();
   }
 
-  private static Property curateProperty(Property property, Map<String, Operation> operations) {
+  private static Property curateProperty(
+      Property property, Map<String, Operation> operations, Set<String> arrayQueryParameterIds) {
     if (OPERATION_PROPERTY_ID.equals(property.getId())) {
       return ((DropdownProperty) property)
           .toBuilder()
@@ -370,7 +419,7 @@ public class GenerateElementTemplate {
           .build();
     }
     if ("parameters".equals(property.getGroup())) {
-      return curateParameter(property);
+      return curateParameter(property, arrayQueryParameterIds.contains(property.getId()));
     }
     if ("requestBody".equals(property.getGroup())) {
       return curateBody(property, operations.get(operationOf(property)));
@@ -378,7 +427,7 @@ public class GenerateElementTemplate {
     return property;
   }
 
-  private static Property curateParameter(Property property) {
+  private static Property curateParameter(Property property, boolean arrayValued) {
     if (property instanceof HiddenProperty) {
       if (property.getBinding() instanceof ZeebeInput input
           && "queryParameters".equals(input.name())
@@ -400,6 +449,17 @@ public class GenerateElementTemplate {
     }
     builder.value(null);
     builder.placeholder(PARAMETER_PLACEHOLDERS.get(property.getId()));
+    if (arrayValued) {
+      String tooltip = property.getDescription() == null ? "" : property.getDescription() + " ";
+      builder.tooltip(
+          tooltip
+              + "One value only. To filter by several values, run the operation once per value.");
+      builder.constraints(
+          PropertyConstraints.builder()
+              .notEmpty(false)
+              .pattern(new PropertyConstraints.Pattern("^[^,]*$", "Enter a single value."))
+              .build());
+    }
     return builder.build();
   }
 

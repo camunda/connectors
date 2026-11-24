@@ -162,6 +162,26 @@ class GenerateElementTemplateTest {
   }
 
   @Test
+  void arrayQueryParametersAcceptOneValue() throws Exception {
+    assertThat(
+            GenerateElementTemplate.arrayQueryParameterIds(GenerateElementTemplate.patchedSpec()))
+        .containsExactlyInAnyOrder(
+            "get_user_voices_v2_query_language",
+            "get_user_voices_v2_query_use_cases",
+            "get_user_voices_v2_query_voice_ids");
+    for (String id :
+        List.of(
+            "get_user_voices_v2_query_language",
+            "get_user_voices_v2_query_use_cases",
+            "get_user_voices_v2_query_voice_ids")) {
+      Property filter = property(id);
+      assertThat(filter.getConstraints().pattern().value()).isEqualTo("^[^,]*$");
+      assertThat(filter.getTooltip()).endsWith("run the operation once per value.");
+    }
+    assertThat(property("get_user_voices_v2_query_search").getConstraints()).isNull();
+  }
+
+  @Test
   void dropsUnsetQueryParameters() {
     assertThat(template.properties())
         .filteredOn(p -> new ZeebeInput("queryParameters").equals(p.getBinding()))
