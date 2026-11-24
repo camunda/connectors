@@ -25,7 +25,9 @@ import io.swagger.v3.oas.models.security.SecurityScheme.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -90,7 +92,27 @@ public class SecurityUtil {
       throw new IllegalArgumentException(
           "Security schemes are not supported by the REST Connector");
     }
-    return result;
+    return deduplicate(result);
+  }
+
+  /**
+   * A security scheme can appear in more than one security requirement, for example {@code
+   * security: [{basicAuth: []}, {basicAuth: []}]}, or a scheme shared by two alternatives. The
+   * template property IDs of an authentication are derived from its {@link
+   * HttpAuthentication#id()}, so keeping more than one entry with the same ID would produce
+   * duplicate properties. Keep the first occurrence of each ID.
+   */
+  private static List<HttpAuthentication> deduplicate(List<HttpAuthentication> authentications) {
+    Map<String, HttpAuthentication> byId = new LinkedHashMap<>();
+    for (var authentication : authentications) {
+      var existing = byId.putIfAbsent(authentication.id(), authentication);
+      if (existing != null) {
+        LOG.info(
+            "Ignoring duplicate authentication {} declared by more than one security requirement",
+            authentication.id());
+      }
+    }
+    return new ArrayList<>(byId.values());
   }
 
   private static HttpAuthentication transformToAuthentication(

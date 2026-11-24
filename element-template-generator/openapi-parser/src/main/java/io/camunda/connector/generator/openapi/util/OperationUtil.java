@@ -31,6 +31,8 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +44,8 @@ import java.util.stream.Collectors;
  * HttpOperation}s.
  */
 public class OperationUtil {
+
+  private static final String CONTENT_TYPE = "Content-Type";
 
   public static List<OperationParseResult> extractOperations(
       OpenAPI openAPI, Set<String> includeOperations, Options options) {
@@ -126,7 +130,9 @@ public class OperationUtil {
                 || includeOperations.isEmpty()
                 || operation.builder() != null
                     && includeOperations.contains(operation.builder().getId()))
-        .collect(Collectors.toList());
+        .collect(
+            Collectors.collectingAndThen(
+                Collectors.toList(), OperationUtil::markDuplicateOperationIdsUnsupported));
   }
 
   private static OperationParseResult extractOperation(
@@ -160,14 +166,21 @@ public class OperationUtil {
         properties.addAll(((BodyParseResult.Detailed) body).properties());
       }
 
-      Optional.ofNullable(operation.getRequestBody())
-          .map(RequestBody::getContent)
-          .filter(content -> content.containsKey("multipart/form-data"))
-          .ifPresent(content -> {
-            properties.add(
-                HttpOperationProperty.createHiddenProperty(
-                    "Content-Type", Target.HEADER, "", true, "multipart/form-data"));
-          });
+      boolean multipartBody =
+          Optional.ofNullable(operation.getRequestBody())
+              .map(RequestBody::getContent)
+              .filter(content -> content.containsKey("multipart/form-data"))
+              .isPresent();
+      if (multipartBody) {
+        // The multipart body sets the Content-Type header, so an explicit Content-Type header
+        // parameter would duplicate it.
+        properties.removeIf(property ->
+            property.target() == Target.HEADER && CONTENT_TYPE.equalsIgnoreCase(property.id()));
+        properties.add(
+            HttpOperationProperty.createHiddenProperty(
+                CONTENT_TYPE, Target.HEADER, "", true, "multipart/form-data"));
+      }
+      ensureUniquePropertyIds(properties);
 
       var opBuilder =
           HttpOperation.builder()
@@ -183,6 +196,51 @@ public class OperationUtil {
       return new OperationParseResult(
           operation.getOperationId(), path, method, tags, false, description, e.getMessage(), null);
     }
+  }
+
+  /**
+   * The template property ID of an operation property is derived from its target and ID. Two
+   * properties with the same target and ID, for example a header parameter declared twice, would
+   * make the whole template invalid, so the operation is rejected instead.
+   */
+  private static void ensureUniquePropertyIds(Collection<HttpOperationProperty> properties) {
+    Set<String> seen = new HashSet<>();
+    for (var property : properties) {
+      var target = property.target().name().toLowerCase();
+      if (!seen.add(target + "_" + property.id())) {
+        throw new IllegalArgumentException(
+            "Duplicate " + target + " property '" + property.id() + "'");
+      }
+    }
+  }
+
+  /**
+   * Operation IDs must be unique, as template property IDs are prefixed with them. Keep the first
+   * operation with a given ID and mark the others unsupported.
+   */
+  private static List<OperationParseResult> markDuplicateOperationIdsUnsupported(
+      List<OperationParseResult> operations) {
+    Set<String> seen = new HashSet<>();
+    List<OperationParseResult> result = new ArrayList<>(operations.size());
+    for (var operation : operations) {
+      if (!operation.supported() || seen.add(operation.builder().getId())) {
+        result.add(operation);
+      } else {
+        result.add(
+            new OperationParseResult(
+                operation.id(),
+                operation.path(),
+                operation.method(),
+                operation.tags(),
+                false,
+                operation.description(),
+                "Duplicate operation ID '"
+                    + operation.builder().getId()
+                    + "': another operation already uses it",
+                null));
+      }
+    }
+    return result;
   }
 
   private static HttpFeelBuilder extractPath(String rawPath) {

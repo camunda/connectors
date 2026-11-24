@@ -41,6 +41,14 @@ public class ParameterUtil {
     if (parameter.get$ref() != null) {
       parameter = resolveParameterRef(parameter.get$ref(), components);
     }
+    if (parameter.getIn() == null || !targetMapping.containsKey(parameter.getIn())) {
+      throw new IllegalArgumentException(
+          "Parameter '"
+              + parameter.getName()
+              + "' in '"
+              + parameter.getIn()
+              + "' is not supported");
+    }
     if (parameter.getSchema() != null) {
       return fromSchema(parameter, components);
     } else if (parameter.getContent() != null) {
