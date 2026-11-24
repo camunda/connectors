@@ -1,0 +1,139 @@
+# Uses syntax that only OpenAPI 3.1 allows: type arrays for nullable values,
+# `examples` lists in schemas, `info.summary`, `license.identifier` and `webhooks`.
+openapi: 3.1.0
+info:
+  title: Pet Store
+  summary: A pet store API written in OpenAPI 3.1
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    identifier: Apache-2.0
+servers:
+  - url: https://api.example.com/v1
+security:
+  - bearerAuth: []
+paths:
+  /pets/{petId}:
+    get:
+      operationId: getPet
+      summary: Get a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            examples: [42]
+        - name: verbose
+          in: query
+          schema:
+            type: boolean
+        - name: status
+          in: query
+          schema:
+            type: [string, "null"]
+            examples: [available]
+      responses:
+        '200':
+          description: The pet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+    patch:
+      operationId: updatePet
+      summary: Update a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                # A reference to another part of the document, not to components.schemas
+                tags:
+                  $ref: '#/paths/~1pets~1{petId}~1tags/put/requestBody/content/application~1json/schema'
+              example:
+                name: Rex
+                tags:
+                  - name: good boy
+      responses:
+        '200':
+          description: The updated pet.
+  /pets:
+    post:
+      operationId: createPet
+      summary: Create a pet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
+      responses:
+        '201':
+          description: The created pet.
+  /pets/{petId}/tags:
+    put:
+      operationId: replaceTags
+      summary: Replace the tags of a pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Tag'
+      responses:
+        '204':
+          description: Tags replaced.
+webhooks:
+  petAdopted:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
+      responses:
+        '200':
+          description: Webhook received.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    Pet:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          examples: [Rex]
+        nickname:
+          type: [string, "null"]
+        vaccinated:
+          type: boolean
+        age:
+          type: [integer, "null"]
+    Tag:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: [string, "null"]
