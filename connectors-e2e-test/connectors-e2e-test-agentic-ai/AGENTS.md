@@ -106,7 +106,7 @@ BPMN per minimum Camunda version, e.g. `ai-agent-task-8.10.0.bpmn`) and are run 
 `AgentTaskElementTemplateRegressionTests` and `AgentSubProcessElementTemplateRegressionTests`. Copy the
 latest pair, rename it for the new version with unique process IDs (e.g. `AI_Agent_Task_8100`),
 re-apply the new templates in Modeler, and add both files to the tests' `@ValueSource`. Never edit a
-fixture of a released template generation.
+fixture whose templates are released.
 
 ## Real-LLM CPT coverage
 

@@ -84,9 +84,8 @@ Start each finding with one code. These are the codes of the AI PR review bot.
 - 💭 A rule discussion or an open design question. Nothing has to change in this PR.
 
 A rule break with low likelihood and low end-user effect, such as wording or placement, is 🙃, not ❌.
-A finding that an accepted ADR, or a decision that step 9 asks for in the PR description (a stored
-shape, a name, a default or a limit), already covers is 💭: report it, but nothing has to change in
-this PR. A declared deviation from a rule is not such a decision.
+A finding that an accepted ADR, or a customer-facing decision that the PR description states
+(step 9), already covers is 💭: report it, but nothing has to change in this PR. A declared deviation from a rule is not such a decision.
 
 Rate the likelihood and the end-user severity (`high`, `medium` or `low`) of each ❌, ❓ and 🔧
 finding. End users are the people who use the released connectors: process developers, operators

@@ -28,7 +28,7 @@ Cross-cutting docs:
 - [`connectors/agentic-ai/docs/acceptance-testing.md`](acceptance-testing.md): the testing rules
 - [`connectors/agentic-ai/docs/target-architecture.md`](target-architecture.md): the target state
 - [`connectors/agentic-ai/docs/template-text-guidelines.md`](template-text-guidelines.md): help text of element templates
-- [`connectors/agentic-ai/docs/breaking-changes.md`](breaking-changes.md): breaking changes for custom extensions
+- [`connectors/agentic-ai/docs/breaking-changes.md`](breaking-changes.md): breaking changes for extension developers
 - [`connectors/agentic-ai/docs/adr/README.md`](adr/README.md): the ADR authoring rules
 
 Every module README has these headings, in this order: `# <module>`, `## Purpose`, `## Key types`,
@@ -38,12 +38,12 @@ Every module README has these headings, in this order: `# <module>`, `## Purpose
 
 ## Update the docs in the same change
 
-Update the docs when a change touches behavior, a contract, a public type or member, a stored shape, a
+Update the docs when a change touches behavior, a contract, a public type or member, persisted state, a
 configuration property or an error code.
 
 1. Search the docs in scope and the Javadoc for the name of each changed type and member.
 2. Fix each match that the change makes wrong.
-3. For a breaking change for custom extensions, add an entry to
+3. For a breaking change for extension developers, add an entry to
    [`connectors/agentic-ai/docs/breaking-changes.md`](breaking-changes.md) under the release in development. Give the old API,
    the new API and a migration hint.
 
