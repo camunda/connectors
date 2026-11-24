@@ -21,6 +21,10 @@
           {
             "url": "https://api.in.residency.elevenlabs.io",
             "description": "India data residency"
+          },
+          {
+            "url": "https://api.sg.residency.elevenlabs.io",
+            "description": "Singapore data residency"
           }
         ],
         "security": [

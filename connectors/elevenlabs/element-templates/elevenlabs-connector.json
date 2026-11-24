@@ -54,6 +54,10 @@
       "label" : "URL"
     },
     {
+      "id" : "timeout",
+      "label" : "Timeout"
+    },
+    {
       "id" : "output",
       "label" : "Output mapping"
     },
@@ -131,6 +135,10 @@
         {
           "name" : "India data residency",
           "value" : "https://api.in.residency.elevenlabs.io"
+        },
+        {
+          "name" : "Singapore data residency",
+          "value" : "https://api.sg.residency.elevenlabs.io"
         }
       ]
     },
@@ -1350,6 +1358,48 @@
       "type" : "Hidden"
     },
     {
+      "id" : "connectionTimeoutInSeconds",
+      "label" : "Connection timeout in seconds",
+      "optional" : false,
+      "value" : 20,
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^\\d+$",
+          "message" : "Must be a number"
+        }
+      },
+      "feel" : "static",
+      "group" : "timeout",
+      "binding" : {
+        "name" : "connectionTimeoutInSeconds",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Time to establish the connection. Use 0 for an infinite timeout.",
+      "type" : "Number"
+    },
+    {
+      "id" : "readTimeoutInSeconds",
+      "label" : "Read timeout in seconds",
+      "optional" : false,
+      "value" : 20,
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^\\d+$",
+          "message" : "Must be a number"
+        }
+      },
+      "feel" : "static",
+      "group" : "timeout",
+      "binding" : {
+        "name" : "readTimeoutInSeconds",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Time to wait for the response. Increase it for text to speech on long text or for transcribing long audio. Use 0 for an infinite timeout.",
+      "type" : "Number"
+    },
+    {
       "id" : "resultVariable",
       "label" : "Result variable",
       "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
@@ -1374,7 +1424,6 @@
     },
     {
       "id" : "documentReturnFormat",
-      "label" : "Response format",
       "value" : "DOCUMENT",
       "group" : "output",
       "binding" : {
@@ -1386,49 +1435,7 @@
         "equals" : "text_to_speech_full",
         "type" : "simple"
       },
-      "tooltip" : "How the response body is returned. Document reference stores the generated audio in the document store and returns a reference to it in response.document.",
-      "type" : "Dropdown",
-      "choices" : [
-        {
-          "name" : "Document reference",
-          "value" : "DOCUMENT"
-        },
-        {
-          "name" : "as text",
-          "value" : "TEXT"
-        },
-        {
-          "name" : "as JSON",
-          "value" : "JSON"
-        }
-      ]
-    },
-    {
-      "id" : "documentReturnFormatEncoding",
-      "label" : "Encoding",
-      "value" : "UTF-8",
-      "feel" : "optional",
-      "group" : "output",
-      "binding" : {
-        "name" : "documentReturnFormat.encoding",
-        "type" : "zeebe:input"
-      },
-      "condition" : {
-        "allMatch" : [
-          {
-            "property" : "operationId",
-            "equals" : "text_to_speech_full",
-            "type" : "simple"
-          },
-          {
-            "property" : "documentReturnFormat",
-            "equals" : "TEXT",
-            "type" : "simple"
-          }
-        ]
-      },
-      "tooltip" : "Character set used to decode the response. Default UTF-8.",
-      "type" : "String"
+      "type" : "Hidden"
     },
     {
       "id" : "errorExpression",

@@ -16,9 +16,11 @@ process. It has no runtime code: it runs as the [REST Connector](./../http/rest)
 | Transcribe audio | `POST /v1/speech-to-text` |
 | Get transcript | `GET /v1/speech-to-text/transcripts/{transcription_id}` |
 
-- Text to speech returns audio. Its response format defaults to "Document reference", so the audio
-  is stored in the document store and the reference is returned in `response.document`.
-  Transcribe audio accepts such a document as its `file`.
+- Text to speech returns audio. The audio is always stored in the document store and the reference
+  is returned in `response.document`. Text and JSON response formats are not offered: they would
+  decode the binary audio and corrupt it. Transcribe audio accepts such a document as its `file`.
+- Connection and read timeouts default to 20 seconds, like the REST connector. Increase the read
+  timeout for text to speech on long text or for transcribing long audio.
 - Authentication uses the `xi-api-key` header. Choose a reusable
   `io.camunda.connectors:elevenlabs-authentication:1` credential, or enter the API key on the task.
 - Retries default to 0, because a retried batch call or generation is placed and billed again.

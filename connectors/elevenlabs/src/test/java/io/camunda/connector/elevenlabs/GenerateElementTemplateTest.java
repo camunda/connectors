@@ -138,11 +138,36 @@ class GenerateElementTemplateTest {
   }
 
   @Test
-  void textToSpeechDefaultsToDocumentReference() {
+  void textToSpeechAlwaysReturnsADocumentReference() {
     Property format = property("documentReturnFormat");
 
+    assertThat(format).isInstanceOf(HiddenProperty.class);
     assertThat(format.getValue()).isEqualTo("DOCUMENT");
     assertThat(format.getCondition()).isEqualTo(new Equals("operationId", "text_to_speech_full"));
+    assertThat(template.properties())
+        .extracting(Property::getId)
+        .doesNotContain("documentReturnFormatEncoding");
+  }
+
+  @Test
+  void exposesConnectionAndReadTimeouts() {
+    for (String id : List.of("connectionTimeoutInSeconds", "readTimeoutInSeconds")) {
+      Property timeout = property(id);
+      assertThat(timeout.getGroup()).isEqualTo("timeout");
+      assertThat(timeout.getValue()).isEqualTo(20);
+      assertThat(timeout.getCondition()).isNull();
+    }
+  }
+
+  @Test
+  void offersEveryDataResidencyEndpoint() {
+    assertThat(((DropdownProperty) property("baseUrl")).getChoices())
+        .extracting(DropdownChoice::value)
+        .containsExactly(
+            "https://api.elevenlabs.io",
+            "https://api.eu.residency.elevenlabs.io",
+            "https://api.in.residency.elevenlabs.io",
+            "https://api.sg.residency.elevenlabs.io");
   }
 
   @Test

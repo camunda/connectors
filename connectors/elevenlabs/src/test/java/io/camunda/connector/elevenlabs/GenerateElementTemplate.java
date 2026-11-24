@@ -25,12 +25,12 @@ import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.Engines;
 import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.LeafStep;
+import io.camunda.connector.generator.dsl.NumberProperty;
 import io.camunda.connector.generator.dsl.Preset;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyBinding.ConfigurationTemplateProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyCondition;
-import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.IsEmpty;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
@@ -315,7 +315,9 @@ public class GenerateElementTemplate {
    *       value, enforced by a pattern that rejects commas.
    *   <li>Request bodies get a label, an example and a link to the API reference.
    *   <li>Authentication: a reusable ElevenLabs credential, with the inline API key as fallback.
-   *   <li>Text to speech returns audio, so it defaults to "Document reference".
+   *   <li>Text to speech returns audio, so its response is always stored as a document.
+   *   <li>Timeouts: the raw output has none, so every call would use the runtime's 20 second
+   *       default. Long text to speech or transcription calls can need more.
    *   <li>Retries default to 0: a retry would place a second phone call or bill a second
    *       generation.
    * </ul>
@@ -347,11 +349,13 @@ public class GenerateElementTemplate {
                     PropertyGroup.builder().id("parameters").label("Parameters").build(),
                     PropertyGroup.builder().id("requestBody").label("Request body").build(),
                     PropertyGroup.builder().id("url").label("URL").build(),
+                    PropertyGroup.builder().id("timeout").label("Timeout").build(),
                     PropertyGroup.builder().id("output").label("Output mapping").build(),
                     PropertyGroup.builder().id("error").label("Error handling").build(),
                     PropertyGroup.builder().id("retries").label("Retries").build()))
             .properties(properties)
             .properties(authenticationProperties(raw))
+            .properties(timeoutProperties())
             .properties(responseFormatProperties());
 
     return builder
@@ -384,6 +388,7 @@ public class GenerateElementTemplate {
                 "parameters",
                 "requestBody",
                 "url",
+                "timeout",
                 "output",
                 "error",
                 "retries"))
@@ -582,38 +587,55 @@ public class GenerateElementTemplate {
   }
 
   /**
-   * Text to speech returns {@code audio/mpeg}, which the default JSON handling cannot read. Offer
-   * http-json's response format for that operation only, defaulting to "Document reference". The
-   * other operations return JSON and keep the default handling.
+   * The same connection and read timeouts as the REST connector. Text to speech on long text and
+   * Transcribe audio on a long file are synchronous, so they can take longer than the 20 second
+   * default.
+   */
+  private static List<Property> timeoutProperties() {
+    return List.of(
+        timeoutProperty(
+            "connectionTimeoutInSeconds",
+            "Connection timeout in seconds",
+            "Time to establish the connection. Use 0 for an infinite timeout."),
+        timeoutProperty(
+            "readTimeoutInSeconds",
+            "Read timeout in seconds",
+            "Time to wait for the response. Increase it for text to speech on long text or for"
+                + " transcribing long audio. Use 0 for an infinite timeout."));
+  }
+
+  private static Property timeoutProperty(String id, String label, String tooltip) {
+    return NumberProperty.builder()
+        .id(id)
+        .label(label)
+        .tooltip(tooltip)
+        .value(20)
+        .optional(false)
+        .constraints(
+            PropertyConstraints.builder()
+                .notEmpty(true)
+                .pattern(new PropertyConstraints.Pattern("^\\d+$", "Must be a number"))
+                .build())
+        .feel(FeelMode.staticFeel)
+        .group("timeout")
+        .binding(new ZeebeInput(id))
+        .build();
+  }
+
+  /**
+   * Text to speech returns {@code audio/mpeg}. Audio is binary, so the only format that keeps it
+   * intact is a document: the text and JSON formats would try to decode it and corrupt it. Fix
+   * http-json's response format to "Document reference" for that operation. The other operations
+   * return JSON and keep the default handling.
    */
   private static List<Property> responseFormatProperties() {
-    Equals textToSpeech = new Equals(OPERATION_PROPERTY_ID, "text_to_speech_full");
     return List.of(
-        DropdownProperty.builder()
-            .choices(
-                List.of(
-                    new DropdownChoice("Document reference", "DOCUMENT"),
-                    new DropdownChoice("as text", "TEXT"),
-                    new DropdownChoice("as JSON", "JSON")))
+        HiddenProperty.builder()
             .id("documentReturnFormat")
-            .label("Response format")
-            .tooltip(
-                "How the response body is returned. Document reference stores the generated audio"
-                    + " in the document store and returns a reference to it in response.document.")
             .value("DOCUMENT")
             .group("output")
             .binding(new ZeebeInput("documentReturnFormat.choice"))
-            .condition(textToSpeech)
-            .build(),
-        StringProperty.builder()
-            .id("documentReturnFormatEncoding")
-            .label("Encoding")
-            .tooltip("Character set used to decode the response. Default UTF-8.")
-            .value("UTF-8")
-            .feel(FeelMode.optional)
-            .group("output")
-            .binding(new ZeebeInput("documentReturnFormat.encoding"))
-            .condition(new AllMatch(textToSpeech, new Equals("documentReturnFormat", "TEXT")))
+            .condition(new Equals(OPERATION_PROPERTY_ID, "text_to_speech_full"))
             .build());
   }
 
