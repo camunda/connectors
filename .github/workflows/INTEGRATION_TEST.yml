@@ -202,25 +202,26 @@ jobs:
       # If ttl is non-empty, the namespace is not deleted after the test run.
       deployment-ttl: ""
       always-delete-namespace: true
-      # Deploy the 8.11-dev (SNAPSHOT) platform images so Web Modeler offers "Camunda
-      # 8.11" as a diagram target. The chart default modeler image stops at 8.10, which
-      # fails the connectors-user-flows AI Agent Marketplace tests (they need an 8.11
-      # diagram target to list the ^8.11 v2 template) while the SM-8.11 nightly, which
-      # already deploys SNAPSHOT images, passes them. include-image-tags enables the
-      # values-config tag substitution; the connectors image stays the built one below.
-      include-image-tags: true
-      values-config: |
-        {
-          "E2E_TESTS_WEBMODELER_IMAGE_TAG": "SNAPSHOT",
-          "E2E_TESTS_ORCHESTRATION_IMAGE_TAG": "SNAPSHOT",
-          "E2E_TESTS_CORE_IMAGE_TAG": "SNAPSHOT",
-          "E2E_TESTS_IDENTITY_IMAGE_TAG": "SNAPSHOT",
-          "E2E_TESTS_OPTIMIZE_IMAGE_TAG": "SNAPSHOT",
-          "E2E_TESTS_CONSOLE_IMAGE_TAG": "SNAPSHOT"
-        }
       extra-values: |
         connectors:
           image:
             registry: ${{ needs.prepare-inputs.outputs.connectors-registry }}
             repository: ${{ needs.prepare-inputs.outputs.connectors-repository }}
             tag: ${{ needs.prepare-inputs.outputs.connectors-version }}
+        # The alwaysgreen scenario deploys digest-pinned images (values-digest.yaml), and
+        # its pinned Web Modeler digest predates Camunda 8.11 in the diagram version picker.
+        # connectors-user-flows AI Agent Marketplace tests target 8.11 (the v2 template is
+        # ^8.11), so they time out on the missing option here while the SNAPSHOT-image nightly
+        # passes. Float the Modeler to the current SNAPSHOT and clear the pin so 8.11 is
+        # offered. include-image-tags/values-config do not apply: this scenario does not set
+        # image-tags, so deploy-camunda keeps the digest strategy; an extra-values override
+        # with a tag and a blank digest wins over the digest overlay.
+        webModeler:
+          restapi:
+            image:
+              tag: SNAPSHOT
+              digest: ""
+          websockets:
+            image:
+              tag: SNAPSHOT
+              digest: ""
