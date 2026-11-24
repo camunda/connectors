@@ -118,7 +118,7 @@ limitations under the License.</license.inlineheader>
          runtime by the <if> conditionals in logback-spring.xml, so it is pinned here. -->
     <version.janino>3.1.12</version.janino>
 
-    <version.aws-sdk2>2.59.7</version.aws-sdk2>
+    <version.aws-sdk2>2.59.8</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -130,12 +130,6 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-9563: parsson transitive override — remove once opensearch-java ships parsson >= 1.1.8
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
     <version.parsson>1.1.9</version.parsson>
-    <!-- GHSA-xjjv-qfjr-95c3: dd-plist transitive override — remove once the Tika version pinned in
-         connectors/embeddings-vector-database/pom.xml (version.apache-tika) ships a
-         tika-parser-apple-module that pulls dd-plist >= 1.30. The enforcer reminder for this
-         override lives in that module's pom, because version.apache-tika is declared there.
-         Ref: https://github.com/3breadt/dd-plist/security/advisories/GHSA-xjjv-qfjr-95c3 -->
-    <version.ddplist>1.31</version.ddplist>
 
     <version.google-api-client>2.9.2</version.google-api-client>
 
@@ -187,7 +181,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-28</version.zstd-jni>
+    <version.zstd-jni>1.5.7-29</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -293,16 +287,6 @@ limitations under the License.</license.inlineheader>
         <groupId>org.eclipse.parsson</groupId>
         <artifactId>parsson</artifactId>
         <version>${version.parsson}</version>
-      </dependency>
-
-      <!-- GHSA-xjjv-qfjr-95c3: override dd-plist transitive version brought in via
-           tika-parsers-standard-package -> tika-parser-apple-module, which the
-           embeddings-vector-database module declares directly at version.apache-tika (it excludes
-           langchain4j's Tika artifacts). Remove once that chain ships dd-plist >= 1.30. -->
-      <dependency>
-        <groupId>com.googlecode.plist</groupId>
-        <artifactId>dd-plist</artifactId>
-        <version>${version.ddplist}</version>
       </dependency>
 
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
