@@ -54,9 +54,6 @@ public class OpenApiOutboundTemplateGenerator
   private static final ConnectorElementType DEFAULT_ELEMENT_TYPE =
       new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null);
 
-  // any 9-digit number fits in an int
-  private static final int MAX_VERSION_DIGITS = 9;
-
   private final boolean resolveExternalRefs;
 
   /**
@@ -241,8 +238,8 @@ public class OpenApiOutboundTemplateGenerator
     // open API doc version is a string, usually a semantic version, but it's not guaranteed
     // if it contains numbers, we only keep the numbers and parse as int
     // if those digits don't fit in an int (e.g. "1001.0.0-SNAPSHOT-e92d688...", or
-    // "2020-09-14_1.822.2"), we keep only the leading digits, which hold the most significant
-    // version parts, so later versions of the same scheme still get a higher or equal number
+    // "2020-09-14_1.822.2"), we use Integer.MAX_VALUE: it is higher than every version that
+    // fits, so a version that crosses the limit never gets a lower number than an earlier one
     // otherwise we transform characters to their ascii value and sum them up
 
     String onlyNumbers = openAPIDocVersion.replaceAll("[^0-9]", "");
@@ -252,7 +249,7 @@ public class OpenApiOutboundTemplateGenerator
     try {
       return Integer.parseInt(onlyNumbers);
     } catch (NumberFormatException e) {
-      return Integer.parseInt(onlyNumbers.substring(0, MAX_VERSION_DIGITS));
+      return Integer.MAX_VALUE;
     }
   }
 

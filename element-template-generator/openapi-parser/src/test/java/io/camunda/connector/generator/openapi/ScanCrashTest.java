@@ -631,12 +631,16 @@ class ScanCrashTest {
         "v2|2",
         "2024-01-15|20240115",
         "abc|294",
-        // digits overflow an int: the first 9 digits are used
-        "1001.0.0-SNAPSHOT-e92d688328ae175f94e88e52762c76ef7566d5c3|100100926",
-        "2020-09-14_1.822.2|202009141",
-        "2020-10-01_1.830.0|202010011",
-        "1.2.3-build.123456789|123123456",
-        "99999999999.0|999999999"
+        // digits overflow an int: capped at Integer.MAX_VALUE
+        "1001.0.0-SNAPSHOT-e92d688328ae175f94e88e52762c76ef7566d5c3|2147483647",
+        "2020-09-14_1.822.2|2147483647",
+        "1.2.3-build.123456789|2147483647",
+        "99999999999.0|2147483647",
+        // boundary: the last version that fits and the first that doesn't keep their order
+        "2020-09-14_1.9|2020091419",
+        "2020-09-14_1.10|2147483647",
+        "2147483647|2147483647",
+        "2147483648|2147483647"
       })
   void templateVersion_isDerivedWithoutOverflow(String specVersion, long expected) {
     var spec =
