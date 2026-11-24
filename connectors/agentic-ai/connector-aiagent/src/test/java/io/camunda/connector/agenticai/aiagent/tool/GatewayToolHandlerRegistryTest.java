@@ -639,6 +639,28 @@ class GatewayToolHandlerRegistryTest {
                         .build()));
       }
 
+      @Test
+      void throwsException_whenTwoInputResultsHaveTheSameId() {
+        final var firstResult =
+            ToolCallResult.builder()
+                .id("GatewayA_AFirstTool_123456")
+                .name("GatewayA")
+                .content("first content")
+                .build();
+        final var secondResult =
+            ToolCallResult.builder()
+                .id("GatewayA_AFirstTool_123456")
+                .name("GatewayA")
+                .content("second content")
+                .build();
+
+        assertThatThrownBy(() ->
+                registry.transformToolCallResults(
+                    AGENT_CONTEXT, List.of(firstResult, secondResult)))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageStartingWith("Duplicate key GatewayA_AFirstTool_123456");
+      }
+
       private void testTransformToolCallResults(List<ToolCallResult> nonGatewayToolCallResults) {
         when(handlerA.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
             .thenAnswer(i -> {
