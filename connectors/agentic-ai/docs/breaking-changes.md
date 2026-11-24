@@ -434,11 +434,14 @@ set.
 
 The LangChain4j vendor factories and their dependencies are removed. A generic bridge for custom providers stays
 ([ADR 019](adr/019-langchain4j-extension-bridge.md), [how to use it](../connector-aiagent/docs/custom-langchain4j-provider.md)).
-It loads only when you register a `LangChain4JChatModelFactory` bean. If you have a custom factory:
+It is off by default. Set `camunda.connector.agenticai.aiagent.langchain4j.enabled=true` to load it. If you have a
+custom factory:
 
-- `LangChain4JChatModelFactory<T>` is generic over `ChatModelConfiguration`, its constructor takes the configuration
-  type, and `providerType()` is removed. `supports` is abstract, `create` is final and `createChatModel` is protected.
-- `ToolCallMetadataDecorator` is replaced by the factory hooks `writeToolCallMetadata` and `readToolCallMetadata`.
+- `LangChain4JChatModelFactory` is removed. Implement `ChatModelFactory` and return a `LangChain4JChatModel`, which you
+  create with the constructor of `LangChain4JChatModel`. `providerType()` is removed from the factory.
+- `ToolCallMetadataDecorator` is replaced by a `ToolCallMetadataCodec`, which you pass to the constructor of `LangChain4JChatModel`.
+- The token usage mapping `mapTokenUsage` moves to `LangChain4JChatModel#mapTokenUsage`. To map more detail, use the
+  constructor of `LangChain4JChatModel` with your own mapper.
 - `ChatMessageConverter` and `LangChain4JChatModel` take a `ToolCallMetadataCodec` instead of the v1 `ProviderConfiguration`.
 - The v1 `ProviderConfiguration` records no longer implement `ChatModelConfiguration`.
 
@@ -528,7 +531,7 @@ Bedrock Converse, Mistral) implement it and are the target for the new `v2` elem
 The previous LangChain4j factories (`AiFrameworkAdapter`, `ChatModelFactory`, `ChatModelFactoryImpl`
 and the rest of the `aiagent.framework.langchain4j` package) are removed. If you overrode or
 extended them, adapt the logic to the new factories. Alternatively, register a `ChatModelFactory` bean for the **Custom Implementation** provider of the `v2` templates.
-It can extend `LangChain4JChatModelFactory` to reuse an existing LangChain4j chat model. The
+It can build on the LangChain4j bridge to reuse an existing LangChain4j chat model. The
 connector creates and closes one `ChatModel` per request, so register only the factory as a bean.
 `ChatModelRegistry` fails when zero or more than one factory matches, so `supports` must only match
 the configurations your factory owns.

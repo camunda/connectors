@@ -55,7 +55,12 @@ public record ToolCallMetadataCodec(String provider, Writer writer, Reader reade
     Map<String, Object> read(String toolCallId, Map<?, ?> providerMetadata);
   }
 
-  /** A codec that carries no data. */
+  /** A codec that carries no data. The provider ID is not used then, since nothing is stored. */
+  public static ToolCallMetadataCodec none() {
+    return none("langchain4j");
+  }
+
+  /** A codec that carries no data under the given provider ID. */
   public static ToolCallMetadataCodec none(String provider) {
     return new ToolCallMetadataCodec(
         provider, (toolCallId, attributes) -> Map.of(), (id, md) -> Map.of());

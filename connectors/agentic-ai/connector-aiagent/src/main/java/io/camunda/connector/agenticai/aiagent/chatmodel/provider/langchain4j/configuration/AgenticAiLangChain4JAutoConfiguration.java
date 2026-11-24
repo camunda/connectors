@@ -14,27 +14,36 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Con
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverterImpl;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.LangChain4JChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverterImpl;
+import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
- * The LangChain4j bridge. It loads only when the application registers a {@link
- * LangChain4JChatModelFactory} bean, so a runtime without a custom LangChain4j provider carries
- * none of it.
+ * The LangChain4j bridge: the converter chain and the proxy support that a custom {@code
+ * ChatModelFactory} uses to build a {@link
+ * io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.LangChain4JChatModel}.
+ *
+ * <p>It is off by default and loads only with {@code
+ * camunda.connector.agenticai.aiagent.langchain4j.enabled=true}, so a runtime without a custom
+ * LangChain4j provider carries none of it. It is a self-contained auto-configuration that depends
+ * only on the common module, so it can move into its own module without a change of its contract.
  */
-@Configuration
-@ConditionalOnBean(LangChain4JChatModelFactory.class)
-public class AgenticAiLangChain4JFrameworkConfiguration {
+@AutoConfiguration(after = AgenticAiCommonAutoConfiguration.class)
+@ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
+@ConditionalOnProperty(
+    name = "camunda.connector.agenticai.aiagent.langchain4j.enabled",
+    havingValue = "true")
+public class AgenticAiLangChain4JAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean

@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupp
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -51,6 +52,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -122,10 +124,10 @@ class LangChain4JChatModelTest {
     api =
         new LangChain4JChatModel(
             chatModel,
-            TOOL_CALL_METADATA_CODEC,
             chatMessageConverter,
             toolSpecificationConverter,
             jsonSchemaConverter,
+            TOOL_CALL_METADATA_CODEC,
             usage ->
                 usage == null
                     ? AgentMetrics.TokenUsage.empty()
@@ -380,5 +382,43 @@ class LangChain4JChatModelTest {
             new AgentConfiguration(null, null, null, null, null, null, responseConfiguration));
 
     return executionContext;
+  }
+
+  @Nested
+  class Defaults {
+
+    @Test
+    void mapsInputAndOutputTokenCountsByDefault() {
+      assertThat(LangChain4JChatModel.mapTokenUsage(new TokenUsage(5, 6)))
+          .isEqualTo(new AgentMetrics.TokenUsage(5, 6));
+    }
+
+    @Test
+    void mapsMissingTokenCountsToZero() {
+      assertThat(LangChain4JChatModel.mapTokenUsage(new TokenUsage(null, 6)))
+          .isEqualTo(new AgentMetrics.TokenUsage(0, 6));
+    }
+
+    @Test
+    void mapsMissingTokenUsageToEmpty() {
+      assertThat(LangChain4JChatModel.mapTokenUsage(null))
+          .isEqualTo(AgentMetrics.TokenUsage.empty());
+    }
+
+    @Test
+    void theConstructorWithoutCodecAndMapperUsesTheDefaultTokenUsageMapping() {
+      when(chatMessageConverter.map(eq(INPUT_MESSAGES), any(ToolCallMetadataCodec.class)))
+          .thenReturn(L4J_MESSAGES);
+      when(chatMessageConverter.toAssistantMessage(
+              eq(chatResponse), any(ToolCallMetadataCodec.class)))
+          .thenReturn(ASSISTANT_MESSAGE);
+
+      final var result =
+          new LangChain4JChatModel(
+                  chatModel, chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter)
+              .execute(new ChatRequest(createExecutionContext(), SNAPSHOT));
+
+      assertThat(result.metrics().tokenUsage()).isEqualTo(new AgentMetrics.TokenUsage(5, 6));
+    }
   }
 }

@@ -47,8 +47,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Cha
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.LangChain4JChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.LangChain4JChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
@@ -68,6 +68,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfi
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiConnection;
@@ -155,7 +156,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
           ToolSpecificationConverter.class,
           ChatMessageConverter.class);
 
-  // the LangChain4j bridge loads only with a LangChain4JChatModelFactory bean
   private static final List<Class<?>> ALL_BEANS = AGENTIC_AI_BEANS;
 
   private static final String REMOVED_PROPERTY_WARNING =
@@ -224,51 +224,63 @@ class AgenticAiConnectorsAutoConfigurationTest {
   class LangChain4JBridge {
 
     @Test
-    void whenNoLangChain4JChatModelFactoryIsRegistered_thenNoLangChain4JBeansAreCreated() {
+    void whenNotEnabled_thenNoLangChain4JBeansAreCreated() {
       contextRunner.run(context -> assertDoesNotHaveAnyBeansOf(context, LANGCHAIN4J_BEANS));
     }
 
     @Test
-    void whenALangChain4JChatModelFactoryIsRegistered_thenTheLangChain4JBeansAreCreated() {
+    void whenEnabled_thenTheLangChain4JBeansAreCreated() {
       contextRunner
-          .withUserConfiguration(LangChain4JFactoryConfig.class)
+          .withPropertyValues("camunda.connector.agenticai.aiagent.langchain4j.enabled=true")
           .run(context -> assertHasAllBeansOf(context, LANGCHAIN4J_BEANS));
+    }
+
+    @Test
+    void whenEnabledButAgenticAiIsDisabled_thenNoLangChain4JBeansAreCreated() {
+      contextRunner
+          .withPropertyValues(
+              "camunda.connector.agenticai.aiagent.langchain4j.enabled=true",
+              "camunda.connector.agenticai.enabled=false")
+          .run(context -> assertDoesNotHaveAnyBeansOf(context, LANGCHAIN4J_BEANS));
+    }
+
+    @Test
+    void whenEnabled_thenACustomFactoryBuildsAModelFromTheBridgeBeans() {
+      contextRunner
+          .withPropertyValues("camunda.connector.agenticai.aiagent.langchain4j.enabled=true")
+          .withUserConfiguration(LangChain4JFactoryConfig.class)
+          .run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(
+                    context
+                        .getBean(ChatModelRegistry.class)
+                        .resolve(new CustomProviderConfiguration("test", "test-model", Map.of())))
+                .isInstanceOf(LangChain4JChatModel.class);
+          });
     }
 
     static class LangChain4JFactoryConfig {
       @Bean
-      TestLangChain4JChatModelFactory testLangChain4JChatModelFactory(
+      ChatModelFactory testLangChain4JChatModelFactory(
           ChatMessageConverter chatMessageConverter,
           ToolSpecificationConverter toolSpecificationConverter,
           JsonSchemaConverter jsonSchemaConverter) {
-        return new TestLangChain4JChatModelFactory(
-            chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
-      }
+        return new ChatModelFactory() {
+          @Override
+          public boolean supports(ChatModelConfiguration configuration) {
+            return configuration instanceof CustomChatModelConfiguration custom
+                && "test".equals(custom.providerType());
+          }
 
-      static class TestLangChain4JChatModelFactory
-          extends LangChain4JChatModelFactory<CustomChatModelConfiguration> {
-
-        TestLangChain4JChatModelFactory(
-            ChatMessageConverter chatMessageConverter,
-            ToolSpecificationConverter toolSpecificationConverter,
-            JsonSchemaConverter jsonSchemaConverter) {
-          super(
-              CustomChatModelConfiguration.class,
-              chatMessageConverter,
-              toolSpecificationConverter,
-              jsonSchemaConverter);
-        }
-
-        @Override
-        public boolean supports(ChatModelConfiguration configuration) {
-          return configuration instanceof CustomChatModelConfiguration custom
-              && "test".equals(custom.providerType());
-        }
-
-        @Override
-        protected CloseableChatModel createChatModel(CustomChatModelConfiguration configuration) {
-          return mock(CloseableChatModel.class);
-        }
+          @Override
+          public ChatModel create(ChatModelConfiguration configuration) {
+            return new LangChain4JChatModel(
+                mock(CloseableChatModel.class),
+                chatMessageConverter,
+                toolSpecificationConverter,
+                jsonSchemaConverter);
+          }
+        };
       }
     }
   }

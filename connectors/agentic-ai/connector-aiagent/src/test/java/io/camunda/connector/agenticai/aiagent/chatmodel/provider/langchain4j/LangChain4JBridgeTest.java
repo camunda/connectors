@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
@@ -27,14 +27,12 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverterImpl;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverterImpl;
@@ -61,7 +59,7 @@ import org.mockito.ArgumentCaptor;
  * LangChain4JChatModelFactory} and registering the subclass as a bean. This test runs such custom
  * factories through the registry, the real converters and the bridge chat model.
  */
-class LangChain4JChatModelFactoryTest {
+class LangChain4JBridgeTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -150,7 +148,7 @@ class LangChain4JChatModelFactoryTest {
   }
 
   @Test
-  void carriesProviderDataThroughToolCallMetadataWithTheMetadataHooks() {
+  void carriesProviderDataThroughToolCallMetadataWithTheCodec() {
     final var chatModel =
         new SignatureFactory(l4jModel).create(new CustomConfiguration("my-model"));
 
@@ -240,7 +238,7 @@ class LangChain4JChatModelFactoryTest {
   }
 
   @Test
-  void supportsOnlyTheConfigurationsThatTheFactoryMatches() {
+  void resolvesOnlyTheConfigurationsThatTheFactorySupports() {
     assertThat(factory.supports(new CustomConfiguration("my-model"))).isTrue();
 
     final var other = new OtherConfiguration("other-model");
@@ -249,17 +247,6 @@ class LangChain4JChatModelFactoryTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "No chat model registered for configuration: provider=other-provider, model=other-model");
-  }
-
-  @Test
-  void failsToCreateAModelForAConfigurationThatIsNotOfTheConfigurationType() {
-    assertThatThrownBy(() -> factory.create(new OtherConfiguration("other-model")))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "CustomFactory cannot create a chat model for a configuration of type %s, expected %s"
-                .formatted(
-                    OtherConfiguration.class.getName(), CustomConfiguration.class.getName()));
-    verifyNoInteractions(l4jModel);
   }
 
   @Test
@@ -334,16 +321,11 @@ class LangChain4JChatModelFactoryTest {
         OBJECT_MAPPER);
   }
 
-  private static class CustomFactory extends LangChain4JChatModelFactory<CustomConfiguration> {
+  private static class CustomFactory implements ChatModelFactory {
 
     private final CloseableChatModel model;
 
     CustomFactory(CloseableChatModel model) {
-      super(
-          CustomConfiguration.class,
-          chatMessageConverter(),
-          new ToolSpecificationConverterImpl(new JsonSchemaConverter(OBJECT_MAPPER)),
-          new JsonSchemaConverter(OBJECT_MAPPER));
       this.model = model;
     }
 
@@ -353,50 +335,53 @@ class LangChain4JChatModelFactoryTest {
     }
 
     @Override
-    protected CloseableChatModel createChatModel(CustomConfiguration configuration) {
-      return model;
+    public ChatModel create(ChatModelConfiguration configuration) {
+      return new LangChain4JChatModel(
+          model,
+          chatMessageConverter(),
+          new ToolSpecificationConverterImpl(new JsonSchemaConverter(OBJECT_MAPPER)),
+          new JsonSchemaConverter(OBJECT_MAPPER));
     }
   }
 
   /** Carries a signature through the tool call metadata, keyed by the tool call ID. */
   private static class SignatureFactory extends CustomFactory {
 
+    private final CloseableChatModel model;
+
     SignatureFactory(CloseableChatModel model) {
       super(model);
+      this.model = model;
     }
 
     @Override
-    protected Map<String, Object> writeToolCallMetadata(
-        CustomConfiguration configuration,
-        String toolCallId,
-        Map<String, Object> aiMessageAttributes) {
-      return aiMessageAttributes.get("signature_" + toolCallId) instanceof String signature
-          ? Map.of("signature", signature)
-          : Map.of();
-    }
-
-    @Override
-    protected Map<String, Object> readToolCallMetadata(
-        CustomConfiguration configuration, String toolCallId, Map<?, ?> providerMetadata) {
-      return providerMetadata.get("signature") instanceof String signature
-          ? Map.of("signature_" + toolCallId, signature)
-          : Map.of();
+    public ChatModel create(ChatModelConfiguration configuration) {
+      return new LangChain4JChatModel(
+          model,
+          chatMessageConverter(),
+          new ToolSpecificationConverterImpl(new JsonSchemaConverter(OBJECT_MAPPER)),
+          new JsonSchemaConverter(OBJECT_MAPPER),
+          new ToolCallMetadataCodec(
+              configuration.provider(),
+              (toolCallId, attributes) ->
+                  attributes.get("signature_" + toolCallId) instanceof String signature
+                      ? Map.of("signature", signature)
+                      : Map.of(),
+              (toolCallId, providerMetadata) ->
+                  providerMetadata.get("signature") instanceof String signature
+                      ? Map.of("signature_" + toolCallId, signature)
+                      : Map.of()),
+          LangChain4JChatModel::mapTokenUsage);
     }
   }
 
   /** A factory for the custom providers of one provider type. */
-  private static class CustomProviderFactory
-      extends LangChain4JChatModelFactory<CustomChatModelConfiguration> {
+  private static class CustomProviderFactory implements ChatModelFactory {
 
     private final String providerType;
     private final CloseableChatModel model;
 
     CustomProviderFactory(String providerType, CloseableChatModel model) {
-      super(
-          CustomChatModelConfiguration.class,
-          chatMessageConverter(),
-          new ToolSpecificationConverterImpl(new JsonSchemaConverter(OBJECT_MAPPER)),
-          new JsonSchemaConverter(OBJECT_MAPPER));
       this.providerType = providerType;
       this.model = model;
     }
@@ -408,8 +393,12 @@ class LangChain4JChatModelFactoryTest {
     }
 
     @Override
-    protected CloseableChatModel createChatModel(CustomChatModelConfiguration configuration) {
-      return model;
+    public ChatModel create(ChatModelConfiguration configuration) {
+      return new LangChain4JChatModel(
+          model,
+          chatMessageConverter(),
+          new ToolSpecificationConverterImpl(new JsonSchemaConverter(OBJECT_MAPPER)),
+          new JsonSchemaConverter(OBJECT_MAPPER));
     }
   }
 }

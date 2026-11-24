@@ -28,10 +28,9 @@ vendor factories are gone, and what contract it has.
 ## Decision Drivers
 
 * **Pro-code extensibility without a rebuild of the converter chain**: a user adds a provider that LangChain4j supports
-  with a small factory.
+  with a small `ChatModelFactory`.
 * **One shipped provider stack**: the goal of ADR 014. No vendor factory on LangChain4j ships.
-* **A small surface that is hard to misuse**: nothing public that only tests use, and a contract that makes each
-  factory declare its match.
+* **A small surface that is hard to misuse**: one entry class, and nothing public that only tests use.
 * **No coupling between native providers and the bridge**: they share no code, as the implementation rules require.
 
 ## Considered Options
@@ -48,34 +47,39 @@ stacks, which ADR 014 rejects.
 
 ### D1: The bridge is a supported extension point
 
-The bridge consists of the factory base class for LangChain4j models, the converter chain, the support for the
-connector proxy settings of a JDK HTTP client, and the two `langchain4j` dependencies that these need. It is a
-supported SPI: a breaking change to it goes into `breaking-changes.md`. The bridge loads only when the application
-registers a factory bean, so a runtime without a custom LangChain4j provider carries none of it. The unit tests cover it through a custom factory.
+The bridge consists of the chat model `LangChain4JChatModel`, which is the entry point, the converter chain, the support
+for the connector proxy settings of a JDK HTTP client, and the two `langchain4j` dependencies that these need. It is a
+supported SPI: a breaking change to it goes into `breaking-changes.md`. The bridge is off by default and loads only with
+the property `camunda.connector.agenticai.aiagent.langchain4j.enabled`, so a runtime without a custom LangChain4j
+provider carries none of it. The unit tests cover it through a custom factory.
 There is no shipped provider, so there is no real-provider end-to-end test. The implementation rules name the bridge
 converters as a location of a change only when the change alters the domain message or content model.
 
-### D2: A custom factory matches explicitly
+### D2: A custom factory is a plain `ChatModelFactory` and matches explicitly
 
-A factory declares the configuration type it serves and implements the match itself. The base class has no default
-match, because the registry needs exactly one match and a default that matches every configuration of the type would
-match every custom provider. The base class checks the type before it builds a model, so a match that is wider than the
-declared type fails with a clear message and not with a cast error. A factory for a custom provider uses the domain
-configuration `CustomChatModelConfiguration` and matches on its `providerType`.
+The entry point is the chat model. A custom factory implements `ChatModelFactory`, matches its configurations in
+`supports`, and returns a `LangChain4JChatModel` from `create`. The model has a constructor with defaults for
+the common case: no provider data through the tool calls, and the base token usage. The registry needs exactly one
+match, so a factory matches only its own configurations. Which configuration a factory serves is its own choice: the
+`CustomChatModelConfiguration` of the **Custom Implementation** provider matched on its `providerType` is the usual
+case, but a factory can also serve the configuration of a native provider as long as no other factory matches it, or a
+configuration type that implements `ChatModelConfiguration` directly.
 
 ### D3: Provider data on tool calls belongs to the factory, and the connector owns the namespace
 
 Some providers, such as Gemini 3 with its thought signatures, require data from a response to come back verbatim on the
-next request. A factory carries this data through the tool calls with two typed hooks. The connector persists what the
-write hook returns under the provider ID of the configuration, and gives the read hook only that entry. The factory owns
-the hooks because it knows its provider and its configuration type, and a bean for all providers would have to switch
-on the configuration. The connector owns the namespace so that a provider cannot read the data of another provider,
+next request. A factory carries this data through the tool calls with a `ToolCallMetadataCodec` that it passes to the
+chat model. The connector persists what the writer of the codec returns under the provider ID of the codec, and gives
+the reader only that entry. The factory owns the codec because it knows its provider and its configuration type, and a
+bean for all providers would have to switch on the configuration. The connector owns the namespace so that a provider cannot read the data of another provider,
 for example after a process instance migration switches the provider.
 
 ### D4: Placement is not part of this decision
 
 The bridge stays in `connector-aiagent` with its dependencies. Whether it moves into an opt-in module belongs to the
-module split ([ADR 015](015-split-agentic-ai-into-modules.md)).
+module split ([ADR 015](015-split-agentic-ai-into-modules.md)). The bridge is built so that a move changes nothing for
+a custom factory: it has its own auto-configuration, switched on by a property and not by a bean of the connector, and
+that auto-configuration depends only on `agentic-ai-common`.
 
 ### Non-goals
 
@@ -86,8 +90,7 @@ module split ([ADR 015](015-split-agentic-ai-into-modules.md)).
 * A user extends the connector with a LangChain4j model by writing the factory and the model construction only.
 * The one shipped provider stack stays the native stack.
 * The registry detects a missing or ambiguous match only when a request for that configuration arrives, and fails with
-  a clear message. The abstract `supports` makes a factory declare its match, but nothing detects an overlap between two
-  factories before that request.
+  a clear message. Nothing detects an overlap between two factories before that request.
 
 ### Negative Consequences
 

@@ -320,8 +320,9 @@ agent-instance reporting works without digging it out of opaque config), and an 
 understood only by your factory. No built-in factory ever matches `CustomProviderConfiguration`, so the
 registry fails with the ordinary "no factory registered" error until you register one.
 
-**LangChain4j bridge.** `LangChain4JChatModelFactory<T extends ChatModelConfiguration>` is an optional base for a
-custom factory that builds a LangChain4j model for its own configuration type. No vendor factory ships with it, see
+**LangChain4j bridge.** `LangChain4JChatModel` is the entry point for a
+custom `ChatModelFactory` that builds a LangChain4j model for its own configuration type. The property
+`camunda.connector.agenticai.aiagent.langchain4j.enabled` loads the bridge beans. No vendor factory ships with it, see
 [`langchain4j-chat-model.md`](../../connector-aiagent/docs/langchain4j-chat-model.md). Only
 `aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*` (invariant I1).
 
