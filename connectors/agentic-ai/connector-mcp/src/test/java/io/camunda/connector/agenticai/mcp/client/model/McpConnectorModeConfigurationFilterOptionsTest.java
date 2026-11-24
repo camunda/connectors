@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class McpConnectorModeFilterOptionsTest {
+class McpConnectorModeConfigurationFilterOptionsTest {
 
   private static final AllowDenyList EVERYTHING = AllowDenyList.allowingEverything();
 
