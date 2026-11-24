@@ -67,7 +67,7 @@ These documents are the only rules. Do not invent rules. Read the parts that app
    binding model, a transform script in `bin/`, a file in `element-template-overrides/`, or the generator
    properties in `pom.xml`. Report a JSON change without one. The snapshots in `versioned/` are static,
    so this step does not apply to them.
-9. **Decisions.** A change that adds a stored shape, a customer-facing name, a default or a limit needs
+9. **Decisions.** A change that adds persisted state, a customer-facing name, a default or a limit needs
    its decision and rationale in the PR description (Definition of Done in `AGENTS.md`). If the
    description lacks it, report a ❓.
 
@@ -96,8 +96,8 @@ A human reviewer must approve the change when any of these applies. Say so in th
 number:
 
 1. The change reads, stores, logs or forwards a credential, a token or an API key.
-2. The change affects running process instances or released element templates. It changes a stored
-   shape, a wire format, a variable name, a template ID, a job type, a released template or an
+2. The change affects running process instances or released element templates. It changes persisted
+   state, a public format, a variable name, a template ID, a job type, a released template or an
    element template migration recipe.
 3. The change weakens or removes a rule in the module docs or a build check. Examples: a new entry in
    an ArchUnit allowlist, a deleted architecture test, a new `@NullUnmarked` or `@SuppressWarnings`.

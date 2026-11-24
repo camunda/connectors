@@ -2,7 +2,7 @@
 
 <!-- docs-lint: allow-names Foo, FooImpl, Impl: placeholders of a naming rule -->
 
-Follow existing patterns, agreed requirements and relevant checks when choosing stored shapes,
+Follow existing patterns, agreed requirements and relevant checks when choosing persisted state,
 customer-facing names, defaults or limits. If these do not resolve the choice, ask for the missing
 requirements before choosing. State new contract decisions and their rationale in the PR description,
 including the pattern or requirement they follow. A passing API compatibility check alone does not
@@ -27,7 +27,7 @@ I1 to I3. Review checks the rest, and with the tests of the stores and SPIs, the
 - **I2. Domain types never leak framework types.** The module owns a framework-agnostic domain model in
   `io.camunda.connector.agenticai.aiagent.model.*` (the `Message`, `Content`, `ToolCall`, and `ToolDefinition` sealed types).
   - **Rule**: these types must not expose LangChain4j types in their API. Conversion to/from
-    vendor SDK and `dev.langchain4j` types happens **only** in the converters of the chat model providers
+    provider SDK and `dev.langchain4j` types happens **only** in the converters of the chat model providers
     (`aiagent/chatmodel/provider/**`): the request and response converters of each native provider (see
     [`native-providers.md`](../connector-aiagent/docs/native-providers.md)) and the converter chain of the
     LangChain4j chat models (see
@@ -51,7 +51,7 @@ I1 to I3. Review checks the rest, and with the tests of the stores and SPIs, the
   retry/supersession safety; full statement in
   [Storage Contract](../aiagent-api/docs/conversation-store-spi.md#storage-contract).
 
-## Preserve stored data
+## Preserve persisted state
 
 Existing process instances must continue working after an upgrade. Demonstrate that new code reads
 supported older state and preserves its behavior. A compatible field addition does not by itself

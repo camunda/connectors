@@ -36,9 +36,10 @@ specific rule. When they conflict, the review names the rule for revision.
   - Why: a change that must edit many files, each repeating the same rule, misses one of them sooner
     or later.
   - Test: name the typical next change (a new input source, a new provider, a new content type, a
-    wire format change) and count the production files that it edits. Do not count sealed `switch`
-    arms that handle the new subtype, because the compiler finds them. Arms that can only reject it
-    are a design smell (see *A new sealed subtype is one that most `switch` sites handle*).
+    change of a public format or a provider API format) and count the production files that it
+    edits. Do not count sealed `switch` arms that handle the new subtype, because the compiler finds
+    them. Arms that can only reject it are a design smell (see *A new sealed subtype is one that most
+    `switch` sites handle*).
 - **P4. Each test protects one behavior that a plausible change can break.**
   - Why: a test without a purpose costs review and refactor time and finds nothing, and a test that
     mirrors the implementation breaks on every refactor and lets a behavior change pass.
@@ -163,12 +164,12 @@ that caused it.
      and `AgentContextSchemaMigration` migrates older stored agent contexts. (#8318)
    - Keep the agent state through a process instance migration. Example: the agent kept its
      `agentInstanceKey` only after the fix in #9164.
-   - Text that users or stored state can see is a wire format. Examples: the text of the agent
-     instance history, the format of a timestamp, the JSON of a document handle. Gate a change of it
-     on an agent instance feature, or record it in [`docs/breaking-changes.md`](breaking-changes.md).
+   - Treat text that users see, and data that is stored, as a public format. Examples: the text of
+     the agent instance history, the format of a timestamp, the JSON of a document handle. Gate a
+     change of it on an agent instance feature, or record it in [`docs/breaking-changes.md`](breaking-changes.md).
      A format that the baseline does not have may change without either. (#9631)
    - Why: a running process instance continues on the new connector version without a redeployment.
-2. **Check the source before you use vendor-specific data.** Data is valid only in the system that
+2. **Check the source before you use provider-specific data.** Data is valid only in the system that
    made it. An ID keeps its meaning.
    - In this module: when you write content that only one provider can use, tag it with that provider.
      Examples: `ReasoningContent` and `ProviderContent` have a `provider` field.

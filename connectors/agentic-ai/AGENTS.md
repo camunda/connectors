@@ -16,7 +16,7 @@ Read before you act:
 - To review a change: [`docs/code-review.md`](docs/code-review.md), including when a human must approve.
 - For every code change: [`docs/acceptance-testing.md`](docs/acceptance-testing.md), the test level, the
   acceptance of a capability and provider coverage.
-- Before you design stored shapes, names, defaults, limits or observability:
+- Before you design persisted state, names, defaults, limits or observability:
   [`docs/design-guidelines.md`](docs/design-guidelines.md), the invariants, contract decisions and
   [ADR criteria](docs/design-guidelines.md#architecture-decision-records).
 - Before you change module structure or extension points: the
@@ -46,7 +46,7 @@ as a pointer to that home.
 - [`docs/architecture/`](docs/architecture/): content that spans modules (the agentic loop, extension points,
   Spring auto-configuration).
 - [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions (SPIs, public
-  classes and packages, persisted data, job types, configuration). Add an entry in the same change that
+  classes and packages, persisted state, job types, configuration). Add an entry in the same change that
   introduces the break, under the section of the release in development, with the old and new API and a
   migration hint. The public docs link to it.
 - `<connector module>/element-templates/README.md` and the index
@@ -141,7 +141,7 @@ development tool deviates from.
 | Conversation memory, storage backends, write-ahead store contract | [`conversation-store-spi.md`](aiagent-api/docs/conversation-store-spi.md), [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md) |
 | Tool resolution, FEEL `fromAi()` extraction, JSON-schema generation | [`tool-resolution.md`](aiagent-tools-schema/docs/tool-resolution.md) |
 | Chat model provider SPI, provider selection, LangChain4j converter chain | [`chat-model-spi.md`](aiagent-api/docs/chat-model-spi.md), [`chat-model.md`](connector-aiagent/docs/chat-model.md), [`langchain4j-chat-model.md`](connector-aiagent/docs/langchain4j-chat-model.md), [`custom-langchain4j-provider.md`](connector-aiagent/docs/custom-langchain4j-provider.md) |
-| Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](connector-aiagent/docs/native-providers.md) |
+| Native provider specifics (Anthropic/Bedrock/OpenAI provider API details) | [`native-providers.md`](connector-aiagent/docs/native-providers.md) |
 | System prompt composition / contributors | [`system-prompt-contributor.md`](aiagent-api/docs/system-prompt-contributor.md), [`system-prompt.md`](connector-aiagent/docs/system-prompt.md) |
 | Response handling (text / JSON / full message) | [`response-handling.md`](connector-aiagent/docs/response-handling.md) |
 | Error codes | [`error-codes.md`](connector-aiagent/docs/error-codes.md) |
@@ -218,8 +218,8 @@ High-frequency traps (detail behind each link):
   [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-handler-interface), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Agent instance features gate behavior per instance**: never add one to an existing context. Resolve
   `AgentContext.documentHandling()` (`Untracked` or `Tracked`) as
-  [Decide a mode once per step](docs/implementation-rules.md#code-design) says. Gate a new wire format or persisted
-  shape on an agent instance feature and keep the legacy path covered by `LegacyDocumentConversationTest`; tool call admission is the
+  [Decide a mode once per step](docs/implementation-rules.md#code-design) says. Gate a new public format or persisted
+  state on an agent instance feature and keep the legacy path covered by `LegacyDocumentConversationTest`; tool call admission is the
   one exception. [`data-model.md`](aiagent-model/docs/data-model.md), [ADR 016](docs/adr/016-runtime-tools.md),
   [ADR 018](docs/adr/018-document-flow.md).
 - **Tool calls are admitted once, for every agent instance**: `ToolCallAdmission` sets `ToolCall.kind` and
@@ -287,7 +287,7 @@ Before claiming a change is complete:
 - [ ] Relevant unit, component or integration tests added/updated and passing.
 - [ ] E2E test decision made per the [testing rules](docs/acceptance-testing.md#choosing-e2e-vs-unit-tests-mandatory-decision): test added, reason stated, or question asked.
 - [ ] User-facing capabilities meet the [acceptance rules](docs/acceptance-testing.md).
-- [ ] New stored-shape, customer-facing naming, default or limit decisions and their rationale are
+- [ ] New persisted-state, customer-facing naming, default or limit decisions and their rationale are
   stated in the PR description per the [design guidelines](docs/design-guidelines.md).
 - [ ] Real-provider changes meet the [coverage requirements](docs/acceptance-testing.md#real-provider-coverage).
 - [ ] If template properties changed, the repo-root [element templates checks](../../AGENTS.md#element-templates)
