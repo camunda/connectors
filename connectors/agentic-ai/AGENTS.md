@@ -30,32 +30,7 @@ Read before you act:
 - Repo-wide build, commit, PR, CI, spotless, license and element-template conventions: the repo-root
   [`AGENTS.md`](../../AGENTS.md). They are not duplicated here.
 
-Update the docs in the same change as the code. Follow the
-[documentation rules](docs/documentation-rules.md): where each doc goes, how to find the docs that a
-change affects, and the [docs checks](#docs-checks). Each fact has one home: a
-module doc, a doc in `docs/`, or a Javadoc. This file holds rules and links (mental model, navigation,
-glossary, gotchas, build and test commands). Do not restate the details of a fact here (values, formats,
-field lists, order, steps or semantics). Link to its home. A rule may name a type, a field or an error code
-as a pointer to that home.
-
-- `<module>/README.md` and `<module>/docs/`: the purpose and key types of a module, and the docs about its
-  types (data model, memory, tools, converters, providers, error codes, MCP, A2A). The
-  [docs checks](#docs-checks) enforce the README layout and the links. `connector-aiagent/README.md` is
-  generated: edit `connector-aiagent/README.peb`. It uses the shared connector README layout, so its title is
-  `# AI Agent Task` instead of `# connector-aiagent`.
-- [`docs/architecture/`](docs/architecture/): content that spans modules (the agentic loop, extension points,
-  Spring auto-configuration).
-- [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for extension developers (SPIs, public
-  classes and packages, persisted state, job types, configuration). Add an entry in the same change that
-  introduces the break, under the section of the release in development, with the old and new API and a
-  migration hint. The public docs link to it.
-- `<connector module>/element-templates/README.md` and the index
-  `connector-agentic-ai/element-templates/README.md`: update them for template version bumps, moves to
-  `versioned/` and new connectors by the [README rules](connector-aiagent/docs/element-template-generation.md#element-template-readmes). These READMEs serve process developers who
-  pick or configure a template: which template fits which Camunda version and what they select. Put the
-  details of how the templates are generated in `<module>/docs/`.
-
-After a doc change, run the [docs checks](#docs-checks).
+Update the docs in the same change as the code. After a doc change, run the [docs checks](#docs-checks).
 
 ## Modules
 
@@ -298,7 +273,7 @@ Before claiming a change is complete:
 - [ ] If template properties changed, the repo-root [element templates checks](../../AGENTS.md#element-templates)
   pass (regeneration, validator, `spotless:check`); check the JSON diff.
 - [ ] The change follows the [implementation rules](docs/implementation-rules.md).
-- [ ] Documentation updated per [Documentation](#documentation).
+- [ ] Documentation updated per the [documentation rules](docs/documentation-rules.md).
 - [ ] Each Javadoc and each document that names a changed method agrees with the code at the last commit of the PR.
 - [ ] Breaking changes for extension developers are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
   The [API compatibility check](../../docs/api-compatibility.md) states from when it gates `aiagent-api`
