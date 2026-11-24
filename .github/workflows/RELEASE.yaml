@@ -458,8 +458,13 @@ jobs:
       # Match Maven deployment credentials by server id rather than repository origin.
       - name: Deploy artifacts to Artifactory and publish to Maven Central
         if: "! contains(inputs.version, 'rc')"
-        run: ./mvnw -U deploy -Dmaven.repository.credentialScope=id -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded -DdeploymentName=connectors-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: ./mvnw -U deploy -Dmaven.repository.credentialScope=id -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded -Dcentral.waitUntil="${CENTRAL_WAIT_UNTIL}" -DdeploymentName=connectors-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
         env:
+          # TEMPORARY: Maven Central publishing is currently broken. Return right after the upload instead
+          # of waiting for PUBLISHED (the POM default) so the release continues, and Artifactory failures
+          # still fail the job. The Central publication is done manually afterwards.
+          # Remove this variable (and the -Dcentral.waitUntil argument) once Central is healthy again.
+          CENTRAL_WAIT_UNTIL: UPLOADED
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
           MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
