@@ -1473,6 +1473,11 @@ See: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv
 
     <profile>
       <id>central-sonatype-publish</id>
+      <properties>
+        <!-- overridable with -Dcentral.waitUntil=UPLOADED|VALIDATED|PUBLISHED. A -DwaitUntil on the command line
+             would be ignored: the explicit execution configuration below wins over user properties. -->
+        <central.waitUntil>PUBLISHED</central.waitUntil>
+      </properties>
       <build>
         <pluginManagement>
           <plugins>
@@ -1500,7 +1505,7 @@ See: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv
                   <id>central-deploy</id>
                   <configuration>
                     <autoPublish>true</autoPublish>
-                    <waitUntil>PUBLISHED</waitUntil>
+                    <waitUntil>${central.waitUntil}</waitUntil>
                     <waitMaxTime>3600</waitMaxTime>
                   </configuration>
                 </execution>
