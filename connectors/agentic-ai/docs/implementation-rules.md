@@ -79,7 +79,8 @@ Write the minimum code that solves the problem. Write nothing speculative.
 
 - Add no capability that the issue or the request does not ask for.
 - Add no flexibility or configuration that the issue or the request does not ask for.
-- Add no error handling for a value that the types or input validation already exclude.
+- Add no error handling for a value that the types or input validation already exclude. Example: in
+  `@NullMarked` code, write no `if (message == null)` check for a parameter without `@Nullable`.
 
 ## Surgical changes
 
