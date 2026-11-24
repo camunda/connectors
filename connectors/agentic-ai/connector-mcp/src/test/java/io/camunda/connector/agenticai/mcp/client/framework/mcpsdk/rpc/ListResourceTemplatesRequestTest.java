@@ -180,29 +180,42 @@ class ListResourceTemplatesRequestTest {
   }
 
   @Test
-  void returnsEmptyList_whenResourceTemplatesAllowedAndDeniedSimultaneously() {
+  void filtersResourceTemplates_whenResourceTemplateDenied() {
     final var mcpResourceTemplate1 =
         createMcpResourceTemplate(
-            "file://blocked-template1.txt",
-            "blocked-template1",
-            "Blocked Template 1",
-            "Blocked template 1",
+            "file://allowed-template.txt",
+            "allowed-template",
+            "Allowed Template",
+            "Allowed template",
+            "text/plain");
+    final var mcpResourceTemplate2 =
+        createMcpResourceTemplate(
+            "file://blocked-template.txt",
+            "blocked-template",
+            "Blocked Template",
+            "Blocked template",
+            "text/plain");
+    final var resourceTemplate1 =
+        createResourceTemplate(
+            "file://allowed-template.txt",
+            "allowed-template",
+            "Allowed Template",
+            "Allowed template",
             "text/plain");
     final var filter =
-        AllowDenyListBuilder.builder()
-            .allowed(List.of("file://allowed-template.txt"))
-            .denied(List.of("file://allowed-template.txt"))
-            .build();
+        AllowDenyListBuilder.builder().denied(List.of("file://blocked-template.txt")).build();
 
     when(mcpClient.listResourceTemplates())
-        .thenReturn(new McpSchema.ListResourceTemplatesResult(List.of(mcpResourceTemplate1), null));
+        .thenReturn(
+            new McpSchema.ListResourceTemplatesResult(
+                List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
 
     final var result = testee.execute(mcpClient, filter, Map.of());
 
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientListResourceTemplatesResult.class,
-            res -> assertThat(res.resourceTemplates()).isEmpty());
+            res -> assertThat(res.resourceTemplates()).containsExactly(resourceTemplate1));
   }
 
   @Test

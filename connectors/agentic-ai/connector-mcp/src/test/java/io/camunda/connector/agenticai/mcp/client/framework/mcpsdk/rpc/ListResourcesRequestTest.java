@@ -171,28 +171,40 @@ class ListResourcesRequestTest {
   }
 
   @Test
-  void returnsEmptyList_whenResourceAllowedAndDeniedSimultaneously() {
+  void filtersResources_whenResourceDenied() {
     final var mcpResource1 =
         createMcpResource(
-            "file://blocked-resource1.txt",
-            "blocked-resource1",
-            "Blocked Resource 1",
-            "Blocked resource 1",
+            "file://allowed-resource.txt",
+            "allowed-resource",
+            "Allowed Resource",
+            "Allowed resource",
+            "text/plain");
+    final var mcpResource2 =
+        createMcpResource(
+            "file://blocked-resource.txt",
+            "blocked-resource",
+            "Blocked Resource",
+            "Blocked resource",
+            "text/plain");
+    final var resourceDescription1 =
+        createResourceDescription(
+            "file://allowed-resource.txt",
+            "allowed-resource",
+            "Allowed Resource",
+            "Allowed resource",
             "text/plain");
     final var filter =
-        AllowDenyListBuilder.builder()
-            .allowed(List.of("file://allowed-resource.txt"))
-            .denied(List.of("file://allowed-resource.txt"))
-            .build();
+        AllowDenyListBuilder.builder().denied(List.of("file://blocked-resource.txt")).build();
 
     when(mcpClient.listResources())
-        .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1), null));
+        .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1, mcpResource2), null));
 
     final var result = testee.execute(mcpClient, filter, Map.of());
 
     assertThat(result)
         .isInstanceOfSatisfying(
-            McpClientListResourcesResult.class, res -> assertThat(res.resources()).isEmpty());
+            McpClientListResourcesResult.class,
+            res -> assertThat(res.resources()).containsExactly(resourceDescription1));
   }
 
   @Test
