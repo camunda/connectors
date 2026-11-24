@@ -104,6 +104,6 @@ where usage is not obvious. Follow the repo-root [field-help conventions](../../
 
 Write an ADR in [`adr/`](adr/) when choosing between meaningful alternatives: replacing a framework,
 restructuring a core subsystem, or changing storage strategy. Routine bug fixes, refactors and
-pattern-following feature additions do not need one.
+new capabilities that follow an existing pattern do not need one.
 
 Read the [ADR authoring rules](adr/README.md) when writing or revising an ADR.

@@ -38,9 +38,9 @@ These documents are the only rules. Do not invent rules. Read the parts that app
 1. **Reuse.** For each new type, method, helper, constant or converter, search for existing code with
    the same purpose. Search by the domain concept, then in sibling packages. If existing code does
    the job, or does it with a small change, report it with the `file:line` of the existing symbol.
-2. **Simplicity.** Find code that the task does not need: a speculative feature, configuration nobody
-   asked for, error handling for a value that types or validation already exclude, an abstraction
-   with one use, an interface with one implementation that is neither an SPI nor a seam with two
+2. **Simplicity.** Find code that the issue or the request does not need: a speculative capability,
+   configuration nobody asked for, error handling for a value that types or validation already
+   exclude, an abstraction with one use, an interface with one implementation that is neither an SPI nor a seam with two
    or more adapters.
 3. **Rules.** Check the change against each rule. Name the rule by its heading or its bold label, for
    example `Code design / Tell, don't ask` or `Domain rules / 3`.

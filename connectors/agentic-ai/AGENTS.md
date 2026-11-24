@@ -14,8 +14,8 @@ Read before you act:
   [`docs/documentation-rules.md`](docs/documentation-rules.md), where each doc goes and how to keep the docs up
   to date.
 - To review a change: [`docs/code-review.md`](docs/code-review.md), including when a human must approve.
-- For every code change: [`docs/acceptance-testing.md`](docs/acceptance-testing.md), the test level, feature
-  acceptance and provider coverage.
+- For every code change: [`docs/acceptance-testing.md`](docs/acceptance-testing.md), the test level, the
+  acceptance of a capability and provider coverage.
 - Before you design stored shapes, names, defaults, limits or observability:
   [`docs/design-guidelines.md`](docs/design-guidelines.md), the invariants, contract decisions and
   [ADR criteria](docs/design-guidelines.md#architecture-decision-records).
@@ -131,7 +131,7 @@ development tool deviates from.
 
 ## Start here, navigation
 
-> Use the table below to find the doc for your task, then read only that doc or section. Each module `README.md` lists the docs of that module.
+> Use the table below to find the doc for your change, then read only that doc or section. Each module `README.md` lists the docs of that module.
 
 | Working on… | Read |
 | --- | --- |
@@ -147,7 +147,7 @@ development tool deviates from.
 | Error codes | [`error-codes.md`](connector-aiagent/docs/error-codes.md) |
 | Spring auto-configuration, feature toggles, config defaults | [`spring-auto-configuration.md`](docs/architecture/spring-auto-configuration.md) |
 | Process instance migration (what's allowed / blocked) | [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md) |
-| Agent documents: registry, handles, expansion for the model, only Camunda documents, references per agent (`data.documents.references`, the `documents` feature), user prompt delivery (`reference` or `content`, `data.documents.userPromptDelivery`), returning (`c8__return_document`, `responseDocuments`) and loading (`c8__load_document`) documents | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`data-model.md`](aiagent-model/docs/data-model.md), [`response-handling.md`](connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl), [ADR 018](docs/adr/018-document-flow.md#document-references-per-agent) |
+| Agent documents: registry, handles, expansion for the model, only Camunda documents, references per agent (`data.documents.references`, the `documents` agent instance feature), user prompt delivery (`reference` or `content`, `data.documents.userPromptDelivery`), returning (`c8__return_document`, `responseDocuments`) and loading (`c8__load_document`) documents | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`data-model.md`](aiagent-model/docs/data-model.md), [`response-handling.md`](connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl), [ADR 018](docs/adr/018-document-flow.md#document-references-per-agent) |
 | Document parameters of tools (`fromAi` type `document`, resolution, rejection) | [`document-parameters.md`](connector-aiagent/docs/document-parameters.md), [`extension-points.md`](docs/architecture/extension-points.md#documents-and-gateway-tools), [ADR 018](docs/adr/018-document-flow.md) |
 | MCP integration | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md) |
 | A2A integration | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md) |
@@ -216,10 +216,10 @@ High-frequency traps (detail behind each link):
 - **Gateway `transformToolCallResults` must carry `completedAt` forward**: copy it into the rebuilt `ToolCallResult`;
   unlike `elementId`, it has no fallback resolution.
   [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-handler-interface), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
-- **Agent instance features gate behavior per instance**: never add a feature to an existing context. Resolve
+- **Agent instance features gate behavior per instance**: never add one to an existing context. Resolve
   `AgentContext.documentHandling()` (`Untracked` or `Tracked`) as
   [Decide a mode once per step](docs/implementation-rules.md#code-design) says. Gate a new wire format or persisted
-  shape on a feature and keep the legacy path covered by `LegacyDocumentConversationTest`; tool call admission is the
+  shape on an agent instance feature and keep the legacy path covered by `LegacyDocumentConversationTest`; tool call admission is the
   one exception. [`data-model.md`](aiagent-model/docs/data-model.md), [ADR 016](docs/adr/016-runtime-tools.md),
   [ADR 018](docs/adr/018-document-flow.md).
 - **Tool calls are admitted once, for every agent instance**: `ToolCallAdmission` sets `ToolCall.kind` and
@@ -286,7 +286,7 @@ Before claiming a change is complete:
    - [ ] If deviating from the `./mvnw install` command, ensure `./mvnw spotless:apply` and `./mvnw license:format` run clean (pre-commit hooks enforce these).
 - [ ] Relevant unit, component or integration tests added/updated and passing.
 - [ ] E2E test decision made per the [testing rules](docs/acceptance-testing.md#choosing-e2e-vs-unit-tests-mandatory-decision): test added, reason stated, or question asked.
-- [ ] User-facing features meet the [acceptance rules](docs/acceptance-testing.md).
+- [ ] User-facing capabilities meet the [acceptance rules](docs/acceptance-testing.md).
 - [ ] New stored-shape, customer-facing naming, default or limit decisions and their rationale are
   stated in the PR description per the [design guidelines](docs/design-guidelines.md).
 - [ ] Real-provider changes meet the [coverage requirements](docs/acceptance-testing.md#real-provider-coverage).

@@ -52,8 +52,8 @@ A change in this module often has more than one location to change. Before you p
 location that the change must reach:
 
 - **Both flavors:** the AI Agent Task and the AI Agent Sub-process.
-- **All element template versions** that expose the feature: v1 and v2. A deprecated version gets
-  only bug fixes and security patches, no new features. Example: the v1 (legacy) AI Agent element
+- **All element template versions** that expose the capability: v1 and v2. A deprecated version gets
+  only bug fixes and security patches, no new capabilities. Example: the v1 (legacy) AI Agent element
   templates.
 - **All conversation stores:** in-process, Camunda document and AWS AgentCore.
 - **All providers** that the change applies to: the native providers, and the LangChain4j bridge converters when the
@@ -70,13 +70,13 @@ files. It names the typical next change and the files that this change will touc
 
 Write the minimum code that solves the problem. Write nothing speculative.
 
-- Add no feature that the task does not ask for.
-- Add no flexibility or configuration that the task does not ask for.
+- Add no capability that the issue or the request does not ask for.
+- Add no flexibility or configuration that the issue or the request does not ask for.
 - Add no error handling for a value that the types or input validation already exclude.
 
 ## Surgical changes
 
-Change only what the task needs. Clean up only your own changes.
+Change only what the issue or the request needs. Clean up only your own changes.
 
 - Do not improve adjacent code, comments or formatting. A small correction (a typo, a stale name, a
   wrong sentence) in a file that the change already edits is allowed.
@@ -117,7 +117,7 @@ effects. A good name does not replace a Javadoc that the rules below require.
 - A Javadoc describes the code as it is. It does not tell about a change or an intent. Do not write
   a sentence that tells about a change, for example with "now", "no longer", "the new behavior",
   "previously", "replaces", "after this change", "for the time being" or "until". Judge the sentence,
-  not the word. Do not name a PR, an issue, a stack step or future work. Put the history in
+  not the word. Do not name a PR, an issue, a stacked PR or future work. Put the history in
   the commit message, the PR, an ADR or [`docs/breaking-changes.md`](breaking-changes.md).
 - Each claim in a Javadoc MUST be true for the code of the same commit, on each path, also for a job
   that runs again. Example: a job that runs again creates new message IDs, so a Javadoc must not claim
@@ -225,7 +225,8 @@ never as a side effect of a different change.
 Write code in a functional style. A function gets its inputs as arguments and gives its result as the
 return value. Values are immutable. A sealed type shows each possible outcome, so the caller must
 handle each one. Side effects (I/O, Spring, the engine) stay in the services at the edge. The rules
-below make this style specific.
+below make this style specific. A step is a named collaborator that an orchestrator calls in order, for
+example `AgentInitializer` in `BaseAgentRequestHandler`.
 
 - **Rich domain models.** Put behavior on the type that owns the data. Example: `AgentConversation`.
   A service is a class without domain state: a handler, composer, converter, registry, store or
