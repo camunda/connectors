@@ -23,13 +23,13 @@ The rules below apply four principles. A rule that applies a principle ends with
 specific rule. When they conflict, the review names the rule for revision.
 
 - **P1. A reader predicts the behavior from the name.**
-  - Why: a reviewer reads the diff and the call sites, and the bodies only sometimes. A name that
-    hides a decision hides a defect.
+  - Why: a reviewer reads the call sites more often than the bodies, so a name that hides a decision
+    hides a defect.
   - Test: cover the body. From the name, the parameter types and the return type, write down what the
     method does with each input. If the body does more, or something different, the name fails.
 - **P2. Each piece of logic has one home. The home hides its steps.**
-  - Why: a copy of a step drifts from the original. A caller that must order the steps can order them
-    wrongly.
+  - Why: a copy of a step drifts from the original, and a caller that must order the steps can order
+    them wrongly.
   - Test: for each rule that the change adds, count the functions that implement it. The answer is
     one. A caller can use the home without knowing the order of its internal steps.
 - **P3. A typical next change touches few files, and the compiler finds each one.**
@@ -40,7 +40,7 @@ specific rule. When they conflict, the review names the rule for revision.
     arms that handle the new subtype, because the compiler finds them. Arms that can only reject it
     are a design smell (see *A new sealed subtype is one that most `switch` sites handle*).
 - **P4. Each test protects one behavior that a plausible change can break.**
-  - Why: a test without a purpose costs review time and refactor time and finds nothing. A test that
+  - Why: a test without a purpose costs review and refactor time and finds nothing, and a test that
     mirrors the implementation breaks on every refactor and lets a behavior change pass.
   - Test: name a plausible production regression that this test detects. Overlap with tests at
     other levels or with other scenarios does not make it redundant. The test rules are in
