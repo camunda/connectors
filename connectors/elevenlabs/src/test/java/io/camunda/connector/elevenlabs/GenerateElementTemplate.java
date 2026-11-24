@@ -155,7 +155,7 @@ public class GenerateElementTemplate {
 
   private static final String OPERATION_PROPERTY_ID = "operationId";
   private static final String DOCUMENTATION_URL =
-      "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/elevenlabs/";
+      "https://docs.camunda.io/docs/8.11/components/connectors/out-of-the-box-connectors/elevenlabs/";
   private static final String API_REFERENCE_URL = "https://elevenlabs.io/docs/api-reference/";
   private static final String API_KEY_TOOLTIP =
       "ElevenLabs API key, sent in the xi-api-key header. Create one in the <a"

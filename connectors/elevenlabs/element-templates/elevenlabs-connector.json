@@ -13,7 +13,7 @@
     "outbound call",
     "batch call"
   ],
-  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/elevenlabs/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.11/components/connectors/out-of-the-box-connectors/elevenlabs/",
   "version" : 1,
   "category" : {
     "id" : "connectors",
