@@ -7,8 +7,8 @@ apply here and where this module deviates on purpose. Where this file says nothi
 [module agent instructions](../AGENTS.md) and the [implementation rules](../docs/implementation-rules.md)
 apply.
 
-The [README](README.md) gives the purpose, the key types, the rules and the findings. The
-[docs checks section](../AGENTS.md#docs-checks) gives the markers and how to run the checks.
+The [README](README.md) gives the purpose, the key types, the rules, the markers and the findings. The
+[docs checks section](../AGENTS.md#docs-checks) gives how to run the checks.
 
 ## Module rules
 
@@ -53,6 +53,6 @@ These rules do not apply to this module. A review must not flag code here for th
   finds.
 - A violation fails the build, so a new rule passes on the current docs. Fix a stale doc in the same
   change. Make a finding that cannot be verified a warning.
-- Update the [README](README.md) when the checks or the types change, and the
-  [docs checks section](../AGENTS.md#docs-checks) when a marker or the command changes.
+- Update the [README](README.md) when the checks, the markers or the types change, and the
+  [docs checks section](../AGENTS.md#docs-checks) when the command changes.
 - Run `./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-docs-lint`.

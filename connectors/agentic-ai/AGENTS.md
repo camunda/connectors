@@ -113,12 +113,9 @@ changes; `./mvnw clean install -f connectors/agentic-ai/pom.xml` also runs them.
 
 ### Docs checks
 
-`agentic-ai-docs-lint` checks the docs against the modules and the code; its [README](agentic-ai-docs-lint/README.md#rules)
-lists the rules and the findings. Mark a doc with:
-
-- `<!-- docs-lint: allow-java-block: reason -->` before a `java` code block;
-- `<!-- docs-lint: allow-names Name: reason -->` for a backticked name that is not in the repository sources;
-- `<!-- docs-lint: history: reason -->` in a doc that records removed code.
+`agentic-ai-docs-lint` checks the docs against the modules and the code. When a check fails, or a doc must name a
+type that is not in the repository sources, read its [README](agentic-ai-docs-lint/README.md#rules): it lists the
+rules, the markers that allow an exception and the findings.
 
 Run the checks with:
 
