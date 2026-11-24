@@ -99,7 +99,8 @@ public class McpTestServerConfiguration {
   }
 
   private static void removeStdioContainers() {
-    removeStdioContainers(label -> label.equals(McpTestServerTransport.STDIO_CONTAINER_LABEL));
+    removeStdioContainers(
+        value -> value.equals(McpTestServerTransport.STDIO_CONTAINER_LABEL_VALUE));
   }
 
   private static void removeStaleStdioContainers() {

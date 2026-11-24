@@ -75,8 +75,11 @@ public enum McpTestServerTransport {
    * Marks the stdio containers of this JVM. The value starts with the PID of the JVM, so that a
    * later run can tell leftovers of a dead JVM from the containers of a parallel run.
    */
+  static final String STDIO_CONTAINER_LABEL_VALUE =
+      ProcessHandle.current().pid() + "-" + UUID.randomUUID();
+
   static final String STDIO_CONTAINER_LABEL =
-      STDIO_CONTAINER_LABEL_KEY + "=" + ProcessHandle.current().pid() + "-" + UUID.randomUUID();
+      STDIO_CONTAINER_LABEL_KEY + "=" + STDIO_CONTAINER_LABEL_VALUE;
 
   private static final String SPRING_CONFIG_CLIENTS_PREFIX =
       "camunda.connector.agenticai.mcp.client.clients";
