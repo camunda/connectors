@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -34,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Predicate;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -49,7 +49,8 @@ import org.testcontainers.containers.GenericContainer;
  * configuration fails when the docker CLI does not work, and pulls the image for it. A server that
  * ignores the closed stdin keeps its container running, so a JVM shutdown hook removes the stdio
  * containers of this JVM. The hook runs at JVM exit and not at context close, because all contexts
- * of a JVM share the label.
+ * of a JVM share the label. A killed JVM skips the hook, so the configuration also removes the
+ * stdio containers of JVMs that no longer run. Containers of parallel runs stay untouched.
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class McpTestServerConfiguration {
@@ -83,6 +84,7 @@ public class McpTestServerConfiguration {
   @Bean
   public DynamicPropertyRegistrar mcpTestServerClientsRegistrar(McpTestServers servers) {
     pullImageWithDockerCli();
+    removeStaleStdioContainers();
     return registry ->
         servers.clientProperties().forEach((key, value) -> registry.add(key, () -> value));
   }
@@ -97,13 +99,34 @@ public class McpTestServerConfiguration {
   }
 
   private static void removeStdioContainers() {
+    removeStdioContainers(label -> label.equals(McpTestServerTransport.STDIO_CONTAINER_LABEL));
+  }
+
+  private static void removeStaleStdioContainers() {
+    removeStdioContainers(label -> {
+      final var pid = label.substring(0, Math.max(label.indexOf('-'), 0));
+      return pid.matches("\\d+") && ProcessHandle.of(Long.parseLong(pid)).isEmpty();
+    });
+  }
+
+  private static void removeStdioContainers(Predicate<String> labelValueMatches) {
     final var list =
-        docker("ps", "-aq", "--filter", "label=" + McpTestServerTransport.STDIO_CONTAINER_LABEL);
+        docker(
+            "ps",
+            "-a",
+            "--filter",
+            "label=" + McpTestServerTransport.STDIO_CONTAINER_LABEL_KEY,
+            "--format",
+            "{{.ID}} {{.Label \"" + McpTestServerTransport.STDIO_CONTAINER_LABEL_KEY + "\"}}");
     if (list.exitCode() != 0) {
       return;
     }
     final var args = new ArrayList<>(List.of("rm", "-f"));
-    Arrays.stream(list.output().split("\\s+")).filter(id -> !id.isBlank()).forEach(args::add);
+    list.output()
+        .lines()
+        .map(line -> line.trim().split("\\s+", 2))
+        .filter(parts -> parts.length == 2 && labelValueMatches.test(parts[1]))
+        .forEach(parts -> args.add(parts[0]));
     if (args.size() > 2) {
       docker(args.toArray(String[]::new));
     }
