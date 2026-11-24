@@ -22,6 +22,21 @@ class AllowDenyListTest {
   }
 
   @Test
+  void treatsMissingListsAsEmpty() {
+    final var list = AllowDenyList.of(null, null);
+
+    assertThat(list).isEqualTo(AllowDenyList.allowingEverything());
+  }
+
+  @Test
+  void treatsOnlyTheMissingListAsEmpty() {
+    assertThat(AllowDenyList.of(null, List.of("a")))
+        .isEqualTo(AllowDenyList.of(List.of(), List.of("a")));
+    assertThat(AllowDenyList.of(List.of("a"), null))
+        .isEqualTo(AllowDenyList.of(List.of("a"), List.of()));
+  }
+
+  @Test
   void passesAllButDeniedNames_whenOnlyDeniedIsSet() {
     final var list = AllowDenyList.of(List.of(), List.of("a"));
 
