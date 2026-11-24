@@ -256,7 +256,7 @@ class ScanCrashTest {
   }
 
   @Test
-  void lowercaseContentTypeHeaderWithMultipartBody_isReplacedByMultipartHeader() {
+  void lowercaseContentTypeHeaderWithMultipartBody_isKeptAsBefore() {
     var spec =
         """
         openapi: 3.0.3
@@ -288,11 +288,108 @@ class ScanCrashTest {
                   description: OK
         """;
 
+    // A different spelling never collided, so templates generated before this fix keep the field.
     var importList = operation(scanOperations(spec), "importList");
+    assertThat(importList.supported()).isTrue();
     assertThat(importList.builder().getProperties())
         .filteredOn(p -> p.target() == Target.HEADER)
         .extracting(HttpOperationProperty::id)
-        .containsExactly("Content-Type");
+        .containsExactly("content-type", "Content-Type");
+    generate(spec);
+  }
+
+  @Test
+  void sameOAuth2SchemeWithDifferentScopes_mergesScopes() {
+    var spec =
+        """
+        openapi: 3.0.3
+        info:
+          title: Test API
+          version: 1.0.0
+        servers:
+          - url: https://api.example.com
+        components:
+          securitySchemes:
+            oauth:
+              type: oauth2
+              flows:
+                clientCredentials:
+                  tokenUrl: https://auth.example.com/token
+                  scopes:
+                    read: Read
+                    write: Write
+        paths:
+          /items:
+            post:
+              operationId: createItem
+              security:
+                - oauth: [read]
+                - oauth: [write]
+              responses:
+                '200':
+                  description: OK
+        """;
+
+    var createItem = operation(scanOperations(spec), "createItem");
+    assertThat(createItem.supported()).isTrue();
+    assertThat(createItem.builder().build().authenticationOverride())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            HttpAuthentication.OAuth2.class,
+            oauth2 -> {
+              assertThat(oauth2.tokenUrl()).isEqualTo("https://auth.example.com/token");
+              assertThat(oauth2.scopes()).containsExactlyInAnyOrder("read", "write");
+            });
+    generate(spec);
+  }
+
+  @Test
+  void conflictingSchemesWithSameId_markOperationUnsupported() {
+    // Same API key name offered in a header and in the query: one template can't offer both.
+    var spec =
+        """
+        openapi: 3.0.3
+        info:
+          title: Test API
+          version: 1.0.0
+        servers:
+          - url: https://api.example.com
+        components:
+          securitySchemes:
+            keyInHeader:
+              type: apiKey
+              in: header
+              name: api_key
+            keyInQuery:
+              type: apiKey
+              in: query
+              name: api_key
+        paths:
+          /conflict:
+            get:
+              operationId: conflict
+              security:
+                - keyInHeader: []
+                - keyInQuery: []
+              responses:
+                '200':
+                  description: OK
+          /healthy:
+            get:
+              operationId: healthy
+              security:
+                - keyInHeader: []
+              responses:
+                '200':
+                  description: OK
+        """;
+
+    var results = scanOperations(spec);
+    var conflict = operation(results, "conflict");
+    assertThat(conflict.supported()).isFalse();
+    assertThat(conflict.info()).contains("Conflicting security schemes").contains("apiKey.api_key");
+    assertThat(operation(results, "healthy").supported()).isTrue();
+    generate(spec);
   }
 
   @Test
@@ -385,7 +482,7 @@ class ScanCrashTest {
   }
 
   @Test
-  void cookieParameter_marksOperationUnsupportedWithClearReason() {
+  void cookieParameters_optionalIsSkipped_requiredMarksOperationUnsupported() {
     var spec =
         """
         openapi: 3.0.3
@@ -401,6 +498,22 @@ class ScanCrashTest {
               parameters:
                 - name: session
                   in: cookie
+                  required: true
+                  schema:
+                    type: string
+              responses:
+                '200':
+                  description: OK
+          /tracked:
+            get:
+              operationId: withOptionalCookie
+              parameters:
+                - name: tracking
+                  in: cookie
+                  schema:
+                    type: string
+                - name: limit
+                  in: query
                   schema:
                     type: string
               responses:
@@ -418,6 +531,11 @@ class ScanCrashTest {
     var withCookie = operation(results, "withCookie");
     assertThat(withCookie.supported()).isFalse();
     assertThat(withCookie.info()).isEqualTo("Parameter 'session' in 'cookie' is not supported");
+    var withOptionalCookie = operation(results, "withOptionalCookie");
+    assertThat(withOptionalCookie.supported()).isTrue();
+    assertThat(withOptionalCookie.builder().getProperties())
+        .extracting(HttpOperationProperty::id)
+        .containsExactly("limit");
     assertThat(operation(results, "healthy").supported()).isTrue();
 
     generate(spec);
@@ -458,6 +576,51 @@ class ScanCrashTest {
     generate(spec);
   }
 
+  @Test
+  void generatedPropertyIdClashAcrossOperations_marksLaterOperationUnsupported() {
+    // foo + query_bar and foo_query + bar both generate foo_query_query_bar
+    var spec =
+        """
+        openapi: 3.0.3
+        info:
+          title: Test API
+          version: 1.0.0
+        servers:
+          - url: https://api.example.com
+        paths:
+          /first:
+            get:
+              operationId: foo
+              parameters:
+                - name: query_bar
+                  in: query
+                  schema:
+                    type: string
+              responses:
+                '200':
+                  description: OK
+          /second:
+            get:
+              operationId: foo_query
+              parameters:
+                - name: bar
+                  in: query
+                  schema:
+                    type: string
+              responses:
+                '200':
+                  description: OK
+        """;
+
+    var results = scanOperations(spec);
+    assertThat(operation(results, "foo").supported()).isTrue();
+    var later = operation(results, "foo_query");
+    assertThat(later.supported()).isFalse();
+    assertThat(later.info()).contains("foo_query_query_bar");
+
+    generate(spec);
+  }
+
   @ParameterizedTest
   @CsvSource(
       delimiter = '|',
@@ -468,11 +631,12 @@ class ScanCrashTest {
         "v2|2",
         "2024-01-15|20240115",
         "abc|294",
-        // digits overflow an int: leading number is used instead
-        "1001.0.0-SNAPSHOT-e92d688328ae175f94e88e52762c76ef7566d5c3|1001",
-        "2020-09-14_1.822.2|2020",
-        // even the leading number overflows: character sum
-        "99999999999.0|721"
+        // digits overflow an int: the first 9 digits are used
+        "1001.0.0-SNAPSHOT-e92d688328ae175f94e88e52762c76ef7566d5c3|100100926",
+        "2020-09-14_1.822.2|202009141",
+        "2020-10-01_1.830.0|202010011",
+        "1.2.3-build.123456789|123123456",
+        "99999999999.0|999999999"
       })
   void templateVersion_isDerivedWithoutOverflow(String specVersion, long expected) {
     var spec =

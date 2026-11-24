@@ -41,7 +41,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +54,8 @@ public class OpenApiOutboundTemplateGenerator
   private static final ConnectorElementType DEFAULT_ELEMENT_TYPE =
       new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null);
 
-  private static final Pattern LEADING_NUMBER = Pattern.compile("[0-9]+");
+  // any 9-digit number fits in an int
+  private static final int MAX_VERSION_DIGITS = 9;
 
   private final boolean resolveExternalRefs;
 
@@ -241,32 +241,18 @@ public class OpenApiOutboundTemplateGenerator
     // open API doc version is a string, usually a semantic version, but it's not guaranteed
     // if it contains numbers, we only keep the numbers and parse as int
     // if those digits don't fit in an int (e.g. "1001.0.0-SNAPSHOT-e92d688...", or
-    // "2020-09-14_1.822.2"), we use the leading number instead
+    // "2020-09-14_1.822.2"), we keep only the leading digits, which hold the most significant
+    // version parts, so later versions of the same scheme still get a higher or equal number
     // otherwise we transform characters to their ascii value and sum them up
 
     String onlyNumbers = openAPIDocVersion.replaceAll("[^0-9]", "");
-    var allDigits = parseIntOrNull(onlyNumbers);
-    if (allDigits != null) {
-      return allDigits;
-    }
-    var leadingNumber = LEADING_NUMBER.matcher(openAPIDocVersion);
-    if (leadingNumber.find()) {
-      var leading = parseIntOrNull(leadingNumber.group());
-      if (leading != null) {
-        return leading;
-      }
-    }
-    return openAPIDocVersion.chars().sum();
-  }
-
-  private static Integer parseIntOrNull(String digits) {
-    if (digits.isEmpty()) {
-      return null;
+    if (onlyNumbers.isEmpty()) {
+      return openAPIDocVersion.chars().sum();
     }
     try {
-      return Integer.parseInt(digits);
+      return Integer.parseInt(onlyNumbers);
     } catch (NumberFormatException e) {
-      return null;
+      return Integer.parseInt(onlyNumbers.substring(0, MAX_VERSION_DIGITS));
     }
   }
 

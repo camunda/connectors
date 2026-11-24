@@ -132,7 +132,7 @@ public class OperationUtil {
                     && includeOperations.contains(operation.builder().getId()))
         .collect(
             Collectors.collectingAndThen(
-                Collectors.toList(), OperationUtil::markDuplicateOperationIdsUnsupported));
+                Collectors.toList(), OperationUtil::markConflictingOperationsUnsupported));
   }
 
   private static OperationParseResult extractOperation(
@@ -149,6 +149,8 @@ public class OperationUtil {
           parameters == null
               ? new LinkedHashSet<>()
               : parameters.stream()
+                  .map(parameter -> ParameterUtil.resolve(parameter, components))
+                  .filter(parameter -> !ParameterUtil.isOptionalCookie(parameter))
                   .map(parameter -> ParameterUtil.transformToProperty(parameter, components))
                   .collect(Collectors.toCollection(LinkedHashSet::new));
 
@@ -173,9 +175,10 @@ public class OperationUtil {
               .isPresent();
       if (multipartBody) {
         // The multipart body sets the Content-Type header, so an explicit Content-Type header
-        // parameter would duplicate it.
-        properties.removeIf(property ->
-            property.target() == Target.HEADER && CONTENT_TYPE.equalsIgnoreCase(property.id()));
+        // parameter would duplicate it. Only the exact name is matched: other spellings get a
+        // different property ID and have always been kept.
+        properties.removeIf(
+            property -> property.target() == Target.HEADER && CONTENT_TYPE.equals(property.id()));
         properties.add(
             HttpOperationProperty.createHiddenProperty(
                 CONTENT_TYPE, Target.HEADER, "", true, "multipart/form-data"));
@@ -215,32 +218,78 @@ public class OperationUtil {
   }
 
   /**
-   * Operation IDs must be unique, as template property IDs are prefixed with them. Keep the first
-   * operation with a given ID and mark the others unsupported.
+   * Template property IDs are prefixed with the operation ID, so two operations can still produce
+   * the same property ID: when they share an operation ID, or when the prefixes line up, for
+   * example operation {@code foo} with query parameter {@code query_bar} and operation {@code
+   * foo_query} with query parameter {@code bar}. Keep the first operation and mark the later one
+   * unsupported.
    */
-  private static List<OperationParseResult> markDuplicateOperationIdsUnsupported(
+  private static List<OperationParseResult> markConflictingOperationsUnsupported(
       List<OperationParseResult> operations) {
-    Set<String> seen = new HashSet<>();
+    Set<String> seenOperationIds = new HashSet<>();
+    Set<String> seenPropertyIds = new HashSet<>();
     List<OperationParseResult> result = new ArrayList<>(operations.size());
     for (var operation : operations) {
-      if (!operation.supported() || seen.add(operation.builder().getId())) {
+      if (!operation.supported()) {
         result.add(operation);
-      } else {
-        result.add(
-            new OperationParseResult(
-                operation.id(),
-                operation.path(),
-                operation.method(),
-                operation.tags(),
-                false,
-                operation.description(),
-                "Duplicate operation ID '"
-                    + operation.builder().getId()
-                    + "': another operation already uses it",
-                null));
+        continue;
       }
+      var id = operation.builder().getId();
+      String conflict = null;
+      if (seenOperationIds.contains(id)) {
+        conflict = "Duplicate operation ID '" + id + "': another operation already uses it";
+      } else {
+        var propertyIds = generatedPropertyIds(operation);
+        var clash = propertyIds.stream().filter(seenPropertyIds::contains).findFirst();
+        if (clash.isPresent()) {
+          conflict =
+              "Generated property ID '" + clash.get() + "' is already used by another operation";
+        } else {
+          seenOperationIds.add(id);
+          seenPropertyIds.addAll(propertyIds);
+        }
+      }
+      result.add(
+          conflict == null
+              ? operation
+              : new OperationParseResult(
+                  operation.id(),
+                  operation.path(),
+                  operation.method(),
+                  operation.tags(),
+                  false,
+                  operation.description(),
+                  conflict,
+                  null));
     }
     return result;
+  }
+
+  /**
+   * The per-operation property IDs that {@code PropertyUtil} in http-dsl generates for the
+   * parameters and request body groups. Keep in sync with {@code transformProperty}, {@code
+   * parametersPropertyGroup} and {@code requestBodyPropertyGroup}.
+   */
+  private static Set<String> generatedPropertyIds(OperationParseResult operation) {
+    var id = operation.builder().getId();
+    boolean supportsBody = operation.method().supportsBody;
+    Set<String> ids =
+        new HashSet<>(
+            List.of(id + "_$path", id + "_$headers", id + "_$queryParameters", id + "_$method"));
+    boolean hasBodyProperties = false;
+    for (var property : operation.builder().getProperties()) {
+      if (property.target() == Target.BODY) {
+        if (!supportsBody) {
+          continue;
+        }
+        hasBodyProperties = true;
+      }
+      ids.add(id + "_" + property.target().name().toLowerCase() + "_" + property.id());
+    }
+    if (supportsBody) {
+      ids.add(id + (hasBodyProperties ? "_$body" : "_body"));
+    }
+    return ids;
   }
 
   private static HttpFeelBuilder extractPath(String rawPath) {

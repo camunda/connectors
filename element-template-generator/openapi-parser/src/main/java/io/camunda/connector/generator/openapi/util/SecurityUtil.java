@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -100,19 +101,48 @@ public class SecurityUtil {
    * security: [{basicAuth: []}, {basicAuth: []}]}, or a scheme shared by two alternatives. The
    * template property IDs of an authentication are derived from its {@link
    * HttpAuthentication#id()}, so keeping more than one entry with the same ID would produce
-   * duplicate properties. Keep the first occurrence of each ID.
+   * duplicate properties.
+   *
+   * <p>Identical entries are merged. OAuth2 entries with the same token URL are merged into one
+   * entry that requests the scopes of both. Any other two entries with the same ID describe
+   * different configurations that one template can't offer, so they are rejected.
    */
   private static List<HttpAuthentication> deduplicate(List<HttpAuthentication> authentications) {
     Map<String, HttpAuthentication> byId = new LinkedHashMap<>();
     for (var authentication : authentications) {
-      var existing = byId.putIfAbsent(authentication.id(), authentication);
-      if (existing != null) {
-        LOG.info(
-            "Ignoring duplicate authentication {} declared by more than one security requirement",
-            authentication.id());
-      }
+      byId.merge(authentication.id(), authentication, SecurityUtil::mergeSameId);
     }
     return new ArrayList<>(byId.values());
+  }
+
+  private static HttpAuthentication mergeSameId(
+      HttpAuthentication existing, HttpAuthentication duplicate) {
+    if (existing instanceof HttpAuthentication.OAuth2 first
+        && duplicate instanceof HttpAuthentication.OAuth2 second
+        && Objects.equals(first.tokenUrl(), second.tokenUrl())) {
+      Set<String> scopes = new LinkedHashSet<>(first.scopes());
+      scopes.addAll(second.scopes());
+      return new HttpAuthentication.OAuth2(first.tokenUrl(), scopes);
+    }
+    if (isSameConfiguration(existing, duplicate)) {
+      return existing;
+    }
+    throw new IllegalArgumentException(
+        "Conflicting security schemes: more than one "
+            + existing.label()
+            + " configuration with ID '"
+            + existing.id()
+            + "'");
+  }
+
+  private static boolean isSameConfiguration(HttpAuthentication a, HttpAuthentication b) {
+    return switch (a) {
+      // records: compare all components
+      case HttpAuthentication.ApiKey apiKey -> apiKey.equals(b);
+      case HttpAuthentication.OAuth2 oauth2 -> oauth2.equals(b);
+      // no configuration beyond the ID (basic auth includes its key in the ID)
+      default -> a.getClass().equals(b.getClass());
+    };
   }
 
   private static HttpAuthentication transformToAuthentication(
