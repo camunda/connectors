@@ -45,11 +45,8 @@ class McpConnectorModeConfigurationFilterOptionsTest {
   }
 
   @Test
-  void toolMode_usesDefaultOptions_whenFiltersAreMissing() {
-    final var options =
-        toolMode(null).createFilterOptions().orElseGet(FilterOptions::defaultOptions);
-
-    assertThat(options).isEqualTo(FilterOptions.defaultOptions());
+  void toolMode_returnsNoFilterOptions_whenFiltersAreMissing() {
+    assertThat(toolMode(null).createFilterOptions()).isEmpty();
   }
 
   @Test
@@ -102,11 +99,8 @@ class McpConnectorModeConfigurationFilterOptionsTest {
   }
 
   @Test
-  void standalone_usesDefaultOptions_whenFiltersAreMissing() {
-    final var options =
-        standalone(null).createFilterOptions().orElseGet(FilterOptions::defaultOptions);
-
-    assertThat(options).isEqualTo(FilterOptions.defaultOptions());
+  void standalone_returnsNoFilterOptions_whenFiltersAreMissing() {
+    assertThat(standalone(null).createFilterOptions()).isEmpty();
   }
 
   private static ToolModeConfiguration toolMode(McpClientToolModeFiltersConfiguration filters) {
