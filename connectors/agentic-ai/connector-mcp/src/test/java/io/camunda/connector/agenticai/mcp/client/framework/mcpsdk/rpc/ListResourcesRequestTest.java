@@ -197,7 +197,8 @@ class ListResourcesRequestTest {
         AllowDenyListBuilder.builder().denied(List.of("file://blocked-resource.txt")).build();
 
     when(mcpClient.listResources())
-        .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1, mcpResource2), null));
+        .thenReturn(
+            McpSchema.ListResourcesResult.builder(List.of(mcpResource1, mcpResource2)).build());
 
     final var result = testee.execute(mcpClient, filter, Map.of());
 

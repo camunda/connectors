@@ -135,7 +135,7 @@ class ListToolsRequestTest {
             .build();
 
     when(mcpClient.listTools())
-        .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
+        .thenReturn(McpSchema.ListToolsResult.builder(List.of(toolSpec1, toolSpec2)).build());
 
     final var result = testee.execute(mcpClient, filter, Map.of());
 

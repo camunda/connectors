@@ -147,7 +147,7 @@ class ListPromptsRequestTest {
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-prompt")).build();
 
     when(mcpClient.listPrompts())
-        .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2), null));
+        .thenReturn(McpSchema.ListPromptsResult.builder(List.of(mcpPrompt1, mcpPrompt2)).build());
 
     final var result = testee.execute(mcpClient, filter, Map.of());
 

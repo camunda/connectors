@@ -207,8 +207,9 @@ class ListResourceTemplatesRequestTest {
 
     when(mcpClient.listResourceTemplates())
         .thenReturn(
-            new McpSchema.ListResourceTemplatesResult(
-                List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
+            McpSchema.ListResourceTemplatesResult.builder(
+                    List.of(mcpResourceTemplate1, mcpResourceTemplate2))
+                .build());
 
     final var result = testee.execute(mcpClient, filter, Map.of());
 
