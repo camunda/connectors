@@ -106,33 +106,27 @@ Run only the architecture tests with:
   '-Dtest=*ArchTest,ModuleInventoryTest' -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-`-am` builds the modules the tests read from their current sources. Keep `-f connectors/agentic-ai/pom.xml`:
-it limits `-am` to the modules of `connectors/agentic-ai`. Without `-am`, the `agentic-ai-archunit-tests`
-module reads the jars of the other modules from the local Maven repository, so it checks the last install
-and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` runs the architecture tests too.
+Keep `-f connectors/agentic-ai/pom.xml`: it limits `-am`, which builds the modules the tests read from their current
+sources, to `connectors/agentic-ai`. Without `-am`, the tests read the jars of the last local install and miss your
+changes; `./mvnw clean install -f connectors/agentic-ai/pom.xml` also runs them.
 
 ### Docs checks
 
-`agentic-ai-docs-lint` holds the docs checks: the `DocsLint` engine, and `AgenticAiDocsTest` (plain JUnit),
-which applies it to the agentic AI docs and holds their paths and README layout. Each module
-README has the fixed sections and links the docs of its module. Relative links and anchors resolve. The
-docs hold no `java` code blocks, unless a `<!-- docs-lint: allow-java-block: reason -->` comment precedes the block. The types and members that the docs name in backticks exist in the
-repository sources, unless the doc allows the name with `<!-- docs-lint: allow-names Name: reason -->`. A doc
-that records removed code carries `<!-- docs-lint: history: reason -->`, which skips its types and members.
-`AgenticAiDocsSmokeTest` seeds one defect per rule in a small tree and proves that
-the config of `AgenticAiDocsTest` finds each. Run them with:
+`agentic-ai-docs-lint` checks the docs against the modules and the code; its [README](agentic-ai-docs-lint/README.md#rules)
+lists the rules and the findings. Mark a doc with:
+
+- `<!-- docs-lint: allow-java-block: reason -->` before a `java` code block;
+- `<!-- docs-lint: allow-names Name: reason -->` for a backticked name that is not in the repository sources;
+- `<!-- docs-lint: history: reason -->` in a doc that records removed code.
+
+Run the checks with:
 
 ```bash
 ./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-docs-lint
 ```
 
-A failure names the file and line, why it fails and what to verify. The code is the source of truth. A
-warning does not fail the test. The build log shows each warning as one line `WARN <path>:<line>: <what>`,
-and the JUnit report (the IDE test view) holds a `warning` entry with the why and the fix.
-
-Before you change the checks, read [`agentic-ai-docs-lint/AGENTS.md`](agentic-ai-docs-lint/AGENTS.md). It
-lists the rules of this file and of the implementation rules that the module deviates from, because it is
-a development tool and not production code.
+Before you change the checks, read [`agentic-ai-docs-lint/AGENTS.md`](agentic-ai-docs-lint/AGENTS.md): the rules this
+development tool deviates from.
 
 ## Start here, navigation
 
