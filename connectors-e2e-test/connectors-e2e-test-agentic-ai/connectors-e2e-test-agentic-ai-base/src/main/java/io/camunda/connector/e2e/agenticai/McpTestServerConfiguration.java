@@ -106,7 +106,11 @@ public class McpTestServerConfiguration {
   private static void removeStaleStdioContainers() {
     removeStdioContainers(label -> {
       final var pid = label.substring(0, Math.max(label.indexOf('-'), 0));
-      return pid.matches("\\d+") && ProcessHandle.of(Long.parseLong(pid)).isEmpty();
+      try {
+        return ProcessHandle.of(Long.parseLong(pid)).isEmpty();
+      } catch (NumberFormatException e) {
+        return false;
+      }
     });
   }
 
