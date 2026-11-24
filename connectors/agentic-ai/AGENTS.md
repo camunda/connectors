@@ -135,7 +135,7 @@ development tool deviates from.
 
 | Working on… | Read |
 | --- | --- |
-| Agent loop: execution model, job completion and AHSP directives, tool completion and partial results (no-op), concurrency and races (supersession, store-ahead-of-Zeebe), events (sub-process only) | `agentic-loop.md`: [execution model](docs/architecture/agentic-loop.md#the-agentic-loop--distributed-execution-model), [job completion](docs/architecture/agentic-loop.md#job-completion--the-heart-of-the-distributed-loop), [tools complete](docs/architecture/agentic-loop.md#what-happens-when-tools-complete), [concurrency](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions), [events](docs/architecture/agentic-loop.md#event-handling) |
+| Agent loop: execution model, job completion and AHSP directives, tool completion and deferred completion, concurrency and races (supersession, store-ahead-of-Zeebe), events (sub-process only) | `agentic-loop.md`: [execution model](docs/architecture/agentic-loop.md#the-agentic-loop--distributed-execution-model), [job completion](docs/architecture/agentic-loop.md#job-completion--the-heart-of-the-distributed-loop), [tools complete](docs/architecture/agentic-loop.md#what-happens-when-tools-complete), [concurrency](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions), [events](docs/architecture/agentic-loop.md#event-handling) |
 | Agent state machine & initialization (INITIALIZING/TOOL_DISCOVERY/READY) | [`agent-state-machine.md`](connector-aiagent/docs/agent-state-machine.md) |
 | Data model (`AgentContext`, `AgentResponse`, `ToolCallProcessVariable`) | [`data-model.md`](aiagent-model/docs/data-model.md), [`response-handling.md`](connector-aiagent/docs/response-handling.md) |
 | Conversation memory, storage backends, write-ahead store contract | [`conversation-store-spi.md`](aiagent-api/docs/conversation-store-spi.md), [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md) |
@@ -169,7 +169,8 @@ Two flavors share one orchestration core (`BaseAgentRequestHandler`):
 The loop (sub-process flavor): each job initializes the agent, loads memory, adds input (user prompt or
 tool results plus events), calls the LLM, stores memory, and completes; tool calls activate AHSP
 elements and continue the loop, no tool calls finishes it. Zeebe appends each tool result to
-`toolCallResults` and creates a new job; if results are still incomplete the worker no-ops and waits.
+`toolCallResults` and creates a new job; if results are still incomplete, the job ends in a deferred completion and
+the agent waits for the next job.
 
 Flavor comparison and loop diagram: [`flavors.md`](connector-aiagent/docs/flavors.md) and
 [`agentic-loop.md`](docs/architecture/agentic-loop.md#the-agentic-loop--distributed-execution-model).
@@ -179,7 +180,9 @@ Flavor comparison and loop diagram: [`flavors.md`](connector-aiagent/docs/flavor
 These terms are overloaded; the three `*Context` types are the usual confusion. Full definitions:
 [`data-model.md`](aiagent-model/docs/data-model.md) for the data-model types (`AgentContext`,
 `AgentExecutionContext`) and [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter) for the
-conversation and turn types (everything else below).
+conversation and turn types, [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern) for the
+tool kinds and [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete) for deferred
+completion.
 
 | Term | One-line meaning |
 | --- | --- |
@@ -191,6 +194,11 @@ conversation and turn types (everything else below).
 | **AgentConversation** | immutable in-process turn aggregate, built per invocation |
 | **Snapshot** (`ConversationSnapshot`) | transient windowed read-only view sent to the LLM |
 | **Window** | sliding message limit (`MessageWindowFilter`) applied to the snapshot; full history is always persisted |
+| **Process tool** | a BPMN element in the ad-hoc sub-process that the engine runs as a tool |
+| **Gateway tool** | one BPMN element that exposes many tools (MCP, A2A) through a `GatewayToolHandler` |
+| **Runtime tool** (`RuntimeTool`) | a tool that the agent runs itself, without a BPMN element |
+| **Local tool call** (`ToolCall.isLocal()`) | a call whose result the agent produces itself (a runtime tool call or a rejected call); the process never gets it |
+| **Deferred completion** (`CompositionResult.Deferred`) | the job completes without a model call because tool results are incomplete; it reports the arrived results to agent instance history |
 
 ## Gotchas
 
@@ -200,7 +208,7 @@ High-frequency traps (detail behind each link):
   An agent instance update for an inactive job fails with the non-retryable `AGENT_INSTANCE_SUPERSEDED`.
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions),
   [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
-- **Partial tool results → no-op (but not silent)**: with incomplete results the worker completes without an LLM call,
+- **Deferred completion reports the arrived results**: with incomplete results the worker completes without an LLM call,
   after it reports the arrived results to agent instance history (ADR 011).
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete).
 - **Write-ahead, pointer-based store contract**: never overwrite what the current `AgentContext` pointer references.
@@ -326,7 +334,7 @@ stays at the path the templates had before the module split because external doc
 
 When the `engines.camunda` minimum of the AI Agent templates is bumped (rule 3 of the
 [README rules](connector-aiagent/docs/element-template-generation.md#element-template-readmes)), also add regression
-fixtures for the new template generation in the same change, as described in
+fixtures for the templates of the new minimum Camunda version in the same change, as described in
 [Element template regression fixtures](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#element-template-regression-fixtures).
 
 ### Template text

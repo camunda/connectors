@@ -100,9 +100,9 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-t
 ### Element template regression fixtures
 
 When the `engines.camunda` minimum of the AI Agent templates is bumped, add regression fixtures for
-the new template generation in the same change. The fixtures live in
+the templates of the new minimum Camunda version in the same change. The fixtures live in
 `connectors-e2e-test-agentic-ai-aiagent/src/test/resources/regression/` (one Task and one Sub-process
-BPMN per generation, e.g. `ai-agent-task-8.10.0.bpmn`) and are run by
+BPMN per minimum Camunda version, e.g. `ai-agent-task-8.10.0.bpmn`) and are run by
 `AgentTaskElementTemplateRegressionTests` and `AgentSubProcessElementTemplateRegressionTests`. Copy the
 latest pair, rename it for the new version with unique process IDs (e.g. `AI_Agent_Task_8100`),
 re-apply the new templates in Modeler, and add both files to the tests' `@ValueSource`. Never edit a
