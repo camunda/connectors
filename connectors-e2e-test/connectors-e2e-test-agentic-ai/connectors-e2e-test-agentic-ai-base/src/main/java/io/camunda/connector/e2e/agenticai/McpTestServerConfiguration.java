@@ -45,12 +45,13 @@ import org.testcontainers.containers.GenericContainer;
  * transport-sse}), and configures one runtime MCP client per {@link McpTestServerTransport}. The
  * client ids come from {@link McpTestServers#clientId}.
  *
- * <p>The stdio client starts the server with the docker CLI when it handles its first job. The
+ * <p>The stdio client starts the server with the docker CLI when it sends its first request. The
  * configuration fails when the docker CLI does not work, and pulls the image for it. A server that
  * ignores the closed stdin keeps its container running, so a JVM shutdown hook removes the stdio
  * containers of this JVM. The hook runs at JVM exit and not at context close, because all contexts
  * of a JVM share the label. A killed JVM skips the hook, so the configuration also removes the
- * stdio containers of JVMs that no longer run. Containers of parallel runs stay untouched.
+ * stdio containers of JVMs that no longer run. Containers of parallel runs stay untouched when all
+ * JVMs that use the Docker daemon share one process namespace.
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class McpTestServerConfiguration {
