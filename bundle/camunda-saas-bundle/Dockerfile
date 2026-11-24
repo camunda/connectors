@@ -1,4 +1,4 @@
-FROM reg.mini.dev/1212/openjre-base:v21.0.13-dev@sha256:dbc7261ca2424f70b51c2e45137ba489f6d1e852cc38a0f5adbf269854dc7b73
+FROM reg.mini.dev/1212/openjre-base:v21.0.13-dev@sha256:a347d52285f7eac8e42a94f536c107a51d08fbab6692e3cf8934fb2780efcd73
 
 # If you don't have access to Minimus hardened base images, you can use public
 # base images like this instead on your own risk:
