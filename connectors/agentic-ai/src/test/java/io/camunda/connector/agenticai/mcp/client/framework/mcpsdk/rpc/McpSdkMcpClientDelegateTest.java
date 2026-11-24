@@ -34,7 +34,9 @@ class McpSdkMcpClientDelegateTest {
   @Mock private McpSyncClient mcpClient;
 
   private McpSdkMcpClientDelegate testee() {
-    return new McpSdkMcpClientDelegate("testClient", mcpClient, new ObjectMapper());
+    ObjectMapper objectMapper =
+        io.camunda.connector.jackson.ConnectorsObjectMapperSupplier.getCopy();
+    return new McpSdkMcpClientDelegate("testClient", mcpClient, objectMapper);
   }
 
   @ParameterizedTest
