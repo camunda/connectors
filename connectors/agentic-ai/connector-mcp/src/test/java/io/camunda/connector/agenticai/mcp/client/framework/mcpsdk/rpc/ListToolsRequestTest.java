@@ -115,6 +115,44 @@ class ListToolsRequestTest {
   }
 
   @Test
+  void filtersTools_whenToolDenied() {
+    final var toolSpec1 = createTool("allowed-tool", "Allowed Tool", "Allowed tool");
+    final var toolSpec2 = createTool("blocked-tool", "Blocked Tool", "Blocked tool");
+    final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-tool")).build();
+
+    when(mcpClient.listTools())
+        .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
+
+    final var result = testee.execute(mcpClient, filter, Map.of());
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientListToolsResult.class,
+            res ->
+                assertThat(res.toolDefinitions())
+                    .extracting(McpToolDefinition::name)
+                    .containsExactly("allowed-tool"));
+  }
+
+  @Test
+  void returnsEmptyList_whenToolAllowedAndDeniedSimultaneously() {
+    final var toolSpec = createTool("allowed-tool", "Allowed Tool", "Allowed tool");
+    final var filter =
+        AllowDenyListBuilder.builder()
+            .allowed(List.of("allowed-tool"))
+            .denied(List.of("allowed-tool"))
+            .build();
+
+    when(mcpClient.listTools()).thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec), null));
+
+    final var result = testee.execute(mcpClient, filter, Map.of());
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientListToolsResult.class, res -> assertThat(res.toolDefinitions()).isEmpty());
+  }
+
+  @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
     final var meta = McpRpcTestFixtures.EXAMPLE_META;
     when(mcpClient.listTools(isNull(), eq(meta)))
