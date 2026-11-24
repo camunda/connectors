@@ -68,6 +68,24 @@ class McpConnectorModeConfigurationFilterOptionsTest {
   }
 
   @Test
+  void standalone_mapsOnlyIncludedToAllowed_forEveryPrimitive() {
+    final var filters =
+        new McpClientStandaloneFiltersConfiguration(
+            new McpClientToolsFilterConfiguration(List.of("t"), null),
+            new McpClientResourcesFilterConfiguration(List.of("r"), null),
+            new McpClientPromptsFilterConfiguration(List.of("p"), null));
+
+    final var options = standalone(filters).createFilterOptions().orElseThrow();
+
+    assertThat(options)
+        .isEqualTo(
+            new FilterOptions(
+                new AllowDenyList(List.of("t"), List.of()),
+                new AllowDenyList(List.of("r"), List.of()),
+                new AllowDenyList(List.of("p"), List.of())));
+  }
+
+  @Test
   void standalone_mapsOnlyExcludedToDenied_forEveryPrimitive() {
     final var filters =
         new McpClientStandaloneFiltersConfiguration(
