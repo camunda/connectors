@@ -1,6 +1,6 @@
 # Design guidelines
 
-<!-- docs-lint: allow-names Foo, FooImpl, Impl: placeholders of a naming rule -->
+<!-- docs-lint: allow-names Foo, FooImpl: placeholders of a naming rule -->
 
 Follow existing patterns, agreed requirements and relevant checks when you make a customer-facing
 decision: persisted state, a name, a default or a limit. If these do not resolve the choice, ask the
@@ -41,14 +41,11 @@ I1 to I3. Review checks the rest, and with the tests of the stores and SPIs, the
     LangChain4j chat models (see
     [`langchain4j-chat-model.md`](../connector-aiagent/docs/langchain4j-chat-model.md#converter-chain-architecture)).
   - **Why**: a leak here re-couples the whole codebase to the framework and defeats I1.
-- **I3 (legacy convention). Interface in package root, `*Impl` alongside.** Existing pairs stay: public collaborators such as
-  `AgentToolsResolver`, `ConversationStoreRegistry` and `SystemPromptComposer` are interfaces with a `FooImpl` in the
-  same package, registered as an overridable Spring bean and injected by the interface, never as `*Impl`. The
-  architecture tests check that a class named `FooImpl` implements the interface `Foo`. A class that implements one
-  interface per agent flavor of the same concept takes the concept name without `Impl` (e.g.
-  `AgentExecutionContextFactory` for `AgentTaskExecutionContextFactory` and `AgentSubProcessExecutionContextFactory`).
-  A new collaborator is a concrete `@ConditionalOnMissingBean` bean, per trait 4 of the
-  [target architecture](target-architecture.md#traits) ([#9539](https://github.com/camunda/connectors/issues/9539)).
+- **I3 (legacy convention). Interface in package root, `*Impl` alongside.** Existing pairs such as
+  `AgentToolsResolver` and `ConversationStoreRegistry` stay. Inject the interface. The architecture tests check that a
+  class named `FooImpl` implements `Foo`. New code follows [trait 4](target-architecture.md#traits): a concrete
+  `@ConditionalOnMissingBean` bean, and an interface only for an SPI or where two or more implementations exist in
+  production code.
 - **I4. SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store,
   gateway tool or runtime tool by implementing the SPI and registering a bean. See
   [Extension Points](architecture/extension-points.md#extension-points). Do not modify the core to
