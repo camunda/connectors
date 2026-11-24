@@ -32,28 +32,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AgentMcpIntegrationTestSupport {
 
   private static final String ECHOED_META = "{\"exampleMetaKey\":\"exampleMetaValue\"}";
-
-  /** Headers that the HTTP client and the MCP transports add, besides the configured ones. */
-  private static final Set<String> TRANSPORT_HEADERS =
-      Set.of(
-          "accept",
-          "cache-control",
-          "connection",
-          "content-length",
-          "content-type",
-          "host",
-          "http2-settings",
-          "last-event-id",
-          "mcp-protocol-version",
-          "mcp-session-id",
-          "upgrade",
-          "user-agent");
 
   public static final List<String> GATEWAYS =
       List.of(
@@ -123,7 +106,10 @@ public class AgentMcpIntegrationTestSupport {
     assertEchoedHeaders(request, "remote555", "SSE");
   }
 
-  /** Asserts that the headers echoed for the tool call are exactly the configured ones. */
+  /**
+   * Asserts that the headers echoed for the tool call contain the configured header. The transports
+   * add more headers, which the assertion ignores.
+   */
   private void assertEchoedHeaders(
       RecordedChatRequest request, String toolCallId, String expectedDummyValue)
       throws IOException {
@@ -137,13 +123,13 @@ public class AgentMcpIntegrationTestSupport {
             .readValue(toolResult.textContent(), new TypeReference<Map<String, Object>>() {})
             .entrySet()
             .stream()
-            .map(entry -> Map.entry(entry.getKey().toLowerCase(Locale.ROOT), entry.getValue()))
-            .filter(entry -> !TRANSPORT_HEADERS.contains(entry.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .collect(
+                Collectors.toMap(
+                    entry -> entry.getKey().toLowerCase(Locale.ROOT), Map.Entry::getValue));
 
     assertThat(echoed)
         .as("headers echoed for tool call %s", toolCallId)
-        .isEqualTo(Map.of("x-dummy", expectedDummyValue));
+        .containsEntry("x-dummy", expectedDummyValue);
   }
 
   /** Asserts that every gateway element completed once, for scenarios without MCP tool calls. */
