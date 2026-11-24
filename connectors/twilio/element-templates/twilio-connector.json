@@ -1051,7 +1051,7 @@
           "value": "accountSidAuthToken",
           "choices": [
             {
-              "name": "Account SID and auth token",
+              "name": "Account SID and Auth token",
               "value": "accountSidAuthToken"
             },
             {
@@ -1072,6 +1072,7 @@
         {
           "id": "accountSid",
           "label": "Account SID",
+          "tooltip": "Your Twilio account SID. See <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">Twilio outbound connector documentation</a>",
           "constraints": {
             "notEmpty": true
           },
@@ -1094,7 +1095,8 @@
         },
         {
           "id": "authentication.usernameKey",
-          "label": "API key SID",
+          "label": "API key",
+          "tooltip": "Your Twilio API key. See <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">Twilio outbound connector documentation</a>",
           "constraints": {
             "notEmpty": true
           },
@@ -1142,7 +1144,8 @@
         },
         {
           "id": "authentication.passwordKey",
-          "label": "API key secret",
+          "label": "API secret",
+          "tooltip": "Your Twilio API secret. See <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">Twilio outbound connector documentation</a>",
           "constraints": {
             "notEmpty": true
           },
@@ -1161,7 +1164,8 @@
         },
         {
           "id": "authentication.passwordSid",
-          "label": "Auth token",
+          "label": "Authentication token",
+          "tooltip": "Your Twilio auth token. See <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/twilio/?twilio=outbound\" target=\"_blank\">Twilio outbound connector documentation</a>",
           "constraints": {
             "notEmpty": true
           },

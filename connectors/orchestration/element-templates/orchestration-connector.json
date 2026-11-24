@@ -501,7 +501,8 @@
         },
         {
           "id": "deployment",
-          "label": "Deployment type",
+          "label": "Type",
+          "tooltip": "SaaS for cloud clusters on <code>*.zeebe.camunda.io</code>; Self-Managed for clusters you host yourself.",
           "value": "saas",
           "choices": [
             {
@@ -509,7 +510,7 @@
               "value": "saas"
             },
             {
-              "name": "Camunda Self-Managed",
+              "name": "Camunda Self-managed",
               "value": "sm"
             }
           ],
@@ -526,6 +527,7 @@
         {
           "id": "region",
           "label": "Region",
+          "tooltip": "SaaS cluster region, e.g. <code>bru-2</code>, <code>dsm-1</code>. Visible in the cluster overview in Console. Accepts <code>camunda.secrets.NAME</code>.",
           "constraints": {
             "notEmpty": true
           },
@@ -544,6 +546,7 @@
         {
           "id": "clusterId",
           "label": "Cluster ID",
+          "tooltip": "SaaS cluster ID (UUID). Accepts <code>camunda.secrets.NAME</code>. See <a href=\"https://docs.camunda.io/docs/8.10/guides/setup-client-connection-credentials\" target=\"_blank\">creating API client credentials</a>.",
           "constraints": {
             "notEmpty": true
           },
@@ -607,6 +610,7 @@
         {
           "id": "authentication.oauthTokenEndpointSm",
           "label": "OAuth token endpoint",
+          "tooltip": "Token endpoint of your identity provider (e.g. Keycloak, Microsoft Entra ID, Auth0).",
           "constraints": {
             "notEmpty": true
           },
@@ -625,6 +629,7 @@
         {
           "id": "baseUrlSm",
           "label": "Base URL",
+          "tooltip": "Base URL of the Orchestration Cluster REST API. Must end with <code>/v2</code>. Example: <code>http://localhost:8080/v2</code>.",
           "constraints": {
             "notEmpty": true
           },
@@ -673,6 +678,7 @@
         {
           "id": "authentication.clientId",
           "label": "Client ID",
+          "tooltip": "OAuth 2.0 client ID with permission to call the Orchestration Cluster API.",
           "constraints": {
             "notEmpty": true
           },
@@ -686,6 +692,7 @@
         {
           "id": "authentication.clientSecret",
           "label": "Client secret",
+          "tooltip": "OAuth 2.0 client secret. Use a Camunda secret reference like <code>camunda.secrets.MY_SECRET</code> in production.",
           "constraints": {
             "notEmpty": true
           },
@@ -700,6 +707,7 @@
         {
           "id": "authentication.audienceSm",
           "label": "Audience",
+          "tooltip": "OAuth audience expected by your identity provider.",
           "condition": {
             "property": "deployment",
             "equals": "sm",
@@ -715,6 +723,7 @@
         {
           "id": "authentication.scopesSm",
           "label": "Scopes",
+          "tooltip": "Space-separated OAuth 2.0 scopes. Required by some identity providers (e.g. for Microsoft Entra ID use <code>api://&lt;client-id&gt;/.default</code>).",
           "condition": {
             "property": "deployment",
             "equals": "sm",

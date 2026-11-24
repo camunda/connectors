@@ -4787,7 +4787,8 @@
         },
         {
           "id": "authentication.token",
-          "label": "Personal access token",
+          "label": "GitHub personal token",
+          "tooltip": "Needs repository and workflow scope.",
           "constraints": {
             "notEmpty": true
           },

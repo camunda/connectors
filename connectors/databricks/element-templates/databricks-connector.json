@@ -1622,7 +1622,7 @@
         {
           "id" : "host",
           "label" : "Workspace URL",
-          "tooltip" : "For example https://dbc-1234.cloud.databricks.com",
+          "tooltip" : "Base URL of the Databricks workspace. Do not include a path, the operation-specific path is appended automatically. A trailing slash is tolerated.",
           "constraints" : {
             "notEmpty" : true,
             "pattern" : {
@@ -1650,6 +1650,7 @@
         {
           "id" : "authenticationType",
           "label" : "Authentication",
+          "tooltip" : "OAuth M2M with a service principal is the recommended method for production. See <a href=\"https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m\">Databricks OAuth M2M</a>.",
           "value" : "oauth-client-credentials-flow",
           "choices" : [
             {
@@ -1689,6 +1690,7 @@
         {
           "id" : "authentication.clientId",
           "label" : "Client ID",
+          "tooltip" : "Application ID of the Databricks service principal.",
           "constraints" : {
             "notEmpty" : true
           },
@@ -1707,6 +1709,7 @@
         {
           "id" : "authentication.clientSecret",
           "label" : "Client secret",
+          "tooltip" : "OAuth secret of the service principal. Reference it as a Camunda secret (<code>camunda.secrets.NAME</code>) rather than entering the value directly.",
           "constraints" : {
             "notEmpty" : true
           },
@@ -1756,6 +1759,7 @@
         {
           "id" : "authentication.token",
           "label" : "Personal access token",
+          "description" : "Note: intended for testing only. Use OAuth M2M in production.",
           "constraints" : {
             "notEmpty" : true
           },

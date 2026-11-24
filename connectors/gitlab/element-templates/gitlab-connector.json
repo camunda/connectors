@@ -2548,7 +2548,6 @@
         {
           "id": "baseUrl",
           "label": "GitLab base URL",
-          "tooltip": "The root of your GitLab instance, for example https://gitlab.com",
           "constraints": {
             "notEmpty": true,
             "pattern": {
@@ -2575,7 +2574,7 @@
         },
         {
           "id": "authentication.value",
-          "label": "Access token",
+          "label": "GitLab access token",
           "constraints": {
             "notEmpty": true
           },

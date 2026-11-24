@@ -1692,7 +1692,7 @@
         {
           "id": "instance",
           "label": "Instance name",
-          "tooltip": "The first part of your instance URL. For https://dev12345.service-now.com, enter dev12345.",
+          "tooltip": "Enter only the instance name from your ServiceNow URL",
           "constraints": {
             "notEmpty": true
           },

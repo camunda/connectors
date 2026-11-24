@@ -907,6 +907,7 @@
         {
           "id": "authentication.clientId",
           "label": "Client ID",
+          "tooltip": "UiPath OAuth 2.0 client ID",
           "constraints": {
             "notEmpty": true
           },
@@ -925,6 +926,7 @@
         {
           "id": "authentication.clientSecret",
           "label": "Client secret",
+          "tooltip": "UiPath OAuth 2.0 client secret",
           "constraints": {
             "notEmpty": true
           },
@@ -943,8 +945,7 @@
         },
         {
           "id": "cloudUrl",
-          "label": "Cloud URL",
-          "tooltip": "Host of your UiPath Automation Cloud or Automation Suite.",
+          "label": "UiPath instance URL",
           "value": "cloud.uipath.com",
           "constraints": {
             "notEmpty": true
@@ -958,7 +959,8 @@
         },
         {
           "id": "cloudOrg",
-          "label": "Organization",
+          "label": "UiPath organization",
+          "tooltip": "Your organization ID",
           "constraints": {
             "notEmpty": true
           },
@@ -971,7 +973,7 @@
         },
         {
           "id": "cloudTenant",
-          "label": "Tenant",
+          "label": "UiPath tenant",
           "constraints": {
             "notEmpty": true
           },
