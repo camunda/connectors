@@ -200,8 +200,7 @@ High-frequency traps (detail behind each link):
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions),
   [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Partial tool results → no-op (but not silent)**: with incomplete results the worker completes without an LLM call,
-  after it reports the arrived results to agent instance history. E2e tests asserting `verifyNoMoreInteractions` on
-  `AgentInstanceClient` for a multi-tool-call turn with staggered completion times must account for this call.
+  after it reports the arrived results to agent instance history (ADR 011).
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete).
 - **Write-ahead, pointer-based store contract**: never overwrite what the current `AgentContext` pointer references.
   [`conversation-store-spi.md`](aiagent-api/docs/conversation-store-spi.md#storage-contract).
