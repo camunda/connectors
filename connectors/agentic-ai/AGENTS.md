@@ -248,7 +248,7 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
   ./mvnw -f connectors/agentic-ai/<module>/pom.xml org.codehaus.gmavenplus:gmavenplus-plugin:5.1.0:execute \
     -Dscripts="file:///$(pwd)/connectors/agentic-ai/connector-aiagent/bin/generate-package-info.groovy"
   ```
-  Run `./mvnw license:format` on the module afterwards — the script doesn't stamp the license header — then
+  Run `./mvnw license:format` on the module afterwards (the script doesn't stamp the license header), then
   commit the generated file(s).
 
 ### ErrorProne
