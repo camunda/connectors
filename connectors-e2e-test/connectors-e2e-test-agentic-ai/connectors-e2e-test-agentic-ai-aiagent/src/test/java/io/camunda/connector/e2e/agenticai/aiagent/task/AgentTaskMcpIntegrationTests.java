@@ -211,8 +211,10 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
               .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220), 1))
               .hasResponseMessageText(aiFinalResponseText)
               .hasResponseText(aiFinalResponseText)
-              .hasOnlyAgentDocumentSatisfying(
-                  document -> assertHandleOf(document, documentHandle, null, "image/png", null));
+              .hasOnlyAgentDocumentSatisfying(document -> {
+                assertHandleOf(document, documentHandle, null, "image/png", null);
+                mcpSupport.assertHoldsImageOfImageTool(document);
+              });
         });
 
     mcpSupport.assertGatewayCompletions(

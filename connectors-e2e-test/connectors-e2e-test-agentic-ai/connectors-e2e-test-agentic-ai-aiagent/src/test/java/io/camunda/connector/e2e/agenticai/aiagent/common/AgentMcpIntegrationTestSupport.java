@@ -22,13 +22,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration.McpTestServers;
 import io.camunda.connector.e2e.agenticai.McpTestServerTransport;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedChatRequest;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.modelcontextprotocol.client.McpClient;
+import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
+import io.modelcontextprotocol.spec.McpSchema;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -130,6 +138,34 @@ public class AgentMcpIntegrationTestSupport {
     assertThat(echoed)
         .as("headers echoed for tool call %s", toolCallId)
         .containsEntry("x-dummy", expectedDummyValue);
+  }
+
+  /**
+   * Asserts that the document holds the image of the {@code image} tool. The expected image comes
+   * from the HTTP server through a plain MCP SDK client, so it does not pass through the code under
+   * test.
+   */
+  public void assertHoldsImageOfImageTool(AgentDocument document) {
+    final byte[] stored;
+    try (InputStream content =
+        InMemoryDocumentStore.INSTANCE.getDocumentContent(document.reference())) {
+      stored = content.readAllBytes();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+    assertThat(stored).as("the content of the stored document").isEqualTo(imageOfImageTool());
+  }
+
+  private byte[] imageOfImageTool() {
+    final var url = mcpTestServers.httpBaseUrl() + "/mcp";
+    try (var client =
+        McpClient.sync(HttpClientStreamableHttpTransport.builder(url).endpoint(url).build())
+            .build()) {
+      client.initialize();
+      final var result = client.callTool(new McpSchema.CallToolRequest("image", Map.of()));
+      final var image = (McpSchema.ImageContent) result.content().getFirst();
+      return Base64.getDecoder().decode(image.data());
+    }
   }
 
   /** Asserts that every gateway element completed once, for scenarios without MCP tool calls. */
