@@ -32,7 +32,7 @@ class McpConnectorModeConfigurationFilterOptionsTest {
     assertThat(options)
         .isEqualTo(
             new FilterOptions(
-                AllowDenyList.of(List.of("a", "b"), List.of("c")), EVERYTHING, EVERYTHING));
+                new AllowDenyList(List.of("a", "b"), List.of("c")), EVERYTHING, EVERYTHING));
   }
 
   @Test
@@ -65,9 +65,9 @@ class McpConnectorModeConfigurationFilterOptionsTest {
     assertThat(options)
         .isEqualTo(
             new FilterOptions(
-                AllowDenyList.of(List.of("t1"), List.of("t2")),
-                AllowDenyList.of(List.of("r1"), List.of("r2")),
-                AllowDenyList.of(List.of("p1"), List.of("p2"))));
+                new AllowDenyList(List.of("t1"), List.of("t2")),
+                new AllowDenyList(List.of("r1"), List.of("r2")),
+                new AllowDenyList(List.of("p1"), List.of("p2"))));
   }
 
   @Test
@@ -83,9 +83,9 @@ class McpConnectorModeConfigurationFilterOptionsTest {
     assertThat(options)
         .isEqualTo(
             new FilterOptions(
-                AllowDenyList.of(List.of(), List.of("t")),
-                AllowDenyList.of(List.of(), List.of("r")),
-                AllowDenyList.of(List.of(), List.of("p"))));
+                new AllowDenyList(List.of(), List.of("t")),
+                new AllowDenyList(List.of(), List.of("r")),
+                new AllowDenyList(List.of(), List.of("p"))));
   }
 
   @Test
@@ -98,7 +98,7 @@ class McpConnectorModeConfigurationFilterOptionsTest {
 
     assertThat(options)
         .isEqualTo(
-            new FilterOptions(EVERYTHING, AllowDenyList.of(List.of(), List.of("r")), EVERYTHING));
+            new FilterOptions(EVERYTHING, new AllowDenyList(List.of(), List.of("r")), EVERYTHING));
   }
 
   @Test

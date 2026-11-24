@@ -8,19 +8,12 @@ package io.camunda.connector.agenticai.mcp.client.filters;
 
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import java.util.List;
-import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
 public record AllowDenyList(List<String> allowed, List<String> denied) {
 
   public static AllowDenyList allowingEverything() {
     return new AllowDenyList(List.of(), List.of());
-  }
-
-  /** Returns the list with the given names. A missing list counts as an empty list. */
-  public static AllowDenyList of(@Nullable List<String> allowed, @Nullable List<String> denied) {
-    return new AllowDenyList(
-        allowed != null ? allowed : List.of(), denied != null ? denied : List.of());
   }
 
   public boolean isPassing(String toolName) {
