@@ -28,7 +28,7 @@ The [README](README.md) gives the purpose and the key types. The
   example `Finding`), `Optional` only as a return type, and null-marked code.
 - [Null safety](../AGENTS.md#null-safety) and [ErrorProne](../AGENTS.md#errorprone) as in the other
   modules.
-- Domain rule 6, tests pin the whole observable outcome: a test compares the complete findings, not a
+- Domain rule 6, tests pin the outcome they are about: a test compares the complete findings, not a
   part of them.
 
 ## Deviations

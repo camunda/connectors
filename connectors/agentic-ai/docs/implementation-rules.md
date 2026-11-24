@@ -37,7 +37,8 @@ specific rule. When they conflict, the review names the rule for revision.
     or later.
   - Test: name the typical next change (a new input source, a new provider, a new content type, a
     wire format change) and count the production files that it edits. Do not count sealed `switch`
-    arms, because the compiler finds them.
+    arms that handle the new subtype, because the compiler finds them. Arms that can only reject it
+    are a design smell (see *A new sealed subtype is one that most `switch` sites handle*).
 - **P4. Each test protects one behavior that a plausible change can break.**
   - Why: a test without a purpose costs review time and refactor time and finds nothing. A test that
     mirrors the implementation breaks on every refactor and lets a behavior change pass.
@@ -76,7 +77,8 @@ Write the minimum code that solves the problem. Write nothing speculative.
 
 Change only what the task needs. Clean up only your own changes.
 
-- Do not improve adjacent code, comments or formatting.
+- Do not improve adjacent code, comments or formatting. A small correction (a typo, a stale name, a
+  wrong sentence) in a file that the change already edits is allowed.
 - Do not refactor code that works. Ask before each refactor, also a small one.
 - Tell about dead code that is not related to your change. Do not remove it unless you get a request.
 - Remove the variables and functions that your change made unused.
@@ -112,12 +114,15 @@ effects. A good name does not replace a Javadoc that the rules below require.
   precondition. When a reader must read a caller across that boundary to understand a precondition,
   document the coupling in an ADR or a reference doc, not in the Javadoc.
 - A Javadoc describes the code as it is. It does not tell about a change or an intent. Do not write
-  "now", "no longer", "the new behavior", "previously", "instead of", "replaces", "after this change", "for the
-  time being" or "until". Do not name a PR, an issue, a stack step or future work. Put the history in
+  a sentence that tells about a change, for example with "now", "no longer", "the new behavior",
+  "previously", "replaces", "after this change", "for the time being" or "until". Judge the sentence,
+  not the word. Do not name a PR, an issue, a stack step or future work. Put the history in
   the commit message, the PR, an ADR or [`docs/breaking-changes.md`](breaking-changes.md).
 - Each claim in a Javadoc MUST be true for the code of the same commit, on each path, also for a job
   that runs again. Example: a job that runs again creates new message IDs, so a Javadoc must not claim
-  that it computes the same result. A claim that the code does not enforce is a defect.
+  that it computes the same result. A claim that the code does not enforce is a defect. Fix the claim,
+  and add code that enforces it only when the failure is reachable. Prefer stating what the code does
+  over "always" and "never".
 - A commit that changes the behavior or the signature of a method updates, in the same commit, all
   affected Javadoc (including the method and its class) and current-state reference documentation that
   names the method. This also applies to a later commit in the same PR. Merged ADRs and historical
@@ -130,9 +135,15 @@ effects. A good name does not replace a Javadoc that the rules below require.
 Each rule gives a principle, the location in this module where it applies, and the review finding
 that caused it.
 
-1. **Changes are compatible with running processes.** A process that runs today MUST continue to
-   deploy and run after the change. A new field or capability MUST NOT change behavior when nobody
-   sets it. In this module:
+1. **Changes are compatible with running processes.** A process that runs on the baseline MUST
+   continue to deploy and run after the change. A new field or capability MUST NOT change behavior
+   when nobody sets it. The baseline:
+   - On `main`: the latest minor release, for example 8.10 while `main` develops 8.11. What is new on
+     `main` since then, including alpha releases, may still change.
+   - On a backport: each `stable/*` branch the fix reaches. A process on 8.10 keeps its behavior after
+     the backport to `stable/8.10`, unless that behavior is the bug the fix corrects.
+
+   In this module:
    - A new element template field is optional. It has no default value, or a default value that keeps
      the current behavior. This also applies to a field in a new optional object.
      (#5904, #7765)
@@ -142,6 +153,9 @@ that caused it.
      the value they have. Keep the old default in the template versions whose users expect it, and
      state the change in the PR. Example: v1 keeps the old default system prompt through a
      per-template override. (#9036)
+   - A new template version may change a default for newly placed elements. Its migration recipe
+     keeps the old value when users update an element, an absent value keeps the old behavior at
+     runtime, and the PR states the change.
    - Do not deprecate a template version that users must update from. Web Modeler shows no Update
      action for a deprecated template. (#8896)
    - Read the state that an earlier connector version stored. Example: messages without an ID load,
@@ -151,7 +165,7 @@ that caused it.
    - Text that users or stored state can see is a wire format. Examples: the text of the agent
      instance history, the format of a timestamp, the JSON of a document handle. Gate a change of it
      on an agent instance feature, or record it in [`docs/breaking-changes.md`](breaking-changes.md).
-     (#9631)
+     A format that the baseline does not have may change without either. (#9631)
    - Why: a running process instance continues on the new connector version without a redeployment.
 2. **Check the source before you use vendor-specific data.** Data is valid only in the system that
    made it. An ID keeps its meaning.
@@ -190,17 +204,14 @@ that caused it.
    - In a review, flag a Javadoc, comment or document that claims a guarantee (fencing, ordering,
      idempotency) that the other system does not enforce.
    - Why: older docs claimed fencing that the engine did not do. (#8342)
-6. **Tests pin the whole observable outcome.** An assertion covers the complete result and the number
-   of interactions, not a subset. This rule applies to all test code, including the e2e module.
-   - Compare complete payloads, schemas and messages. Do not assert only some of their fields.
-   - Prefer equality assertions (`isEqualTo`, `containsExactly`) to `contains`.
-   - Compare JSON with `JSONAssert` in strict mode, on the full object. Do not use `contains` on JSON
-     text. Example: `CamundaDocumentConversationStoreTest`.
-   - When code calls an external system in a loop or a retry, assert the exact number of calls.
-   - In a review, flag a change that removes or weakens an assertion, unless the behavior changed on
-     purpose and the PR says so.
-   - In this module: compare the full input schema of a tool definition. Assert the number of model
-     requests in an agentic loop test, for example `modelCallCount()`.
+6. **Tests pin the outcome they are about.** Prefer assertions that cover the complete result of the
+   behavior under test over a few of its fields. Choose the scope per test: a test of one detail may
+   assert only that detail. This rule applies to all test code, including the e2e module.
+   - Prefer equality assertions (`isEqualTo`, `containsExactly`) to `contains`. Compare JSON with
+     `JSONAssert` in strict mode. Example: `CamundaDocumentConversationStoreTest`.
+   - When code calls an external system in a loop or a retry, assert the exact number of calls. In an
+     agentic loop test, assert the number of model requests, for example `modelCallCount()`.
+   - In a review, flag a change that removes or weakens an assertion without a reason in the PR.
    - Why: a partial assertion lets a regression pass. A schema regression and an extra loop iteration
      passed this way. (#7463, #6999) (P4)
 
@@ -227,9 +238,10 @@ below make this style specific.
   not change its arguments. A private method can add items to a local accumulator. Example: do not
   write `void addToolCalls(List<ToolCall> target, ...)` that adds items to the list from the caller.
   Write `List<ToolCall> toolCalls(...)` that returns a new list.
-- **Sealed and exhaustive.** Make a closed hierarchy `sealed`. Match it with a pattern `switch` that has
-  no `default` branch. Then a new subtype causes a compile error at each location that does not handle
-  it. Do not write a chain of `instanceof` checks. Example: `AgentInitializationResult` and its
+- **Sealed and exhaustive.** Make a closed hierarchy `sealed`. When the handling differs per subtype,
+  match it with a pattern `switch` without `default`, so a new subtype causes a compile error where it
+  is not handled. When only one subtype needs special handling, use `instanceof` or a `switch` with
+  `default`. Example: `AgentInitializationResult` and its
   `switch` in `BaseAgentRequestHandler.handleRequest`. (P3)
 - **A new sealed subtype is one that most `switch` sites handle.** Before you add a subtype to a sealed type that
   many locations match, count the arms that can only throw. When most of them throw, carry the value
@@ -247,7 +259,8 @@ below make this style specific.
   Example: `DocumentMimeTypes`. Do not add `*Util` or `*Utils` classes.
 - **Wire the main collaborators with dependency injection.** Make each service a Spring bean with
   `@ConditionalOnMissingBean`, also when it has no interface. A user can then replace it with a bean
-  of their own. Example: `aiAgentInstanceToolMapper` for `AgentInstanceToolMapper`. Create a small
+  of their own. Do not make such a bean class or its public methods `final`, so a user can also extend
+  it. Example: `aiAgentInstanceToolMapper` for `AgentInstanceToolMapper`. Create a small
   helper with `new` inside its owner. When a bean is a good candidate for a public interface (for
   example an SPI that users can implement), say so in the plan or the PR. The team decides about the
   interface.
@@ -282,9 +295,19 @@ below make this style specific.
   provider tag comparison that [domain rule 2](#domain-rules) requires in each converter. (P2)
 - **Exceptions belong to their contract.** When a Javadoc in `aiagent-api` requires an exception, the
   exception class is in `aiagent-api`.
-- **Native providers and LangChain4j share no code.** A native SDK provider and the LangChain4j
-  integration do not share helpers or exception types. Why: the two integrations change
+- **Native providers and LangChain4j share no integration code.** A native SDK provider and the
+  LangChain4j integration do not share helpers or exception types of one integration. Code that every
+  provider needs, such as the content types all providers accept or an exception every content
+  converter throws, lives in `chatmodel.provider`. Why: the two integrations change
   independently, and a shared helper couples them.
+- **Member order.** Order the members of a class as constants, fields, constructors, then methods.
+  Prefer nested types at the end. Put them at the top when the class reads better that way, and
+  between methods only when that is the best place. Why: a reader sees the state of a class before
+  its behavior.
+- **Consistent parameter order.** Related methods, such as the methods of one type or the overloads
+  of one method, take the parameters they share in the same order. A method that takes both the
+  execution context and the agent context takes them in this order: `AgentExecutionContext`, then
+  `AgentContext`. Why: a caller can rely on the order without reading each signature.
 - **Code agrees with the accepted ADRs.** When code diverges from an accepted ADR, the same change
   supersedes or extends the ADR with a new ADR, as the [ADR authoring rules](adr/README.md) say.
 

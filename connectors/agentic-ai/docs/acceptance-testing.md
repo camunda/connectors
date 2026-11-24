@@ -7,14 +7,14 @@ Do not require non-compiling tests.
 Accept a complete user-facing feature with an e2e test through customer-available interfaces.
 Use CPT with BPMN, templates and process variables, or the exposed API. Assert customer-visible
 results, including required observability. For integration-dependent behavior, follow the
-[integration-target rules](#integration-targets). Each test asserts the whole observable outcome
+[integration-target rules](#integration-targets). Each test asserts the outcome it is about
 ([domain rule 6](implementation-rules.md#domain-rules)).
 
 ## Choosing e2e vs unit tests (mandatory decision)
 
 Choose the test level before implementing each code change; an e2e test is not required for every
 change. If you add none for a change that touches the element template or behavioral characteristics,
-say why. If requirements
+say why. In a stack of PRs, the reason can name the later PR that adds the e2e test. If requirements
 are unclear, ask before starting. The examples below are illustrative, not exhaustive; reason from
 the principle: does correctness depend on the engine and BPMN wiring?
 
@@ -30,10 +30,14 @@ the principle: does correctness depend on the engine and BPMN wiring?
     - prompt composition, schema generation, content/tool conversion
     - response formatting, error messages, pure transformations
 
+When the change needs an e2e test, or adds or changes one, add the `e2e-tests` label to the PR. CI
+then runs all e2e modules on each push. Without the label, the e2e tests run only nightly, after the
+merge.
+
 ## Unit tests
 
 These rules apply [P4](implementation-rules.md#principles): each test protects one behavior that a
-plausible change can break. Pin the whole outcome ([domain rule 6](implementation-rules.md#domain-rules))
+plausible change can break. Pin the outcome the test is about ([domain rule 6](implementation-rules.md#domain-rules))
 at the level of the unit that owns it. The test level decision above stays mandatory.
 
 - **A test lives in the test of the unit that it exercises.** A test class tests the unit it is named
@@ -47,9 +51,10 @@ at the level of the unit that owns it. The test level decision above stays manda
   with their constructors or builders. Test a core decision without mocks. Example:
   `AgentConversationTest`. A build check can find a mock of a record or a domain type.
   ([P4](implementation-rules.md#principles))
-- **Test shared behavior once.** Test the behavior of a base class in one place. A flavor test covers
-  only what the flavor changes. A PR can delete a duplicate test when it names the test that keeps the
-  coverage. ([P4](implementation-rules.md#principles))
+- **Test shared behavior once.** In unit and component tests, test the behavior of a base class in one
+  place. A flavor test covers only what the flavor changes. A PR can delete a duplicate test when it
+  names the test that keeps the coverage. E2e tests cover the AI Agent Task and the AI Agent
+  Sub-process separately, because their BPMN models differ. ([P4](implementation-rules.md#principles))
 - **Assert outcomes. Verify only interactions with the edges.** Assert the returned value or state.
   Use `verify` and `inOrder` only for calls to an external system, where domain rule 6 needs the
   number of calls. ([P4](implementation-rules.md#principles))
