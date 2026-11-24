@@ -482,7 +482,7 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
    * client tasks.
    */
   enum Fixture {
-    V1("regression/mcp-connectors-standalone-v0.bpmn", false),
+    V0("regression/mcp-connectors-standalone-v0.bpmn", false),
     V2("regression/mcp-connectors-standalone-v2.bpmn", false),
     V3("mcp-connectors-standalone.bpmn", true);
 
