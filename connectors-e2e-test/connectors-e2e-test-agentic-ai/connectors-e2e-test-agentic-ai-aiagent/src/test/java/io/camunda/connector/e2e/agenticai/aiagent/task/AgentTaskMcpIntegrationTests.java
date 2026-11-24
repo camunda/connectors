@@ -114,7 +114,8 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
   @Test
   void handlesMcpToolCalls() throws IOException {
     final var initialUserPrompt = "Explore some of your MCP tools!";
-    final var firstAiText = "The user asked me to call some of my MCP tools. I will call them all.";
+    final var firstAiText =
+        "The user asked me to call some of my MCP tools. I will call some of them.";
     final var secondAiText = "I called some of my MCP tools.";
     final var finalAiText = "No.";
 
