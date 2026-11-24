@@ -1,7 +1,8 @@
 # Agentic AI E2E Tests: Agent Instructions
 
 The e2e tests of the agentic AI connectors: Camunda Process Test scenarios with WireMock stubs for the
-LLM providers, MCP servers and A2A agents, plus acceptance tests against real LLM providers.
+LLM providers and A2A agents, a real MCP server (`mcp-test-server`) for the MCP tests, plus acceptance
+tests against real LLM providers.
 
 This file covers how the e2e modules are structured, how to run them and where new tests go. When a
 change in `connectors/agentic-ai` needs an e2e test, and what a change must update before it is done,
@@ -25,7 +26,7 @@ it tests, so it runs a runtime with only these connectors:
 
 | E2E module                                    | Tests                                                                                                 |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `connectors-e2e-test-agentic-ai-base`         | None. Shared test support in `src/main` (`BaseAgenticAiTest`, `BpmnUtil`, `TestUtil`, document store) |
+| `connectors-e2e-test-agentic-ai-base`         | None. Shared test support in `src/main` (`BaseAgenticAiTest`, `BpmnUtil`, `TestUtil`, document store, MCP test server setup, `docker-images.properties`) |
 | `connectors-e2e-test-agentic-ai-aiagent-base` | None. Shared AI Agent test support in `src/main` (`aiagent.fixtures`, `assertj`)                      |
 | `connectors-e2e-test-agentic-ai-aiagent`      | AI Agent (both flavors), ad-hoc tools schema, MCP and A2A gateway tools                               |
 | `connectors-e2e-test-agentic-ai-real-llm`     | AI Agent against real LLM providers (CPT), with the AI Agent and HTTP JSON connectors only            |
@@ -39,6 +40,10 @@ it tests, so it runs a runtime with only these connectors:
   name ends with `-base`.
 - Do not depend on another e2e module's test classes (`test-jar`). Move the shared code to a `*-base`
   module instead.
+- The container images of the tests are in `docker-images.properties` of the base module. Do not add
+  this file to another e2e module: `DockerImages` reads only the first file on the classpath.
+- `McpTestServerConfiguration` starts `mcp-test-server` and configures one runtime MCP client per
+  transport (HTTP, SSE and stdio). Activate it with `@Import`.
 - A new e2e module needs no CI change when its name follows `connectors-e2e-test-agentic-ai-<name>`:
   the E2E workflow discovers it and runs it as its own job. Only the AI Agent module has a runner
   override in the E2E workflows.
@@ -50,7 +55,9 @@ The e2e tests require `element-templates-cli` on your PATH. The e2e harness shel
 is missing, e2e tests fail with errors that can look unrelated to your change. Follow the pinned-version
 prerequisites in the [E2E runbook](README.md).
 
-The tests start containers (Camunda, Keycloak, the MCP test server), so Docker must be running.
+The tests start containers (Camunda, Keycloak, the MCP test server), so Docker must be running. The
+stdio MCP client starts the MCP test server with the `docker` CLI, so the MCP tests also need `docker`
+on your PATH.
 
 ## Running the tests
 

@@ -25,7 +25,11 @@ them or apply the opt-in label without authorization.
   [AI Agent](connectors-e2e-test-agentic-ai-aiagent/src/test/java/io/camunda/connector/e2e/agenticai/),
   [MCP](connectors-e2e-test-agentic-ai-mcp/src/test/java/io/camunda/connector/e2e/agenticai/mcp/) and
   [A2A](connectors-e2e-test-agentic-ai-a2a/src/test/java/io/camunda/connector/e2e/agenticai/a2a/) e2e modules
-  use test chat models or WireMock instead of paid provider APIs. Process tests still need Docker.
+  use test chat models or WireMock instead of paid provider APIs. The MCP tests run against a real MCP
+  test server in Docker. Process tests still need Docker, and the MCP tests also need the `docker` CLI
+  on `PATH`. The stdio MCP client starts one container for each Spring test context. A JVM shutdown hook removes these
+  containers. A killed JVM skips the hook and can leave its containers running. Remove them with
+  `docker rm -f $(docker ps -aq --filter label=mcp-test-server-stdio)`.
   [`AGENTS.md`](AGENTS.md) lists all e2e modules.
 - **Native real-provider CPT**: the
   [`RealProvider*E2ETestIT` classes](connectors-e2e-test-agentic-ai-real-llm/src/test/java/io/camunda/connector/e2e/agenticai/realllm/)
