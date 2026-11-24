@@ -213,6 +213,16 @@
       "allowedVersions": "<9.2.0"
     },
     {
+      "description": "Keep stable/8.9 on Spring Boot 4.0/4.1. Spring Boot 4.2 removed org.springframework.boot.env.EnvironmentPostProcessor, which camunda-spring-boot-starter 8.9.x (up to 8.9.29) still registers under, so on 4.2 an OIDC setup without an explicit camunda.client.auth.method silently falls back to no credentials (camunda/connectors#10745). Mirrors the enforcer guard on version.spring-boot in stable/8.9's parent/pom.xml; drop this rule together with that guard. Renovate reads this file from the default branch, so the rule has to live here.",
+      "matchBaseBranches": [
+        "stable/8.9"
+      ],
+      "matchPackageNames": [
+        "org.springframework.boot{/,}**"
+      ],
+      "allowedVersions": "<4.2.0"
+    },
+    {
       "description": "Disable minor/major updates for maven-surefire-plugin and maven-failsafe-plugin — 3.6.0 breaks the build in two ways. First, it removed the `hourly` RunOrder configured in parent/pom.xml, so every module fails at surefire:test before a single test runs. Second, once a supported runOrder is set, Byte Buddy can no longer self-attach its agent inside the forked JVM (\"Could not self-attach to current VM using external process\"), so System Stubs' EnvironmentVariableMocker and Mockito's inline MockMaker both fail to initialise — 390 errors in connector-runtime-core alone. Upgrading needs a real migration: a supported runOrder plus an explicit -javaagent (or surefire classloader settings) so the agent no longer relies on self-attach. Patch updates on the 3.5.x line are unaffected. maven-failsafe-plugin is listed because connectors-e2e-test-agentic-ai pins it to the same plugin.version.maven-surefire-plugin property, so leaving it unblocked would let Renovate bump the shared property through that dependency instead.",
       "matchUpdateTypes": [
         "major",
