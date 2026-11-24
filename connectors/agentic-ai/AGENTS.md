@@ -182,6 +182,11 @@ flavor).
 mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Dtest=<TestClassName>
 ```
 
+The MCP e2e tests run against a real MCP test server (`mcp-test-server`) in Docker. The stdio MCP
+client starts it with the `docker` CLI, so the MCP tests also need `docker` on your PATH. A JVM
+shutdown hook removes these containers. A killed JVM skips the hook and can leave its containers
+running. Remove them with `docker rm -f $(docker ps -aq --filter label=mcp-test-server-stdio)`.
+
 #### Real-LLM CPT coverage
 
 Real-provider / real-LLM acceptance coverage for this module lives in
