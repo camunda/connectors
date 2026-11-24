@@ -269,10 +269,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
     final var identifier = new McpToolCallIdentifier(name, callToolResult.name());
 
     final var toolCallResultBuilder =
-        ToolCallResult.builder()
-            .id(toolCallResult.id())
-            .name(identifier.fullyQualifiedName())
-            .completedAt(toolCallResult.completedAt());
+        ToolCallResult.builder().id(toolCallResult.id()).name(identifier.fullyQualifiedName());
 
     // directly use the string content if the returned content is a single text content
     if (callToolResult.content().size() == 1
