@@ -238,13 +238,9 @@ High-frequency traps (detail behind each link):
 - **`Message.id()` is random per construction**: two freshly built messages with equal content have different ids
   until one is persisted and reloaded, so a test that compares an independently built expected message fails on `id`.
   [`data-model.md`](aiagent-model/docs/data-model.md#message-identity), [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
-- **Map iteration order differs between JVMs after a record builder copied the map**: the `@AgenticAiRecord`
-  builders copy maps and sets with `Map.copyOf` and `Set.copyOf`, whose iteration order changes with every JVM start.
-  Never let a hash, an id or any value compared across runs depend on that order. Sort the map keys where the value
-  is computed (`SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS` in `AgentConfiguration.fingerprint()`, which sorts
-  every map at any depth), and carry an order that has meaning, such as the order of the tool parameters, as a list.
-  No mapper flag sorts a set, so a hashed value must not contain one. Do not add a record annotation or a special
-  collection type to work around the copy. [`agent-instance.md`](connector-aiagent/docs/agent-instance.md#conversation-history-items).
+- **Map and set order of `@AgenticAiRecord` builders differs between JVMs**: no hash, id or value compared across
+  runs may depend on it; its Javadoc has the rules. `AgentConfiguration.fingerprint()` sorts map keys with
+  `SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS` ([`agent-instance.md`](connector-aiagent/docs/agent-instance.md#conversation-history-items)).
 
 ## Working in this module
 
