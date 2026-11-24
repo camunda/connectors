@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
+import static io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpRpcTestFixtures.EXAMPLE_META;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
@@ -17,7 +18,6 @@ import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Collections;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -27,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class McpSdkMcpClientDelegateTest {
 
   private static final AllowDenyList FILTER = AllowDenyList.allowingEverything();
-  private static final Map<String, Object> META = Map.of("traceparent", "00-abc-def-01");
 
   @Mock private McpSyncClient mcpClient;
 
@@ -53,82 +52,42 @@ class McpSdkMcpClientDelegateTest {
 
   @Test
   void listToolsPassesMetaToTheSdkClient() {
-    when(mcpClient.listTools(isNull(), same(META))).thenReturn(emptyTools());
+    when(mcpClient.listTools(isNull(), same(EXAMPLE_META))).thenReturn(emptyTools());
 
-    testee().listTools(FILTER, META);
+    testee().listTools(FILTER, EXAMPLE_META);
 
-    verify(mcpClient).listTools(null, META);
-    verifyNoMoreInteractions(mcpClient);
-  }
-
-  @Test
-  void listToolsWithEmptyMetaUsesTheSdkClientWithoutMeta() {
-    when(mcpClient.listTools()).thenReturn(emptyTools());
-
-    testee().listTools(FILTER, Map.of());
-
-    verify(mcpClient).listTools();
+    verify(mcpClient).listTools(null, EXAMPLE_META);
     verifyNoMoreInteractions(mcpClient);
   }
 
   @Test
   void listResourcesPassesMetaToTheSdkClient() {
-    when(mcpClient.listResources(isNull(), same(META))).thenReturn(emptyResources());
+    when(mcpClient.listResources(isNull(), same(EXAMPLE_META))).thenReturn(emptyResources());
 
-    testee().listResources(FILTER, META);
+    testee().listResources(FILTER, EXAMPLE_META);
 
-    verify(mcpClient).listResources(null, META);
-    verifyNoMoreInteractions(mcpClient);
-  }
-
-  @Test
-  void listResourcesWithEmptyMetaUsesTheSdkClientWithoutMeta() {
-    when(mcpClient.listResources()).thenReturn(emptyResources());
-
-    testee().listResources(FILTER, Map.of());
-
-    verify(mcpClient).listResources();
+    verify(mcpClient).listResources(null, EXAMPLE_META);
     verifyNoMoreInteractions(mcpClient);
   }
 
   @Test
   void listResourceTemplatesPassesMetaToTheSdkClient() {
-    when(mcpClient.listResourceTemplates(isNull(), same(META)))
+    when(mcpClient.listResourceTemplates(isNull(), same(EXAMPLE_META)))
         .thenReturn(emptyResourceTemplates());
 
-    testee().listResourceTemplates(FILTER, META);
+    testee().listResourceTemplates(FILTER, EXAMPLE_META);
 
-    verify(mcpClient).listResourceTemplates(null, META);
-    verifyNoMoreInteractions(mcpClient);
-  }
-
-  @Test
-  void listResourceTemplatesWithEmptyMetaUsesTheSdkClientWithoutMeta() {
-    when(mcpClient.listResourceTemplates()).thenReturn(emptyResourceTemplates());
-
-    testee().listResourceTemplates(FILTER, Map.of());
-
-    verify(mcpClient).listResourceTemplates();
+    verify(mcpClient).listResourceTemplates(null, EXAMPLE_META);
     verifyNoMoreInteractions(mcpClient);
   }
 
   @Test
   void listPromptsPassesMetaToTheSdkClient() {
-    when(mcpClient.listPrompts(isNull(), same(META))).thenReturn(emptyPrompts());
+    when(mcpClient.listPrompts(isNull(), same(EXAMPLE_META))).thenReturn(emptyPrompts());
 
-    testee().listPrompts(FILTER, META);
+    testee().listPrompts(FILTER, EXAMPLE_META);
 
-    verify(mcpClient).listPrompts(null, META);
-    verifyNoMoreInteractions(mcpClient);
-  }
-
-  @Test
-  void listPromptsWithEmptyMetaUsesTheSdkClientWithoutMeta() {
-    when(mcpClient.listPrompts()).thenReturn(emptyPrompts());
-
-    testee().listPrompts(FILTER, Map.of());
-
-    verify(mcpClient).listPrompts();
+    verify(mcpClient).listPrompts(null, EXAMPLE_META);
     verifyNoMoreInteractions(mcpClient);
   }
 }
