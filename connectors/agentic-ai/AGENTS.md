@@ -216,8 +216,8 @@ High-frequency traps (detail behind each link):
   unlike `elementId`, it has no fallback resolution.
   [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-handler-interface), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Agent instance features gate behavior per instance**: never add a feature to an existing context. Resolve
-  `AgentContext.documentHandling()` (`Untracked` or `Tracked`) once per step with an exhaustive `switch`;
-  never branch on `supports(AgentFeatures.DOCUMENTS)` or a `boolean` parameter. Gate a new wire format or persisted
+  `AgentContext.documentHandling()` (`Untracked` or `Tracked`) as
+  [Decide a mode once per step](docs/implementation-rules.md#code-design) says. Gate a new wire format or persisted
   shape on a feature and keep the legacy path covered by `LegacyDocumentConversationTest`; tool call admission is the
   one exception. [`data-model.md`](aiagent-model/docs/data-model.md), [ADR 016](docs/adr/016-runtime-tools.md),
   [ADR 018](docs/adr/018-document-flow.md).

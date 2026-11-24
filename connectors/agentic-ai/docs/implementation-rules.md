@@ -289,8 +289,9 @@ below make this style specific.
   - An owner exists only when two callers need it now (see [Simplicity first](#simplicity-first)).
   - When the only way to avoid a copy is to refactor existing code, name it in the plan and ask, as
     [Surgical changes](#surgical-changes) says.
-- **Decide a mode once.** Resolve a per-instance mode, such as an agent instance feature, at one point
-  into a value or a strategy. The steps below that point do not switch on the mode again. (P2)
+- **Decide a mode once per step.** Resolve a per-instance mode, such as an agent instance feature, once
+  per step with an exhaustive `switch` into a value or a strategy. Within the step, do not switch on it
+  again, and never branch on a `boolean` or `supports(...)`. (P2)
 - **A required guard has one shared test.** When a domain rule requires the same guard in each
   adapter, one test runs each adapter against the guard. A change that adds an adapter adds it to
   that test. When the test does not exist yet, the change adds it. Example of such a guard: the
