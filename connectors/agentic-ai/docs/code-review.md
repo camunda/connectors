@@ -33,6 +33,8 @@ These documents are the only rules. Do not invent rules. Read the parts that app
    types and annotations that the changed code uses. Rules stated there apply like the rules here.
 8. [`acceptance-testing.md`](acceptance-testing.md): the test level, the e2e decision and the
    real-provider coverage for a provider change. Check the tests of the change against it.
+9. [`documentation-rules.md`](documentation-rules.md): where each doc goes and which docs the change
+   must update.
 
 ## Steps
 
