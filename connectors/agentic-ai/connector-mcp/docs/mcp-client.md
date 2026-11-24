@@ -266,6 +266,7 @@ headers (uses `OAuthService` + `CustomApacheHttpClient` for OAuth).
 
 `AllowDenyList#isPassing` accepts a name when the `allowed` list is empty or contains it, and the `denied` list
 does not contain it. `AllowDenyList#allowingEverything` returns the list with both lists empty.
+`AllowDenyList#of` treats a `null` list as an empty list.
 
 ### FilterOptions
 
