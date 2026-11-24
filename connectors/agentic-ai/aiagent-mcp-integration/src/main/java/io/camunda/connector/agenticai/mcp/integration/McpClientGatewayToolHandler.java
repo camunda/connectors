@@ -268,18 +268,15 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
         objectMapper.convertValue(toolCallResult.content(), McpClientCallToolResult.class);
     final var identifier = new McpToolCallIdentifier(name, callToolResult.name());
 
-    final var toolCallResultBuilder =
-        ToolCallResult.builder().id(toolCallResult.id()).name(identifier.fullyQualifiedName());
+    final var namedToolCallResult = toolCallResult.withName(identifier.fullyQualifiedName());
 
     // directly use the string content if the returned content is a single text content
     if (callToolResult.content().size() == 1
         && callToolResult.content().getFirst() instanceof McpTextContent textContent) {
-      toolCallResultBuilder.content(textContent.text());
-    } else {
-      toolCallResultBuilder.content(callToolResult.content());
+      return namedToolCallResult.withContent(textContent.text());
     }
 
-    return toolCallResultBuilder.build();
+    return namedToolCallResult.withContent(callToolResult.content());
   }
 
   @Override

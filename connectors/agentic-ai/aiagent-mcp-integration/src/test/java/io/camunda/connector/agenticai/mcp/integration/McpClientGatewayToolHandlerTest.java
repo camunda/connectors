@@ -38,6 +38,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -435,6 +436,37 @@ class McpClientGatewayToolHandlerTest {
           .containsExactly(
               McpTextContent.textContent("First content"),
               McpTextContent.textContent("Second content"));
+    }
+
+    @Test
+    void keepsCompletedAtPropertiesAndElementIdOfTheInputResult() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1"));
+      var mcpCallToolResult =
+          new McpClientCallToolResult(
+              "tool1", List.of(McpTextContent.textContent("Tool result")), false);
+      var completedAt = OffsetDateTime.parse("2026-07-02T10:00:00Z");
+      var toolCallResult =
+          ToolCallResult.builder()
+              .id("call1")
+              .name("mcp1")
+              .elementId("mcp1Element")
+              .content(mcpCallToolResult)
+              .completedAt(completedAt)
+              .properties(Map.of("custom", "value"))
+              .build();
+
+      var result = handler.transformToolCallResults(agentContext, List.of(toolCallResult));
+
+      assertThat(result)
+          .containsExactly(
+              ToolCallResult.builder()
+                  .id("call1")
+                  .name("MCP_mcp1___tool1")
+                  .elementId("mcp1Element")
+                  .content("Tool result")
+                  .completedAt(completedAt)
+                  .properties(Map.of("custom", "value"))
+                  .build());
     }
 
     @Test

@@ -37,6 +37,7 @@ import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -448,6 +449,41 @@ class A2aGatewayToolHandlerTest {
                 assertThat(toolCallResult.id()).isEqualTo("call3");
                 assertThat(toolCallResult.name()).isEqualTo("regular_tool");
               });
+    }
+
+    @Test
+    void keepsCompletedAtPropertiesAndElementIdOfTheInputResult() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1"));
+      var a2aMessage =
+          A2aMessage.builder()
+              .role(A2aMessage.Role.AGENT)
+              .messageId("message-1")
+              .contextId("context-1")
+              .contents(List.of(A2aTextPart.textPart("Agent response as message")))
+              .build();
+      var completedAt = OffsetDateTime.parse("2026-07-02T10:00:00Z");
+      var toolCallResult =
+          ToolCallResult.builder()
+              .id("call1")
+              .name("a2a1")
+              .elementId("a2a1Element")
+              .content(a2aMessage)
+              .completedAt(completedAt)
+              .properties(Map.of("custom", "value"))
+              .build();
+
+      var result = handler.transformToolCallResults(agentContext, List.of(toolCallResult));
+
+      assertThat(result)
+          .containsExactly(
+              ToolCallResult.builder()
+                  .id("call1")
+                  .name("A2A_a2a1")
+                  .elementId("a2a1Element")
+                  .content(a2aMessage)
+                  .completedAt(completedAt)
+                  .properties(Map.of("custom", "value"))
+                  .build());
     }
 
     @Test
