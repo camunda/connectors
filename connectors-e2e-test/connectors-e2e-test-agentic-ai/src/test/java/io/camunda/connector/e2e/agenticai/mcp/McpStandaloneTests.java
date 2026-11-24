@@ -16,515 +16,482 @@
  */
 package io.camunda.connector.e2e.agenticai.mcp;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.absent;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent.textContent;
+import static io.camunda.connector.e2e.agenticai.BpmnUtil.serviceTasksByType;
+import static io.camunda.connector.e2e.agenticai.BpmnUtil.updateInputMappings;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
-import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult.PromptMessage;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult.TextMessage;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
-import io.camunda.connector.agenticai.mcp.client.model.result.ResourceData;
+import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription.PromptArgument;
+import io.camunda.connector.agenticai.mcp.client.model.result.ResourceData.TextResourceData;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceDescription;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceTemplate;
-import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
+import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration;
+import io.camunda.connector.e2e.agenticai.McpTestServerConfiguration.McpTestServers;
+import io.camunda.connector.e2e.agenticai.McpTestServerTransport;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 @SlowTest
-@TestPropertySource(
-    properties = {
-      "camunda.connector.agenticai.mcp.client.enabled=true",
-      "camunda.connector.agenticai.mcp.client.framework=mcpsdk",
-      "camunda.connector.agenticai.mcp.remote-client.framework=mcpsdk",
-    })
-@ActiveProfiles({"mcp-standalone-test"})
+@TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
+@Import({McpTestServerConfiguration.class, McpStdioWarmUp.class})
 public class McpStandaloneTests extends BaseAgenticAiTest {
 
-  private static final WireMockServer wireMock = setupWireMockServer();
+  private static final String JSON_SCHEMA = "https://json-schema.org/draft/2020-12/schema";
 
-  private static WireMockServer setupWireMockServer() {
-    var server = new WireMockServer(options().dynamicPort().globalTemplating(true));
-    server.start();
+  private static final McpToolDefinition ECHO_META_TOOL =
+      new McpToolDefinition(
+          "echoMeta",
+          "echoMeta",
+          "Echo the MCP _meta data provided with the tool call request",
+          Map.of(
+              "$schema",
+              JSON_SCHEMA,
+              "type",
+              "object",
+              "properties",
+              Map.of(),
+              "required",
+              List.of()));
 
-    return server;
+  private static final McpToolDefinition ECHO_TOOL =
+      new McpToolDefinition(
+          "echo",
+          "echo",
+          "Echo the provided message",
+          Map.of(
+              "$schema",
+              JSON_SCHEMA,
+              "type",
+              "object",
+              "properties",
+              Map.of("message", Map.of("type", "string", "description", "The message to return")),
+              "required",
+              List.of("message")));
+
+  private static final McpToolDefinition ADD_TOOL =
+      new McpToolDefinition(
+          "add",
+          "add",
+          "Add two numbers",
+          Map.of(
+              "$schema",
+              JSON_SCHEMA,
+              "type",
+              "object",
+              "properties",
+              Map.of(
+                  "a", Map.of("type", "integer", "format", "int32"),
+                  "b", Map.of("type", "integer", "format", "int32")),
+              "required",
+              List.of("a", "b")));
+
+  private static final McpToolDefinition GREET_TOOL =
+      new McpToolDefinition(
+          "greet",
+          "greet",
+          "Return a nice greeting message",
+          Map.of(
+              "$schema",
+              JSON_SCHEMA,
+              "type",
+              "object",
+              "properties",
+              Map.of(
+                  "name",
+                  Map.of("type", "string", "description", "The name to greet"),
+                  "language",
+                  Map.of("type", "string", "enum", List.of("EN", "DE", "ES", "IT"))),
+              "required",
+              List.of("name")));
+
+  private static final ResourceDescription JOKES_RESOURCE =
+      new ResourceDescription(
+          "file://jokes-guide.md",
+          "Jokes Guideline",
+          null,
+          "How to Write Jokes: A Guide for LLMs",
+          "text/markdown");
+
+  private static final ResourceDescription COOKBOOK_RESOURCE =
+      new ResourceDescription(
+          "file://cookbook-essentials.pdf",
+          "Cookbook Essentials",
+          null,
+          "A comprehensive guide to essential cooking techniques and recipes.",
+          "application/pdf");
+
+  private static final ResourceTemplate ECHO_META_RESOURCE_TEMPLATE =
+      new ResourceTemplate(
+          "echo-meta://{name}",
+          "echo-meta",
+          null,
+          "Echo the MCP _meta data provided with the resource read request",
+          "application/json");
+
+  private static final PromptDescription ECHO_META_PROMPT =
+      new PromptDescription(
+          "echo-meta", "", "Echo the MCP _meta data provided with the prompt request", List.of());
+
+  private static final PromptDescription GREETING_PROMPT =
+      new PromptDescription(
+          "get-greeting",
+          "",
+          "Generate a personalized greeting message based on the user's name and preferred greeting language.",
+          List.of(
+              new PromptArgument("name", "User's name", true),
+              new PromptArgument(
+                  "preferredLanguage", "User's preferred greeting language", false)));
+
+  @Autowired private McpTestServers mcpTestServers;
+
+  static Stream<Arguments> localAllFixtureRows() {
+    return localRows(Fixture.values());
   }
 
-  @DynamicPropertySource
-  static void mcpClientUrl(DynamicPropertyRegistry registry) {
-    registry.add(
-        "camunda.connector.agenticai.mcp.client.clients.a-mcp-client.http.url",
-        () -> wireMock.baseUrl() + "/mcp");
+  static Stream<Arguments> localV2AndV3FixtureRows() {
+    return localRows(Fixture.V2, Fixture.V3);
   }
 
-  @AfterAll
-  static void teardown() {
-    wireMock.stop();
+  static Stream<Arguments> remoteAllFixtureRows() {
+    return remoteRows(Fixture.values());
   }
 
-  @BeforeEach
-  void resetWireMock() {
-    wireMock.resetAll();
+  static Stream<Arguments> remoteV2AndV3FixtureRows() {
+    return remoteRows(Fixture.V2, Fixture.V3);
   }
 
-  @ParameterizedTest
-  @CsvSource({
-    "regression/mcp-connectors-standalone-v0.bpmn,false",
-    "mcp-connectors-standalone.bpmn,true"
-  })
-  void toolsListAndCall(String processDefinitionFilePath, boolean assertMeta) throws IOException {
-    BpmnModelInstance bpmnModel = bootstrapTestProcess(processDefinitionFilePath);
-
-    executeProcessAndVerify(
-        bpmnModel,
-        Map.of("path", "tools"),
-        processInstanceEvent -> {
-          CamundaAssert.assertThat(processInstanceEvent)
-              .hasVariableSatisfies(
-                  "clientListToolsResult",
-                  McpClientListToolsResult.class,
-                  listToolsResult ->
-                      assertThat(listToolsResult.toolDefinitions())
-                          .hasSize(2)
-                          .extracting(McpToolDefinition::name)
-                          .containsExactly("toolA", "toolC"))
-              .hasVariableSatisfies(
-                  "clientCallToolResult",
-                  McpClientCallToolResult.class,
-                  toolCallResult -> {
-                    assertThat(toolCallResult.name()).isEqualTo("toolA");
-                    assertThat(toolCallResult.content())
-                        .hasSize(1)
-                        .containsExactly(new McpTextContent("A MCP Client result", null));
-                    assertThat(toolCallResult.isError()).isFalse();
-                  })
-              .hasVariableSatisfies(
-                  "remoteClientListToolsResult",
-                  McpClientListToolsResult.class,
-                  listToolsResult ->
-                      assertThat(listToolsResult.toolDefinitions())
-                          .hasSize(2)
-                          .extracting(McpToolDefinition::name)
-                          .containsExactly("toolB", "toolC"))
-              .hasVariableSatisfies(
-                  "remoteClientCallToolResult",
-                  McpClientCallToolResult.class,
-                  toolCallResult -> {
-                    assertThat(toolCallResult.name()).isEqualTo("toolC");
-                    assertThat(toolCallResult.content())
-                        .hasSize(1)
-                        .containsExactly(new McpTextContent("A Remote MCP Client result", null));
-                    assertThat(toolCallResult.isError()).isFalse();
-                  });
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("tools/list"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("tools/call")))
-                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("toolA")))
-                  .withRequestBody(
-                      matchingJsonPath("$.params.arguments.paramA1", equalTo("someValue")))
-                  .withRequestBody(matchingJsonPath("$.params.arguments.paramA2", equalTo("3"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("tools/call")))
-                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("toolC")))
-                  .withRequestBody(
-                      matchingJsonPath("$.params.arguments.paramC1", equalTo("someOtherValue")))
-                  // "toolC" is called via the Remote Client, which never configures `meta` in
-                  // either BPMN fixture - proves the backwards-compatible default (no `_meta`
-                  // sent when unconfigured).
-                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
-
-          if (assertMeta) {
-            // only the current (non-regression) BPMN fixture configures `meta` on the local
-            // MCP Client's "tools/list" and "tools/call" (toolA) service tasks.
-            wireMock.verify(
-                postRequestedFor(urlEqualTo("/mcp"))
-                    .withRequestBody(matchingJsonPath("$.method", equalTo("tools/list")))
-                    .withRequestBody(
-                        matchingJsonPath(
-                            "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
-
-            wireMock.verify(
-                postRequestedFor(urlEqualTo("/mcp"))
-                    .withRequestBody(matchingJsonPath("$.method", equalTo("tools/call")))
-                    .withRequestBody(matchingJsonPath("$.params.name", equalTo("toolA")))
-                    .withRequestBody(
-                        matchingJsonPath(
-                            "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
-          }
-        });
+  private static Stream<Arguments> localRows(Fixture... fixtures) {
+    return rows(
+        List.of(
+            McpTestServerTransport.HTTP, McpTestServerTransport.SSE, McpTestServerTransport.STDIO),
+        fixtures);
   }
 
-  @Test
-  void resourcesListAndRead() throws IOException {
-    BpmnModelInstance bpmnModel = bootstrapTestProcess("mcp-connectors-standalone.bpmn");
-
-    executeProcessAndVerify(
-        bpmnModel,
-        Map.of("path", "resources"),
-        processInstanceEvent -> {
-          CamundaAssert.assertThat(processInstanceEvent)
-              .hasVariableSatisfies(
-                  "clientCallListResourcesResult",
-                  McpClientListResourcesResult.class,
-                  listResourcesResult ->
-                      assertThat(listResourcesResult.resources())
-                          .hasSize(2)
-                          .extracting(ResourceDescription::uri)
-                          .containsExactly("resourceA", "resourceC"))
-              .hasVariableSatisfies(
-                  "clientCallReadResourceResult",
-                  McpClientReadResourceResult.class,
-                  readResourceResult ->
-                      assertThat(readResourceResult.contents())
-                          .hasSize(1)
-                          .containsExactly(
-                              new ResourceData.TextResourceData(
-                                  "resourceA", "text/plain", "This is the content of Resource A.")))
-              .hasVariableSatisfies(
-                  "remoteClientListResourcesResult",
-                  McpClientListResourcesResult.class,
-                  listResourcesResult ->
-                      assertThat(listResourcesResult.resources())
-                          .hasSize(2)
-                          .extracting(ResourceDescription::uri)
-                          .containsExactly("resourceB", "resourceC"))
-              .hasVariableSatisfies(
-                  "remoteClientReadResourceResult",
-                  McpClientReadResourceResult.class,
-                  readResourceResult ->
-                      assertThat(readResourceResult.contents())
-                          .hasSize(1)
-                          .containsExactly(
-                              new ResourceData.TextResourceData(
-                                  "resourceC",
-                                  "text/markdown",
-                                  "# This is the content of Resource C.")));
-
-          wireMock.verify(
-              2,
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/list"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
-                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resourceA"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
-                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resourceC"))));
-
-          // only the local MCP Client's "resources/list" and "resources/read" (resourceA)
-          // service tasks configure `meta`.
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/list")))
-                  .withRequestBody(
-                      matchingJsonPath(
-                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/list")))
-                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
-                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resourceA")))
-                  .withRequestBody(
-                      matchingJsonPath(
-                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
-
-          // "resourceC" is read via the Remote Client, which never configures `meta`.
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
-                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resourceC")))
-                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
-        });
+  private static Stream<Arguments> remoteRows(Fixture... fixtures) {
+    return rows(List.of(McpTestServerTransport.HTTP, McpTestServerTransport.SSE), fixtures);
   }
 
-  @Test
-  void resourceTemplatesListAndRead() throws IOException {
-    BpmnModelInstance bpmnModel = bootstrapTestProcess("mcp-connectors-standalone.bpmn");
-
-    executeProcessAndVerify(
-        bpmnModel,
-        Map.of("path", "resourceTemplates"),
-        processInstanceEvent -> {
-          CamundaAssert.assertThat(processInstanceEvent)
-              .hasVariableSatisfies(
-                  "clientCallListResourceTemplatesResult",
-                  McpClientListResourceTemplatesResult.class,
-                  listResourceTemplatesResult ->
-                      assertThat(listResourceTemplatesResult.resourceTemplates())
-                          .hasSize(2)
-                          .extracting(ResourceTemplate::uriTemplate)
-                          .containsExactly("resource-a-{number}", "resource-c-{number}"))
-              .hasVariableSatisfies(
-                  "clientCallReadResourceResult",
-                  McpClientReadResourceResult.class,
-                  readResourceResult ->
-                      assertThat(readResourceResult.contents())
-                          .hasSize(1)
-                          .containsExactly(
-                              new ResourceData.TextResourceData(
-                                  "resource-a-1",
-                                  "text/plain",
-                                  "This is the content of Resource A number 1.")))
-              .hasVariableSatisfies(
-                  "remoteClientListResourceTemplatesResult",
-                  McpClientListResourceTemplatesResult.class,
-                  listResourceTemplatesResult ->
-                      assertThat(listResourceTemplatesResult.resourceTemplates())
-                          .hasSize(2)
-                          .extracting(ResourceTemplate::uriTemplate)
-                          .containsExactly("resource-a-{number}", "resource-b-{number}"))
-              .hasVariableSatisfies(
-                  "remoteClientReadResourceResult",
-                  McpClientReadResourceResult.class,
-                  readResourceResult ->
-                      assertThat(readResourceResult.contents())
-                          .hasSize(1)
-                          .containsExactly(
-                              new ResourceData.TextResourceData(
-                                  "resource-a-1",
-                                  "text/plain",
-                                  "This is the content of Resource A number 1.")));
-
-          wireMock.verify(
-              2,
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(
-                      matchingJsonPath("$.method", equalTo("resources/templates/list"))));
-
-          wireMock.verify(
-              2,
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
-                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resource-a-1"))));
-
-          // only the local MCP Client's "resources/templates/list" and "resources/read"
-          // service tasks configure `meta` - both operations are also called via the Remote
-          // Client with the same uri, so distinguish by `_meta` presence/absence.
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(
-                      matchingJsonPath("$.method", equalTo("resources/templates/list")))
-                  .withRequestBody(
-                      matchingJsonPath(
-                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(
-                      matchingJsonPath("$.method", equalTo("resources/templates/list")))
-                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
-                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resource-a-1")))
-                  .withRequestBody(
-                      matchingJsonPath(
-                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
-                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resource-a-1")))
-                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
-        });
+  private static Stream<Arguments> rows(
+      List<McpTestServerTransport> transports, Fixture... fixtures) {
+    return Arrays.stream(fixtures)
+        .flatMap(fixture -> transports.stream().map(transport -> Arguments.of(fixture, transport)));
   }
 
-  @Test
-  void promptsListAndGet() throws IOException {
-    BpmnModelInstance bpmnModel = bootstrapTestProcess("mcp-connectors-standalone.bpmn");
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("localAllFixtureRows")
+  void localToolsListAndCall(Fixture fixture, McpTestServerTransport transport) throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.LOCAL);
 
-    executeProcessAndVerify(
-        bpmnModel,
-        Map.of("path", "prompts"),
-        processInstanceEvent -> {
-          CamundaAssert.assertThat(processInstanceEvent)
-              .hasVariableSatisfies(
-                  "clientCallListPromptsResult",
-                  McpClientListPromptsResult.class,
-                  listPromptsResult ->
-                      assertThat(listPromptsResult.promptDescriptions())
-                          .hasSize(2)
-                          .extracting(PromptDescription::name)
-                          .containsExactly("promptA", "promptC"))
-              .hasVariableSatisfies(
-                  "clientCallGetPromptResult",
-                  McpClientGetPromptResult.class,
-                  getPromptResult -> {
-                    assertThat(getPromptResult.description()).isEqualTo("Prompt A");
-                    assertThat(getPromptResult.messages())
-                        .hasSize(1)
-                        .containsExactly(
-                            new McpClientGetPromptResult.PromptMessage(
-                                "user",
-                                new McpClientGetPromptResult.TextMessage("Please do task A")));
-                  })
-              .hasVariableSatisfies(
-                  "remoteClientListPromptsResult",
-                  McpClientListPromptsResult.class,
-                  listPromptsResult ->
-                      assertThat(listPromptsResult.promptDescriptions())
-                          .hasSize(2)
-                          .extracting(PromptDescription::name)
-                          .containsExactly("promptA", "promptB"))
-              .hasVariableSatisfies(
-                  "remoteClientGetPromptResult",
-                  McpClientGetPromptResult.class,
-                  getPromptResult -> {
-                    assertThat(getPromptResult.description()).isEqualTo("Prompt C");
-                    assertThat(getPromptResult.messages())
-                        .hasSize(1)
-                        .containsExactly(
-                            new McpClientGetPromptResult.PromptMessage(
-                                "user",
-                                new McpClientGetPromptResult.TextMessage("Please do task C")));
-                  });
-
-          wireMock.verify(
-              2,
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/list"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/get")))
-                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("promptA")))
-                  .withRequestBody(matchingJsonPath("$.params.arguments.aName", equalTo("nameA"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/get")))
-                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("promptC")))
-                  .withRequestBody(matchingJsonPath("$.params.arguments.cName", equalTo("nameC"))));
-
-          // only the local MCP Client's "prompts/list" and "prompts/get" (promptA) service
-          // tasks configure `meta` - the "prompts/list" call is otherwise identical between
-          // clients, so distinguish by `_meta` presence/absence.
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/list")))
-                  .withRequestBody(
-                      matchingJsonPath(
-                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/list")))
-                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/get")))
-                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("promptA")))
-                  .withRequestBody(
-                      matchingJsonPath(
-                          "$.params._meta.exampleMetaKey", equalTo("exampleMetaValue"))));
-
-          wireMock.verify(
-              postRequestedFor(urlEqualTo("/mcp"))
-                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/get")))
-                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("promptC")))
-                  .withRequestBody(matchingJsonPath("$.params._meta", absent())));
-        });
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "tools", ClientKind.LOCAL))
+        .hasVariableSatisfies(
+            "clientListToolsResult",
+            McpClientListToolsResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(new McpClientListToolsResult(List.of(ECHO_META_TOOL, ECHO_TOOL))))
+        .hasVariableSatisfies(
+            "clientCallToolResult",
+            McpClientCallToolResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(
+                        new McpClientCallToolResult(
+                            "echoMeta", List.of(textContent(fixture.echoedMeta())), false)));
   }
 
-  private BpmnModelInstance bootstrapTestProcess(String processDefinitionFilePath)
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("remoteAllFixtureRows")
+  void remoteToolsListAndCall(Fixture fixture, McpTestServerTransport transport)
       throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.REMOTE);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "tools", ClientKind.REMOTE))
+        .hasVariableSatisfies(
+            "remoteClientListToolsResult",
+            McpClientListToolsResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(new McpClientListToolsResult(List.of(ADD_TOOL, GREET_TOOL))))
+        .hasVariableSatisfies(
+            "remoteClientCallToolResult",
+            McpClientCallToolResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(
+                        new McpClientCallToolResult("add", List.of(textContent("8")), false)));
+  }
+
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("localV2AndV3FixtureRows")
+  void localResourcesListAndRead(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.LOCAL);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "resources", ClientKind.LOCAL))
+        .hasVariableSatisfies(
+            "clientCallListResourcesResult",
+            McpClientListResourcesResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(new McpClientListResourcesResult(List.of(JOKES_RESOURCE))))
+        .hasVariableSatisfies(
+            "clientCallReadResourceResult",
+            McpClientReadResourceResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(
+                        new McpClientReadResourceResult(
+                            List.of(
+                                new TextResourceData(
+                                    "echo-meta://client",
+                                    "application/json",
+                                    fixture.echoedMeta())))));
+  }
+
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("remoteV2AndV3FixtureRows")
+  void remoteResourcesListAndRead(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.REMOTE);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "resources", ClientKind.REMOTE))
+        .hasVariableSatisfies(
+            "remoteClientListResourcesResult",
+            McpClientListResourcesResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(new McpClientListResourcesResult(List.of(COOKBOOK_RESOURCE))))
+        .hasVariableSatisfies(
+            "remoteClientReadResourceResult",
+            McpClientReadResourceResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(
+                        new McpClientReadResourceResult(
+                            List.of(
+                                new TextResourceData(
+                                    "echo-meta://remote-client", "application/json", "{}")))));
+  }
+
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("localV2AndV3FixtureRows")
+  void localResourceTemplatesListAndRead(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.LOCAL);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "resourceTemplates", ClientKind.LOCAL))
+        .hasVariableSatisfies(
+            "clientCallListResourceTemplatesResult",
+            McpClientListResourceTemplatesResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(
+                        new McpClientListResourceTemplatesResult(
+                            List.of(ECHO_META_RESOURCE_TEMPLATE))))
+        .hasVariableSatisfies(
+            "clientCallReadResourceResult",
+            McpClientReadResourceResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(
+                        new McpClientReadResourceResult(
+                            List.of(
+                                new TextResourceData(
+                                    "echo-meta://client-template",
+                                    "application/json",
+                                    fixture.echoedMeta())))));
+  }
+
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("remoteV2AndV3FixtureRows")
+  void remoteResourceTemplatesListAndRead(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.REMOTE);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "resourceTemplates", ClientKind.REMOTE))
+        .hasVariableSatisfies(
+            "remoteClientListResourceTemplatesResult",
+            McpClientListResourceTemplatesResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(
+                        new McpClientListResourceTemplatesResult(
+                            List.of(ECHO_META_RESOURCE_TEMPLATE))))
+        .hasVariableSatisfies(
+            "remoteClientReadResourceResult",
+            McpClientReadResourceResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(
+                        new McpClientReadResourceResult(
+                            List.of(
+                                new TextResourceData(
+                                    "echo-meta://remote-client-template",
+                                    "application/json",
+                                    "{}")))));
+  }
+
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("localV2AndV3FixtureRows")
+  void localPromptsListAndGet(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.LOCAL);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "prompts", ClientKind.LOCAL))
+        .hasVariableSatisfies(
+            "clientCallListPromptsResult",
+            McpClientListPromptsResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(new McpClientListPromptsResult(List.of(ECHO_META_PROMPT))))
+        .hasVariableSatisfies(
+            "clientCallGetPromptResult",
+            McpClientGetPromptResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(
+                        new McpClientGetPromptResult(
+                            "Echo Meta Prompt",
+                            List.of(
+                                new PromptMessage(
+                                    "user", new TextMessage(fixture.echoedMeta()))))));
+  }
+
+  @ParameterizedTest(name = "{0} {1}")
+  @MethodSource("remoteV2AndV3FixtureRows")
+  void remotePromptsListAndGet(Fixture fixture, McpTestServerTransport transport)
+      throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess(fixture, transport, ClientKind.REMOTE);
+
+    CamundaAssert.assertThat(executeProcess(bpmnModel, "prompts", ClientKind.REMOTE))
+        .hasVariableSatisfies(
+            "remoteClientListPromptsResult",
+            McpClientListPromptsResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(new McpClientListPromptsResult(List.of(GREETING_PROMPT))))
+        .hasVariableSatisfies(
+            "remoteClientGetPromptResult",
+            McpClientGetPromptResult.class,
+            result ->
+                assertThat(result)
+                    .isEqualTo(
+                        new McpClientGetPromptResult(
+                            "Greeting Prompt",
+                            List.of(
+                                new PromptMessage(
+                                    "user",
+                                    new TextMessage(
+                                        """
+                                        Greet me in a nice way! My name is Jane. My preferred greeting language is English.
+
+                                        Instructions:
+                                        You can use the greet tool to generate a nice greeting message, if you do not know how to generate a nice greeting yourself.
+                                        """))))));
+  }
+
+  private ProcessInstanceEvent executeProcess(
+      BpmnModelInstance bpmnModel, String path, ClientKind clientKind) {
+    final var processInstanceEvent =
+        createProcessInstance(bpmnModel, clientKind.startVariables(path))
+            .waitForProcessCompletion()
+            .getProcessInstanceEvent();
+
+    final var skippedTaskIds =
+        serviceTasksByType(bpmnModel, type -> type.startsWith(clientKind.other().taskTypePrefix))
+            .stream()
+            .map(ServiceTask::getId)
+            .toArray(String[]::new);
+    CamundaAssert.assertThat(processInstanceEvent).hasNotActivatedElements(skippedTaskIds);
+
+    return processInstanceEvent;
+  }
+
+  private BpmnModelInstance bootstrapTestProcess(
+      Fixture fixture, McpTestServerTransport transport, ClientKind clientKind) throws IOException {
     BpmnModelInstance bpmnModel =
-        Bpmn.readModelFromStream(new ClassPathResource(processDefinitionFilePath).getInputStream());
-    setRemoteMcpClientUrl(bpmnModel, wireMock.baseUrl() + "/mcp");
+        Bpmn.readModelFromStream(new ClassPathResource(fixture.resource).getInputStream());
+
+    final var inputMappings =
+        switch (clientKind) {
+          case LOCAL -> Map.of("data.client.clientId", McpTestServers.clientId(transport));
+          case REMOTE -> mcpTestServers.remoteClientInputMappings(transport);
+        };
+    serviceTasksByType(bpmnModel, type -> type.startsWith(clientKind.taskTypePrefix))
+        .forEach(serviceTask -> updateInputMappings(bpmnModel, serviceTask, inputMappings));
+
     return bpmnModel;
   }
 
-  private void executeProcessAndVerify(
-      BpmnModelInstance model,
-      Map<String, Object> variables,
-      Consumer<ProcessInstanceEvent> assertion) {
-    ZeebeTest zeebeTest = createProcessInstance(model, variables).waitForProcessCompletion();
+  /** The client chain that a process instance runs. The other chain MUST stay untouched. */
+  enum ClientKind {
+    LOCAL("io.camunda.agenticai:mcpclient"),
+    REMOTE("io.camunda.agenticai:mcpremoteclient");
 
-    assertion.accept(zeebeTest.getProcessInstanceEvent());
+    private final String taskTypePrefix;
+
+    ClientKind(String taskTypePrefix) {
+      this.taskTypePrefix = taskTypePrefix;
+    }
+
+    ClientKind other() {
+      return this == LOCAL ? REMOTE : LOCAL;
+    }
+
+    Map<String, Object> startVariables(String path) {
+      return Map.of("path", path, "runLocal", this == LOCAL, "runRemote", this == REMOTE);
+    }
   }
 
-  private void setRemoteMcpClientUrl(BpmnModelInstance bpmnModel, String url) {
-    updateServiceTaskInput(bpmnModel, url);
-  }
+  /**
+   * A BPMN fixture per element template version 1, 2 and 3 of the MCP client and the MCP remote
+   * client (constants V0, V2 and V3). The resource, resource template and prompt paths need
+   * template version 2 or 3. Only the V3 fixture sets {@code meta} on its local client tasks.
+   */
+  enum Fixture {
+    V0("regression/mcp-connectors-standalone-v0.bpmn", false),
+    V2("regression/mcp-connectors-standalone-v2.bpmn", false),
+    V3("mcp-connectors-standalone.bpmn", true);
 
-  private void updateServiceTaskInput(BpmnModelInstance bpmnModel, String value) {
-    var serviceTasks =
-        bpmnModel.getModelElementsByType(ServiceTask.class).stream()
-            .filter(st -> {
-              var taskDefinition = st.getSingleExtensionElement(ZeebeTaskDefinition.class);
-              var type = taskDefinition.getType();
+    private final String resource;
+    private final boolean setsMeta;
 
-              return type != null && type.startsWith("io.camunda.agenticai:mcpremoteclient");
-            })
-            .toList();
-    assertThat(serviceTasks).isNotEmpty();
+    Fixture(String resource, boolean setsMeta) {
+      this.resource = resource;
+      this.setsMeta = setsMeta;
+    }
 
-    serviceTasks.forEach(serviceTask -> {
-      ZeebeIoMapping ioMapping = serviceTask.getSingleExtensionElement(ZeebeIoMapping.class);
-      assertThat(ioMapping).isNotNull();
-
-      final var inputMapping =
-          ioMapping.getChildElementsByType(ZeebeInput.class).stream()
-              .filter(input -> "data.transport.http.url".equals(input.getTarget()))
-              .findFirst()
-              .orElseGet(() -> {
-                final var im = bpmnModel.newInstance(ZeebeInput.class);
-                im.setTarget("data.transport.http.url");
-                ioMapping.addChildElement(im);
-                return im;
-              });
-
-      inputMapping.setSource(value);
-    });
+    /** The {@code _meta} that the echo tool, resource and prompt return for a local client task. */
+    String echoedMeta() {
+      return setsMeta ? "{\"exampleMetaKey\":\"exampleMetaValue\"}" : "{}";
+    }
   }
 }

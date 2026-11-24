@@ -204,6 +204,11 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai
 When verifying changes, search the e2e test directory for test cases relevant to the change and run those selectively
 rather than running the full suite. Running all e2e tests takes a long time.
 
+The MCP e2e tests run against a real MCP test server (`mcp-test-server`) in Docker. The stdio MCP
+client starts it with the `docker` CLI, so the MCP tests also need `docker` on your PATH. A JVM
+shutdown hook removes these containers. A killed JVM skips the hook and can leave its containers
+running. Remove them with `docker rm -f $(docker ps -aq --filter label=mcp-test-server-stdio)`.
+
 ## Gateway Tool Pattern
 
 The Gateway Tool Pattern is the extensibility mechanism for integrating external tool providers (MCP, A2A) that expose
