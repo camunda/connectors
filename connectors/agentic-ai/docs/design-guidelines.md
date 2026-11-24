@@ -2,15 +2,23 @@
 
 <!-- docs-lint: allow-names Foo, FooImpl, Impl: placeholders of a naming rule -->
 
-Follow existing patterns, agreed requirements and relevant checks when choosing persisted state,
-customer-facing names, defaults or limits. If these do not resolve the choice, ask the user for the missing
-requirements before choosing. State new contract decisions and their rationale in the PR description,
-including the pattern or requirement they follow. A passing API compatibility check alone does not
-justify a product name or a default.
+Follow existing patterns, agreed requirements and relevant checks when you make a customer-facing
+decision: persisted state, a name, a default or a limit. If these do not resolve the choice, ask the
+user for the missing requirements before choosing. State new customer-facing decisions and their
+rationale in the PR description, including the pattern or requirement they follow. A passing API
+compatibility check alone does not justify a product name or a default.
 
 This file covers contract and system design. For code structure, follow the
 [code design rules](implementation-rules.md#code-design). For the target state of the module, read the
 [target architecture](target-architecture.md).
+
+## Audiences
+
+- **Process developer**: models the process and configures the connector templates, often low-code.
+- **Operator**: installs and configures the connector runtime, watches running processes and resolves
+  incidents.
+- **Extension developer**: builds a runtime with their own SPI implementations or beans.
+- **Business user**: the person the process serves.
 
 ## Architectural invariants
 
@@ -71,7 +79,7 @@ Rollback support is not required.
 
 Use established product terminology throughout templates, documentation and code
 ([ADR 010](adr/010-agent-task-subprocess-naming.md)). Configuration keys, template IDs, job types,
-error codes and tool names are customer-facing contracts; apply the decision rule above before
+error codes and tool names are customer-facing decisions; apply the decision rule above before
 changing them.
 
 ## Choose defaults and limits that can evolve
@@ -95,10 +103,11 @@ For example, where a provider exposes displayable reasoning/thinking text, prese
 in agent instance history; do not infer or reveal opaque reasoning payloads.
 Use metadata for diagnostic logs, never message contents or secrets.
 
-## Make author-configurable concepts discoverable
+## Make concepts that a process developer configures discoverable
 
-Each author-configurable concept needs a template field or documented configuration, with an example
-where usage is not obvious. Follow the repo-root [field-help conventions](../../../AGENTS.md#element-templates).
+Each concept that a process developer configures needs a template field or documented configuration,
+with an example where usage is not obvious. Follow the repo-root
+[field-help conventions](../../../AGENTS.md#element-templates).
 
 ## Architecture decision records
 

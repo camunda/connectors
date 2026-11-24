@@ -1,14 +1,15 @@
 # Template text guidelines
 
-Template text is for low-code developers and AI coding agents. English is often not their first
-language. Write the text to meet these goals:
+Template text is for process developers (often low-code) and AI coding agents. English is often not
+their first language. Write the text to meet these goals:
 
-- The user can configure the template without opening the documentation.
+- A process developer can configure the template without opening the documentation.
 - The documentation covers expert use cases and fine-tuning, and the `tooltip` links to it.
 - Each concept uses the same term as docs.camunda.io uses for that concept.
 
-To decide where a fact goes, ask one question: does the user need this fact to set a correct value?
-If yes, put the fact in the template. If no, put it in the documentation and link to it.
+To decide where a fact goes, ask one question: does the process developer need this fact to set a
+correct value? If yes, put the fact in the template. If no, put it in the documentation and link
+to it.
 
 The agentic AI templates have hundreds of properties, and the same concept often appears in several
 templates (for example, the model parameters of every provider). Write the help text in the

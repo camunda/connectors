@@ -151,16 +151,16 @@ that caused it.
      the current behavior. This also applies to a field in a new optional object.
      (#5904, #7765)
    - Call an SDK overload that adds a field only when the field has a value.
-   - A changed default value in a template is a behavior change for users who deploy with that
-     template. A changed placeholder value is not a behavior change. Deployed process instances keep
-     the value they have. Keep the old default in the template versions whose users expect it, and
-     state the change in the PR. Example: v1 keeps the old default system prompt through a
-     per-template override. (#9036)
+   - A changed default value in a template is a behavior change for process developers who deploy
+     with that template. A changed placeholder value is not a behavior change. Deployed process
+     instances keep the value they have. Keep the old default in the template versions whose process
+     developers expect it, and state the change in the PR. Example: v1 keeps the old default system
+     prompt through a per-template override. (#9036)
    - A new template version may change a default for newly placed elements. Its migration recipe
-     keeps the old value when users update an element, an absent value keeps the old behavior at
-     runtime, and the PR states the change.
-   - Do not deprecate a template version that users must update from. Web Modeler shows no Update
-     action for a deprecated template. (#8896)
+     keeps the old value when process developers update an element, an absent value keeps the old
+     behavior at runtime, and the PR states the change.
+   - Do not deprecate a template version that process developers must update from. Web Modeler shows
+     no Update action for a deprecated template. (#8896)
    - Read the state that an earlier connector version stored. Example: messages without an ID load,
      and `AgentContextSchemaMigration` migrates older stored agent contexts. (#8318)
    - Keep the agent state through a process instance migration. Example: the agent kept its
@@ -263,12 +263,12 @@ for example `AgentInitializer` in `BaseAgentRequestHandler`.
 - **No new utility classes.** Put a function on the type that it is about, or on a named domain concept.
   Example: `DocumentMimeTypes`. Do not add `*Util` or `*Utils` classes.
 - **Wire the main collaborators with dependency injection.** Make each service a Spring bean with
-  `@ConditionalOnMissingBean`, also when it has no interface. A user can then replace it with a bean
-  of their own. Do not make such a bean class or its public methods `final`, so a user can also extend
-  it. Example: `aiAgentInstanceToolMapper` for `AgentInstanceToolMapper`. Create a small
-  helper with `new` inside its owner. When a bean is a good candidate for a public interface (for
-  example an SPI that users can implement), say so in the plan or the PR description. The team
-  decides about the interface.
+  `@ConditionalOnMissingBean`, also when it has no interface. An extension developer can then
+  replace it with a bean of their own. Do not make such a bean class or its public methods `final`,
+  so an extension developer can also extend it. Example: `aiAgentInstanceToolMapper` for
+  `AgentInstanceToolMapper`. Create a small helper with `new` inside its owner. When a bean is a
+  good candidate for a public interface (for example an SPI that extension developers can
+  implement), say so in the plan or the PR description. The team decides about the interface.
 - **One reason to change per class.** When an orchestrator gets a new responsibility, move it into a
   named step. Do not add one more method to the orchestrator. Example: `BaseAgentRequestHandler` calls
   `AgentInitializer` and `AgentConversationTurnInputComposer` as steps. A named step hides a decision
@@ -276,10 +276,10 @@ for example `AgentInitializer` in `BaseAgentRequestHandler`.
   connector function that hands the job to its handler, is exempt. (P3)
 - **Narrow surface, deep module.** Keep the public types and the extension points of one concept in
   one package per module. Make a type or a member public only when code in a different package calls
-  it, or when user code extends or replaces it. Do not add a public member that only tests call.
-  A public method of a domain type does the whole job that its name promises. The caller does not
-  call a precondition method first. Depth is the work that a type hides per public method. This rule
-  never requires a new interface. (P2)
+  it, or when code of an extension developer extends or replaces it. Do not add a public member that
+  only tests call. A public method of a domain type does the whole job that its name promises. The
+  caller does not call a precondition method first. Depth is the work that a type hides per public
+  method. This rule never requires a new interface. (P2)
 - **One owner per invariant.** When a rule must be true on more than one entry path, one function
   enforces it. Example: when each input that enters the conversation must be validated, the user
   prompt, event and tool result paths call the same validation function. A caller

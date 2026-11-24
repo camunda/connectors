@@ -67,9 +67,9 @@ These documents are the only rules. Do not invent rules. Read the parts that app
    binding model, a transform script in `bin/`, a file in `element-template-overrides/`, or the generator
    properties in `pom.xml`. Report a JSON change without one. The snapshots in `versioned/` are static,
    so this step does not apply to them.
-9. **Decisions.** A change that adds persisted state, a customer-facing name, a default or a limit needs
-   its decision and rationale in the PR description (Definition of Done in `AGENTS.md`). If the
-   description lacks it, report a ❓.
+9. **Decisions.** A change that makes a customer-facing decision (persisted state, a name, a default
+   or a limit) needs the decision and its rationale in the PR description (Definition of Done in
+   `AGENTS.md`). If the description lacks it, report a ❓.
 
 ## Severity
 
@@ -88,7 +88,8 @@ shape, a name, a default or a limit), already covers is 💭: report it, but not
 this PR. A declared deviation from a rule is not such a decision.
 
 Rate the likelihood and the end-user severity (`high`, `medium` or `low`) of each ❌, ❓ and 🔧
-finding.
+finding. End users are the people who use the released connectors: process developers, operators
+and extension developers. A problem that affects only contributors or CI has `low` end-user severity.
 
 ## Human review required
 

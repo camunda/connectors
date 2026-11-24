@@ -4,10 +4,11 @@ Test use cases and observable behavior, not per-class coverage gaps. Where pract
 expected behavior or reproduce a bug with a failing test before implementing the change.
 Do not require non-compiling tests.
 
-Accept a complete user-facing capability with an e2e test through customer-available interfaces.
-Use CPT with BPMN, templates and process variables, or the exposed API. Assert customer-visible
-results, including required observability. For integration-dependent behavior, follow the
-[integration-target rules](#integration-targets). Each test asserts the outcome it is about
+Accept a complete user-facing capability with an e2e test through the interfaces that process
+developers and operators use. Use CPT with BPMN, templates and process variables, or the exposed
+API. Assert the results that process developers and operators see, including required observability.
+For integration-dependent behavior, follow the [integration-target rules](#integration-targets).
+Each test asserts the outcome it is about
 ([domain rule 6](implementation-rules.md#domain-rules)).
 
 ## Choosing e2e vs unit tests (mandatory decision)

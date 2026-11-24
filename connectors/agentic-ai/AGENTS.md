@@ -17,7 +17,7 @@ Read before you act:
 - For every code change: [`docs/acceptance-testing.md`](docs/acceptance-testing.md), the test level, the
   acceptance of a capability and provider coverage.
 - Before you design persisted state, names, defaults, limits or observability:
-  [`docs/design-guidelines.md`](docs/design-guidelines.md), the invariants, contract decisions and
+  [`docs/design-guidelines.md`](docs/design-guidelines.md), the invariants, customer-facing decisions and
   [ADR criteria](docs/design-guidelines.md#architecture-decision-records).
 - Before you change module structure or extension points: the
   [architectural invariants](docs/design-guidelines.md#architectural-invariants). Before you plan a structural
@@ -45,14 +45,14 @@ as a pointer to that home.
   `# AI Agent Task` instead of `# connector-aiagent`.
 - [`docs/architecture/`](docs/architecture/): content that spans modules (the agentic loop, extension points,
   Spring auto-configuration).
-- [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions (SPIs, public
+- [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for extension developers (SPIs, public
   classes and packages, persisted state, job types, configuration). Add an entry in the same change that
   introduces the break, under the section of the release in development, with the old and new API and a
   migration hint. The public docs link to it.
 - `<connector module>/element-templates/README.md` and the index
   `connector-agentic-ai/element-templates/README.md`: update them for template version bumps, moves to
-  `versioned/` and new connectors by the [README rules](connector-aiagent/docs/element-template-generation.md#element-template-readmes). These READMEs serve users who
-  pick or configure a template: which template fits which Camunda version and what a user selects. Put the
+  `versioned/` and new connectors by the [README rules](connector-aiagent/docs/element-template-generation.md#element-template-readmes). These READMEs serve process developers who
+  pick or configure a template: which template fits which Camunda version and what they select. Put the
   details of how the templates are generated in `<module>/docs/`.
 
 After a doc change, run the [docs checks](#docs-checks).
@@ -287,7 +287,7 @@ Before claiming a change is complete:
 - [ ] Relevant unit, component or integration tests added/updated and passing.
 - [ ] E2E test decision made per the [testing rules](docs/acceptance-testing.md#choosing-e2e-vs-unit-tests-mandatory-decision): test added, reason stated, or question asked.
 - [ ] User-facing capabilities meet the [acceptance rules](docs/acceptance-testing.md).
-- [ ] New persisted-state, customer-facing naming, default or limit decisions and their rationale are
+- [ ] New customer-facing decisions (persisted state, names, defaults, limits) and their rationale are
   stated in the PR description per the [design guidelines](docs/design-guidelines.md).
 - [ ] Real-provider changes meet the [coverage requirements](docs/acceptance-testing.md#real-provider-coverage).
 - [ ] If template properties changed, the repo-root [element templates checks](../../AGENTS.md#element-templates)
@@ -295,7 +295,7 @@ Before claiming a change is complete:
 - [ ] The change follows the [implementation rules](docs/implementation-rules.md).
 - [ ] Documentation updated per [Documentation](#documentation).
 - [ ] Each Javadoc and each document that names a changed method agrees with the code at the last commit of the PR.
-- [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
+- [ ] Breaking changes for extension developers are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
   The [API compatibility check](../../docs/api-compatibility.md) states from when it gates `aiagent-api`
   and `aiagent-model`. Accept a break that it reports in the module's `api-changes.json` with a link to
   its `breaking-changes.md` anchor.
