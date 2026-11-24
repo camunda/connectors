@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinitionBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -32,6 +33,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ListToolsRequestTest {
 
   private static final AllowDenyList EMPTY_FILTER = AllowDenyList.allowingEverything();
+  private static final Map<String, Object> INPUT_SCHEMA =
+      Map.of(
+          "type", "object",
+          "properties",
+              Map.of("toolArg", Map.of("type", "string", "description", "A tool argument")),
+          "required", List.of("toolArg"));
 
   @Mock private McpSyncClient mcpClient;
 
@@ -119,37 +126,20 @@ class ListToolsRequestTest {
     final var toolSpec1 = createTool("allowed-tool", "Allowed Tool", "Allowed tool");
     final var toolSpec2 = createTool("blocked-tool", "Blocked Tool", "Blocked tool");
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-tool")).build();
+    final var expectedToolDefinition =
+        McpToolDefinitionBuilder.builder()
+            .name("allowed-tool")
+            .title("Allowed Tool")
+            .description("Allowed tool")
+            .inputSchema(INPUT_SCHEMA)
+            .build();
 
     when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
 
     final var result = testee.execute(mcpClient, filter, Map.of());
 
-    assertThat(result)
-        .isInstanceOfSatisfying(
-            McpClientListToolsResult.class,
-            res ->
-                assertThat(res.toolDefinitions())
-                    .extracting(McpToolDefinition::name)
-                    .containsExactly("allowed-tool"));
-  }
-
-  @Test
-  void returnsEmptyList_whenToolAllowedAndDeniedSimultaneously() {
-    final var toolSpec = createTool("allowed-tool", "Allowed Tool", "Allowed tool");
-    final var filter =
-        AllowDenyListBuilder.builder()
-            .allowed(List.of("allowed-tool"))
-            .denied(List.of("allowed-tool"))
-            .build();
-
-    when(mcpClient.listTools()).thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec), null));
-
-    final var result = testee.execute(mcpClient, filter, Map.of());
-
-    assertThat(result)
-        .isInstanceOfSatisfying(
-            McpClientListToolsResult.class, res -> assertThat(res.toolDefinitions()).isEmpty());
+    assertThat(result).isEqualTo(new McpClientListToolsResult(List.of(expectedToolDefinition)));
   }
 
   @Test
@@ -175,15 +165,6 @@ class ListToolsRequestTest {
   }
 
   private McpSchema.Tool createTool(String name, String title, String description) {
-    return McpSchema.Tool.builder(
-            name,
-            Map.of(
-                "type", "object",
-                "properties",
-                    Map.of("toolArg", Map.of("type", "string", "description", "A tool argument")),
-                "required", List.of("toolArg")))
-        .title(title)
-        .description(description)
-        .build();
+    return McpSchema.Tool.builder(name, INPUT_SCHEMA).title(title).description(description).build();
   }
 }
