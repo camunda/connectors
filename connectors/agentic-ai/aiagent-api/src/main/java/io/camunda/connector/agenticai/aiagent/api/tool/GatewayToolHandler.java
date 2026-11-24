@@ -44,10 +44,12 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
    * Maps the tool call results of the gateway elements of this handler back to the tool names of
    * the LLM.
    *
-   * <p>Returns one result for each input result. Each returned result keeps the {@code id} of its
-   * input result and sets the {@code name} and the {@code content}. It does not need to copy the
-   * {@code completedAt}, the {@code properties} or the {@code elementId} of the input result. The
-   * agent keeps the values that the handler sets.
+   * <p>Returns one result for each input result, in the same order. Returns the results that this
+   * handler does not manage unchanged. Each result that it manages keeps the {@code id} of its
+   * input result and sets the {@code name} and the {@code content}. The simplest way is to derive
+   * it from the input result with {@code withName} and {@code withContent}. It does not need to
+   * copy the {@code completedAt}, the {@code properties} or the {@code elementId} of the input
+   * result. The agent keeps the values that the handler sets.
    */
   @Override
   List<ToolCallResult> transformToolCallResults(

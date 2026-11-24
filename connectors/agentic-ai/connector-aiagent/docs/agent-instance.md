@@ -128,9 +128,9 @@ for what the `now()` fallback does and doesn't cover). `USER`, `ASSISTANT`, and 
 use a timestamp `BaseAgentRequestHandler.proceed` captures and passes down.
 
 Each `toolCalls` entry carries the BPMN **`elementId`** alongside the (LLM-visible, possibly
-namespaced) `toolName`. For tool results it is resolved once on the model in
-`AgentConversationTurnInputComposerImpl` (`ToolCallResult.elementId`) and read directly; for assistant
-tool calls the mapper resolves it from the namespaced name via `GatewayToolHandlerRegistry.resolveElementId`.
+namespaced) `toolName`. For tool results it is resolved once on the model (`ToolCallResult.elementId`) in
+`GatewayToolHandlerRegistry#transformToolCallResults`, which `AgentConversationTurnInputComposerImpl` calls, and
+read directly; for assistant tool calls the mapper resolves it from the namespaced name via `GatewayToolHandlerRegistry.resolveElementId`.
 For ad-hoc tools the element id equals the tool name; for gateway tools (MCP/A2A) it is the BPMN
 gateway element id parsed from the namespaced name; for runtime tools (calls, results and the tool entry
 of the `CONFIGURATION` item) and for rejected calls it is `null`, because the engine field is nullable and neither has a

@@ -69,12 +69,14 @@ extensionProperties = {
 - `GatewayToolCallTransformer#transformToolCalls` maps the tool calls of the LLM to the gateway element, and
   `GatewayToolCallTransformer#transformToolCallResults` maps the results back to the tool names of the LLM.
 
-`GatewayToolHandler#transformToolCallResults` returns one result for each input result. Each returned result keeps
-the `id` of the input result and sets the `name` and the `content`. The handler does not need to copy the
-`completedAt`, the `properties` or the `elementId`. For each returned result whose `id` matches an input result, the
-registry sets the `completedAt` of the input result when the handler left it empty, and merges the `properties`: the
-input entries first, then the handler entries, which win on the same key. The registry fills a missing `elementId`
-from the `name`.
+`GatewayToolHandler#transformToolCallResults` returns one result for each input result, in the same order. It returns
+the results that the handler does not manage unchanged. Each result that it manages keeps the `id` of the input
+result and sets the `name` and the `content`. The built-in handlers derive it from the input result. The handler does
+not need to copy the `completedAt`, the `properties` or the `elementId`. The non-null ids of the input results must be unique.
+For each returned result whose `id` matches an input result, the registry fills the values that the handlers left
+out (`ToolCallResult#withMissingValuesFrom`): the `completedAt` of the input result when the returned result has
+none, and the `properties` of the input result, with the entries of the returned result winning on the same key. The
+registry fills a missing `elementId` from the `name`.
 
 ### Gateway Tool Handler Registry
 
@@ -84,8 +86,8 @@ from the `name`.
 - **Discovery result check**: All handlers must report all results present
 - **Discovery result processing**: Groups results by handler type, merges discovered tool definitions into agent context
 - **Tool call transformation**: Chains through all handlers (each transforms its own tool calls, passes others through)
-- **Tool call result transformation**: Same chaining for results, then fills a missing `completedAt` from the input
-  result, merges the `properties` of the input result and fills a missing `elementId`
+- **Tool call result transformation**: Same chaining for results, then fills the `completedAt` and the `properties`
+  that the handlers left out from the input result, and fills a missing `elementId`
 
 ### Discovery Flow (State Machine Integration)
 
