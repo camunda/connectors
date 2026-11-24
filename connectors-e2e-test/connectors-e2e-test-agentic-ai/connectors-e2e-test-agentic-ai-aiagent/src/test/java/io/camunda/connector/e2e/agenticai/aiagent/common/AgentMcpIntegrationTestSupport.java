@@ -29,7 +29,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -37,9 +36,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AgentMcpIntegrationTestSupport {
-
-  /** The first stdio task of a run starts the server container. */
-  public static final Duration STDIO_START_TIMEOUT = Duration.ofMinutes(1);
 
   private static final String ECHOED_META = "{\"exampleMetaKey\":\"exampleMetaValue\"}";
 
