@@ -340,8 +340,8 @@ Before claiming a change is complete:
 - [ ] New stored-shape, customer-facing naming, default or limit decisions and their rationale are
   stated in the PR description per the [design guidelines](docs/design-guidelines.md).
 - [ ] Real-provider changes meet the [coverage requirements](docs/acceptance-testing.md#real-provider-coverage).
-- [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
-  check the JSON diff.
+- [ ] Element templates regenerated with the repo-root [element templates checks](../../AGENTS.md#element-templates)
+  if template properties changed; check the JSON diff.
 - [ ] The change follows the [implementation rules](docs/implementation-rules.md).
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Each Javadoc and each document that names a changed method agrees with the code at the last commit of the PR.
@@ -377,8 +377,8 @@ and `A2aElementTemplateTransformsTest` (`connector-a2a`) assert what the scripts
 generated JSON. They check what the scripts change, not property order, so reordering properties
 doesn't require test changes; review any generated template diff instead.
 
-To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
-the generated JSON by hand. For the generation mechanism and annotation reference, see the
+To regenerate, run the repo-root [element templates checks](../../AGENTS.md#element-templates), check the
+JSON diff and commit it; never edit the generated JSON by hand. For the generation mechanism and annotation reference, see the
 [element template generator documentation](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-sdk/#element-template-generation).
 When a version is bumped, a template moves into `versioned/`, or a connector is added, also update the
 README in the `element-templates` folder of the connector module (for example
