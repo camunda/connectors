@@ -112,6 +112,74 @@ class ToolCallResultTest {
   }
 
   @Test
+  void withMissingValuesFromTakesCompletedAtAndPropertiesOfTheInputWhenThisResultHasNone() {
+    // given
+    OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-02T11:55:00.522622+02:00");
+    ToolCallResult input =
+        ToolCallResult.builder()
+            .id("call-1")
+            .name("gateway")
+            .elementId("gatewayElement")
+            .content("raw result")
+            .completedAt(completedAt)
+            .properties(Map.of("custom", "value"))
+            .build();
+    ToolCallResult result =
+        ToolCallResult.builder().id("call-1").name("search").content("result").build();
+
+    // when
+    ToolCallResult merged = result.withMissingValuesFrom(input);
+
+    // then
+    assertThat(merged)
+        .isEqualTo(
+            ToolCallResult.builder()
+                .id("call-1")
+                .name("search")
+                .content("result")
+                .completedAt(completedAt)
+                .properties(Map.of("custom", "value"))
+                .build());
+  }
+
+  @Test
+  void withMissingValuesFromKeepsTheValuesOfThisResult() {
+    // given
+    ToolCallResult input =
+        ToolCallResult.builder()
+            .id("call-1")
+            .name("gateway")
+            .content("raw result")
+            .completedAt(OffsetDateTime.parse("2026-07-02T11:55:00+02:00"))
+            .properties(Map.of("shared", "input", "inputOnly", "input"))
+            .build();
+    OffsetDateTime completedAt = OffsetDateTime.parse("2026-07-02T12:00:00+02:00");
+    ToolCallResult result =
+        ToolCallResult.builder()
+            .id("call-1")
+            .name("search")
+            .content("result")
+            .completedAt(completedAt)
+            .properties(Map.of("shared", "result", "resultOnly", "result"))
+            .build();
+
+    // when
+    ToolCallResult merged = result.withMissingValuesFrom(input);
+
+    // then
+    assertThat(merged)
+        .isEqualTo(
+            ToolCallResult.builder()
+                .id("call-1")
+                .name("search")
+                .content("result")
+                .completedAt(completedAt)
+                .properties(
+                    Map.of("shared", "result", "resultOnly", "result", "inputOnly", "input"))
+                .build());
+  }
+
+  @Test
   void shouldDeserializeCompletedAtFromEngineBracketedZoneForm() throws Exception {
     // given: the FEEL now() string form produced by the AHSP outputElement on a real broker
     // (offset + bracketed zone id), which java.time.OffsetDateTime.parse(text) cannot parse

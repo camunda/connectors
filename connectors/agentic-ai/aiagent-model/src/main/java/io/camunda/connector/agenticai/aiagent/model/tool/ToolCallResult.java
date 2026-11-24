@@ -66,6 +66,20 @@ public record ToolCallResult(
   }
 
   /**
+   * Returns this result with the values of {@code input} that this result does not have.
+   *
+   * <p>The returned result has the {@code completedAt} of {@code input} when this result has none.
+   * Its {@code properties} are the entries of {@code input} and then the entries of this result,
+   * which win on the same key. All other values are the values of this result.
+   */
+  public ToolCallResult withMissingValuesFrom(ToolCallResult input) {
+    final var mergedProperties = new HashMap<>(input.properties());
+    mergedProperties.putAll(properties());
+    return withCompletedAt(completedAt() != null ? completedAt() : input.completedAt())
+        .withProperties(mergedProperties);
+  }
+
+  /**
    * Custom proxy builder that fixes round-tripping of the {@code properties} map.
    *
    * <p>The generated {@link ToolCallResultBuilder} inherits {@code @JsonAnyGetter} on the {@code
