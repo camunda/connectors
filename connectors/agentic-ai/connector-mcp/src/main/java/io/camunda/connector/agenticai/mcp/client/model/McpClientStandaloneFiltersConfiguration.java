@@ -18,7 +18,7 @@ public record McpClientStandaloneFiltersConfiguration(
                     property = "data.connectorMode.operation.type",
                     oneOf = {"tools/call", "tools/list"}))
         @Valid
-        @Nullable McpClientToolsFilterConfiguration tools,
+        McpClientToolsFilterConfiguration tools,
     @NestedProperties(
             condition =
                 @TemplateProperty.PropertyCondition(
