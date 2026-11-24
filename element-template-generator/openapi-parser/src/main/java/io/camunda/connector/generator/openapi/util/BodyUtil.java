@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.openapi.util;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.generator.dsl.http.HttpFeelBuilder;
@@ -29,9 +30,11 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
 public class BodyUtil {
 
@@ -120,7 +123,7 @@ public class BodyUtil {
       for (java.util.Map.Entry<String, Schema> entry : entries) {
         var propertySchema = ParameterUtil.getSchemaOrFromComponents(entry.getValue(), components);
         var name = entry.getKey();
-        if ("object".equals(propertySchema.getType()) || "array".equals(propertySchema.getType())) {
+        if (isContainerType(ParameterUtil.typeOf(propertySchema))) {
           throw new IllegalArgumentException(
               "Complex objects are not supported in detailed request bodies");
         }
@@ -138,16 +141,18 @@ public class BodyUtil {
 
   static HttpOperationProperty fromSchema(String name, Schema<?> schema, Components components) {
     schema = ParameterUtil.getSchemaOrFromComponents(schema, components);
+    var type = ParameterUtil.typeOf(schema);
 
     if (schema.getEnum() != null) {
       return HttpOperationProperty.createEnumProperty(
           name, Target.BODY, schema.getDescription(), true, schema.getEnum());
-    } else if (schema.getType().equals("boolean")) {
+    } else if (type == null) {
+      // no type, or several non-null types (OpenAPI 3.1); the caller falls back to a raw body
+      throw new IllegalArgumentException("Body property '" + name + "' has no single type");
+    } else if (type.equals("boolean")) {
       return HttpOperationProperty.createEnumProperty(
           name, Target.BODY, schema.getDescription(), true, Arrays.asList("true", "false"));
-    } else if (schema.getType().equals("string")
-        || schema.getType().equals("integer")
-        || schema.getType().equals("number")) {
+    } else if (type.equals("string") || type.equals("integer") || type.equals("number")) {
       return HttpOperationProperty.createStringProperty(
           name,
           Target.BODY,
@@ -155,30 +160,72 @@ public class BodyUtil {
           true,
           ParameterUtil.getExampleFromSchema(schema, components));
     }
-    throw new IllegalArgumentException("Unsupported parameter type: " + schema.getType());
+    throw new IllegalArgumentException("Unsupported parameter type: " + type);
   }
 
   private static String buildRawBodyExample(Schema<?> schema, Components components) {
     var schemaExample = ParameterUtil.getExampleFromSchema(schema, components);
-    return Optional.ofNullable(schemaExample).orElse("");
+    if (schemaExample == null) {
+      return "";
+    }
+    // The raw body is used as a FEEL expression ("=" + body). A string must keep its quotes,
+    // otherwise FEEL reads it as a variable name.
+    var resolved = ParameterUtil.getSchemaOrFromComponents(schema, components);
+    if ("string".equals(ParameterUtil.typeOf(resolved))) {
+      return "\"" + new String(JsonStringEncoder.getInstance().quoteAsString(schemaExample)) + "\"";
+    }
+    return schemaExample;
   }
 
   // complex objects are difficult to visually break down into fields
   // this includes objects with nested objects, arrays, or a combination of both
   private static boolean isComplexSchema(Schema<?> schema, Components components) {
+    return isComplexSchema(schema, components, Collections.newSetFromMap(new IdentityHashMap<>()));
+  }
+
+  private static boolean isComplexSchema(
+      Schema<?> schema, Components components, Set<Schema<?>> visitedSchemas) {
+    if (hasUnresolvableInternalRef(schema, components)) {
+      return true;
+    }
     schema = ParameterUtil.getSchemaOrFromComponents(schema, components);
-    if (schema == null || schema.getType() == null) {
+    if (schema != null && !visitedSchemas.add(schema)) {
+      // a schema that contains itself, such as an array of itself, stays a raw body
+      return true;
+    }
+    var type = ParameterUtil.typeOf(schema);
+    if (type == null) {
       return false;
     }
-    if (schema.getType().equals("array")) {
-      return isComplexSchema(schema.getItems(), components);
+    if (type.equals("array")) {
+      // an array without 'items' (or with only 3.1 'prefixItems') stays a raw body
+      return schema.getItems() == null
+          || isComplexSchema(schema.getItems(), components, visitedSchemas);
     }
-    if (schema.getType().equals("object") && schema.getProperties() != null) {
+    if (type.equals("object") && schema.getProperties() != null) {
       return schema.getProperties().values().stream()
-          .map(s -> ParameterUtil.getSchemaOrFromComponents(s, components))
-          .anyMatch(s -> "object".equals(s.getType()) || "array".equals(s.getType()));
+          .anyMatch(s ->
+              hasUnresolvableInternalRef(s, components)
+                  || isContainerType(
+                      ParameterUtil.typeOf(
+                          ParameterUtil.getSchemaOrFromComponents(s, components))));
     }
     return false;
+  }
+
+  private static boolean isContainerType(String type) {
+    return "object".equals(type) || "array".equals(type);
+  }
+
+  // Only '#/components/schemas/...' references can be resolved. Other references inside the
+  // document, such as '#/paths/...', are kept in a raw body instead of being broken into fields.
+  private static boolean hasUnresolvableInternalRef(Schema<?> schema, Components components) {
+    if (schema == null || schema.get$ref() == null || !schema.get$ref().startsWith("#/")) {
+      return false;
+    }
+    return !schema.get$ref().startsWith("#/components/schemas/")
+        || components == null
+        || components.getSchemas() == null;
   }
 
   public sealed interface BodyParseResult permits BodyParseResult.Detailed, BodyParseResult.Raw {
