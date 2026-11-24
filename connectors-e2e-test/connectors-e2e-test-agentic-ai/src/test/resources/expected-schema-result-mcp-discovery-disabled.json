@@ -72,6 +72,15 @@
       }
     },
     {
+      "name": "A_HTTP_MCP_Client",
+      "description": "A HTTP MCP Client",
+      "inputSchema": {
+        "properties": {},
+        "type": "object",
+        "required": []
+      }
+    },
+    {
       "name": "A_HTTP_Remote_MCP_Client",
       "description": "A HTTP Remote MCP Client",
       "inputSchema": {
