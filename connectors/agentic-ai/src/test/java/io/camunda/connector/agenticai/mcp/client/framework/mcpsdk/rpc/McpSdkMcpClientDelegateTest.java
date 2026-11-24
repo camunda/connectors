@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceDescription;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceTemplate;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.List;
@@ -44,7 +45,8 @@ class McpSdkMcpClientDelegateTest {
   @Mock private McpSyncClient mcpClient;
 
   private McpSdkMcpClientDelegate testee() {
-    return new McpSdkMcpClientDelegate("testClient", mcpClient, new ObjectMapper());
+    ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    return new McpSdkMcpClientDelegate("testClient", mcpClient, objectMapper);
   }
 
   @ParameterizedTest
