@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListToolsOperationConfiguration;
@@ -28,7 +29,10 @@ class McpConnectorModeConfigurationFilterOptionsTest {
 
     final var options = toolMode(filters).createFilterOptions().orElseThrow();
 
-    assertThat(options.toolFilters()).isEqualTo(new AllowDenyList(List.of("a", "b"), List.of("c")));
+    assertThat(options)
+        .isEqualTo(
+            new FilterOptions(
+                new AllowDenyList(List.of("a", "b"), List.of("c")), EVERYTHING, EVERYTHING));
   }
 
   @Test
@@ -37,7 +41,7 @@ class McpConnectorModeConfigurationFilterOptionsTest {
 
     final var options = toolMode(filters).createFilterOptions().orElseThrow();
 
-    assertThat(options.toolFilters()).isEqualTo(EVERYTHING);
+    assertThat(options).isEqualTo(new FilterOptions(EVERYTHING, EVERYTHING, EVERYTHING));
   }
 
   @Test
@@ -55,10 +59,12 @@ class McpConnectorModeConfigurationFilterOptionsTest {
 
     final var options = standalone(filters).createFilterOptions().orElseThrow();
 
-    assertThat(options.toolFilters()).isEqualTo(new AllowDenyList(List.of("t1"), List.of("t2")));
-    assertThat(options.resourceFilters())
-        .isEqualTo(new AllowDenyList(List.of("r1"), List.of("r2")));
-    assertThat(options.promptFilters()).isEqualTo(new AllowDenyList(List.of("p1"), List.of("p2")));
+    assertThat(options)
+        .isEqualTo(
+            new FilterOptions(
+                new AllowDenyList(List.of("t1"), List.of("t2")),
+                new AllowDenyList(List.of("r1"), List.of("r2")),
+                new AllowDenyList(List.of("p1"), List.of("p2"))));
   }
 
   @Test
@@ -71,9 +77,12 @@ class McpConnectorModeConfigurationFilterOptionsTest {
 
     final var options = standalone(filters).createFilterOptions().orElseThrow();
 
-    assertThat(options.toolFilters()).isEqualTo(new AllowDenyList(List.of(), List.of("t")));
-    assertThat(options.resourceFilters()).isEqualTo(new AllowDenyList(List.of(), List.of("r")));
-    assertThat(options.promptFilters()).isEqualTo(new AllowDenyList(List.of(), List.of("p")));
+    assertThat(options)
+        .isEqualTo(
+            new FilterOptions(
+                new AllowDenyList(List.of(), List.of("t")),
+                new AllowDenyList(List.of(), List.of("r")),
+                new AllowDenyList(List.of(), List.of("p"))));
   }
 
   @Test
@@ -84,9 +93,9 @@ class McpConnectorModeConfigurationFilterOptionsTest {
 
     final var options = standalone(filters).createFilterOptions().orElseThrow();
 
-    assertThat(options.toolFilters()).isEqualTo(EVERYTHING);
-    assertThat(options.resourceFilters()).isEqualTo(new AllowDenyList(List.of(), List.of("r")));
-    assertThat(options.promptFilters()).isEqualTo(EVERYTHING);
+    assertThat(options)
+        .isEqualTo(
+            new FilterOptions(EVERYTHING, new AllowDenyList(List.of(), List.of("r")), EVERYTHING));
   }
 
   @Test
