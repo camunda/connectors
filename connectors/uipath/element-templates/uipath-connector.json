@@ -426,8 +426,7 @@
         "oneOf": [
           "addQueueItem"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Due date",
@@ -444,8 +443,7 @@
         "oneOf": [
           "addQueueItem"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Priority",
@@ -493,8 +491,7 @@
         "oneOf": [
           "addQueueItem"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Reference",
@@ -510,8 +507,7 @@
         "oneOf": [
           "addQueueItem"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Item ID",

@@ -369,8 +369,7 @@
         "oneOf": [
           "getItemFromQueueById"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Item type",
@@ -431,8 +430,7 @@
         "oneOf": [
           "createItemInQueue"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Defer date",
@@ -450,8 +448,7 @@
         "oneOf": [
           "createItemInQueue"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Priority",
@@ -474,8 +471,7 @@
         "oneOf": [
           "createItemInQueue"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Status",
@@ -491,8 +487,7 @@
         "oneOf": [
           "createItemInQueue"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "group": "input",
