@@ -9,8 +9,10 @@ is decided by the [testing rules](../../connectors/agentic-ai/docs/acceptance-te
 [Definition of Done](../../connectors/agentic-ai/AGENTS.md#definition-of-done). For repo-wide
 build, commit, PR and CI rules, see the repo-root [`AGENTS.md`](../../AGENTS.md).
 
-Read the [implementation rules](../../connectors/agentic-ai/docs/implementation-rules.md) before you plan
-or implement a change. They also apply to the e2e modules. To review a change, follow
+Read the [implementation rules](../../connectors/agentic-ai/docs/implementation-rules.md) before you plan,
+implement or review a change. They also apply to the e2e modules.
+Also read the [documentation rules](../../connectors/agentic-ai/docs/documentation-rules.md), which cover the docs of the e2e modules too.
+To review a change, follow
 [`code-review.md`](../../connectors/agentic-ai/docs/code-review.md).
 
 See the [E2E runbook](README.md) for test ownership, local commands, paid-provider authorization, and
