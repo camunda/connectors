@@ -241,7 +241,9 @@ for example `AgentInitializer` in `BaseAgentRequestHandler`.
   client. Add a service only for I/O, for orchestration across domain types, or for an SPI. (P2)
 - **Tell, don't ask.** Do not read getters and make the decision outside the model. Call a domain
   method. The method returns the new state as a new instance. Example:
-  `conversation.ingest(message, metrics)`. (P2)
+  `conversation.ingest(message, metrics)`. Instead of reading
+  `conversation.currentTurn().assistantMessage()` in the handler and completing the turn there, call
+  `ingest`. It checks that the turn is pending. (P2)
 - **Immutable by default.** Use records for values. When a record does not fit, use a final class
   without side effects. Example: the canonical constructor is too large, and the type needs named
   factory methods such as `of`, `fromFoo` or `fromBar`. A change makes a new instance.
