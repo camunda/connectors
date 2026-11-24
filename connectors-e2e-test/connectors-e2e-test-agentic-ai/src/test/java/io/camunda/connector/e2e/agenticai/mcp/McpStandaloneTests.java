@@ -471,9 +471,9 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   }
 
   /**
-   * A BPMN fixture per MCP client element template version. The resource, resource template and
-   * prompt paths need the V2 and V3 templates. Only the v3 fixture sets {@code meta} on its local
-   * client tasks.
+   * A BPMN fixture per element template version 1, 2 and 3 of the MCP client and the MCP remote
+   * client (constants V0, V2 and V3). The resource, resource template and prompt paths need
+   * template version 2 or 3. Only the V3 fixture sets {@code meta} on its local client tasks.
    */
   enum Fixture {
     V0("regression/mcp-connectors-standalone-v0.bpmn", false),
