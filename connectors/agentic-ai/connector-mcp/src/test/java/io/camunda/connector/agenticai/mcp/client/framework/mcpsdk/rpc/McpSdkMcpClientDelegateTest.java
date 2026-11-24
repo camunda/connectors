@@ -35,24 +35,20 @@ class McpSdkMcpClientDelegateTest {
     return new McpSdkMcpClientDelegate("testClient", mcpClient, new ObjectMapper());
   }
 
-  @SuppressWarnings("deprecation")
   private static McpSchema.ListToolsResult emptyTools() {
-    return new McpSchema.ListToolsResult(Collections.emptyList(), null);
+    return McpSchema.ListToolsResult.builder(Collections.emptyList()).build();
   }
 
-  @SuppressWarnings("deprecation")
   private static McpSchema.ListResourcesResult emptyResources() {
-    return new McpSchema.ListResourcesResult(Collections.emptyList(), null);
+    return McpSchema.ListResourcesResult.builder(Collections.emptyList()).build();
   }
 
-  @SuppressWarnings("deprecation")
   private static McpSchema.ListResourceTemplatesResult emptyResourceTemplates() {
-    return new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null);
+    return McpSchema.ListResourceTemplatesResult.builder(Collections.emptyList()).build();
   }
 
-  @SuppressWarnings("deprecation")
   private static McpSchema.ListPromptsResult emptyPrompts() {
-    return new McpSchema.ListPromptsResult(Collections.emptyList(), null);
+    return McpSchema.ListPromptsResult.builder(Collections.emptyList()).build();
   }
 
   @Test
