@@ -131,17 +131,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=data.documents.userP
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-http-client-jdk</artifactId>
     </dependency>
-    <!--
-      REQUIRED: google-genai shades KotlinModule into com.google.genai.shaded.* but ships a
-      META-INF/services entry pointing at the unshaded class, so
-      ObjectMapper.findAndRegisterModules() (called by langchain4j-core) throws
-      ServiceConfigurationError without the Kotlin module on the class path. Do not exclude it.
-    -->
-    <dependency>
-      <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-kotlin</artifactId>
-      <scope>runtime</scope>
-    </dependency>
     <!-- main code imports com.google.genai.* directly (we build the Client ourselves) -->
     <dependency>
       <groupId>com.google.genai</groupId>
@@ -256,9 +245,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=data.documents.userP
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-client-spi</artifactId>
     </dependency>
-
-    <!-- needed on the compile classpath for javac to resolve the AWS client builder types of the
-         Bedrock providers; main code has no bytecode reference to it -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-auth-spi</artifactId>
@@ -392,7 +378,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=data.documents.userP
                      declaration above): main code never imports it, so the analyzer would
                      otherwise flag it as a non-test scoped test-only dependency. -->
                 <ignoredDependency>com.google.guava:guava</ignoredDependency>
-                <!-- compile-scoped for javac's benefit only (see the dependency declaration above) -->
+                <!-- compile scope is required: javac needs it to resolve the AWS client builder types
+                     that the Bedrock providers use (e.g. AuthSchemeProvider), but no main bytecode
+                     references it, so the analyzer would flag it as a non-test scoped test-only
+                     dependency -->
                 <ignoredDependency>software.amazon.awssdk:http-auth-spi</ignoredDependency>
               </ignoredDependencies>
             </configuration>
