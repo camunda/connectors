@@ -84,9 +84,10 @@ changing them.
 
 ## Choose defaults and limits that can evolve
 
-Prefer sensible existing or library defaults. Override them only when throughput, latency,
-compatibility or resource usage justifies it. When choosing a new limit, prefer the tighter value
-that meets the use case, rather than an arbitrarily low value that breaks normal workloads.
+Use the default of the library or of the existing setting. Override it only when you can name the
+throughput, latency, compatibility or resource problem it solves, and state that problem in the PR.
+When choosing a new limit, prefer the tighter value that meets the use case, rather than an
+arbitrarily low value that breaks normal workloads.
 
 Tightening a default later can break existing workloads. Record breaking changes in
 [`breaking-changes.md`](breaking-changes.md); do not introduce a per-installation default-preservation
@@ -97,11 +98,12 @@ must change to recover. A new field or capability does not change behavior when 
 
 ## Design observable automated behavior
 
-Make important agent actions and outcomes observable through agent instance history, logs or
-incidents, as appropriate. Fallbacks and skipped work need evidence of what happened and why.
-For example, where a provider exposes displayable reasoning/thinking text, preserve its visibility
-in agent instance history; do not infer or reveal opaque reasoning payloads.
-Use metadata for diagnostic logs, never message contents or secrets.
+Record a decision in agent instance history when a process developer or operator needs it to
+understand a run, for example a rejected tool call. Log it when only runtime debugging needs it.
+Raise an incident when the process cannot continue. When unsure, ask the user. Fallbacks and skipped
+work need evidence of what happened and why. For example, where a provider exposes displayable
+reasoning/thinking text, preserve its visibility in agent instance history; do not infer or reveal
+opaque reasoning payloads. Use metadata for diagnostic logs, never message contents or secrets.
 
 ## Make concepts that a process developer configures discoverable
 
@@ -111,8 +113,9 @@ with an example where usage is not obvious. Follow the repo-root
 
 ## Architecture decision records
 
-Write an ADR in [`adr/`](adr/) when choosing between meaningful alternatives: replacing a framework,
-restructuring a core subsystem, or changing storage strategy. Routine bug fixes, refactors and
-new capabilities that follow an existing pattern do not need one.
+Write an ADR in [`adr/`](adr/) when you choose between options that a later change cannot easily
+undo, for example a framework, a storage strategy or a module boundary. When unsure, ask the user
+whether the change needs an ADR. Routine bug fixes, refactors and new capabilities that follow an
+existing pattern do not need one.
 
 Read the [ADR authoring rules](adr/README.md) when writing or revising an ADR.

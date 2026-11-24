@@ -1,8 +1,8 @@
 # Acceptance testing through public interfaces
 
-Test use cases and observable behavior, not per-class coverage gaps. Where practical, express the
-expected behavior or reproduce a bug with a failing test before implementing the change.
-Do not require non-compiling tests.
+Test use cases and observable behavior, not per-class coverage gaps. Before you fix a bug, write a
+test that fails because of it. Before you add behavior, write a test that states it. When the test
+cannot compile before the change, say so in the PR.
 
 Accept a complete user-facing capability with an e2e test through the interfaces that process
 developers and operators use. Use CPT with BPMN, templates and process variables, or the exposed
@@ -14,9 +14,10 @@ Each test asserts the outcome it is about
 ## Choosing e2e vs unit tests (mandatory decision)
 
 Choose the test level before implementing each code change; an e2e test is not required for every
-change. If you add none for a change that touches the element template or behavioral characteristics,
-say why. In a stack of PRs, the reason can name the later PR that adds the e2e test. If requirements
-are unclear, ask before starting. The examples below are illustrative, not exhaustive; reason from
+change. If you add no e2e test for a change to an element template, job completion, tool calls,
+memory or events, state the reason in the PR. In a stack of PRs, the reason can name the later PR
+that adds the e2e test. If you cannot tell which test level the change needs, ask the user before
+you write code. The examples below are illustrative, not exhaustive; reason from
 the principle: does correctness depend on the engine and BPMN wiring?
 
 - **E2E test required** when the change touches the distributed / BPMN contract:
