@@ -63,31 +63,27 @@ public class AgentMcpIntegrationTestSupport {
           "A_SSE_Remote_MCP_Client",
           "Filesystem_MCP_Flow");
 
-  private static final List<ToolCall> TOOL_CALLS =
+  private static final List<ScenarioToolCall> TOOL_CALLS =
       List.of(
-          ToolCall.of("stdio111", "MCP_A_MCP_Client___echoMeta", "{}"),
-          ToolCall.of("http222", "MCP_A_HTTP_MCP_Client___add", "{\"a\": 5, \"b\": 3}"),
-          ToolCall.of("remote333", "MCP_A_HTTP_Remote_MCP_Client___echoMeta", "{}"),
-          ToolCall.of("remote444", "MCP_A_HTTP_Remote_MCP_Client___echoHeaders", "{}"),
-          ToolCall.of("remote555", "MCP_A_SSE_Remote_MCP_Client___echoHeaders", "{}"),
-          ToolCall.of("sse666", "MCP_Filesystem_MCP_Flow___uppercase", "{\"message\": \"hello\"}"));
+          new ScenarioToolCall("stdio111", "MCP_A_MCP_Client___echoMeta", "{}", ECHOED_META),
+          new ScenarioToolCall(
+              "http222", "MCP_A_HTTP_MCP_Client___add", "{\"a\": 5, \"b\": 3}", "8"),
+          new ScenarioToolCall("remote333", "MCP_A_HTTP_Remote_MCP_Client___echoMeta", "{}", "{}"),
+          new ScenarioToolCall(
+              "remote444", "MCP_A_HTTP_Remote_MCP_Client___echoHeaders", "{}", null),
+          new ScenarioToolCall(
+              "remote555", "MCP_A_SSE_Remote_MCP_Client___echoHeaders", "{}", null),
+          new ScenarioToolCall(
+              "sse666",
+              "MCP_Filesystem_MCP_Flow___uppercase",
+              "{\"message\": \"hello\"}",
+              "HELLO"));
 
-  private static final List<ExpectedToolResult> EXPECTED_TOOL_RESULTS =
-      List.of(
-          new ExpectedToolResult("stdio111", ECHOED_META),
-          new ExpectedToolResult("http222", "8"),
-          new ExpectedToolResult("remote333", "{}"),
-          new ExpectedToolResult("remote444", null),
-          new ExpectedToolResult("remote555", null),
-          new ExpectedToolResult("sse666", "HELLO"));
-
+  /** How often the scenario calls a tool of each gateway. */
   public static final Map<String, Integer> TOOL_CALLS_BY_GATEWAY =
-      Map.of(
-          "A_MCP_Client", 1,
-          "A_HTTP_MCP_Client", 1,
-          "A_HTTP_Remote_MCP_Client", 2,
-          "A_SSE_Remote_MCP_Client", 1,
-          "Filesystem_MCP_Flow", 1);
+      TOOL_CALLS.stream()
+          .collect(
+              Collectors.groupingBy(ScenarioToolCall::gateway, Collectors.summingInt(call -> 1)));
 
   private final McpTestServers mcpTestServers;
   private final ObjectMapper objectMapper;
@@ -99,27 +95,23 @@ public class AgentMcpIntegrationTestSupport {
 
   /** The tool calls of the scenario that calls every MCP gateway. */
   public static ToolCall[] toolCalls() {
-    return TOOL_CALLS.toArray(ToolCall[]::new);
+    return TOOL_CALLS.stream().map(ScenarioToolCall::toolCall).toArray(ToolCall[]::new);
   }
 
   public static String[] toolCallNames() {
-    return TOOL_CALLS.stream().map(ToolCall::name).toArray(String[]::new);
+    return TOOL_CALLS.stream().map(ScenarioToolCall::name).toArray(String[]::new);
   }
 
-  public static List<ExpectedToolResult> expectedToolResults() {
-    return EXPECTED_TOOL_RESULTS;
+  public static List<ScenarioToolCall> scenarioToolCalls() {
+    return TOOL_CALLS;
   }
 
   /**
-   * Sets the runtime client ids of the local client gateways and the URLs of the remote gateways.
-   * The server ports are known only at runtime. Returns a customized copy and leaves the given
-   * model unchanged.
+   * Sets the URLs of the remote client gateways. The server ports are known only at runtime.
+   * Returns a customized copy and leaves the given model unchanged.
    */
-  public BpmnModelInstance configureMcpClients(BpmnModelInstance model) {
+  public BpmnModelInstance configureRemoteClientUrls(BpmnModelInstance model) {
     final var customized = model.clone();
-    setLocalClientId(customized, "A_MCP_Client", McpTestServerTransport.STDIO);
-    setLocalClientId(customized, "A_HTTP_MCP_Client", McpTestServerTransport.HTTP);
-    setLocalClientId(customized, "Filesystem", McpTestServerTransport.SSE);
     setRemoteClientUrl(customized, "A_HTTP_Remote_MCP_Client", McpTestServerTransport.HTTP);
     setRemoteClientUrl(customized, "A_SSE_Remote_MCP_Client", McpTestServerTransport.SSE);
     return customized;
@@ -178,12 +170,19 @@ public class AgentMcpIntegrationTestSupport {
     }
   }
 
-  public record ExpectedToolResult(String toolCallId, String text) {}
+  /**
+   * A tool call of the scenario that calls every MCP gateway, and the text of its result. The tool
+   * name is {@code MCP_<gateway>___<tool>}.
+   */
+  public record ScenarioToolCall(String toolCallId, String name, String arguments, String text) {
 
-  private void setLocalClientId(
-      BpmnModelInstance model, String elementId, McpTestServerTransport transport) {
-    updateInputMappings(
-        model, elementId, Map.of("data.client.clientId", McpTestServers.clientId(transport)));
+    private ToolCall toolCall() {
+      return ToolCall.of(toolCallId, name, arguments);
+    }
+
+    private String gateway() {
+      return name.substring("MCP_".length(), name.indexOf("___"));
+    }
   }
 
   private void setRemoteClientUrl(

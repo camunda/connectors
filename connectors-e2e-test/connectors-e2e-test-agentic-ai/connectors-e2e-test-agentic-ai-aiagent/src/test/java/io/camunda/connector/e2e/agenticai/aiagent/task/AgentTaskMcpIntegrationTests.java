@@ -78,7 +78,7 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
 
   @Override
   protected BpmnModelInstance customizeModel(BpmnModelInstance model) {
-    return mcpSupport.configureMcpClients(model);
+    return mcpSupport.configureRemoteClientUrls(model);
   }
 
   @Test
@@ -141,7 +141,7 @@ class AgentTaskMcpIntegrationTests extends BaseAgentTaskTest {
                     ExpectedMessage.user(initialUserPrompt),
                     ExpectedMessage.assistantWithToolCalls(
                         firstAiText, AgentMcpIntegrationTestSupport.toolCallNames())),
-                AgentMcpIntegrationTestSupport.expectedToolResults().stream()
+                AgentMcpIntegrationTestSupport.scenarioToolCalls().stream()
                     .map(result ->
                         ExpectedMessage.toolCallResult(result.toolCallId(), result.text())),
                 Stream.of(
