@@ -115,7 +115,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.8</version.logback>
 
-    <version.aws-sdk2>2.59.7</version.aws-sdk2>
+    <version.aws-sdk2>2.59.8</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -127,11 +127,6 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-9563: parsson transitive override — remove once opensearch-java ships parsson >= 1.1.8
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-9563 -->
     <version.parsson>1.1.9</version.parsson>
-    <!-- jsoup transitive override: pin 1.23.2 (includes jhy/jsoup#2556) over the older jsoup brought in by
-         Tika (tika-parser-code-module / tika-parser-html-module). Remove once the Tika version in
-         connectors/embeddings-vector-database pulls jsoup >= 1.23.2. The enforcer reminder for this
-         override lives in that module's pom, because version.apache-tika is declared there. -->
-    <version.jsoup>1.24.1</version.jsoup>
 
     <version.google-api-client>2.9.2</version.google-api-client>
 
@@ -177,7 +172,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-28</version.zstd-jni>
+    <version.zstd-jni>1.5.7-29</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -206,7 +201,7 @@ limitations under the License.</license.inlineheader>
     <version.langchain4j>1.24.0</version.langchain4j>
     <version.mcp-sdk>2.2.0</version.mcp-sdk>
     <version.elasticsearch-java>8.19.25</version.elasticsearch-java>
-    <version.elasticsearch-rest-client>8.19.25</version.elasticsearch-rest-client>
+    <version.elasticsearch-rest-client>8.19.26</version.elasticsearch-rest-client>
 
     <version.scala>3.10.1</version.scala>
 
@@ -268,13 +263,6 @@ limitations under the License.</license.inlineheader>
         <version>${version.parsson}</version>
       </dependency>
 
-      <!-- Override jsoup transitive version brought in via Tika (see version.jsoup). -->
-      <dependency>
-        <groupId>org.jsoup</groupId>
-        <artifactId>jsoup</artifactId>
-        <version>${version.jsoup}</version>
-      </dependency>
-
       <!-- Netty BOM imported before Spring Boot so its version takes precedence -->
       <dependency>
         <groupId>io.netty</groupId>
@@ -297,7 +285,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <version>42.7.14</version>
+        <version>42.7.15</version>
       </dependency>
 
 
