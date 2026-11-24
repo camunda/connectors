@@ -218,8 +218,9 @@ that caused it.
 
 ## Code design
 
-Make new code agree with the [target architecture](target-architecture.md) (`connectors/agentic-ai/docs/target-architecture.md`). These rules are not from
-past findings. They apply to new code. Existing code moves to them only in dedicated issues.
+Make new code agree with the [target architecture](target-architecture.md). These rules are not from
+past findings. They and the target apply to new code. Existing code moves to them only in dedicated issues,
+never as a side effect of a different change.
 
 Write code in a functional style. A function gets its inputs as arguments and gives its result as the
 return value. Values are immutable. A sealed type shows each possible outcome, so the caller must

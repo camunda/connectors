@@ -6,8 +6,7 @@ Read this document before you plan a structural change. A structural change adds
 
 ## How the code gets to the target
 
-- New code follows the target from the start.
-- Existing code moves to the target only in dedicated issues. Do not move it as a side effect of a different change. The [surgical changes rule](implementation-rules.md#surgical-changes) stays in effect.
+- New code follows the target from the start, and existing code moves only in dedicated issues, as the [code design rules](implementation-rules.md#code-design) say.
 - When a trait is stable, the team adds an architecture test for it and removes the prose rule.
 
 ## Traits
@@ -22,10 +21,7 @@ Read this document before you plan a structural change. A structural change adds
 
 ## Module depth and extension points
 
-The [code design rules](implementation-rules.md#code-design) "Narrow surface, deep module" and "One owner per invariant" apply within a module. This section applies them across modules.
-
-- **The extension points of one concept live together.** The extension points of a concept are its public SPI interfaces, the beans that users can replace, the classes that users can extend, and the exceptions that their contracts require. For AI Agent concepts, the contract lives in one `aiagent-api` package. The default implementation lives in one package in its owning connector, integration or provider module, respecting the module boundaries in [ADR 015](adr/015-split-agentic-ai-into-modules.md). Within each owning module, a concept does not spread its extension points over many packages. Example to avoid: one feature puts its SPI interface in `api.tool`, the exception that the SPI requires in `chatmodel.provider`, and the bean that users replace in `aiagent.agent`.
-- **A typical next change is cheap.** A typical next change touches few files. Examples: a new input source, a new provider, a new content type, a change of a wire format. The correctness rules for the change live in one place, so the change cannot miss them. When a design makes such a change touch many files that each repeat the same rules, the design has a defect, even when each file is correct. A new sealed subtype that the compiler routes to each `switch` is acceptable when most of these sites handle it, because the compiler finds each location.
+[P3](implementation-rules.md#principles) and the [code design rules](implementation-rules.md#code-design) "Narrow surface, deep module" and "One owner per invariant" also apply across modules. The extension points of one concept live together: its public SPI interfaces, the beans that users can replace, the classes that users can extend, and the exceptions that their contracts require. For AI Agent concepts, the contract lives in one `aiagent-api` package. The default implementation lives in one package in its owning connector, integration or provider module, respecting the module boundaries in [ADR 015](adr/015-split-agentic-ai-into-modules.md). Example to avoid: one feature puts its SPI interface in `api.tool`, the exception that the SPI requires in `chatmodel.provider`, and the bean that users replace in `aiagent.agent`.
 
 ## How this document changes
 
