@@ -80,8 +80,9 @@ The module is split into Maven modules with a fixed dependency direction
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
 or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
-put new classes under the root of their module, and no Java package spans several modules. Each module has its own
-auto-configuration, element templates and icons.
+put new classes under the root of their module, and no Java package spans several modules. Each module that
+registers beans has its own auto-configuration. Each connector module (`connector-*`) has its own element templates
+and icons.
 All artifacts use the group `io.camunda.connector.agenticai`. Runtimes that ship all agentic AI connectors (the
 bundles) depend on `agentic-ai-bundle` with `<type>pom</type>`; add a new connector or integration there. The e2e
 modules depend on the connector modules they test instead (see the
