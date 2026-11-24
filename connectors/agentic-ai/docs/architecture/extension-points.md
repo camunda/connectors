@@ -69,9 +69,9 @@ extensionProperties = {
 - `GatewayToolCallTransformer#transformToolCalls` maps the tool calls of the LLM to the gateway element, and
   `GatewayToolCallTransformer#transformToolCallResults` maps the results back to the tool names of the LLM.
 
-**Pitfall:** `transformToolCallResults` (MCP, A2A) rebuilds a new `ToolCallResult` via
-`.builder()...build()`. Unlike `elementId`, `completedAt` has no fallback — copy it over explicitly
-or the result fails the mapper's non-null `completedAt` invariant (ADR 008).
+`transformToolCallResults` returns one result for each input result, with the same `id`. A handler sets only the
+`name` and the `content`: the registry sets the `completedAt` and the `properties` of the input result with the same
+`id`, and resolves a missing `elementId` from the `name`.
 
 ### Gateway Tool Handler Registry
 
@@ -81,7 +81,8 @@ or the result fails the mapper's non-null `completedAt` invariant (ADR 008).
 - **Discovery result check**: All handlers must report all results present
 - **Discovery result processing**: Groups results by handler type, merges discovered tool definitions into agent context
 - **Tool call transformation**: Chains through all handlers (each transforms its own tool calls, passes others through)
-- **Tool call result transformation**: Same chaining for results
+- **Tool call result transformation**: Same chaining for results, then sets the `completedAt` and `properties` of each
+  input result and fills a missing `elementId`
 
 ### Discovery Flow (State Machine Integration)
 

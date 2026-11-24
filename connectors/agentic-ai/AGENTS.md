@@ -193,9 +193,6 @@ High-frequency traps (detail behind each link):
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#job-completion--the-heart-of-the-distributed-loop).
 - **Events have `id = null`**: tool-call results without an id are event results.
   [`agentic-loop.md`](docs/architecture/agentic-loop.md#event-handling).
-- **Gateway `transformToolCallResults` must carry `completedAt` forward**: copy it into the rebuilt `ToolCallResult`;
-  unlike `elementId`, it has no fallback resolution.
-  [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-handler-interface), [`agent-instance.md`](connector-aiagent/docs/agent-instance.md).
 - **Agent instance features gate behavior per instance**: never add one to an existing context. Resolve
   `AgentContext.documentHandling()` (`Untracked` or `Tracked`) as
   [Decide a mode once per step](docs/implementation-rules.md#code-design) says. Gate a new public format or persisted
