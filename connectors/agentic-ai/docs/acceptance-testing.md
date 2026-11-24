@@ -43,21 +43,18 @@ at the level of the unit that owns it. The test level decision above stays manda
 - **A test lives in the test of the unit that it exercises.** A test class tests the unit it is named
   after: a domain type, a step or an adapter. Put a test of a different type into the test of that
   type. A component test stays at its component level and tests use cases.
-  ([P4](implementation-rules.md#principles))
 - **A test that only reads back its input has no purpose.** Do not assert that an accessor returns its
   constructor argument. Test derived values, validation and decisions.
-  ([P4](implementation-rules.md#principles))
 - **Mock only the edges.** Mock I/O collaborators, SPIs and clients. Build records and domain values
   with their constructors or builders. Test a core decision without mocks. Example:
   `AgentConversationTest`. A build check can find a mock of a record or a domain type.
-  ([P4](implementation-rules.md#principles))
 - **Test shared behavior once.** In unit and component tests, test the behavior of a base class in one
   place. A flavor test covers only what the flavor changes. A PR can delete a duplicate test when it
   names the test that keeps the coverage. E2e tests cover the AI Agent Task and the AI Agent
-  Sub-process separately, because their BPMN models differ. ([P4](implementation-rules.md#principles))
+  Sub-process separately, because their BPMN models differ.
 - **Assert outcomes. Verify only interactions with the edges.** Assert the returned value or state.
   Use `verify` and `inOrder` only for calls to an external system, where domain rule 6 needs the
-  number of calls. ([P4](implementation-rules.md#principles))
+  number of calls.
 
 ## Test suites
 
@@ -65,12 +62,9 @@ Unit and component/integration tests that do not require a Camunda cluster belon
 modules. Use JUnit 5, Mockito and AssertJ as appropriate; Spring context slice, autoconfiguration
 and WireMock tests are also valid when they exercise the relevant behavior.
 
-E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/` (Camunda Process Test scenarios
-plus WireMock LLM stubs, and acceptance tests against real LLM providers). Its
-[`AGENTS.md`](../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md) describes the e2e
-modules, their prerequisites, how to run them, where new tests go, and the real-LLM CPT coverage.
-The [E2E runbook](../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md) covers test
-ownership, local commands, paid-provider authorization, and how to verify that tests ran.
+E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/`: see its
+[`AGENTS.md`](../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md) and the
+[E2E runbook](../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md).
 
 ## Integration targets
 
