@@ -47,7 +47,6 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -64,9 +63,6 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
 @Import({McpTestServerConfiguration.class, McpStdioWarmUp.class})
 public class McpStandaloneTests extends BaseAgenticAiTest {
-
-  /** The first stdio task of a run starts the server container. */
-  private static final Duration STDIO_START_TIMEOUT = Duration.ofMinutes(1);
 
   private static final String JSON_SCHEMA = "https://json-schema.org/draft/2020-12/schema";
 
@@ -425,9 +421,7 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   private ProcessInstanceEvent executeProcess(
       BpmnModelInstance bpmnModel, String path, ClientKind clientKind) {
     final var processInstanceEvent =
-        awaitProcessCompletion(
-                createProcessInstance(bpmnModel, clientKind.startVariables(path)),
-                STDIO_START_TIMEOUT)
+        awaitProcessCompletion(createProcessInstance(bpmnModel, clientKind.startVariables(path)))
             .getProcessInstanceEvent();
 
     final var skippedTaskIds =
