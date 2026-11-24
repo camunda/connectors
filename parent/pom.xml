@@ -1276,6 +1276,9 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-49844
       <properties>
         <serverId>central</serverId>
         <deploymentName>${project.groupId}:${project.artifactId}:${project.version}</deploymentName>
+        <!-- overridable with -Dcentral.waitUntil=UPLOADED|VALIDATED|PUBLISHED. A -DwaitUntil on the command line
+             would be ignored: the explicit execution configuration below wins over user properties. -->
+        <central.waitUntil>PUBLISHED</central.waitUntil>
       </properties>
       <build>
         <pluginManagement>
@@ -1304,7 +1307,7 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-49844
                   <id>central-deploy</id>
                   <configuration>
                     <autoPublish>true</autoPublish>
-                    <waitUntil>PUBLISHED</waitUntil>
+                    <waitUntil>${central.waitUntil}</waitUntil>
                     <waitMaxTime>3600</waitMaxTime>
                   </configuration>
                 </execution>
