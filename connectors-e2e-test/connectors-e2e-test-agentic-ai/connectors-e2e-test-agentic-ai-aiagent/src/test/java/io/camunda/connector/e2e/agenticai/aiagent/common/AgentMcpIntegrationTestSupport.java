@@ -30,9 +30,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.modelcontextprotocol.client.McpClient;
-import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
-import io.modelcontextprotocol.spec.McpSchema;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -141,10 +138,15 @@ public class AgentMcpIntegrationTestSupport {
   }
 
   /**
-   * Asserts that the document holds the image of the {@code image} tool. The expected image comes
-   * from the HTTP server through a plain MCP SDK client, so it does not pass through the code under
-   * test.
+   * The PNG that the {@code image} tool of {@code mcp-test-server} returns ({@code
+   * ImageTools.PNG_BASE64}). It MUST match the server version in {@code docker-images.properties}.
    */
+  private static final byte[] IMAGE_OF_IMAGE_TOOL =
+      Base64.getDecoder()
+          .decode(
+              "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==");
+
+  /** Asserts that the document holds the image of the {@code image} tool. */
   public void assertHoldsImageOfImageTool(AgentDocument document) {
     final byte[] stored;
     try (InputStream content =
@@ -153,19 +155,7 @@ public class AgentMcpIntegrationTestSupport {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
-    assertThat(stored).as("the content of the stored document").isEqualTo(imageOfImageTool());
-  }
-
-  private byte[] imageOfImageTool() {
-    final var url = mcpTestServers.httpBaseUrl() + "/mcp";
-    try (var client =
-        McpClient.sync(HttpClientStreamableHttpTransport.builder(url).endpoint(url).build())
-            .build()) {
-      client.initialize();
-      final var result = client.callTool(new McpSchema.CallToolRequest("image", Map.of()));
-      final var image = (McpSchema.ImageContent) result.content().getFirst();
-      return Base64.getDecoder().decode(image.data());
-    }
+    assertThat(stored).as("the content of the stored document").isEqualTo(IMAGE_OF_IMAGE_TOOL);
   }
 
   /** Asserts that every gateway element completed once, for scenarios without MCP tool calls. */
