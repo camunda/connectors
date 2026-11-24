@@ -7,6 +7,8 @@
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
 import static io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpRpcTestFixtures.EXAMPLE_META;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
@@ -17,16 +19,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
-import java.util.Collections;
-import org.junit.jupiter.api.Test;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class McpSdkMcpClientDelegateTest {
-
-  private static final AllowDenyList FILTER = AllowDenyList.allowingEverything();
 
   @Mock private McpSyncClient mcpClient;
 
@@ -34,60 +37,101 @@ class McpSdkMcpClientDelegateTest {
     return new McpSdkMcpClientDelegate("testClient", mcpClient, new ObjectMapper());
   }
 
-  private static McpSchema.ListToolsResult emptyTools() {
-    return McpSchema.ListToolsResult.builder(Collections.emptyList()).build();
-  }
-
-  private static McpSchema.ListResourcesResult emptyResources() {
-    return McpSchema.ListResourcesResult.builder(Collections.emptyList()).build();
-  }
-
-  private static McpSchema.ListResourceTemplatesResult emptyResourceTemplates() {
-    return McpSchema.ListResourceTemplatesResult.builder(Collections.emptyList()).build();
-  }
-
-  private static McpSchema.ListPromptsResult emptyPrompts() {
-    return McpSchema.ListPromptsResult.builder(Collections.emptyList()).build();
-  }
-
-  @Test
-  void listToolsPassesMetaToTheSdkClient() {
-    when(mcpClient.listTools(isNull(), same(EXAMPLE_META))).thenReturn(emptyTools());
-
-    testee().listTools(FILTER, EXAMPLE_META);
-
-    verify(mcpClient).listTools(null, EXAMPLE_META);
+  @ParameterizedTest
+  @EnumSource(Operation.class)
+  void passesMetaToTheSdkClient(Operation operation) {
+    operation.assertPassesMeta(mcpClient, testee());
     verifyNoMoreInteractions(mcpClient);
   }
 
-  @Test
-  void listResourcesPassesMetaToTheSdkClient() {
-    when(mcpClient.listResources(isNull(), same(EXAMPLE_META))).thenReturn(emptyResources());
+  /** Each operation of the delegate. */
+  enum Operation {
+    LIST_TOOLS {
+      @Override
+      void assertPassesMeta(McpSyncClient client, McpSdkMcpClientDelegate testee) {
+        when(client.listTools(isNull(), same(EXAMPLE_META)))
+            .thenReturn(McpSchema.ListToolsResult.builder(List.of()).build());
 
-    testee().listResources(FILTER, EXAMPLE_META);
+        testee.listTools(EVERYTHING, EXAMPLE_META);
 
-    verify(mcpClient).listResources(null, EXAMPLE_META);
-    verifyNoMoreInteractions(mcpClient);
-  }
+        verify(client).listTools(null, EXAMPLE_META);
+      }
+    },
+    CALL_TOOL {
+      @Override
+      void assertPassesMeta(McpSyncClient client, McpSdkMcpClientDelegate testee) {
+        when(client.callTool(any()))
+            .thenReturn(McpSchema.CallToolResult.builder(List.of()).build());
 
-  @Test
-  void listResourceTemplatesPassesMetaToTheSdkClient() {
-    when(mcpClient.listResourceTemplates(isNull(), same(EXAMPLE_META)))
-        .thenReturn(emptyResourceTemplates());
+        testee.callTool(Map.of("name", "tool", "arguments", Map.of()), EVERYTHING, EXAMPLE_META);
 
-    testee().listResourceTemplates(FILTER, EXAMPLE_META);
+        final var request = ArgumentCaptor.forClass(McpSchema.CallToolRequest.class);
+        verify(client).callTool(request.capture());
+        assertThat(request.getValue().meta()).isEqualTo(EXAMPLE_META);
+      }
+    },
+    LIST_RESOURCES {
+      @Override
+      void assertPassesMeta(McpSyncClient client, McpSdkMcpClientDelegate testee) {
+        when(client.listResources(isNull(), same(EXAMPLE_META)))
+            .thenReturn(McpSchema.ListResourcesResult.builder(List.of()).build());
 
-    verify(mcpClient).listResourceTemplates(null, EXAMPLE_META);
-    verifyNoMoreInteractions(mcpClient);
-  }
+        testee.listResources(EVERYTHING, EXAMPLE_META);
 
-  @Test
-  void listPromptsPassesMetaToTheSdkClient() {
-    when(mcpClient.listPrompts(isNull(), same(EXAMPLE_META))).thenReturn(emptyPrompts());
+        verify(client).listResources(null, EXAMPLE_META);
+      }
+    },
+    READ_RESOURCE {
+      @Override
+      void assertPassesMeta(McpSyncClient client, McpSdkMcpClientDelegate testee) {
+        when(client.readResource(any(McpSchema.ReadResourceRequest.class)))
+            .thenReturn(McpSchema.ReadResourceResult.builder(List.of()).build());
 
-    testee().listPrompts(FILTER, EXAMPLE_META);
+        testee.readResource(Map.of("uri", "resource://a"), EVERYTHING, EXAMPLE_META);
 
-    verify(mcpClient).listPrompts(null, EXAMPLE_META);
-    verifyNoMoreInteractions(mcpClient);
+        final var request = ArgumentCaptor.forClass(McpSchema.ReadResourceRequest.class);
+        verify(client).readResource(request.capture());
+        assertThat(request.getValue().meta()).isEqualTo(EXAMPLE_META);
+      }
+    },
+    LIST_RESOURCE_TEMPLATES {
+      @Override
+      void assertPassesMeta(McpSyncClient client, McpSdkMcpClientDelegate testee) {
+        when(client.listResourceTemplates(isNull(), same(EXAMPLE_META)))
+            .thenReturn(McpSchema.ListResourceTemplatesResult.builder(List.of()).build());
+
+        testee.listResourceTemplates(EVERYTHING, EXAMPLE_META);
+
+        verify(client).listResourceTemplates(null, EXAMPLE_META);
+      }
+    },
+    LIST_PROMPTS {
+      @Override
+      void assertPassesMeta(McpSyncClient client, McpSdkMcpClientDelegate testee) {
+        when(client.listPrompts(isNull(), same(EXAMPLE_META)))
+            .thenReturn(McpSchema.ListPromptsResult.builder(List.of()).build());
+
+        testee.listPrompts(EVERYTHING, EXAMPLE_META);
+
+        verify(client).listPrompts(null, EXAMPLE_META);
+      }
+    },
+    GET_PROMPT {
+      @Override
+      void assertPassesMeta(McpSyncClient client, McpSdkMcpClientDelegate testee) {
+        when(client.getPrompt(any()))
+            .thenReturn(McpSchema.GetPromptResult.builder(List.of()).build());
+
+        testee.getPrompt(Map.of("name", "prompt"), EVERYTHING, EXAMPLE_META);
+
+        final var request = ArgumentCaptor.forClass(McpSchema.GetPromptRequest.class);
+        verify(client).getPrompt(request.capture());
+        assertThat(request.getValue().meta()).isEqualTo(EXAMPLE_META);
+      }
+    };
+
+    private static final AllowDenyList EVERYTHING = AllowDenyList.allowingEverything();
+
+    abstract void assertPassesMeta(McpSyncClient client, McpSdkMcpClientDelegate testee);
   }
 }
