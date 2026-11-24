@@ -45,14 +45,14 @@ at the level of the unit that owns it. The test level decision above stays manda
   type. A component test stays at its component level and tests use cases.
 - **A test that only reads back its input has no purpose.** Do not assert that an accessor returns its
   constructor argument. Test derived values, validation and decisions.
-- **Mock only the edges.** Mock I/O collaborators, SPIs and clients. Build records and domain values
-  with their constructors or builders. Test a core decision without mocks. Example:
-  `AgentConversationTest`. A build check can find a mock of a record or a domain type.
+- **Mock only I/O collaborators.** These are SPIs, stores, clients and the engine. Build records,
+  domain types and steps for real, with their constructors or builders. Test a core decision without
+  mocks. Example: `AgentConversationTest`. A build check can find a mock of a record or a domain type.
 - **Test shared behavior once.** In unit and component tests, test the behavior of a base class in one
   place. A flavor test covers only what the flavor changes. A PR can delete a duplicate test when it
   names the test that keeps the coverage. E2e tests cover the AI Agent Task and the AI Agent
   Sub-process separately, because their BPMN models differ.
-- **Assert outcomes. Verify only interactions with the edges.** Assert the returned value or state.
+- **Assert outcomes. Verify only interactions with I/O collaborators.** Assert the returned value or state.
   Use `verify` and `inOrder` only for calls to an external system, where domain rule 6 needs the
   number of calls.
 

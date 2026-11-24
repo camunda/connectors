@@ -40,8 +40,8 @@ These documents are the only rules. Do not invent rules. Read the parts that app
    the job, or does it with a small change, report it with the `file:line` of the existing symbol.
 2. **Simplicity.** Find code that the issue or the request does not need: a speculative capability,
    configuration nobody asked for, error handling for a value that types or validation already
-   exclude, an abstraction with one use, an interface with one implementation that is neither an SPI nor a seam with two
-   or more adapters.
+   exclude, an abstraction with one use, an interface that is neither an SPI nor a place where two or
+   more implementations exist today.
 3. **Rules.** Check the change against each rule. Name the rule by its heading or its bold label, for
    example `Code design / Tell, don't ask` or `Domain rules / 3`.
 4. **Locations.** Check the list in `implementation-rules.md` under "Before you plan": both flavors,

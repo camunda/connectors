@@ -88,7 +88,7 @@ Change only what the issue or the request needs. Clean up only your own changes.
 
 ## Names
 
-The name predicts the behavior. The Javadoc states the edges: the inputs, the exceptions and the side
+The name predicts the behavior. The Javadoc states the contract: the inputs, the exceptions and the side
 effects. A good name does not replace a Javadoc that the rules below require.
 
 - **Same name, same behavior.** Overloads of one name do the same thing for different input types.
@@ -224,9 +224,9 @@ never as a side effect of a different change.
 
 Write code in a functional style. A function gets its inputs as arguments and gives its result as the
 return value. Values are immutable. A sealed type shows each possible outcome, so the caller must
-handle each one. Side effects (I/O, Spring, the engine) stay in the services at the edge. The rules
-below make this style specific. A step is a named collaborator that an orchestrator calls in order, for
-example `AgentInitializer` in `BaseAgentRequestHandler`.
+handle each one. Side effects (I/O, Spring, the engine) stay in the services that do I/O. The rules
+below make this style specific. A step is a named collaborator that an orchestrator calls in order,
+for example `AgentInitializer` in `BaseAgentRequestHandler`.
 
 - **Rich domain models.** Put behavior on the type that owns the data. Example: `AgentConversation`.
   A service is a class without domain state: a handler, composer, converter, registry, store or
