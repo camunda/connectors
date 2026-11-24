@@ -81,7 +81,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.85.1</version.grpc>
+    <version.grpc>1.86.0</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
     <version.protobuf>4.36.2</version.protobuf>
@@ -200,7 +200,7 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.24.0</version.langchain4j>
     <version.mcp-sdk>2.2.0</version.mcp-sdk>
-    <version.elasticsearch-java>8.19.25</version.elasticsearch-java>
+    <version.elasticsearch-java>8.19.26</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.26</version.elasticsearch-rest-client>
 
     <version.scala>3.10.1</version.scala>
