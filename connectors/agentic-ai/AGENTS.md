@@ -62,21 +62,21 @@ After a doc change, run the [docs checks](#docs-checks).
 The module is split into Maven modules with a fixed dependency direction
 ([ADR 015](docs/adr/015-split-agentic-ai-into-modules.md)):
 
-| Module                          | Package root                         | Contents                                                                                        | Depends on (agentic AI modules)                                       |
-| ------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `agentic-ai-common`             | `common`                             | Shared helpers grouped by topic (`json`, `retry`, `http`, `validation`, ...), common properties | none                                                                  |
-| `aiagent-model`                 | `aiagent.model`                      | Agent model referenced by the extension points                                                  | common                                                                |
-| `aiagent-api`                   | `aiagent.api`                        | Extension points (gateway tools, chat model, storage, prompts)                                  | model, common                                                         |
-| `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                                                  | api, model, common                                                    |
-| `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                                                   | tools-schema                                                          |
-| `connector-mcp`                 | `mcp.client`                         | MCP client connectors                                                                           | common                                                                |
-| `aiagent-mcp-integration`       | `mcp.integration`                    | MCP client as AI Agent gateway tool                                                             | connector-mcp, api, model, common                                     |
-| `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                                                           | common                                                                |
-| `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                                                             | connector-a2a, api, model, common                                     |
-| `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client                                   | tools-schema, api, model, common                                      |
-| `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes                                      | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
-| `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped                                           | all modules, in test scope                                            |
-| `agentic-ai-docs-lint`          | `docslint`                           | Checks that keep the docs in step with the modules and the code, not shipped                    | none                                                                  |
+| Module | Package root | Contents | Depends on (agentic AI modules) |
+| --- | --- | --- | --- |
+| `agentic-ai-common` | `common` | Shared helpers grouped by topic (`json`, `retry`, `http`, `validation`, ...), common properties | none |
+| `aiagent-model` | `aiagent.model` | Agent model referenced by the extension points | common |
+| `aiagent-api` | `aiagent.api` | Extension points (gateway tools, chat model, storage, prompts) | model, common |
+| `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution | api, model, common |
+| `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector | tools-schema |
+| `connector-mcp` | `mcp.client` | MCP client connectors | common |
+| `aiagent-mcp-integration` | `mcp.integration` | MCP client as AI Agent gateway tool | connector-mcp, api, model, common |
+| `connector-a2a` | `a2a.client` | A2A client connectors | common |
+| `aiagent-a2a-integration` | `a2a.integration` | A2A client as AI Agent gateway tool | connector-a2a, api, model, common |
+| `connector-aiagent` | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client | tools-schema, api, model, common |
+| `agentic-ai-bundle` | none (`pom` packaging) | All connectors and gateway tool integrations, for runtimes | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
+| `agentic-ai-archunit-tests` | none (test-only) | Architecture tests for the modules above, not shipped | all modules, in test scope |
+| `agentic-ai-docs-lint` | `docslint` | Checks that keep the docs in step with the modules and the code, not shipped | none |
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
 or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
@@ -138,38 +138,29 @@ a development tool and not production code.
 
 > Use the table below to find the doc for your task, then read only that doc or section. Each module `README.md` lists the docs of that module.
 
-| Working on…                                                              | Read                                                                                                                                                 |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The distributed agent loop / execution model                             | [`agentic-loop.md`](docs/architecture/agentic-loop.md#the-agentic-loop--distributed-execution-model)                                                 |
-| Agent state machine & initialization (INITIALIZING/TOOL_DISCOVERY/READY) | [`agent-state-machine.md`](connector-aiagent/docs/agent-state-machine.md)                                                                            |
-| Data model (`AgentContext`, `AgentResponse`, `ToolCallProcessVariable`)  | [`data-model.md`](aiagent-model/docs/data-model.md), [`response-handling.md`](connector-aiagent/docs/response-handling.md)                           |
-| Conversation memory, storage backends, write-ahead store contract        | [`conversation-store-spi.md`](aiagent-api/docs/conversation-store-spi.md), [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md) |
-| Tool resolution, FEEL `fromAi()` extraction, JSON-schema generation      | [`tool-resolution.md`](aiagent-tools-schema/docs/tool-resolution.md)                                                                                 |
-| Job completion / ad-hoc sub-process directives                           | [`agentic-loop.md`](docs/architecture/agentic-loop.md#job-completion--the-heart-of-the-distributed-loop)                                             |
-| Tool completion, partial results, no-op completion                       | [`agentic-loop.md`](docs/architecture/agentic-loop.md#what-happens-when-tools-complete)                                                              |
-| Concurrency & race conditions (supersession, store-ahead-of-Zeebe)       | [`agentic-loop.md`](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions)                                                       |
-| Event handling (sub-process only)                                        | [`agentic-loop.md`](docs/architecture/agentic-loop.md#event-handling)                                                                                |
+| Working on… | Read |
+| --- | --- |
+| Agent loop: execution model, job completion and AHSP directives, tool completion and partial results (no-op), concurrency and races (supersession, store-ahead-of-Zeebe), events (sub-process only) | `agentic-loop.md`: [execution model](docs/architecture/agentic-loop.md#the-agentic-loop--distributed-execution-model), [job completion](docs/architecture/agentic-loop.md#job-completion--the-heart-of-the-distributed-loop), [tools complete](docs/architecture/agentic-loop.md#what-happens-when-tools-complete), [concurrency](docs/architecture/agentic-loop.md#concurrency-challenges--race-conditions), [events](docs/architecture/agentic-loop.md#event-handling) |
+| Agent state machine & initialization (INITIALIZING/TOOL_DISCOVERY/READY) | [`agent-state-machine.md`](connector-aiagent/docs/agent-state-machine.md) |
+| Data model (`AgentContext`, `AgentResponse`, `ToolCallProcessVariable`) | [`data-model.md`](aiagent-model/docs/data-model.md), [`response-handling.md`](connector-aiagent/docs/response-handling.md) |
+| Conversation memory, storage backends, write-ahead store contract | [`conversation-store-spi.md`](aiagent-api/docs/conversation-store-spi.md), [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md) |
+| Tool resolution, FEEL `fromAi()` extraction, JSON-schema generation | [`tool-resolution.md`](aiagent-tools-schema/docs/tool-resolution.md) |
 | Chat model provider SPI, provider selection, LangChain4j converter chain | [`chat-model-spi.md`](aiagent-api/docs/chat-model-spi.md), [`chat-model.md`](connector-aiagent/docs/chat-model.md), [`langchain4j-chat-model.md`](connector-aiagent/docs/langchain4j-chat-model.md), [`custom-langchain4j-provider.md`](connector-aiagent/docs/custom-langchain4j-provider.md) |
-| System prompt composition / contributors                                 | [`system-prompt-contributor.md`](aiagent-api/docs/system-prompt-contributor.md), [`system-prompt.md`](connector-aiagent/docs/system-prompt.md)       |
-| Response handling (text / JSON / full message)                           | [`response-handling.md`](connector-aiagent/docs/response-handling.md)                                                                                |
-| Error codes                                                              | [`error-codes.md`](connector-aiagent/docs/error-codes.md)                                                                                            |
-| Spring auto-configuration, feature toggles, config defaults              | [`spring-auto-configuration.md`](docs/architecture/spring-auto-configuration.md)                                                                     |
-| Process instance migration (what's allowed / blocked)                    | [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md)                                                              |
-| Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [`extension-points.md`](docs/architecture/extension-points.md#gateway-tool-pattern)                                                                  |
-| Agent documents (registry, handles, expansion for the model, only Camunda documents) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`data-model.md`](aiagent-model/docs/data-model.md), [ADR 018](docs/adr/018-document-flow.md) |
+| Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](connector-aiagent/docs/native-providers.md) |
+| System prompt composition / contributors | [`system-prompt-contributor.md`](aiagent-api/docs/system-prompt-contributor.md), [`system-prompt.md`](connector-aiagent/docs/system-prompt.md) |
+| Response handling (text / JSON / full message) | [`response-handling.md`](connector-aiagent/docs/response-handling.md) |
+| Error codes | [`error-codes.md`](connector-aiagent/docs/error-codes.md) |
+| Spring auto-configuration, feature toggles, config defaults | [`spring-auto-configuration.md`](docs/architecture/spring-auto-configuration.md) |
+| Process instance migration (what's allowed / blocked) | [`process-instance-migration.md`](connector-aiagent/docs/process-instance-migration.md) |
+| Agent documents: registry, handles, expansion for the model, only Camunda documents, references per agent (`data.documents.references`, the `documents` feature), user prompt delivery (`reference` or `content`, `data.documents.userPromptDelivery`), returning (`c8__return_document`, `responseDocuments`) and loading (`c8__load_document`) documents | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`data-model.md`](aiagent-model/docs/data-model.md), [`response-handling.md`](connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl), [ADR 018](docs/adr/018-document-flow.md#document-references-per-agent) |
 | Document parameters of tools (`fromAi` type `document`, resolution, rejection) | [`document-parameters.md`](connector-aiagent/docs/document-parameters.md), [`extension-points.md`](docs/architecture/extension-points.md#documents-and-gateway-tools), [ADR 018](docs/adr/018-document-flow.md) |
-| Returning documents in the final response (`c8__return_document`, `responseDocuments`, response documents of the agent context) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [`response-handling.md`](connector-aiagent/docs/response-handling.md#agentresponsehandlerimpl), [`data-model.md`](aiagent-model/docs/data-model.md), [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 018](docs/adr/018-document-flow.md) |
-| Loading document content (`c8__load_document`) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 018](docs/adr/018-document-flow.md) |
-| Document references per agent (`data.documents.references`, the `documents` feature) | [ADR 018](docs/adr/018-document-flow.md#document-references-per-agent), [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results) |
-| User prompt delivery (`reference` or `content`, `data.documents.userPromptDelivery`) | [`extension-points.md`](docs/architecture/extension-points.md#document-extraction-from-tool-call-results), [ADR 018](docs/adr/018-document-flow.md) |
-| MCP integration                                                          | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md)                       |
-| A2A integration                                                          | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md)                       |
-| Example BPMN processes & configurations                                  | the examples section of the connector module READMEs, [`examples/`](examples/)                                                                       |
-| Agent instance API (status, metrics, history reporting)                  | [`agent-instance.md`](connector-aiagent/docs/agent-instance.md)                                                                                      |
-| Key entry points (connector functions of both flavors, shared orchestrator, Spring wiring) | [key types of `connector-aiagent`](connector-aiagent/README.md#key-types)                                                  |
-| **Architectural invariants (what you must not break)**                   | [`design-guidelines.md`](docs/design-guidelines.md#architectural-invariants)                                                                         |
-| **Extension points**: add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool or a runtime tool by implementing the SPI and registering a Spring bean. A process tool must not have the name of a runtime tool that is enabled. | SPI and reference implementation per type: [`extension-points.md`](docs/architecture/extension-points.md#extension-points); gateway tools: [Gateway Tool Pattern](docs/architecture/extension-points.md#gateway-tool-pattern); runtime tools: [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 016](docs/adr/016-runtime-tools.md) |
-| Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](connector-aiagent/docs/native-providers.md)                                                                                  |
+| MCP integration | [`mcp-gateway-tool.md`](aiagent-mcp-integration/docs/mcp-gateway-tool.md), [`mcp-client.md`](connector-mcp/docs/mcp-client.md) |
+| A2A integration | [`a2a-gateway-tool.md`](aiagent-a2a-integration/docs/a2a-gateway-tool.md), [`a2a-client.md`](connector-a2a/docs/a2a-client.md) |
+| Example BPMN processes & configurations | the examples section of the connector module READMEs, [`examples/`](examples/) |
+| Agent instance API (status, metrics, history reporting) | [`agent-instance.md`](connector-aiagent/docs/agent-instance.md) |
+| Key entry points (connector functions of both flavors, shared orchestrator, Spring wiring) | [key types of `connector-aiagent`](connector-aiagent/README.md#key-types) |
+| **Architectural invariants (what you must not break)** | [`design-guidelines.md`](docs/design-guidelines.md#architectural-invariants) |
+| **Extension points**: add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool (the MCP/A2A extensibility mechanism) or a runtime tool by implementing the SPI and registering a Spring bean. A process tool must not have the name of a runtime tool that is enabled. | SPI and reference implementation per type: [`extension-points.md`](docs/architecture/extension-points.md#extension-points); gateway tools: [Gateway Tool Pattern](docs/architecture/extension-points.md#gateway-tool-pattern); runtime tools: [Add a runtime tool](docs/architecture/extension-points.md#add-a-runtime-tool), [ADR 016](docs/adr/016-runtime-tools.md) |
 
 ## Mental model
 
@@ -195,16 +186,16 @@ These terms are overloaded; the three `*Context` types are the usual confusion. 
 `AgentExecutionContext`) and [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter) for the
 conversation and turn types (everything else below).
 
-| Term                                  | One-line meaning                                                                                                         |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Turn** (`AgentConversationTurn`)    | one LLM call (input messages, assistant response, per-turn metrics); pending when `assistantMessage == null`             |
-| **Iteration** / `iterationKey`        | 1-based counter across the agent's lifetime identifying a turn                                                           |
-| **AgentContext**                      | durable persisted state (state, metrics, tool definitions, conversation pointer); the `agentContext` process variable    |
-| **ConversationContext**               | pointer inside `AgentContext` to where messages live (in-process holds the messages, other stores hold only the pointer) |
-| **AgentExecutionContext**             | transient per-invocation request context (job metadata, provider config, prompts, limits); not persisted                 |
-| **AgentConversation**                 | immutable in-process turn aggregate, built per invocation                                                                |
-| **Snapshot** (`ConversationSnapshot`) | transient windowed read-only view sent to the LLM                                                                        |
-| **Window**                            | sliding message limit (`MessageWindowFilter`) applied to the snapshot; full history is always persisted                  |
+| Term | One-line meaning |
+| --- | --- |
+| **Turn** (`AgentConversationTurn`) | one LLM call (input messages, assistant response, per-turn metrics); pending when `assistantMessage == null` |
+| **Iteration** / `iterationKey` | 1-based counter across the agent's lifetime identifying a turn |
+| **AgentContext** | durable persisted state (state, metrics, tool definitions, conversation pointer); the `agentContext` process variable |
+| **ConversationContext** | pointer inside `AgentContext` to where messages live (in-process holds the messages, other stores hold only the pointer) |
+| **AgentExecutionContext** | transient per-invocation request context (job metadata, provider config, prompts, limits); not persisted |
+| **AgentConversation** | immutable in-process turn aggregate, built per invocation |
+| **Snapshot** (`ConversationSnapshot`) | transient windowed read-only view sent to the LLM |
+| **Window** | sliding message limit (`MessageWindowFilter`) applied to the snapshot; full history is always persisted |
 
 ## Gotchas
 
