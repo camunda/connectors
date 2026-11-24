@@ -69,8 +69,9 @@ Mermaid fences are fine.
 
 `AgenticAiDocsTest` in `agentic-ai-docs-lint` checks the README layout, the links and anchors, the
 absence of `java` code blocks, and that each backticked type and type-member reference exists in the sources.
-Run it after a doc change. See [Docs checks in `connectors/agentic-ai/AGENTS.md`](../AGENTS.md#docs-checks) for the command and for the
-`docs-lint` comments that allow an exception.
+Run it after a doc change. See [Docs checks in `connectors/agentic-ai/AGENTS.md`](../AGENTS.md#docs-checks) for the command,
+and the [`agentic-ai-docs-lint` README](../agentic-ai-docs-lint/README.md#rules) for the `docs-lint` comments that allow an
+exception.
 
 It does not find a doc that describes old behavior with current names. The update rule above and the
 review cover that.
