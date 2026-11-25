@@ -157,8 +157,7 @@ class GenerateElementTemplateTest {
     assertThat(property("import-events_eventTime").getValue())
         .isEqualTo(GenerateElementTemplate.EVENT_TIME);
     assertThat((String) property("import-events_body").getValue())
-        .contains(
-            "time: eventTime", "\"$insert_id\": string(eventTime)", "distinct_id: distinctId");
+        .contains("time: eventTime", "\"$insert_id\": uuid()", "distinct_id: distinctId");
   }
 
   @Test

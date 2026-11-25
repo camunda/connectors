@@ -18,8 +18,9 @@ reports. It has no runtime code: it runs as the [REST Connector](./../http/rest)
   supply authentication.
 - The data residency field picks the US (default), EU or India host for each operation. The two
   APIs live on different hosts.
-- Import event sets `time` and `$insert_id` once, when the task starts, so a retried task sends the
-  same values and Mixpanel drops the duplicate. Both can be overridden in the event properties.
+- Import event sets `time` (now) and `$insert_id` (a UUID) once, when the task starts, so a retried
+  task sends the same values and Mixpanel drops the duplicate. Two separate imports get different
+  `$insert_id`s, so Mixpanel counts both. Both values can be overridden in the event properties.
   `strict=1` makes Mixpanel reject invalid events with HTTP 400, which fails the job.
 - The query API allows 60 queries per hour.
 

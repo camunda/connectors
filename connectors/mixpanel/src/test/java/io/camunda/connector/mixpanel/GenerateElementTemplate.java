@@ -112,7 +112,9 @@ public class GenerateElementTemplate {
   /**
    * The event time in epoch milliseconds, taken once when the task starts. Input mappings are not
    * evaluated again when the job is retried, so a retry sends the same time and the same {@code
-   * $insert_id}, and Mixpanel drops the duplicate.
+   * $insert_id} (a {@code uuid()} in the body mapping, evaluated the same way), and Mixpanel drops
+   * the duplicate. Two separate imports get different {@code $insert_id}s, so Mixpanel counts both
+   * even when the event name, user and time are the same.
    */
   static final String EVENT_TIME =
       "=(now() - date and time(\"1970-01-01T00:00:00Z\")) / duration(\"PT0.001S\")";
@@ -233,9 +235,9 @@ public class GenerateElementTemplate {
    *   <li>Project ID: every call needs it as a query parameter. One field serves both operations.
    *       It stays on the task: a credential can only add authentication, not a query parameter.
    *   <li>Import event: the raw body is an empty {@code =}. It gets named fields, and the body adds
-   *       the time and {@code $insert_id} that Mixpanel requires, so a retried task is not counted
-   *       twice. {@code strict=1} makes Mixpanel reject invalid events with HTTP 400, which fails
-   *       the job.
+   *       the time and a {@code uuid()} {@code $insert_id} that Mixpanel requires, so a retried
+   *       task is not counted twice and two separate imports are not merged. {@code strict=1} makes
+   *       Mixpanel reject invalid events with HTTP 400, which fails the job.
    *   <li>Query saved report: the raw query parameters default to 0. They become a report ID and an
    *       optional workspace ID with help text.
    * </ul>
@@ -331,7 +333,7 @@ public class GenerateElementTemplate {
           .group("parameters")
           .value(
               "=[{\n  event: eventName,\n  properties: put all(\n    {time: eventTime,"
-                  + " \"$insert_id\": string(eventTime), distinct_id: distinctId},\n"
+                  + " \"$insert_id\": uuid(), distinct_id: distinctId},\n"
                   + "    if eventProperties = null then {} else eventProperties\n  )\n}]")
           .binding(new ZeebeInput("body"))
           .condition(property.getCondition())

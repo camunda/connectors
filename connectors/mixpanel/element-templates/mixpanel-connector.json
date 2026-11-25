@@ -457,7 +457,7 @@
     },
     {
       "id" : "import-events_body",
-      "value" : "=[{\n  event: eventName,\n  properties: put all(\n    {time: eventTime, \"$insert_id\": string(eventTime), distinct_id: distinctId},\n    if eventProperties = null then {} else eventProperties\n  )\n}]",
+      "value" : "=[{\n  event: eventName,\n  properties: put all(\n    {time: eventTime, \"$insert_id\": uuid(), distinct_id: distinctId},\n    if eventProperties = null then {} else eventProperties\n  )\n}]",
       "group" : "parameters",
       "binding" : {
         "name" : "body",

@@ -20,6 +20,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -82,7 +83,10 @@ class MixpanelTests {
             .withRequestBody(matchingJsonPath("$[0].properties.distinct_id", equalTo("user-1")))
             .withRequestBody(matchingJsonPath("$[0].properties.orderId", equalTo("o-1")))
             .withRequestBody(matchingJsonPath("$[0].properties.time"))
-            .withRequestBody(matchingJsonPath("$[0].properties['$insert_id']"))
+            .withRequestBody(
+                matchingJsonPath(
+                    "$[0].properties['$insert_id']",
+                    matching("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")))
             .willReturn(
                 okJson("{\"code\": 200, \"num_records_imported\": 1, \"status\": \"OK\"}")));
 
