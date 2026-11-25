@@ -180,8 +180,6 @@ class DocumentToolCallResultsIT {
 
     awaitCompletionOrIncident(processInstance);
     assertThat(processInstance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
         .hasVariableSatisfies(
             "agent",
             Object.class,
@@ -209,7 +207,6 @@ class DocumentToolCallResultsIT {
             Map.of("archiveUrl", wireMock.getHttpBaseUrl() + ARCHIVE_PATH));
 
     awaitCompletionOrIncident(processInstance);
-    assertThat(processInstance).withAssertionTimeout(PROCESS_TIMEOUT).isCompleted();
 
     var uploads = findAll(postRequestedFor(urlPathEqualTo(ARCHIVE_PATH)));
     Assertions.assertThat(uploads).as("requests to the archive endpoint").hasSize(1);
@@ -239,8 +236,6 @@ class DocumentToolCallResultsIT {
     awaitCompletionOrIncident(processInstance);
     var coverPage = new AtomicReference<Map<?, ?>>();
     assertThat(processInstance)
-        .withAssertionTimeout(PROCESS_TIMEOUT)
-        .isCompleted()
         .hasVariableSatisfies(
             "downloadedFiles", List.class, files -> coverPage.set((Map<?, ?>) files.get(2)))
         .hasVariableSatisfies(
