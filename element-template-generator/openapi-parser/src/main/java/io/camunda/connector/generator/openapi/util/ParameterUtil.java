@@ -36,10 +36,32 @@ public class ParameterUtil {
           "header", HttpOperationProperty.Target.HEADER,
           "headers", HttpOperationProperty.Target.HEADER);
 
+  /** Returns the parameter a {@code $ref} points to, or the parameter itself. */
+  public static Parameter resolve(Parameter parameter, Components components) {
+    if (parameter.get$ref() != null) {
+      return resolveParameterRef(parameter.get$ref(), components);
+    }
+    return parameter;
+  }
+
+  /**
+   * Cookie parameters can't be mapped to the REST connector. An optional one can be left out, so
+   * the operation still works without it.
+   */
+  public static boolean isOptionalCookie(Parameter parameter) {
+    return "cookie".equals(parameter.getIn()) && !Boolean.TRUE.equals(parameter.getRequired());
+  }
+
   public static HttpOperationProperty transformToProperty(
       Parameter parameter, Components components) {
-    if (parameter.get$ref() != null) {
-      parameter = resolveParameterRef(parameter.get$ref(), components);
+    parameter = resolve(parameter, components);
+    if (parameter.getIn() == null || !targetMapping.containsKey(parameter.getIn())) {
+      throw new IllegalArgumentException(
+          "Parameter '"
+              + parameter.getName()
+              + "' in '"
+              + parameter.getIn()
+              + "' is not supported");
     }
     if (parameter.getSchema() != null) {
       return fromSchema(parameter, components);
