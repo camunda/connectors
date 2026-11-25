@@ -22,11 +22,12 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredExcep
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetricsTokenUsageBuilder;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Optional;
@@ -51,25 +52,80 @@ public class LangChain4JChatModel implements ChatModel {
   private static final Logger LOG = LoggerFactory.getLogger(LangChain4JChatModel.class);
 
   private final CloseableChatModel chatModel;
-  private final ProviderConfiguration providerConfiguration;
+  private final String provider;
   private final ChatMessageConverter chatMessageConverter;
   private final ToolSpecificationConverter toolSpecificationConverter;
   private final JsonSchemaConverter jsonSchemaConverter;
+  private final ToolCallMetadataCodec toolCallMetadataCodec;
   private final Function<@Nullable TokenUsage, AgentMetrics.TokenUsage> tokenUsageMapper;
 
+  /**
+   * Creates a model that carries no provider data through the tool calls ({@link
+   * ToolCallMetadataCodec#NONE}) and maps the base token usage ({@link #mapTokenUsage}).
+   *
+   * @param chatModel the LangChain4j model. The connector closes it with this model.
+   * @param configuration the chat model configuration. The model keeps only its provider ID, which
+   *     is the namespace of the data that the tool calls carry.
+   */
   public LangChain4JChatModel(
       CloseableChatModel chatModel,
-      ProviderConfiguration providerConfiguration,
+      ChatModelConfiguration configuration,
+      ChatMessageConverter chatMessageConverter,
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
+    this(
+        chatModel,
+        configuration,
+        chatMessageConverter,
+        toolSpecificationConverter,
+        jsonSchemaConverter,
+        ToolCallMetadataCodec.NONE,
+        LangChain4JChatModel::mapTokenUsage);
+  }
+
+  /**
+   * @param chatModel the LangChain4j model. The connector closes it with this model.
+   * @param configuration the chat model configuration. The model keeps only its provider ID, which
+   *     is the namespace of the data that the tool calls carry.
+   * @param toolCallMetadataCodec carries provider data through the tool calls
+   * @param tokenUsageMapper maps the token usage of a response. A mapper that adds the cache or
+   *     reasoning token detail of its provider starts from {@link #baseTokenUsageBuilder}.
+   */
+  public LangChain4JChatModel(
+      CloseableChatModel chatModel,
+      ChatModelConfiguration configuration,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter,
+      ToolCallMetadataCodec toolCallMetadataCodec,
       Function<@Nullable TokenUsage, AgentMetrics.TokenUsage> tokenUsageMapper) {
     this.chatModel = chatModel;
-    this.providerConfiguration = providerConfiguration;
+    this.provider = configuration.provider();
     this.chatMessageConverter = chatMessageConverter;
     this.toolSpecificationConverter = toolSpecificationConverter;
     this.jsonSchemaConverter = jsonSchemaConverter;
+    this.toolCallMetadataCodec = toolCallMetadataCodec;
     this.tokenUsageMapper = tokenUsageMapper;
+  }
+
+  /**
+   * Maps the input and output token counts of a response. This is the default of the constructor
+   * without a mapper. A custom mapper that adds the cache or reasoning token detail of its provider
+   * starts from {@link #baseTokenUsageBuilder}.
+   */
+  public static AgentMetrics.TokenUsage mapTokenUsage(@Nullable TokenUsage usage) {
+    if (usage == null) {
+      return AgentMetrics.TokenUsage.empty();
+    }
+
+    return baseTokenUsageBuilder(usage).build();
+  }
+
+  /** The input and output token counts of a response, for a custom mapper to extend. */
+  public static AgentMetricsTokenUsageBuilder baseTokenUsageBuilder(TokenUsage usage) {
+    return AgentMetrics.TokenUsage.builder()
+        .inputTokenCount(usage.inputTokenCount() != null ? usage.inputTokenCount() : 0)
+        .outputTokenCount(usage.outputTokenCount() != null ? usage.outputTokenCount() : 0);
   }
 
   @Override
@@ -78,7 +134,8 @@ public class LangChain4JChatModel implements ChatModel {
     final var executionContext = request.executionContext();
     final var snapshot = request.snapshot();
 
-    final var messages = chatMessageConverter.map(snapshot.messages(), providerConfiguration);
+    final var messages =
+        chatMessageConverter.map(snapshot.messages(), provider, toolCallMetadataCodec);
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(snapshot.toolDefinitions());
 
@@ -92,7 +149,7 @@ public class LangChain4JChatModel implements ChatModel {
     final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
 
     final AssistantMessage assistantMessage =
-        chatMessageConverter.toAssistantMessage(chatResponse, providerConfiguration);
+        chatMessageConverter.toAssistantMessage(chatResponse, provider, toolCallMetadataCodec);
     final var metrics = buildMetrics(chatResponse, assistantMessage, executionTime);
 
     if (assistantMessage.stopReason() instanceof UnknownStopReason unknown

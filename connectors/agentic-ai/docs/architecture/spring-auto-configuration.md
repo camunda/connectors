@@ -14,13 +14,13 @@ The agentic AI connectors are wired by several Spring Boot auto-configurations, 
 | `McpClientAutoConfiguration`                   | common                                                         | MCP client connector configurations (see [`mcp-client.md`](../../connector-mcp/docs/mcp-client.md#spring-configuration))    |
 | `McpClientAgenticToolAutoConfiguration`        | `McpClientAutoConfiguration`                                   | MCP gateway tool beans for the AI Agent                                                   |
 | `AgenticAiConnectorsAutoConfiguration`         | common, tools schema                                           | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries, AWS SDK and Azure HTTP proxy support) |
+| `AgenticAiLangChain4JAutoConfiguration`        | common                                                         | LangChain4j bridge: converter chain and proxy support for custom `ChatModelFactory` beans built on LangChain4j. Off by default, `camunda.connector.agenticai.aiagent.langchain4j.enabled=true` loads it |
 
 The AI Agent does not reference the MCP and A2A integrations. It collects every `GatewayToolHandler`
 and `SystemPromptContributor` bean through list injection, so the order of the integration
 auto-configurations does not matter.
 
 `AgenticAiConnectorsAutoConfiguration` imports:
-- `AgenticAiLangChain4JFrameworkConfiguration`: LangChain4j converter chain, imports `AgenticAiLangChain4JChatModelConfiguration` for the `ChatModelFactory` beans of the v1 provider configurations
 - `AgenticAiNativeProvidersConfiguration`: `ChatModelFactory` beans of the native providers (v2 provider configurations)
 
 Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatModelFactory` bean) directly, outside of the imported configurations.
@@ -35,7 +35,7 @@ the AI Agent Sub-process functions (`camunda.connector.agenticai.aiagent.job-wor
 ## Key Differences from Standard Connectors
 
 1. **Dual activation modes**: Both an outbound connector (`AgentTaskV1Function`) and a job worker (`AgentSubProcessV1Function`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
-2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)) is implemented by the native providers and by the LangChain4j chat models for v1 provider configurations, and any `ChatModelFactory` bean extends it. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry, which needs exactly one match. Both imported configurations load unconditionally; v1 requests run on the native providers unless `camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is `false`.
+2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([`chat-model-spi.md`](../../aiagent-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)) is implemented by the native providers, and any `ChatModelFactory` bean extends it, for example a custom factory built on the LangChain4j bridge. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry, which needs exactly one match. The native configuration loads unconditionally, the LangChain4j configuration only with `camunda.connector.agenticai.aiagent.langchain4j.enabled=true`; v1 requests run on the native providers.
 3. **Pluggable system prompt contributors**: All `SystemPromptContributor` beans are auto-collected into `SystemPromptComposerImpl`.
 4. **Pluggable gateway tool handlers**: All `GatewayToolHandler` beans are auto-collected into `GatewayToolHandlerRegistryImpl`.
 5. **Caffeine caching of BPMN resolution**: Process definition fetch (API + XML parse + FEEL extraction) is cached with configurable TTL and max size.

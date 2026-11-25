@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.too
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -47,12 +48,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -95,8 +96,12 @@ class LangChain4JChatModelTest {
   private static final ConversationSnapshot SNAPSHOT =
       new ConversationSnapshot(INPUT_MESSAGES, TOOL_DEFINITIONS);
 
-  private static final ProviderConfiguration PROVIDER_CONFIGURATION =
-      new AnthropicProviderConfiguration(null);
+  private static final String PROVIDER = "test-provider";
+
+  private static final ChatModelConfiguration CONFIGURATION =
+      new CustomProviderConfiguration(PROVIDER, "test-model", Map.of());
+
+  private static final ToolCallMetadataCodec TOOL_CALL_METADATA_CODEC = ToolCallMetadataCodec.NONE;
 
   @Mock private ChatMessageConverter chatMessageConverter;
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
@@ -118,16 +123,19 @@ class LangChain4JChatModelTest {
     lenient().when(chatModel.chat(chatRequestCaptor.capture())).thenReturn(chatResponse);
     lenient().when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
     lenient()
-        .when(chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER_CONFIGURATION))
+        .when(
+            chatMessageConverter.toAssistantMessage(
+                chatResponse, PROVIDER, TOOL_CALL_METADATA_CODEC))
         .thenReturn(ASSISTANT_MESSAGE);
 
     api =
         new LangChain4JChatModel(
             chatModel,
-            PROVIDER_CONFIGURATION,
+            CONFIGURATION,
             chatMessageConverter,
             toolSpecificationConverter,
             jsonSchemaConverter,
+            TOOL_CALL_METADATA_CODEC,
             usage ->
                 usage == null
                     ? AgentMetrics.TokenUsage.empty()
@@ -141,7 +149,8 @@ class LangChain4JChatModelTest {
   // stubbed per-test rather than in setUp() (not every test calls execute(), e.g.
   // closeClosesTheUnderlyingChatModel), so a strict, non-lenient stub is used only where needed
   private void mockChatMessageConverterMapsInputMessages() {
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER, TOOL_CALL_METADATA_CODEC))
+        .thenReturn(L4J_MESSAGES);
   }
 
   @Test
@@ -166,14 +175,15 @@ class LangChain4JChatModelTest {
   @Test
   void throwsContentFilteredExceptionForContentFilteredResponse() {
     reset(chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER, TOOL_CALL_METADATA_CODEC))
+        .thenReturn(L4J_MESSAGES);
     when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
 
     final var filteredAssistantMessage =
         AssistantMessage.builder()
             .stopReason(new StopReason.UnknownStopReason("CONTENT_FILTER"))
             .build();
-    when(chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER_CONFIGURATION))
+    when(chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER, TOOL_CALL_METADATA_CODEC))
         .thenReturn(filteredAssistantMessage);
 
     assertThatThrownBy(() -> api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT)))
@@ -189,7 +199,8 @@ class LangChain4JChatModelTest {
   @Test
   void wrapsUnderlyingExceptionsInConnectorException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER, TOOL_CALL_METADATA_CODEC))
+        .thenReturn(L4J_MESSAGES);
 
     final var cause = new ModelNotFoundException("Model 'dummy' was not found");
     doThrow(cause).when(chatModel).chat(any(dev.langchain4j.model.chat.request.ChatRequest.class));
@@ -208,7 +219,8 @@ class LangChain4JChatModelTest {
   @Test
   void usesExceptionClassIfNoMessageIncludedInException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER, TOOL_CALL_METADATA_CODEC))
+        .thenReturn(L4J_MESSAGES);
 
     final var cause = new UnresolvedModelServerException((String) null);
     doThrow(cause).when(chatModel).chat(any(dev.langchain4j.model.chat.request.ChatRequest.class));
@@ -378,5 +390,47 @@ class LangChain4JChatModelTest {
             new AgentConfiguration(null, null, null, null, null, null, responseConfiguration));
 
     return executionContext;
+  }
+
+  @Nested
+  class Defaults {
+
+    @Test
+    void mapsInputAndOutputTokenCountsByDefault() {
+      assertThat(LangChain4JChatModel.mapTokenUsage(new TokenUsage(5, 6)))
+          .isEqualTo(new AgentMetrics.TokenUsage(5, 6));
+    }
+
+    @Test
+    void mapsMissingTokenCountsToZero() {
+      assertThat(LangChain4JChatModel.mapTokenUsage(new TokenUsage(null, 6)))
+          .isEqualTo(new AgentMetrics.TokenUsage(0, 6));
+    }
+
+    @Test
+    void mapsMissingTokenUsageToEmpty() {
+      assertThat(LangChain4JChatModel.mapTokenUsage(null))
+          .isEqualTo(AgentMetrics.TokenUsage.empty());
+    }
+
+    @Test
+    void theConstructorWithoutCodecAndMapperUsesTheDefaultTokenUsageMapping() {
+      when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER, ToolCallMetadataCodec.NONE))
+          .thenReturn(L4J_MESSAGES);
+      when(chatMessageConverter.toAssistantMessage(
+              chatResponse, PROVIDER, ToolCallMetadataCodec.NONE))
+          .thenReturn(ASSISTANT_MESSAGE);
+
+      final var result =
+          new LangChain4JChatModel(
+                  chatModel,
+                  CONFIGURATION,
+                  chatMessageConverter,
+                  toolSpecificationConverter,
+                  jsonSchemaConverter)
+              .execute(new ChatRequest(createExecutionContext(), SNAPSHOT));
+
+      assertThat(result.metrics().tokenUsage()).isEqualTo(new AgentMetrics.TokenUsage(5, 6));
+    }
   }
 }

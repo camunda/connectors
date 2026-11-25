@@ -208,14 +208,12 @@ public final class BedrockConverseRecordedConversation {
 
     /**
      * Renders a tool-result content block list to plain text for the shared {@code
-     * ProviderWireFormatExpectedMessage} DSL. Unlike the v1 (LangChain4j) provider, which always
-     * stringifies tool results into {@code text} blocks, the native v2 provider preserves a
-     * non-string tool result's actual type ({@code
-     * BedrockConverseContentConverter#toToolResultBlocks(List)} emits {@code
-     * ToolResultContentBlock.fromJson(...)} for non-text {@code Content}, e.g. the bare number
-     * {@code 24} a script task returns) - so a {@code json} block's value ({@code asText()} renders
-     * a number/boolean/string node the same way {@code toString()} would print it) is rendered the
-     * same way a {@code text} block's value is.
+     * ProviderWireFormatExpectedMessage} DSL. The native provider preserves a non-string tool
+     * result's actual type ({@code BedrockConverseContentConverter#toToolResultBlocks(List)} emits
+     * {@code ToolResultContentBlock.fromJson(...)} for non-text {@code Content}, e.g. the bare
+     * number {@code 24} a script task returns) - so a {@code json} block's value ({@code asText()}
+     * renders a number/boolean/string node the same way {@code toString()} would print it) is
+     * rendered the same way a {@code text} block's value is.
      */
     private static String toolResultText(JsonNode content) {
       return StreamSupport.stream(content.spliterator(), false)

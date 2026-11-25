@@ -56,7 +56,8 @@ location that the change must reach:
   only bug fixes and security patches, no new features. Example: the v1 (legacy) AI Agent element
   templates.
 - **All conversation stores:** in-process, Camunda document and AWS AgentCore.
-- **All providers** that the change applies to, native and LangChain4j.
+- **All providers** that the change applies to: the native providers, and the LangChain4j bridge converters when the
+  change alters the domain message or content model. `LangChain4JBridgeTest` covers the bridge.
 - **Running process instances:** instances that started on an earlier connector version, and process
   instance migration. See [domain rule 1](#domain-rules).
 

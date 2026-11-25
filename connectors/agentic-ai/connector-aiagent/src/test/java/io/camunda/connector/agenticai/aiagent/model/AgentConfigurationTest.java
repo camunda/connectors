@@ -14,9 +14,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
@@ -61,8 +58,13 @@ class AgentConfigurationTest {
       @Nullable Integer maxModelCalls,
       List<ToolDefinition> tools) {
     return new AgentConfiguration(
-            new OpenAiProviderConfiguration(
-                new OpenAiConnection(null, null, new OpenAiModel(model, null))),
+            new OpenAiChatModelConfiguration(
+                new OpenAiChatModelConfiguration.OpenAiConnection(
+                    new OpenAiCompletionsApi(null),
+                    new OpenAiApiBackend(
+                        new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+                    new OpenAiChatModelConfiguration.OpenAiModel(model),
+                    null)),
             new SystemPromptConfiguration(systemPrompt),
             null,
             null,
@@ -473,11 +475,11 @@ class AgentConfigurationTest {
           argumentSet(
               "a tool with named parameters",
               weatherConfiguration(),
-              "54cad7783b01af263376f0345902a5dc34a3039eb9e6212370e0311654c8be91"),
+              "cfad171d2bfc9b4cc3f71f1983247fc174ef479ea0e54c64230e3c6c20fd21de"),
           argumentSet(
               "numbers, a null, an empty list, a date and a duration",
               edgeCaseConfiguration(),
-              "d3a1689d430b256ecc32ee95a679b614341b23b6fc97e054e3e58e5bf93fbb2e"));
+              "c68448466b9d196fba68938d9b04807c76800f1078569589b2bab78c1bc37af6"));
     }
 
     private static AgentConfiguration weatherConfiguration() {

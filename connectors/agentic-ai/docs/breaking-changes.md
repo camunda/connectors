@@ -31,6 +31,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Runtime tools and tool names](#runtime-tools-and-tool-names)                | Processes with a tool element named like a runtime tool        |
 | [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records (`AgentContext`, `ToolCall`), switches over `Content` |
 | [Persisted data](#persisted-data-8-11)                                       | Custom `ConversationStore` implementations, code reading stored messages, the agent context, stored tool calls or the `CONFIGURATION` items of the agent instance history, rollbacks |
+| [V1 provider configuration](#v1-provider-configuration) | Runtimes that set the switch `rewrite-v1-provider-config-to-v2`, and custom LangChain4j factories |
 
 ### Module split
 
@@ -284,7 +285,7 @@ request handler:
   `AgentSubProcessV2Function(AgentSubProcessExecutionContextFactory, AgentSubProcessRequestHandler)`.
 
 The auto-configuration provides the `aiAgentExecutionContextFactory` bean of type `AgentExecutionContextFactory`. It
-implements both interfaces and applies the `rewrite-v1-provider-config-to-v2` setting that the v1 functions took before.
+implements both interfaces. It maps the v1 provider configuration of a v1 request to its v2 equivalent.
 A bean of either interface replaces it, so each enabled flavor needs a bean of its interface. Migration: in a custom function
 bean, inject the `AgentTaskExecutionContextFactory` or `AgentSubProcessExecutionContextFactory` bean.
 
@@ -425,6 +426,25 @@ applies it to its persisted context, and the next round continues with the conte
   for a runtime tool call and `rejection` for a rejected call.
 - Do not rely on the JSON shape of these fields in external systems.
 
+### V1 provider configuration
+
+The switch `camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is removed. v1 provider
+configurations always run on the native providers, and the connector logs a warning at startup while the property is
+set.
+
+The LangChain4j vendor factories and their dependencies are removed. A generic bridge for custom providers stays
+([ADR 019](adr/019-langchain4j-extension-bridge.md), [how to use it](../connector-aiagent/docs/custom-langchain4j-provider.md)).
+It is off by default. Set `camunda.connector.agenticai.aiagent.langchain4j.enabled=true` to load it. If you have a
+custom factory:
+
+- `LangChain4JChatModelFactory` is removed. Implement `ChatModelFactory` and return a `LangChain4JChatModel`, which you
+  create with the constructor of `LangChain4JChatModel`. `providerType()` is removed from the factory.
+- `ToolCallMetadataDecorator` is replaced by a `ToolCallMetadataCodec`, which you pass to the constructor of `LangChain4JChatModel`.
+- The token usage mapping `mapTokenUsage` moves to `LangChain4JChatModel#mapTokenUsage`. To map more detail, use the
+  constructor of `LangChain4JChatModel` with your own mapper.
+- `LangChain4JChatModel` takes the `ChatModelConfiguration` and a `ToolCallMetadataCodec`, and `ChatMessageConverter` takes the provider ID and a `ToolCallMetadataCodec`, instead of the v1 `ProviderConfiguration`.
+- The v1 `ProviderConfiguration` records no longer implement `ChatModelConfiguration`.
+
 ## Camunda 8.9 to 8.10
 
 Summary of what changes for a custom extension. Details follow in the linked sections.
@@ -511,7 +531,7 @@ Bedrock Converse, Mistral) implement it and are the target for the new `v2` elem
 The previous LangChain4j factories (`AiFrameworkAdapter`, `ChatModelFactory`, `ChatModelFactoryImpl`
 and the rest of the `aiagent.framework.langchain4j` package) are removed. If you overrode or
 extended them, adapt the logic to the new factories. Alternatively, register a `ChatModelFactory` bean for the **Custom Implementation** provider of the `v2` templates.
-It can extend `LangChain4JChatModelFactory` to reuse an existing LangChain4j chat model. The
+It can build on the LangChain4j bridge to reuse an existing LangChain4j chat model. The
 connector creates and closes one `ChatModel` per request, so register only the factory as a bean.
 `ChatModelRegistry` fails when zero or more than one factory matches, so `supports` must only match
 the configurations your factory owns.

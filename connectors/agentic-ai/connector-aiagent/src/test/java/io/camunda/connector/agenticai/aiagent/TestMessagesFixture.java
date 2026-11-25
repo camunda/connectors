@@ -26,9 +26,10 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
-import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiModel;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -39,8 +40,13 @@ public abstract class TestMessagesFixture {
 
   /** A minimal valid {@link ChatModelConfiguration} for tests that don't care about its details. */
   public static final ChatModelConfiguration TEST_CHAT_MODEL =
-      new OpenAiProviderConfiguration(
-          new OpenAiConnection(null, null, new OpenAiModel("test-model", null)));
+      new OpenAiChatModelConfiguration(
+          new OpenAiChatModelConfiguration.OpenAiConnection(
+              new OpenAiCompletionsApi(null),
+              new OpenAiApiBackend(
+                  new OpenAiApiConnection("test-key", null, null, null, null, null, null)),
+              new OpenAiChatModelConfiguration.OpenAiModel("test-model"),
+              null));
 
   /** A minimal valid system prompt configuration for tests that don't care about its details. */
   public static final SystemPromptConfiguration TEST_SYSTEM_PROMPT =

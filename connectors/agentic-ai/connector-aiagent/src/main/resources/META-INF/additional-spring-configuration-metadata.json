@@ -11,6 +11,21 @@
       "type": "java.lang.Boolean",
       "description": "Whether to enable/register the AI Agent Ad-Hoc Sub-Process job worker.",
       "defaultValue": "true"
+    },
+    {
+      "name": "camunda.connector.agenticai.aiagent.langchain4j.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to load the LangChain4j bridge (converters and HTTP proxy support) for custom chat model factories that are built on LangChain4j.",
+      "defaultValue": "false"
+    },
+    {
+      "name": "camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2",
+      "type": "java.lang.Boolean",
+      "description": "Removed. v1 provider configurations always run on the native providers.",
+      "deprecation": {
+        "level": "error",
+        "reason": "The property is removed and has no effect. v1 provider configurations always run on the native providers."
+      }
     }
   ]
 }

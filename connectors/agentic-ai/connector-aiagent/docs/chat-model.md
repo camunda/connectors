@@ -35,14 +35,11 @@ Two kinds of implementation exist:
   Azure and Microsoft Foundry backends), Mistral and Gemini (including the Vertex AI backend).
   `AgenticAiNativeProvidersConfiguration` registers their factories. Each factory supports the matching
   `request.v2` configuration type. See [`native-providers.md`](native-providers.md).
-- **LangChain4j** has one factory per v1 provider. Each factory supports the v1 `ProviderConfiguration` of its
-  provider. See [`langchain4j-chat-model.md`](langchain4j-chat-model.md).
+- **LangChain4j** is a generic bridge for custom providers. It ships no factory for a vendor. See
+  [`langchain4j-chat-model.md`](langchain4j-chat-model.md).
 
-A configuration is either a v1 or a v2 type, so only one kind of factory can match it. By default, the
-`AgentExecutionContextFactory` bean rewrites the v1 provider configuration to its v2 equivalent with
+The `AgentExecutionContextFactory` bean rewrites the v1 provider configuration to its v2 equivalent with
 `V1ToV2ProviderConfigurationMapper` when it builds the execution context of a v1 request, so v1 requests
-run on the native providers. The
-LangChain4j factories are used only when
-`camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is `false`. A
+run on the native providers. A
 `CustomProviderConfiguration` is served by a user-supplied factory, see
 [`extension-points.md`](../../docs/architecture/extension-points.md#add-an-llm-provider).
