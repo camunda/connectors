@@ -244,6 +244,7 @@ class DocumentToolCallResultsIT {
             agent -> {
               logAgentResponse(provider, "returnDocument", agent);
               var documents = (Map<?, ?>) agent.get("responseDocuments");
+              Assertions.assertThat(documents).as("response documents").isNotNull();
               Assertions.assertThat(documents.keySet().stream().map(String::valueOf))
                   .as("keys of the response documents")
                   .containsExactly(COVER_PAGE_KEY);
