@@ -25,7 +25,7 @@
       "defaultValue": "true",
       "deprecation": {
         "level": "warning",
-        "reason": "Deprecated and removed in 8.11. From 8.11, v1 provider configurations always run on the native providers."
+        "reason": "Will be removed in 8.11. v1 provider configurations then always run on the native providers."
       }
     },
     {
