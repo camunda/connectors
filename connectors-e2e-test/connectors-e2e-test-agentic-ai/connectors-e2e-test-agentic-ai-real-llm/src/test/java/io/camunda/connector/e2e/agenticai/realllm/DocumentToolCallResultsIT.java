@@ -69,7 +69,7 @@ import org.springframework.core.io.ResourceLoader;
 
 /**
  * Cross-provider viability test for document handling in tool call results, covering both the v1
- * (LangChain4j-backed) and v2 (native) provider configurations.
+ * and v2 provider configurations.
  *
  * <p>Validates that real LLM providers can reason about PDF documents returned by tool calls. A v2
  * row creates an agent instance with the {@code documents} feature: a tool result shows the handle
@@ -322,7 +322,7 @@ class DocumentToolCallResultsIT {
         ollamaV1("llama3.1:8b").disabled());
   }
 
-  /** OpenAI, v1 (LangChain4j-backed). */
+  /** OpenAI, v1 configuration. */
   static ProviderConfig openAiV1(String model) {
     return new ProviderConfig(
         "openai-v1/" + model,
@@ -378,7 +378,7 @@ class DocumentToolCallResultsIT {
             model));
   }
 
-  /** Anthropic, v1 (LangChain4j-backed). */
+  /** Anthropic, v1 configuration. */
   static ProviderConfig anthropicV1(String model) {
     return new ProviderConfig(
         "anthropic-v1/" + model,
@@ -438,7 +438,7 @@ class DocumentToolCallResultsIT {
             "anthropic." + model));
   }
 
-  /** AWS Bedrock, v1 (LangChain4j-backed); Anthropic models via cross-region inference. */
+  /** AWS Bedrock, v1 configuration; Anthropic models via cross-region inference. */
   static ProviderConfig bedrockV1(String model) {
     return new ProviderConfig(
         "bedrock-v1/" + model,
@@ -542,7 +542,7 @@ class DocumentToolCallResultsIT {
             model));
   }
 
-  /** Docker Model Runner, v1 (LangChain4j-backed; OpenAI-compatible). */
+  /** Docker Model Runner, v1 configuration (OpenAI-compatible). */
   static ProviderConfig dockerModelRunnerV1(String model) {
     var url =
         System.getenv()
@@ -558,7 +558,7 @@ class DocumentToolCallResultsIT {
             "provider.openaiCompatible.model.model", model));
   }
 
-  /** Ollama, v1 (LangChain4j-backed; OpenAI-compatible). */
+  /** Ollama, v1 configuration (OpenAI-compatible). */
   static ProviderConfig ollamaV1(String model) {
     var url = System.getenv().getOrDefault("OLLAMA_URL", "http://localhost:11434/v1");
     return new ProviderConfig(
