@@ -401,6 +401,59 @@ class GeminiContentRequestConverterTest {
   }
 
   @Test
+  void restoresThoughtSignatureFromLegacyVertexAiNamespace() {
+    final var signatureBytes = "legacy-sig".getBytes(StandardCharsets.UTF_8);
+    final var metadata =
+        Map.<String, Object>of(
+            "google-vertex-ai",
+            Map.of(
+                GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
+                Base64.getEncoder().encodeToString(signatureBytes)));
+
+    final var contents = converter.toContents(snapshotWithToolCallMetadata(metadata));
+
+    assertThat(contents)
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(modelContentWithFunctionCall(signatureBytes)));
+  }
+
+  @Test
+  void prefersGoogleGeminiNamespaceOverLegacyVertexAiNamespace() {
+    final var geminiSignatureBytes = "gemini-sig".getBytes(StandardCharsets.UTF_8);
+    final var legacySignatureBytes = "legacy-sig".getBytes(StandardCharsets.UTF_8);
+    final var metadata =
+        Map.<String, Object>of(
+            GeminiChatModelConfiguration.GOOGLE_GEMINI_ID,
+            Map.of(
+                GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
+                Base64.getEncoder().encodeToString(geminiSignatureBytes)),
+            "google-vertex-ai",
+            Map.of(
+                GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
+                Base64.getEncoder().encodeToString(legacySignatureBytes)));
+
+    final var contents = converter.toContents(snapshotWithToolCallMetadata(metadata));
+
+    assertThat(contents)
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(modelContentWithFunctionCall(geminiSignatureBytes)));
+  }
+
+  @Test
+  void omitsThoughtSignatureWhenOnlyAnUnrelatedNamespaceIsPresentOnToolCallMetadata() {
+    final var metadata =
+        Map.<String, Object>of(
+            "some-other-provider",
+            Map.of(
+                GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
+                Base64.getEncoder().encodeToString("other-sig".getBytes(StandardCharsets.UTF_8))));
+
+    final var contents = converter.toContents(snapshotWithToolCallMetadata(metadata));
+
+    assertThat(contents).containsExactly(modelContentWithFunctionCall(null));
+  }
+
+  @Test
   void omitsThoughtSignatureOnReplayedFunctionCallPartWhenAbsentFromToolCallMetadata() {
     final var snapshot =
         new ConversationSnapshot(
@@ -732,5 +785,41 @@ class GeminiContentRequestConverterTest {
     return new GeminiContentResponseConverter()
         .toResult(response, Duration.ZERO)
         .assistantMessage();
+  }
+
+  private static ConversationSnapshot snapshotWithToolCallMetadata(Map<String, Object> metadata) {
+    return new ConversationSnapshot(
+        List.of(
+            AssistantMessage.builder()
+                .toolCalls(
+                    List.of(
+                        ToolCall.builder()
+                            .id("call-1")
+                            .name("getWeather")
+                            .arguments(Map.of("city", "Berlin"))
+                            .metadata(metadata)
+                            .build()))
+                .build()),
+        List.of());
+  }
+
+  private static Content modelContentWithFunctionCall(byte @Nullable [] thoughtSignature) {
+    final var functionCallPart =
+        Part.builder()
+            .functionCall(
+                FunctionCall.builder()
+                    .id("call-1")
+                    .name("getWeather")
+                    .args(Map.of("city", "Berlin"))
+                    .build())
+            .build();
+    return Content.builder()
+        .role("model")
+        .parts(
+            List.of(
+                thoughtSignature == null
+                    ? functionCallPart
+                    : functionCallPart.toBuilder().thoughtSignature(thoughtSignature).build()))
+        .build();
   }
 }
