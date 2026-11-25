@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedExc
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiErrorCodes;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.CompletionsRequestSpec;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
@@ -93,7 +94,8 @@ public class MistralChatModel implements ChatModel {
     } catch (ConnectorException | ChatModelRejectedException e) {
       throw e;
     } catch (BadRequestException e) {
-      if (MISTRAL_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED.equals(e.code().orElse(null))) {
+      if (MISTRAL_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED.equals(
+          OpenAiErrorCodes.codeOf(e).orElse(null))) {
         throw new ContextWindowExceededException(failureMessage(e), e, null);
       }
       throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
