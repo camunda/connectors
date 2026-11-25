@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.api.tool.ToolCallEffect;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
@@ -45,7 +46,10 @@ public final class LoadDocumentTool implements RuntimeTool {
   private static final ToolDefinition DEFINITION =
       ToolDefinition.runtime(
           NAME,
-          "Loads the content of a document from the conversation. Pass its handle. Do not call it"
+          "Loads the content of a document from the conversation. A document handle is an object"
+              + " with the type \""
+              + AgentDocumentHandle.TYPE
+              + "\"; it holds no content. Pass the handle of the document to load. Do not call it"
               + " when the conversation has no document handle. Do not load content that you"
               + " already have.",
           schema());
