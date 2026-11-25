@@ -17,6 +17,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -26,8 +27,10 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
@@ -69,6 +72,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
@@ -506,6 +510,65 @@ class OpenAiChatModelFactoryClientTest {
                   + Base64.getEncoder()
                       .encodeToString("proxyuser:proxypass".getBytes(StandardCharsets.UTF_8)));
     }
+  }
+
+  @Test
+  void keepsProviderMessageOfNumericErrorCodeOnResponsesApi(WireMockRuntimeInfo wireMock) {
+    // OpenAI-compatible endpoints such as OpenRouter answer a numeric error code
+    stubBadRequest(
+        "/responses", "{\"error\":{\"message\":\"Provider rejected the request.\",\"code\":400}}");
+
+    assertThatThrownBy(() -> executeAgainst(apiBackend(wireMock)))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+              assertThat(e.getMessage()).contains("Provider rejected the request.");
+            });
+  }
+
+  @Test
+  void keepsProviderMessageOfNumericErrorCodeOnCompletionsApi(WireMockRuntimeInfo wireMock) {
+    stubBadRequest(
+        "/chat/completions",
+        "{\"error\":{\"message\":\"Provider rejected the request.\",\"code\":400}}");
+
+    assertThatThrownBy(() ->
+            executeAgainst(
+                new OpenAiCompletionsApi(new CompletionsParameters(null, null, null, null)),
+                apiBackend(wireMock)))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+              assertThat(e.getMessage()).contains("Provider rejected the request.");
+            });
+  }
+
+  @Test
+  void mapsStringContextLengthErrorCodeToContextWindowExceeded(WireMockRuntimeInfo wireMock) {
+    stubBadRequest(
+        "/responses",
+        "{\"error\":{\"message\":\"Too long.\",\"code\":\"context_length_exceeded\"}}");
+
+    assertThatThrownBy(() -> executeAgainst(apiBackend(wireMock)))
+        .isInstanceOf(ContextWindowExceededException.class);
+  }
+
+  private static OpenAiApiBackend apiBackend(WireMockRuntimeInfo wireMock) {
+    return new OpenAiApiBackend(
+        new OpenAiApiConnection(
+            "openai-api-secret-key", null, null, wireMock.getHttpBaseUrl(), null, null, null));
+  }
+
+  private static void stubBadRequest(String path, String errorBody) {
+    stubFor(
+        post(urlPathEqualTo(path))
+            .willReturn(
+                aResponse()
+                    .withStatus(400)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(errorBody)));
   }
 
   private static OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver() {

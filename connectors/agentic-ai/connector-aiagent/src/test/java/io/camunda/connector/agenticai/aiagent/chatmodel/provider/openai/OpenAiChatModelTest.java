@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
 import com.openai.client.OpenAIClient;
+import com.openai.core.JsonValue;
 import com.openai.core.http.Headers;
 import com.openai.errors.BadRequestException;
 import com.openai.models.ErrorObject;
@@ -39,9 +40,15 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -204,6 +211,65 @@ class OpenAiChatModelTest {
         .isInstanceOf(ConnectorException.class)
         .extracting(e -> ((ConnectorException) e).getErrorCode())
         .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+  }
+
+  static Stream<Arguments> nonStringErrorCodes() {
+    return Stream.of(
+        Arguments.of("numeric", JsonValue.from(400)),
+        Arguments.of("boolean", JsonValue.from(true)),
+        Arguments.of("object", JsonValue.from(Map.of("status", 400))));
+  }
+
+  @ParameterizedTest(name = "{0} error code")
+  @MethodSource("nonStringErrorCodes")
+  void keepsProviderMessageOfBadRequestWithNonStringErrorCode(
+      String description, JsonValue rawCode) {
+    // OpenAI-compatible endpoints such as OpenRouter answer {"error": {"message": "...", "code":
+    // 400}}. The SDK's BadRequestException#code() throws OpenAIInvalidDataException for such a
+    // body, which must neither escape execute() nor hide the provider's message.
+    final var error =
+        ErrorObject.builder()
+            .code(rawCode)
+            .message("Provider rejected the replayed tool call.")
+            .param((String) null)
+            .type("invalid_request_error")
+            .build();
+    final var thrown =
+        BadRequestException.builder().headers(Headers.builder().build()).error(error).build();
+    when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(thrown);
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+              assertThat(e.getMessage())
+                  .contains("Provider rejected the replayed tool call.")
+                  .doesNotContain("`code` is invalid");
+              assertThat(e.getCause()).isSameAs(thrown);
+            });
+  }
+
+  @Test
+  void keepsProviderMessageOfBadRequestWithoutErrorCode() {
+    final var error =
+        ErrorObject.builder()
+            .code(Optional.<String>empty())
+            .message("Provider rejected the request.")
+            .param((String) null)
+            .type("invalid_request_error")
+            .build();
+    final var thrown =
+        BadRequestException.builder().headers(Headers.builder().build()).error(error).build();
+    when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(thrown);
+
+    assertThatThrownBy(() -> api.execute(request))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+              assertThat(e.getMessage()).contains("Provider rejected the request.");
+            });
   }
 
   @Test

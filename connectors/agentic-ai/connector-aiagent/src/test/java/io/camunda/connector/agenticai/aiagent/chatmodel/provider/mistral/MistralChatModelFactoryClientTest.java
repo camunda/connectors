@@ -17,6 +17,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -24,8 +25,10 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
@@ -50,6 +53,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsA
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
@@ -294,6 +298,43 @@ class MistralChatModelFactoryClientTest {
 
   private void executeAgainst(MistralBackend backend) {
     executeAgainst(httpProxySupport, backend);
+  }
+
+  @Test
+  void keepsProviderMessageOfNumericErrorCode(WireMockRuntimeInfo wireMock) {
+    stubBadRequest("{\"error\":{\"message\":\"Provider rejected the request.\",\"code\":400}}");
+
+    assertThatThrownBy(() -> executeAgainst(apiBackend(wireMock)))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+              assertThat(e.getMessage()).contains("Provider rejected the request.");
+            });
+  }
+
+  @Test
+  void mapsStringContextLengthErrorCodeToContextWindowExceeded(WireMockRuntimeInfo wireMock) {
+    stubBadRequest("{\"error\":{\"message\":\"Too long.\",\"code\":\"context_length_exceeded\"}}");
+
+    assertThatThrownBy(() -> executeAgainst(apiBackend(wireMock)))
+        .isInstanceOf(ContextWindowExceededException.class);
+  }
+
+  private static MistralApiBackend apiBackend(WireMockRuntimeInfo wireMock) {
+    return new MistralApiBackend(
+        new MistralApiConnection(
+            "mistral-secret-key", wireMock.getHttpBaseUrl(), null, null, null));
+  }
+
+  private static void stubBadRequest(String errorBody) {
+    stubFor(
+        post(urlPathEqualTo("/chat/completions"))
+            .willReturn(
+                aResponse()
+                    .withStatus(400)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(errorBody)));
   }
 
   private static OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver() {
