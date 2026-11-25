@@ -226,7 +226,7 @@ class AnthropicChatModelTest {
   }
 
   @Test
-  void logsUnexpectedFailureAsErrorWithItsStackTrace() {
+  void logsUnhandledFailureAsErrorWithItsStackTrace() {
     when(requestConverter.toMessageCreateParams(any(), any(), any()))
         .thenReturn(mock(MessageCreateParams.class));
     when(client.messages()).thenThrow(new IllegalStateException());

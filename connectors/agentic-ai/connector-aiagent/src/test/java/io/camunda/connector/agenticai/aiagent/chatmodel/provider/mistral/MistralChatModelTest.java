@@ -352,7 +352,7 @@ class MistralChatModelTest {
   }
 
   @Test
-  void logsUnexpectedFailureAsErrorWithItsStackTrace() {
+  void logsUnhandledFailureAsErrorWithItsStackTrace() {
     when(requestConverter.toRequest(any(), any(), any())).thenThrow(new IllegalStateException());
 
     final var logs =

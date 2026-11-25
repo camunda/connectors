@@ -219,7 +219,7 @@ class BedrockConverseChatModelTest {
   }
 
   @Test
-  void logsUnexpectedFailureAsErrorWithItsStackTrace() {
+  void logsUnhandledFailureAsErrorWithItsStackTrace() {
     when(requestConverter.toConverseStreamRequest(any(), any(), any()))
         .thenReturn(mock(ConverseStreamRequest.class));
     when(client.converseStream(

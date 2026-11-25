@@ -92,7 +92,7 @@ public class BedrockConverseChatModel implements ChatModel {
       // real cause (typically an AwsServiceException) is unwrapped here so it can be translated the
       // same way a synchronously-thrown AwsServiceException would be below.
       final Throwable failure = e.getCause() != null ? e.getCause() : e;
-      logIfUnexpected(failure);
+      logIfUnhandled(failure);
       throw toConnectorException(failure);
     } catch (AwsServiceException e) {
       throw toConnectorException(e);
@@ -101,12 +101,12 @@ public class BedrockConverseChatModel implements ChatModel {
       // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
       throw e;
     } catch (Exception e) {
-      logIfUnexpected(e);
+      logIfUnhandled(e);
       throw toConnectorException(e);
     }
   }
 
-  private void logIfUnexpected(Throwable failure) {
+  private void logIfUnhandled(Throwable failure) {
     // the failures of the AWS SDK carry their own message, and a coded failure was thrown on
     // purpose
     if (!(failure instanceof SdkException

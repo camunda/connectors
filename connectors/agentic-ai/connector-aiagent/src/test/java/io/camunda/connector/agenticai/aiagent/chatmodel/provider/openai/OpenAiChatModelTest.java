@@ -273,7 +273,7 @@ class OpenAiChatModelTest {
   }
 
   @Test
-  void logsUnexpectedFailureAsErrorWithItsStackTrace() {
+  void logsUnhandledFailureAsErrorWithItsStackTrace() {
     when(strategy.call(eq(client), eq(configuration), eq(request)))
         .thenThrow(new IllegalStateException());
 

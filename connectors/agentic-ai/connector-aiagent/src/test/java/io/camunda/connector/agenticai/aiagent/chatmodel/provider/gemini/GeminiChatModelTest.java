@@ -215,7 +215,7 @@ class GeminiChatModelTest {
   }
 
   @Test
-  void logsUnexpectedFailureAsErrorWithItsStackTrace() {
+  void logsUnhandledFailureAsErrorWithItsStackTrace() {
     when(requestConverter.toGenerateContentConfig(any(), any(), any()))
         .thenReturn(GenerateContentConfig.builder().build());
     when(requestConverter.toContents(any())).thenReturn(List.of());
