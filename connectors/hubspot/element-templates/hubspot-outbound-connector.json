@@ -21,6 +21,8 @@
     "get all deals",
     "get deal by ID",
     "search deal",
+    "create deal",
+    "update deal",
     "delete deal",
     "submit form",
     "add to list",
@@ -29,7 +31,7 @@
     "marketing"
   ],
   "id": "io.camunda.connectors.HubSpot.v1",
-  "version": 5,
+  "version": 6,
   "documentationRef": "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/hubspot/",
   "category": {
     "id": "connectors",
@@ -42,7 +44,7 @@
     "value": "bpmn:ServiceTask"
   },
   "engines": {
-    "camunda": "^8.11"
+    "camunda": "^8.10"
   },
   "groups": [
     {
@@ -296,6 +298,14 @@
         {
           "name": "Search deal",
           "value": "post-/crm/v3/objects/deals/search_doSearch"
+        },
+        {
+          "name": "Create deal",
+          "value": "post-/crm/v3/objects/deals_create"
+        },
+        {
+          "name": "Update deal",
+          "value": "patch-/crm/v3/objects/deals/{dealId}_update"
         },
         {
           "name": "Delete deal",
@@ -1984,6 +1994,242 @@
       "type": "Hidden"
     },
 
+    {
+      "id": "post-/crm/v3/objects/deals_create_properties",
+      "label": "Deal properties",
+      "description": "HubSpot requires dealname and dealstage. Use internal names and IDs, not display labels.",
+      "tooltip": "The properties of the deal, as a context of property names and values. Accepts standard properties such as pipeline, amount, closedate and hubspot_owner_id, as well as custom properties. See the <a href=\"https://developers.hubspot.com/docs/reference/api/crm/objects/deals\" target=\"_blank\">HubSpot deals API</a>.",
+      "feel": "required",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "properties"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals_create",
+        "type": "simple"
+      },
+      "value": "={\n  \"dealname\": \"Auto Loan - Jane Doe\",\n  \"pipeline\": \"default\",\n  \"dealstage\": \"appointmentscheduled\",\n  \"amount\": \"20000\"\n}"
+    },
+    {
+      "id": "post-/crm/v3/objects/deals_create_associations",
+      "label": "Associations",
+      "description": "Use associationTypeId 3 to associate a contact and 5 to associate a company.",
+      "tooltip": "The records to associate with the deal, as a list in the HubSpot association format. Leave empty to create the deal without associations. See the <a href=\"https://developers.hubspot.com/docs/reference/api/crm/objects/deals\" target=\"_blank\">HubSpot deals API</a>.",
+      "placeholder": "=[{\"to\": {\"id\": \"123\"}, \"types\": [{\"associationCategory\": \"HUBSPOT_DEFINED\", \"associationTypeId\": 3}]}]",
+      "optional": true,
+      "feel": "required",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "associations"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals_create",
+        "type": "simple"
+      }
+    },
+    {
+      "id": "post-/crm/v3/objects/deals_create_body",
+      "value": "={\"properties\": properties, \"associations\": if associations = null then [] else associations}",
+      "group": "input",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals_create",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/deals_create_$path",
+      "value": "=\"/crm/v3/objects/deals\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals_create",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/deals_create_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals_create",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/deals_create_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals_create",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/deals_create_$method",
+      "value": "POST",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals_create",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "id": "patch-/crm/v3/objects/deals/{dealId}_update_path_dealId",
+      "label": "Deal id",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "dealId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/deals/{dealId}_update",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "patch-/crm/v3/objects/deals/{dealId}_update_properties",
+      "label": "Deal properties",
+      "description": "Use internal names and IDs, not display labels.",
+      "tooltip": "The properties to change, as a context of property names and values. Properties that you leave out keep their value. To move the deal to another stage, set dealstage to the internal ID of that stage. See the <a href=\"https://developers.hubspot.com/docs/reference/api/crm/objects/deals\" target=\"_blank\">HubSpot deals API</a>.",
+      "placeholder": "={\"dealstage\": \"qualifiedtobuy\"}",
+      "feel": "required",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "properties"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/deals/{dealId}_update",
+        "type": "simple"
+      }
+    },
+    {
+      "id": "patch-/crm/v3/objects/deals/{dealId}_update_body",
+      "value": "={\"properties\": properties}",
+      "group": "input",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/deals/{dealId}_update",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "patch-/crm/v3/objects/deals/{dealId}_update_$path",
+      "value": "=\"/crm/v3/objects/deals/\"+string(dealId)",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/deals/{dealId}_update",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "patch-/crm/v3/objects/deals/{dealId}_update_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/deals/{dealId}_update",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "patch-/crm/v3/objects/deals/{dealId}_update_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/deals/{dealId}_update",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "patch-/crm/v3/objects/deals/{dealId}_update_$method",
+      "value": "PATCH",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/deals/{dealId}_update",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
 
     {
       "label": "Portal id",
@@ -2499,7 +2745,7 @@
     },
     {
       "name": "Deals",
-      "description": "Read, search and delete HubSpot deals",
+      "description": "Read, create, update, delete and search HubSpot deals",
       "steps": [
         {
           "name": "List deals",
@@ -2518,6 +2764,18 @@
           "description": "Search deals in HubSpot by a property value.",
           "keywords": [ "search deals", "find deal", "query deals", "filter deals" ],
           "presetId": "deals_search"
+        },
+        {
+          "name": "Create deal",
+          "description": "Create a new deal in HubSpot.",
+          "keywords": [ "create deal", "add deal", "new deal", "insert deal" ],
+          "presetId": "deals_create"
+        },
+        {
+          "name": "Update deal",
+          "description": "Update the properties of an existing deal in HubSpot, such as its stage.",
+          "keywords": [ "update deal", "edit deal", "modify deal", "change deal stage" ],
+          "presetId": "deals_update"
         },
         {
           "name": "Delete deal",
@@ -2677,6 +2935,20 @@
       "properties": {
         "resourceType": "deals",
         "operationId": "post-/crm/v3/objects/deals/search_doSearch"
+      }
+    },
+    {
+      "id": "deals_create",
+      "properties": {
+        "resourceType": "deals",
+        "operationId": "post-/crm/v3/objects/deals_create"
+      }
+    },
+    {
+      "id": "deals_update",
+      "properties": {
+        "resourceType": "deals",
+        "operationId": "patch-/crm/v3/objects/deals/{dealId}_update"
       }
     },
     {
