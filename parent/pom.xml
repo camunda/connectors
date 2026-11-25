@@ -163,6 +163,10 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-106450 / CVE-2026-106451: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.4
          Ref: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv -->
     <version.lz4-java>1.14.1</version.lz4-java>
+    <!-- GHSA-vqvm-6237-5phf: dd-plist transitive override (via Apache Tika in
+         connectors/embeddings-vector-database) — remove once Tika ships dd-plist >= 1.31
+         Ref: https://github.com/3breadt/dd-plist/security/advisories/GHSA-vqvm-6237-5phf -->
+    <version.dd-plist>1.31</version.dd-plist>
 
     <version.microsoft-graph>6.74.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.10.5</version.microsoft-kiota-abstraction>
@@ -785,6 +789,16 @@ limitations under the License.</license.inlineheader>
         <groupId>at.yawk.lz4</groupId>
         <artifactId>lz4-java</artifactId>
         <version>${version.lz4-java}</version>
+      </dependency>
+
+      <!-- GHSA-vqvm-6237-5phf: override dd-plist brought in transitively by Apache Tika
+           (connectors/embeddings-vector-database). Remove once Tika ships dd-plist >= 1.31.
+           Guarded by the version.apache-tika enforcer rule in
+           connectors/embeddings-vector-database/pom.xml. -->
+      <dependency>
+        <groupId>com.googlecode.plist</groupId>
+        <artifactId>dd-plist</artifactId>
+        <version>${version.dd-plist}</version>
       </dependency>
 
       <dependency>
