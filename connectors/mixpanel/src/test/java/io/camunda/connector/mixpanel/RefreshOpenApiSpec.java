@@ -49,11 +49,11 @@ public class RefreshOpenApiSpec {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   public static void main(String[] args) throws Exception {
-    ObjectNode merged = null;
+    ObjectNode merged;
     try (HttpClient client = HttpClient.newHttpClient()) {
-      for (String file : SPEC_FILES) {
-        ObjectNode trimmed = trim(download(client, URI.create(SPECS_URL + file)));
-        merged = merged == null ? trimmed : merge(merged, trimmed, file);
+      merged = trim(download(client, URI.create(SPECS_URL + SPEC_FILES.getFirst())));
+      for (String file : SPEC_FILES.subList(1, SPEC_FILES.size())) {
+        merge(merged, trim(download(client, URI.create(SPECS_URL + file))), file);
       }
     }
 
