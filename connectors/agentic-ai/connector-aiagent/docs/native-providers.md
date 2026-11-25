@@ -379,7 +379,10 @@ rather than inferred from absence. Setting both a budget and an explicit level i
 only errors on Gemini 3.x (2.5 just ignores `thinkingLevel`); a deliberate simplification, not a bug.
 `thoughtSignature` is preserved verbatim on any part it appears on (not only `functionCall`/thinking
 parts — a plain text part can carry one too) and restored byte-identical on replay; Gemini 3 rejects a
-follow-up request whose history dropped it.
+follow-up request whose history dropped it. The signature of a `functionCall` is read from the tool
+call's metadata under `google-gemini`. When that namespace has no entry, the provider reads the
+`google-vertex-ai` namespace, under which the LangChain4j Vertex AI path of earlier connector versions
+persisted it. The `google-gemini` entry takes precedence.
 
 ### Caching
 

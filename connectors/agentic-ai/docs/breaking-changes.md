@@ -430,7 +430,8 @@ applies it to its persisted context, and the next round continues with the conte
 
 The switch `camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is removed. v1 provider
 configurations always run on the native providers, and the connector logs a warning at startup while the property is
-set.
+set. The native Gemini provider reads the thought signatures that the LangChain4j Vertex AI path persisted, so Gemini 3
+conversations continue.
 
 The LangChain4j vendor factories and their dependencies are removed. A generic bridge for custom providers stays
 ([ADR 019](adr/019-langchain4j-extension-bridge.md), [how to use it](../connector-aiagent/docs/custom-langchain4j-provider.md)).
