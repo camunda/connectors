@@ -509,7 +509,7 @@ class DocumentToolCallResultsIT {
 
   /**
    * OpenRouter, v2, via the OpenAI custom backend. The file-parser plugin parses PDFs for models
-   * without native PDF input; only the US host accepts its engines.
+   * without native PDF input with the mistral-ocr engine, which the EU host does not accept.
    */
   static ProviderConfig openRouterV2(String model) {
     return new ProviderConfig(
