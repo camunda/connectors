@@ -106,9 +106,9 @@ the configurations your factory owns.
 By default, v1 provider configurations (legacy element templates) are rewritten to their v2
 equivalent and run on the native providers
 (`camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2`, default `true`). The
-switch is temporary and will be removed in a future release. The LangChain4j based factories
-(`aiagent.chatmodel.provider.langchain4j`) are only used when the switch is `false` and are
-deprecated.
+switch is deprecated and will be removed in 8.11, where v1 provider configurations always run on
+the native providers. The LangChain4j based factories (`aiagent.chatmodel.provider.langchain4j`) are only used
+when the switch is `false` and are deprecated.
 
 ### Moved and removed classes
 
