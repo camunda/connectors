@@ -412,8 +412,7 @@
         "oneOf": [
           "createItemInQueue"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Item value",
