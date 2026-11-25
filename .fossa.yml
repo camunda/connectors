@@ -56,6 +56,9 @@ targets:
     target: io.camunda.connector:connectors-e2e-test-elevenlabs
   - type: maven
     path: parent/
+    target: io.camunda.connector:connectors-e2e-test-mixpanel
+  - type: maven
+    path: parent/
     target: io.camunda.connector:connectors-e2e-test-http
   - type: maven
     path: parent/

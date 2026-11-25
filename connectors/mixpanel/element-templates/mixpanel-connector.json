@@ -1,0 +1,656 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Mixpanel Outbound Connector",
+  "id" : "io.camunda.connectors.Mixpanel.v1",
+  "description" : "Record process milestones as Mixpanel events and query saved reports",
+  "keywords" : [
+    "Mixpanel",
+    "product analytics",
+    "import event",
+    "track event",
+    "insights",
+    "report"
+  ],
+  "documentationRef" : "https://docs.camunda.io/docs/8.11/components/connectors/out-of-the-box-connectors/mixpanel/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [
+    "bpmn:Task"
+  ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.11"
+  },
+  "groups" : [
+    {
+      "id" : "operation",
+      "label" : "Operation"
+    },
+    {
+      "id" : "authentication",
+      "label" : "Authentication"
+    },
+    {
+      "id" : "project",
+      "label" : "Project"
+    },
+    {
+      "id" : "parameters",
+      "label" : "Parameters"
+    },
+    {
+      "id" : "url",
+      "label" : "URL"
+    },
+    {
+      "id" : "output",
+      "label" : "Output mapping"
+    },
+    {
+      "id" : "error",
+      "label" : "Error handling"
+    },
+    {
+      "id" : "retries",
+      "label" : "Retries"
+    }
+  ],
+  "properties" : [
+    {
+      "id" : "operationId",
+      "label" : "Operation",
+      "value" : "import-events",
+      "group" : "operation",
+      "binding" : {
+        "name" : "operationId",
+        "type" : "zeebe:input"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Import event",
+          "value" : "import-events"
+        },
+        {
+          "name" : "Query saved report",
+          "value" : "insights-query"
+        }
+      ]
+    },
+    {
+      "id" : "serviceAuthenticationConfiguration",
+      "label" : "Authentication credential",
+      "optional" : true,
+      "group" : "authentication",
+      "binding" : {
+        "name" : "serviceAuthenticationConfiguration",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Choose a reusable Mixpanel credential, or configure the one-time service account below.",
+      "type" : "Configuration",
+      "configurationTemplate" : "io.camunda.connectors:mixpanel-authentication:1"
+    },
+    {
+      "id" : "authentication.type",
+      "value" : "basic",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "authentication.username",
+      "label" : "Service account username",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.username",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "tooltip" : "Username of a Mixpanel service account with access to the project. Create one in Mixpanel under Organization settings or Project settings > Service accounts.",
+      "type" : "String"
+    },
+    {
+      "id" : "authentication.password",
+      "label" : "Service account secret",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.password",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "tooltip" : "Secret of the Mixpanel service account.",
+      "type" : "String",
+      "secret" : true
+    },
+    {
+      "id" : "projectId",
+      "label" : "Project ID",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "project",
+      "binding" : {
+        "name" : "projectId",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "ID of the Mixpanel project. It is the number after /project/ in the Mixpanel URL.",
+      "type" : "String"
+    },
+    {
+      "id" : "region",
+      "label" : "Data residency",
+      "value" : "us",
+      "group" : "project",
+      "binding" : {
+        "name" : "region",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Where the project's data is stored. Use EU or India only if the project is enrolled in that data residency.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "US (default)",
+          "value" : "us"
+        },
+        {
+          "name" : "EU",
+          "value" : "eu"
+        },
+        {
+          "name" : "India",
+          "value" : "in"
+        }
+      ]
+    },
+    {
+      "id" : "import-events_baseUrl",
+      "value" : "=if region = \"eu\" then \"https://api-eu.mixpanel.com\" else if region = \"in\" then \"https://api-in.mixpanel.com\" else \"https://api.mixpanel.com\"",
+      "group" : "project",
+      "binding" : {
+        "name" : "baseUrl",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "import-events",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "insights-query_baseUrl",
+      "value" : "=if region = \"eu\" then \"https://eu.mixpanel.com/api/query\" else if region = \"in\" then \"https://in.mixpanel.com/api/query\" else \"https://mixpanel.com/api/query\"",
+      "group" : "project",
+      "binding" : {
+        "name" : "baseUrl",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "insights-query",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "import-events_eventName",
+      "label" : "Event name",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "eventName",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "import-events",
+        "type" : "simple"
+      },
+      "tooltip" : "Name of the event in Mixpanel.",
+      "placeholder" : "Order shipped",
+      "type" : "String"
+    },
+    {
+      "id" : "import-events_distinctId",
+      "label" : "Distinct ID",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "distinctId",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "import-events",
+        "type" : "simple"
+      },
+      "tooltip" : "ID of the user who did the event, as used in the rest of your Mixpanel data.",
+      "type" : "String"
+    },
+    {
+      "id" : "import-events_eventProperties",
+      "label" : "Event properties",
+      "optional" : true,
+      "feel" : "required",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "eventProperties",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "import-events",
+        "type" : "simple"
+      },
+      "tooltip" : "Extra event properties as a FEEL context. The time and $insert_id are set automatically; set them here to override.",
+      "placeholder" : "={orderId: orderId, amount: total}",
+      "type" : "String"
+    },
+    {
+      "id" : "import-events_eventTime",
+      "value" : "=(now() - date and time(\"1970-01-01T00:00:00Z\")) / duration(\"PT0.001S\")",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "eventTime",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "import-events",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "insights-query_reportId",
+      "label" : "Report ID",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "reportId",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "insights-query",
+        "type" : "simple"
+      },
+      "tooltip" : "ID of the saved Insights report. In the report's URL it follows report- in the editor-card-id. Mixpanel allows 60 queries per hour.",
+      "type" : "String"
+    },
+    {
+      "id" : "insights-query_workspaceId",
+      "label" : "Workspace ID",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "workspaceId",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "insights-query",
+        "type" : "simple"
+      },
+      "tooltip" : "ID of the workspace, if the project uses workspaces. It is the number after /view/ in the Mixpanel URL.",
+      "type" : "String"
+    },
+    {
+      "id" : "import-events_$path",
+      "value" : "=\"/import\"",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "import-events",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "import-events_$headers",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "import-events",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "import-events_$queryParameters",
+      "value" : "={project_id: projectId, strict: \"1\"}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "import-events",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "import-events_$method",
+      "value" : "POST",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "import-events",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "insights-query_$path",
+      "value" : "=\"/insights\"",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "insights-query",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "insights-query_$headers",
+      "value" : "={}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "insights-query",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "insights-query_$queryParameters",
+      "value" : "=context(get entries({project_id: projectId, bookmark_id: reportId, workspace_id: workspaceId})[value != null])",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "insights-query",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "insights-query_$method",
+      "value" : "GET",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "insights-query",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "import-events_body",
+      "value" : "=[{\n  event: eventName,\n  properties: put all(\n    {time: eventTime, \"$insert_id\": string(eventTime), distinct_id: distinctId},\n    if eventProperties = null then {} else eventProperties\n  )\n}]",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "body",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "import-events",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "url",
+      "value" : "= baseUrl + operationPath",
+      "group" : "url",
+      "binding" : {
+        "name" : "url",
+        "type" : "zeebe:input"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "resultVariable",
+      "label" : "Result variable",
+      "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultVariable",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "resultExpression",
+      "label" : "Result expression",
+      "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+      "feel" : "required",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultExpression",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Text"
+    },
+    {
+      "id" : "errorExpression",
+      "label" : "Error expression",
+      "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "feel" : "required",
+      "group" : "error",
+      "binding" : {
+        "key" : "errorExpression",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Text"
+    },
+    {
+      "id" : "retryCount",
+      "label" : "Retries",
+      "description" : "Number of retries",
+      "value" : "3",
+      "feel" : "optional",
+      "group" : "retries",
+      "binding" : {
+        "property" : "retries",
+        "type" : "zeebe:taskDefinition"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "retryBackoff",
+      "label" : "Retry backoff",
+      "description" : "ISO-8601 duration to wait between retries",
+      "value" : "PT30S",
+      "group" : "retries",
+      "binding" : {
+        "key" : "retryBackoff",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "jobTimeout",
+      "label" : "Job timeout",
+      "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+      "optional" : true,
+      "group" : "retries",
+      "binding" : {
+        "key" : "jobTimeout",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "String"
+    },
+    {
+      "value" : "io.camunda:http-json:1",
+      "binding" : {
+        "property" : "type",
+        "type" : "zeebe:taskDefinition"
+      },
+      "type" : "Hidden"
+    }
+  ],
+  "steps" : [
+    {
+      "name" : "Import event",
+      "description" : "Record a process milestone as a Mixpanel event",
+      "keywords" : [
+        "track event",
+        "import event",
+        "send event",
+        "milestone",
+        "analytics"
+      ],
+      "presetId" : "import-events"
+    },
+    {
+      "name" : "Query saved report",
+      "description" : "Get the results of a saved Mixpanel Insights report",
+      "keywords" : [
+        "query report",
+        "insights",
+        "KPI",
+        "metrics",
+        "saved report"
+      ],
+      "presetId" : "insights-query"
+    }
+  ],
+  "presets" : [
+    {
+      "id" : "import-events",
+      "properties" : {
+        "operationId" : "import-events"
+      }
+    },
+    {
+      "id" : "insights-query",
+      "properties" : {
+        "operationId" : "insights-query"
+      }
+    }
+  ],
+  "configurationTemplates" : [
+    {
+      "id" : "io.camunda.connectors:mixpanel-authentication:1",
+      "kind" : "CREDENTIAL",
+      "version" : 1,
+      "name" : "Mixpanel Authentication",
+      "properties" : [
+        {
+          "id" : "authentication.type",
+          "value" : "basic",
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.type",
+            "type" : "property"
+          },
+          "type" : "Hidden"
+        },
+        {
+          "id" : "authentication.username",
+          "label" : "Service account username",
+          "constraints" : {
+            "notEmpty" : true
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.username",
+            "type" : "property"
+          },
+          "tooltip" : "Username of a Mixpanel service account with access to the project. Create one in Mixpanel under Organization settings or Project settings > Service accounts.",
+          "type" : "String"
+        },
+        {
+          "id" : "authentication.password",
+          "label" : "Service account secret",
+          "constraints" : {
+            "notEmpty" : true
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.password",
+            "type" : "property"
+          },
+          "tooltip" : "Secret of the Mixpanel service account.",
+          "type" : "String",
+          "secret" : true
+        }
+      ]
+    }
+  ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSIjNzg1NkZGIiBkPSJNNi45NjcgOS45OTZoMy4wNTNjLS43NjMtLjQ3Ny0xLjA0OC0xLjE0NS0xLjQzMS0yLjM4NEw3LjQ0MyAzLjM2NkM2LjkxOSAxLjQ1OCA2LjQ5LjU1MSA0LjM5LjU1MUguMDA0djEuMTQ1aC42MjFjMS4yODYgMCAxLjQzMS40NzcgMS44MTQgMS45MDhMMy40NCA3LjMyNmMuNTI0IDEuODE0IDEuMzM3IDIuNjcgMy41MyAyLjY3aC0uMDAzWm03LjA2IDBoMy4wNTNjMi4xOTQgMCAyLjk1Ni0uODYgMy40ODQtMi42N2wxLjAwMS0zLjcyMmMuMzgyLTEuNDMxLjU3LTEuOTA4IDEuODE0LTEuOTA4SDI0Vi41NTFoLTQuMzRjLTIuMTQ2IDAtMi41NzYuODYtMy4wNTMgMi44MTVsLTEuMTQ1IDQuMjQ2Yy0uMzg0IDEuMjg2LS42NzMgMS45MDctMS40MzUgMi4zODRabS00LjAwNyA0LjAwOGg0LjAwN1Y5Ljk5NkgxMC4wMnY0LjAwOFpNMCAyMy40NDloNC4zOWMyLjEgMCAyLjUyOS0uOTA3IDMuMDUzLTIuODE1bDEuMTQ2LTQuMjQ2Yy4zODMtMS4yMzkuNjY4LTEuOTA3IDEuNDMxLTIuMzg0SDYuOTY3Yy0yLjE5NCAwLTMuMDA3Ljg2LTMuNTMxIDIuNjdsLTEuMDAxIDMuNzIyYy0uMzgzIDEuNDMxLS41MjQgMS45MDctMS44MTQgMS45MDdIMHYxLjE0NlptMTkuNjUgMGg0LjM0M3YtMS4xNDZoLS42MjJjLTEuMjM5IDAtMS40MzEtLjQ3Ni0xLjgxNC0xLjkwN2wtMS4wMDEtMy43MjJjLS41MjQtMS44MTQtMS4yODYtMi42Ny0zLjQ4My0yLjY3aC0zLjA0NmMuNzYyLjQ3NyAxLjA0MSAxLjA5OCAxLjQyNCAyLjM4NGwxLjE0NSA0LjI0NmMuNDc3IDEuOTU1LjkwNyAyLjgxNSAzLjA1NCAyLjgxNVoiLz48L3N2Zz4K"
+  }
+}

@@ -1,0 +1,457 @@
+{
+  "openapi" : "3.0.2",
+  "info" : {
+    "title" : "Ingestion API",
+    "description" : "APIs allowing for event-based tracking and user profile handling.",
+    "license" : {
+      "name" : "MIT",
+      "url" : "https://opensource.org/licenses/MIT"
+    },
+    "version" : "1.0.0",
+    "contact" : {
+      "url" : "https://mixpanel.com/get-support"
+    }
+  },
+  "paths" : {
+    "/import" : {
+      "post" : {
+        "tags" : [
+          "Events"
+        ],
+        "operationId" : "import-events",
+        "security" : [
+          {
+            "ServiceAccount" : [ ]
+          },
+          {
+            "OAuthToken" : [ ]
+          }
+        ],
+        "summary" : "Import Events",
+        "description" : "",
+        "parameters" : [
+          {
+            "in" : "query",
+            "name" : "strict",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "default" : "1",
+              "enum" : [
+                "0",
+                "1"
+              ]
+            },
+            "description" : "When set to 1 (recommended), Mixpanel will validate the batch and return errors per event that failed."
+          },
+          {
+            "in" : "query",
+            "name" : "project_id",
+            "required" : true,
+            "schema" : {
+              "default" : "<YOUR_PROJECT_ID>",
+              "type" : "string"
+            },
+            "description" : "The Mixpanel project_id, used to authenticate service account credentials."
+          },
+          {
+            "in" : "header",
+            "name" : "Content-Type",
+            "schema" : {
+              "type" : "string",
+              "default" : "application/json",
+              "enum" : [
+                "application/json",
+                "application/x-ndjson"
+              ]
+            }
+          },
+          {
+            "in" : "header",
+            "name" : "Content-Encoding",
+            "schema" : {
+              "type" : "string",
+              "enum" : [
+                "gzip"
+              ]
+            }
+          }
+        ],
+        "requestBody" : {
+          "required" : true,
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "array",
+                "minItems" : 1,
+                "items" : {
+                  "type" : "object",
+                  "required" : [
+                    "event",
+                    "properties"
+                  ],
+                  "properties" : {
+                    "event" : {
+                      "type" : "string",
+                      "title" : "event",
+                      "description" : "The name of the event."
+                    },
+                    "properties" : {
+                      "type" : "object",
+                      "title" : "properties",
+                      "description" : "A JSON object containing properties of the event.",
+                      "required" : [
+                        "time",
+                        "$insert_id",
+                        "distinct_id"
+                      ],
+                      "properties" : {
+                        "time" : {
+                          "anyOf" : [
+                            {
+                              "type" : "number"
+                            },
+                            {
+                              "type" : "string"
+                            }
+                          ],
+                          "title" : "time",
+                          "description" : "The time at which the event occurred. Accepts a Unix epoch in seconds or milliseconds (integer or float, auto-detected; e.g. `1788422480.137` or `1788422480137`), or an RFC 3339 / ISO 8601 string (e.g. `\"2026-09-11T01:11:10.341Z\"`). Fractional seconds are kept to the millisecond; a trailing `Z` or explicit offset (e.g. `+10:00`) is converted to UTC, and a string with no offset is treated as UTC. Events are stored with millisecond precision. If the time value is set in the future, it will be overwritten with the current present time at ingestion."
+                        },
+                        "distinct_id" : {
+                          "type" : "string",
+                          "title" : "distinct_id",
+                          "description" : "The unique identifier of the user who performed the event."
+                        },
+                        "$insert_id" : {
+                          "type" : "string",
+                          "title" : "$insert_id",
+                          "description" : "A unique identifier for the event, used for deduplication. Events with identical values for (event, time, distinct_id, $insert_id) are considered duplicates; only the latest ingested one will be considered in queries."
+                        }
+                      },
+                      "additionalProperties" : true
+                    }
+                  },
+                  "additionalProperties" : false
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "$ref" : "#/components/responses/StrictReceived"
+          },
+          "400" : {
+            "$ref" : "#/components/responses/StrictInvalid"
+          },
+          "401" : {
+            "$ref" : "#/components/responses/StrictUnauthorized"
+          },
+          "413" : {
+            "$ref" : "#/components/responses/StrictTooLarge"
+          },
+          "429" : {
+            "$ref" : "#/components/responses/RateLimitExceeded"
+          }
+        }
+      }
+    },
+    "/insights" : {
+      "get" : {
+        "operationId" : "insights-query",
+        "summary" : "Query Saved Report",
+        "tags" : [
+          "Insights"
+        ],
+        "description" : "Get data from your Insights reports. The Query API has a rate limit of 60 queries per hour and a maximum of 5 concurrent queries.",
+        "parameters" : [
+          {
+            "in" : "query",
+            "name" : "project_id",
+            "schema" : {
+              "type" : "integer"
+            },
+            "description" : "Required if using service account to authenticate request.",
+            "required" : true
+          },
+          {
+            "$ref" : "#/components/parameters/workspaceId"
+          },
+          {
+            "in" : "query",
+            "name" : "bookmark_id",
+            "schema" : {
+              "type" : "integer"
+            },
+            "description" : "The ID of your Insights report can be found from the url: `https://mixpanel.com/project/<YOUR_PROJECT_ID>/view/<YOUR_WORKSPACE_ID>/app/boards#id=12345&editor-card-id=%22report-<YOUR_BOOKMARK_ID>%22`",
+            "required" : true
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "example" : {
+                    "value" : {
+                      "computed_at" : "2020-09-21T16:35:41.252314+00:00",
+                      "date_range" : {
+                        "from_date" : "2020-08-31T00:00:00-07:00",
+                        "to_date" : "2020-09-12T23:59:59.999000-07:00"
+                      },
+                      "headers" : [
+                        "$event"
+                      ],
+                      "series" : {
+                        "Logged in" : {
+                          "2020-08-31T00:00:00-07:00" : 9852,
+                          "2020-09-07T00:00:00-07:00" : 4325
+                        },
+                        "Viewed page" : {
+                          "2020-08-31T00:00:00-07:00" : 10246,
+                          "2020-09-07T00:00:00-07:00" : 11432
+                        }
+                      }
+                    }
+                  }
+                },
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "computed_at" : {
+                      "type" : "string"
+                    },
+                    "date_range" : {
+                      "type" : "object",
+                      "properties" : {
+                        "from_date" : {
+                          "type" : "string"
+                        },
+                        "to_date" : {
+                          "type" : "string"
+                        }
+                      }
+                    },
+                    "headers" : {
+                      "type" : "array",
+                      "description" : "Explanation of what the nested keys mean in `series`.",
+                      "items" : {
+                        "type" : "string"
+                      }
+                    },
+                    "series" : {
+                      "type" : "object",
+                      "description" : "Maps event name of event to an object with dates as keys and number of instances as values. For example:\n\n```json\n{\n  'Viewed page': {\n    '2020-08-17T00:00:00-07:00': 7832,\n    '2020-08-24T00:00:00-07:00': 6234,\n  }\n}\n```\n"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security" : [
+          {
+            "ServiceAccount" : [ ]
+          },
+          {
+            "ProjectSecret" : [ ]
+          }
+        ]
+      }
+    }
+  },
+  "components" : {
+    "securitySchemes" : {
+      "ServiceAccount" : {
+        "type" : "http",
+        "scheme" : "basic",
+        "description" : "Service Account"
+      },
+      "OAuthToken" : {
+        "type" : "http",
+        "scheme" : "bearer",
+        "description" : "OAuth Token"
+      },
+      "ProjectSecret" : {
+        "type" : "http",
+        "scheme" : "basic",
+        "description" : "Project Secret"
+      }
+    },
+    "responses" : {
+      "StrictReceived" : {
+        "description" : "A 200 response indicates all records were successfully ingested.",
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "type" : "object",
+              "properties" : {
+                "code" : {
+                  "type" : "integer"
+                },
+                "num_records_imported" : {
+                  "type" : "integer"
+                },
+                "status" : {
+                  "type" : "string"
+                }
+              },
+              "example" : {
+                "code" : 200,
+                "num_records_imported" : 2000,
+                "status" : "OK"
+              }
+            }
+          }
+        }
+      },
+      "StrictInvalid" : {
+        "description" : "A 400 response indicates that some records failed validation.",
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "type" : "object",
+              "properties" : {
+                "code" : {
+                  "type" : "integer"
+                },
+                "error" : {
+                  "type" : "string"
+                },
+                "status" : {
+                  "type" : "string"
+                },
+                "num_records_imported" : {
+                  "type" : "integer"
+                },
+                "failed_records" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "object",
+                    "properties" : {
+                      "index" : {
+                        "type" : "number"
+                      },
+                      "insert_id" : {
+                        "type" : "string"
+                      },
+                      "field" : {
+                        "type" : "string"
+                      },
+                      "message" : {
+                        "type" : "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "example" : {
+                "code" : 400,
+                "num_records_imported" : 999,
+                "status" : "Bad Request",
+                "failed_records" : [
+                  {
+                    "index" : 0,
+                    "insert_id" : "13c0b661-f48b-51cd-ba54-97c5999169c0",
+                    "field" : "properties.time",
+                    "message" : "'properties.time' is invalid: must be specified as seconds since epoch"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "StrictUnauthorized" : {
+        "description" : "A 401 response indicates invalid credentials.",
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "type" : "object",
+              "properties" : {
+                "code" : {
+                  "type" : "integer"
+                },
+                "error" : {
+                  "type" : "string"
+                },
+                "status" : {
+                  "type" : "string"
+                }
+              },
+              "example" : {
+                "code" : 401,
+                "error" : "Invalid credentials",
+                "status" : "Unauthorized"
+              }
+            }
+          }
+        }
+      },
+      "StrictTooLarge" : {
+        "description" : "A 413 response indicates that the payload is too large.",
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "type" : "object",
+              "properties" : {
+                "code" : {
+                  "type" : "integer"
+                },
+                "error" : {
+                  "type" : "string"
+                },
+                "status" : {
+                  "type" : "string"
+                }
+              },
+              "example" : {
+                "code" : 413,
+                "error" : "request exceeds max limit of 10485760 bytes",
+                "status" : "Request Entity Too Large"
+              }
+            }
+          }
+        }
+      },
+      "RateLimitExceeded" : {
+        "description" : "A 429 response indicates rate limits have been exceeded.",
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "type" : "object",
+              "properties" : {
+                "code" : {
+                  "type" : "integer"
+                },
+                "error" : {
+                  "type" : "string"
+                },
+                "status" : {
+                  "type" : "string"
+                }
+              },
+              "example" : {
+                "code" : 429,
+                "error" : "Project exceeded rate limits. Please retry the request with exponential backoff.",
+                "status" : "Too Many Requests"
+              }
+            }
+          }
+        }
+      }
+    },
+    "parameters" : {
+      "workspaceId" : {
+        "in" : "query",
+        "name" : "workspace_id",
+        "schema" : {
+          "type" : "integer"
+        },
+        "description" : "The id of the workspace if applicable."
+      }
+    }
+  }
+}

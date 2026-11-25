@@ -37,6 +37,7 @@
     <module>microsoft/common</module>
     <module>microsoft/email-inbound</module>
     <module>microsoft/teams</module>
+    <module>mixpanel</module>
     <module>camunda-message</module>
     <module>rabbitmq</module>
     <module>salesforce</module>
