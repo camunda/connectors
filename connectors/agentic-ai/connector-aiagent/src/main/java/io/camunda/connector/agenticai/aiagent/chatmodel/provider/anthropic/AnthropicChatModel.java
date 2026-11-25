@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.core.ObjectMappers;
 import com.anthropic.core.http.StreamResponse;
+import com.anthropic.errors.AnthropicException;
 import com.anthropic.errors.AnthropicServiceException;
 import com.anthropic.models.ErrorType;
 import com.anthropic.models.messages.Message;
@@ -116,7 +117,11 @@ public class AnthropicChatModel implements ChatModel {
       // ChatModelRejectedException thrown by the response converter for a known rejection. Let it
       // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
       throw e;
+    } catch (AnthropicException e) {
+      // a failure of the SDK carries its own message
+      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     } catch (Exception e) {
+      LOG.error("Model call failed unexpectedly", e);
       throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     }
   }

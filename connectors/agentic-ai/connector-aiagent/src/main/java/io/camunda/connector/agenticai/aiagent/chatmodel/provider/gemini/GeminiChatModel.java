@@ -13,6 +13,7 @@ import com.google.genai.Client;
 import com.google.genai.JsonSerializable;
 import com.google.genai.ResponseStream;
 import com.google.genai.errors.ApiException;
+import com.google.genai.errors.GenAiIOException;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentParameters;
@@ -120,14 +121,22 @@ public class GeminiChatModel implements ChatModel {
           ERROR_CODE_FAILED_MODEL_CALL,
           "Model call failed with HTTP %d (%s): %s".formatted(e.code(), status, message),
           e);
+    } catch (ConnectorException | GenAiIOException e) {
+      // a coded failure was thrown on purpose, and an IO failure of the SDK carries its own message
+      throw failedModelCall(e);
     } catch (Exception e) {
-      final String detail =
-          Optional.ofNullable(e.getMessage())
-              .filter(m -> !m.isBlank())
-              .orElseGet(() -> e.getClass().getSimpleName());
-      throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
+      LOG.error("Model call failed unexpectedly", e);
+      throw failedModelCall(e);
     }
+  }
+
+  private static ConnectorException failedModelCall(Exception e) {
+    final String detail =
+        Optional.ofNullable(e.getMessage())
+            .filter(m -> !m.isBlank())
+            .orElseGet(() -> e.getClass().getSimpleName());
+    return new ConnectorException(
+        ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
   }
 
   /**

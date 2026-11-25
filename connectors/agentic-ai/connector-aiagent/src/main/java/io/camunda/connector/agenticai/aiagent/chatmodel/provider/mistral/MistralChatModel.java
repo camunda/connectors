@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import com.openai.client.OpenAIClient;
 import com.openai.core.http.StreamResponse;
 import com.openai.errors.BadRequestException;
+import com.openai.errors.OpenAIException;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
@@ -99,7 +100,11 @@ public class MistralChatModel implements ChatModel {
         throw new ContextWindowExceededException(failureMessage(e), e, null);
       }
       throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
+    } catch (OpenAIException e) {
+      // a failure of the SDK carries its own message
+      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     } catch (Exception e) {
+      LOG.error("Model call failed unexpectedly", e);
       throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     }
   }

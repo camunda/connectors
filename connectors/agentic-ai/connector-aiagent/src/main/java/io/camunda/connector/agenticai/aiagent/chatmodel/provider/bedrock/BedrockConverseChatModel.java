@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.SdkPojo;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseStreamRequest;
@@ -90,7 +91,9 @@ public class BedrockConverseChatModel implements ChatModel {
       // CompletableFuture#join() always wraps the underlying failure in a CompletionException; the
       // real cause (typically an AwsServiceException) is unwrapped here so it can be translated the
       // same way a synchronously-thrown AwsServiceException would be below.
-      throw toConnectorException(e.getCause() != null ? e.getCause() : e);
+      final Throwable failure = e.getCause() != null ? e.getCause() : e;
+      logIfUnexpected(failure);
+      throw toConnectorException(failure);
     } catch (AwsServiceException e) {
       throw toConnectorException(e);
     } catch (ChatModelRejectedException e) {
@@ -98,7 +101,18 @@ public class BedrockConverseChatModel implements ChatModel {
       // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
       throw e;
     } catch (Exception e) {
+      logIfUnexpected(e);
       throw toConnectorException(e);
+    }
+  }
+
+  private void logIfUnexpected(Throwable failure) {
+    // the failures of the AWS SDK carry their own message, and a coded failure was thrown on
+    // purpose
+    if (!(failure instanceof SdkException
+        || failure instanceof ConnectorException
+        || failure instanceof ChatModelRejectedException)) {
+      LOG.error("Model call failed unexpectedly", failure);
     }
   }
 

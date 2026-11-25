@@ -226,6 +226,57 @@ class AnthropicChatModelTest {
   }
 
   @Test
+  void logsUnexpectedFailureAsErrorWithItsStackTrace() {
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
+        .thenReturn(mock(MessageCreateParams.class));
+    when(client.messages()).thenThrow(new IllegalStateException());
+
+    final var logs =
+        logsOf(
+            AnthropicChatModel.class,
+            () ->
+                assertThatThrownBy(() -> api.execute(request))
+                    .isInstanceOfSatisfying(
+                        ConnectorException.class,
+                        e ->
+                            assertThat(e.getMessage())
+                                .isEqualTo("Model call failed: IllegalStateException")));
+
+    assertThat(logs)
+        .singleElement()
+        .satisfies(event -> {
+          assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+          assertThat(event.getThrowableProxy().getClassName())
+              .isEqualTo(IllegalStateException.class.getName());
+        });
+  }
+
+  @Test
+  void doesNotLogFailureOfTheSdkThatCarriesItsOwnMessage() {
+    when(requestConverter.toMessageCreateParams(any(), any(), any()))
+        .thenReturn(mock(MessageCreateParams.class));
+    when(client.messages())
+        .thenThrow(
+            new com.anthropic.errors.AnthropicIoException(
+                "Request failed", new java.net.SocketTimeoutException("Read timed out")));
+
+    final var logs =
+        logsOf(
+            AnthropicChatModel.class,
+            () ->
+                assertThatThrownBy(() -> api.execute(request))
+                    .isInstanceOfSatisfying(
+                        ConnectorException.class,
+                        e -> {
+                          assertThat(e.getErrorCode())
+                              .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+                          assertThat(e.getMessage()).isEqualTo("Model call failed: Read timed out");
+                        }));
+
+    assertThat(logs).isEmpty();
+  }
+
+  @Test
   void closesUnderlyingClient() {
     api.close();
 

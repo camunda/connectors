@@ -219,6 +219,82 @@ class BedrockConverseChatModelTest {
   }
 
   @Test
+  void logsUnexpectedFailureAsErrorWithItsStackTrace() {
+    when(requestConverter.toConverseStreamRequest(any(), any(), any()))
+        .thenReturn(mock(ConverseStreamRequest.class));
+    when(client.converseStream(
+            any(ConverseStreamRequest.class), any(ConverseStreamResponseHandler.class)))
+        .thenThrow(new IllegalStateException());
+
+    final var logs =
+        logsOf(
+            BedrockConverseChatModel.class,
+            () ->
+                assertThatThrownBy(() -> api.execute(request))
+                    .isInstanceOfSatisfying(
+                        ConnectorException.class,
+                        e ->
+                            assertThat(e.getMessage())
+                                .isEqualTo("Model call failed: IllegalStateException")));
+
+    assertThat(logs)
+        .singleElement()
+        .satisfies(event -> {
+          assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+          assertThat(event.getThrowableProxy().getClassName())
+              .isEqualTo(IllegalStateException.class.getName());
+        });
+  }
+
+  @Test
+  void doesNotLogFailureOfTheSdkThatCarriesItsOwnMessage() {
+    when(requestConverter.toConverseStreamRequest(any(), any(), any()))
+        .thenReturn(mock(ConverseStreamRequest.class));
+    when(client.converseStream(
+            any(ConverseStreamRequest.class), any(ConverseStreamResponseHandler.class)))
+        .thenThrow(
+            software.amazon.awssdk.core.exception.SdkClientException.create(
+                "Unable to execute HTTP request: Read timed out"));
+
+    final var logs =
+        logsOf(
+            BedrockConverseChatModel.class,
+            () ->
+                assertThatThrownBy(() -> api.execute(request))
+                    .isInstanceOfSatisfying(
+                        ConnectorException.class,
+                        e -> {
+                          assertThat(e.getErrorCode())
+                              .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+                          assertThat(e.getMessage())
+                              .isEqualTo(
+                                  "Model call failed: Unable to execute HTTP request: Read timed out");
+                        }));
+
+    assertThat(logs).isEmpty();
+  }
+
+  @Test
+  void doesNotLogCodedConnectorExceptionBehindCompletionException() {
+    when(requestConverter.toConverseStreamRequest(any(), any(), any()))
+        .thenReturn(mock(ConverseStreamRequest.class));
+    when(client.converseStream(
+            any(ConverseStreamRequest.class), any(ConverseStreamResponseHandler.class)))
+        .thenReturn(
+            java.util.concurrent.CompletableFuture.failedFuture(
+                new ConnectorException("SOME_OTHER_ERROR_CODE", "malformed stream")));
+
+    final var logs =
+        logsOf(
+            BedrockConverseChatModel.class,
+            () ->
+                assertThatThrownBy(() -> api.execute(request))
+                    .isInstanceOf(ConnectorException.class));
+
+    assertThat(logs).isEmpty();
+  }
+
+  @Test
   void closesUnderlyingClient() {
     api.close();
 

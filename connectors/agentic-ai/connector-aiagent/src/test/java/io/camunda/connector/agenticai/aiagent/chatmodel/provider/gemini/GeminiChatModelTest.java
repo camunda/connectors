@@ -215,6 +215,84 @@ class GeminiChatModelTest {
   }
 
   @Test
+  void logsUnexpectedFailureAsErrorWithItsStackTrace() {
+    when(requestConverter.toGenerateContentConfig(any(), any(), any()))
+        .thenReturn(GenerateContentConfig.builder().build());
+    when(requestConverter.toContents(any())).thenReturn(List.of());
+    when(models.generateContentStream(any(), anyList(), any()))
+        .thenThrow(new IllegalStateException());
+
+    final var logs =
+        logsOf(
+            GeminiChatModel.class,
+            () ->
+                assertThatThrownBy(() -> api.execute(request))
+                    .isInstanceOfSatisfying(
+                        ConnectorException.class,
+                        e ->
+                            assertThat(e.getMessage())
+                                .isEqualTo("Model call failed: IllegalStateException")));
+
+    assertThat(logs)
+        .singleElement()
+        .satisfies(event -> {
+          assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+          assertThat(event.getThrowableProxy().getClassName())
+              .isEqualTo(IllegalStateException.class.getName());
+        });
+  }
+
+  @Test
+  void doesNotLogFailureOfTheSdkThatCarriesItsOwnMessage() {
+    when(requestConverter.toGenerateContentConfig(any(), any(), any()))
+        .thenReturn(GenerateContentConfig.builder().build());
+    when(requestConverter.toContents(any())).thenReturn(List.of());
+    when(models.generateContentStream(any(), anyList(), any()))
+        .thenThrow(
+            new com.google.genai.errors.GenAiIOException(
+                "Unable to read the response",
+                new java.net.SocketTimeoutException("Read timed out")));
+
+    final var logs =
+        logsOf(
+            GeminiChatModel.class,
+            () ->
+                assertThatThrownBy(() -> api.execute(request))
+                    .isInstanceOfSatisfying(
+                        ConnectorException.class,
+                        e -> {
+                          assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
+                          assertThat(e.getMessage())
+                              .isEqualTo("Model call failed: Unable to read the response");
+                        }));
+
+    assertThat(logs).isEmpty();
+  }
+
+  @Test
+  void doesNotLogCodedConnectorExceptionOfTheAssembler() {
+    when(requestConverter.toGenerateContentConfig(any(), any(), any()))
+        .thenReturn(GenerateContentConfig.builder().build());
+    when(requestConverter.toContents(any())).thenReturn(List.of());
+    when(models.generateContentStream(any(), anyList(), any())).thenReturn(responseStream);
+    when(streamAssembler.assemble(responseStream))
+        .thenThrow(new ConnectorException("SOME_OTHER_ERROR_CODE", "unsupported content"));
+
+    final var logs =
+        logsOf(
+            GeminiChatModel.class,
+            () ->
+                assertThatThrownBy(() -> api.execute(request))
+                    .isInstanceOfSatisfying(
+                        ConnectorException.class,
+                        e ->
+                            assertThat(e.getMessage())
+                                .isEqualTo("Model call failed: unsupported content")));
+
+    assertThat(logs).isEmpty();
+  }
+
+  @Test
   void closesUnderlyingClient() {
     api.close();
 
