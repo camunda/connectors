@@ -33,7 +33,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 /**
  * The UiPath template is a hand-maintained template on top of the HTTP JSON connector. "UiPath
  * instance URL" defaults to cloud.uipath.com and can be changed (Automation Suite, other UiPath
- * clouds). The OAuth client credentials must then go to that host, not to cloud.uipath.com.
+ * clouds). The OAuth client credentials must then go to that host, not to cloud.uipath.com, and to
+ * the token path of UiPath's API guides, which has the organization in it.
  */
 class UiPathElementTemplateTest {
 
@@ -74,11 +75,13 @@ class UiPathElementTemplateTest {
   }
 
   // On the task, the token endpoint is a hidden FEEL expression over the inputs of the template.
+  // The default host keeps the endpoint without the organization, so that a task that kept the
+  // default requests its token from the same URL as before.
   @ParameterizedTest
   @CsvSource({
     "cloud.uipath.com, https://cloud.uipath.com/identity_/connect/token",
     "uipath.automation-suite.example.test,"
-        + " https://uipath.automation-suite.example.test/identity_/connect/token"
+        + " https://uipath.automation-suite.example.test/fictional-org/identity_/connect/token"
   })
   void taskRequestsTheOAuthTokenFromTheConfiguredInstance(String instanceUrl, String tokenEndpoint)
       throws Exception {
@@ -94,12 +97,13 @@ class UiPathElementTemplateTest {
   }
 
   // In the reusable credential, the token endpoint and the base URL are constants with ${...}
-  // placeholders, which the connector fills from the parameters of the credential.
+  // placeholders, which the connector fills from the parameters of the credential. The credential
+  // type is new, so it has the organization in the token path for every host.
   @ParameterizedTest
   @CsvSource({
-    "cloud.uipath.com, https://cloud.uipath.com/identity_/connect/token",
+    "cloud.uipath.com, https://cloud.uipath.com/fictional-org/identity_/connect/token",
     "uipath.automation-suite.example.test,"
-        + " https://uipath.automation-suite.example.test/identity_/connect/token"
+        + " https://uipath.automation-suite.example.test/fictional-org/identity_/connect/token"
   })
   void credentialRequestsTheOAuthTokenFromItsInstance(String instanceUrl, String tokenEndpoint)
       throws Exception {

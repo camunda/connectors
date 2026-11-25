@@ -126,6 +126,24 @@
       }
     },
     {
+      "label": "UiPath organization",
+      "tooltip": "Your organization ID",
+      "group": "configuration",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "cloudOrg"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
+      }
+    },
+    {
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
@@ -179,7 +197,7 @@
     {
       "group": "authentication",
       "type": "Hidden",
-      "value": "=\"https:\"+\"//\"+cloudUrl+\"/identity_/connect/token\"",
+      "value": "=\"https:\"+\"//\"+cloudUrl+(if cloudUrl = \"cloud.uipath.com\" then \"\" else \"/\"+cloudOrg)+\"/identity_/connect/token\"",
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.oauthTokenEndpoint"
@@ -330,24 +348,6 @@
         "oneOf": [
           "getItemById"
         ]
-      }
-    },
-    {
-      "label": "UiPath organization",
-      "tooltip": "Your organization ID",
-      "group": "configuration",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "cloudOrg"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "serviceAuthenticationConfiguration",
-        "isEmpty": true,
-        "type": "simple"
       }
     },
     {
@@ -887,7 +887,7 @@
         },
         {
           "id": "authentication.oauthTokenEndpoint",
-          "value": "https://${cloudUrl}/identity_/connect/token",
+          "value": "https://${cloudUrl}/${cloudOrg}/identity_/connect/token",
           "condition": {
             "property": "authenticationType",
             "equals": "oauth-client-credentials-flow",
