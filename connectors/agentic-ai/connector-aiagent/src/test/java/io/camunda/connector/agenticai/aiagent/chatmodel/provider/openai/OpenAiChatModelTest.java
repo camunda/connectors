@@ -44,10 +44,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -213,17 +213,16 @@ class OpenAiChatModelTest {
         .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
-  static Stream<Arguments> nonStringErrorCodes() {
+  static Stream<Named<JsonValue>> nonStringErrorCodes() {
     return Stream.of(
-        Arguments.of("numeric", JsonValue.from(400)),
-        Arguments.of("boolean", JsonValue.from(true)),
-        Arguments.of("object", JsonValue.from(Map.of("status", 400))));
+        Named.of("numeric error code", JsonValue.from(400)),
+        Named.of("boolean error code", JsonValue.from(true)),
+        Named.of("object error code", JsonValue.from(Map.of("status", 400))));
   }
 
-  @ParameterizedTest(name = "{0} error code")
+  @ParameterizedTest
   @MethodSource("nonStringErrorCodes")
-  void keepsProviderMessageOfBadRequestWithNonStringErrorCode(
-      String description, JsonValue rawCode) {
+  void keepsProviderMessageOfBadRequestWithNonStringErrorCode(JsonValue rawCode) {
     // OpenAI-compatible endpoints such as OpenRouter answer {"error": {"message": "...", "code":
     // 400}}. The SDK's BadRequestException#code() throws OpenAIInvalidDataException for such a
     // body, which must neither escape execute() nor hide the provider's message.
