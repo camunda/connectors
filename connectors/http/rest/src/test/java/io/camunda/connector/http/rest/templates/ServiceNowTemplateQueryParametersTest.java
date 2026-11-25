@@ -97,6 +97,39 @@ class ServiceNowTemplateQueryParametersTest {
     assertThat(result).containsEntry("sysparm_query", sent);
   }
 
+  // Spaces typed around = != < > <= >= are removed, wherever they are in the query, as earlier
+  // template versions did. The other spaces of a value stay ("Service Desk").
+  private static Stream<Arguments> spacesAroundComparisonOperators() {
+    return Stream.of("servicenow-connector.json", "servicenow-incident-connector.json")
+        .flatMap(template ->
+            Stream.of(
+                Arguments.of(template, "active = true", "active=true"),
+                Arguments.of(template, "priority != 1", "priority!=1"),
+                Arguments.of(template, "priority < 3", "priority<3"),
+                Arguments.of(template, "priority > 3", "priority>3"),
+                Arguments.of(template, "priority <= 3", "priority<=3"),
+                Arguments.of(template, "priority >= 3", "priority>=3"),
+                Arguments.of(template, "active = true ^ priority = 1", "active=true^priority=1"),
+                Arguments.of(
+                    template,
+                    "assignment_group.name = Service Desk",
+                    "assignment_group.name=Service Desk"),
+                Arguments.of(
+                    template,
+                    "sys_created_on > 2026-01-01 00:00:00",
+                    "sys_created_on>2026-01-01 00:00:00")));
+  }
+
+  @ParameterizedTest
+  @MethodSource("spacesAroundComparisonOperators")
+  void encodedQueryDropsSpacesAroundComparisonOperators(
+      String templateFile, String typed, String sent) throws Exception {
+    Map<String, Object> result =
+        FEEL.evaluate(queryParametersExpression(templateFile), Map.of("sysparm_query", typed));
+
+    assertThat(result).containsEntry("sysparm_query", sent);
+  }
+
   @ParameterizedTest
   @ValueSource(
       strings = {
