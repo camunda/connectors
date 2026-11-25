@@ -184,7 +184,7 @@ class AnthropicChatModelTest {
             RateLimitException.builder().headers(Headers.builder().build()).body(body).build());
 
     assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
+        .isExactlyInstanceOf(ConnectorException.class)
         .satisfies(e -> {
           final var connectorException = (ConnectorException) e;
           assertThat(connectorException.getErrorCode())

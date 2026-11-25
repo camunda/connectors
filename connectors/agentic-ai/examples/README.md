@@ -17,3 +17,5 @@ This directory contains example projects showcasing the Agentic AI capabilities.
 - [a2a/a2a-agent-integration](a2a/a2a-agent-integration): example project demonstrating how to integrate A2A connectors
   with the AI Agent connector
 - [a2a/a2a-polling](a2a/a2a-polling): example project demonstrating how to use A2A polling connectors
+- [tracing](tracing): docker compose stacks (Arize Phoenix, Langfuse) and Spring profiles to inspect the AI Agent's
+  OpenTelemetry GenAI traces locally

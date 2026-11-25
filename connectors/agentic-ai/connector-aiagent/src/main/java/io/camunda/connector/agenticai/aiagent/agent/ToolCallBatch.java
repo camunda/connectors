@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The tool calls of one assistant message and their results as they arrive. The calls belong to one
@@ -104,14 +105,29 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
    *
    * @param effects what the result asks of the agent besides its content, in the order they were
    *     added
+   * @param startedAt when the agent started to execute the call, absent for a result the agent did
+   *     not execute
    */
   public record Entry(
-      ToolCallResultContent result, List<Document> documents, List<ToolCallEffect> effects) {
+      ToolCallResultContent result,
+      List<Document> documents,
+      List<ToolCallEffect> effects,
+      @Nullable OffsetDateTime startedAt) {
 
     public Entry {
       Objects.requireNonNull(result.id(), "The tool call result of an entry must have an id");
       documents = List.copyOf(documents);
       effects = List.copyOf(effects);
+    }
+
+    public Entry(
+        ToolCallResultContent result, List<Document> documents, List<ToolCallEffect> effects) {
+      this(result, documents, effects, null);
+    }
+
+    /** This entry of a call that the agent started to execute at {@code startedAt}. */
+    public Entry withStartedAt(OffsetDateTime startedAt) {
+      return new Entry(result, documents, effects, startedAt);
     }
 
     /**

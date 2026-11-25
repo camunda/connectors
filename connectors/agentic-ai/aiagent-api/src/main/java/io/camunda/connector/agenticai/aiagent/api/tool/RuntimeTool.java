@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
+import io.camunda.connector.agenticai.aiagent.api.Experimental;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.common.annotation.Experimental;
 
 /**
  * A tool the connector runtime executes itself, without activating a BPMN element. Register it as a

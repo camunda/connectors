@@ -38,6 +38,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.AgentProcessVariables;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
@@ -61,6 +62,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -113,8 +115,11 @@ import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -281,6 +286,10 @@ class AgentSubProcessRequestHandlerTest {
 
   @Spy private ToolCallResultsInputBuilder resultsInputBuilder = new ToolCallResultsInputBuilder();
 
+  @Spy
+  private AgentLifecycleDispatcher lifecycleDispatcher =
+      new AgentLifecycleDispatcher(List.of(), new ObjectMapper(), 4096);
+
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
 
@@ -303,7 +312,9 @@ class AgentSubProcessRequestHandlerTest {
             runtimeTools,
             new ToolCallAdmission(new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE)),
             new LocalToolCallExecutor(runtimeTools, TestDocuments.objectHandleRenderer()),
-            documentExpander);
+            documentExpander,
+            lifecycleDispatcher,
+            Clock.fixed(Instant.parse("2026-10-19T09:00:00Z"), ZoneOffset.UTC));
     TOGGLE_ENABLED.set(true);
     UPLOAD_ENABLED.set(false);
     ConversationStore conversationStore = spy(new InProcessConversationStore());

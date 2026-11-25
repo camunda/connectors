@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
+import io.camunda.connector.agenticai.aiagent.api.Experimental;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
-import io.camunda.connector.agenticai.common.annotation.Experimental;
 import io.camunda.connector.api.document.Document;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;

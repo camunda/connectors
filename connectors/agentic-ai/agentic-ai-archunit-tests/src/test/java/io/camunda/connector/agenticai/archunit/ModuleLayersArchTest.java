@@ -43,7 +43,8 @@ class ModuleLayersArchTest {
                 AgenticAiModules.AD_HOC_CONNECTOR,
                 AgenticAiModules.MCP_INTEGRATION,
                 AgenticAiModules.A2A_INTEGRATION,
-                AgenticAiModules.AI_AGENT))
+                AgenticAiModules.AI_AGENT,
+                AgenticAiModules.OTEL))
         .whereLayer(AgenticAiModules.API.layerName())
         .mayOnlyBeAccessedByLayers(
             names(
@@ -51,7 +52,8 @@ class ModuleLayersArchTest {
                 AgenticAiModules.AD_HOC_CONNECTOR,
                 AgenticAiModules.MCP_INTEGRATION,
                 AgenticAiModules.A2A_INTEGRATION,
-                AgenticAiModules.AI_AGENT))
+                AgenticAiModules.AI_AGENT,
+                AgenticAiModules.OTEL))
         .whereLayer(AgenticAiModules.TOOLS_SCHEMA.layerName())
         .mayOnlyBeAccessedByLayers(
             names(AgenticAiModules.AD_HOC_CONNECTOR, AgenticAiModules.AI_AGENT))
@@ -66,6 +68,8 @@ class ModuleLayersArchTest {
         .whereLayer(AgenticAiModules.A2A_INTEGRATION.layerName())
         .mayNotBeAccessedByAnyLayer()
         .whereLayer(AgenticAiModules.AI_AGENT.layerName())
+        .mayNotBeAccessedByAnyLayer()
+        .whereLayer(AgenticAiModules.OTEL.layerName())
         .mayNotBeAccessedByAnyLayer()
         .because("each module depends only on the modules below it");
   }

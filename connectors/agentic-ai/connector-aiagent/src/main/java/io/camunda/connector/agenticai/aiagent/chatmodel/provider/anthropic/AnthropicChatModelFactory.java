@@ -95,7 +95,10 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       AgenticAiHttpProxySupport httpProxySupport,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       FoundryCredentialResolver foundryCredentialResolver) {
-    final var builder = AnthropicOkHttpClient.builder();
+    // the SDK's own OpenTelemetry spans and trace headers stay off: the AI Agent traces its model
+    // calls itself, and the SDK would otherwise emit them whenever a global OpenTelemetry instance
+    // is registered
+    final var builder = AnthropicOkHttpClient.builder().openTelemetry(false);
 
     switch (backend) {
       case AnthropicApiBackend apiBackend -> applyApiBackend(builder, apiBackend);

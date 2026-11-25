@@ -189,6 +189,23 @@ class AnthropicChatModelFactoryTest {
     }
   }
 
+  @ParameterizedTest
+  @MethodSource("configs")
+  void switchesOffTheSdkSpans(AnthropicChatModelConfiguration config) {
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+
+    final var clientBuilder = spy(AnthropicOkHttpClient.builder());
+    try (MockedStatic<AnthropicOkHttpClient> clientMock =
+        mockStatic(AnthropicOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
+      clientMock.when(AnthropicOkHttpClient::builder).thenReturn(clientBuilder);
+
+      final ChatModel api = factory.create(config);
+
+      verify(clientBuilder).openTelemetry(false);
+      api.close();
+    }
+  }
+
   static Stream<Arguments> timeoutConfigurations() {
     return Stream.of(
         Arguments.of(new TimeoutConfiguration(Duration.ofSeconds(45)), Duration.ofSeconds(45)),

@@ -19,11 +19,15 @@ module does not depend on Spring.
 - `ContentTreeDocumentWalker`: finds the documents in a tool call result.
 - `RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult`, `ToolCallEffect` and `RuntimeToolException`: the
   runtime tool SPI, for a tool that the connector runtime executes itself. The SPI is experimental.
+- `AgentLifecycleListener`, `AgentJobObserver` and the lifecycle events (`JobStarted`, `TurnStarted`,
+  `AgentResponseCreated` and others): the agent lifecycle listener SPI, which observes the execution of the agent.
+  The SPI is experimental and marked with `@Experimental`.
 
 ## Docs
 
 - [Chat model provider SPI](docs/chat-model-spi.md)
 - [Conversation store SPI](docs/conversation-store-spi.md)
 - [System prompt contributor SPI](docs/system-prompt-contributor.md)
+- [Agent lifecycle listener SPI](docs/agent-lifecycle-listener.md)
 - [Extension points](../docs/architecture/extension-points.md)
 - [Agentic loop](../docs/architecture/agentic-loop.md)

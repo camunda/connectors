@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
+import io.camunda.connector.agenticai.aiagent.api.Experimental;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
-import io.camunda.connector.agenticai.common.annotation.Experimental;
 import io.camunda.connector.api.document.Document;
 import java.util.Optional;
 

@@ -436,3 +436,15 @@ has the rules.
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the
 calls ran, and reports the tool and its calls to agent instance history without an element id.
+
+### Observe agent execution
+
+> **Experimental.** The agent lifecycle listener SPI (`AgentLifecycleListener`, `AgentJobObserver` and the events,
+> package `aiagent.api.lifecycle` of `aiagent-api`) is experimental and may change in an incompatible way in a minor
+> release.
+
+Implement `AgentLifecycleListener` and register it as a Spring bean. It observes the jobs of both flavors, the model
+calls and their outcomes, and cannot change what the agent does. `AgentLifecycleDispatcher` in `connector-aiagent`
+announces each job to the listeners. Reference implementation: `AgentTracingListener` in `aiagent-otel`. The contract,
+the events and the state a listener keeps in the agent context are in
+[Agent lifecycle listener SPI](../../aiagent-api/docs/agent-lifecycle-listener.md).

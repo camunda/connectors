@@ -114,8 +114,10 @@ class LocalToolCallExecutorTest {
     verifyNoMoreInteractions(runtimeTools);
     assertThat(entries)
         .containsExactly(
-            ToolCallBatch.Entry.from(executions.get(0).toolCallResult()),
-            ToolCallBatch.Entry.from(executions.get(1).toolCallResult()));
+            ToolCallBatch.Entry.from(executions.get(0).toolCallResult())
+                .withStartedAt(executions.get(0).startedAt()),
+            ToolCallBatch.Entry.from(executions.get(1).toolCallResult())
+                .withStartedAt(executions.get(1).startedAt()));
   }
 
   @Test
@@ -135,7 +137,8 @@ class LocalToolCallExecutorTest {
             new ToolCallBatch.Entry(
                 execution.toolCallResult(),
                 List.of(),
-                List.of(new ToolCallEffect.AddDocumentContent(KNOWN_ID))));
+                List.of(new ToolCallEffect.AddDocumentContent(KNOWN_ID)),
+                execution.startedAt()));
   }
 
   @Test
@@ -226,7 +229,10 @@ class LocalToolCallExecutorTest {
 
     var entries = executor.execute(executionContext, AGENT_CONTEXT, List.of(RUNTIME_CALL));
 
-    assertThat(entries).containsExactly(ToolCallBatch.Entry.from(execution.toolCallResult()));
+    assertThat(entries)
+        .containsExactly(
+            ToolCallBatch.Entry.from(execution.toolCallResult())
+                .withStartedAt(execution.startedAt()));
   }
 
   @Test
@@ -299,7 +305,8 @@ class LocalToolCallExecutorTest {
     assertThat(entries)
         .containsExactly(
             ToolCallBatch.Entry.from(
-                execution.toolCallResult(), List.of(new ToolCallEffect.AddDocumentContent(id))));
+                    execution.toolCallResult(), List.of(new ToolCallEffect.AddDocumentContent(id)))
+                .withStartedAt(execution.startedAt()));
   }
 
   @Test
@@ -376,7 +383,8 @@ class LocalToolCallExecutorTest {
                     .completedAt(now)
                     .build(),
                 List.of(document),
-                List.of()));
+                List.of(),
+                now));
   }
 
   @Test
@@ -403,6 +411,7 @@ class LocalToolCallExecutorTest {
                     .completedAt(now)
                     .build(),
                 List.of(),
-                List.of()));
+                List.of(),
+                now));
   }
 }

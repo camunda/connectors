@@ -34,11 +34,11 @@ public class LocalToolCallExecutor {
   }
 
   /**
-   * Returns one entry per call, with the documents and the effects of its result. An agent instance
-   * that tracks its documents takes the documents of a result that the model reads as handles, also
-   * those inside a typed record. The entries only hold the documents and the effects; {@link
-   * ToolCallResultsInputBuilder} returns the documents in the input of the next turn and applies
-   * the effects.
+   * Returns one entry per call, with the documents and the effects of its result and the time its
+   * execution started. An agent instance that tracks its documents takes the documents of a result
+   * that the model reads as handles, also those inside a typed record. The entries only hold the
+   * documents and the effects; {@link ToolCallResultsInputBuilder} returns the documents in the
+   * input of the next turn and applies the effects.
    *
    * @throws IllegalStateException if a call is not a call of a runtime tool
    * @throws
@@ -76,7 +76,7 @@ public class LocalToolCallExecutor {
         ToolCallBatch.Entry.withRenderedDocuments(
             execution.toolCallResult(), objectHandleRenderer, effectsOf(execution));
     entry.requireCamundaDocuments();
-    return entry;
+    return entry.withStartedAt(execution.startedAt());
   }
 
   /**
@@ -84,7 +84,8 @@ public class LocalToolCallExecutor {
    * effects of a successful result; the documents are the ones the generic walker finds.
    */
   private static ToolCallBatch.Entry untrackedEntry(RuntimeToolExecution execution) {
-    return ToolCallBatch.Entry.from(execution.toolCallResult(), effectsOf(execution));
+    return ToolCallBatch.Entry.from(execution.toolCallResult(), effectsOf(execution))
+        .withStartedAt(execution.startedAt());
   }
 
   private static List<ToolCallEffect> effectsOf(RuntimeToolExecution execution) {
