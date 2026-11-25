@@ -39,6 +39,16 @@ public class SecurityUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(SecurityUtil.class);
 
+  /**
+   * Two security schemes with the same authentication ID but a different configuration, which one
+   * template can't offer side by side.
+   */
+  public static class ConflictingSecuritySchemesException extends IllegalArgumentException {
+    ConflictingSecuritySchemesException(String message) {
+      super(message);
+    }
+  }
+
   public static List<HttpAuthentication> parseAuthentication(
       List<SecurityRequirement> security, Components components) {
 
@@ -127,7 +137,7 @@ public class SecurityUtil {
     if (isSameConfiguration(existing, duplicate)) {
       return existing;
     }
-    throw new IllegalArgumentException(
+    throw new ConflictingSecuritySchemesException(
         "Conflicting security schemes: more than one "
             + existing.label()
             + " configuration with ID '"

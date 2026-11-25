@@ -34,6 +34,7 @@ import io.camunda.connector.generator.dsl.http.HttpServerData;
 import io.camunda.connector.generator.dsl.http.OperationParseResult;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.openapi.util.OperationUtil;
+import io.camunda.connector.generator.openapi.util.SecurityUtil.ConflictingSecuritySchemesException;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
 import java.util.ArrayList;
@@ -171,7 +172,14 @@ public class OpenApiOutboundTemplateGenerator
       configuration = GeneratorConfiguration.DEFAULT;
     }
 
-    var authentication = parseAuthentication(openAPI.getSecurity(), openAPI.getComponents());
+    List<HttpAuthentication> authentication;
+    try {
+      authentication = parseAuthentication(openAPI.getSecurity(), openAPI.getComponents());
+    } catch (ConflictingSecuritySchemesException e) {
+      // OperationUtil marks every operation that inherits the global security requirements
+      // unsupported, so none of the operations in the template uses them.
+      authentication = List.of();
+    }
     if (authentication.isEmpty()) {
       authentication = List.of(NoAuth.INSTANCE);
     }

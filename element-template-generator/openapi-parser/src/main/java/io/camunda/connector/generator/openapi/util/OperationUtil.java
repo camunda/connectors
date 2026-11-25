@@ -50,6 +50,7 @@ public class OperationUtil {
   public static List<OperationParseResult> extractOperations(
       OpenAPI openAPI, Set<String> includeOperations, Options options) {
     var components = openAPI.getComponents();
+    var globalAuthenticationConflict = globalAuthenticationConflict(openAPI);
     return openAPI.getPaths().entrySet().stream()
         .flatMap(pathEntry -> {
           var pathItem = pathEntry.getValue();
@@ -70,6 +71,7 @@ public class OperationUtil {
                     pathItem.getGet().getTags(),
                     pathItem.getGet().getDescription(),
                     components,
+                    globalAuthenticationConflict,
                     options));
           }
           if (pathItem.getPost() != null) {
@@ -81,6 +83,7 @@ public class OperationUtil {
                     pathItem.getPost().getTags(),
                     pathItem.getPost().getDescription(),
                     components,
+                    globalAuthenticationConflict,
                     options));
           }
           if (pathItem.getPut() != null) {
@@ -92,6 +95,7 @@ public class OperationUtil {
                     pathItem.getPut().getTags(),
                     pathItem.getPut().getDescription(),
                     components,
+                    globalAuthenticationConflict,
                     options));
           }
           if (pathItem.getPatch() != null) {
@@ -103,6 +107,7 @@ public class OperationUtil {
                     pathItem.getPatch().getTags(),
                     pathItem.getPatch().getDescription(),
                     components,
+                    globalAuthenticationConflict,
                     options));
           }
           if (pathItem.getDelete() != null) {
@@ -114,6 +119,7 @@ public class OperationUtil {
                     pathItem.getDelete().getTags(),
                     pathItem.getDelete().getDescription(),
                     components,
+                    globalAuthenticationConflict,
                     options));
           }
           var path = extractPath(pathEntry.getKey());
@@ -142,6 +148,7 @@ public class OperationUtil {
       List<String> tags,
       String description,
       Components components,
+      String globalAuthenticationConflict,
       Options options) {
     try {
       var parameters = operation.getParameters();
@@ -157,6 +164,10 @@ public class OperationUtil {
       var label = method.name() + " " + path;
 
       var authenticationOverride = parseAuthentication(operation.getSecurity(), components);
+      if (authenticationOverride.isEmpty() && globalAuthenticationConflict != null) {
+        // the operation inherits the global security requirements
+        throw new IllegalArgumentException(globalAuthenticationConflict);
+      }
 
       var body = BodyUtil.parseBody(operation.getRequestBody(), components, options);
       HttpFeelBuilder bodyFeelExpression;
@@ -198,6 +209,25 @@ public class OperationUtil {
     } catch (Exception e) {
       return new OperationParseResult(
           operation.getOperationId(), path, method, tags, false, description, e.getMessage(), null);
+    }
+  }
+
+  /**
+   * Conflicting global security schemes only matter for operations that inherit them. Those
+   * operations are marked unsupported, so the scan doesn't fail when every operation it keeps
+   * declares its own security.
+   *
+   * @return the reason, or {@code null} if the global security requirements have no conflict. Any
+   *     other parsing failure is left to the template build, as before.
+   */
+  private static String globalAuthenticationConflict(OpenAPI openAPI) {
+    try {
+      parseAuthentication(openAPI.getSecurity(), openAPI.getComponents());
+      return null;
+    } catch (SecurityUtil.ConflictingSecuritySchemesException e) {
+      return "Global security requirements are not supported: " + e.getMessage();
+    } catch (RuntimeException e) {
+      return null;
     }
   }
 

@@ -392,6 +392,80 @@ class ScanCrashTest {
     generate(spec);
   }
 
+  private static final String CONFLICTING_GLOBAL_SECURITY_SPEC =
+      """
+      openapi: 3.0.3
+      info:
+        title: Test API
+        version: 1.0.0
+      servers:
+        - url: https://api.example.com
+      security:
+        - keyInHeader: []
+        - keyInQuery: []
+      components:
+        securitySchemes:
+          keyInHeader:
+            type: apiKey
+            in: header
+            name: api_key
+          keyInQuery:
+            type: apiKey
+            in: query
+            name: api_key
+          bearerAuth:
+            type: http
+            scheme: bearer
+      paths:
+        /own:
+          get:
+            operationId: ownSecurity
+            security:
+              - bearerAuth: []
+            responses:
+              '200':
+                description: OK
+        /inherited:
+          get:
+            operationId: inheritedSecurity
+            responses:
+              '200':
+                description: OK
+      """;
+
+  @Test
+  void conflictingGlobalSchemes_markOnlyOperationsThatInheritThemUnsupported() {
+    var results = scanOperations(CONFLICTING_GLOBAL_SECURITY_SPEC);
+
+    var inherited = operation(results, "inheritedSecurity");
+    assertThat(inherited.supported()).isFalse();
+    assertThat(inherited.info())
+        .contains("Global security requirements are not supported")
+        .contains("apiKey.api_key");
+    var own = operation(results, "ownSecurity");
+    assertThat(own.supported()).isTrue();
+    assertThat(own.builder().build().authenticationOverride())
+        .extracting(HttpAuthentication::id)
+        .containsExactly("bearer");
+
+    var template = generate(CONFLICTING_GLOBAL_SECURITY_SPEC);
+    assertThat(propertiesWithIdEndingIn(template, "api_key")).isEmpty();
+  }
+
+  @Test
+  void conflictingGlobalSchemes_unusedBySelectedOperations_generateTemplate() {
+    var source =
+        new OpenApiGenerationSource(List.of(CONFLICTING_GLOBAL_SECURITY_SPEC, "ownSecurity"));
+
+    assertThat(generator.scan(source).additionalData())
+        .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LIST)
+        .singleElement()
+        .satisfies(op -> assertThat(((OperationParseResult) op).supported()).isTrue());
+    var templates = generator.generate(source, GeneratorConfiguration.DEFAULT);
+    assertThat(templates).hasSize(1);
+    assertThat(propertiesWithIdEndingIn(templates.getFirst(), "api_key")).isEmpty();
+  }
+
   @Test
   void explicitContentTypeHeaderWithJsonBody_isKept() {
     var spec =
