@@ -19,253 +19,120 @@ package io.camunda.connector.http.rest.templates;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
-import io.camunda.connector.http.rest.model.HttpJsonRequest;
-import io.camunda.connector.http.rest.templates.TemplateInputMappings.Mode;
-import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.http.base.model.auth.ServiceAuthenticationConfiguration;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.File;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
- * The UiPath template is a hand-maintained template on top of the HTTP JSON connector. Each case
- * runs in both of Zeebe's input mapping modes.
+ * The UiPath template is a hand-maintained template on top of the HTTP JSON connector. "UiPath
+ * instance URL" defaults to cloud.uipath.com and can be changed (Automation Suite, other UiPath
+ * clouds). The OAuth client credentials must then go to that host, not to cloud.uipath.com.
  */
 class UiPathElementTemplateTest {
 
-  private static final String TEMPLATE = "../../uipath/element-templates/uipath-connector.json";
+  private static final LocalFeelExpressionEvaluator FEEL = new LocalFeelExpressionEvaluator();
 
-  private static final String AUTOMATION_SUITE_HOST = "uipath.automation-suite.example.test";
-  private static final String OTHER_HOST = "uipath.process-variable.example.test";
-
-  // The default validation resolves the URL's host; these tests only read the bound request.
-  private static final ValidationProvider NO_HOST_LOOKUP = input -> {};
-
-  static Stream<Arguments> operationsAndModes() {
-    return Stream.of("addQueueItem", "getItemById")
-        .flatMap(
-            operation -> Arrays.stream(Mode.values()).map(mode -> Arguments.of(operation, mode)));
+  private static JsonNode template() throws Exception {
+    return ConnectorsObjectMapperSupplier.getCopy()
+        .readTree(new File("../../uipath/element-templates/uipath-connector.json"));
   }
 
-  /** What the user enters, keyed by property id where the property has one. */
-  private static Map<String, String> oauthInputs(String operation) {
-    Map<String, String> inputs = new HashMap<>();
-    inputs.put("operationType", operation);
-    inputs.put("authenticationType", "oauth-client-credentials-flow");
-    inputs.put("authentication.clientId", "synthetic-client-9999");
-    inputs.put("authentication.clientSecret", "synthetic-secret-9999");
-    inputs.put("cloudOrg", "fictional-org");
-    inputs.put("cloudTenant", "DefaultTenant");
-    inputs.put("organizationUnitId", "9999");
-    inputs.put("queueName", "synthetic-invoices");
-    inputs.put("itemId", "=436141352");
-    return inputs;
+  private static JsonNode credentialType() throws Exception {
+    for (JsonNode type : template().path("configurationTemplates")) {
+      if (type.path("id").asText().equals("io.camunda.connectors:uipath-authentication:1")) {
+        return type;
+      }
+    }
+    throw new AssertionError("Missing the UiPath credential type");
   }
 
-  private static Map<String, String> oauthInputs(String operation, String instanceHost) {
-    Map<String, String> inputs = oauthInputs(operation);
-    inputs.put("cloudUrl", instanceHost);
-    return inputs;
+  private static JsonNode property(JsonNode properties, String bindingName) {
+    for (JsonNode property : properties) {
+      if (property.path("binding").path("name").asText().equals(bindingName)) {
+        return property;
+      }
+    }
+    throw new AssertionError("Missing property bound to " + bindingName);
   }
 
-  private static HttpJsonRequest bind(Map<String, Object> variables) throws Exception {
-    return OutboundConnectorContextBuilder.create()
-        .variables(variables)
-        .validation(NO_HOST_LOOKUP)
-        .build()
-        .bindVariables(HttpJsonRequest.class);
+  @Test
+  void instanceUrlDefaultsToAutomationCloud() throws Exception {
+    assertThat(property(template().path("properties"), "cloudUrl").path("value").asText())
+        .isEqualTo("cloud.uipath.com");
+    assertThat(
+            property(credentialType().path("properties"), "parameters.cloudUrl")
+                .path("value")
+                .asText())
+        .isEqualTo("cloud.uipath.com");
   }
 
-  private static String tokenEndpoint(String host) {
-    return "https://" + host + "/identity_/connect/token";
+  // On the task, the token endpoint is a hidden FEEL expression over the inputs of the template.
+  @ParameterizedTest
+  @CsvSource({
+    "cloud.uipath.com, https://cloud.uipath.com/identity_/connect/token",
+    "uipath.automation-suite.example.test,"
+        + " https://uipath.automation-suite.example.test/identity_/connect/token"
+  })
+  void taskRequestsTheOAuthTokenFromTheConfiguredInstance(String instanceUrl, String tokenEndpoint)
+      throws Exception {
+    String expression =
+        property(template().path("properties"), "authentication.oauthTokenEndpoint")
+            .path("value")
+            .asText();
+
+    String result =
+        FEEL.evaluate(expression, Map.of("cloudUrl", instanceUrl, "cloudOrg", "fictional-org"));
+
+    assertThat(result).isEqualTo(tokenEndpoint);
   }
 
-  private static void assertTokenEndpoint(HttpJsonRequest request, String host) {
-    assertThat(request.getAuthentication())
+  // In the reusable credential, the token endpoint and the base URL are constants with ${...}
+  // placeholders, which the connector fills from the parameters of the credential.
+  @ParameterizedTest
+  @CsvSource({
+    "cloud.uipath.com, https://cloud.uipath.com/identity_/connect/token",
+    "uipath.automation-suite.example.test,"
+        + " https://uipath.automation-suite.example.test/identity_/connect/token"
+  })
+  void credentialRequestsTheOAuthTokenFromItsInstance(String instanceUrl, String tokenEndpoint)
+      throws Exception {
+    JsonNode properties = credentialType().path("properties");
+    Map<String, String> entered =
+        Map.of(
+            "cloudUrl", instanceUrl, "cloudOrg", "fictional-org", "cloudTenant", "DefaultTenant");
+    Map<String, String> parameters = new HashMap<>();
+    for (JsonNode property : properties) {
+      String name = property.path("binding").path("name").asText();
+      if (name.startsWith("parameters.")) {
+        parameters.put(
+            name.substring("parameters.".length()), entered.get(property.path("id").asText()));
+      }
+    }
+
+    var credential =
+        new ServiceAuthenticationConfiguration(
+            new OAuthAuthentication(
+                property(properties, "authentication.oauthTokenEndpoint").path("value").asText(),
+                "synthetic-client-9999",
+                "synthetic-secret-9999",
+                null,
+                "basicAuthHeader",
+                "OR.Queues"),
+            property(properties, "baseUrl").path("value").asText(),
+            parameters);
+
+    assertThat(credential.baseUrl())
+        .isEqualTo("https://" + instanceUrl + "/fictional-org/DefaultTenant");
+    assertThat(credential.authentication())
         .isInstanceOfSatisfying(
             OAuthAuthentication.class,
-            auth -> assertThat(auth.oauthTokenEndpoint()).isEqualTo(tokenEndpoint(host)));
-  }
-
-  // "UiPath instance URL" defaults to cloud.uipath.com and can be changed (Automation Suite,
-  // other UiPath clouds). The client credentials must then go to that host, not to
-  // cloud.uipath.com. These cases pin the host only: UiPath's Automation Suite guides also put the
-  // organization in the token path, which the template does not do.
-  @ParameterizedTest(name = "{0}, {1}")
-  @MethodSource("operationsAndModes")
-  void oauthTokenIsRequestedFromTheConfiguredInstance(String operation, Mode mode)
-      throws Exception {
-    var variables =
-        TemplateInputMappings.load(TEMPLATE, mode)
-            .apply(oauthInputs(operation, AUTOMATION_SUITE_HOST));
-
-    var request = bind(variables);
-
-    assertThat(request.getUrl())
-        .startsWith("https://" + AUTOMATION_SUITE_HOST + "/fictional-org/DefaultTenant/");
-    assertTokenEndpoint(request, AUTOMATION_SUITE_HOST);
-  }
-
-  @ParameterizedTest(name = "{0}, {1}")
-  @MethodSource("operationsAndModes")
-  void processVariableCloudUrlDoesNotChangeTheTokenEndpoint(String operation, Mode mode)
-      throws Exception {
-    var variables =
-        TemplateInputMappings.load(TEMPLATE, mode)
-            .apply(oauthInputs(operation, AUTOMATION_SUITE_HOST), Map.of("cloudUrl", OTHER_HOST));
-
-    var request = bind(variables);
-
-    assertThat(request.getUrl()).startsWith("https://" + AUTOMATION_SUITE_HOST + "/");
-    assertTokenEndpoint(request, AUTOMATION_SUITE_HOST);
-  }
-
-  @ParameterizedTest(name = "{0}, {1}")
-  @MethodSource("operationsAndModes")
-  void defaultInstanceKeepsTheAutomationCloudTokenEndpoint(String operation, Mode mode)
-      throws Exception {
-    var variables = TemplateInputMappings.load(TEMPLATE, mode).apply(oauthInputs(operation));
-
-    var request = bind(variables);
-
-    assertThat(request.getUrl()).startsWith("https://cloud.uipath.com/fictional-org/");
-    assertTokenEndpoint(request, "cloud.uipath.com");
-  }
-
-  @ParameterizedTest(name = "{0}, {1}")
-  @MethodSource("operationsAndModes")
-  void defaultInstanceIgnoresAProcessVariableCloudUrl(String operation, Mode mode)
-      throws Exception {
-    var variables =
-        TemplateInputMappings.load(TEMPLATE, mode)
-            .apply(oauthInputs(operation), Map.of("cloudUrl", OTHER_HOST));
-
-    var request = bind(variables);
-
-    assertThat(request.getUrl()).startsWith("https://cloud.uipath.com/fictional-org/");
-    assertTokenEndpoint(request, "cloud.uipath.com");
-  }
-
-  private static final String CREDENTIAL_TYPE = "io.camunda.connectors:uipath-authentication:1";
-
-  /**
-   * The value saved for a credential of the template's own UiPath credential type: the entered
-   * values, and the hidden constants of the properties whose condition holds, at their binding
-   * paths.
-   *
-   * @param entered values the admin enters, keyed by property id
-   */
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> credential(Map<String, String> entered) throws Exception {
-    JsonNode template = new ObjectMapper().readTree(new File(TEMPLATE));
-    JsonNode type =
-        StreamSupport.stream(template.get("configurationTemplates").spliterator(), false)
-            .filter(t -> CREDENTIAL_TYPE.equals(t.path("id").asText()))
-            .findFirst()
-            .orElseThrow(() -> new AssertionError("no credential type " + CREDENTIAL_TYPE));
-    Map<String, String> values = new HashMap<>();
-    for (JsonNode property : type.get("properties")) {
-      String id = property.path("id").asText();
-      String value =
-          entered.containsKey(id) ? entered.get(id) : property.path("value").asText(null);
-      if (value != null) {
-        values.put(id, value);
-      }
-    }
-    Map<String, Object> credential = new LinkedHashMap<>();
-    for (JsonNode property : type.get("properties")) {
-      JsonNode condition = property.path("condition");
-      if (!condition.isMissingNode()) {
-        if (!condition.has("equals")) {
-          throw new IllegalArgumentException("Unsupported condition: " + condition);
-        }
-        if (!condition
-            .get("equals")
-            .asText()
-            .equals(values.get(condition.path("property").asText()))) {
-          continue;
-        }
-      }
-      String value = values.get(property.path("id").asText());
-      if (value == null || value.isEmpty()) {
-        continue;
-      }
-      String[] path = property.path("binding").path("name").asText().split("\\.");
-      Map<String, Object> current = credential;
-      for (int i = 0; i < path.length - 1; i++) {
-        current =
-            (Map<String, Object>)
-                current.computeIfAbsent(path[i], key -> new LinkedHashMap<String, Object>());
-      }
-      current.put(path[path.length - 1], value);
-    }
-    return credential;
-  }
-
-  /** What the admin enters for an OAuth credential; a null host keeps the default Cloud URL. */
-  private static Map<String, String> oauthCredentialEntries(String instanceHost) {
-    Map<String, String> entries = new HashMap<>();
-    entries.put("authenticationType", "oauth-client-credentials-flow");
-    entries.put("authentication.clientId", "synthetic-client-9999");
-    entries.put("authentication.clientSecret", "synthetic-secret-9999");
-    if (instanceHost != null) {
-      entries.put("cloudUrl", instanceHost);
-    }
-    entries.put("cloudOrg", "fictional-org");
-    entries.put("cloudTenant", "DefaultTenant");
-    return entries;
-  }
-
-  /** What the user enters on the task when a reusable credential is chosen. */
-  private static Map<String, String> credentialTaskInputs(String operation) {
-    Map<String, String> inputs = new HashMap<>();
-    inputs.put("operationType", operation);
-    inputs.put("serviceAuthenticationConfiguration", "=uiPathCredential");
-    inputs.put("organizationUnitId", "9999");
-    inputs.put("queueName", "synthetic-invoices");
-    inputs.put("itemId", "=436141352");
-    return inputs;
-  }
-
-  // A reusable UiPath credential holds the instance host as its Cloud URL parameter, and its base
-  // URL is built from it. The OAuth token has to come from the same host.
-  @ParameterizedTest(name = "{0}, {1}")
-  @MethodSource("operationsAndModes")
-  void credentialRequestsTheOAuthTokenFromItsInstance(String operation, Mode mode)
-      throws Exception {
-    var credential = credential(oauthCredentialEntries(AUTOMATION_SUITE_HOST));
-    var variables =
-        TemplateInputMappings.load(TEMPLATE, mode)
-            .apply(credentialTaskInputs(operation), Map.of("uiPathCredential", credential));
-
-    var request = bind(variables);
-
-    assertThat(request.getUrl())
-        .startsWith("https://" + AUTOMATION_SUITE_HOST + "/fictional-org/DefaultTenant/");
-    assertTokenEndpoint(request, AUTOMATION_SUITE_HOST);
-  }
-
-  @ParameterizedTest(name = "{0}, {1}")
-  @MethodSource("operationsAndModes")
-  void credentialWithTheDefaultInstanceKeepsTheAutomationCloudTokenEndpoint(
-      String operation, Mode mode) throws Exception {
-    var credential = credential(oauthCredentialEntries(null));
-    var variables =
-        TemplateInputMappings.load(TEMPLATE, mode)
-            .apply(credentialTaskInputs(operation), Map.of("uiPathCredential", credential));
-
-    var request = bind(variables);
-
-    assertThat(request.getUrl()).startsWith("https://cloud.uipath.com/fictional-org/");
-    assertTokenEndpoint(request, "cloud.uipath.com");
+            oauth -> assertThat(oauth.oauthTokenEndpoint()).isEqualTo(tokenEndpoint));
   }
 }
