@@ -8,6 +8,7 @@ package io.camunda.connector.mixpanel;
 
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
@@ -39,6 +40,7 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import io.camunda.connector.generator.openapi.OpenApiGenerationSource;
 import io.camunda.connector.generator.openapi.OpenApiOutboundTemplateGenerator;
+import io.camunda.connector.generator.openapi.OpenApiOverlay;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -54,10 +56,17 @@ import java.util.stream.Collectors;
  * Generates the Mixpanel element template from Mixpanel's published OpenAPI specs.
  *
  * <p>The connector is template-only: it runs as {@code io.camunda:http-json:1} and has no runtime
- * code. {@code mixpanel-openapi.json} is a pinned, trimmed copy of the operations below from
- * Mixpanel's ingestion and query specs (see {@link RefreshOpenApiSpec}). The OpenAPI generator
- * turns them into an element template, and {@link #curate(ElementTemplate)} fixes what the raw
- * output gets wrong for Mixpanel.
+ * code. The template is built in three steps:
+ *
+ * <ol>
+ *   <li>{@code mixpanel-openapi.json} is a pinned, trimmed copy of the operations below from
+ *       Mixpanel's ingestion and query specs (see {@link RefreshOpenApiSpec}). {@code
+ *       mixpanel-openapi-overlay.json} applies Camunda's spec fixes as an OpenAPI Overlay: service
+ *       account authentication only, and no Content-Type or Content-Encoding header fields.
+ *   <li>The OpenAPI generator (congen's {@code openapi-outbound}) turns the curated operations into
+ *       an element template.
+ *   <li>{@link #curate(ElementTemplate)} fixes what the raw output gets wrong for Mixpanel.
+ * </ol>
  *
  * <p>Run manually after changing the spec or this class, and commit the regenerated {@code
  * element-templates/mixpanel-connector.json}: {@code mvn -pl connectors/mixpanel test-compile
@@ -159,6 +168,10 @@ public class GenerateElementTemplate {
     return moduleRoot().resolve("src/test/resources/mixpanel-openapi.json");
   }
 
+  static Path overlayPath() throws URISyntaxException {
+    return moduleRoot().resolve("src/test/resources/mixpanel-openapi-overlay.json");
+  }
+
   static ElementTemplate generate() throws IOException, URISyntaxException {
     var source = generationSource();
     var generator = new OpenApiOutboundTemplateGenerator(false);
@@ -190,30 +203,39 @@ public class GenerateElementTemplate {
    */
   static OpenApiGenerationSource generationSource() throws IOException, URISyntaxException {
     List<String> parameters = new ArrayList<>();
-    parameters.add(Files.readString(specPath()));
+    parameters.add(new ObjectMapper().writeValueAsString(patchedSpec()));
     parameters.addAll(OPERATION_IDS);
     parameters.add("--no-resolve-refs");
     return new OpenApiGenerationSource(parameters);
   }
 
+  /** The pinned spec with the overlay applied. */
+  static JsonNode patchedSpec() throws IOException, URISyntaxException {
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode spec = mapper.readTree(Files.readString(specPath()));
+    JsonNode overlay = mapper.readTree(Files.readString(overlayPath()));
+    return OpenApiOverlay.apply(spec, overlay);
+  }
+
   /**
    * Turns the OpenAPI generator's output into the shipped template. Each change fixes something the
-   * raw output gets wrong for Mixpanel:
+   * raw output gets wrong for Mixpanel and that an OpenAPI Overlay cannot fix:
    *
    * <ul>
    *   <li>Operation names: the raw dropdown shows {@code POST /import}.
    *   <li>Server: the two operations live on different hosts, and the specs give each host as a
-   *       {@code {region}} variable that the generator does not expand. A data residency dropdown
-   *       picks the host for each operation.
+   *       {@code {region}} variable that the generator does not expand. The generator only reads
+   *       the spec's top-level servers, so an overlay cannot give each operation its own host. A
+   *       data residency dropdown picks the host for each operation.
    *   <li>Authentication: a reusable Mixpanel service account credential, with the service account
    *       entered on the task as the fallback. The raw output offers a separate authentication
-   *       dropdown per operation, including the legacy project secret.
+   *       dropdown per operation.
    *   <li>Project ID: every call needs it as a query parameter. One field serves both operations.
    *       It stays on the task: a credential can only add authentication, not a query parameter.
    *   <li>Import event: the raw body is an empty {@code =}. It gets named fields, and the body adds
    *       the time and {@code $insert_id} that Mixpanel requires, so a retried task is not counted
    *       twice. {@code strict=1} makes Mixpanel reject invalid events with HTTP 400, which fails
-   *       the job. The raw Content-Type and Content-Encoding header fields are dropped.
+   *       the job.
    *   <li>Query saved report: the raw query parameters default to 0. They become a report ID and an
    *       optional workspace ID with help text.
    * </ul>
@@ -294,7 +316,7 @@ public class GenerateElementTemplate {
       return property;
     }
     String operation = operationOf(property);
-    if (id.startsWith(operation + "_query_") || id.startsWith(operation + "_header_")) {
+    if (id.startsWith(operation + "_query_")) {
       return null;
     }
     if (id.equals(operation + "_$headers")) {

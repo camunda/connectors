@@ -177,6 +177,17 @@ class GenerateElementTemplateTest {
   }
 
   @Test
+  void overlayKeepsOnlyServiceAccountAuthenticationAndNoHeaderFields() throws Exception {
+    JsonNode spec = GenerateElementTemplate.patchedSpec();
+
+    assertThat(spec.findValues("security"))
+        .isNotEmpty()
+        .allSatisfy(
+            security -> assertThat(security.toString()).isEqualTo("[{\"ServiceAccount\":[]}]"));
+    assertThat(spec.findValues("in")).extracting(JsonNode::asText).doesNotContain("header");
+  }
+
+  @Test
   void openApiGeneratorSupportsEveryCuratedOperation() throws Exception {
     var source = GenerateElementTemplate.generationSource();
 

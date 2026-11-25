@@ -30,11 +30,17 @@ reports. It has no runtime code: it runs as the [REST Connector](./../http/rest)
 1. `src/test/resources/mixpanel-openapi.json` is a trimmed copy of Mixpanel's published ingestion
    and query specs (https://github.com/mixpanel/docs/tree/main/openapi): only the operations above
    and the components they reference, unchanged, merged into one JSON file.
-2. `GenerateElementTemplate` runs the OpenAPI generator (`openapi-parser`) on it, then curates the
-   result: operation names, data residency, credential, project ID, the input fields and the request
-   body. `GenerateElementTemplateTest` fails when the committed template is stale.
+2. `src/test/resources/mixpanel-openapi-overlay.json` is an
+   [OpenAPI Overlay](https://spec.openapis.org/overlay/v1.0.0.html) with Camunda's spec fixes: it
+   keeps only service account authentication and removes the Content-Type and Content-Encoding
+   header parameters.
+3. `GenerateElementTemplate` runs the OpenAPI generator (`openapi-parser`) on the patched spec, then
+   curates the result: operation names, data residency, credential, project ID, the input fields and
+   the request body. Data residency is curated rather than in the overlay, because each operation
+   needs its own host and the generator only reads the spec's top-level servers.
+   `GenerateElementTemplateTest` fails when the committed template is stale.
 
-Regenerate the template after changing the generator:
+Regenerate the template after changing the generator or the overlay:
 
 ```shell
 mvn -pl connectors/mixpanel test-compile exec:java \
