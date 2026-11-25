@@ -125,7 +125,7 @@ public class GeminiChatModel implements ChatModel {
       // a coded failure was thrown on purpose, and an IO failure of the SDK carries its own message
       throw failedModelCall(e);
     } catch (Exception e) {
-      LOG.error("Model call failed unexpectedly", e);
+      LOG.error("Model call failed with an unhandled exception", e);
       throw failedModelCall(e);
     }
   }

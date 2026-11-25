@@ -82,7 +82,7 @@ public class OpenAiChatModel implements ChatModel {
       // a failure of the SDK carries its own message
       throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     } catch (Exception e) {
-      LOG.error("Model call failed unexpectedly", e);
+      LOG.error("Model call failed with an unhandled exception", e);
       throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     }
   }

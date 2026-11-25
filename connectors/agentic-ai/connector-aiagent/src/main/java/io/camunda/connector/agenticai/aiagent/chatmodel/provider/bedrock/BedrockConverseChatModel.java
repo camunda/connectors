@@ -112,7 +112,7 @@ public class BedrockConverseChatModel implements ChatModel {
     if (!(failure instanceof SdkException
         || failure instanceof ConnectorException
         || failure instanceof ChatModelRejectedException)) {
-      LOG.error("Model call failed unexpectedly", failure);
+      LOG.error("Model call failed with an unhandled exception", failure);
     }
   }
 

@@ -28,13 +28,14 @@ them separately, and some leave thinking tokens out of the output count. Each pr
 has a **Token usage** table that shows which provider fields each bucket is computed from, and what
 those fields contain.
 
-## Unexpected failures
+## Unhandled failures
 
 A provider turns the failures of its SDK into `FAILED_MODEL_CALL`. They carry their own message, so the
-incident is enough. Any other exception that the provider does not handle is a defect in the provider: the
-provider logs it at `ERROR` with the stack trace, and then turns it into the incident. The incident has no
-stack trace, because every user of the process can read it. The `langchain4j` provider logs nothing, because
-the exceptions of the SDKs behind it have no common type.
+incident is enough. A provider logs any other exception, one that it does not handle, at `ERROR` with the
+stack trace, and then turns it into the incident. Such an exception is either a defect in the provider or a
+condition that the provider does not handle yet, for example a response stream that ends early. The incident
+has no stack trace, because every user of the process can read it. The `langchain4j` provider logs nothing,
+because the exceptions of the SDKs behind it have no common type.
 
 ## Anthropic
 
