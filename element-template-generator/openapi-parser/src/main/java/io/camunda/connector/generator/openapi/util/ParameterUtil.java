@@ -18,12 +18,14 @@ package io.camunda.connector.generator.openapi.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /** Utility functions related to converting OpenAPI parameters to {@link HttpOperationProperty}s. */
@@ -35,6 +37,8 @@ public class ParameterUtil {
           "query", HttpOperationProperty.Target.QUERY,
           "header", HttpOperationProperty.Target.HEADER,
           "headers", HttpOperationProperty.Target.HEADER);
+
+  private static final ObjectMapper EXAMPLE_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
 
   /** Returns the parameter a {@code $ref} points to, or the parameter itself. */
   public static Parameter resolve(Parameter parameter, Components components) {
@@ -121,7 +125,7 @@ public class ParameterUtil {
 
     String example;
     if (parameter.getExample() != null) {
-      example = parameter.getExample().toString();
+      example = exampleToString(parameter.getExample());
     } else {
       example = getExampleFromSchema(parameter.getSchema(), components);
     }
@@ -207,12 +211,33 @@ public class ParameterUtil {
   }
 
   /**
-   * The parser can return an OpenAPI 3.1 {@code examples} entry as a {@link JsonNode}. The {@code
-   * toString()} of a text node keeps its JSON quotes, so plain values are read as text instead.
+   * Writes an example as the text a template field holds: a plain value as text, an object or array
+   * as JSON.
+   *
+   * <p>The parser can return an OpenAPI 3.1 {@code examples} entry as a {@link JsonNode}. The
+   * {@code toString()} of a text node keeps its JSON quotes, so plain values are read as text
+   * instead. For OpenAPI 3.1 documents with resolved refs, the parser returns object and array
+   * examples as {@link Map} and {@link List}, whose {@code toString()} is not JSON ({@code
+   * {a=red}}), so they are serialized as JSON.
    */
   private static String exampleToString(Object example) {
     if (example instanceof JsonNode node && node.isValueNode()) {
       return node.asText();
+    }
+    // the parser stores a format: byte example as the bytes of the example text
+    if (example instanceof byte[] bytes) {
+      return new String(bytes, StandardCharsets.UTF_8);
+    }
+    if (example instanceof JsonNode
+        || example instanceof Map<?, ?>
+        || example instanceof Collection<?>
+        || example.getClass().isArray()) {
+      try {
+        return EXAMPLE_MAPPER.writeValueAsString(example);
+      } catch (JsonProcessingException e) {
+        // an example is only a prefill; it must not make the operation unsupported
+        return example.toString();
+      }
     }
     return example.toString();
   }

@@ -349,6 +349,122 @@ public class OpenApi31Test {
     assertThat(property(properties, "sendMessage_body").getValue()).isEqualTo("=\"hello\"");
   }
 
+  // the parser returns 3.1 object and array examples as Map and List, not as JSON nodes
+  @ParameterizedTest
+  @ValueSource(strings = {"3.0.3", "3.1.0"})
+  void generate_objectAndArrayExamples_areWrittenAsJson(String version) {
+    // language=yaml
+    var spec =
+        """
+        openapi: %s
+        info:
+          title: Examples
+          version: 1.0.0
+        servers:
+          - url: https://api.example.com
+        paths:
+          /tags:
+            post:
+              operationId: replaceTags
+              parameters:
+                - name: filter
+                  in: query
+                  schema:
+                    $ref: '#/components/schemas/Filter'
+                - name: sort
+                  in: query
+                  schema:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                  example:
+                    field: name
+                - name: cursor
+                  in: query
+                  schema:
+                    type: string
+                    format: byte
+                    example: aGVsbG8K
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Tags'
+              responses:
+                '204':
+                  description: Done.
+          /apps:
+            post:
+              operationId: addApps
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        apps:
+                          type: array
+                          items:
+                            type: string
+                      example:
+                        apps: [my-app]
+                    examples:
+                      default:
+                        value:
+                          apps: [octoapp]
+              responses:
+                '204':
+                  description: Done.
+          /matrix:
+            post:
+              operationId: setMatrix
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Matrix'
+              responses:
+                '204':
+                  description: Done.
+        components:
+          schemas:
+            Tags:
+              type: array
+              items:
+                type: string
+              example: [red, blue]
+            Filter:
+              type: object
+              properties:
+                a:
+                  type: string
+              example:
+                a: red
+            Matrix:
+              type: array
+              items:
+                type: array
+                items:
+                  type: integer
+              example: [[1, 2], [3]]
+        """
+            .formatted(version);
+
+    var properties = generateFromContent(spec);
+
+    assertThat(property(properties, "replaceTags_body").getValue())
+        .isEqualTo("=[\"red\",\"blue\"]");
+    assertThat(property(properties, "replaceTags_query_filter").getValue())
+        .isEqualTo("{\"a\":\"red\"}");
+    assertThat(property(properties, "replaceTags_query_sort").getValue())
+        .isEqualTo("{\"field\":\"name\"}");
+    assertThat(property(properties, "replaceTags_query_cursor").getValue()).isEqualTo("aGVsbG8K");
+    assertThat(property(properties, "addApps_body").getValue())
+        .isEqualTo("={\"apps\":[\"my-app\"]}");
+    assertThat(property(properties, "setMatrix_body").getValue()).isEqualTo("=[[1,2],[3]]");
+  }
+
   private static Property property(List<Property> properties, String id) {
     return properties.stream()
         .filter(p -> id.equals(p.getId()))
