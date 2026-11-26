@@ -141,5 +141,3 @@ updated when changing shard-only behavior, disabled rows, or provider group memb
 document scenarios to `RealProviderMultimodalE2ETestIT` and tool-result document scenarios to
 `DocumentToolCallResultsIT`. For local runs, see the
 [runbook](README.md#run-one-native-capability-from-the-host).
-
-> Edit `AGENTS.md`; `CLAUDE.md` only imports it.
