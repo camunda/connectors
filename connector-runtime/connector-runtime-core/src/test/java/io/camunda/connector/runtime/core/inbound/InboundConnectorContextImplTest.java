@@ -49,6 +49,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationP
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -984,6 +985,121 @@ class InboundConnectorContextImplTest {
                     Map.entry("header", "Bearer ***"),
                     Map.entry("***", true),
                     Map.entry("count", 3)));
+  }
+
+  @Test
+  void reportHealth_publishesAnObjectAsItsMaskedStringForm() throws Exception {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when the details hold a bean whose getter returns the value, and the value as a char[]
+    context.reportHealth(
+        Health.up(Map.of("credentials", new Credentials("bar"), "password", "bar".toCharArray())));
+
+    // then neither reaches the JSON that the health endpoints publish
+    var details = context.getHealth().getDetails();
+    assertThat(details)
+        .containsEntry("credentials", "Credentials")
+        .containsEntry("password", "***");
+    assertThat(mapper.writeValueAsString(context.getHealth())).doesNotContain("bar");
+  }
+
+  @Test
+  void reportHealth_replacesACircularReferenceInTheDetails() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+    var details = new HashMap<String, Object>();
+    details.put("detail", "token was bar");
+    details.put("self", details);
+    var list = new ArrayList<Object>();
+    list.add("bar");
+    list.add(list);
+    details.put("list", list);
+    var array = new Object[2];
+    array[0] = "bar";
+    array[1] = array;
+    details.put("array", array);
+
+    // when
+    context.reportHealth(Health.up(details));
+
+    // then the health is recorded, masked, with each repeat replaced
+    assertThat(context.getHealth().getDetails())
+        .containsEntry("detail", "token was ***")
+        .containsEntry("self", "[circular reference]")
+        .containsEntry("list", List.of("***", "[circular reference]"))
+        .containsEntry("array", List.of("***", "[circular reference]"));
+  }
+
+  @Test
+  void log_replacesACircularReferenceInTheActivityData() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+    var nested = new HashMap<String, Object>();
+    nested.put("header", "Bearer bar");
+    nested.put("parent", nested);
+
+    // when
+    context.log(activity ->
+        activity.withSeverity(Severity.INFO).withMessage("received").withData("nested", nested));
+
+    // then
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log ->
+            assertThat(log.data())
+                .containsEntry(
+                    "nested", Map.of("header", "Bearer ***", "parent", "[circular reference]")));
+  }
+
+  // a bean whose JSON form shows the token but whose string form does not
+  public static final class Credentials {
+    private final String token;
+
+    Credentials(String token) {
+      this.token = token;
+    }
+
+    public String getToken() {
+      return token;
+    }
+
+    @Override
+    public String toString() {
+      return "Credentials";
+    }
   }
 
   @Test

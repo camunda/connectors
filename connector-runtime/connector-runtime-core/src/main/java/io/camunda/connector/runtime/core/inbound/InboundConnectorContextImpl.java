@@ -60,6 +60,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +99,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private static final Map<String, Object> WITHHELD_DATA =
       Map.of("withheld", "Data withheld: could not verify it does not contain a secret value");
+
+  private static final String CIRCULAR_REFERENCE = "[circular reference]";
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -675,40 +679,68 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     if (secrets.isEmpty()) {
       return data;
     }
+    // the data is user-supplied, so a container may contain itself
+    Set<Object> enclosing = Collections.newSetFromMap(new IdentityHashMap<>());
+    enclosing.add(data);
     var redacted = new LinkedHashMap<String, Object>();
     data.forEach((key, value) ->
-        redacted.put(SecretUtil.hideSecretsFromMessage(key, secrets), redactValue(value, secrets)));
+        redacted.put(
+            SecretUtil.hideSecretsFromMessage(key, secrets),
+            redactValue(value, secrets, enclosing)));
     return redacted;
   }
 
-  private static @Nullable Object redactValue(@Nullable Object value, List<String> secrets) {
-    if (value == null
-        || value instanceof Number
-        || value instanceof Boolean
-        || value instanceof Enum<?>) {
-      return value;
+  /**
+   * Masks every secret in a value that is published as JSON.
+   *
+   * <p>Strings, numbers, booleans and enums keep their type, and maps, collections and object
+   * arrays are copied with each element masked. Any other value, such as a bean or a {@code
+   * char[]}, is published as its masked string form: its JSON form could carry a secret that its
+   * string form doesn't show, for example from a getter. A container that contains itself is
+   * replaced by {@link #CIRCULAR_REFERENCE} where it repeats.
+   */
+  private static @Nullable Object redactValue(
+      @Nullable Object value, List<String> secrets, Set<Object> enclosing) {
+    return switch (value) {
+      case null -> null;
+      case Number number -> number;
+      case Boolean bool -> bool;
+      case Enum<?> constant -> constant;
+      case String text -> SecretUtil.hideSecretsFromMessage(text, secrets);
+      case char[] chars -> SecretUtil.hideSecretsFromMessage(new String(chars), secrets);
+      case Map<?, ?> map -> {
+        if (!enclosing.add(map)) {
+          yield CIRCULAR_REFERENCE;
+        }
+        try {
+          var redacted = new LinkedHashMap<Object, Object>();
+          map.forEach((key, nested) ->
+              redacted.put(
+                  redactValue(key, secrets, enclosing), redactValue(nested, secrets, enclosing)));
+          yield redacted;
+        } finally {
+          enclosing.remove(map);
+        }
+      }
+      case Collection<?> collection -> redactElements(collection, collection, secrets, enclosing);
+      case Object[] array -> redactElements(array, Arrays.asList(array), secrets, enclosing);
+      default -> SecretUtil.hideSecretsFromMessage(String.valueOf(value), secrets);
+    };
+  }
+
+  // the container is tracked by identity, since an array's list view is a new object each time
+  private static Object redactElements(
+      Object container, Collection<?> elements, List<String> secrets, Set<Object> enclosing) {
+    if (!enclosing.add(container)) {
+      return CIRCULAR_REFERENCE;
     }
-    if (value instanceof String text) {
-      return SecretUtil.hideSecretsFromMessage(text, secrets);
-    }
-    if (value instanceof Map<?, ?> map) {
-      var redacted = new LinkedHashMap<Object, Object>();
-      map.forEach(
-          (key, nested) -> redacted.put(redactValue(key, secrets), redactValue(nested, secrets)));
+    try {
+      var redacted = new ArrayList<@Nullable Object>(elements.size());
+      elements.forEach(nested -> redacted.add(redactValue(nested, secrets, enclosing)));
       return redacted;
+    } finally {
+      enclosing.remove(container);
     }
-    if (value instanceof Collection<?> collection) {
-      var redacted = new ArrayList<Object>(collection.size());
-      collection.forEach(nested -> redacted.add(redactValue(nested, secrets)));
-      return redacted;
-    }
-    if (value instanceof Object[] array) {
-      return redactValue(Arrays.asList(array), secrets);
-    }
-    // any other object is kept as it is, unless its string form carries a secret
-    var text = String.valueOf(value);
-    var masked = SecretUtil.hideSecretsFromMessage(text, secrets);
-    return masked.equals(text) ? value : masked;
   }
 
   @Override
