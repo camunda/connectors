@@ -128,7 +128,10 @@ class GenerateElementTemplateTest {
   @Test
   void hidesInlineAuthenticationOnceACredentialIsBound() {
     List<Property> authentication =
-        template.properties().stream().filter(p -> "authentication".equals(p.getGroup())).toList();
+        template.properties().stream()
+            .filter(p -> "authentication".equals(p.getGroup()))
+            .filter(p -> !GenerateElementTemplate.REST_CREDENTIAL_INPUT.equals(p.getId()))
+            .toList();
 
     assertThat(authentication)
         .extracting(Property::getId)
@@ -141,6 +144,18 @@ class GenerateElementTemplateTest {
                 .isEqualTo(new IsEmpty(GenerateElementTemplate.CREDENTIAL_CHOOSER_ID, true)));
     assertThat(property("bearer").getValue()).isEqualTo("bearer");
     assertThat(property("authentication.token").getSecret()).isTrue();
+  }
+
+  @Test
+  void alwaysMapsTheRestConnectorsCredentialToNull() {
+    assertThat(property(GenerateElementTemplate.REST_CREDENTIAL_INPUT))
+        .isInstanceOf(HiddenProperty.class)
+        .satisfies(p -> {
+          assertThat(p.getValue()).isEqualTo("=null");
+          assertThat(p.getBinding())
+              .isEqualTo(new ZeebeInput(GenerateElementTemplate.REST_CREDENTIAL_INPUT));
+          assertThat(p.getCondition()).isNull();
+        });
   }
 
   @Test

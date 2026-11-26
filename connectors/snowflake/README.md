@@ -24,7 +24,9 @@ These are all the operations of the SQL API.
   enter the token on the task. The connector does not send `X-Snowflake-Authorization-Token-Type`:
   the header is optional, and Snowflake detects the token type from the token. Key-pair JWT is not
   supported, because the client must sign the JWT. The `SnowflakeOAuth` implicit flow is not
-  supported either.
+  supported either. The template maps the REST connector's own `authenticationConfiguration` input
+  to null: it takes precedence over all other authentication, so a process variable of that name
+  would otherwise send another credential to Snowflake.
 - **Bindings:** pass process variables in the request body's `bindings` and use `?` in the
   statement. Never concatenate process variables into the SQL. Binding values must be strings,
   also for numbers (`value: string(orderId)`): Snowflake rejects a JSON number with HTTP 422.

@@ -210,11 +210,20 @@ class SnowflakeTests {
             .property("resultExpression", "={cancelMessage: response.body.message}")
             .writeTo(new File(tempDir, "cancel.json"));
 
-    // A process variable named body must not become the cancel request's body.
+    // A process variable named body must not become the cancel request's body, and one named
+    // like the REST connector's credential input must not replace the Snowflake credential.
     var test =
         run(
             apply(singleTask("cancel"), cancel, "cancel"),
-            Map.of("body", Map.of("statement", "drop table customers")));
+            Map.of(
+                "body",
+                Map.of("statement", "drop table customers"),
+                "authenticationConfiguration",
+                Map.of(
+                    "url",
+                    "https://example.com",
+                    "authentication",
+                    Map.of("type", "bearer", "token", "unrelated-token"))));
 
     assertThat(test.getProcessInstanceEvent())
         .hasVariable("cancelMessage", "successfully canceled");

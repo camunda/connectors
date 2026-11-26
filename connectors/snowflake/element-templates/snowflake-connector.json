@@ -177,6 +177,16 @@
       "secret" : true
     },
     {
+      "id" : "authenticationConfiguration",
+      "value" : "=null",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authenticationConfiguration",
+        "type" : "zeebe:input"
+      },
+      "type" : "Hidden"
+    },
+    {
       "id" : "SubmitStatement_query_requestId",
       "label" : "Request ID",
       "optional" : false,

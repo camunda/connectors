@@ -111,6 +111,11 @@ public class GenerateElementTemplate {
   static final String CREDENTIAL_CHOOSER_ID = "serviceAuthenticationConfiguration";
 
   /**
+   * The REST connector's credential input, which takes precedence over all other authentication.
+   */
+  static final String REST_CREDENTIAL_INPUT = "authenticationConfiguration";
+
+  /**
    * Sent on every call. The SQL API requires a User-Agent and returns JSON only. It rejects a POST
    * whose content type is not JSON with HTTP 415, and the REST connector sends a non-JSON content
    * type when there is no body, as for Cancel statement.
@@ -302,7 +307,8 @@ public class GenerateElementTemplate {
    *   <li>Request body: Run SQL statement gets an example that uses {@code bindings}, so process
    *       variables are not concatenated into SQL. Cancel statement maps the body to null, so a
    *       {@code body} process variable is not sent.
-   *   <li>Authentication: a reusable Snowflake credential, with the inline token as fallback.
+   *   <li>Authentication: a reusable Snowflake credential, with the inline token as fallback. The
+   *       REST connector's own credential input is mapped to null.
    *   <li>Timeouts: Snowflake holds a synchronous request for up to 45 seconds before it returns
    *       the statement handle, so the read timeout defaults to {@value #READ_TIMEOUT_SECONDS}
    *       seconds instead of the runtime's 20.
@@ -573,6 +579,15 @@ public class GenerateElementTemplate {
       }
       result.add(builder.build());
     }
+    // The REST connector's own credential input wins over the Snowflake credential and the inline
+    // token. Map it to null, so a process variable of that name cannot send another credential.
+    result.add(
+        HiddenProperty.builder()
+            .id(REST_CREDENTIAL_INPUT)
+            .group("authentication")
+            .value("=null")
+            .binding(new ZeebeInput(REST_CREDENTIAL_INPUT))
+            .build());
     return result;
   }
 
