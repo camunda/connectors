@@ -39,7 +39,7 @@ import org.springframework.context.ApplicationContext;
  * per-physical-tenant map.
  */
 @SpringBootTest(
-    classes = TestConnectorRuntimeApplication.class,
+    classes = {TestConnectorRuntimeApplication.class, ConfigurationValidationConfiguration.class},
     properties = {
       "camunda.clients.engine-a.mode=self-managed",
       "camunda.clients.engine-a.grpc-address=http://engine-a.internal:26500",
