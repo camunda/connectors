@@ -30,6 +30,7 @@ import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class DocumentFactoryImpl implements DocumentFactory {
@@ -39,10 +40,17 @@ public class DocumentFactoryImpl implements DocumentFactory {
   private final Function<String, HttpResponse<byte[]>> downloadDocument;
 
   public DocumentFactoryImpl(CamundaDocumentStore documentStore) {
+    this(documentStore, ExternalDocumentHostPolicy.defaults());
+  }
+
+  public DocumentFactoryImpl(
+      CamundaDocumentStore documentStore, ExternalDocumentHostPolicy externalDocumentHostPolicy) {
+    Objects.requireNonNull(externalDocumentHostPolicy, "externalDocumentHostPolicy");
     this.documentStore = documentStore;
     this.httpClient = new CustomApacheHttpClient();
     this.downloadDocument =
         url -> {
+          externalDocumentHostPolicy.validate(url);
           HttpClientRequest req = new HttpClientRequest();
           req.setMethod(HttpMethod.GET);
           req.setUrl(url);

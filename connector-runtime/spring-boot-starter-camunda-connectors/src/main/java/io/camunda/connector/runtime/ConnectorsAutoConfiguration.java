@@ -44,6 +44,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
+import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.secret.CentralStoreSecretProvider;
@@ -425,7 +426,9 @@ public class ConnectorsAutoConfiguration {
       CamundaClientRegistry registry,
       ObjectProvider<CamundaClient> camundaClientProvider,
       DocumentFactory legacyDocumentFactory,
-      FeelExpressionEvaluator feelExpressionEvaluator) {
+      FeelExpressionEvaluator feelExpressionEvaluator,
+      @Value("${" + ExternalDocumentHostPolicy.ENABLED_PROPERTY + ":true}")
+          boolean externalDocumentHostValidationEnabled) {
     var legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     var functionExecutor = new DisabledIntrinsicFunctionExecutor();
@@ -434,7 +437,10 @@ public class ConnectorsAutoConfiguration {
     // object mapper
     var documentFactoriesByPhysicalTenantId =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
-            registry, legacyCamundaClient, legacyDocumentFactory);
+            registry,
+            legacyCamundaClient,
+            legacyDocumentFactory,
+            new ExternalDocumentHostPolicy(externalDocumentHostValidationEnabled, false));
     var jacksonModuleDocumentDeserializer =
         new JacksonModuleDocumentDeserializer(
             documentFactoriesByPhysicalTenantId,
