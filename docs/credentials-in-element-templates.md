@@ -7,7 +7,8 @@ feature is shaped this way; this document is *how* to build on it correctly, dis
 migrating REST, GraphQL, Polling, the AWS connector family (~14 connectors + idp-extraction +
 aws-sqs), JDBC, Slack, the Microsoft family (Teams, O365 Email inbound, Azure Blob Storage,
 and the hand-written O365 Mail and Azure OpenAI templates), and the hand-authored `http-json`
-service connectors (Asana, HubSpot, Hugging Face, OpenAI, WhatsApp, EasyPost, Google Maps Platform).
+service connectors (Asana, HubSpot, Hugging Face, OpenAI, WhatsApp, EasyPost, Google Maps Platform,
+ServiceNow, GitLab, GitHub, Blue Prism, UiPath, Databricks, Camunda Orchestration, Twilio).
 
 If you're adding a credential chooser to a connector that doesn't have one yet, read this end to
 end before writing code — most of the mistakes below are easy to make and easy to avoid once you
@@ -272,17 +273,40 @@ directly into its template's `configurationTemplates` instead of copying `rest-a
 There is no Java per connector. Instead:
 
 - The chooser binds to `serviceAuthenticationConfiguration`, not `authenticationConfiguration`.
-  `HttpJsonRequest` reads it as `ServiceAuthenticationConfiguration`: an `authentication` object
-  and no URL, because these templates fix their own endpoint. Every credential type saves into
-  that one record.
+  `HttpJsonRequest` reads it as `ServiceAuthenticationConfiguration`: an `authentication` object,
+  an optional `baseUrl` and optional `parameters`. It never requires a URL, because these
+  templates fix their own endpoint. Every credential type saves into that one record.
 - One credential type per connector, never a shared one: the credential picker is filtered by the
   credential type's id only, so a shared type would offer every connector's credentials to every
-  other connector.
+  other connector. The three ServiceNow templates are one service and share one type.
 - The credential type fixes the authentication mechanism with hidden constants:
   `authentication.type = bearer` for the token-based services;
   `authentication.type = basic` and `authentication.password = SPEC_PASSWORD_EMPTY_PATTERN` for EasyPost;
   `authentication.type = apiKey`, `authentication.apiKeyLocation = query` and
   `authentication.name = key` for Google Maps. Hub saves hidden defaults with the credential.
+- When the address is something only the admin knows (a ServiceNow instance, a Databricks host, a
+  Camunda cluster), the credential holds it and the template sends only the rest of the URL:
+  - The template keeps its absolute `url` property for the no-credential case, gated with
+    `isEmpty: true` on the chooser, and adds a twin bound to `relativeUrl` with the base part
+    removed, gated with `isEmpty: false`. `HttpJsonRequest#getUrl()` concatenates the credential's
+    `baseUrl` and the `relativeUrl`, so the `relativeUrl` must start with `/`. Trailing slashes of the
+    `baseUrl` are removed, so an admin-entered base URL can end with one. An inline `url` still wins.
+  - The admin enters only what cannot be known. The credential type holds the rest as hidden
+    constants that refer to the entered values with `${name}` placeholders, for example
+    `baseUrl = https://${instance}.service-now.com` next to a visible `parameters.instance`, or
+    `authentication.username = ${accountSid}` for Twilio. `ServiceAuthenticationConfiguration`
+    replaces the placeholders in `baseUrl`, the OAuth token endpoint and the Basic username, and
+    nowhere else. Secrets are never expanded.
+  - A credential may offer a variant dropdown inside one credential type (Bearer or OAuth,
+    SaaS or Self-Managed). The variant-specific fields and hidden constants are conditioned on
+    the dropdown's property id. Credentials with two properties that save into the same binding
+    (a visible one and a hidden one) need distinct ids.
+  - Inline values a credential replaces, including hidden constants such as `authentication.type`,
+    must all be gated: a leftover partial `authentication` object would fail validation.
+- GitHub's credential holds a personal access token only. GitHub App authentication stays on the
+  task: its installation token is minted by an intrinsic function that the runtime allows only
+  where the process definition declares it, so supporting it from a credential would need a hidden
+  FEEL deref of the credential's fields, which ADR-0004 removed.
 - The template `engines` must be `^8.11` or newer: an older runtime ignores the new input and
   sends no authentication.
 - `HttpJsonRequest#serviceAuthenticationConfiguration` is `@TemplateProperty(ignore = true,
