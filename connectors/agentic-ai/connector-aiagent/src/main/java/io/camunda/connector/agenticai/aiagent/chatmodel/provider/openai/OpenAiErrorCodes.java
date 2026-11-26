@@ -17,8 +17,9 @@ import java.util.Optional;
  *
  * <p>{@link BadRequestException#code()} cannot be used for this: it models the code as a string and
  * throws an {@code OpenAIInvalidDataException} when the endpoint answers another JSON type, for
- * example the numeric {@code "code": 400} of OpenRouter. This reads the raw error body instead, so
- * that any code type, a missing code or an unreadable body gives "no code" and never a failure.
+ * example the numeric {@code "code": 400} of OpenRouter. This reads the raw error body instead: a
+ * code of any other type, a missing code or a body that is not an object gives "no code", and the
+ * caller handles the failure like any other 400.
  */
 public final class OpenAiErrorCodes {
 
@@ -27,8 +28,8 @@ public final class OpenAiErrorCodes {
   private OpenAiErrorCodes() {}
 
   /**
-   * The error code of the response as a string, empty if the code is missing or not a string. Never
-   * throws.
+   * The error code of the response as a string, empty if the code is missing, not a string, or the
+   * body is not an object.
    */
   public static Optional<String> codeOf(BadRequestException exception) {
     // JsonValue extends the raw JsonField, which erases the generics of its accessors
