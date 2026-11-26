@@ -6,7 +6,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-runtime-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>8.9.23-SNAPSHOT</version>
+    <version>8.9.24-SNAPSHOT</version>
   </parent>
 
   <artifactId>connector-feel</artifactId>
