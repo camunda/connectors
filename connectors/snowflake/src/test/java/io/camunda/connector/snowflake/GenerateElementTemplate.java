@@ -170,7 +170,7 @@ public class GenerateElementTemplate {
                   + " result and does not run the statement again. Use a new ID for every"
                   + " statement you submit, also across tasks and loop iterations, and reuse it"
                   + " only to retry that same submission.",
-              new PropertyConstraints.Pattern("^(=.*|" + UUID + ")?$", "Enter a UUID.")),
+              null),
           "query_async",
           new Parameter(
               "Run asynchronously",
@@ -203,7 +203,7 @@ public class GenerateElementTemplate {
               "0",
               "Number of the result partition to return, from 0. Large results are split into"
                   + " partitions: <code>resultSetMetaData.partitionInfo</code> lists them.",
-              new PropertyConstraints.Pattern("^(=.*|\\d+)?$", "Enter a number from 0.")));
+              null));
 
   public static void main(String[] args) throws Exception {
     Path outputPath = templateOutputPath();
@@ -321,11 +321,20 @@ public class GenerateElementTemplate {
             .collect(Collectors.toMap(Operation::id, op -> op, (a, b) -> a, LinkedHashMap::new));
 
     List<Property> properties = new ArrayList<>();
+    Property accountUrl = null;
     for (Property property : raw.properties()) {
       if ("authentication".equals(property.getGroup()) || isDropped(property)) {
         continue;
       }
-      properties.add(curateProperty(property, operationsById));
+      Property curated = curateProperty(property, operationsById);
+      if ("baseUrl".equals(curated.getId())) {
+        accountUrl = curated;
+      } else {
+        properties.add(curated);
+      }
+    }
+    if (accountUrl == null) {
+      throw new IllegalStateException("The OpenAPI generator no longer emits baseUrl");
     }
 
     ElementTemplateBuilder builder =
@@ -347,7 +356,7 @@ public class GenerateElementTemplate {
                     PropertyGroup.builder().id("retries").label("Retries").build()))
             .properties(properties)
             .properties(noCancelBody())
-            .properties(authenticationProperties(raw))
+            .properties(authenticationProperties(raw, accountUrl))
             .properties(timeoutProperties());
 
     return builder
@@ -419,7 +428,7 @@ public class GenerateElementTemplate {
               .build();
     }
     if ("baseUrl".equals(property.getId())) {
-      // In the Authentication group, before the credential: the account and the token belong
+      // In the Authentication group, below the access token: the account and the token belong
       // together, and every operation needs both.
       return property.toBuilder()
           .group("authentication")
@@ -501,8 +510,13 @@ public class GenerateElementTemplate {
       boolean required =
           property.getConstraints() != null
               && Boolean.TRUE.equals(property.getConstraints().notEmpty());
+      if (!required) {
+        // Modeler tests the pattern against the string "undefined" when a non-optional field is
+        // empty, so a pattern on a field that may stay empty always shows an error.
+        throw new IllegalStateException("Pattern on the optional parameter " + id);
+      }
       builder.constraints(
-          PropertyConstraints.builder().notEmpty(required).pattern(parameter.pattern()).build());
+          PropertyConstraints.builder().notEmpty(true).pattern(parameter.pattern()).build());
     }
     return builder.build();
   }
@@ -543,11 +557,12 @@ public class GenerateElementTemplate {
   }
 
   /**
-   * The reusable credential chooser, then the inline token as a fallback. The generator's inline
-   * properties (the bearer type as hidden constants, and the token itself) are kept but hidden once
-   * a credential is bound.
+   * The reusable credential chooser, then the inline token as a fallback, then the account URL. The
+   * generator's inline properties (the bearer type as hidden constants, and the token itself) are
+   * kept but hidden once a credential is bound. The account URL stays visible: the credential holds
+   * only the token.
    */
-  private static List<Property> authenticationProperties(ElementTemplate raw) {
+  private static List<Property> authenticationProperties(ElementTemplate raw, Property accountUrl) {
     List<Property> result = new ArrayList<>();
     result.add(
         ConfigurationProperty.builder()
@@ -582,6 +597,7 @@ public class GenerateElementTemplate {
       }
       result.add(builder.build());
     }
+    result.add(accountUrl);
     // The REST connector's own credential input wins over the Snowflake credential and the inline
     // token. Map it to null, so a process variable of that name cannot send another credential.
     result.add(
@@ -701,7 +717,7 @@ public class GenerateElementTemplate {
    * @param value the default value, only where it is Snowflake's own default, or null
    * @param placeholder the placeholder, or null
    * @param tooltip the tooltip
-   * @param pattern the value pattern, which must accept an empty value, or null
+   * @param pattern the value pattern, only for a required parameter, or null
    */
   record Parameter(
       String label,

@@ -137,12 +137,18 @@ class GenerateElementTemplateTest {
             .filter(p -> !GenerateElementTemplate.REST_CREDENTIAL_INPUT.equals(p.getId()))
             .toList();
 
+    // The chooser, the inline token, then the account URL below it.
     assertThat(authentication)
         .extracting(Property::getId)
-        .startsWith("baseUrl", GenerateElementTemplate.CREDENTIAL_CHOOSER_ID);
+        .containsExactly(
+            GenerateElementTemplate.CREDENTIAL_CHOOSER_ID,
+            "authType",
+            "bearer",
+            "authentication.token",
+            "baseUrl");
     assertThat(authentication.getFirst().getCondition()).isNull();
-    assertThat(authentication.subList(2, authentication.size()))
-        .isNotEmpty()
+    assertThat(authentication.getLast().getCondition()).isNull();
+    assertThat(authentication.subList(1, authentication.size() - 1))
         .allSatisfy(p ->
             assertThat(p.getCondition())
                 .isEqualTo(new IsEmpty(GenerateElementTemplate.CREDENTIAL_CHOOSER_ID, true)));
@@ -227,17 +233,23 @@ class GenerateElementTemplateTest {
         .allSatisfy(p -> assertThat(p.getOptional()).as("optional of %s", p.getId()).isFalse());
   }
 
+  @Test
+  void parametersThatMayStayEmptyHaveNoPattern() {
+    // Modeler tests a pattern against the string "undefined" when a non-optional field is empty,
+    // so a pattern on these fields would always show a validation error.
+    assertThat(template.properties())
+        .filteredOn(p -> "parameters".equals(p.getGroup()))
+        .filteredOn(p -> !(p instanceof HiddenProperty))
+        .filteredOn(p -> p.getConstraints() == null || !p.getConstraints().notEmpty())
+        .isNotEmpty()
+        .allSatisfy(p ->
+            assertThat(p.getConstraints() == null ? null : p.getConstraints().pattern())
+                .as("pattern of %s", p.getId())
+                .isNull());
+  }
+
   @ParameterizedTest
   @CsvSource({
-    "SubmitStatement_query_requestId, '', true",
-    "SubmitStatement_query_requestId, 01b2c3d4-0000-1111-0000-000000000001, true",
-    "SubmitStatement_query_requestId, =requestUuid, true",
-    "SubmitStatement_query_requestId, not-a-uuid, false",
-    "GetStatementStatus_query_partition, '', true",
-    "GetStatementStatus_query_partition, 12, true",
-    "GetStatementStatus_query_partition, =index, true",
-    "GetStatementStatus_query_partition, first, false",
-    "GetStatementStatus_query_partition, -1, false",
     "GetStatementStatus_path_statementHandle, 01b2c3d4-0000-1111-0000-000000000001, true",
     "GetStatementStatus_path_statementHandle, =handle, true",
     "GetStatementStatus_path_statementHandle, /api/v2/statements/01b2c3d4-0000-1111-0000-000000000001, false",
@@ -246,7 +258,7 @@ class GenerateElementTemplateTest {
   void typedParametersRejectInvalidValues(String id, String value, boolean valid) {
     Property parameter = property(id);
 
-    assertThat(parameter.getConstraints().notEmpty()).isEqualTo(id.contains("_path_"));
+    assertThat(parameter.getConstraints().notEmpty()).isTrue();
     assertThat(Pattern.matches(parameter.getConstraints().pattern().value(), value))
         .isEqualTo(valid);
   }

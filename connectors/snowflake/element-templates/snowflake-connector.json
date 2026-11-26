@@ -92,26 +92,6 @@
       ]
     },
     {
-      "id" : "baseUrl",
-      "label" : "Account URL",
-      "constraints" : {
-        "notEmpty" : true,
-        "pattern" : {
-          "value" : "^(=.*|https://[^/?#\\s]+)$",
-          "message" : "Enter an https:// URL without a path, query or trailing slash."
-        }
-      },
-      "feel" : "optional",
-      "group" : "authentication",
-      "binding" : {
-        "name" : "baseUrl",
-        "type" : "zeebe:input"
-      },
-      "tooltip" : "Your Snowflake account URL, <code>https://&lt;orgname&gt;-&lt;account_name&gt;.snowflakecomputing.com</code>, without a path. Find it in Snowsight under <b>Account details</b>.",
-      "placeholder" : "https://myorg-myaccount.snowflakecomputing.com",
-      "type" : "String"
-    },
-    {
       "id" : "serviceAuthenticationConfiguration",
       "label" : "Authentication credential",
       "optional" : false,
@@ -177,6 +157,26 @@
       "secret" : true
     },
     {
+      "id" : "baseUrl",
+      "label" : "Account URL",
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=.*|https://[^/?#\\s]+)$",
+          "message" : "Enter an https:// URL without a path, query or trailing slash."
+        }
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "baseUrl",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Your Snowflake account URL, <code>https://&lt;orgname&gt;-&lt;account_name&gt;.snowflakecomputing.com</code>, without a path. Find it in Snowsight under <b>Account details</b>.",
+      "placeholder" : "https://myorg-myaccount.snowflakecomputing.com",
+      "type" : "String"
+    },
+    {
       "id" : "authenticationConfiguration",
       "value" : "=null",
       "group" : "authentication",
@@ -190,13 +190,6 @@
       "id" : "SubmitStatement_query_requestId",
       "label" : "Request ID",
       "optional" : false,
-      "constraints" : {
-        "notEmpty" : false,
-        "pattern" : {
-          "value" : "^(=.*|[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})?$",
-          "message" : "Enter a UUID."
-        }
-      },
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -357,13 +350,6 @@
       "id" : "GetStatementStatus_query_requestId",
       "label" : "Request ID",
       "optional" : false,
-      "constraints" : {
-        "notEmpty" : false,
-        "pattern" : {
-          "value" : "^(=.*|[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})?$",
-          "message" : "Enter a UUID."
-        }
-      },
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -382,13 +368,6 @@
       "id" : "GetStatementStatus_query_partition",
       "label" : "Partition",
       "optional" : false,
-      "constraints" : {
-        "notEmpty" : false,
-        "pattern" : {
-          "value" : "^(=.*|\\d+)?$",
-          "message" : "Enter a number from 0."
-        }
-      },
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -494,13 +473,6 @@
       "id" : "CancelStatement_query_requestId",
       "label" : "Request ID",
       "optional" : false,
-      "constraints" : {
-        "notEmpty" : false,
-        "pattern" : {
-          "value" : "^(=.*|[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})?$",
-          "message" : "Enter a UUID."
-        }
-      },
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
