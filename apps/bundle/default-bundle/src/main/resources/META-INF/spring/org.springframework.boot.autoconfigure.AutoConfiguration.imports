@@ -1,1 +1,2 @@
 io.camunda.connector.runtime.bundle.security.SelfManagedApiSecurityAutoConfiguration
+io.camunda.connector.runtime.bundle.security.ConfigurationValidationAutoConfiguration
