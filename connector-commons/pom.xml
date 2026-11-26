@@ -19,6 +19,7 @@
   <modules>
     <module>connector-object-mapper</module>
     <module>http-client</module>
+    <module>host-ip-validator</module>
     <module>connector-utils</module>
     <module>connector-test-utils</module>
   </modules>
