@@ -45,14 +45,13 @@ import org.springframework.context.annotation.Import;
 
 /**
  * Wires configuration (credential) validation. This is <b>direction-agnostic</b>: the same
- * configuration types are consumed by both inbound and outbound connectors, so it is imported by
- * the neutral top-level runtime auto-configuration rather than the outbound-specific one — an
- * inbound-only runtime exposes it too.
+ * configuration types are consumed by both inbound and outbound connectors.
  *
- * <p>{@code POST /configurations/validate} resolves stored secrets to run a validator. No resolved
- * value can reach the response (see the message-safety policy on {@code
- * ConfigurationValidationService}), but the route is still expected to be reachable only by trusted
- * callers; the SaaS bundle covers it with the Console JWT {@code SecurityFilterChain}.
+ * <p>{@code POST /configurations/validate} resolves stored secrets to run a validator, so it must
+ * be reachable only by trusted callers. It is therefore not auto-configured: only a runtime that
+ * protects the route imports this class, next to its {@code SecurityFilterChain} (the SaaS Console
+ * JWT chain and the Self-Managed bundle chain). A runtime that does not import it does not expose
+ * the route.
  */
 @Configuration
 @Import(ConfigurationValidationRestController.class)
