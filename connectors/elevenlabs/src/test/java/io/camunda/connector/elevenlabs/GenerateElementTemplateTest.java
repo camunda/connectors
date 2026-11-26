@@ -180,10 +180,30 @@ class GenerateElementTemplateTest {
     assertThat(template.properties())
         .filteredOn(p -> "parameters".equals(p.getGroup()))
         .filteredOn(p -> !(p instanceof HiddenProperty))
+        .filteredOn(p -> !(p instanceof DropdownProperty))
         .allSatisfy(p -> {
           assertThat(p.getValue()).as("default value of %s", p.getId()).isNull();
           assertThat(p.getLabel()).as("label of %s", p.getId()).doesNotContain("_");
         });
+  }
+
+  /**
+   * A dropdown is never optional (see the generator), so it has no blank choice, and without a
+   * value the Modeler preselects its first choice. For the true/false dropdowns that would be
+   * {@code true}, whatever the API default is. Each one needs a value chosen on purpose.
+   */
+  @Test
+  void parameterDropdownsHaveAnExplicitDefault() {
+    assertThat(template.properties())
+        .filteredOn(p -> "parameters".equals(p.getGroup()))
+        .filteredOn(DropdownProperty.class::isInstance)
+        .filteredOn(
+            p -> p.getBinding() instanceof ZeebeInput input && !"operationId".equals(input.name()))
+        .allSatisfy(p -> assertThat(p.getValue()).as("default value of %s", p.getId()).isNotNull());
+    assertThat(property("get_user_voices_v2_query_include_total_count").getValue())
+        .isEqualTo("false");
+    assertThat(property("speech_to_text_query_enable_logging").getValue()).isEqualTo("true");
+    assertThat(property("text_to_speech_full_query_enable_logging").getValue()).isEqualTo("true");
   }
 
   @Test

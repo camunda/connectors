@@ -268,6 +268,7 @@
       "id" : "text_to_speech_full_query_enable_logging",
       "label" : "Enable logging",
       "optional" : false,
+      "value" : "true",
       "group" : "parameters",
       "binding" : {
         "name" : "enable_logging",
@@ -730,6 +731,7 @@
       "id" : "get_user_voices_v2_query_include_total_count",
       "label" : "Include total count",
       "optional" : false,
+      "value" : "false",
       "group" : "parameters",
       "binding" : {
         "name" : "include_total_count",
@@ -860,6 +862,7 @@
       "id" : "speech_to_text_query_enable_logging",
       "label" : "Enable logging",
       "optional" : false,
+      "value" : "true",
       "group" : "parameters",
       "binding" : {
         "name" : "enable_logging",
