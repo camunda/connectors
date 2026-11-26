@@ -44,6 +44,7 @@ import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
@@ -271,8 +272,13 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public DocumentFactory documentFactory(CamundaDocumentStore documentStore) {
-    return new DocumentFactoryImpl(documentStore);
+  public DocumentFactory documentFactory(
+      CamundaDocumentStore documentStore,
+      @Value("${" + ExternalDocumentHostPolicy.ENABLED_PROPERTY + ":true}")
+          boolean externalDocumentHostValidationEnabled) {
+    return new DocumentFactoryImpl(
+        documentStore,
+        new ExternalDocumentHostPolicy(externalDocumentHostValidationEnabled, false));
   }
 
   // clientNames / resolveClient / resolvePhysicalTenantId / toMapByPhysicalTenantId live in
@@ -320,7 +326,8 @@ public class OutboundConnectorRuntimeConfiguration {
   private static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
       CamundaClientRegistry registry,
       CamundaClient legacyCamundaClient,
-      DocumentFactory injectedDocumentFactory) {
+      DocumentFactory injectedDocumentFactory,
+      ExternalDocumentHostPolicy externalDocumentHostPolicy) {
     if (injectedDocumentFactory != null && clientNames(registry, legacyCamundaClient).size() <= 1) {
       return clientNames(registry, legacyCamundaClient).stream()
           .collect(
@@ -328,7 +335,10 @@ public class OutboundConnectorRuntimeConfiguration {
                   registry, legacyCamundaClient, name -> injectedDocumentFactory));
     }
     return buildDocumentStoresByPhysicalTenantId(registry, legacyCamundaClient).entrySet().stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, e -> new DocumentFactoryImpl(e.getValue())));
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey,
+                e -> new DocumentFactoryImpl(e.getValue(), externalDocumentHostPolicy)));
   }
 
   @Bean
@@ -342,9 +352,14 @@ public class OutboundConnectorRuntimeConfiguration {
   public Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId(
       @Autowired(required = false) CamundaClientRegistry registry,
       ObjectProvider<CamundaClient> camundaClientProvider,
-      @Autowired(required = false) DocumentFactory documentFactory) {
+      @Autowired(required = false) DocumentFactory documentFactory,
+      @Value("${" + ExternalDocumentHostPolicy.ENABLED_PROPERTY + ":true}")
+          boolean externalDocumentHostValidationEnabled) {
     return buildDocumentFactoriesByPhysicalTenantId(
-        registry, legacyClient(camundaClientProvider), documentFactory);
+        registry,
+        legacyClient(camundaClientProvider),
+        documentFactory,
+        new ExternalDocumentHostPolicy(externalDocumentHostValidationEnabled, false));
   }
 
   @Bean
@@ -760,10 +775,16 @@ public class OutboundConnectorRuntimeConfiguration {
       @Value("${camunda.connector.intrinsic-function.allow-list.mode:ENABLED}")
           IntrinsicFunctionAllowListMode intrinsicFunctionAllowListMode,
       @OutboundConnectorObjectMapper ObjectMapper outboundConnectorObjectMapper,
-      Optional<MeterRegistry> meterRegistry) {
+      Optional<MeterRegistry> meterRegistry,
+      @Value("${" + ExternalDocumentHostPolicy.ENABLED_PROPERTY + ":true}")
+          boolean externalDocumentHostValidationEnabled) {
     var legacyCamundaClient = legacyClient(camundaClientProvider);
     var documentFactoriesByPhysicalTenantId =
-        buildDocumentFactoriesByPhysicalTenantId(registry, legacyCamundaClient, documentFactory);
+        buildDocumentFactoriesByPhysicalTenantId(
+            registry,
+            legacyCamundaClient,
+            documentFactory,
+            new ExternalDocumentHostPolicy(externalDocumentHostValidationEnabled, false));
     var processDefinitionModelCachesByPhysicalTenantId =
         buildProcessDefinitionModelCachesByPhysicalTenantId(
             registry, legacyCamundaClient, bpmnModelCacheStore.cache());

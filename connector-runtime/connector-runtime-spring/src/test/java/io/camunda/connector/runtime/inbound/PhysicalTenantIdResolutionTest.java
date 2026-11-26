@@ -27,6 +27,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
 import java.io.ByteArrayInputStream;
@@ -171,7 +172,7 @@ class PhysicalTenantIdResolutionTest {
 
     var result =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
-            registry, null, overrideDocumentFactory);
+            registry, null, overrideDocumentFactory, ExternalDocumentHostPolicy.defaults());
 
     assertThat(result).containsOnly(Map.entry("tenant", overrideDocumentFactory));
   }
@@ -185,7 +186,9 @@ class PhysicalTenantIdResolutionTest {
     when(registry.get("engine-a")).thenReturn(clientA);
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    var result = PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(registry, null, null);
+    var result =
+        PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
+            registry, null, null, ExternalDocumentHostPolicy.defaults());
 
     assertThat(result).containsOnlyKeys("tenant-a", "tenant-b");
     assertThat(result.get("tenant-a")).isNotSameAs(result.get("tenant-b"));
@@ -201,7 +204,9 @@ class PhysicalTenantIdResolutionTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-a"));
     when(registry.get("engine-a")).thenReturn(clientA);
 
-    var result = PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(registry, null, null);
+    var result =
+        PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
+            registry, null, null, ExternalDocumentHostPolicy.defaults());
 
     var request =
         DocumentCreationRequest.from(new ByteArrayInputStream("hello".getBytes()))

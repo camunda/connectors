@@ -195,7 +195,7 @@ class OutboundConnectorRuntimeConfigurationTest {
     when(registry.get("engine-b")).thenReturn(clientB);
 
     var result =
-        configuration.documentFactoriesByPhysicalTenantId(registry, clientProvider(), null);
+        configuration.documentFactoriesByPhysicalTenantId(registry, clientProvider(), null, true);
 
     assertThat(result).containsOnlyKeys("tenant-a", "tenant-b");
   }

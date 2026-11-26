@@ -72,7 +72,8 @@ class InboundCorrelationConfigurationTest {
             clientProvider(),
             mock(ObjectMapper.class),
             mock(DocumentFactory.class),
-            mock(ConnectorsInboundMetrics.class));
+            mock(ConnectorsInboundMetrics.class),
+            true);
 
     assertThat(result).isInstanceOf(InboundCorrelationHandler.class);
   }
@@ -92,7 +93,8 @@ class InboundCorrelationConfigurationTest {
                 clientProvider(),
                 mock(ObjectMapper.class),
                 mock(DocumentFactory.class),
-                mock(ConnectorsInboundMetrics.class)))
+                mock(ConnectorsInboundMetrics.class),
+                true))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("InboundCorrelationHandler");
   }
