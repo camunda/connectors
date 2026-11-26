@@ -44,6 +44,7 @@ import io.camunda.connector.generator.java.util.TemplateGenerationContextUtil;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.pebbletemplates.pebble.PebbleEngine;
+import io.pebbletemplates.pebble.attributes.methodaccess.AllowlistMethodAccessValidator;
 import io.pebbletemplates.pebble.extension.core.DisallowExtensionCustomizerBuilder;
 import io.pebbletemplates.pebble.loader.ClasspathLoader;
 import io.pebbletemplates.pebble.loader.DelegatingLoader;
@@ -186,6 +187,13 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
             .loader(delegatingLoader)
             .autoEscaping(false)
             .extension(new DocsPebbleExtension())
+            // Pebble 4.2 denies method access by default: allow the JDK defaults and the docs
+            // models
+            .methodAccessValidator(
+                AllowlistMethodAccessValidator.builder()
+                    .allowDefaults()
+                    .allowTypes(DataExampleModel.class, DocsProperty.class)
+                    .build())
             .build();
 
     PebbleTemplate compiledTemplate = engine.getTemplate(path.getFileName().toString());
