@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.File;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -36,7 +37,7 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 class ServiceNowTemplateQueryParametersTest {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final ObjectMapper MAPPER = ConnectorsObjectMapperSupplier.getCopy();
   private static final LocalFeelExpressionEvaluator FEEL = new LocalFeelExpressionEvaluator();
 
   private static String queryParametersExpression(String templateFile) throws Exception {
