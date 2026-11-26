@@ -7,7 +7,7 @@ FROM --platform=$BUILDPLATFORM alpine:3.24@sha256:f59abe656b692d901e184be3445e08
 COPY target/*-with-dependencies.jar /tmp/runtime.jar
 RUN unzip -q /tmp/runtime.jar -d /tmp/runtime
 
-FROM reg.mini.dev/1212/openjre-base:v25.0.5-dev@sha256:b96a99492cffed44c7cb0d3c754dee95747e4ba2b3f3001f5bf7cbfb791f9341
+FROM reg.mini.dev/1212/openjre-base:v25.0.5-dev@sha256:f3e627a73f325894e82c0f41b7ef2eb11d587a9c8b2dabc30bd07a42ff25c83c
 
 VOLUME /tmp
 
