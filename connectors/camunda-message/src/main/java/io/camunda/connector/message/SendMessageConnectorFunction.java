@@ -14,6 +14,7 @@ import io.camunda.client.api.command.PublishMessageCommandStep1.PublishMessageCo
 import io.camunda.client.api.response.CorrelateMessageResponse;
 import io.camunda.client.api.response.PublishMessageResponse;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.BpmnType;
@@ -69,6 +70,7 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) throws Exception {
 
     SendMessageRequest messageRequest = context.bindVariables(SendMessageRequest.class);
+    String tenantId = resolveTenantId(messageRequest, context.getJobContext().getTenantId());
     LOG.debug(
         "Invoke send message connector with name {} and correlation key {}",
         messageRequest.messageName(),
@@ -77,13 +79,13 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
     switch (messageRequest.correlationType()) {
       case SendMessageRequest.CorrelationType.Publish publish -> {
         PublishMessageResponse publishMessageResponse =
-            publishMessageWithBuffer(messageRequest, publish);
+            publishMessageWithBuffer(messageRequest, publish, tenantId);
         LOG.debug("message published with messageKey {}", publishMessageResponse.getMessageKey());
         return publishMessageResponse;
       }
       case SendMessageRequest.CorrelationType.CorrelateWithResult correlateWithResult -> {
         CorrelateMessageResponse correlateMessageResponse =
-            correlateMessageWithResponse(messageRequest);
+            correlateMessageWithResponse(messageRequest, tenantId);
         LOG.debug(
             "message correlated with message key {} and process instance key {}",
             correlateMessageResponse.getMessageKey(),
@@ -93,8 +95,27 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
     }
   }
 
+  /**
+   * The message always targets the tenant the job runs in. The runtime sends it with its own
+   * identity, which may be authorized for other tenants too, so honouring a different requested
+   * tenant would let a process reach into a tenant it does not belong to.
+   */
+  private static String resolveTenantId(SendMessageRequest messageRequest, String jobTenantId) {
+    String requestedTenantId = messageRequest.tenantId();
+    if (requestedTenantId != null
+        && !requestedTenantId.isBlank()
+        && !requestedTenantId.equals(jobTenantId)) {
+      throw new ConnectorInputException(
+          "The Send Message connector can only send messages to the tenant of the job '%s', but tenant '%s' was requested"
+              .formatted(jobTenantId, requestedTenantId));
+    }
+    return jobTenantId;
+  }
+
   private PublishMessageResponse publishMessageWithBuffer(
-      SendMessageRequest messageRequest, SendMessageRequest.CorrelationType.Publish publish) {
+      SendMessageRequest messageRequest,
+      SendMessageRequest.CorrelationType.Publish publish,
+      String tenantId) {
     PublishMessageCommandStep3 publishMessageCommand;
     PublishMessageCommandStep2 step2 =
         camundaClient.newPublishMessageCommand().messageName(messageRequest.messageName());
@@ -113,8 +134,8 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
     if (publish.timeToLive() != null) {
       publishMessageCommand.timeToLive(publish.timeToLive());
     }
-    if (messageRequest.tenantId() != null) {
-      publishMessageCommand.tenantId(messageRequest.tenantId());
+    if (tenantId != null) {
+      publishMessageCommand.tenantId(tenantId);
     }
     if (messageRequest.requestTimeout() != null) {
       publishMessageCommand.requestTimeout(messageRequest.requestTimeout());
@@ -123,7 +144,8 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
     return publishMessageResponse;
   }
 
-  private CorrelateMessageResponse correlateMessageWithResponse(SendMessageRequest messageRequest) {
+  private CorrelateMessageResponse correlateMessageWithResponse(
+      SendMessageRequest messageRequest, String tenantId) {
     CorrelateMessageCommandStep2 correlateMessageCommand =
         camundaClient.newCorrelateMessageCommand().messageName(messageRequest.messageName());
     CorrelateMessageCommandStep3 correlateMessageCommandStep3;
@@ -136,8 +158,8 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
     if (messageRequest.variables() != null) {
       correlateMessageCommandStep3.variables(messageRequest.variables());
     }
-    if (messageRequest.tenantId() != null) {
-      correlateMessageCommandStep3.tenantId(messageRequest.tenantId());
+    if (tenantId != null) {
+      correlateMessageCommandStep3.tenantId(tenantId);
     }
     if (messageRequest.requestTimeout() != null) {
       correlateMessageCommandStep3.requestTimeout(messageRequest.requestTimeout());
