@@ -354,6 +354,12 @@ An over-length request is rejected outright with an HTTP 400 (`BadRequestExcepti
 `OpenAiChatModel.execute` catches it directly and throws `ContextWindowExceededException` with no
 `PartialResult` (the request was rejected before any response body could be converted).
 
+`OpenAiErrorCodes` reads the error code from the raw error body, because the SDK's own accessor for the
+code throws when the endpoint answers a code that is not a JSON string. OpenAI-compatible endpoints such as
+OpenRouter answer a numeric code. Only a string code can match `context_length_exceeded`. Any other code
+type, or no code, is an ordinary failed call: it ends as `FAILED_MODEL_CALL` and keeps the message of the
+provider. Mistral runs through the same SDK and handles the code the same way.
+
 ## Gemini
 
 One backend today, `GeminiBackend.GeminiApiBackend` (`google-gemini-api`, API-key auth) against the
