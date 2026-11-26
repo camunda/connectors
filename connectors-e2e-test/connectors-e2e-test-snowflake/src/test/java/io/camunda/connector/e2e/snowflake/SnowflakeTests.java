@@ -210,7 +210,11 @@ class SnowflakeTests {
             .property("resultExpression", "={cancelMessage: response.body.message}")
             .writeTo(new File(tempDir, "cancel.json"));
 
-    var test = run(apply(singleTask("cancel"), cancel, "cancel"), Map.of());
+    // A process variable named body must not become the cancel request's body.
+    var test =
+        run(
+            apply(singleTask("cancel"), cancel, "cancel"),
+            Map.of("body", Map.of("statement", "drop table customers")));
 
     assertThat(test.getProcessInstanceEvent())
         .hasVariable("cancelMessage", "successfully canceled");

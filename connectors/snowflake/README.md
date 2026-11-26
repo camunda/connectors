@@ -15,9 +15,10 @@ These are all the operations of the SQL API.
 | Get statement status | `GET /api/v2/statements/{statementHandle}` |
 | Cancel statement | `POST /api/v2/statements/{statementHandle}/cancel` |
 
-- **Account URL:** every task asks for the account URL, for example
-  `https://myorg-myaccount.snowflakecomputing.com`. The credential holds only the token: the
-  `http-json` credential shape (`ServiceAuthenticationConfiguration`) has no URL.
+- **Account URL:** every task asks for the account URL in the Authentication section, for example
+  `https://myorg-myaccount.snowflakecomputing.com`, without a path, query or fragment. The
+  credential holds only the token: the `http-json` credential shape
+  (`ServiceAuthenticationConfiguration`) has no URL.
 - **Authentication:** a bearer token, either a programmatic access token or an External OAuth
   access token. Choose a reusable `io.camunda.connectors:snowflake-authentication:1` credential, or
   enter the token on the task. The connector does not send `X-Snowflake-Authorization-Token-Type`:
@@ -36,10 +37,12 @@ These are all the operations of the SQL API.
 - **Headers:** `Accept: application/json`, `Content-Type: application/json` and
   `User-Agent: Camunda` are fixed and hidden. Snowflake rejects a POST without a JSON content type
   with HTTP 415, even when it has no body, as for Cancel statement.
+- **No body on Cancel statement:** the template maps `body` to null, so a process variable named
+  `body` is not sent with the cancel request.
 - **Retries** default to 0, because a retried statement runs again.
 - **Request ID:** Snowflake answers a request ID it has seen before with the earlier result and
-  does not run the statement again. Leave it empty, or set a value that is unique per process
-  instance.
+  does not run the statement again. Leave it empty, or use a new ID for every statement you submit,
+  also across tasks and loop iterations. Reuse an ID only to retry that same submission.
 
 ## How the template is built
 

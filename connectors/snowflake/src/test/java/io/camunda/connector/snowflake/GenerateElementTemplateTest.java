@@ -18,6 +18,7 @@ import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
+import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.IsEmpty;
 import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import io.camunda.connector.generator.openapi.OpenApiOutboundTemplateGenerator;
@@ -129,9 +130,11 @@ class GenerateElementTemplateTest {
     List<Property> authentication =
         template.properties().stream().filter(p -> "authentication".equals(p.getGroup())).toList();
 
-    assertThat(authentication.getFirst().getId())
-        .isEqualTo(GenerateElementTemplate.CREDENTIAL_CHOOSER_ID);
-    assertThat(authentication.subList(1, authentication.size()))
+    assertThat(authentication)
+        .extracting(Property::getId)
+        .startsWith("baseUrl", GenerateElementTemplate.CREDENTIAL_CHOOSER_ID);
+    assertThat(authentication.getFirst().getCondition()).isNull();
+    assertThat(authentication.subList(2, authentication.size()))
         .isNotEmpty()
         .allSatisfy(p ->
             assertThat(p.getCondition())
@@ -163,6 +166,8 @@ class GenerateElementTemplateTest {
     "=snowflakeAccountUrl, true",
     "https://myorg-myaccount.snowflakecomputing.com/, false",
     "https://myorg-myaccount.snowflakecomputing.com/api/v2, false",
+    "https://myorg-myaccount.snowflakecomputing.com#account, false",
+    "https://myorg-myaccount.snowflakecomputing.com?region=eu, false",
     "http://myorg-myaccount.snowflakecomputing.com, false",
     "myorg-myaccount, false"
   })
@@ -240,7 +245,10 @@ class GenerateElementTemplateTest {
   @Test
   void runStatementBodyPointsToBindings() {
     List<Property> bodies =
-        template.properties().stream().filter(p -> "requestBody".equals(p.getGroup())).toList();
+        template.properties().stream()
+            .filter(p -> "requestBody".equals(p.getGroup()))
+            .filter(p -> !(p instanceof HiddenProperty))
+            .toList();
 
     assertThat(bodies)
         .singleElement()
@@ -253,6 +261,17 @@ class GenerateElementTemplateTest {
               .contains("bindings", "?", "value: string(");
           assertThat(body.getTooltip())
               .contains("bindings", "never concatenate", "must be strings", "HTTP 202");
+        });
+  }
+
+  @Test
+  void cancelStatementMapsTheBodyToNullSoABodyProcessVariableIsNotSent() {
+    assertThat(property("CancelStatement_body"))
+        .isInstanceOf(HiddenProperty.class)
+        .satisfies(body -> {
+          assertThat(body.getValue()).isEqualTo("=null");
+          assertThat(body.getBinding()).isEqualTo(new ZeebeInput("body"));
+          assertThat(body.getCondition()).isEqualTo(new Equals("operationId", "CancelStatement"));
         });
   }
 

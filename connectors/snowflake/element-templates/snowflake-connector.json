@@ -33,10 +33,6 @@
       "label" : "Operation"
     },
     {
-      "id" : "server",
-      "label" : "Account"
-    },
-    {
       "id" : "authentication",
       "label" : "Authentication"
     },
@@ -101,12 +97,12 @@
       "constraints" : {
         "notEmpty" : true,
         "pattern" : {
-          "value" : "^(=.*|https://[^/\\s]+)$",
-          "message" : "Enter an https:// URL without a path or trailing slash."
+          "value" : "^(=.*|https://[^/?#\\s]+)$",
+          "message" : "Enter an https:// URL without a path, query or trailing slash."
         }
       },
       "feel" : "optional",
-      "group" : "server",
+      "group" : "authentication",
       "binding" : {
         "name" : "baseUrl",
         "type" : "zeebe:input"
@@ -202,7 +198,7 @@
         "equals" : "SubmitStatement",
         "type" : "simple"
       },
-      "tooltip" : "Optional UUID that identifies this request. Leave empty to let Snowflake assign one. Snowflake answers a request ID it has seen before with the earlier result and does not run the statement again, so never use a fixed value: set a FEEL expression that is unique per process instance.",
+      "tooltip" : "Optional UUID that identifies this request. Leave empty to let Snowflake assign one. Snowflake answers a request ID it has seen before with the earlier result and does not run the statement again. Use a new ID for every statement you submit, also across tasks and loop iterations, and reuse it only to retry that same submission.",
       "type" : "String"
     },
     {
@@ -369,7 +365,7 @@
         "equals" : "GetStatementStatus",
         "type" : "simple"
       },
-      "tooltip" : "Optional UUID that identifies this request. Leave empty to let Snowflake assign one. Snowflake answers a request ID it has seen before with the earlier result and does not run the statement again, so never use a fixed value: set a FEEL expression that is unique per process instance.",
+      "tooltip" : "Optional UUID that identifies this request. Leave empty to let Snowflake assign one. Snowflake answers a request ID it has seen before with the earlier result and does not run the statement again. Use a new ID for every statement you submit, also across tasks and loop iterations, and reuse it only to retry that same submission.",
       "type" : "String"
     },
     {
@@ -506,7 +502,7 @@
         "equals" : "CancelStatement",
         "type" : "simple"
       },
-      "tooltip" : "Optional UUID that identifies this request. Leave empty to let Snowflake assign one. Snowflake answers a request ID it has seen before with the earlier result and does not run the statement again, so never use a fixed value: set a FEEL expression that is unique per process instance.",
+      "tooltip" : "Optional UUID that identifies this request. Leave empty to let Snowflake assign one. Snowflake answers a request ID it has seen before with the earlier result and does not run the statement again. Use a new ID for every statement you submit, also across tasks and loop iterations, and reuse it only to retry that same submission.",
       "type" : "String"
     },
     {
@@ -589,6 +585,21 @@
       "tooltip" : "Request body as a FEEL context. <code>statement</code> is required. Pass process variables in <a href='https://docs.snowflake.com/en/developer-guide/sql-api/submitting-requests#using-bind-variables-in-a-statement' target='_blank'><code>bindings</code></a> and use <code>?</code> in the statement, never concatenate them into the SQL. Binding values must be strings, also for numbers: use <code>string(...)</code>. Set <code>warehouse</code>, <code>database</code>, <code>schema</code> and <code>role</code> unless the user's defaults apply. If the statement takes longer than 45 seconds, the response is HTTP 202 with a <code>statementHandle</code> and no rows: get the result with <b>Get statement status</b>. See the <a href='https://docs.snowflake.com/en/developer-guide/sql-api/reference' target='_blank'>SQL API reference</a>.",
       "placeholder" : "={\n  statement: \"select * from customers where id = ?\",\n  timeout: 60,\n  database: \"MY_DB\",\n  schema: \"PUBLIC\",\n  warehouse: \"MY_WH\",\n  bindings: {\n    \"1\": {type: \"TEXT\", value: string(customerId)}\n  }\n}",
       "type" : "String"
+    },
+    {
+      "id" : "CancelStatement_body",
+      "value" : "=null",
+      "group" : "requestBody",
+      "binding" : {
+        "name" : "body",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "CancelStatement",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
     },
     {
       "id" : "url",

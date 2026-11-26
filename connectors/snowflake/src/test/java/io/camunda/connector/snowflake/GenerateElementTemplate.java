@@ -162,8 +162,9 @@ public class GenerateElementTemplate {
               null,
               "Optional UUID that identifies this request. Leave empty to let Snowflake assign"
                   + " one. Snowflake answers a request ID it has seen before with the earlier"
-                  + " result and does not run the statement again, so never use a fixed value:"
-                  + " set a FEEL expression that is unique per process instance.",
+                  + " result and does not run the statement again. Use a new ID for every"
+                  + " statement you submit, also across tasks and loop iterations, and reuse it"
+                  + " only to retry that same submission.",
               new PropertyConstraints.Pattern("^(=.*|" + UUID + ")?$", "Enter a UUID.")),
           "query_async",
           new Parameter(
@@ -291,14 +292,16 @@ public class GenerateElementTemplate {
    * <ul>
    *   <li>Operation names: the raw dropdown shows {@code POST /api/v2/statements}.
    *   <li>Account URL: the raw server URL is a template ({@code https://{account}...}) that the
-   *       generator copies literally. It becomes a required field with no default.
+   *       generator copies literally. It becomes a required field with no default, in the
+   *       Authentication group.
    *   <li>Parameters: the raw output uses spec examples as values (a request ID of {@code string},
    *       a fixed statement handle, partition 2). Values become placeholders, labels and tooltips
    *       are rewritten. Unset query parameters are dropped instead of sent as empty values.
    *   <li>Headers: {@code Accept} and {@code User-Agent} were task fields with example values. They
    *       are fixed and hidden.
    *   <li>Request body: Run SQL statement gets an example that uses {@code bindings}, so process
-   *       variables are not concatenated into SQL. Cancel statement has no request body.
+   *       variables are not concatenated into SQL. Cancel statement maps the body to null, so a
+   *       {@code body} process variable is not sent.
    *   <li>Authentication: a reusable Snowflake credential, with the inline token as fallback.
    *   <li>Timeouts: Snowflake holds a synchronous request for up to 45 seconds before it returns
    *       the statement handle, so the read timeout defaults to {@value #READ_TIMEOUT_SECONDS}
@@ -328,7 +331,6 @@ public class GenerateElementTemplate {
             .propertyGroups(
                 List.of(
                     PropertyGroup.builder().id("operation").label("Operation").build(),
-                    PropertyGroup.builder().id("server").label("Account").build(),
                     PropertyGroup.builder().id("authentication").label("Authentication").build(),
                     PropertyGroup.builder().id("parameters").label("Parameters").build(),
                     PropertyGroup.builder().id("requestBody").label("Request body").build(),
@@ -338,6 +340,7 @@ public class GenerateElementTemplate {
                     PropertyGroup.builder().id("error").label("Error handling").build(),
                     PropertyGroup.builder().id("retries").label("Retries").build()))
             .properties(properties)
+            .properties(noCancelBody())
             .properties(authenticationProperties(raw))
             .properties(timeoutProperties());
 
@@ -359,7 +362,6 @@ public class GenerateElementTemplate {
         .reorderPropertiesByGroup(
             List.of(
                 "operation",
-                "server",
                 "authentication",
                 "parameters",
                 "requestBody",
@@ -383,6 +385,21 @@ public class GenerateElementTemplate {
             || id.equals(CANCEL_STATEMENT + "_body"));
   }
 
+  /**
+   * Maps {@code body} to null for Cancel statement. Without an input mapping, the REST connector
+   * reads a process variable named {@code body} and would send it with the cancel request. Get
+   * statement status needs none: the REST connector sends no body with GET.
+   */
+  private static Property noCancelBody() {
+    return HiddenProperty.builder()
+        .id(CANCEL_STATEMENT + "_body")
+        .group("requestBody")
+        .value("=null")
+        .binding(new ZeebeInput("body"))
+        .condition(new Equals(OPERATION_PROPERTY_ID, CANCEL_STATEMENT))
+        .build();
+  }
+
   private static Property curateProperty(Property property, Map<String, Operation> operations) {
     if (OPERATION_PROPERTY_ID.equals(property.getId())) {
       return ((DropdownProperty) property)
@@ -396,7 +413,10 @@ public class GenerateElementTemplate {
               .build();
     }
     if ("baseUrl".equals(property.getId())) {
+      // In the Authentication group, before the credential: the account and the token belong
+      // together, and every operation needs both.
       return property.toBuilder()
+          .group("authentication")
           .label("Account URL")
           .value(null)
           .placeholder(ACCOUNT_URL_PLACEHOLDER)
@@ -409,8 +429,10 @@ public class GenerateElementTemplate {
                   .notEmpty(true)
                   .pattern(
                       new PropertyConstraints.Pattern(
-                          "^(=.*|https://[^/\\s]+)$",
-                          "Enter an https:// URL without a path or trailing slash."))
+                          // The request URL is baseUrl + operationPath: a query or fragment
+                          // would swallow the SQL API path.
+                          "^(=.*|https://[^/?#\\s]+)$",
+                          "Enter an https:// URL without a path, query or trailing slash."))
                   .build())
           .build();
     }
