@@ -53,8 +53,12 @@ public final class XmlUtilities {
       // These settings are required to prevent XXE attacks (CWE-611)
       documentBuilderFactory.setFeature(
           "http://apache.org/xml/features/disallow-doctype-decl", true);
+      documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      documentBuilderFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+      documentBuilderFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
       documentBuilderFactory.setXIncludeAware(false);
-    } catch (ParserConfigurationException e) {
+      documentBuilderFactory.setExpandEntityReferences(false);
+    } catch (ParserConfigurationException | IllegalArgumentException e) {
       throw new RuntimeException("Failed to configure XML parser security settings", e);
     }
 
