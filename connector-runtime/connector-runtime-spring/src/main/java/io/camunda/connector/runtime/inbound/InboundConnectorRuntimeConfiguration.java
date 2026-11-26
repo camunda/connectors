@@ -23,6 +23,7 @@ import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
@@ -101,7 +102,9 @@ public class InboundConnectorRuntimeConfiguration {
       CamundaClientRegistry registry,
       ObjectProvider<CamundaClient> camundaClientProvider,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
-          SecretFilterMode secretFilterMode) {
+          SecretFilterMode secretFilterMode,
+      @Value("${" + ExternalDocumentHostPolicy.ENABLED_PROPERTY + ":true}")
+          boolean externalDocumentHostValidationEnabled) {
     CamundaClient legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     // LAX vs STRICT only matters outbound, where the allow-list needs a remote BPMN lookup that can
     // fail; the inbound allow-list is built from data already in memory, so it never fails and both
@@ -109,7 +112,10 @@ public class InboundConnectorRuntimeConfiguration {
     boolean secretFilterEnabled = secretFilterMode != SecretFilterMode.DISABLED;
     Map<String, DocumentFactory> documentFactoriesByPhysicalTenantId =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
-            registry, legacyCamundaClient, legacyDocumentFactory);
+            registry,
+            legacyCamundaClient,
+            legacyDocumentFactory,
+            new ExternalDocumentHostPolicy(externalDocumentHostValidationEnabled, false));
     Map<String, InboundCorrelationHandler> correlationHandlersByPhysicalTenantId =
         InboundCorrelationConfiguration.buildCorrelationHandlersByPhysicalTenantId(
             registry,
