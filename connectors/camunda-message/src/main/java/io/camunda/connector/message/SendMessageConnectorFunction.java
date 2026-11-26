@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 @ElementTemplate(
     engineVersion = "^8.3",
     id = "io.camunda.connectors.message.v1",
+    version = 2,
     inputDataClass = SendMessageRequest.class,
     name = "Send Message Connector",
     icon = "send.svg",
