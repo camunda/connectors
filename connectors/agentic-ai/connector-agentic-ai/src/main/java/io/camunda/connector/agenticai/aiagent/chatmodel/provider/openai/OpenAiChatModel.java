@@ -72,7 +72,8 @@ public class OpenAiChatModel implements ChatModel {
       // an over-length request is rejected outright with an HTTP 400, on both API families - this
       // error code is the only signal for it. No partial result exists: the request was rejected
       // before any response body could be converted.
-      if (OPENAI_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED.equals(e.code().orElse(null))) {
+      if (OPENAI_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED.equals(
+          OpenAiErrorCodes.codeOf(e).orElse(null))) {
         throw new ContextWindowExceededException(failureMessage(e), e, null);
       }
       throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
