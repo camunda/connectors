@@ -144,5 +144,10 @@
       <artifactId>http-client</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>host-ip-validator</artifactId>
+    </dependency>
+
   </dependencies>
 </project>

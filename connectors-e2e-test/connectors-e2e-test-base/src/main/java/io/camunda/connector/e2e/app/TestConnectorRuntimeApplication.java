@@ -18,7 +18,9 @@ package io.camunda.connector.e2e.app;
 
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -42,7 +44,11 @@ public class TestConnectorRuntimeApplication {
 
   @Bean
   @Primary
-  public DocumentFactory documentFactory() {
-    return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+  public DocumentFactory documentFactory(
+      @Value("${" + ExternalDocumentHostPolicy.ENABLED_PROPERTY + ":true}")
+          boolean externalDocumentHostValidationEnabled) {
+    return new DocumentFactoryImpl(
+        InMemoryDocumentStore.INSTANCE,
+        new ExternalDocumentHostPolicy(externalDocumentHostValidationEnabled, false));
   }
 }
