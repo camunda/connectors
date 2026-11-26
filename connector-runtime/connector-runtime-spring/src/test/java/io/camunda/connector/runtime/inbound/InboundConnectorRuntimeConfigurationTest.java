@@ -75,7 +75,8 @@ class InboundConnectorRuntimeConfigurationTest {
             mock(DocumentFactory.class),
             registry,
             clientProvider(),
-            mode);
+            mode,
+            true);
     return (InboundConnectorContextImpl)
         factory.createContext(
             detailsDeclaringNoSecret(), e -> {}, TestExecutable.class, entry -> {});
