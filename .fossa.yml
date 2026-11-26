@@ -72,3 +72,6 @@ targets:
   - type: maven
     path: parent/
     target: io.camunda.connector:connectors-e2e-test-soap
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-snowflake
