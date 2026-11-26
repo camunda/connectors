@@ -130,8 +130,9 @@ class ElevenLabsTests {
   }
 
   @Test
-  void listVoicesSendsOnlyTheQueryParametersThatAreSet() {
-    // Only the set filters are sent, and an array filter such as language sends its one value.
+  void listVoicesSendsTheQueryParametersThatAreSetAndTheDefaults() {
+    // Only the set filters and the default of the Include total count dropdown are sent. An array
+    // filter such as language sends its one value.
     wm.stubFor(
         get(urlPathEqualTo("/v2/voices"))
             .withHeader("xi-api-key", equalTo(API_KEY))
@@ -152,8 +153,9 @@ class ElevenLabsTests {
     assertThat(test.getProcessInstanceEvent()).hasVariable("voiceId", "voice123");
     var request = wm.getAllServeEvents().getFirst().getRequest();
     assertThat(request.getQueryParams().keySet())
-        .containsExactlyInAnyOrder("page_size", "language");
+        .containsExactlyInAnyOrder("page_size", "language", "include_total_count");
     assertThat(request.queryParameter("language").values()).containsExactly("en");
+    assertThat(request.queryParameter("include_total_count").values()).containsExactly("false");
   }
 
   @Test
