@@ -32,6 +32,7 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
+import java.util.Map;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -154,6 +155,20 @@ public class MessageTenantIdTests {
 
   @ParameterizedTest
   @ValueSource(strings = {"publish", "correlate"})
+  void processVariableNamedTenantId_doesNotAffectCurrentTemplate(String mode) {
+    var receiver = startReceiver(TENANT_A);
+    var receiverInOtherTenant = startReceiver(TENANT_B);
+
+    var sender = runSender(TENANT_A, mode, CURRENT_TEMPLATE, null, Map.of("tenantId", TENANT_B));
+
+    awaitCompleted(sender);
+    assertThat(sender).hasVariable("tenantIdResult", TENANT_A);
+    awaitCompleted(receiver);
+    assertStaysActive(receiverInOtherTenant);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"publish", "correlate"})
   void tenantIdOfJobTenant_fromOlderTemplate_isStillAccepted(String mode) {
     var receiver = startReceiver(TENANT_A);
 
@@ -224,6 +239,15 @@ public class MessageTenantIdTests {
   /** Deploys and starts the sending process in {@code senderTenant}, the tenant of its job. */
   private ProcessInstanceEvent runSender(
       String senderTenant, String mode, String templatePath, String tenantIdInput) {
+    return runSender(senderTenant, mode, templatePath, tenantIdInput, Map.of());
+  }
+
+  private ProcessInstanceEvent runSender(
+      String senderTenant,
+      String mode,
+      String templatePath,
+      String tenantIdInput,
+      Map<String, Object> variables) {
     BpmnModelInstance model =
         Bpmn.createExecutableProcess("sendProcess")
             .startEvent()
@@ -260,6 +284,7 @@ public class MessageTenantIdTests {
         .newCreateInstanceCommand()
         .bpmnProcessId("sendProcess")
         .latestVersion()
+        .variables(variables)
         .tenantId(senderTenant)
         .send()
         .join();

@@ -8,6 +8,7 @@ package io.camunda.connector.message;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -22,7 +23,12 @@ public record SendMessageRequest(
     @TemplateProperty(id = "correlationType") CorrelationType correlationType,
     // no longer offered in the template: the message always targets the job's tenant. Still bound
     // so that a value set by an older template version is rejected rather than silently ignored.
-    @TemplateProperty(ignore = true) String tenantId,
+    // The hidden null mapping shadows any process variable of the same name.
+    @TemplateProperty(
+            type = TemplateProperty.PropertyType.Hidden,
+            feel = FeelMode.disabled,
+            defaultValue = "=null")
+        String tenantId,
     @TemplateProperty(optional = true) Duration requestTimeout) {
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")

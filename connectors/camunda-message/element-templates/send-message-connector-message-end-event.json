@@ -72,6 +72,16 @@
     },
     "type" : "String"
   }, {
+    "id" : "tenantId",
+    "label" : "Tenant id",
+    "optional" : false,
+    "value" : "=null",
+    "binding" : {
+      "name" : "tenantId",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "requestTimeout",
     "label" : "Request timeout",
     "optional" : true,
