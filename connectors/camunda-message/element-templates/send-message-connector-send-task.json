@@ -3,7 +3,7 @@
   "name" : "Send Message Connector (Send Task)",
   "id" : "io.camunda.connectors.message.sendtask.v1",
   "keywords" : [ "send message", "correlate message", "publish message", "message event", "trigger process", "signal process" ],
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -67,16 +67,6 @@
     "feel" : "optional",
     "binding" : {
       "name" : "variables",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
-    "id" : "tenantId",
-    "label" : "Tenant id",
-    "optional" : true,
-    "feel" : "optional",
-    "binding" : {
-      "name" : "tenantId",
       "type" : "zeebe:input"
     },
     "type" : "String"
@@ -145,7 +135,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

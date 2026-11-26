@@ -20,7 +20,9 @@ public record SendMessageRequest(
     @TemplateProperty(optional = true) String correlationKey,
     @TemplateProperty(optional = true, label = "Payload") Map<String, Object> variables,
     @TemplateProperty(id = "correlationType") CorrelationType correlationType,
-    @TemplateProperty(optional = true) String tenantId,
+    // no longer offered in the template: the message always targets the job's tenant. Still bound
+    // so that a value set by an older template version is rejected rather than silently ignored.
+    @TemplateProperty(ignore = true) String tenantId,
     @TemplateProperty(optional = true) Duration requestTimeout) {
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
