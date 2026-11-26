@@ -27,6 +27,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
@@ -37,6 +38,7 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -73,8 +75,13 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public DocumentFactory documentFactory(CamundaDocumentStore documentStore) {
-    return new DocumentFactoryImpl(documentStore);
+  public DocumentFactory documentFactory(
+      CamundaDocumentStore documentStore,
+      @Value("${" + ExternalDocumentHostPolicy.ENABLED_PROPERTY + ":true}")
+          boolean externalDocumentHostValidationEnabled) {
+    return new DocumentFactoryImpl(
+        documentStore,
+        new ExternalDocumentHostPolicy(externalDocumentHostValidationEnabled, false));
   }
 
   @Bean
