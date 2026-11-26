@@ -3,7 +3,7 @@
   "name" : "Hybrid Send Message Connector (Intermediate Throw Event)",
   "id" : "io.camunda.connectors.message.intermediate.v1-hybrid",
   "keywords" : [ "send message", "correlate message", "publish message", "message event", "trigger process", "signal process" ],
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -79,13 +79,13 @@
   }, {
     "id" : "tenantId",
     "label" : "Tenant id",
-    "optional" : true,
-    "feel" : "optional",
+    "optional" : false,
+    "value" : "=null",
     "binding" : {
       "name" : "tenantId",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "requestTimeout",
     "label" : "Request timeout",
@@ -151,7 +151,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
