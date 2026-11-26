@@ -988,6 +988,94 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
+  void reportHealth_masksANumericSecretInValuesAndKeys() throws Exception {
+    // given a secret whose value is a number
+    var definition = getInboundConnectorDefinition(Map.of("pin", "secrets.PIN"));
+    var pinProvider =
+        new SecretProvider() {
+          @Override
+          public String getSecret(String name, SecretContext secretContext) {
+            return "PIN".equals(name) ? "123456" : null;
+          }
+        };
+    var context =
+        new InboundConnectorContextImpl(
+            pinProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when the details hold it as a number, also nested, and as a numeric key of a nested map
+    context.reportHealth(
+        Health.up(
+            Map.of(
+                "pin", 123456,
+                "nested", Map.of(123456L, "seen", 7, "kept"),
+                "values", List.of(123456, 42))));
+
+    // then it is masked in the details, in the health change and in the published JSON
+    var details = context.getHealth().getDetails();
+    assertThat(details)
+        .containsEntry("pin", "***")
+        .containsEntry("nested", Map.of("***", "seen", 7, "kept"))
+        .containsEntry("values", List.of("***", 42));
+    assertThat(mapper.writeValueAsString(context.getHealth())).doesNotContain("123456");
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.healthChange().getDetails()).isEqualTo(details));
+  }
+
+  @Test
+  void log_masksANumericSecretInTheActivityData() throws Exception {
+    // given a secret whose value is a number
+    var definition = getInboundConnectorDefinition(Map.of("pin", "secrets.PIN"));
+    var pinProvider =
+        new SecretProvider() {
+          @Override
+          public String getSecret(String name, SecretContext secretContext) {
+            return "PIN".equals(name) ? "123456" : null;
+          }
+        };
+    var context =
+        new InboundConnectorContextImpl(
+            pinProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when an activity's data carries it as a number, and as a numeric key of a nested map
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withMessage("received")
+            .withData(Map.of("pin", 123456, "byPin", Map.of(123456, true), "count", 3)));
+
+    // then the logged data has it masked and keeps everything else as it was
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> {
+          assertThat(log.data())
+              .containsOnly(
+                  Map.entry("pin", "***"),
+                  Map.entry("byPin", Map.of("***", true)),
+                  Map.entry("count", 3));
+          assertThat(mapper.writeValueAsString(log.data())).doesNotContain("123456");
+        });
+  }
+
+  @Test
   void reportHealth_publishesAnObjectAsItsMaskedStringForm() throws Exception {
     // given
     var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));

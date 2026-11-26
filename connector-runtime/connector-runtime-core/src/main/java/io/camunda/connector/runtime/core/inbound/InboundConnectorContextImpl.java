@@ -693,19 +693,20 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   /**
    * Masks every secret in a value that is published as JSON.
    *
-   * <p>Strings, numbers, booleans and enums keep their type, and maps, collections and object
-   * arrays are copied with each element masked. Any other value, such as a bean or a {@code
-   * char[]}, is published as its masked string form: its JSON form could carry a secret that its
-   * string form doesn't show, for example from a getter. A container that contains itself is
-   * replaced by {@link #CIRCULAR_REFERENCE} where it repeats.
+   * <p>Strings keep their type, and so do numbers, booleans and enums whose JSON form shows no
+   * secret; one that shows a secret, such as a numeric PIN, is published as its masked string form.
+   * Maps, collections and object arrays are copied with each key and element masked. Any other
+   * value, such as a bean or a {@code char[]}, is published as its masked string form: its JSON
+   * form could carry a secret that its string form doesn't show, for example from a getter. A
+   * container that contains itself is replaced by {@link #CIRCULAR_REFERENCE} where it repeats.
    */
   private static @Nullable Object redactValue(
       @Nullable Object value, List<String> secrets, Set<Object> enclosing) {
     return switch (value) {
       case null -> null;
-      case Number number -> number;
-      case Boolean bool -> bool;
-      case Enum<?> constant -> constant;
+      case Number number -> keepUnlessSecret(number, String.valueOf(number), secrets);
+      case Boolean bool -> keepUnlessSecret(bool, String.valueOf(bool), secrets);
+      case Enum<?> constant -> keepUnlessSecret(constant, constant.name(), secrets);
       case String text -> SecretUtil.hideSecretsFromMessage(text, secrets);
       case char[] chars -> SecretUtil.hideSecretsFromMessage(new String(chars), secrets);
       case Map<?, ?> map -> {
@@ -726,6 +727,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       case Object[] array -> redactElements(array, Arrays.asList(array), secrets, enclosing);
       default -> SecretUtil.hideSecretsFromMessage(String.valueOf(value), secrets);
     };
+  }
+
+  // the JSON form of a number, boolean or enum is its string form, or an enum's name
+  private static Object keepUnlessSecret(Object value, String published, List<String> secrets) {
+    var masked = SecretUtil.hideSecretsFromMessage(published, secrets);
+    return masked.equals(published) ? value : masked;
   }
 
   // the container is tracked by identity, since an array's list view is a new object each time
