@@ -44,6 +44,7 @@ import org.springframework.context.annotation.Primary;
 @SpringBootTest(
     classes = {
       TestConnectorRuntimeApplication.class,
+      ConfigurationValidationConfiguration.class,
       SingleClientConfigurationValidationWiringTest.LocalEvaluatorOverride.class
     },
     properties = {

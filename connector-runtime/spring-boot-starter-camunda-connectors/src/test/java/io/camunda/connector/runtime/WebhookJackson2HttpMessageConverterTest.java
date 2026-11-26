@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.configuration.ConfigurationValidationConfiguration;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +42,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * opened by reusing a mapper built for a different, allow-list-protected purpose
  * (security-testing-findings#275).
  */
-@SpringBootTest(classes = TestConnectorRuntimeApplication.class)
+@SpringBootTest(
+    classes = {TestConnectorRuntimeApplication.class, ConfigurationValidationConfiguration.class})
 @AutoConfigureMockMvc
 class WebhookJackson2HttpMessageConverterTest {
 
