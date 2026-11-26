@@ -5,7 +5,7 @@
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 0,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -128,14 +128,14 @@
   }, {
     "id" : "tenantId",
     "label" : "Tenant id",
-    "optional" : true,
-    "feel" : "optional",
+    "optional" : false,
+    "value" : "=null",
     "group" : "default",
     "binding" : {
       "name" : "tenantId",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "requestTimeout",
     "label" : "Request timeout",
