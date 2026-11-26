@@ -200,7 +200,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.6.2</version.auth0.jwt>
     <version.auth0.jwks>0.24.2</version.auth0.jwks>
 
-    <version.langchain4j>1.24.0</version.langchain4j>
+    <version.langchain4j>1.24.1</version.langchain4j>
     <!-- community releases are built against one core release: keep the prefix equal to version.langchain4j -->
     <version.langchain4j-community>1.24.0-beta34</version.langchain4j-community>
     <version.mcp-sdk>2.2.0</version.mcp-sdk>
