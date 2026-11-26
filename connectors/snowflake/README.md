@@ -26,7 +26,9 @@ These are all the operations of the SQL API.
   supported, because the client must sign the JWT. The `SnowflakeOAuth` implicit flow is not
   supported either. The template maps the REST connector's own `authenticationConfiguration` input
   to null: it takes precedence over all other authentication, so a process variable of that name
-  would otherwise send another credential to Snowflake.
+  would otherwise send another credential to Snowflake. For the same reason, the credential chooser
+  is not optional: when no credential is chosen, it maps `serviceAuthenticationConfiguration` to
+  null.
 - **Bindings:** pass process variables in the request body's `bindings` and use `?` in the
   statement. Never concatenate process variables into the SQL. Binding values must be strings,
   also for numbers (`value: string(orderId)`): Snowflake rejects a JSON number with HTTP 422.

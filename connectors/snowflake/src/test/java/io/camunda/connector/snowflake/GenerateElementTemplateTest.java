@@ -122,6 +122,10 @@ class GenerateElementTemplateTest {
                   .isEqualTo(GenerateElementTemplate.CREDENTIAL_ID);
               assertThat(chooser.getBinding())
                   .isEqualTo(new ZeebeInput("serviceAuthenticationConfiguration"));
+              // An empty chooser still maps its input to null, so a process variable of the
+              // same name cannot replace the inline token.
+              assertThat(chooser.getOptional()).isFalse();
+              assertThat(chooser.getConstraints()).isNull();
             });
   }
 

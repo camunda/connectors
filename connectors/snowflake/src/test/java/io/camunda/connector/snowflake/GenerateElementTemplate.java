@@ -557,7 +557,10 @@ public class GenerateElementTemplate {
             .tooltip(
                 "Choose a reusable Snowflake credential, or configure the one-time access token"
                     + " below.")
-            .optional(true)
+            // Not optional: an empty optional chooser creates no input mapping, so a process
+            // variable named serviceAuthenticationConfiguration would replace the inline token.
+            // A non-optional chooser always maps its input, to null when no credential is chosen.
+            .optional(false)
             .group("authentication")
             .binding(new ZeebeInput(CREDENTIAL_CHOOSER_ID))
             .build());

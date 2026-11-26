@@ -115,10 +115,17 @@ class SnowflakeTests {
 
     // A process variable named like an unset parameter must not be sent: a reused request ID
     // would make Snowflake return the earlier request's result instead of running the statement.
+    // One named like the empty credential chooser must not replace the inline token.
     var test =
         run(
             apply(singleTask("runStatement"), runStatement, "runStatement"),
-            Map.of("customerId", "C-42", "requestId", "11111111-2222-3333-4444-555555555555"));
+            Map.of(
+                "customerId",
+                "C-42",
+                "requestId",
+                "11111111-2222-3333-4444-555555555555",
+                "serviceAuthenticationConfiguration",
+                Map.of("authentication", Map.of("type", "bearer", "token", "unrelated-token"))));
 
     assertThat(test.getProcessInstanceEvent())
         .hasVariable("customerName", "Ada")

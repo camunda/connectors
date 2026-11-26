@@ -114,7 +114,7 @@
     {
       "id" : "serviceAuthenticationConfiguration",
       "label" : "Authentication credential",
-      "optional" : true,
+      "optional" : false,
       "group" : "authentication",
       "binding" : {
         "name" : "serviceAuthenticationConfiguration",
