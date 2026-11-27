@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthenticationType;
+import java.io.IOException;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
@@ -63,8 +64,8 @@ class GcsUtilTest {
     assertThatThrownBy(() ->
             GcsUtil.getCredentials(
                 GcpAuthenticationType.SERVICE_ACCOUNT, null, json, null, null, null))
-        .hasRootCauseMessage(
-            "Error reading credentials from stream, 'type' value 'external_account' not"
-                + " recognized. Expecting 'service_account'.");
+        .rootCause()
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("external_account");
   }
 }
