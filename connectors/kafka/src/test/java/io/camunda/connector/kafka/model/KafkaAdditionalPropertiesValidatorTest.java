@@ -103,7 +103,17 @@ class KafkaAdditionalPropertiesValidatorTest {
         Arguments.of("bearer.auth.credentials.source", "CUSTOM"),
         Arguments.of("bearer.auth.credentials.source", "UAMI"),
         Arguments.of("bearer.auth.credentials.source", "SASL_OAUTHBEARER_INHERIT"),
-        Arguments.of("bearer.auth.uami.endpoint.url", "http://169.254.169.254/"));
+        Arguments.of("bearer.auth.uami.endpoint.url", "http://169.254.169.254/"),
+        // the schema registry client strips this prefix before reading its settings
+        Arguments.of("schema.registry.bearer.auth.credentials.source", "UAMI"),
+        Arguments.of("schema.registry.bearer.auth.uami.endpoint.url", "http://169.254.169.254/"),
+        Arguments.of("schema.registry.bearer.auth.custom.provider.class", "a.b.Provider"),
+        Arguments.of("Schema.Registry.Rule.Executors", "x"),
+        // ListSerializer and ListDeserializer instantiate these
+        Arguments.of("default.list.key.serde.inner", "a.b.Serde"),
+        Arguments.of("default.list.value.serde.inner", "a.b.Serde"),
+        Arguments.of("default.list.key.serde.type", "a.b.List"),
+        Arguments.of("default.list.value.serde.type", "a.b.List"));
   }
 
   @ParameterizedTest
@@ -160,6 +170,13 @@ class KafkaAdditionalPropertiesValidatorTest {
         Arguments.of("basic.auth.user.info", "user:password"),
         Arguments.of("bearer.auth.credentials.source", "STATIC_TOKEN"),
         Arguments.of("bearer.auth.credentials.source", "OAUTHBEARER"),
+        Arguments.of("schema.registry.basic.auth.credentials.source", "USER_INFO"),
+        Arguments.of("schema.registry.bearer.auth.credentials.source", "STATIC_TOKEN"),
+        Arguments.of("schema.registry.ssl.truststore.type", "PEM"),
+        Arguments.of(
+            "default.list.value.serde.inner",
+            "org.apache.kafka.common.serialization.Serdes$StringSerde"),
+        Arguments.of("default.list.value.serde.type", "java.util.ArrayList"),
         Arguments.of("auto.register.schemas", false));
   }
 

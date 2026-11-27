@@ -58,7 +58,12 @@ public final class KafkaAdditionalPropertiesValidator {
           "json.key.type",
           "json.value.type",
           "specific.avro.key.type",
-          "specific.avro.value.type");
+          "specific.avro.value.type",
+          // inner serde and list type of ListSerializer and ListDeserializer
+          "default.list.key.serde.inner",
+          "default.list.value.serde.inner",
+          "default.list.key.serde.type",
+          "default.list.value.serde.type");
 
   private static final List<String> CLASS_VALUED_SUFFIXES =
       List.of(".class", ".classes", ".serializer", ".deserializer");
@@ -85,7 +90,10 @@ public final class KafkaAdditionalPropertiesValidator {
           "org.apache.kafka.clients.consumer.StickyAssignor",
           "org.apache.kafka.clients.consumer.CooperativeStickyAssignor",
           // the default of metric.reporters
-          "org.apache.kafka.common.metrics.JmxReporter");
+          "org.apache.kafka.common.metrics.JmxReporter",
+          // list types of ListDeserializer
+          "java.util.ArrayList",
+          "java.util.LinkedList");
 
   private static final Set<String> ALLOWED_LOGIN_MODULES =
       Set.of(
@@ -97,6 +105,9 @@ public final class KafkaAdditionalPropertiesValidator {
   private static final String BEARER_AUTH_SOURCE = "bearer.auth.credentials.source";
   private static final Set<String> ALLOWED_BEARER_AUTH_SOURCES =
       Set.of("STATIC_TOKEN", "OAUTHBEARER");
+
+  // The schema registry client also reads its settings under this prefix and strips it
+  private static final String SCHEMA_REGISTRY_PREFIX = "schema.registry.";
 
   private static final int MAX_KEY_LENGTH_IN_MESSAGE = 100;
 
@@ -135,6 +146,13 @@ public final class KafkaAdditionalPropertiesValidator {
     }
     // The Kafka client matches keys exactly. Normalizing here only rejects more.
     String key = originalKey.trim().toLowerCase(Locale.ROOT);
+    validate(originalKey, key, value);
+    if (key.startsWith(SCHEMA_REGISTRY_PREFIX)) {
+      validate(originalKey, key.substring(SCHEMA_REGISTRY_PREFIX.length()), value);
+    }
+  }
+
+  private static void validate(String originalKey, String key, Object value) {
     for (String prefix : DENIED_PREFIXES) {
       if (key.startsWith(prefix)) {
         throw notAllowed(originalKey);
