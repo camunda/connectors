@@ -42,6 +42,55 @@ public class ConnectionHelper {
   }
 
   /**
+<<<<<<< HEAD
+=======
+   * Throws the driver's own exceptions rather than wrapping them in {@link ConnectorException}, so
+   * that a caller can classify a failure on {@link SQLException#getSQLState()}.
+   */
+  public static Connection openConnection(
+      SupportedDatabase database, JdbcConnection connection, Duration loginTimeout)
+      throws ClassNotFoundException, SQLException {
+    Properties properties = connection.getProperties();
+    LoginTimeoutProperties.applyTo(properties, database, loginTimeout);
+    return connect(database, connection, properties);
+  }
+
+  private static Connection connect(
+      SupportedDatabase database, JdbcConnection connection, Properties properties)
+      throws ClassNotFoundException, SQLException {
+    String driverClassName = database.getDriverClassName();
+    LOG.debug("Loading JDBC driver: {}", driverClassName);
+    Class.forName(driverClassName);
+    String url = ensureMySQLCompatibleUrl(connection.getConnectionString(database), database);
+    // The URL decides which driver serves the connection, whatever database was selected.
+    Connection conn =
+        MariaDbConnectionOpener.handles(url)
+            ? MariaDbConnectionOpener.open(url, properties)
+            : DriverManager.getConnection(url, properties);
+    LOG.debug("Connection established for Database {}: {}", database, conn);
+    return conn;
+  }
+
+  /**
+   * Resolves the effective JDBC connection, applying the configuration/inline precedence for the
+   * credentials transition (per-connector implementation of the consume-configuration capability):
+   * a bound connection credential ({@code configuration}) takes precedence over the inline
+   * connection fields; the inline connection is the fallback. Per-field inline override is not
+   * modeled for JDBC because the connection is consumed as a whole object.
+   */
+  static JdbcConnection resolveConnection(JdbcRequest request) {
+    if (request.configuration() != null) {
+      return request.configuration().toDetailedConnection();
+    }
+    if (request.connection() != null) {
+      return request.connection();
+    }
+    throw new ConnectorException(
+        "No JDBC connection provided: fill in the connection fields or select a connection credential");
+  }
+
+  /**
+>>>>>>> 93cbc02 (fix(jdbc): stop the MariaDB driver from sending runtime-local data to the server (#10974))
    * Ensure MySQL compatibility as we are using MariaDB driver for MySQL.
    *
    * @return Properties with permitMysqlScheme set to true if the database is MySQL.
