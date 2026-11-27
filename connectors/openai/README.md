@@ -14,9 +14,26 @@ Please refer to the [example API use-cases](https://platform.openai.com/examples
 
 ## Model selection
 
-Refer to the [Models](https://platform.openai.com/docs/models/models) section of OpenAI documentation.
-Selection of models is user-specific and depends on your account privileges. Therefore, some models (e.g. GPT-4 at the time of writing)
-may appear as non-existing when you attempt to use them, although they are defined in the element template.
+Enter a model ID in the **Model** field, either as text or a FEEL expression.
+The placeholder is an example, not a default: you must explicitly select a model.
+Refer to the [Models](https://platform.openai.com/docs/models) section of OpenAI documentation
+for current models. Availability depends on your account privileges.
+
+Template version 9 replaces the model dropdown. Existing named selections remain valid.
+When upgrading a version 8 task that uses **Custom**, `c8ctl element-template update` applies
+the migration recipe and copies **Custom model version** into the new **Model** field.
+If your upgrade tool does not apply the recipe, save **Custom model version** before upgrading
+and paste it into **Model** afterward. Older template versions remain available.
+
+The Google Gemini and Bedrock embeddings templates follow the same free-text pattern starting
+with version 5. Their recipes let `c8ctl element-template update` copy a legacy **Custom model
+name** into the new model field. If your upgrade tool does not apply the recipe, save and copy
+the custom model name manually.
+Bedrock embeddings require a model compatible with the Amazon Titan embedding API;
+dimensions and normalization are available for `amazon.titan-embed-text-v2:0`.
+For legacy **Custom** models, the recipe uses 1024 dimensions and enables **Normalize**
+to preserve the Titan V2 provider defaults. If you migrate a Custom Titan V2 model manually,
+set **Embedding dimensions** to 1024 and enable **Normalize**.
 
 ## Moderation
 

@@ -42,7 +42,7 @@ import java.util.HashMap;
       "multimodal"
     },
     inputDataClass = GeminiRequest.class,
-    version = 4,
+    version = 5,
     configurations = {GoogleCredentialConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
