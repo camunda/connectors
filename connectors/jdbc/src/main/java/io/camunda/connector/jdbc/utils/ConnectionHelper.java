@@ -54,11 +54,24 @@ public class ConnectionHelper {
     LOG.debug("Loading JDBC driver: {}", driverClassName);
     Class.forName(driverClassName);
     String url = ensureMySQLCompatibleUrl(connection.getConnectionString(database), database);
-    // The URL decides which driver serves the connection, whatever database was selected.
-    Connection conn =
-        MariaDbConnectionOpener.handles(url)
-            ? MariaDbConnectionOpener.open(url, properties)
-            : DriverManager.getConnection(url, properties);
+    Connection conn;
+    try {
+      // The URL decides which driver serves the connection, whatever database was selected.
+      if (MariaDbConnectionOpener.handles(url)) {
+        conn = MariaDbConnectionOpener.open(url, properties);
+      } else if (SqlServerConnectionOpener.handles(url)) {
+        conn = SqlServerConnectionOpener.open(url, properties);
+      } else {
+        conn = DriverManager.getConnection(url, properties);
+      }
+    } catch (SQLException | ConnectorException e) {
+      throw e;
+    } catch (RuntimeException e) {
+      // A driver failing outside its own exception type may carry data it read in the message.
+      LOG.debug("The JDBC driver failed to open a connection for Database {}", database, e);
+      throw new SQLException(
+          "The database driver failed to open the connection (" + e.getClass().getName() + ")");
+    }
     LOG.debug("Connection established for Database {}: {}", database, conn);
     return conn;
   }
