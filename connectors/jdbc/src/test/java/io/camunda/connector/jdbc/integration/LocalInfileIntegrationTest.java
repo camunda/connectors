@@ -17,8 +17,6 @@ import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import io.camunda.connector.jdbc.model.request.connection.DetailedConnection;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
 import io.camunda.connector.jdbc.model.request.connection.UriConnection;
-import io.camunda.connector.test.utils.DockerImages;
-import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,16 +46,14 @@ import org.testcontainers.utility.DockerImageName;
  * database server. The servers here accept local files, as a server run by the process author
  * would.
  */
-@SlowTest
 class LocalInfileIntegrationTest {
 
   private static final String RUNTIME_FILE_CONTENT = "content of a file on the connector runtime";
 
   static final MySQLContainer<?> mySqlServer =
-      new MySQLContainer<>(DockerImages.get(IntegrationBaseTest.MYSQL))
-          .withCommand("--local-infile=1");
+      new MySQLContainer<>("mysql:5.7.34").withCommand("--local-infile=1");
   static final MariaDBContainer<?> mariaDbServer =
-      new MariaDBContainer<>(DockerImageName.parse(DockerImages.get(IntegrationBaseTest.MARIADB)))
+      new MariaDBContainer<>(DockerImageName.parse("mariadb:11.3.2"))
           .withCommand("--local-infile=1");
 
   @TempDir static Path tempDir;
