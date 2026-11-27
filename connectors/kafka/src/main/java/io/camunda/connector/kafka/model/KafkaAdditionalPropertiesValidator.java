@@ -116,21 +116,6 @@ public final class KafkaAdditionalPropertiesValidator {
 
   private static final int MAX_KEY_LENGTH_IN_MESSAGE = 100;
 
-  // Second line of defence, in the Kafka client itself (3.8 and later): with this system property
-  // set to "none" the client refuses every config provider that a client configuration names.
-  // A value set by the operator is left alone.
-  static final String AUTOMATIC_CONFIG_PROVIDERS = "org.apache.kafka.automatic.config.providers";
-
-  static {
-    try {
-      if (System.getProperty(AUTOMATIC_CONFIG_PROVIDERS) == null) {
-        System.setProperty(AUTOMATIC_CONFIG_PROVIDERS, "none");
-      }
-    } catch (SecurityException e) {
-      // the property check below still applies
-    }
-  }
-
   private KafkaAdditionalPropertiesValidator() {}
 
   /**

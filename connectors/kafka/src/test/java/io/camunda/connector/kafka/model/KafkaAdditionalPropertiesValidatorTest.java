@@ -226,14 +226,6 @@ class KafkaAdditionalPropertiesValidatorTest {
   }
 
   @Test
-  void makesTheKafkaClientRefuseConfigProviders() {
-    KafkaAdditionalPropertiesValidator.validate(Map.of("client.id", "x"));
-
-    assertThat(System.getProperty(KafkaAdditionalPropertiesValidator.AUTOMATIC_CONFIG_PROVIDERS))
-        .isEqualTo("none");
-  }
-
-  @Test
   void outboundPropertiesRejectTheReportedExploit() {
     var additionalProperties = new LinkedHashMap<String, Object>();
     additionalProperties.put("config.providers", "dir");
