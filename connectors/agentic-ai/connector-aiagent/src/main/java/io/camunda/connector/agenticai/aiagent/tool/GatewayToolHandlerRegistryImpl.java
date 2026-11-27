@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
@@ -166,7 +167,17 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
           gatewayToolHandler.transformToolCallResults(agentContext, transformedToolCallResults);
     }
 
-    return transformedToolCallResults.stream().map(this::withElementId).toList();
+    final var inputsById =
+        toolCallResults.stream()
+            .filter(result -> result.id() != null)
+            .collect(Collectors.toMap(ToolCallResult::id, Function.identity()));
+    return transformedToolCallResults.stream()
+        .map(result -> {
+          final var input = inputsById.get(result.id());
+          return input == null ? result : result.withMissingValuesFrom(input);
+        })
+        .map(this::withElementId)
+        .toList();
   }
 
   private ToolCallResult withElementId(ToolCallResult result) {

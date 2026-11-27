@@ -35,6 +35,12 @@ import java.util.List;
 public interface GatewayToolCallTransformer {
   List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls);
 
+  /**
+   * Maps the tool call results of the gateway elements back to the tool names of the LLM.
+   *
+   * <p>Returns one result for each input result, with the same {@code id}. {@link
+   * GatewayToolHandler#transformToolCallResults} states what a handler sets.
+   */
   List<ToolCallResult> transformToolCallResults(
       AgentContext agentContext, List<ToolCallResult> toolCallResults);
 }

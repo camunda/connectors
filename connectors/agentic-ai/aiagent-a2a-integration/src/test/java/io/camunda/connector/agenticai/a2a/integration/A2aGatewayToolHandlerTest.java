@@ -452,10 +452,7 @@ class A2aGatewayToolHandlerTest {
     }
 
     @Test
-    void preservesCompletedAtFromTheOriginalResult() {
-      // the transformed result is a new ToolCallResult instance; completedAt (resolved by
-      // ingestion normalization, ADR 008, before this transform ever runs) must carry over or
-      // every A2A tool-result history item fails as a missing-completedAt invariant violation
+    void keepsCompletedAtPropertiesAndElementIdOfTheInputResult() {
       var agentContext = AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1"));
       var a2aMessage =
           A2aMessage.builder()
@@ -466,11 +463,27 @@ class A2aGatewayToolHandlerTest {
               .build();
       var completedAt = OffsetDateTime.parse("2026-07-02T10:00:00Z");
       var toolCallResult =
-          createToolCallResultWithContent("call1", "a2a1", a2aMessage).withCompletedAt(completedAt);
+          ToolCallResult.builder()
+              .id("call1")
+              .name("a2a1")
+              .elementId("a2a1Element")
+              .content(a2aMessage)
+              .completedAt(completedAt)
+              .properties(Map.of("custom", "value"))
+              .build();
 
       var result = handler.transformToolCallResults(agentContext, List.of(toolCallResult));
 
-      assertThat(result).singleElement().extracting("completedAt").isEqualTo(completedAt);
+      assertThat(result)
+          .containsExactly(
+              ToolCallResult.builder()
+                  .id("call1")
+                  .name("A2A_a2a1")
+                  .elementId("a2a1Element")
+                  .content(a2aMessage)
+                  .completedAt(completedAt)
+                  .properties(Map.of("custom", "value"))
+                  .build());
     }
 
     @Test

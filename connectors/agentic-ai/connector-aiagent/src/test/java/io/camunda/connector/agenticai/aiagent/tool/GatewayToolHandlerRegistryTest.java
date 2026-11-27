@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -481,6 +482,183 @@ class GatewayToolHandlerRegistryTest {
       void
           transformToolCallResultsPassesThroughAllHandlers_keepsNonGatewayToolCallResultsUnmodified() {
         testTransformToolCallResults(TOOL_CALL_RESULTS);
+      }
+
+      @Test
+      void keepsCompletedAtAndPropertiesOfEachInputResult_whenHandlerRebuildsTheResult() {
+        final var completedAt = OffsetDateTime.parse("2026-11-24T10:15:30+01:00");
+        final var eventCompletedAt = OffsetDateTime.parse("2026-11-24T10:16:00+01:00");
+        final var gatewayResult =
+            ToolCallResult.builder()
+                .id("GatewayA_AFirstTool_123456")
+                .name("GatewayA")
+                .content("gateway content")
+                .completedAt(completedAt)
+                .properties(Map.of("custom", "value"))
+                .build();
+        final var firstEvent =
+            ToolCallResult.builder()
+                .elementId("FirstEvent")
+                .content("first event")
+                .completedAt(eventCompletedAt)
+                .build();
+        final var secondEvent =
+            ToolCallResult.builder()
+                .elementId("SecondEvent")
+                .content("second event")
+                .completedAt(eventCompletedAt)
+                .build();
+
+        when(handlerA.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
+            .thenAnswer(i -> {
+              List<ToolCallResult> results = i.getArgument(1);
+              return results.stream()
+                  .map(result ->
+                      result.id() == null
+                          ? result
+                          : ToolCallResult.builder()
+                              .id(result.id())
+                              .name("GatewayA_AFirstTool")
+                              .content(result.content())
+                              .build())
+                  .toList();
+            });
+        when(handlerB.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
+            .thenAnswer(i -> i.getArgument(1));
+
+        final var transformed =
+            registry.transformToolCallResults(
+                AGENT_CONTEXT, List.of(gatewayResult, firstEvent, secondEvent));
+
+        assertThat(transformed)
+            .isEqualTo(
+                List.of(
+                    ToolCallResult.builder()
+                        .id("GatewayA_AFirstTool_123456")
+                        .name("GatewayA_AFirstTool")
+                        .elementId("GatewayA_AFirstTool")
+                        .content("gateway content")
+                        .completedAt(completedAt)
+                        .properties(Map.of("custom", "value"))
+                        .build(),
+                    firstEvent,
+                    secondEvent));
+      }
+
+      @Test
+      void keepsCompletedAtOfHandler_whenHandlerSetsCompletedAt() {
+        final var inputCompletedAt = OffsetDateTime.parse("2026-11-24T10:15:30+01:00");
+        final var handlerCompletedAt = OffsetDateTime.parse("2026-11-24T10:20:00+01:00");
+        final var gatewayResult =
+            ToolCallResult.builder()
+                .id("GatewayA_AFirstTool_123456")
+                .name("GatewayA")
+                .content("gateway content")
+                .completedAt(inputCompletedAt)
+                .build();
+
+        when(handlerA.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
+            .thenAnswer(i -> {
+              List<ToolCallResult> results = i.getArgument(1);
+              return results.stream()
+                  .map(result ->
+                      ToolCallResult.builder()
+                          .id(result.id())
+                          .name("GatewayA_AFirstTool")
+                          .content(result.content())
+                          .completedAt(handlerCompletedAt)
+                          .build())
+                  .toList();
+            });
+        when(handlerB.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
+            .thenAnswer(i -> i.getArgument(1));
+
+        final var transformed =
+            registry.transformToolCallResults(AGENT_CONTEXT, List.of(gatewayResult));
+
+        assertThat(transformed)
+            .isEqualTo(
+                List.of(
+                    ToolCallResult.builder()
+                        .id("GatewayA_AFirstTool_123456")
+                        .name("GatewayA_AFirstTool")
+                        .elementId("GatewayA_AFirstTool")
+                        .content("gateway content")
+                        .completedAt(handlerCompletedAt)
+                        .build()));
+      }
+
+      @Test
+      void mergesPropertiesOfInputAndHandler_whenHandlerSetsProperties() {
+        final var completedAt = OffsetDateTime.parse("2026-11-24T10:15:30+01:00");
+        final var gatewayResult =
+            ToolCallResult.builder()
+                .id("GatewayA_AFirstTool_123456")
+                .name("GatewayA")
+                .content("gateway content")
+                .completedAt(completedAt)
+                .properties(Map.of("shared", "input", "inputOnly", "input"))
+                .build();
+
+        when(handlerA.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
+            .thenAnswer(i -> {
+              List<ToolCallResult> results = i.getArgument(1);
+              return results.stream()
+                  .map(result ->
+                      ToolCallResult.builder()
+                          .id(result.id())
+                          .name("GatewayA_AFirstTool")
+                          .content(result.content())
+                          .properties(Map.of("shared", "handler", "handlerOnly", "handler"))
+                          .build())
+                  .toList();
+            });
+        when(handlerB.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
+            .thenAnswer(i -> i.getArgument(1));
+
+        final var transformed =
+            registry.transformToolCallResults(AGENT_CONTEXT, List.of(gatewayResult));
+
+        assertThat(transformed)
+            .isEqualTo(
+                List.of(
+                    ToolCallResult.builder()
+                        .id("GatewayA_AFirstTool_123456")
+                        .name("GatewayA_AFirstTool")
+                        .elementId("GatewayA_AFirstTool")
+                        .content("gateway content")
+                        .completedAt(completedAt)
+                        .properties(
+                            Map.of(
+                                "shared",
+                                "handler",
+                                "inputOnly",
+                                "input",
+                                "handlerOnly",
+                                "handler"))
+                        .build()));
+      }
+
+      @Test
+      void throwsException_whenTwoInputResultsHaveTheSameId() {
+        final var firstResult =
+            ToolCallResult.builder()
+                .id("GatewayA_AFirstTool_123456")
+                .name("GatewayA")
+                .content("first content")
+                .build();
+        final var secondResult =
+            ToolCallResult.builder()
+                .id("GatewayA_AFirstTool_123456")
+                .name("GatewayA")
+                .content("second content")
+                .build();
+
+        assertThatThrownBy(() ->
+                registry.transformToolCallResults(
+                    AGENT_CONTEXT, List.of(firstResult, secondResult)))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageStartingWith("Duplicate key GatewayA_AFirstTool_123456");
       }
 
       private void testTransformToolCallResults(List<ToolCallResult> nonGatewayToolCallResults) {

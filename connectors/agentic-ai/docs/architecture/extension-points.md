@@ -69,9 +69,14 @@ extensionProperties = {
 - `GatewayToolCallTransformer#transformToolCalls` maps the tool calls of the LLM to the gateway element, and
   `GatewayToolCallTransformer#transformToolCallResults` maps the results back to the tool names of the LLM.
 
-**Pitfall:** `transformToolCallResults` (MCP, A2A) rebuilds a new `ToolCallResult` via
-`.builder()...build()`. Unlike `elementId`, `completedAt` has no fallback — copy it over explicitly
-or the result fails the mapper's non-null `completedAt` invariant (ADR 008).
+`GatewayToolHandler#transformToolCallResults` returns one result for each input result, in the same order. It returns
+the results that the handler does not manage unchanged. Each result that it manages keeps the `id` of the input
+result and sets the `name` and the `content`. The built-in handlers derive it from the input result. The handler does
+not need to copy the `completedAt`, the `properties` or the `elementId`. The non-null ids of the input results must be unique.
+For each returned result whose `id` matches an input result, the registry fills the values that the handlers left
+out (`ToolCallResult#withMissingValuesFrom`): the `completedAt` of the input result when the returned result has
+none, and the `properties` of the input result, with the entries of the returned result winning on the same key. The
+registry fills a missing `elementId` from the `name`.
 
 ### Gateway Tool Handler Registry
 
@@ -81,7 +86,8 @@ or the result fails the mapper's non-null `completedAt` invariant (ADR 008).
 - **Discovery result check**: All handlers must report all results present
 - **Discovery result processing**: Groups results by handler type, merges discovered tool definitions into agent context
 - **Tool call transformation**: Chains through all handlers (each transforms its own tool calls, passes others through)
-- **Tool call result transformation**: Same chaining for results
+- **Tool call result transformation**: Same chaining for results, then fills the `completedAt` and the `properties`
+  that the handlers left out from the input result, and fills a missing `elementId`
 
 ### Discovery Flow (State Machine Integration)
 
