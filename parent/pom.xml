@@ -78,7 +78,7 @@ limitations under the License.</license.inlineheader>
     <connectors.fatjar.outputFile></connectors.fatjar.outputFile>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.8.33</version.camunda>
+    <version.camunda>8.8.49</version.camunda>
     <version.feel-engine>1.22.1</version.feel-engine>
 
     <!-- Third party dependencies -->
