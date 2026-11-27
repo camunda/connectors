@@ -106,6 +106,11 @@ public final class KafkaAdditionalPropertiesValidator {
   private static final Set<String> ALLOWED_BEARER_AUTH_SOURCES =
       Set.of("STATIC_TOKEN", "OAUTHBEARER");
 
+  // Make the Avro deserializer load and instantiate the class a (registry) schema names. Only
+  // an explicit false is allowed.
+  private static final Set<String> SCHEMA_CLASS_LOADING_FLAGS =
+      Set.of("specific.avro.reader", "schema.reflection");
+
   // The schema registry client also reads its settings under this prefix and strips it
   private static final String SCHEMA_REGISTRY_PREFIX = "schema.registry.";
 
@@ -167,9 +172,18 @@ public final class KafkaAdditionalPropertiesValidator {
           || !ALLOWED_BEARER_AUTH_SOURCES.contains(source.trim().toUpperCase(Locale.ROOT))) {
         throw notAllowed(originalKey);
       }
+    } else if (SCHEMA_CLASS_LOADING_FLAGS.contains(key)) {
+      if (!isFalse(value)) {
+        throw notAllowed(originalKey);
+      }
     } else if (isClassValued(key) && !namesOnlySafeClasses(value)) {
       throw notAllowed(originalKey);
     }
+  }
+
+  private static boolean isFalse(Object value) {
+    return Boolean.FALSE.equals(value)
+        || (value instanceof String text && "false".equalsIgnoreCase(text.trim()));
   }
 
   private static boolean isClassValued(String key) {

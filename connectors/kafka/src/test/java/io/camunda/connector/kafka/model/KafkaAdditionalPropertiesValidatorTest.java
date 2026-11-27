@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.kafka.inbound.KafkaConnectorProperties;
 import io.camunda.connector.kafka.inbound.KafkaPropertyTransformer;
+import io.camunda.connector.kafka.model.schema.InboundSchemaRegistryStrategy;
 import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaMessage;
@@ -113,7 +114,13 @@ class KafkaAdditionalPropertiesValidatorTest {
         Arguments.of("default.list.key.serde.inner", "a.b.Serde"),
         Arguments.of("default.list.value.serde.inner", "a.b.Serde"),
         Arguments.of("default.list.key.serde.type", "a.b.List"),
-        Arguments.of("default.list.value.serde.type", "a.b.List"));
+        Arguments.of("default.list.value.serde.type", "a.b.List"),
+        // the Avro deserializer then loads the class that a registry schema names
+        Arguments.of("specific.avro.reader", true),
+        Arguments.of("specific.avro.reader", "TRUE"),
+        Arguments.of("specific.avro.reader", "yes"),
+        Arguments.of("schema.reflection", "true"),
+        Arguments.of("schema.registry.specific.avro.reader", true));
   }
 
   @ParameterizedTest
@@ -177,6 +184,8 @@ class KafkaAdditionalPropertiesValidatorTest {
             "default.list.value.serde.inner",
             "org.apache.kafka.common.serialization.Serdes$StringSerde"),
         Arguments.of("default.list.value.serde.type", "java.util.ArrayList"),
+        Arguments.of("specific.avro.reader", false),
+        Arguments.of("schema.reflection", " False "),
         Arguments.of("auto.register.schemas", false));
   }
 
@@ -287,5 +296,23 @@ class KafkaAdditionalPropertiesValidatorTest {
     assertThatThrownBy(() -> KafkaPropertyTransformer.getKafkaProperties(properties, null))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("config.providers");
+  }
+
+  @Test
+  void inboundAvroRegistryPropertiesRejectSchemaDrivenClassLoading() {
+    var properties =
+        new KafkaConnectorProperties(
+            null,
+            null,
+            TOPIC,
+            "group",
+            Map.of("specific.avro.reader", "true"),
+            null,
+            KafkaConnectorProperties.AutoOffsetReset.LATEST,
+            new InboundSchemaRegistryStrategy("https://registry.example.com", SchemaType.AVRO));
+
+    assertThatThrownBy(() -> KafkaPropertyTransformer.getKafkaProperties(properties, null))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining("specific.avro.reader");
   }
 }
