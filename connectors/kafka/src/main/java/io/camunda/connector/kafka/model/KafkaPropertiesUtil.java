@@ -101,6 +101,7 @@ public final class KafkaPropertiesUtil {
 
     // Step 3: override properties provided by the client
     if (request.additionalProperties() != null && !request.additionalProperties().isEmpty()) {
+      KafkaAdditionalPropertiesValidator.validate(request.additionalProperties());
       props.putAll(request.additionalProperties());
     }
 
