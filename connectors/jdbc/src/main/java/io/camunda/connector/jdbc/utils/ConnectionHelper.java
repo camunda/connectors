@@ -53,10 +53,12 @@ public class ConnectionHelper {
     String driverClassName = database.getDriverClassName();
     LOG.debug("Loading JDBC driver: {}", driverClassName);
     Class.forName(driverClassName);
+    String url = ensureMySQLCompatibleUrl(connection.getConnectionString(database), database);
+    // The URL decides which driver serves the connection, whatever database was selected.
     Connection conn =
-        DriverManager.getConnection(
-            ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
-            properties);
+        MariaDbConnectionOpener.handles(url)
+            ? MariaDbConnectionOpener.open(url, properties)
+            : DriverManager.getConnection(url, properties);
     LOG.debug("Connection established for Database {}: {}", database, conn);
     return conn;
   }
