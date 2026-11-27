@@ -83,3 +83,5 @@ __pycache__/
 # Claude Code: share skills with the team, keep local state out
 .claude/*
 !.claude/skills/
+
+.available-secrets.md

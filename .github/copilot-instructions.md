@@ -53,6 +53,14 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   an intended break in the module's `api-changes.json` — see
   [docs/api-compatibility.md](../docs/api-compatibility.md).
 
+## Testing connectors with real secrets
+
+Never ask for, read, or print credentials. A developer starts the runtime in their own terminal with
+`scripts/runtime-with-secrets.sh` (secrets live only in that process's env). Read
+`.available-secrets.md` (names only) and reference them in BPMN as `{{secrets.NAME}}`, then deploy
+and start instances against the local engine. If the file is missing, ask the developer to start the
+script. Do not run the script yourself, and do not inspect the runtime process environment.
+
 ## Connector implementation patterns
 
 - **Every connector needs both** `@OutboundConnector`/`@InboundConnector` **and** `@ElementTemplate`
