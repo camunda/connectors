@@ -215,8 +215,9 @@ High-frequency traps (detail behind each link):
   [`conversation-memory.md`](connector-aiagent/docs/conversation-memory.md#agentconversation-conversationsnapshot--messagewindowfilter),
   [`agent-instance.md`](connector-aiagent/docs/agent-instance.md#conversation-history-items),
   [ADR 018](docs/adr/018-document-flow.md).
-- **`Message.id()` is random per construction**: two freshly built messages with equal content have different ids
-  until one is persisted and reloaded, so a test that compares an independently built expected message fails on `id`.
+- **`Message.id()` is random per construction**: two freshly built messages with equal content always have different
+  ids, so a test that compares an independently built expected message fails on `id`. A persisted and reloaded message
+  keeps its own id.
   [`data-model.md`](aiagent-model/docs/data-model.md#message-identity), [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
 - **Map and set order of `@AgenticAiRecord` builders differs between JVMs**: no hash, id or value compared across
   runs may depend on it; its Javadoc has the rules. `AgentConfiguration.fingerprint()` sorts the keys of every map
