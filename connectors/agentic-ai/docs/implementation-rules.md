@@ -79,7 +79,8 @@ Write the minimum code that solves the problem. Write nothing speculative.
 
 - Add no capability that the issue or the request does not ask for.
 - Add no flexibility or configuration that the issue or the request does not ask for.
-- Add no error handling for a value that the types or input validation already exclude.
+- Add no error handling for a value that the types or input validation already exclude. Example: in
+  `@NullMarked` code, write no `if (message == null)` check for a parameter without `@Nullable`.
 
 ## Surgical changes
 
@@ -241,7 +242,9 @@ for example `AgentInitializer` in `BaseAgentRequestHandler`.
   client. Add a service only for I/O, for orchestration across domain types, or for an SPI. (P2)
 - **Tell, don't ask.** Do not read getters and make the decision outside the model. Call a domain
   method. The method returns the new state as a new instance. Example:
-  `conversation.ingest(message, metrics)`. (P2)
+  instead of reading `AgentConversation#currentTurn` and `AgentConversationTurn#assistantMessage` in
+  the handler and completing the turn there, call `AgentConversation#ingest`. It checks that the turn
+  is pending. (P2)
 - **Immutable by default.** Use records for values. When a record does not fit, use a final class
   without side effects. Example: the canonical constructor is too large, and the type needs named
   factory methods such as `of`, `fromFoo` or `fromBar`. A change makes a new instance.
