@@ -78,7 +78,7 @@ limitations under the License.</license.inlineheader>
     <connectors.fatjar.outputFile></connectors.fatjar.outputFile>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.6.28</version.zeebe>
+    <version.zeebe>8.6.44</version.zeebe>
     <version.feel-engine>1.22.1</version.feel-engine>
     <version.spring-zeebe>8.5.23</version.spring-zeebe>
     <version.identity>8.6.20</version.identity>
