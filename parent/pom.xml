@@ -159,6 +159,14 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-59949: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.1
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-59949 -->
     <version.lz4-java>1.14.1</version.lz4-java>
+    <!-- GHSA-vqvm-6237-5phf: dd-plist transitive override (via Apache Tika in
+         connectors/embeddings-vector-database) — remove once Tika ships dd-plist >= 1.31
+         Ref: https://github.com/3breadt/dd-plist/security/advisories/GHSA-vqvm-6237-5phf -->
+    <version.dd-plist>1.31</version.dd-plist>
+    <!-- CVE-2026-118259 / GHSA-ccrj-gw8r-854m: OpenTelemetry transitive override — remove once
+         spring-boot-dependencies manages opentelemetry >= 1.67.0 (4.1.3 ships 1.62.0)
+         Ref: https://github.com/open-telemetry/opentelemetry-java/security/advisories/GHSA-ccrj-gw8r-854m -->
+    <version.opentelemetry>1.68.0</version.opentelemetry>
 
     <version.microsoft-graph>6.74.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.11.0</version.microsoft-kiota-abstraction>
@@ -268,6 +276,18 @@ limitations under the License.</license.inlineheader>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
         <version>${version.netty}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+
+      <!-- CVE-2026-118259 / GHSA-ccrj-gw8r-854m: import before the Spring Boot BOM so that the whole
+           OpenTelemetry family (api, context, common, sdk) resolves to the fixed version; the first
+           import wins in dependencyManagement. Remove once spring-boot-dependencies manages
+           opentelemetry >= 1.67.0. Guarded by the version.spring-boot enforcer rule below. -->
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-bom</artifactId>
+        <version>${version.opentelemetry}</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -727,6 +747,16 @@ limitations under the License.</license.inlineheader>
         <version>${version.lz4-java}</version>
       </dependency>
 
+      <!-- GHSA-vqvm-6237-5phf: override dd-plist brought in transitively by Apache Tika
+           (connectors/embeddings-vector-database). Remove once Tika ships dd-plist >= 1.31.
+           Guarded by the version.apache-tika enforcer rule in
+           connectors/embeddings-vector-database/pom.xml. -->
+      <dependency>
+        <groupId>com.googlecode.plist</groupId>
+        <artifactId>dd-plist</artifactId>
+        <version>${version.dd-plist}</version>
+      </dependency>
+
 
       <dependency>
         <groupId>org.xerial.snappy</groupId>
@@ -1153,6 +1183,22 @@ Spring Boot 4.2+ is not compatible with the camunda-spring-boot-starter used on 
 https://github.com/camunda/connectors/issues/10745). Only raise version.spring-boot to 4.2+ once
 version.camunda includes the camunda/camunda backport of PR #60293 (EnvironmentPostProcessor moved
 to org.springframework.boot), then remove this enforcer rule.
+                </regexMessage>
+              </requireProperty>
+              <!-- CVE-2026-118259 / GHSA-ccrj-gw8r-854m guard: fails if version.spring-boot is
+                   bumped, as a reminder to check whether the opentelemetry-bom override can be removed
+                   (see version.opentelemetry). spring-boot-dependencies manages io.opentelemetry via its
+                   own opentelemetry.version property; 4.1.3 ships 1.62.0, short of the 1.67.0 fix. -->
+              <requireProperty>
+                <property>version.spring-boot</property>
+                <regex>^4\.1\.3$</regex>
+                <regexMessage>
+version.spring-boot was changed! Check if the OpenTelemetry CVE-2026-118259 override can be removed.
+If the new spring-boot-dependencies BOM ships io.opentelemetry:opentelemetry-api &gt;= 1.67.0 (confirm with
+`mvn dependency:tree -Dincludes=io.opentelemetry:opentelemetry-api`, not just the property), remove the
+version.opentelemetry property, the opentelemetry-bom dependencyManagement import, and this enforcer rule
+from parent/pom.xml.
+See: https://github.com/open-telemetry/opentelemetry-java/security/advisories/GHSA-ccrj-gw8r-854m
                 </regexMessage>
               </requireProperty>
             </rules>
