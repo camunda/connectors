@@ -28,10 +28,12 @@ public class ConnectionHelper {
       LOG.debug("Loading JDBC driver: {}", driverClassName);
       Class.forName(driverClassName);
       JdbcConnection connection = request.connection();
+      String url = ensureMySQLCompatibleUrl(connection.getConnectionString(database), database);
+      // The URL decides which driver serves the connection, whatever database was selected.
       Connection conn =
-          DriverManager.getConnection(
-              ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
-              connection.getProperties());
+          MariaDbConnectionOpener.handles(url)
+              ? MariaDbConnectionOpener.open(url, connection.getProperties())
+              : DriverManager.getConnection(url, connection.getProperties());
       LOG.debug("Connection established for Database {}: {}", database, conn);
       return conn;
     } catch (ClassNotFoundException e) {
