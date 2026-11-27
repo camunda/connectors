@@ -16,6 +16,7 @@ import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import io.camunda.connector.jdbc.model.request.connection.DetailedConnection;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnectionConfiguration;
+import io.camunda.connector.jdbc.model.request.connection.UriConnection;
 import org.junit.jupiter.api.Test;
 
 /** Verifies the per-connector consumption of a bound connection credential (configuration). */
@@ -79,6 +80,29 @@ class ConnectionHelperTest {
     var request = new JdbcRequest(SupportedDatabase.MYSQL, INLINE, DATA);
 
     assertThat(request.database()).isEqualTo(SupportedDatabase.MYSQL);
+  }
+
+  @Test
+  void appliesTheMariaDbDriverRulesWhateverDatabaseIsSelected() {
+    var uri =
+        new UriConnection("jdbc:mariadb://db.example.com:3306/app?allowLocalInfile=true", null);
+    var request = new JdbcRequest(SupportedDatabase.POSTGRESQL, uri, DATA);
+
+    assertThatThrownBy(() -> ConnectionHelper.openConnection(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("allowLocalInfile");
+  }
+
+  @Test
+  void rejectsDriverOptionsSmuggledThroughTheDatabaseName() {
+    var detailed =
+        new DetailedConnection(
+            "db.example.com", "3306", "user", "pass", "app?allowLocalInfile=true", null);
+    var request = new JdbcRequest(SupportedDatabase.MYSQL, detailed, DATA);
+
+    assertThatThrownBy(() -> ConnectionHelper.openConnection(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Invalid database name");
   }
 
   @Test
