@@ -7,7 +7,9 @@
 
 **Accepted**. Delivered across a short PR sequence: the v1-to-native provider configuration mapping,
 followed by removal of the LangChain4j integration. A transitional configuration flag exists only to
-sequence those PRs and is removed together with LangChain4j.
+sequence those PRs and is removed together with LangChain4j. D3 is partly superseded by
+[ADR 019](019-langchain4j-extension-bridge.md): the LangChain4j provider stack is removed, and a generic
+bridge for custom providers stays.
 
 ## Context and Problem Statement
 

@@ -20,6 +20,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
@@ -208,7 +209,8 @@ public final class PhysicalTenantIds {
   public static Map<String, DocumentFactory> buildDocumentFactoriesByPhysicalTenantId(
       CamundaClientRegistry registry,
       CamundaClient legacyCamundaClient,
-      DocumentFactory legacyDocumentFactory) {
+      DocumentFactory legacyDocumentFactory,
+      ExternalDocumentHostPolicy externalDocumentHostPolicy) {
     boolean useOverride = legacyDocumentFactory != null && registry.clientNames().size() <= 1;
     return registry.clientNames().stream()
         .collect(
@@ -221,6 +223,7 @@ public final class PhysicalTenantIds {
                         : new DocumentFactoryImpl(
                             new CamundaDocumentStoreImpl(
                                 resolveClient(registry, name, legacyCamundaClient),
-                                resolvePhysicalTenantId(registry, name, legacyCamundaClient)))));
+                                resolvePhysicalTenantId(registry, name, legacyCamundaClient)),
+                            externalDocumentHostPolicy)));
   }
 }

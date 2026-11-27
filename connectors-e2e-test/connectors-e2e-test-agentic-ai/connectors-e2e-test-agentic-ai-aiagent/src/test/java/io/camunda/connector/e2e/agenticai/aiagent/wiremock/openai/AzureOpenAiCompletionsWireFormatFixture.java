@@ -46,20 +46,16 @@ import java.util.function.Function;
  *       (already SSE-based), {@link OpenAiCompletionsRecordedConversation} and {@link
  *       OpenAiCompletionsRecordedChatRequestAdapter} directly rather than duplicating them.
  *   <li>normalizes the configured endpoint by appending a unified {@code /openai/v1} path segment
- *       ({@code AzureUrlPathMode.UNIFIED}) rather than the deployment-based path the old
- *       LangChain4j/azure-core client used ({@code
- *       /openai/deployments/{deploymentId}/chat/completions}) - the openai-java SDK then appends
- *       the family path itself, giving {@code {endpoint}/openai/v1/chat/completions}. There is no
- *       {@code api-version} query parameter unless one is explicitly configured (the v1&rarr;v2
- *       mapper never sets one), and the model is addressed via the body's {@code model} field, not
- *       a deployment-name path segment.
+ *       ({@code AzureUrlPathMode.UNIFIED}), not a deployment-based path - the openai-java SDK then
+ *       appends the family path itself, giving {@code {endpoint}/openai/v1/chat/completions}. There
+ *       is no {@code api-version} query parameter unless one is explicitly configured (the
+ *       v1&rarr;v2 mapper never sets one), and the model is addressed via the body's {@code model}
+ *       field, not a deployment-name path segment.
  *   <li>sends API-key authentication as a dedicated {@code api-key} header via the openai-java
- *       SDK's own credential type, not {@code Authorization: Bearer} and not {@code azure-core}'s
- *       {@code KeyCredentialPolicy} - so, unlike the pre-rewrite client, HTTPS is no longer
- *       enforced at the credential layer. This fixture still points at WireMock's HTTPS port for
- *       parity with real Azure endpoints; its self-signed certificate ({@code
- *       BaseAgentTest.httpsKeystoreFile()}) is trusted JVM-wide for this test run (see {@code
- *       ProviderWireFormatSmokeTests}).
+ *       SDK's own credential type, not {@code Authorization: Bearer}. The credential layer does not
+ *       enforce HTTPS. This fixture still points at WireMock's HTTPS port for parity with real
+ *       Azure endpoints; its self-signed certificate ({@code BaseAgentTest.httpsKeystoreFile()}) is
+ *       trusted JVM-wide for this test run (see {@code ProviderWireFormatSmokeTests}).
  * </ul>
  */
 public final class AzureOpenAiCompletionsWireFormatFixture implements ProviderWireFormatFixture {

@@ -24,24 +24,28 @@ These documents are the only rules. Do not invent rules. Read the parts that app
 1. [`implementation-rules.md`](implementation-rules.md): all sections.
 2. [`design-guidelines.md`](design-guidelines.md)
 3. [`target-architecture.md`](target-architecture.md)
-4. [`AGENTS.md`](../AGENTS.md): all sections. Start with Gotchas, Architectural invariants, Null
-   safety, Definition of Done and Extension points.
+4. [`AGENTS.md`](../AGENTS.md): the sections that apply to the change. Start with Gotchas, Null
+   safety, Definition of Done, and the rows for architectural invariants and extension points in
+   [Start here, navigation](../AGENTS.md#start-here-navigation).
 5. The repo-root [`AGENTS.md`](../../../AGENTS.md), where the module docs do not cover a topic.
 6. The e2e [`AGENTS.md`](../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md), when
    the change touches e2e tests.
-7. The `README.md` and `docs/` of each module that the change touches.
+7. The `README.md` and `docs/` of each module that the change touches or uses, and the Javadoc of the
+   types and annotations that the changed code uses. Rules stated there apply like the rules here.
 8. [`acceptance-testing.md`](acceptance-testing.md): the test level, the e2e decision and the
    real-provider coverage for a provider change. Check the tests of the change against it.
+9. [`documentation-rules.md`](documentation-rules.md): where each doc goes and which docs the change
+   must update.
 
 ## Steps
 
 1. **Reuse.** For each new type, method, helper, constant or converter, search for existing code with
    the same purpose. Search by the domain concept, then in sibling packages. If existing code does
    the job, or does it with a small change, report it with the `file:line` of the existing symbol.
-2. **Simplicity.** Find code that the task does not need: a speculative feature, configuration nobody
-   asked for, error handling for a value that types or validation already exclude, an abstraction
-   with one use, an interface with one implementation that is neither an SPI nor a seam with two
-   or more adapters.
+2. **Simplicity.** Find code that the issue or the request does not need: a speculative capability,
+   configuration nobody asked for, error handling for a value that types or validation already
+   exclude, an abstraction with one use, an interface that is neither an SPI nor a place where two or
+   more implementations exist today in production code.
 3. **Rules.** Check the change against each rule. Name the rule by its heading or its bold label, for
    example `Code design / Tell, don't ask` or `Domain rules / 3`.
 4. **Locations.** Check the list in `implementation-rules.md` under "Before you plan": both flavors,
@@ -67,9 +71,9 @@ These documents are the only rules. Do not invent rules. Read the parts that app
    binding model, a transform script in `bin/`, a file in `element-template-overrides/`, or the generator
    properties in `pom.xml`. Report a JSON change without one. The snapshots in `versioned/` are static,
    so this step does not apply to them.
-9. **Decisions.** A change that adds a stored shape, a customer-facing name, a default or a limit needs
-   its decision and rationale in the PR description (Definition of Done in `AGENTS.md`). If the
-   description lacks it, report a ❓.
+9. **Decisions.** A change that makes a customer-facing decision (persisted state, a name, a default
+   or a limit) needs the decision and its rationale in the PR description (Definition of Done in
+   `AGENTS.md`). If the description lacks it, report a ❓.
 
 ## Severity
 
@@ -82,8 +86,14 @@ Start each finding with one code. These are the codes of the AI PR review bot.
 - 🙃 Nitpick. The likelihood and the effect on end users are both low.
 - 💭 A rule discussion or an open design question. Nothing has to change in this PR.
 
+A rule break with low likelihood and low end-user effect, such as wording or placement, is 🙃, not ❌.
+A finding that an accepted ADR, or a customer-facing decision that the PR description states
+(step 9), already covers is 💭: report it, but nothing has to change in this PR. A declared deviation from a rule is not such a decision.
+
 Rate the likelihood and the end-user severity (`high`, `medium` or `low`) of each ❌, ❓ and 🔧
-finding.
+finding. End users are the people who use the released connectors: process developers, operators
+and extension developers, and, through the process, business users. A problem that affects only
+contributors or CI has `low` end-user severity.
 
 ## Human review required
 
@@ -91,18 +101,19 @@ A human reviewer must approve the change when any of these applies. Say so in th
 number:
 
 1. The change reads, stores, logs or forwards a credential, a token or an API key.
-2. The change affects running process instances or released element templates. It changes a stored
-   shape, a wire format, a variable name, a template ID, a job type, a released template or an
+2. The change affects running process instances or released element templates. It changes persisted
+   state, a public format, a variable name, a template ID, a job type, a released template or an
    element template migration recipe.
 3. The change weakens or removes a rule in the module docs or a build check. Examples: a new entry in
    an ArchUnit allowlist, a deleted architecture test, a new `@NullUnmarked` or `@SuppressWarnings`.
 4. The change adds a dependency.
 5. The PR description declares a deviation from a rule. The declaration never removes a finding.
 
-The path rules in `.github/pr-review-agent/agentic-ai.yml` also require a human, whatever the review
-finds. They cover released element templates, element template migration recipes, `aiagent-api`, `aiagent-model`, `api-changes.json`, the rule documents
-(`implementation-rules.md`, `design-guidelines.md`, `target-architecture.md`, `code-review.md`,
-`breaking-changes.md`, `acceptance-testing.md`, the module `AGENTS.md`), and authentication, credential and outbound proxy code.
+The path rules in [`.github/pr-review-agent/agentic-ai.yml`](../../../.github/pr-review-agent/agentic-ai.yml), the
+source of truth, also require a human, whatever the review finds: released element templates, element template
+migration recipes, `aiagent-api`, `aiagent-model`, `api-changes.json`, the rule documents (the module `AGENTS.md`,
+`implementation-rules.md`, `design-guidelines.md`, `target-architecture.md`, `code-review.md`, `breaking-changes.md`,
+`acceptance-testing.md`), and authentication, credential and outbound proxy code.
 
 A review that finds none of these does not need a human because of this section. It can still need one
 for other reasons, such as a blocking finding or low confidence.

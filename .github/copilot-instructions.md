@@ -51,7 +51,7 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   `docker-images.properties` in `src/test/resources`, then a constant in `DockerImages`.
 - API-gated modules (e.g. `connector-sdk/core`) fail `verify` on an incompatible API change; accept
   an intended break in the module's `api-changes.json` — see
-  [docs/api-compatibility.md](../docs/api-compatibility.md).
+  `docs/api-compatibility.md`.
 
 ## Connector implementation patterns
 
@@ -66,7 +66,7 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   `@TemplateDiscriminatorProperty` (see any connector's `Authentication` interface for the shape).
 - **Reusable credentials (`Configuration` chooser)**: adding or changing a credential chooser on a
   connector's element template? Read
-  [docs/credentials-in-element-templates.md](../docs/credentials-in-element-templates.md) first — the
+  `docs/credentials-in-element-templates.md` first — the
   chooser/fallback/effective-value pattern, field-ordering and validation pitfalls, and versioning
   rules are easy to get subtly wrong without it.
 - **Property validation**: Jakarta Bean Validation (`@NotEmpty`, `@NotBlank`, `@NotNull`, `@Size`,
@@ -109,7 +109,7 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
 - **A `version` bump is not needed for content that doesn't change how a template applies** (e.g.
   correcting a URL). `CurrentVersionBumpRule` requires the current template's `version` to equal the
   highest `versioned/` snapshot plus one, so bumping without archiving a snapshot *breaks* it. See
-  [docs/connector-template-versioning.md](../docs/connector-template-versioning.md).
+  `docs/connector-template-versioning.md`.
 - **Verify locally before pushing** — these are all enforced by CI:
 
   ```bash

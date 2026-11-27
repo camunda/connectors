@@ -6,12 +6,17 @@ applyTo: "connectors/agentic-ai/**,connectors-e2e-test/connectors-e2e-test-agent
 
 These rules apply to `connectors/agentic-ai` and `connectors-e2e-test/connectors-e2e-test-agentic-ai`.
 Follow them when you plan a change and when you write code. To review a change, follow
-[`code-review.md`](code-review.md).
+[`code-review.md`](code-review.md). In a review, a rule that says to ask becomes a ❓ finding.
+An imperative sentence is required. "Never" forbids. "Prefer" sets a default; a deviation states its
+reason in the PR.
 
 Follow the repo-wide connectors conventions in the repo-root [`AGENTS.md`](../../../AGENTS.md) where
 they do not conflict with these rules. If they conflict, these rules apply, and the PR states the
 divergence. [`connectors/agentic-ai/AGENTS.md`](../AGENTS.md) links the module operating rules (test
 levels, the Definition of Done, ADRs, architectural invariants).
+
+Before you change a module, read its `README.md` and `docs/`, and the Javadoc of the types and
+annotations you use. Rules stated there apply like the rules here.
 
 `agentic-ai-docs-lint` is a development tool and deviates from some of these rules. Its
 [`AGENTS.md`](../agentic-ai-docs-lint/AGENTS.md) lists the deviations. Do not flag them in a review.
@@ -19,27 +24,29 @@ levels, the Definition of Done, ADRs, architectural invariants).
 ## Principles
 
 The rules below apply four principles. A rule that applies a principle ends with it, for example
-`(P2)`. When no rule names a case, reason from the principle and cite it. A principle wins over a
-specific rule. When they conflict, the review names the rule for revision.
+`(P2)`. When no rule names a case, reason from the principle and cite it. When a rule and a
+principle conflict, follow the principle and report a 💭 that names the rule.
 
 - **P1. A reader predicts the behavior from the name.**
-  - Why: a reviewer reads the diff and the call sites, and the bodies only sometimes. A name that
-    hides a decision hides a defect.
+  - Why: a reviewer reads the call sites more often than the bodies, so a name that hides a decision
+    hides a defect.
   - Test: cover the body. From the name, the parameter types and the return type, write down what the
     method does with each input. If the body does more, or something different, the name fails.
-- **P2. Each piece of logic has one home. The home hides its steps.**
-  - Why: a copy of a step drifts from the original. A caller that must order the steps can order them
-    wrongly.
+- **P2. Each piece of logic has one home. The home hides its operations.**
+  - Why: a copy of an operation drifts from the original, and a caller that must order the operations
+    can order them wrongly.
   - Test: for each rule that the change adds, count the functions that implement it. The answer is
-    one. A caller can use the home without knowing the order of its internal steps.
+    one. A caller can use the home without knowing the order of its internal operations.
 - **P3. A typical next change touches few files, and the compiler finds each one.**
   - Why: a change that must edit many files, each repeating the same rule, misses one of them sooner
     or later.
   - Test: name the typical next change (a new input source, a new provider, a new content type, a
-    wire format change) and count the production files that it edits. Do not count sealed `switch`
-    arms, because the compiler finds them.
+    change of a public format or a provider API format) and count the production files that it
+    edits. Do not count sealed `switch` arms that handle the new subtype, because the compiler finds
+    them. Arms that can only reject it are a design smell (see *A new sealed subtype is one that most
+    `switch` sites handle*).
 - **P4. Each test protects one behavior that a plausible change can break.**
-  - Why: a test without a purpose costs review time and refactor time and finds nothing. A test that
+  - Why: a test without a purpose costs review and refactor time and finds nothing, and a test that
     mirrors the implementation breaks on every refactor and lets a behavior change pass.
   - Test: name a plausible production regression that this test detects. Overlap with tests at
     other levels or with other scenarios does not make it redundant. The test rules are in
@@ -51,41 +58,45 @@ A change in this module often has more than one location to change. Before you p
 location that the change must reach:
 
 - **Both flavors:** the AI Agent Task and the AI Agent Sub-process.
-- **All element template versions** that expose the feature: v1 and v2. A deprecated version gets
-  only bug fixes and security patches, no new features. Example: the v1 (legacy) AI Agent element
+- **All element template versions** that expose the capability: v1 and v2. A deprecated version gets
+  only bug fixes and security patches, no new capabilities. Example: the v1 (legacy) AI Agent element
   templates.
 - **All conversation stores:** in-process, Camunda document and AWS AgentCore.
-- **All providers** that the change applies to, native and LangChain4j.
+- **All providers** that the change applies to: the native providers, and the LangChain4j bridge converters when the
+  change alters the domain message or content model. `LangChain4JBridgeTest` covers the bridge.
 - **Running process instances:** instances that started on an earlier connector version, and process
   instance migration. See [domain rule 1](#domain-rules).
 
-The plan names each location, or says why the change does not apply to it.
+The plan or the PR description names each location, or says why the change does not apply to it.
 
-**State the change footprint.** For each concept that the change adds, the plan lists its production
-files. It names the typical next change and the files that this change will touch. (P3)
+**State the change footprint.** For each concept that the change adds, the plan or the PR description
+lists its production files. It names the typical next change and the files that this change will
+touch. (P3)
 
 ## Simplicity first
 
 Write the minimum code that solves the problem. Write nothing speculative.
 
-- Add no feature that the task does not ask for.
-- Add no flexibility or configuration that the task does not ask for.
-- Add no error handling for a value that the types or input validation already exclude.
+- Add no capability that the issue or the request does not ask for.
+- Add no flexibility or configuration that the issue or the request does not ask for.
+- Add no error handling for a value that the types or input validation already exclude. Example: in
+  `@NullMarked` code, write no `if (message == null)` check for a parameter without `@Nullable`.
 
 ## Surgical changes
 
-Change only what the task needs. Clean up only your own changes.
+Change only what the issue or the request needs. Clean up only your own changes.
 
-- Do not improve adjacent code, comments or formatting.
-- Do not refactor code that works. Ask before each refactor, also a small one.
+- Do not improve adjacent code, comments or formatting. A small correction (a typo, a stale name, a
+  wrong sentence) in a file that the change already edits is allowed.
+- Do not refactor code that works. Ask the user before each refactor, also a small one.
 - Tell about dead code that is not related to your change. Do not remove it unless you get a request.
 - Remove the variables and functions that your change made unused.
-- When the change leaves related code redundant or inconsistent, name it in the plan with the risk of
-  keeping it and the risk of changing it, and ask.
+- When the change leaves related code redundant or inconsistent, name it in the plan or the PR description
+  with the risk of keeping it and the risk of changing it, and ask the user.
 
 ## Names
 
-The name predicts the behavior. The Javadoc states the edges: the inputs, the exceptions and the side
+The name predicts the behavior. The Javadoc states the contract: the inputs, the exceptions and the side
 effects. A good name does not replace a Javadoc that the rules below require.
 
 - **Same name, same behavior.** Overloads of one name do the same thing for different input types.
@@ -94,8 +105,8 @@ effects. A good name does not replace a Javadoc that the rules below require.
   gets. Do not give a new method that makes a decision a generic verb such as `handle`, `process` or
   `do`. Existing names keep their name. Example: `AgentConfiguration.withToolDefinitions` returns the
   configuration with these tool definitions. (P1)
-- **One level of abstraction per method.** A method either calls named steps in order, or does one
-  step. Do not mix calls to domain methods with field-level construction and loops. (P1)
+- **One level of abstraction per method.** A method either calls named operations in order, or does
+  one operation. Do not mix calls to domain methods with field-level construction and loops. (P1)
 - **A test name states the scenario and the expected outcome.** Example:
   `CompositionResultTest.readyRejectsToolCallsTogetherWithAUserPrompt`. (P1)
 
@@ -112,12 +123,15 @@ effects. A good name does not replace a Javadoc that the rules below require.
   precondition. When a reader must read a caller across that boundary to understand a precondition,
   document the coupling in an ADR or a reference doc, not in the Javadoc.
 - A Javadoc describes the code as it is. It does not tell about a change or an intent. Do not write
-  "now", "no longer", "the new behavior", "previously", "instead of", "replaces", "after this change", "for the
-  time being" or "until". Do not name a PR, an issue, a stack step or future work. Put the history in
+  a sentence that tells about a change, for example with "now", "no longer", "the new behavior",
+  "previously", "replaces", "after this change", "for the time being" or "until". Judge the sentence,
+  not the word. Do not name a PR, an issue, a stacked PR or future work. Put the history in
   the commit message, the PR, an ADR or [`docs/breaking-changes.md`](breaking-changes.md).
-- Each claim in a Javadoc MUST be true for the code of the same commit, on each path, also for a job
+- Each claim in a Javadoc must be true for the code of the same commit, on each path, also for a job
   that runs again. Example: a job that runs again creates new message IDs, so a Javadoc must not claim
-  that it computes the same result. A claim that the code does not enforce is a defect.
+  that it computes the same result. A claim that the code does not enforce is a defect. Fix the claim,
+  and add code that enforces it only when the failure is reachable. Prefer stating what the code does
+  over "always" and "never".
 - A commit that changes the behavior or the signature of a method updates, in the same commit, all
   affected Javadoc (including the method and its class) and current-state reference documentation that
   names the method. This also applies to a later commit in the same PR. Merged ADRs and historical
@@ -130,34 +144,44 @@ effects. A good name does not replace a Javadoc that the rules below require.
 Each rule gives a principle, the location in this module where it applies, and the review finding
 that caused it.
 
-1. **Changes are compatible with running processes.** A process that runs today MUST continue to
-   deploy and run after the change. A new field or capability MUST NOT change behavior when nobody
-   sets it. In this module:
+1. **Changes are compatible with running processes.** A process that runs on the baseline must
+   continue to deploy and run after the change. A new field or capability must not change behavior
+   when nobody sets it. The baseline:
+   - On `main`: the latest minor release, for example 8.10 while `main` develops 8.11. What is new on
+     `main` since then, including alpha releases, may still change.
+   - On a backport: each `stable/*` branch the fix reaches. A process on 8.10 keeps its behavior after
+     the backport to `stable/8.10`, unless that behavior is the bug the fix corrects.
+
+   In this module:
    - A new element template field is optional. It has no default value, or a default value that keeps
      the current behavior. This also applies to a field in a new optional object.
      (#5904, #7765)
    - Call an SDK overload that adds a field only when the field has a value.
-   - A changed default value in a template is a behavior change for users who deploy with that
-     template. A changed placeholder value is not a behavior change. Deployed process instances keep
-     the value they have. Keep the old default in the template versions whose users expect it, and
-     state the change in the PR. Example: v1 keeps the old default system prompt through a
-     per-template override. (#9036)
-   - Do not deprecate a template version that users must update from. Web Modeler shows no Update
-     action for a deprecated template. (#8896)
+   - A changed default value in a template is a behavior change for process developers who deploy
+     with that template. A changed placeholder value is not a behavior change. Deployed process
+     instances keep the value they have. Keep the old default in the template versions whose process
+     developers expect it, and state the change in the PR. Example: v1 keeps the old default system
+     prompt through a per-template override. (#9036)
+   - A new template version may change a default for newly placed elements. Its migration recipe
+     keeps the old value when process developers update an element, an absent value keeps the old
+     behavior at runtime, and the PR states the change.
+   - Do not deprecate a template version that process developers must update from. Web Modeler shows
+     no Update action for a deprecated template. (#8896)
    - Read the state that an earlier connector version stored. Example: messages without an ID load,
      and `AgentContextSchemaMigration` migrates older stored agent contexts. (#8318)
    - Keep the agent state through a process instance migration. Example: the agent kept its
      `agentInstanceKey` only after the fix in #9164.
-   - Text that users or stored state can see is a wire format. Examples: the text of the agent
-     instance history, the format of a timestamp, the JSON of a document handle. Gate a change of it
-     on an agent instance feature, or record it in [`docs/breaking-changes.md`](breaking-changes.md).
-     (#9631)
+   - Treat text that process developers or operators see, and persisted state, as a public format.
+     Examples: the text of the agent instance history, the format of a timestamp, the JSON of a
+     document handle. Gate a change of it on an agent instance feature, or record it in
+     [`docs/breaking-changes.md`](breaking-changes.md). A format that the baseline does not have may
+     change without either. (#9631)
    - Why: a running process instance continues on the new connector version without a redeployment.
-2. **Check the source before you use vendor-specific data.** Data is valid only in the system that
+2. **Check the source before you use provider-specific data.** Data is valid only in the system that
    made it. An ID keeps its meaning.
    - In this module: when you write content that only one provider can use, tag it with that provider.
      Examples: `ReasoningContent` and `ProviderContent` have a `provider` field.
-   - A provider converter MUST compare the tag, and MUST drop reasoning, provider-native content and
+   - A provider converter must compare the tag, and must drop reasoning, provider-native content and
      IDs from a different provider. Use `AnthropicContentConverter` as the example.
    - Map a protocol ID only to the field with the same meaning. Example: use the output item ID, not
      the response ID.
@@ -190,36 +214,37 @@ that caused it.
    - In a review, flag a Javadoc, comment or document that claims a guarantee (fencing, ordering,
      idempotency) that the other system does not enforce.
    - Why: older docs claimed fencing that the engine did not do. (#8342)
-6. **Tests pin the whole observable outcome.** An assertion covers the complete result and the number
-   of interactions, not a subset. This rule applies to all test code, including the e2e module.
-   - Compare complete payloads, schemas and messages. Do not assert only some of their fields.
-   - Prefer equality assertions (`isEqualTo`, `containsExactly`) to `contains`.
-   - Compare JSON with `JSONAssert` in strict mode, on the full object. Do not use `contains` on JSON
-     text. Example: `CamundaDocumentConversationStoreTest`.
-   - When code calls an external system in a loop or a retry, assert the exact number of calls.
-   - In a review, flag a change that removes or weakens an assertion, unless the behavior changed on
-     purpose and the PR says so.
-   - In this module: compare the full input schema of a tool definition. Assert the number of model
-     requests in an agentic loop test, for example `modelCallCount()`.
+6. **Tests pin the outcome they are about.** Prefer assertions that cover the complete result of the
+   behavior under test over a few of its fields. Choose the scope per test: a test of one detail may
+   assert only that detail. This rule applies to all test code, including the e2e module.
+   - Prefer equality assertions (`isEqualTo`, `containsExactly`) to `contains`. Compare JSON with
+     `JSONAssert` in strict mode. Example: `CamundaDocumentConversationStoreTest`.
+   - When code calls an external system in a loop or a retry, assert the exact number of calls. In an
+     agentic loop test, assert the number of model requests, for example `modelCallCount()`.
+   - In a review, flag a change that removes or weakens an assertion without a reason in the PR.
    - Why: a partial assertion lets a regression pass. A schema regression and an extra loop iteration
      passed this way. (#7463, #6999) (P4)
 
 ## Code design
 
-Make new code agree with the [target architecture](target-architecture.md) (`connectors/agentic-ai/docs/target-architecture.md`). These rules are not from
-past findings. They apply to new code. Existing code moves to them only in dedicated issues.
+Make new code agree with the [target architecture](target-architecture.md). These rules are not from
+past findings. They and the target apply to new code. Existing code moves to them only in dedicated issues,
+never as a side effect of a different change.
 
 Write code in a functional style. A function gets its inputs as arguments and gives its result as the
 return value. Values are immutable. A sealed type shows each possible outcome, so the caller must
-handle each one. Side effects (I/O, Spring, the engine) stay in the services at the edge. The rules
-below make this style specific.
+handle each one. Side effects (I/O, Spring, the engine) stay in the services that do I/O. The rules
+below make this style specific. A step is a named collaborator that an orchestrator calls in order,
+for example `AgentInitializer` in `BaseAgentRequestHandler`.
 
 - **Rich domain models.** Put behavior on the type that owns the data. Example: `AgentConversation`.
   A service is a class without domain state: a handler, composer, converter, registry, store or
   client. Add a service only for I/O, for orchestration across domain types, or for an SPI. (P2)
 - **Tell, don't ask.** Do not read getters and make the decision outside the model. Call a domain
   method. The method returns the new state as a new instance. Example:
-  `conversation.ingest(message, metrics)`. (P2)
+  instead of reading `AgentConversation#currentTurn` and `AgentConversationTurn#assistantMessage` in
+  the handler and completing the turn there, call `AgentConversation#ingest`. It checks that the turn
+  is pending. (P2)
 - **Immutable by default.** Use records for values. When a record does not fit, use a final class
   without side effects. Example: the canonical constructor is too large, and the type needs named
   factory methods such as `of`, `fromFoo` or `fromBar`. A change makes a new instance.
@@ -227,9 +252,10 @@ below make this style specific.
   not change its arguments. A private method can add items to a local accumulator. Example: do not
   write `void addToolCalls(List<ToolCall> target, ...)` that adds items to the list from the caller.
   Write `List<ToolCall> toolCalls(...)` that returns a new list.
-- **Sealed and exhaustive.** Make a closed hierarchy `sealed`. Match it with a pattern `switch` that has
-  no `default` branch. Then a new subtype causes a compile error at each location that does not handle
-  it. Do not write a chain of `instanceof` checks. Example: `AgentInitializationResult` and its
+- **Sealed and exhaustive.** Make a closed hierarchy `sealed`. When the handling differs per subtype,
+  match it with a pattern `switch` without `default`, so a new subtype causes a compile error where it
+  is not handled. When only one subtype needs special handling, use `instanceof` or a `switch` with
+  `default`. Example: `AgentInitializationResult` and its
   `switch` in `BaseAgentRequestHandler.handleRequest`. (P3)
 - **A new sealed subtype is one that most `switch` sites handle.** Before you add a subtype to a sealed type that
   many locations match, count the arms that can only throw. When most of them throw, carry the value
@@ -246,11 +272,12 @@ below make this style specific.
 - **No new utility classes.** Put a function on the type that it is about, or on a named domain concept.
   Example: `DocumentMimeTypes`. Do not add `*Util` or `*Utils` classes.
 - **Wire the main collaborators with dependency injection.** Make each service a Spring bean with
-  `@ConditionalOnMissingBean`, also when it has no interface. A user can then replace it with a bean
-  of their own. Example: `aiAgentInstanceToolMapper` for `AgentInstanceToolMapper`. Create a small
-  helper with `new` inside its owner. When a bean is a good candidate for a public interface (for
-  example an SPI that users can implement), say so in the plan or the PR. The team decides about the
-  interface.
+  `@ConditionalOnMissingBean`, also when it has no interface. An extension developer can then
+  replace it with a bean of their own. Do not make such a bean class or its public methods `final`,
+  so an extension developer can also extend it. Example: `aiAgentInstanceToolMapper` for
+  `AgentInstanceToolMapper`. Create a small helper with `new` inside its owner. When a bean is a
+  good candidate for a public interface (for example an SPI that extension developers can
+  implement), say so in the plan or the PR description. The team decides about the interface.
 - **One reason to change per class.** When an orchestrator gets a new responsibility, move it into a
   named step. Do not add one more method to the orchestrator. Example: `BaseAgentRequestHandler` calls
   `AgentInitializer` and `AgentConversationTurnInputComposer` as steps. A named step hides a decision
@@ -258,33 +285,44 @@ below make this style specific.
   connector function that hands the job to its handler, is exempt. (P3)
 - **Narrow surface, deep module.** Keep the public types and the extension points of one concept in
   one package per module. Make a type or a member public only when code in a different package calls
-  it, or when user code extends or replaces it. Do not add a public member that only tests call.
-  A public method of a domain type does the whole job that its name promises. The caller does not
-  call a precondition method first. Depth is the work that a type hides per public method. This rule
-  never requires a new interface. (P2)
+  it, or when code of an extension developer extends or replaces it. Do not add a public member that
+  only tests call. A public method of a domain type does the whole job that its name promises. The
+  caller does not call a precondition method first. Depth is the work that a type hides per public
+  method. This rule never requires a new interface. (P2)
 - **One owner per invariant.** When a rule must be true on more than one entry path, one function
   enforces it. Example: when each input that enters the conversation must be validated, the user
   prompt, event and tool result paths call the same validation function. A caller
-  does not call the steps in sequence, and does not choose between two implementations of the same
-  step. (P2)
+  does not call the operations in sequence, and does not choose between two implementations of the
+  same operation. (P2)
   - A change that adds such a rule adds one function and one call to it per path.
-  - Do not add a second copy of a sequence of domain steps. Put the sequence on the domain type that
+  - Do not add a second copy of a sequence of domain operations. Put the sequence on the domain type that
     owns the data, as "Rich domain models" says, and call it from each path. The home is never a
     helper class.
   - An owner exists only when two callers need it now (see [Simplicity first](#simplicity-first)).
-  - When the only way to avoid a copy is to refactor existing code, name it in the plan and ask, as
-    [Surgical changes](#surgical-changes) says.
-- **Decide a mode once.** Resolve a per-instance mode, such as an agent instance feature, at one point
-  into a value or a strategy. The steps below that point do not switch on the mode again. (P2)
+  - When the only way to avoid a copy is to refactor existing code, name it in the plan or the PR
+    description and ask the user, as [Surgical changes](#surgical-changes) says.
+- **Decide a mode once per step.** Resolve a per-instance mode, such as an agent instance feature, once
+  per step with an exhaustive `switch` into a value or a strategy. Within the step, do not switch on it
+  again, and never branch on a `boolean` or `supports(...)`. (P2)
 - **A required guard has one shared test.** When a domain rule requires the same guard in each
   adapter, one test runs each adapter against the guard. A change that adds an adapter adds it to
   that test. When the test does not exist yet, the change adds it. Example of such a guard: the
   provider tag comparison that [domain rule 2](#domain-rules) requires in each converter. (P2)
 - **Exceptions belong to their contract.** When a Javadoc in `aiagent-api` requires an exception, the
   exception class is in `aiagent-api`.
-- **Native providers and LangChain4j share no code.** A native SDK provider and the LangChain4j
-  integration do not share helpers or exception types. Why: the two integrations change
+- **Native providers and LangChain4j share no integration code.** A native SDK provider and the
+  LangChain4j integration do not share helpers or exception types of one integration. Code that every
+  provider needs, such as the content types all providers accept or an exception every content
+  converter throws, lives in `chatmodel.provider`. Why: the two integrations change
   independently, and a shared helper couples them.
+- **Member order.** Order the members of a class as constants, fields, constructors, then methods.
+  Prefer nested types at the end. Put them at the top when the class reads better that way, and
+  between methods only when that is the best place. Why: a reader sees the state of a class before
+  its behavior.
+- **Consistent parameter order.** Related methods, such as the methods of one type or the overloads
+  of one method, take the parameters they share in the same order. A method that takes both the
+  execution context and the agent context takes them in this order: `AgentExecutionContext`, then
+  `AgentContext`. Why: a caller can rely on the order without reading each signature.
 - **Code agrees with the accepted ADRs.** When code diverges from an accepted ADR, the same change
   supersedes or extends the ADR with a new ADR, as the [ADR authoring rules](adr/README.md) say.
 

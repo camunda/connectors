@@ -434,7 +434,7 @@ public class AiAgentE2ETestIT {
             "provider.openai.model.model", model));
   }
 
-  /** Anthropic, v1 (LangChain4j-backed). */
+  /** Anthropic, v1 configuration. */
   static ProviderConfig anthropicV1(String model) {
     return new ProviderConfig(
         "anthropic-v1/" + model,

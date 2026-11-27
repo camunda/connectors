@@ -2255,12 +2255,12 @@
     {
       "rule": "current-version-bump",
       "template": "agenticai-ai-agent-task.v2.json",
-      "reason": "A new Camunda minor version skips template versions to keep them for the patch releases of the previous minor version. See rule 3 of the element template rules in connectors/agentic-ai/AGENTS.md."
+      "reason": "A new Camunda minor version skips template versions to keep them for the patch releases of the previous minor version. See rule 3 of the element template README rules in connectors/agentic-ai/connector-aiagent/docs/element-template-generation.md."
     },
     {
       "rule": "current-version-bump",
       "template": "agenticai-ai-agent-subprocess.v2.json",
-      "reason": "A new Camunda minor version skips template versions to keep them for the patch releases of the previous minor version. See rule 3 of the element template rules in connectors/agentic-ai/AGENTS.md."
+      "reason": "A new Camunda minor version skips template versions to keep them for the patch releases of the previous minor version. See rule 3 of the element template README rules in connectors/agentic-ai/connector-aiagent/docs/element-template-generation.md."
     }
   ]
 }

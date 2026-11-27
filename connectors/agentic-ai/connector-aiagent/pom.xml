@@ -19,7 +19,7 @@
 
   <properties>
     <version.anthropic-java>2.75.0</version.anthropic-java>
-    <version.openai-java>4.111.0</version.openai-java>
+    <version.openai-java>4.114.0</version.openai-java>
     <!-- Per-template-id default system prompt deviations, one "templateId=file" tuple per line.
          A template whose id has no entry here keeps the generator's own default
          (PromptConfiguration.DEFAULT_SYSTEM_PROMPT). Today this holds only the v1 deviation: the
@@ -129,43 +129,12 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=data.documents.userP
     </dependency>
     <dependency>
       <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-anthropic</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-azure-open-ai</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-bedrock</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-open-ai</artifactId>
-    </dependency>
-    <!--
-      Brings in com.fasterxml.jackson.module:jackson-module-kotlin at runtime scope, which is
-      REQUIRED: google-genai shades KotlinModule into com.google.genai.shaded.* but ships a
-      META-INF/services entry pointing at the unshaded class, so
-      ObjectMapper.findAndRegisterModules() (called by langchain4j-core) throws
-      ServiceConfigurationError without it. Do not exclude it.
-    -->
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-google-genai</artifactId>
+      <artifactId>langchain4j-http-client-jdk</artifactId>
     </dependency>
     <!-- main code imports com.google.genai.* directly (we build the Client ourselves) -->
     <dependency>
       <groupId>com.google.genai</groupId>
       <artifactId>google-genai</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-http-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-http-client-jdk</artifactId>
     </dependency>
 
     <!--
@@ -279,10 +248,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=data.documents.userP
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-auth-spi</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>http-auth</artifactId>
     </dependency>
 
     <dependency>
@@ -413,6 +378,11 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=data.documents.userP
                      declaration above): main code never imports it, so the analyzer would
                      otherwise flag it as a non-test scoped test-only dependency. -->
                 <ignoredDependency>com.google.guava:guava</ignoredDependency>
+                <!-- compile scope is required: javac needs it to resolve the AWS client builder types
+                     that the Bedrock providers use (e.g. AuthSchemeProvider), but no main bytecode
+                     references it, so the analyzer would flag it as a non-test scoped test-only
+                     dependency -->
+                <ignoredDependency>software.amazon.awssdk:http-auth-spi</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>

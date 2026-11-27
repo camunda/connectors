@@ -41,7 +41,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
@@ -83,16 +82,21 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Scope;
+import org.springframework.core.env.Environment;
 
 @AutoConfiguration(
     after = {AgenticAiCommonAutoConfiguration.class, AgenticAiToolsSchemaAutoConfiguration.class})
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
-@Import({
-  AgenticAiLangChain4JFrameworkConfiguration.class,
-  AgenticAiNativeProvidersConfiguration.class
-})
+@Import(AgenticAiNativeProvidersConfiguration.class)
 public class AgenticAiConnectorsAutoConfiguration {
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgenticAiRemovedPropertiesWarning agenticAiRemovedPropertiesWarning(
+      Environment environment) {
+    return new AgenticAiRemovedPropertiesWarning(environment);
+  }
 
   @Bean
   @ConditionalOnMissingBean
@@ -320,12 +324,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   })
   public AgentExecutionContextFactory aiAgentExecutionContextFactory(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
-      AgenticAiConnectorsConfigurationProperties configuration) {
-    return new AgentExecutionContextFactory(
-        toolElementsResolver,
-        v1ProviderConfigurationMapper,
-        configuration.aiagent().rewriteV1ProviderConfigToV2());
+      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper) {
+    return new AgentExecutionContextFactory(toolElementsResolver, v1ProviderConfigurationMapper);
   }
 
   @Bean

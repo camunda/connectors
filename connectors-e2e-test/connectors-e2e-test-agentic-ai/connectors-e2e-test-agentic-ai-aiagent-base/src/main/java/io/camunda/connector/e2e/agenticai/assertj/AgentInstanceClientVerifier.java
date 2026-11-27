@@ -49,6 +49,11 @@ import org.mockito.InOrder;
  * agent instance to its end-of-turn status). The turn snapshot passed to {@code applyTurnStart}
  * carries input messages only; the one passed to {@code applyTurnCompletion} adds the assistant
  * response and this turn's own metrics; both share the sequential 1-based iteration key.
+ *
+ * <p>The verifier does not verify {@code applyToolCallResults}. In a turn with several tool calls
+ * whose results arrive at different times, the agent reports the arrived results to agent instance
+ * history with {@code applyToolCallResults} before the LLM call (ADR 011). A test of such a turn
+ * must account for that call before {@link #noMoreInteractions()}.
  */
 public class AgentInstanceClientVerifier {
 

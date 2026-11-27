@@ -23,6 +23,7 @@ import io.camunda.connector.http.base.model.auth.Authentication;
 import io.camunda.connector.http.base.model.auth.RestAuthenticationConfiguration;
 import io.camunda.connector.http.base.model.auth.ServiceAuthenticationConfiguration;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 
 public class HttpJsonRequest extends HttpCommonRequest {
 
@@ -85,12 +86,33 @@ public class HttpJsonRequest extends HttpCommonRequest {
   }
 
   /**
+   * The part of the URL after the base URL held by a bound service credential. It must start with a
+   * slash, so that it can only extend the path of the base URL, never its host. The credential's
+   * base URL has its trailing slashes removed, so the two are simply concatenated. Templates of
+   * connectors whose credential carries the base (a ServiceNow instance, a Databricks host, ...)
+   * send this instead of an absolute {@code url} once a credential is chosen. Like the credential
+   * itself, it is not offered by the generic REST template.
+   */
+  @TemplateProperty(ignore = true)
+  @Pattern(regexp = "^/.*", message = "Must start with '/'")
+  private String relativeUrl;
+
+  public String getRelativeUrl() {
+    return relativeUrl;
+  }
+
+  public void setRelativeUrl(String relativeUrl) {
+    this.relativeUrl = relativeUrl == null || relativeUrl.isBlank() ? null : relativeUrl;
+  }
+
+  /**
    * The URL is the one place where the inline value wins over the credential rather than the other
    * way round: the credential's URL is the endpoint it is bound to by default, but a process author
    * who sets an inline URL on the task means it. Binding the credential and pointing the task
    * elsewhere are both decisions of the same author, so no origin check constrains the override -
    * for an OAuth credential, which need not carry a URL at all, the inline value is often the only
-   * source.
+   * source. As for the authentication, a bound REST credential takes precedence over a service
+   * credential, so the URL and the authentication never come from different credentials.
    */
   @Override
   public String getUrl() {
@@ -98,6 +120,14 @@ public class HttpJsonRequest extends HttpCommonRequest {
     if (inlineUrl != null && !inlineUrl.isBlank()) {
       return inlineUrl;
     }
-    return authenticationConfiguration != null ? authenticationConfiguration.url() : null;
+    if (authenticationConfiguration != null) {
+      return authenticationConfiguration.url();
+    }
+    if (serviceAuthenticationConfiguration != null
+        && serviceAuthenticationConfiguration.baseUrl() != null
+        && relativeUrl != null) {
+      return serviceAuthenticationConfiguration.baseUrl() + relativeUrl;
+    }
+    return null;
   }
 }

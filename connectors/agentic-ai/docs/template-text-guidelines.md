@@ -1,14 +1,15 @@
 # Template text guidelines
 
-Template text is for low-code developers and AI coding agents. English is often not their first
-language. Write the text to meet these goals:
+Template text is for process developers (often low-code) and AI coding agents. English is often not
+their first language. Write the text to meet these goals:
 
-- The user can configure the template without opening the documentation.
+- A process developer can configure the template without opening the documentation.
 - The documentation covers expert use cases and fine-tuning, and the `tooltip` links to it.
 - Each concept uses the same term as docs.camunda.io uses for that concept.
 
-To decide where a fact goes, ask one question: does the user need this fact to set a correct value?
-If yes, put the fact in the template. If no, put it in the documentation and link to it.
+To decide where a fact goes, ask one question: does the process developer need this fact to set a
+correct value? If yes, put the fact in the template. If no, put it in the documentation and link
+to it.
 
 The agentic AI templates have hundreds of properties, and the same concept often appears in several
 templates (for example, the model parameters of every provider). Write the help text in the
@@ -45,10 +46,9 @@ templates (for example, the model parameters of every provider). Write the help 
   href="...">Anthropic documentation</a>.` The period is outside the link.
 
 The [element template validator](../../../element-template-generator/validator/README.md#help-text-rules)
-enforces the last four rules and the 100-character `description` cap in CI, and also flags repeated
-words such as "to to". Existing findings are suppressed in each module's
-`element-template-suppressions.json`. Delete an entry only when all findings it covers are fixed.
-Template-wide entries can cover several properties or groups. The validator fails on entries that no
-longer suppress any finding.
+enforces the last four rules, the 100-character `description` cap and repeated words such as "to to" in
+CI. Each module's `element-template-suppressions.json` suppresses existing findings; a template-wide entry
+can cover several properties or groups. Delete an entry only when all its findings are fixed. The
+validator fails on an entry that suppresses no finding.
 
 Changing only help text does not need a template version bump.

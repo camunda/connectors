@@ -34,6 +34,7 @@ import io.camunda.connector.generator.dsl.http.HttpServerData;
 import io.camunda.connector.generator.dsl.http.OperationParseResult;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.openapi.util.OperationUtil;
+import io.camunda.connector.generator.openapi.util.SecurityUtil.ConflictingSecuritySchemesException;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
 import java.util.ArrayList;
@@ -171,7 +172,14 @@ public class OpenApiOutboundTemplateGenerator
       configuration = GeneratorConfiguration.DEFAULT;
     }
 
-    var authentication = parseAuthentication(openAPI.getSecurity(), openAPI.getComponents());
+    List<HttpAuthentication> authentication;
+    try {
+      authentication = parseAuthentication(openAPI.getSecurity(), openAPI.getComponents());
+    } catch (ConflictingSecuritySchemesException e) {
+      // OperationUtil marks every operation that inherits the global security requirements
+      // unsupported, so none of the operations in the template uses them.
+      authentication = List.of();
+    }
     if (authentication.isEmpty()) {
       authentication = List.of(NoAuth.INSTANCE);
     }
@@ -236,14 +244,20 @@ public class OpenApiOutboundTemplateGenerator
 
   private int processVersion(String openAPIDocVersion) {
     // open API doc version is a string, usually a semantic version, but it's not guaranteed
-    // if it contains numbers and no letters, we only keep the numbers and parse as int
+    // if it contains numbers, we only keep the numbers and parse as int
+    // if those digits don't fit in an int (e.g. "1001.0.0-SNAPSHOT-e92d688...", or
+    // "2020-09-14_1.822.2"), we use Integer.MAX_VALUE: it is higher than every version that
+    // fits, so a version that crosses the limit never gets a lower number than an earlier one
     // otherwise we transform characters to their ascii value and sum them up
 
     String onlyNumbers = openAPIDocVersion.replaceAll("[^0-9]", "");
-    if (!onlyNumbers.isEmpty()) {
-      return Integer.parseInt(onlyNumbers);
-    } else {
+    if (onlyNumbers.isEmpty()) {
       return openAPIDocVersion.chars().sum();
+    }
+    try {
+      return Integer.parseInt(onlyNumbers);
+    } catch (NumberFormatException e) {
+      return Integer.MAX_VALUE;
     }
   }
 

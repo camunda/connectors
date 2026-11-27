@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import java.io.ByteArrayInputStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,7 +70,7 @@ class DocumentPhysicalTenantIsolationWiringTest {
   void eachPhysicalTenantsDocumentFactoryTargetsItsOwnConfiguredClient() {
     var documentFactoriesByPhysicalTenantId =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
-            camundaClientRegistry, null, null);
+            camundaClientRegistry, null, null, ExternalDocumentHostPolicy.defaults());
 
     assertThat(documentFactoriesByPhysicalTenantId).containsOnlyKeys("tenanta", "tenantb");
     assertThat(documentFactoriesByPhysicalTenantId.get("tenanta"))

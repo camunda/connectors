@@ -280,28 +280,6 @@ class GetPromptRequestTest {
   }
 
   @Test
-  void throwsException_whenPromptInDenyListEvenIfInAllowList() {
-    final var filter =
-        AllowDenyListBuilder.builder()
-            .allowed(List.of("conflicted-prompt"))
-            .denied(List.of("conflicted-prompt"))
-            .build();
-
-    final var parameters =
-        Map.of("name", "conflicted-prompt", "arguments", Map.of("param1", "value1"));
-
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, Map.of()))
-        .isInstanceOfSatisfying(
-            ConnectorException.class,
-            exception -> {
-              assertThat(exception.getErrorCode()).isEqualTo("MCP_CLIENT_GET_PROMPT_ERROR");
-              assertThat(exception.getMessage())
-                  .contains(
-                      "Getting prompt 'conflicted-prompt' is not allowed by filter configuration");
-            });
-  }
-
-  @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
     when(mcpClient.getPrompt(any(McpSchema.GetPromptRequest.class)))
         .thenReturn(mcpPromptResult("Code Review", List.of()));

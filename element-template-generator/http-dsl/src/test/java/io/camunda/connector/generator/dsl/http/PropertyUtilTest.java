@@ -18,11 +18,13 @@ package io.camunda.connector.generator.dsl.http;
 
 import static io.camunda.connector.generator.dsl.http.PropertyUtil.authPropertyGroup;
 import static io.camunda.connector.generator.dsl.http.PropertyUtil.parametersPropertyGroup;
+import static io.camunda.connector.generator.dsl.http.PropertyUtil.requestBodyPropertyGroup;
 import static io.camunda.connector.generator.dsl.http.PropertyUtil.serverDiscriminatorPropertyGroup;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.dsl.ElementTemplate;
+import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyGroup;
@@ -307,5 +309,46 @@ public class PropertyUtilTest {
             element.getId().equals("POST_/mypath_header_Content-Type")
                 && element.getValue().equals("multipart/form-data")
                 && element.getType().equals("Hidden"));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Parameter and body fields
+  // ---------------------------------------------------------------------------
+
+  /**
+   * The hidden path, headers, queryParameters and body inputs are FEEL expressions that read the
+   * parameter fields by name, for example {@code ={search: search}}. For an empty field that is
+   * marked optional, the Modeler writes no {@code zeebe:input}. The name then resolves in the
+   * process scope, so a process variable called {@code search} is sent to the vendor. A field that
+   * is not optional gets an input without a source when it is empty, and Zeebe maps that to null.
+   * So these fields must never be optional, even when the API parameter is.
+   */
+  @Test
+  void parameterAndBodyFields_neverOptional_evenWhenTheApiParameterIsOptional() {
+    var operation =
+        new HttpOperation(
+            "op",
+            "op",
+            HttpFeelBuilder.string().part("/path"),
+            HttpMethod.POST,
+            HttpFeelBuilder.string().part("body"),
+            List.of(
+                HttpOperationProperty.createStringProperty("search", Target.QUERY, "", false, null),
+                HttpOperationProperty.createStringProperty("token", Target.HEADER, "", false, null),
+                HttpOperationProperty.createEnumProperty(
+                    "enable_logging", Target.QUERY, "", false, List.of(true, false)),
+                HttpOperationProperty.createFeelProperty("name", Target.BODY, "", false, null)),
+            null);
+
+    List<Property> fields = new java.util.ArrayList<>();
+    fields.addAll(parametersPropertyGroup(List.of(operation)).properties());
+    fields.addAll(requestBodyPropertyGroup(List.of(operation)).properties());
+
+    assertThat(fields)
+        .filteredOn(p -> !(p instanceof HiddenProperty))
+        .extracting(Property::getId)
+        .containsExactlyInAnyOrder(
+            "op_query_search", "op_header_token", "op_query_enable_logging", "op_body_name");
+    assertThat(fields).allSatisfy(p -> assertThat(p.isOptional()).isNotEqualTo(true));
   }
 }

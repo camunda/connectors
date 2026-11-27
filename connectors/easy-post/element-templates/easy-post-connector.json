@@ -1232,11 +1232,21 @@
           },
           "group": "authentication",
           "binding": {
-            "name": "authentication.username",
+            "name": "parameters.apiKey",
             "type": "property"
           },
           "type": "String",
           "secret": true
+        },
+        {
+          "id": "usernameValue",
+          "value": "${apiKey}",
+          "group": "authentication",
+          "binding": {
+            "name": "authentication.username",
+            "type": "property"
+          },
+          "type": "Hidden"
         },
         {
           "id": "authentication.password",

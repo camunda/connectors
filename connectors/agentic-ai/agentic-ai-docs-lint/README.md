@@ -29,3 +29,21 @@ module supports development only and is not deployed, so the architecture tests 
 
 - [Docs checks](../AGENTS.md#docs-checks)
 - [Agent instructions](AGENTS.md): the rules of the agentic AI modules that this module deviates from
+
+## Rules
+
+`AgenticAiDocsTest` (plain JUnit) applies these checks to the agentic AI docs:
+
+- Each module README has the fixed sections and links the docs of its module.
+- Relative links and anchors resolve.
+- The docs hold no `java` code blocks, unless a `<!-- docs-lint: allow-java-block: reason -->` comment precedes the
+  block.
+- The types and members that the docs name in backticks exist in the repository sources, unless the doc allows the
+  name with `<!-- docs-lint: allow-names Name: reason -->`.
+- A doc that records removed code carries `<!-- docs-lint: history: reason -->`, which skips its types and members.
+
+## Findings
+
+A failure names the file and line, why it fails and what to verify. The code is the source of truth. A warning does
+not fail the test. The build log shows each warning as one line `WARN <path>:<line>: <what>`, and the JUnit report
+(the IDE test view) holds a `warning` entry with the why and the fix.
