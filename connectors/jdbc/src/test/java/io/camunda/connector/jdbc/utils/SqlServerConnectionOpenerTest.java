@@ -10,9 +10,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import io.camunda.connector.jdbc.model.request.connection.UriConnection;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.time.Duration;
 import java.util.Map;
@@ -37,7 +40,11 @@ class SqlServerConnectionOpenerTest {
           "AADSecurePrincipalId",
           "AADSecurePrincipalSecret",
           "TransparentNetworkIPResolution",
+          // the caller's own token
+          "accessToken",
+          // Java objects only, which connector input cannot produce
           "accessTokenCallback",
+          "gsscredential",
           "applicationIntent",
           "applicationName",
           "authentication",
@@ -119,6 +126,33 @@ class SqlServerConnectionOpenerTest {
     known.addAll(SqlServerConnectionOpener.RESTRICTED_OPTIONS);
 
     assertThat(known).containsAll(SqlServerConnectionOpener.defaults().keySet());
+  }
+
+  @Test
+  void everyPropertyOnlyDriverOptionIsClassified() throws Exception {
+    // getPropertyInfo leaves these out; the driver keeps them in a separate list.
+    Field field = SQLServerDriver.class.getDeclaredField("DRIVER_PROPERTIES_PROPERTY_ONLY");
+    field.setAccessible(true);
+    Object[] propertyOnly = (Object[]) field.get(null);
+    Set<String> names = new TreeSet<>();
+    for (Object property : propertyOnly) {
+      Method getName = property.getClass().getDeclaredMethod("getName");
+      getName.setAccessible(true);
+      names.add((String) getName.invoke(property));
+    }
+
+    assertThat(names).isNotEmpty();
+    assertThat(UNRESTRICTED_OPTIONS).containsAll(names);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"null", "NULL", " ", "  /etc/hostname"})
+  void rejectsFileOptionsThatOnlyLookEmpty(String value) {
+    assertThatThrownBy(() ->
+            SqlServerConnectionOpener.checkOptions(URL, properties(Map.of("trustStore", value))))
+        .as("trustStore='%s'", value)
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("option is not supported");
   }
 
   @Test

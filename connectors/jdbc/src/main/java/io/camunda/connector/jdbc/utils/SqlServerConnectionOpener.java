@@ -148,11 +148,11 @@ final class SqlServerConnectionOpener {
     return values;
   }
 
+  /**
+   * Compares the value as given: the driver uses the string unchanged, so {@code " "} or {@code
+   * "null"} is a file name, not the absence of one.
+   */
   private static boolean isDefault(String value, String defaultValue) {
-    return normalize(value).equalsIgnoreCase(normalize(defaultValue));
-  }
-
-  private static String normalize(String value) {
-    return value == null || "null".equals(value) ? "" : value.trim();
+    return (value == null ? "" : value).equalsIgnoreCase(defaultValue == null ? "" : defaultValue);
   }
 }
