@@ -13,7 +13,8 @@ reports. It has no runtime code: it runs as the [REST Connector](./../http/rest)
 
 - Authentication is a Mixpanel service account (HTTP Basic). Choose a reusable
   `io.camunda.connectors:mixpanel-authentication:1` credential, or enter the service account on the
-  task.
+  task. Import event needs an Owner or Admin service account (a
+  [Mixpanel requirement](https://docs.mixpanel.com/reference/import-events) for `/import`).
 - The project ID is a task field. Both APIs need it as a query parameter, and a credential can only
   supply authentication.
 - The data residency field picks the US (default), EU or India host for each operation. The two
