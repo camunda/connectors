@@ -1,0 +1,116 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.jdbc.utils;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.jdbc.model.request.JdbcRequest;
+import io.camunda.connector.jdbc.model.request.JdbcRequestData;
+import io.camunda.connector.jdbc.model.request.SupportedDatabase;
+import io.camunda.connector.jdbc.model.request.connection.DetailedConnection;
+import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
+import io.camunda.connector.jdbc.model.request.connection.JdbcConnectionConfiguration;
+import io.camunda.connector.jdbc.model.request.connection.UriConnection;
+import org.junit.jupiter.api.Test;
+
+/** Verifies the per-connector consumption of a bound connection credential (configuration). */
+class ConnectionHelperTest {
+
+  private static final JdbcRequestData DATA = new JdbcRequestData(false, "SELECT 1");
+
+  private static final JdbcConnectionConfiguration CREDENTIAL =
+      new JdbcConnectionConfiguration(
+          SupportedDatabase.POSTGRESQL, "cred-host", "5432", "cred-db", "cred-user", "cred-pass");
+
+  private static final DetailedConnection INLINE =
+      new DetailedConnection(
+          "inline-host", "3306", "inline-user", "inline-pass", "inline-db", null);
+
+  @Test
+  void usesConfigurationWhenBound() {
+    var request = new JdbcRequest(CREDENTIAL, SupportedDatabase.POSTGRESQL, null, DATA);
+
+    JdbcConnection resolved = ConnectionHelper.resolveConnection(request);
+
+    assertThat(resolved).isInstanceOf(DetailedConnection.class);
+    var detailed = (DetailedConnection) resolved;
+    assertThat(detailed.host()).isEqualTo("cred-host");
+    assertThat(detailed.port()).isEqualTo("5432");
+    assertThat(detailed.username()).isEqualTo("cred-user");
+    assertThat(detailed.password()).isEqualTo("cred-pass");
+    assertThat(detailed.databaseName()).isEqualTo("cred-db");
+  }
+
+  @Test
+  void fallsBackToInlineWhenNoConfiguration() {
+    var request = new JdbcRequest(SupportedDatabase.MYSQL, INLINE, DATA);
+
+    JdbcConnection resolved = ConnectionHelper.resolveConnection(request);
+
+    assertThat(resolved).isSameAs(INLINE);
+  }
+
+  @Test
+  void configurationTakesPrecedenceOverInline() {
+    var request = new JdbcRequest(CREDENTIAL, SupportedDatabase.POSTGRESQL, INLINE, DATA);
+
+    var resolved = (DetailedConnection) ConnectionHelper.resolveConnection(request);
+
+    assertThat(resolved.host()).isEqualTo("cred-host");
+  }
+
+  @Test
+  void configurationDatabaseTakesPrecedenceOverInlineDatabase() {
+    var credentialWithMysql =
+        new JdbcConnectionConfiguration(
+            SupportedDatabase.MYSQL, "cred-host", "5432", "cred-db", "cred-user", "cred-pass");
+    var request = new JdbcRequest(credentialWithMysql, SupportedDatabase.ORACLE, null, DATA);
+
+    assertThat(request.database()).isEqualTo(SupportedDatabase.MYSQL);
+  }
+
+  @Test
+  void fallsBackToInlineDatabaseWhenNoConfiguration() {
+    var request = new JdbcRequest(SupportedDatabase.MYSQL, INLINE, DATA);
+
+    assertThat(request.database()).isEqualTo(SupportedDatabase.MYSQL);
+  }
+
+  @Test
+  void appliesTheMariaDbDriverRulesWhateverDatabaseIsSelected() {
+    var uri =
+        new UriConnection("jdbc:mariadb://db.example.com:3306/app?allowLocalInfile=true", null);
+    var request = new JdbcRequest(SupportedDatabase.POSTGRESQL, uri, DATA);
+
+    assertThatThrownBy(() -> ConnectionHelper.openConnection(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("allowLocalInfile");
+  }
+
+  @Test
+  void rejectsDriverOptionsSmuggledThroughTheDatabaseName() {
+    var detailed =
+        new DetailedConnection(
+            "db.example.com", "3306", "user", "pass", "app?allowLocalInfile=true", null);
+    var request = new JdbcRequest(SupportedDatabase.MYSQL, detailed, DATA);
+
+    assertThatThrownBy(() -> ConnectionHelper.openConnection(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Invalid database name");
+  }
+
+  @Test
+  void throwsWhenNeitherProvided() {
+    var request = new JdbcRequest(SupportedDatabase.POSTGRESQL, null, DATA);
+
+    assertThatThrownBy(() -> ConnectionHelper.resolveConnection(request))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("No JDBC connection provided");
+  }
+}
