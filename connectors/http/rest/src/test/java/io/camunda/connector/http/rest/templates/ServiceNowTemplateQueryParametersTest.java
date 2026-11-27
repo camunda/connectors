@@ -51,123 +51,33 @@ class ServiceNowTemplateQueryParametersTest {
         .orElseThrow(() -> new AssertionError("no queryParameters input in " + templateFile));
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"servicenow-connector.json", "servicenow-incident-connector.json"})
-  void encodedQueryKeepsSpacesInsideValues(String templateFile) throws Exception {
-    Map<String, Object> result =
-        FEEL.evaluate(
-            queryParametersExpression(templateFile),
-            Map.of(
-                "sysparm_query",
-                "assignment_group.name=Service Desk^short_descriptionLIKEmail server"));
-
-    assertThat(result)
-        .containsEntry(
-            "sysparm_query", "assignment_group.name=Service Desk^short_descriptionLIKEmail server");
-  }
-
-  // Spaces typed around the ^ separator (and after ^OR, ^NQ, ^ORDERBY) or around the whole query
-  // are not part of any value, and earlier template versions removed them.
-  private static Stream<Arguments> spacesAroundSeparators() {
+  // The templates do not change the encoded query. ServiceNow decides what a space means: on a
+  // text field a space after an operator is part of the value, and some operators contain one
+  // (NOT LIKE, NOT IN).
+  private static Stream<Arguments> typedQueries() {
     return Stream.of("servicenow-connector.json", "servicenow-incident-connector.json")
         .flatMap(template ->
             Stream.of(
-                Arguments.of(template, "active=true ^ priority=1", "active=true^priority=1"),
-                Arguments.of(template, "priority=1 ^OR priority=2", "priority=1^ORpriority=2"),
-                Arguments.of(template, "priority=1 ^ OR priority=2", "priority=1^ORpriority=2"),
-                Arguments.of(template, "active=true ^NQ state=1", "active=true^NQstate=1"),
-                Arguments.of(template, "active=true ^ORDERBY number", "active=true^ORDERBYnumber"),
-                Arguments.of(
-                    template,
-                    "active=true^ORDERBYDESC sys_created_on",
-                    "active=true^ORDERBYDESCsys_created_on"),
-                Arguments.of(template, " active=true ", "active=true"),
-                Arguments.of(
-                    template,
-                    "assignment_group.name=Service Desk ^ short_descriptionLIKEmail server",
-                    "assignment_group.name=Service Desk^short_descriptionLIKEmail server")));
+                    "active=true^priority=1",
+                    "short_description=Test",
+                    "short_description= Test",
+                    "short_descriptionLIKE mail",
+                    "assignment_group.name=Service Desk^short_descriptionLIKEmail server",
+                    "active = true ^ priority = 1",
+                    "priority=1 ^OR priority=2",
+                    " active=true ",
+                    "priorityNOT IN1,5^short_descriptionNOT LIKEtest",
+                    "active=true^ORDERBYDESC sys_created_on")
+                .map(typed -> Arguments.of(template, typed)));
   }
 
   @ParameterizedTest
-  @MethodSource("spacesAroundSeparators")
-  void encodedQueryDropsSpacesAroundSeparators(String templateFile, String typed, String sent)
-      throws Exception {
+  @MethodSource("typedQueries")
+  void encodedQueryIsSentAsTyped(String templateFile, String typed) throws Exception {
     Map<String, Object> result =
         FEEL.evaluate(queryParametersExpression(templateFile), Map.of("sysparm_query", typed));
 
-    assertThat(result).containsEntry("sysparm_query", sent);
-  }
-
-  // Spaces typed around = != < > <= >= are removed, wherever they are in the query, as earlier
-  // template versions did. The other spaces of a value stay ("Service Desk").
-  private static Stream<Arguments> spacesAroundComparisonOperators() {
-    return Stream.of("servicenow-connector.json", "servicenow-incident-connector.json")
-        .flatMap(template ->
-            Stream.of(
-                Arguments.of(template, "active = true", "active=true"),
-                Arguments.of(template, "priority != 1", "priority!=1"),
-                Arguments.of(template, "priority < 3", "priority<3"),
-                Arguments.of(template, "priority > 3", "priority>3"),
-                Arguments.of(template, "priority <= 3", "priority<=3"),
-                Arguments.of(template, "priority >= 3", "priority>=3"),
-                Arguments.of(template, "active = true ^ priority = 1", "active=true^priority=1"),
-                Arguments.of(
-                    template,
-                    "assignment_group.name = Service Desk",
-                    "assignment_group.name=Service Desk"),
-                Arguments.of(
-                    template,
-                    "sys_created_on > 2026-01-01 00:00:00",
-                    "sys_created_on>2026-01-01 00:00:00")));
-  }
-
-  @ParameterizedTest
-  @MethodSource("spacesAroundComparisonOperators")
-  void encodedQueryDropsSpacesAroundComparisonOperators(
-      String templateFile, String typed, String sent) throws Exception {
-    Map<String, Object> result =
-        FEEL.evaluate(queryParametersExpression(templateFile), Map.of("sysparm_query", typed));
-
-    assertThat(result).containsEntry("sysparm_query", sent);
-  }
-
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "active=true^ORDERBYnumber",
-        "active=true^EQ",
-        "short_descriptionLIKEreport OR summary^active=true",
-        "assignment_group.name=Service Desk^ORDERBYDESCsys_created_on"
-      })
-  void encodedQueryWithoutSpacesAroundSeparatorsIsSentAsTyped(String typed) throws Exception {
-    for (String templateFile :
-        new String[] {"servicenow-connector.json", "servicenow-incident-connector.json"}) {
-      Map<String, Object> result =
-          FEEL.evaluate(queryParametersExpression(templateFile), Map.of("sysparm_query", typed));
-
-      assertThat(result).containsEntry("sysparm_query", typed);
-    }
-  }
-
-  // Some encoded query operators contain spaces. The examples are from the operator table of
-  // addEncodedQuery() in ServiceNow's docs:
-  // https://github.com/ServiceNow/ServiceNowDocs/blob/brazil/markdown/api-reference/MobileGlideRecordScopedAPI.md
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "short_descriptionNOT LIKEtest",
-        "descriptionDOES NOT CONTAINwifi",
-        "priorityNOT IN1,5",
-        "active=true^priorityNOT IN1,5^short_descriptionNOT LIKEtest"
-      })
-  void operatorsWithSpacesAreSentAsTyped(String typed) throws Exception {
-    for (String templateFile :
-        new String[] {"servicenow-connector.json", "servicenow-incident-connector.json"}) {
-      Map<String, Object> result =
-          FEEL.evaluate(queryParametersExpression(templateFile), Map.of("sysparm_query", typed));
-
-      assertThat(result).containsEntry("sysparm_query", typed);
-    }
+    assertThat(result).containsEntry("sysparm_query", typed);
   }
 
   @ParameterizedTest
