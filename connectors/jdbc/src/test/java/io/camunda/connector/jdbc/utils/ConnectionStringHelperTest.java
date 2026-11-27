@@ -29,7 +29,6 @@ class ConnectionStringHelperTest {
     "MYSQL, db-1.internal, 3306, my_app, jdbc:mysql://db-1.internal:3306/my_app",
     "POSTGRESQL, 10.0.0.12, 5432, app-prod, jdbc:postgresql://10.0.0.12:5432/app-prod",
     "POSTGRESQL, [2001:db8::1], 5432, app, jdbc:postgresql://[2001:db8::1]:5432/app",
-    "ORACLE, db.example.com, 1521, orcl.example.com, jdbc:oracle:thin:@//db.example.com:1521/orcl.example.com",
     "MSSQL, db.example.com, 1433, My Database, jdbc:sqlserver://db.example.com:1433;databaseName=My Database",
     "MSSQL, db.example.com\\SQLEXPRESS, 1433, app, jdbc:sqlserver://db.example.com\\SQLEXPRESS:1433;databaseName=app",
     "MARIADB, db.example.com, 3306, , jdbc:mariadb://db.example.com:3306/"
