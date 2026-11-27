@@ -9,8 +9,8 @@ package io.camunda.connector.idp.extraction.utils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthentication;
 import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthenticationType;
 import java.io.IOException;
 import java.security.KeyPairGenerator;
@@ -40,8 +40,9 @@ class GcsUtilTest {
         """
             .formatted(pem);
 
-    GoogleCredentials credentials =
-        GcsUtil.getCredentials(GcpAuthenticationType.SERVICE_ACCOUNT, null, json, null, null, null);
+    var credentials =
+        GcsUtil.getCredentials(
+            new GcpAuthentication(GcpAuthenticationType.SERVICE_ACCOUNT, null, null, null, null, json));
 
     assertThat(credentials).isInstanceOf(ServiceAccountCredentials.class);
     assertThat(((ServiceAccountCredentials) credentials).getClientEmail())
@@ -63,7 +64,8 @@ class GcsUtilTest {
 
     assertThatThrownBy(() ->
             GcsUtil.getCredentials(
-                GcpAuthenticationType.SERVICE_ACCOUNT, null, json, null, null, null))
+                new GcpAuthentication(
+                    GcpAuthenticationType.SERVICE_ACCOUNT, null, null, null, null, json)))
         .rootCause()
         .isInstanceOf(IOException.class)
         .hasMessageContaining("external_account");
