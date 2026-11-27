@@ -42,7 +42,10 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.configuration.ConfigurationValidationRegistryConfiguration;
 import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
+import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry;
+import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
@@ -63,6 +66,7 @@ import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
 import io.camunda.connector.runtime.outbound.jobstream.BrokerJobStreamClient;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
+import io.camunda.connector.runtime.outbound.lifecycle.ProbeWorkerManager;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionIntrinsicFunctionAllowListCache;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionModelCache;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
@@ -93,7 +97,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 @Configuration
-@Import({OutboundConnectorsRestController.class, InstanceForwardingConfiguration.class})
+@Import({
+  OutboundConnectorsRestController.class,
+  InstanceForwardingConfiguration.class,
+  ConfigurationValidationRegistryConfiguration.class
+})
 public class OutboundConnectorRuntimeConfiguration {
 
   /**
@@ -813,6 +821,36 @@ public class OutboundConnectorRuntimeConfiguration {
         secretFilterFactoriesByPhysicalTenantId,
         intrinsicFunctionAllowListFactoriesByPhysicalTenantId,
         meterRegistry.orElse(null));
+  }
+
+  /**
+   * Answers configuration validation probes wherever outbound connectors run. Binds with {@link
+   * FeelEvaluationResultMapper#create()}, as {@code ConfigurationValidationConfiguration} does, and
+   * not with the outbound mapper: a probe's input comes from its caller, with no process model to
+   * check an intrinsic function call against.
+   */
+  @Bean
+  @ConditionalOnProperty(
+      name = "camunda.connector.probes.enabled",
+      havingValue = "true",
+      matchIfMissing = true)
+  public ProbeWorkerManager probeWorkerManager(
+      ConfigurationValidationRegistry configurationValidationRegistry,
+      ValidationProvider validationProvider,
+      SecretProviderAggregator secretProviderAggregator,
+      @Value(
+              "${camunda.connector.probes.probe-id-prefix:"
+                  + ProbeWorkerManager.DEFAULT_PROBE_ID_PREFIX
+                  + "}")
+          String probeIdPrefix) {
+    return new ProbeWorkerManager(
+        configurationValidationRegistry,
+        new ConfigurationValidationService(
+            configurationValidationRegistry,
+            validationProvider,
+            FeelEvaluationResultMapper.create()),
+        secretProviderAggregator,
+        probeIdPrefix);
   }
 
   /**

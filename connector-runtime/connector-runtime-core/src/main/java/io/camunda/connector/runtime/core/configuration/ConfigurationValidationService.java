@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.configuration;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
@@ -108,6 +109,18 @@ public class ConfigurationValidationService {
     this.objectMapper = objectMapper;
   }
 
+  /**
+   * For callers that only validate configurations the cluster already resolved ({@link
+   * #validate(String, JsonNode)}): without evaluators, {@link
+   * #validate(ConfigurationValidationRequest)} cannot resolve a reference.
+   */
+  public ConfigurationValidationService(
+      ConfigurationValidationRegistry registry,
+      ValidationProvider validationProvider,
+      ObjectMapper objectMapper) {
+    this(registry, Map.of(), validationProvider, objectMapper);
+  }
+
   public ConfigurationValidationResult validate(ConfigurationValidationRequest request) {
     RegisteredValidator registered = registry.findById(request.credentialId()).orElse(null);
     if (registered == null) {
@@ -148,6 +161,41 @@ public class ConfigurationValidationService {
           ErrorCode.RESOLUTION_ERROR, RESOLUTION_FAILURE_MESSAGE);
     }
 
+    return validateBound(request.credentialId(), registered, configuration);
+  }
+
+  /**
+   * Validates a configuration whose values are already resolved, as a probe delivers it: the
+   * cluster evaluated it and injected its secret values. Binds it to the registered configuration
+   * type, then applies bean validation and the validator with the same mapping as {@link
+   * #validate(ConfigurationValidationRequest)}; input that cannot be bound is {@code
+   * INVALID_INPUT}.
+   */
+  public ConfigurationValidationResult validate(
+      String configurationId, JsonNode resolvedConfiguration) {
+    RegisteredValidator registered = registry.findById(configurationId).orElse(null);
+    if (registered == null) {
+      return ConfigurationValidationResult.unsupported();
+    }
+
+    final Object configuration;
+    try {
+      configuration =
+          objectMapper.treeToValue(resolvedConfiguration, registered.configurationClass());
+    } catch (Exception e) {
+      // Log only the exception type, never the throwable: binding errors can echo input values.
+      LOG.warn(
+          "Resolved configuration '{}' could not be bound ({})",
+          configurationId,
+          e.getClass().getName());
+      return ConfigurationValidationResult.failure(
+          ErrorCode.INVALID_INPUT, INPUT_VALIDATION_FAILURE_MESSAGE);
+    }
+    return validateBound(configurationId, registered, configuration);
+  }
+
+  private ConfigurationValidationResult validateBound(
+      String configurationId, RegisteredValidator registered, Object configuration) {
     try {
       // Same object graph and constraints the normal binding path validates (JobHandlerContext).
       validationProvider.validate(configuration);
@@ -156,7 +204,7 @@ public class ConfigurationValidationService {
       // interpolate the invalid (secret) value.
       LOG.warn(
           "Resolved configuration '{}' failed input validation ({})",
-          request.credentialId(),
+          configurationId,
           e.getClass().getName());
       return ConfigurationValidationResult.failure(
           ErrorCode.INVALID_INPUT, INPUT_VALIDATION_FAILURE_MESSAGE);
@@ -173,7 +221,7 @@ public class ConfigurationValidationService {
       ConfigurationValidationResult result = validator.validate(configuration);
       if (result == null) {
         // Nothing stops a validator returning null, and that would NPE in response mapping.
-        LOG.warn("Validator for configuration '{}' returned null", request.credentialId());
+        LOG.warn("Validator for configuration '{}' returned null", configurationId);
         return ConfigurationValidationResult.failure(ErrorCode.ERROR, VALIDATOR_ERROR_MESSAGE);
       }
       return result;
@@ -181,9 +229,7 @@ public class ConfigurationValidationService {
       // Log only the exception type, never the throwable: a validator exception can wrap
       // SDK/framework messages carrying credential material.
       LOG.warn(
-          "Validator for configuration '{}' threw ({})",
-          request.credentialId(),
-          e.getClass().getName());
+          "Validator for configuration '{}' threw ({})", configurationId, e.getClass().getName());
       // A ConnectorException's error code is author-chosen and may legitimately fall outside
       // ErrorCode, so it is passed through as-is; anything else collapses to the shared ERROR.
       String code =

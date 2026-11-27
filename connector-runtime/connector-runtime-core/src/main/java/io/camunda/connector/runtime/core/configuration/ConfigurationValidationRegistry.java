@@ -24,6 +24,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,5 +104,10 @@ public class ConfigurationValidationRegistry {
   /** Returns the validator registered for the given configuration id, if any. */
   public Optional<RegisteredValidator> findById(String configurationId) {
     return Optional.ofNullable(byId.get(configurationId));
+  }
+
+  /** Returns the ids of all registered validators, sorted. */
+  public SortedSet<String> configurationIds() {
+    return new TreeSet<>(byId.keySet());
   }
 }

@@ -187,12 +187,13 @@ public class ConnectorsAutoConfiguration {
    * {@link LegacySecretMode#OFF} none of the configured providers is consulted and every lookup
    * fails instead.
    *
-   * <p>Configuration validation is not one of those paths and this setting does not reach it: it
-   * never resolves the legacy syntax under any mode, and rejects a configuration still carrying it
-   * ({@code LegacySecretSyntaxRejectingProcessor}, installed on its own evaluator). See {@code
-   * ConfigurationValidationService} for why — replacement there would have to run over an
+   * <p>The configuration validation route is not one of those paths and this setting does not reach
+   * it: it never resolves the legacy syntax under any mode, and rejects a configuration still
+   * carrying it ({@code LegacySecretSyntaxRejectingProcessor}, installed on its own evaluator). See
+   * {@code ConfigurationValidationService} for why — replacement there would have to run over an
    * evaluation result, where a name a configuration declared is indistinguishable from one that
-   * arrived as data.
+   * arrived as data. Configuration validation probes do go through this bean: their input is
+   * written by the caller that created the probe ({@code ConfigurationValidationProbeHandler}).
    *
    * <p>This has no effect on {@code camunda.secrets.<name>} resolution, which reads the
    * orchestration cluster's secret stores through a separate mechanism.

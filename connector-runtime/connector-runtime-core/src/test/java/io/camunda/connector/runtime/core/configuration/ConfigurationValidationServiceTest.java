@@ -542,4 +542,54 @@ class ConfigurationValidationServiceTest {
 
     assertThat(expressions).containsExactly("=camunda.vars.env.awsProd");
   }
+
+  private ConfigurationValidationService resolvedService() {
+    var registry =
+        new ConfigurationValidationRegistry(
+            List.of(new OkValidator(), new ConstrainedValidator(), recordingValidator));
+    return new ConfigurationValidationService(
+        registry,
+        ValidationUtil.discoverDefaultValidationProviderImplementation(),
+        FeelEvaluationResultMapper.create());
+  }
+
+  @Test
+  void validatesAResolvedConfiguration() throws Exception {
+    var result =
+        resolvedService().validate("recording", objectMapper.readTree("{\"value\":\"x\"}"));
+
+    assertThat(result.status()).isEqualTo(Status.SUCCESS);
+    assertThat(recordingValidator.seen.value()).isEqualTo("x");
+  }
+
+  @Test
+  void returnsUnsupportedForAResolvedConfigurationWithAnUnknownId() throws Exception {
+    var result = resolvedService().validate("unknown", objectMapper.readTree("{}"));
+
+    assertThat(result.status()).isEqualTo(Status.UNSUPPORTED);
+  }
+
+  @Test
+  void returnsInvalidInputWhenAResolvedConfigurationCannotBeBound() throws Exception {
+    var result =
+        resolvedService()
+            .validate("ok", objectMapper.readTree("{\"value\":{\"secret\":\"supersecretvalue\"}}"));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.code()).isEqualTo("INVALID_INPUT");
+    assertThat(result.message())
+        .isEqualTo("The resolved configuration is not valid.")
+        .doesNotContain("supersecretvalue");
+  }
+
+  @Test
+  void runsBeanValidationOnAResolvedConfiguration() throws Exception {
+    var result =
+        resolvedService()
+            .validate("constrained", objectMapper.readTree("{\"token\":\"supersecretvalue\"}"));
+
+    assertThat(result.status()).isEqualTo(Status.FAILURE);
+    assertThat(result.code()).isEqualTo("INVALID_INPUT");
+    assertThat(result.message()).doesNotContain("supersecretvalue");
+  }
 }

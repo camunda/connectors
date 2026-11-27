@@ -39,6 +39,7 @@
     <module>connectors-e2e-test-csv</module>
     <module>connectors-e2e-test-feel</module>
     <module>connectors-e2e-test-intrinsic-functions</module>
+    <module>connectors-e2e-test-probes</module>
   </modules>
 
   <dependencies>

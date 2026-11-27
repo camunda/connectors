@@ -23,7 +23,6 @@ import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.toMapByP
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
-import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
@@ -33,10 +32,7 @@ import io.camunda.connector.runtime.core.configuration.ConfigurationValidationSe
 import io.camunda.connector.runtime.core.secret.LegacySecretSyntaxRejectingProcessor;
 import io.camunda.connector.runtime.core.secret.SecretReferenceResolver;
 import io.camunda.connector.runtime.core.secret.SecretResolvingResultProcessor;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -54,13 +50,11 @@ import org.springframework.context.annotation.Import;
  * the route.
  */
 @Configuration
-@Import(ConfigurationValidationRestController.class)
+@Import({
+  ConfigurationValidationRestController.class,
+  ConfigurationValidationRegistryConfiguration.class
+})
 public class ConfigurationValidationConfiguration {
-
-  @Bean
-  public ConfigurationValidationRegistry configurationValidationRegistry() {
-    return new ConfigurationValidationRegistry(discoverConfigurationValidators());
-  }
 
   /**
    * A stored configuration lives on exactly one orchestration cluster, so its {@code credentialRef}
@@ -144,21 +138,5 @@ public class ConfigurationValidationConfiguration {
             registry, legacyClient(camundaClientProvider)),
         validationProvider,
         FeelEvaluationResultMapper.create());
-  }
-
-  /**
-   * Discovers {@code ConfigurationValidator} implementations via the SPI {@link ServiceLoader},
-   * mirroring how connectors themselves are discovered ({@code SPIConnectorDiscovery}). This is
-   * package-independent: a third-party connector's validator (e.g. under {@code com.acme}) is found
-   * as long as it is declared in {@code META-INF/services}, whereas a fixed base-package scan would
-   * silently miss it and always answer {@code UNSUPPORTED}.
-   */
-  @SuppressWarnings("rawtypes")
-  private static List<ConfigurationValidator<?>> discoverConfigurationValidators() {
-    List<ConfigurationValidator<?>> validators = new ArrayList<>();
-    for (ConfigurationValidator validator : ServiceLoader.load(ConfigurationValidator.class)) {
-      validators.add(validator);
-    }
-    return validators;
   }
 }
