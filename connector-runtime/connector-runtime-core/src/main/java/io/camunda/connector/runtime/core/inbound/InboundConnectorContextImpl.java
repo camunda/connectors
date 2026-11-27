@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.Document;
@@ -516,10 +517,14 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     var activityLog =
         Activity.newBuilder()
             .withTag(ActivityLogTag.HEALTH)
+            // masked again as a whole: formatting the details can join a masked key and value
+            // into a secret (a key "a" and value "b" print as "a=b"), and an object's toString()
+            // can differ from the JSON form its details were masked as
             .withMessage(
-                String.format(
-                    "Health status changed to %s, details: %s",
-                    masked.getStatus(), masked.getDetails()))
+                redactMessage(
+                    String.format(
+                        "Health status changed to %s, details: %s",
+                        masked.getStatus(), masked.getDetails())))
             .withSeverity(masked.getStatus() == Health.Status.UP ? Severity.INFO : Severity.ERROR)
             .andReportHealth(masked)
             .build();
@@ -693,20 +698,21 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   /**
    * Masks every secret in a value that is published as JSON.
    *
-   * <p>Strings keep their type, and so do numbers, booleans and enums whose JSON form shows no
-   * secret; one that shows a secret, such as a numeric PIN, is published as its masked string form.
-   * Maps, collections and object arrays are copied with each key and element masked. Any other
-   * value, such as a bean or a {@code char[]}, is published as its masked string form: its JSON
-   * form could carry a secret that its string form doesn't show, for example from a getter. A
+   * <p>Strings keep their type, and so do numbers and booleans whose JSON form shows no secret; one
+   * that shows a secret, such as a numeric PIN, is published as its masked string form. An enum is
+   * published as its masked JSON form, as a string: its name, or the value of a {@code @JsonValue}
+   * method. Maps, collections and object arrays are copied with each key and element masked. Any
+   * other value, such as a bean or a {@code char[]}, is published as its masked string form: its
+   * JSON form could carry a secret that its string form doesn't show, for example from a getter. A
    * container that contains itself is replaced by {@link #CIRCULAR_REFERENCE} where it repeats.
    */
-  private static @Nullable Object redactValue(
+  private @Nullable Object redactValue(
       @Nullable Object value, List<String> secrets, Set<Object> enclosing) {
     return switch (value) {
       case null -> null;
       case Number number -> keepUnlessSecret(number, String.valueOf(number), secrets);
       case Boolean bool -> keepUnlessSecret(bool, String.valueOf(bool), secrets);
-      case Enum<?> constant -> keepUnlessSecret(constant, constant.name(), secrets);
+      case Enum<?> constant -> SecretUtil.hideSecretsFromMessage(enumJson(constant), secrets);
       case String text -> SecretUtil.hideSecretsFromMessage(text, secrets);
       case char[] chars -> SecretUtil.hideSecretsFromMessage(new String(chars), secrets);
       case Map<?, ?> map -> {
@@ -735,8 +741,18 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     return masked.equals(published) ? value : masked;
   }
 
+  // what the JSON endpoints publish for an enum: its name, or the value of a @JsonValue method
+  private String enumJson(Enum<?> constant) {
+    try {
+      JsonNode json = objectMapper.valueToTree(constant);
+      return json.isTextual() ? json.textValue() : json.toString();
+    } catch (IllegalArgumentException e) {
+      return constant.name();
+    }
+  }
+
   // the container is tracked by identity, since an array's list view is a new object each time
-  private static Object redactElements(
+  private Object redactElements(
       Object container, Collection<?> elements, List<String> secrets, Set<Object> enclosing) {
     if (!enclosing.add(container)) {
       return CIRCULAR_REFERENCE;

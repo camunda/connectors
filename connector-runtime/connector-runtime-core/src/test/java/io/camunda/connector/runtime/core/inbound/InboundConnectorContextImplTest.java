@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.CamundaClient;
@@ -1073,6 +1074,77 @@ class InboundConnectorContextImplTest {
                   Map.entry("count", 3));
           assertThat(mapper.writeValueAsString(log.data())).doesNotContain("123456");
         });
+  }
+
+  @Test
+  void reportHealth_masksASecretThatFormattingTheDetailsJoinsTogether() {
+    // given a secret that a details key and its value print as, though neither shows it alone
+    var definition = getInboundConnectorDefinition(Map.of("pair", "secrets.PAIR"));
+    var context = contextWithSecrets(Map.of("PAIR", "region=eu"), definition);
+
+    // when
+    context.reportHealth(Health.up(Map.of("region", "eu")));
+
+    // then the details keep the key and value, but the health change's message masks the pair
+    assertThat(context.getHealth().getDetails()).containsEntry("region", "eu");
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).doesNotContain("region=eu").contains("***"));
+  }
+
+  enum Lang {
+    PYTHON;
+
+    @JsonValue
+    String json() {
+      return "s3cret-lang";
+    }
+  }
+
+  enum Shown {
+    ON;
+
+    @Override
+    public String toString() {
+      return "s3cret-shown";
+    }
+  }
+
+  @Test
+  void reportHealth_masksAnEnumByItsJsonValueAndItsStringForm() throws Exception {
+    // given secrets that one enum publishes through @JsonValue and another prints as toString()
+    var definition =
+        getInboundConnectorDefinition(Map.of("a", "secrets.LANG", "b", "secrets.SHOWN"));
+    var context =
+        contextWithSecrets(Map.of("LANG", "s3cret-lang", "SHOWN", "s3cret-shown"), definition);
+
+    // when the details hold both
+    context.reportHealth(Health.up(Map.of("lang", Lang.PYTHON, "shown", Shown.ON)));
+
+    // then each is published as its masked JSON form, and the message shows neither secret
+    var details = context.getHealth().getDetails();
+    assertThat(details).containsEntry("lang", "***").containsEntry("shown", "ON");
+    assertThat(mapper.writeValueAsString(context.getHealth())).doesNotContain("s3cret");
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).doesNotContain("s3cret"));
+  }
+
+  private InboundConnectorContextImpl contextWithSecrets(
+      Map<String, String> secrets, ValidInboundConnectorDetails definition) {
+    var provider =
+        new SecretProvider() {
+          @Override
+          public String getSecret(String name, SecretContext secretContext) {
+            return secrets.get(name);
+          }
+        };
+    return new InboundConnectorContextImpl(
+        provider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry, camundaClient);
   }
 
   @Test
