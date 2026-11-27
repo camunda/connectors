@@ -42,7 +42,8 @@ class GcsUtilTest {
 
     var credentials =
         GcsUtil.getCredentials(
-            new GcpAuthentication(GcpAuthenticationType.SERVICE_ACCOUNT, null, null, null, null, json));
+            new GcpAuthentication(
+                GcpAuthenticationType.SERVICE_ACCOUNT, null, null, null, null, json));
 
     assertThat(credentials).isInstanceOf(ServiceAccountCredentials.class);
     assertThat(((ServiceAccountCredentials) credentials).getClientEmail())
