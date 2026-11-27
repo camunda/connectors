@@ -23,7 +23,9 @@ jobs:
     # branch (workflow_run semantics), so a PR editing this file cannot change what
     # runs here. It never checks out or executes PR-controlled build logic - it only
     # takes the jars built by the untrusted job, builds the (fixed-shape) Dockerfiles
-    # from the default branch around them, and pushes.
+    # from the PR's protected base branch (main or an allowed stable/*) around them,
+    # and pushes. Stable branches have no workflow_run of their own, so this job serves
+    # their PR builds too.
     runs-on: gcp-core-2-default
     # Only handle runs that actually built (skipped/failed builds mean the label/fork/
     # alwaysgreen guard in BUILD_PR_DOCKER_IMAGES.yml didn't match, or the build itself
@@ -117,15 +119,48 @@ jobs:
               return;
             }
 
+            // Docker build contexts per allowed base branch; doubles as the base-branch
+            // allowlist. Only protected branches qualify: their Dockerfiles/start.sh are
+            // checked out below and must not be PR-controlled.
+            const appsLayout = {
+              runtime: 'apps/connector-runtime-application',
+              bundle_default: 'apps/bundle/default-bundle',
+              bundle_saas: 'apps/bundle/camunda-saas-bundle',
+            };
+            const legacyLayout = {
+              runtime: 'connector-runtime/connector-runtime-application',
+              bundle_default: 'bundle/default-bundle',
+              bundle_saas: 'bundle/camunda-saas-bundle',
+            };
+            const contextsByBaseRef = {
+              'main': appsLayout,
+              'stable/8.10': appsLayout,
+              'stable/8.9': legacyLayout,
+              'stable/8.8': legacyLayout,
+              'stable/8.7': legacyLayout,
+            };
+            const baseRef = pr.base.ref;
+            if (!Object.hasOwn(contextsByBaseRef, baseRef)) {
+              core.setFailed(`PR #${prNumber} targets ${baseRef}, which is not an allowed base branch; refusing to publish`);
+              return;
+            }
+            const contexts = contextsByBaseRef[baseRef];
+
             const deployPreview = labelNames.includes('deploy-preview');
             core.setOutput('number', String(prNumber));
             core.setOutput('deploy_preview', String(deployPreview));
             core.setOutput('head_sha', headSha);
+            core.setOutput('base_ref', baseRef);
+            core.setOutput('runtime_context', contexts.runtime);
+            core.setOutput('bundle_default_context', contexts.bundle_default);
+            core.setOutput('bundle_saas_context', contexts.bundle_saas);
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # No `ref:` - workflow_run always checks out the default branch, never the
-          # PR head, so the Dockerfiles/start.sh built here are never PR-controlled.
+          # The PR's base branch (allowlisted above), never the PR head, so the
+          # Dockerfiles/start.sh built here are never PR-controlled and match the
+          # images that branch ships.
+          ref: ${{ steps.pr.outputs.base_ref }}
           persist-credentials: false
 
       - name: Download build artifacts
@@ -138,12 +173,16 @@ jobs:
 
       - name: Stage build outputs
         id: stage
+        env:
+          RUNTIME_CONTEXT: ${{ steps.pr.outputs.runtime_context }}
+          BUNDLE_DEFAULT_CONTEXT: ${{ steps.pr.outputs.bundle_default_context }}
+          BUNDLE_SAAS_CONTEXT: ${{ steps.pr.outputs.bundle_saas_context }}
         run: |
           set -euo pipefail
           for dir in \
-            apps/connector-runtime-application/target \
-            apps/bundle/default-bundle/target \
-            apps/bundle/camunda-saas-bundle/target
+            "${RUNTIME_CONTEXT}/target" \
+            "${BUNDLE_DEFAULT_CONTEXT}/target" \
+            "${BUNDLE_SAAS_CONTEXT}/target"
           do
             mkdir -p "${dir}"
             find "pr-build-artifacts/${dir}" -maxdepth 1 -name '*-with-dependencies.jar' -exec cp -t "${dir}" {} +
@@ -210,7 +249,7 @@ jobs:
       - name: Build and Push Docker Image - connector-runtime
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: apps/connector-runtime-application/
+          context: ${{ steps.pr.outputs.runtime_context }}/
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors:${{ steps.tag.outputs.tag }}
           platforms: linux/amd64,linux/arm64
@@ -219,7 +258,7 @@ jobs:
       - name: Build and Push Docker Image - bundle-default
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: apps/bundle/default-bundle/
+          context: ${{ steps.pr.outputs.bundle_default_context }}/
           push: true
           # Second tag only for previews (PREVIEW-ENV-DEPLOY.yml deploys it)
           tags: |
@@ -231,7 +270,7 @@ jobs:
       - name: Build and Push Docker Image - bundle-saas
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: apps/bundle/camunda-saas-bundle/
+          context: ${{ steps.pr.outputs.bundle_saas_context }}/
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ steps.tag.outputs.tag }}
           platforms: linux/amd64,linux/arm64
