@@ -40,6 +40,7 @@ import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
@@ -130,8 +131,11 @@ class ElevenLabsTests {
   }
 
   @Test
-  void listVoicesSendsOnlyTheQueryParametersThatAreSet() {
-    // Only the set filters are sent, and an array filter such as language sends its one value.
+  void listVoicesSendsTheQueryParametersThatAreSetAndTheDefaults() {
+    // Only the set filters and the default of the Include total count dropdown are sent. An array
+    // filter such as language sends its one value. The process has variables named like the empty
+    // fields (Search, Gender, Sort and Category): an empty field must not read the variable of the
+    // same name.
     wm.stubFor(
         get(urlPathEqualTo("/v2/voices"))
             .withHeader("xi-api-key", equalTo(API_KEY))
@@ -147,13 +151,21 @@ class ElevenLabsTests {
             .property("resultExpression", "={voiceId: response.body.voices[1].voice_id}")
             .writeTo(new File(tempDir, "voices.json"));
 
-    var test = run(apply(singleTask("listVoices"), listVoices, "listVoices"));
+    var test =
+        run(
+            apply(singleTask("listVoices"), listVoices, "listVoices"),
+            Map.of(
+                "search", "leaked-search",
+                "gender", "female",
+                "sort", "created_at",
+                "category", "cloned"));
 
     assertThat(test.getProcessInstanceEvent()).hasVariable("voiceId", "voice123");
     var request = wm.getAllServeEvents().getFirst().getRequest();
     assertThat(request.getQueryParams().keySet())
-        .containsExactlyInAnyOrder("page_size", "language");
+        .containsExactlyInAnyOrder("page_size", "language", "include_total_count");
     assertThat(request.queryParameter("language").values()).containsExactly("en");
+    assertThat(request.queryParameter("include_total_count").values()).containsExactly("false");
   }
 
   @Test
@@ -205,6 +217,13 @@ class ElevenLabsTests {
   }
 
   private ZeebeTest run(BpmnModelInstance model) {
-    return ZeebeTest.with(camundaClient).deploy(model).createInstance().waitForProcessCompletion();
+    return run(model, Map.of());
+  }
+
+  private ZeebeTest run(BpmnModelInstance model, Map<String, Object> variables) {
+    return ZeebeTest.with(camundaClient)
+        .deploy(model)
+        .createInstance(variables)
+        .waitForProcessCompletion();
   }
 }

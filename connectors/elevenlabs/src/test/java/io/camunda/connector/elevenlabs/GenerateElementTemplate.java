@@ -168,6 +168,24 @@ public class GenerateElementTemplate {
           "text_to_speech_full_path_voice_id", "21m00Tcm4TlvDq8ikWAM",
           "text_to_speech_full_query_output_format", "mp3_44100_128");
 
+  /**
+   * Defaults of the true/false dropdowns. A dropdown is never optional, so it has no blank choice
+   * and the Modeler would preselect its first choice, {@code true}. Each value is chosen here
+   * instead. A new dropdown without an entry fails {@code GenerateElementTemplateTest}.
+   *
+   * <ul>
+   *   <li>Include total count is {@code false}: the spec says it incurs a performance cost and
+   *       points to {@code has_more} for pagination. The API default is {@code true}.
+   *   <li>Enable logging stays {@code true}, the API default: {@code false} switches on zero
+   *       retention mode, which the spec says only enterprise customers may use.
+   * </ul>
+   */
+  private static final Map<String, String> DROPDOWN_DEFAULTS =
+      Map.of(
+          "get_user_voices_v2_query_include_total_count", "false",
+          "speech_to_text_query_enable_logging", "true",
+          "text_to_speech_full_query_enable_logging", "true");
+
   /** Acronyms that a humanized parameter label keeps in upper case. */
   private static final Map<String, String> LABEL_WORDS =
       Map.of("id", "ID", "ids", "IDs", "url", "URL");
@@ -452,7 +470,8 @@ public class GenerateElementTemplate {
       builder.tooltip(property.getDescription());
       builder.description(null);
     }
-    builder.value(null);
+    builder.value(
+        property instanceof DropdownProperty ? DROPDOWN_DEFAULTS.get(property.getId()) : null);
     builder.placeholder(PARAMETER_PLACEHOLDERS.get(property.getId()));
     if (arrayValued) {
       String tooltip = property.getDescription() == null ? "" : property.getDescription() + " ";

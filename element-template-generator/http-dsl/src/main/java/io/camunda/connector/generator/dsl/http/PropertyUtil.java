@@ -388,7 +388,11 @@ public class PropertyUtil {
         .id(operationId + "_" + property.target().name().toLowerCase() + "_" + property.id())
         .label(TemplatePropertiesUtil.transformIdIntoLabel(property.id()))
         .description(property.description())
-        .optional(!property.required())
+        // Never optional: the hidden path, headers, queryParameters and body expressions read these
+        // fields by name. The Modeler writes no zeebe:input for an empty optional field, so the
+        // name would resolve to a process variable of the same name. A non-optional empty field
+        // gets an input without a source, which Zeebe maps to null.
+        .optional(false)
         .binding(new ZeebeInput(property.id()))
         .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operationId))
         .group(group);

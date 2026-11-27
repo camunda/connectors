@@ -267,7 +267,8 @@
     {
       "id" : "text_to_speech_full_query_enable_logging",
       "label" : "Enable logging",
-      "optional" : true,
+      "optional" : false,
+      "value" : "true",
       "group" : "parameters",
       "binding" : {
         "name" : "enable_logging",
@@ -294,7 +295,7 @@
     {
       "id" : "text_to_speech_full_query_optimize_streaming_latency",
       "label" : "Optimize streaming latency",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -312,7 +313,7 @@
     {
       "id" : "text_to_speech_full_query_output_format",
       "label" : "Output format",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -391,7 +392,7 @@
     {
       "id" : "get_user_voices_v2_query_next_page_token",
       "label" : "Next page token",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -409,7 +410,7 @@
     {
       "id" : "get_user_voices_v2_query_page_size",
       "label" : "Page size",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -427,7 +428,7 @@
     {
       "id" : "get_user_voices_v2_query_search",
       "label" : "Search",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -445,7 +446,7 @@
     {
       "id" : "get_user_voices_v2_query_sort",
       "label" : "Sort",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -463,7 +464,7 @@
     {
       "id" : "get_user_voices_v2_query_sort_direction",
       "label" : "Sort direction",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -481,7 +482,7 @@
     {
       "id" : "get_user_voices_v2_query_voice_type",
       "label" : "Voice type",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -499,7 +500,7 @@
     {
       "id" : "get_user_voices_v2_query_category",
       "label" : "Category",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -517,7 +518,7 @@
     {
       "id" : "get_user_voices_v2_query_fine_tuning_state",
       "label" : "Fine tuning state",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -535,7 +536,7 @@
     {
       "id" : "get_user_voices_v2_query_collection_id",
       "label" : "Collection ID",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -553,7 +554,7 @@
     {
       "id" : "get_user_voices_v2_query_gender",
       "label" : "Gender",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -571,7 +572,7 @@
     {
       "id" : "get_user_voices_v2_query_age",
       "label" : "Age",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -589,7 +590,7 @@
     {
       "id" : "get_user_voices_v2_query_language",
       "label" : "Language",
-      "optional" : true,
+      "optional" : false,
       "constraints" : {
         "notEmpty" : false,
         "pattern" : {
@@ -614,7 +615,7 @@
     {
       "id" : "get_user_voices_v2_query_accent",
       "label" : "Accent",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -632,7 +633,7 @@
     {
       "id" : "get_user_voices_v2_query_use_cases",
       "label" : "Use cases",
-      "optional" : true,
+      "optional" : false,
       "constraints" : {
         "notEmpty" : false,
         "pattern" : {
@@ -657,7 +658,7 @@
     {
       "id" : "get_user_voices_v2_query_min_notice_period_days",
       "label" : "Min notice period days",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -675,7 +676,7 @@
     {
       "id" : "get_user_voices_v2_query_include_custom_rates",
       "label" : "Include custom rates",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -693,7 +694,7 @@
     {
       "id" : "get_user_voices_v2_query_include_live_moderated",
       "label" : "Include live moderated",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -711,7 +712,7 @@
     {
       "id" : "get_user_voices_v2_query_high_quality",
       "label" : "High quality",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -729,7 +730,8 @@
     {
       "id" : "get_user_voices_v2_query_include_total_count",
       "label" : "Include total count",
-      "optional" : true,
+      "optional" : false,
+      "value" : "false",
       "group" : "parameters",
       "binding" : {
         "name" : "include_total_count",
@@ -756,7 +758,7 @@
     {
       "id" : "get_user_voices_v2_query_voice_ids",
       "label" : "Voice IDs",
-      "optional" : true,
+      "optional" : false,
       "constraints" : {
         "notEmpty" : false,
         "pattern" : {
@@ -841,7 +843,7 @@
     {
       "id" : "speech_to_text_query_token",
       "label" : "Token",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
@@ -859,7 +861,8 @@
     {
       "id" : "speech_to_text_query_enable_logging",
       "label" : "Enable logging",
-      "optional" : true,
+      "optional" : false,
+      "value" : "true",
       "group" : "parameters",
       "binding" : {
         "name" : "enable_logging",
@@ -1069,7 +1072,7 @@
     {
       "id" : "get_conversation_history_route_query_format",
       "label" : "Format",
-      "optional" : true,
+      "optional" : false,
       "feel" : "optional",
       "group" : "parameters",
       "binding" : {
