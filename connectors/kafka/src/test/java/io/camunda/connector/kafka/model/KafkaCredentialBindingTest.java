@@ -44,6 +44,9 @@ class KafkaCredentialBindingTest {
           "bootstrapServers", "credential-broker:9093",
           "username", "credential-user",
           "password", "credential-password");
+  private static final String CUSTOM_JAAS_CONFIG =
+      "org.apache.kafka.common.security.scram.ScramLoginModule required"
+          + " username='custom-user' password='custom-password';";
 
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
@@ -194,7 +197,7 @@ class KafkaCredentialBindingTest {
             "bootstrap.servers", "custom-broker:9094",
             "security.protocol", "SASL_PLAINTEXT",
             "sasl.mechanism", "SCRAM-SHA-512",
-            "sasl.jaas.config", "custom-jaas",
+            "sasl.jaas.config", CUSTOM_JAAS_CONFIG,
             "client.id", "custom-client"));
 
     var connection = bind(inbound, input);
@@ -204,7 +207,7 @@ class KafkaCredentialBindingTest {
         .containsEntry("bootstrap.servers", "custom-broker:9094")
         .containsEntry("security.protocol", "SASL_PLAINTEXT")
         .containsEntry("sasl.mechanism", "SCRAM-SHA-512")
-        .containsEntry("sasl.jaas.config", "custom-jaas")
+        .containsEntry("sasl.jaas.config", CUSTOM_JAAS_CONFIG)
         .containsEntry("client.id", "custom-client");
   }
 
