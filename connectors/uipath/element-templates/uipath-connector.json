@@ -108,6 +108,42 @@
       "configurationTemplate": "io.camunda.connectors:uipath-authentication:1"
     },
     {
+      "label": "UiPath instance URL",
+      "group": "configuration",
+      "type": "String",
+      "value": "cloud.uipath.com",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "cloudUrl"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
+      }
+    },
+    {
+      "label": "UiPath organization",
+      "tooltip": "Your organization ID",
+      "group": "configuration",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "cloudOrg"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "serviceAuthenticationConfiguration",
+        "isEmpty": true,
+        "type": "simple"
+      }
+    },
+    {
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
@@ -161,7 +197,7 @@
     {
       "group": "authentication",
       "type": "Hidden",
-      "value": "https://cloud.uipath.com/identity_/connect/token",
+      "value": "=\"https:\"+\"//\"+cloudUrl+(if cloudUrl = \"cloud.uipath.com\" then \"\" else \"/\"+cloudOrg)+\"/identity_/connect/token\"",
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.oauthTokenEndpoint"
@@ -315,42 +351,6 @@
       }
     },
     {
-      "label": "UiPath instance URL",
-      "group": "configuration",
-      "type": "String",
-      "value": "cloud.uipath.com",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "cloudUrl"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "serviceAuthenticationConfiguration",
-        "isEmpty": true,
-        "type": "simple"
-      }
-    },
-    {
-      "label": "UiPath organization",
-      "tooltip": "Your organization ID",
-      "group": "configuration",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "cloudOrg"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "serviceAuthenticationConfiguration",
-        "isEmpty": true,
-        "type": "simple"
-      }
-    },
-    {
       "label": "UiPath tenant",
       "group": "configuration",
       "type": "String",
@@ -426,8 +426,7 @@
         "oneOf": [
           "addQueueItem"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Due date",
@@ -444,8 +443,7 @@
         "oneOf": [
           "addQueueItem"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Priority",
@@ -493,8 +491,7 @@
         "oneOf": [
           "addQueueItem"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Reference",
@@ -510,8 +507,7 @@
         "oneOf": [
           "addQueueItem"
         ]
-      },
-      "optional": true
+      }
     },
     {
       "label": "Item ID",
@@ -891,7 +887,7 @@
         },
         {
           "id": "authentication.oauthTokenEndpoint",
-          "value": "https://cloud.uipath.com/identity_/connect/token",
+          "value": "https://${cloudUrl}/${cloudOrg}/identity_/connect/token",
           "condition": {
             "property": "authenticationType",
             "equals": "oauth-client-credentials-flow",

@@ -176,7 +176,7 @@
     {
       "id": "sysparm_query",
       "label": "Query parameters (sysparm_query)",
-      "tooltip": "Separate multiple conditions with '^'",
+      "tooltip": "Separate multiple conditions with '^'. Text after an operator is used exactly as typed, including a leading space: short_description=Test matches \"Test\", short_description= Test matches \" Test\".",
       "placeholder": "active=true^priority=1",
       "optional": true,
       "feel": "optional",
@@ -985,7 +985,7 @@
         "type": "zeebe:input"
       },
       "type": "Hidden",
-      "value": "={ \"sysparm_query\": if sysparm_query != null then replace(sysparm_query, \" \", \"\") else null , \"sysparm_fields\": if sysparm_fields != null then replace(sysparm_fields, \" \", \"\") else null , \"sysparm_limit\": if sysparm_limit != null then sysparm_limit else null }",
+      "value": "={ \"sysparm_query\": if sysparm_query != null then sysparm_query else null , \"sysparm_fields\": if sysparm_fields != null then replace(sysparm_fields, \" \", \"\") else null , \"sysparm_limit\": if sysparm_limit != null then sysparm_limit else null }",
       "condition": {
         "property": "operationGroup",
         "equals": "read"
