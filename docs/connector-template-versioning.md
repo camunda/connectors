@@ -26,6 +26,17 @@ Version bumps are required whenever non-cosmetic updates are shipped with the te
 
 This includes adding new properties, changing the template icon, or changing default property bindings.
 
+## Which `engines.camunda` range?
+
+`engines.camunda` is the lowest Camunda runtime that can execute everything in the template. Raise it
+only when the template uses something an older runtime can't run, not to mark the release a
+template version first shipped in.
+
+Hub and the Modeler pick the highest template `version` whose `engines.camunda` range matches the
+cluster, and a template can only move to an environment whose cluster is in that range. A range that
+is higher than needed stops a template from being tested on, or moved to, a cluster that could run
+it.
+
 ## File schema for released templates
 
 Element templates are versioned. The latest version of an element template is in the root of the element-templates directory. Older versions have adjusted names and are inside the `versioned` subfolder.

@@ -21,7 +21,7 @@ import io.camunda.connector.idp.extraction.service.StructuredService;
     inputVariables = {"extractor", "input"},
     type = "io.camunda:idp-structured-connector-template:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.9",
     id = "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1",
     name = "IDP Structured Extraction Outbound Connector",
     version = 3,
