@@ -39,6 +39,10 @@ them or apply the opt-in label without authorization.
   owns user-message documents.
   [`DocumentToolCallResultsIT.java`](connectors-e2e-test-agentic-ai-real-llm/src/test/java/io/camunda/connector/e2e/agenticai/realllm/DocumentToolCallResultsIT.java)
   owns tool-result documents across legacy v1 and native v2 providers.
+- **Structured output**: structured JSON generation stays separate from structured output combined with tool
+  orchestration. Gemini 3.8 supports the former, but can repeatedly call an already-completed tool when both tools
+  and a response schema are present. Its structured-output row therefore runs the AI Agent Task v2 no-tool fixture,
+  while providers with `STRUCTURED_OUTPUT_WITH_TOOLS` run the single- and multi-tool subprocess scenarios.
 - **Bundle end-to-end tests**:
   [`AiAgentE2ETestIT.java`](connectors-e2e-test-agentic-ai-real-llm/src/test/java/io/camunda/connector/e2e/agenticai/realllm/AiAgentE2ETestIT.java)
   tests the packaged connectors bundle in a separate container.
@@ -80,6 +84,10 @@ After a push, remove and reapply the label. Leaving it attached does not authori
 Check the run's head commit and each matrix result. A green classification job with skipped provider
 jobs is not a passing provider run.
 
+The classification uses the curated impact map, including shared dependencies and test infrastructure.
+Matrix execution is capped at four concurrent legs. CI selects the bundle-backed `AiAgentE2ETestIT` by class
+with `-Dit.test`, and the native capability legs, including `DocumentToolCallResultsIT`, by their JUnit groups.
+
 ## Run one native capability from the host
 
 Start at the repository root with JDK 21, Node.js 24, a working Docker-compatible runtime, and
@@ -112,6 +120,33 @@ Check provider labels in the output and this run's reports under
 `connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/target/failsafe-reports`; do not count old reports.
 Require positive test counts with no failures, errors, or unexpected skips. `BUILD SUCCESS` alone
 does not prove live coverage.
+
+### Other selections
+
+Change the host command as follows:
+
+- **Provider group**: set `REAL_LLM_PROVIDER_GROUP` (locally or in CI) to `openai`, `vertex`, `bedrock`,
+  `anthropic`, `mistral` or `local`.
+- **Capability suite**: replace `core-smoke` with `structured-output`, `reasoning` or `multimodal-documents`. To
+  debug one capability, run the matching test method instead of the whole class.
+- **Structured-output class**: replace `-Dgroups=core-smoke` with
+  `-Dit.test=RealProviderStructuredOutputE2ETestIT`.
+- **Prompt caching**: Bedrock prompt caching runs in its provider shard. OpenAI and Gemini prompt caching stay
+  manual because their cache placement is opportunistic: unset `REAL_LLM_PROVIDER_GROUP`, provide only the
+  credentials of the provider under test, and use `-Dgroups=prompt-caching`.
+- **Tool-result documents**: use `-Dgroups=document-tool-results` and set the credentials of the rows to
+  exercise. Always set `REAL_LLM_PROVIDER_GROUP` to the intended provider group; otherwise every row whose
+  credentials are available can run. With `REAL_LLM_PROVIDER_GROUP=openai`, it selects only the OpenAI document
+  rows. Its scenarios of `DocumentToolCallResultsIT` deterministically check the final response of the
+  provider for the facts in every nested document, the bytes a tool with a document parameter receives, and
+  the document the model returns, without a judge model. They check the outcome only, not the agent context:
+  the deterministic e2e tests cover how the content reaches the model. The `it-real-llm` profile includes
+  the class explicitly because it does not match the `*E2ETestIT` class pattern.
+
+In a JetBrains IDE, create a JUnit run configuration for the capability-specific `*E2ETestIT` class. Set the same
+environment variables in **Run configuration → Environment variables**, set the working directory to the
+`connectors-e2e-test-agentic-ai-real-llm` module directory, and use its module classpath. Check the test output
+for skipped parameterized invocations before treating a green IDE run as full provider coverage.
 
 For a credential-free provider-selection check that does not call paid APIs:
 

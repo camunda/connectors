@@ -10,10 +10,9 @@ is decided by the [testing rules](../../connectors/agentic-ai/docs/acceptance-te
 [Definition of Done](../../connectors/agentic-ai/AGENTS.md#definition-of-done). For repo-wide
 build, commit, PR and CI rules, see the repo-root [`AGENTS.md`](../../AGENTS.md).
 
-Read the [implementation rules](../../connectors/agentic-ai/docs/implementation-rules.md) before you plan,
-implement or review a change. They also apply to the e2e modules.
-Also read the [documentation rules](../../connectors/agentic-ai/docs/documentation-rules.md), which cover the docs of the e2e modules too.
-To review a change, follow
+Read the [implementation rules](../../connectors/agentic-ai/docs/implementation-rules.md) and the
+[documentation rules](../../connectors/agentic-ai/docs/documentation-rules.md) before you plan, implement or
+review a change. Both also apply to the e2e modules. To review a change, follow
 [`code-review.md`](../../connectors/agentic-ai/docs/code-review.md).
 
 See the [E2E runbook](README.md) for test ownership, local commands, paid-provider authorization, and
@@ -100,13 +99,13 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-t
 ### Element template regression fixtures
 
 When the `engines.camunda` minimum of the AI Agent templates is bumped, add regression fixtures for
-the new template generation in the same change. The fixtures live in
+the templates of the new minimum Camunda version in the same change. The fixtures live in
 `connectors-e2e-test-agentic-ai-aiagent/src/test/resources/regression/` (one Task and one Sub-process
-BPMN per generation, e.g. `ai-agent-task-8.10.0.bpmn`) and are run by
+BPMN per minimum Camunda version, e.g. `ai-agent-task-8.10.0.bpmn`) and are run by
 `AgentTaskElementTemplateRegressionTests` and `AgentSubProcessElementTemplateRegressionTests`. Copy the
 latest pair, rename it for the new version with unique process IDs (e.g. `AI_Agent_Task_8100`),
 re-apply the new templates in Modeler, and add both files to the tests' `@ValueSource`. Never edit a
-fixture of a released template generation.
+fixture whose templates are released.
 
 ## Real-LLM CPT coverage
 
@@ -114,7 +113,8 @@ Real-provider / real-LLM acceptance coverage lives in `connectors-e2e-test-agent
 intentionally split in two dimensions:
 
 1. **Provider shards**: `.github/workflows/AI_AGENT_CPT_PR.yml` runs the pre-merge suite when a
-   maintainer applies the `ai-agent-model-e2e-test` label. The registry in
+   maintainer applies the `ai-agent-model-e2e-test` label, which authorizes one run for the PR's current head
+   SHA ([authorization](README.md#pr-selection-and-authorization)). The registry in
    `connectors-e2e-test-agentic-ai-real-llm/src/test/resources/ai-agent-cpt/registry.json`
    defines the bundle test leg and the native-provider
    capability-group legs. The workflow validates that registry and uses its generated matrix.
@@ -123,13 +123,6 @@ intentionally split in two dimensions:
    matching `ci: true` row or document why it is omitted from `requiredCiCapabilities` and remains
    manual-only. Add the workflow credential wiring as well when the row needs a new credential
    profile.
-
-   Applying the label authorizes one run for the PR's current head SHA. After every push or other
-   head-SHA change, remove and reapply the label to authorize a run for the new SHA. Fork PRs do not
-   receive Vault-backed credentials. The workflow first classifies changes using the curated impact
-   map, including shared dependencies and test infrastructure. Classification does not authorize
-   paid execution. See the runbook for the three reported states. Matrix execution is capped at
-   four concurrent legs.
 2. **Provider capabilities**: `RealProviderApiSmokeSupport.ProviderConfig` declares each provider/model row
    together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
    `MULTIMODAL_USER_MESSAGE`). Capability scenarios must read this matrix instead of hard-coding
@@ -137,56 +130,14 @@ intentionally split in two dimensions:
    row's `capabilityProperties` entry for that capability.
 
    Capability-focused scenarios live in the `RealProvider*E2ETestIT` classes and use JUnit tags
-   matching the registry's `groups` values.
-
-   Keep structured JSON generation separate from structured output combined with tool
-   orchestration. Gemini 3.8 supports the former, but can repeatedly call an already-completed tool
-   when both tools and a response schema are present. Its structured-output row therefore runs the
-   AI Agent Task v2 no-tool fixture while providers with `STRUCTURED_OUTPUT_WITH_TOOLS` run the
-   single- and multi-tool subprocess scenarios.
-
-   The always-on provider scenarios (`toolCallLoopSurfacesPlantedFact` and
-   `userFeedbackLoopReplaysAssistantTextOnFollowUp`) use `providers()` directly and are not gated by a
-   capability. When debugging one capability, run the matching method instead of the whole class.
+   matching the registry's `groups` values. Keep structured JSON generation separate from structured output
+   combined with tool orchestration ([why](README.md#test-ownership)). The always-on provider scenarios
+   (`toolCallLoopSurfacesPlantedFact` and `userFeedbackLoopReplaysAssistantTextOnFollowUp`) use `providers()`
+   directly and are not gated by a capability.
 
 The real LLM tests run only with the `it-real-llm` profile (Failsafe). Without it, the module runs only
-the unit tests of the CPT harness, so the E2E workflows make no paid calls.
-
-Use `REAL_LLM_PROVIDER_GROUP` (`openai`, `vertex`, `bedrock`, `anthropic`, `mistral`, or `local`) to
-run only one provider group locally or in CI. Keep `RealProviderSelectionTest` updated when changing
-shard-only behavior, disabled rows, or provider group membership.
-
-Use the runbook's host command with strict provider selection and an explicitly chosen provider group.
-
-Use the corresponding group name (`structured-output`, `reasoning`, or `multimodal-documents`) to
-run another capability suite. Bedrock prompt caching runs in its provider shard. OpenAI and Gemini
-prompt caching remain manual because their cache placement is opportunistic: unset
-`REAL_LLM_PROVIDER_GROUP`, provide only the credentials for the provider under test, and use
-`-Dgroups=prompt-caching`. CI selects the bundle-backed `AiAgentE2ETestIT` by class with
-`-Dit.test`; native capability legs, including `DocumentToolCallResultsIT`, are selected by their
-JUnit groups.
-
-To select the structured-output class instead, replace `-Dgroups=core-smoke` in that command with
-`-Dit.test=RealProviderStructuredOutputE2ETestIT`.
-
-For JetBrains IDEs, create a JUnit run configuration for the capability-specific `*E2ETestIT` class.
-Set the same environment variables in **Run configuration → Environment variables**, set the working
-directory to the `connectors-e2e-test-agentic-ai-real-llm` module directory, and use its module classpath. Check
-the test output for skipped parameterized invocations before treating a green IDE run as full provider
-coverage.
-
-`DocumentToolCallResultsIT` is explicitly included in the `it-real-llm` profile because it does not
-match the `*E2ETestIT` class pattern. Its scenarios deterministically check the provider's final
-response for the facts contained in every nested document, the bytes a tool with a document parameter
-receives, and the document the model returns; they do not require a separate judge model. They check
-the outcome only, not the agent context: the deterministic e2e tests cover how the content reaches the
-model. Add user-message document scenarios to `RealProviderMultimodalE2ETestIT`; add tool-result
-document scenarios to `DocumentToolCallResultsIT`, which owns compatibility coverage across legacy
-v1 and native v2 provider paths. Run it locally with `-Dgroups=document-tool-results` and set
-whichever provider credentials you want its rows to exercise. Always set
-`REAL_LLM_PROVIDER_GROUP` to the intended provider group; otherwise, every row whose credentials are
-available can run. Use the runbook's host command with `-Dgroups=document-tool-results` to select
-only the OpenAI document rows.
-
-> `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
-> Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.
+the unit tests of the CPT harness, so the E2E workflows make no paid calls. Keep `RealProviderSelectionTest`
+updated when changing shard-only behavior, disabled rows, or provider group membership. Add user-message
+document scenarios to `RealProviderMultimodalE2ETestIT` and tool-result document scenarios to
+`DocumentToolCallResultsIT`. For local runs, see the
+[runbook](README.md#run-one-native-capability-from-the-host).
