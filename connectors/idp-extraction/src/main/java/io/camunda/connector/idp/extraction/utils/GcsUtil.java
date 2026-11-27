@@ -9,6 +9,7 @@ package io.camunda.connector.idp.extraction.utils;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.auth.oauth2.UserCredentials;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -75,7 +76,7 @@ public class GcsUtil {
       ByteArrayInputStream credentialsStream =
           new ByteArrayInputStream(auth.serviceAccountJson().getBytes(StandardCharsets.UTF_8));
       try {
-        return GoogleCredentials.fromStream(credentialsStream);
+        return ServiceAccountCredentials.fromStream(credentialsStream);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
