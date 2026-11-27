@@ -1,0 +1,61 @@
+{
+  "overlay": "1.0.0",
+  "info": {
+    "title": "Camunda additions to the Snowflake SQL API spec",
+    "version": "1.0.0"
+  },
+  "actions": [
+    {
+      "target": "$.servers",
+      "description": "The published server is a placeholder for one account. Drop it: the template asks for the account URL instead.",
+      "remove": true
+    },
+    {
+      "target": "$",
+      "description": "Every Snowflake account has its own host. The account variable becomes the template's account URL field.",
+      "update": {
+        "servers": [
+          {
+            "url": "https://{account}.snowflakecomputing.com",
+            "description": "Snowflake account",
+            "variables": {
+              "account": {
+                "default": "myorg-myaccount",
+                "description": "Account identifier, in the form <orgname>-<account_name>"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "target": "$.paths.*.*.security",
+      "description": "Key-pair JWT needs a client-signed JWT and the SnowflakeOAuth implicit flow needs a browser, neither of which the REST connector can do.",
+      "remove": true
+    },
+    {
+      "target": "$.security",
+      "description": "Same as above, for the global security requirement.",
+      "remove": true
+    },
+    {
+      "target": "$",
+      "description": "Offer the two bearer token types the connector supports: a programmatic access token and an External OAuth access token.",
+      "update": {
+        "security": [
+          {
+            "ProgrammaticAccessToken": []
+          },
+          {
+            "ExternalOAuth": []
+          }
+        ]
+      }
+    },
+    {
+      "target": "$.paths.*.parameters[?(@['$ref'] == '#/components/parameters/snowflakeAuthorizationTokenType')]",
+      "description": "The token type header is optional: Snowflake detects the token type from the token. Leaving it out lets one credential hold either token type.",
+      "remove": true
+    }
+  ]
+}

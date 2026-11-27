@@ -1,0 +1,814 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Snowflake Outbound Connector",
+  "id" : "io.camunda.connectors.Snowflake.v1",
+  "description" : "Run SQL statements on Snowflake",
+  "keywords" : [
+    "Snowflake",
+    "SQL",
+    "query",
+    "data warehouse",
+    "statement",
+    "database",
+    "table"
+  ],
+  "documentationRef" : "https://docs.camunda.io/docs/8.11/components/connectors/out-of-the-box-connectors/snowflake/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [
+    "bpmn:Task"
+  ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.11"
+  },
+  "groups" : [
+    {
+      "id" : "operation",
+      "label" : "Operation"
+    },
+    {
+      "id" : "authentication",
+      "label" : "Authentication"
+    },
+    {
+      "id" : "parameters",
+      "label" : "Parameters"
+    },
+    {
+      "id" : "requestBody",
+      "label" : "Request body"
+    },
+    {
+      "id" : "url",
+      "label" : "URL"
+    },
+    {
+      "id" : "timeout",
+      "label" : "Timeout"
+    },
+    {
+      "id" : "output",
+      "label" : "Output mapping"
+    },
+    {
+      "id" : "error",
+      "label" : "Error handling"
+    },
+    {
+      "id" : "retries",
+      "label" : "Retries"
+    }
+  ],
+  "properties" : [
+    {
+      "id" : "operationId",
+      "label" : "Operation",
+      "value" : "SubmitStatement",
+      "group" : "operation",
+      "binding" : {
+        "name" : "operationId",
+        "type" : "zeebe:input"
+      },
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "Run SQL statement",
+          "value" : "SubmitStatement"
+        },
+        {
+          "name" : "Get statement status",
+          "value" : "GetStatementStatus"
+        },
+        {
+          "name" : "Cancel statement",
+          "value" : "CancelStatement"
+        }
+      ]
+    },
+    {
+      "id" : "serviceAuthenticationConfiguration",
+      "label" : "Authentication credential",
+      "optional" : false,
+      "group" : "authentication",
+      "binding" : {
+        "name" : "serviceAuthenticationConfiguration",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Choose a reusable Snowflake credential, or configure the one-time access token below.",
+      "type" : "Configuration",
+      "configurationTemplate" : "io.camunda.connectors:snowflake-authentication:1"
+    },
+    {
+      "id" : "authType",
+      "value" : "bearer",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authType",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "bearer",
+      "value" : "bearer",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "authentication.token",
+      "label" : "Access token",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.token",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "serviceAuthenticationConfiguration",
+        "isEmpty" : true,
+        "type" : "simple"
+      },
+      "tooltip" : "A Snowflake <a href='https://docs.snowflake.com/en/user-guide/programmatic-access-tokens' target='_blank'>programmatic access token</a> or an <a href='https://docs.snowflake.com/en/user-guide/oauth-ext-overview' target='_blank'>External OAuth</a> access token. Snowflake detects the token type.",
+      "type" : "String",
+      "secret" : true
+    },
+    {
+      "id" : "baseUrl",
+      "label" : "Account URL",
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=.*|https://[^/?#\\s]+)$",
+          "message" : "Enter an https:// URL without a path, query or trailing slash."
+        }
+      },
+      "feel" : "optional",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "baseUrl",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Your Snowflake account URL, <code>https://&lt;orgname&gt;-&lt;account_name&gt;.snowflakecomputing.com</code>, without a path. Find it in Snowsight under <b>Account details</b>.",
+      "placeholder" : "https://myorg-myaccount.snowflakecomputing.com",
+      "type" : "String"
+    },
+    {
+      "id" : "authenticationConfiguration",
+      "value" : "=null",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authenticationConfiguration",
+        "type" : "zeebe:input"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "SubmitStatement_query_requestId",
+      "label" : "Request ID",
+      "optional" : false,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "requestId",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "SubmitStatement",
+        "type" : "simple"
+      },
+      "tooltip" : "Optional UUID that identifies this request. Leave empty to let Snowflake assign one. Snowflake answers a request ID it has seen before with the earlier result and does not run the statement again. Use a new ID for every statement you submit, also across tasks and loop iterations, and reuse it only to retry that same submission.",
+      "type" : "String"
+    },
+    {
+      "id" : "SubmitStatement_query_async",
+      "label" : "Run asynchronously",
+      "optional" : false,
+      "value" : "false",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "async",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "SubmitStatement",
+        "type" : "simple"
+      },
+      "tooltip" : "Set to true to return the statement handle at once. By default, Snowflake waits up to 45 seconds for the result and then returns the statement handle with HTTP 202. Get the result with <b>Get statement status</b>.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "true",
+          "value" : "true"
+        },
+        {
+          "name" : "false",
+          "value" : "false"
+        }
+      ]
+    },
+    {
+      "id" : "SubmitStatement_query_nullable",
+      "label" : "Return SQL NULL as null",
+      "optional" : false,
+      "value" : "true",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "nullable",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "SubmitStatement",
+        "type" : "simple"
+      },
+      "tooltip" : "Set to false to return SQL NULL values as the string 'null'.",
+      "type" : "Dropdown",
+      "choices" : [
+        {
+          "name" : "true",
+          "value" : "true"
+        },
+        {
+          "name" : "false",
+          "value" : "false"
+        }
+      ]
+    },
+    {
+      "id" : "SubmitStatement_$path",
+      "value" : "=\"/api/v2/statements\"",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "SubmitStatement",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "SubmitStatement_$headers",
+      "value" : "={Accept: \"application/json\", \"Content-Type\": \"application/json\", \"User-Agent\": \"Camunda\"}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "SubmitStatement",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "SubmitStatement_$queryParameters",
+      "value" : "=context(get entries({async: async, nullable: nullable, requestId: requestId})[value != null])",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "SubmitStatement",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "SubmitStatement_$method",
+      "value" : "POST",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "SubmitStatement",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "GetStatementStatus_path_statementHandle",
+      "label" : "Statement handle",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=.*|[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})$",
+          "message" : "Enter a statement handle."
+        }
+      },
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "statementHandle",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "GetStatementStatus",
+        "type" : "simple"
+      },
+      "tooltip" : "The <code>statementHandle</code> in the response body of <b>Run SQL statement</b>. While the statement runs, Get statement status returns HTTP 202 with no rows: check <code>response.status</code> and call it again later.",
+      "placeholder" : "e4ce975e-f7ff-4b5e-b15e-bf25f59371ae",
+      "type" : "String"
+    },
+    {
+      "id" : "GetStatementStatus_query_requestId",
+      "label" : "Request ID",
+      "optional" : false,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "requestId",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "GetStatementStatus",
+        "type" : "simple"
+      },
+      "tooltip" : "Optional UUID that identifies this request. Leave empty to let Snowflake assign one. Snowflake answers a request ID it has seen before with the earlier result and does not run the statement again. Use a new ID for every statement you submit, also across tasks and loop iterations, and reuse it only to retry that same submission.",
+      "type" : "String"
+    },
+    {
+      "id" : "GetStatementStatus_query_partition",
+      "label" : "Partition",
+      "optional" : false,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "partition",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "GetStatementStatus",
+        "type" : "simple"
+      },
+      "tooltip" : "Number of the result partition to return, from 0. Large results are split into partitions: <code>resultSetMetaData.partitionInfo</code> lists them.",
+      "placeholder" : "0",
+      "type" : "String"
+    },
+    {
+      "id" : "GetStatementStatus_$path",
+      "value" : "=\"/api/v2/statements/\"+statementHandle",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "GetStatementStatus",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "GetStatementStatus_$headers",
+      "value" : "={Accept: \"application/json\", \"Content-Type\": \"application/json\", \"User-Agent\": \"Camunda\"}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "GetStatementStatus",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "GetStatementStatus_$queryParameters",
+      "value" : "=context(get entries({partition: partition, requestId: requestId})[value != null])",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "GetStatementStatus",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "GetStatementStatus_$method",
+      "value" : "GET",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "GetStatementStatus",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "CancelStatement_path_statementHandle",
+      "label" : "Statement handle",
+      "optional" : false,
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=.*|[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})$",
+          "message" : "Enter a statement handle."
+        }
+      },
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "statementHandle",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "CancelStatement",
+        "type" : "simple"
+      },
+      "tooltip" : "The <code>statementHandle</code> in the response body of <b>Run SQL statement</b>. While the statement runs, Get statement status returns HTTP 202 with no rows: check <code>response.status</code> and call it again later.",
+      "placeholder" : "e4ce975e-f7ff-4b5e-b15e-bf25f59371ae",
+      "type" : "String"
+    },
+    {
+      "id" : "CancelStatement_query_requestId",
+      "label" : "Request ID",
+      "optional" : false,
+      "feel" : "optional",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "requestId",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "CancelStatement",
+        "type" : "simple"
+      },
+      "tooltip" : "Optional UUID that identifies this request. Leave empty to let Snowflake assign one. Snowflake answers a request ID it has seen before with the earlier result and does not run the statement again. Use a new ID for every statement you submit, also across tasks and loop iterations, and reuse it only to retry that same submission.",
+      "type" : "String"
+    },
+    {
+      "id" : "CancelStatement_$path",
+      "value" : "=\"/api/v2/statements/\"+statementHandle+\"/cancel\"",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "operationPath",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "CancelStatement",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "CancelStatement_$headers",
+      "value" : "={Accept: \"application/json\", \"Content-Type\": \"application/json\", \"User-Agent\": \"Camunda\"}",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "headers",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "CancelStatement",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "CancelStatement_$queryParameters",
+      "value" : "=context(get entries({requestId: requestId})[value != null])",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "queryParameters",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "CancelStatement",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "CancelStatement_$method",
+      "value" : "POST",
+      "group" : "parameters",
+      "binding" : {
+        "name" : "method",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "CancelStatement",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "SubmitStatement_body",
+      "label" : "Request body",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "feel" : "required",
+      "group" : "requestBody",
+      "binding" : {
+        "name" : "body",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "SubmitStatement",
+        "type" : "simple"
+      },
+      "tooltip" : "Request body as a FEEL context. <code>statement</code> is required. Pass process variables in <a href='https://docs.snowflake.com/en/developer-guide/sql-api/submitting-requests#using-bind-variables-in-a-statement' target='_blank'><code>bindings</code></a> and use <code>?</code> in the statement, never concatenate them into the SQL. Binding values must be strings, also for numbers: use <code>string(...)</code>. Set <code>warehouse</code>, <code>database</code>, <code>schema</code> and <code>role</code> unless the user's defaults apply. If the statement takes longer than 45 seconds, the response is HTTP 202 with a <code>statementHandle</code> and no rows: get the result with <b>Get statement status</b>. See the <a href='https://docs.snowflake.com/en/developer-guide/sql-api/reference' target='_blank'>SQL API reference</a>.",
+      "placeholder" : "={\n  statement: \"select * from customers where id = ?\",\n  timeout: 60,\n  database: \"MY_DB\",\n  schema: \"PUBLIC\",\n  warehouse: \"MY_WH\",\n  bindings: {\n    \"1\": {type: \"TEXT\", value: string(customerId)}\n  }\n}",
+      "type" : "String"
+    },
+    {
+      "id" : "CancelStatement_body",
+      "value" : "=null",
+      "group" : "requestBody",
+      "binding" : {
+        "name" : "body",
+        "type" : "zeebe:input"
+      },
+      "condition" : {
+        "property" : "operationId",
+        "equals" : "CancelStatement",
+        "type" : "simple"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "url",
+      "value" : "= baseUrl + operationPath",
+      "group" : "url",
+      "binding" : {
+        "name" : "url",
+        "type" : "zeebe:input"
+      },
+      "type" : "Hidden"
+    },
+    {
+      "id" : "connectionTimeoutInSeconds",
+      "label" : "Connection timeout in seconds",
+      "optional" : false,
+      "value" : 20,
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^\\d+$",
+          "message" : "Must be a number"
+        }
+      },
+      "feel" : "static",
+      "group" : "timeout",
+      "binding" : {
+        "name" : "connectionTimeoutInSeconds",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Time to establish the connection. Use 0 for an infinite timeout.",
+      "type" : "Number"
+    },
+    {
+      "id" : "readTimeoutInSeconds",
+      "label" : "Read timeout in seconds",
+      "optional" : false,
+      "value" : 60,
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^\\d+$",
+          "message" : "Must be a number"
+        }
+      },
+      "feel" : "static",
+      "group" : "timeout",
+      "binding" : {
+        "name" : "readTimeoutInSeconds",
+        "type" : "zeebe:input"
+      },
+      "tooltip" : "Time to wait for the response. Snowflake waits up to 45 seconds for a result before it returns the statement handle, so keep this above 45. Use 0 for an infinite timeout.",
+      "type" : "Number"
+    },
+    {
+      "id" : "resultVariable",
+      "label" : "Result variable",
+      "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultVariable",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "resultExpression",
+      "label" : "Result expression",
+      "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+      "feel" : "required",
+      "group" : "output",
+      "binding" : {
+        "key" : "resultExpression",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Text"
+    },
+    {
+      "id" : "errorExpression",
+      "label" : "Error expression",
+      "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "feel" : "required",
+      "group" : "error",
+      "binding" : {
+        "key" : "errorExpression",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Text"
+    },
+    {
+      "id" : "retryCount",
+      "label" : "Retries",
+      "value" : "0",
+      "feel" : "optional",
+      "group" : "retries",
+      "binding" : {
+        "property" : "retries",
+        "type" : "zeebe:taskDefinition"
+      },
+      "tooltip" : "Number of retries. Defaults to 0: a retried statement runs again.",
+      "type" : "String"
+    },
+    {
+      "id" : "retryBackoff",
+      "label" : "Retry backoff",
+      "description" : "ISO-8601 duration to wait between retries",
+      "value" : "PT30S",
+      "group" : "retries",
+      "binding" : {
+        "key" : "retryBackoff",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "String"
+    },
+    {
+      "id" : "jobTimeout",
+      "label" : "Job timeout",
+      "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+      "optional" : true,
+      "group" : "retries",
+      "binding" : {
+        "key" : "jobTimeout",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "String"
+    },
+    {
+      "value" : "io.camunda:http-json:1",
+      "binding" : {
+        "property" : "type",
+        "type" : "zeebe:taskDefinition"
+      },
+      "type" : "Hidden"
+    }
+  ],
+  "steps" : [
+    {
+      "name" : "Run SQL statement",
+      "description" : "Query or change Snowflake data with a SQL statement",
+      "keywords" : [
+        "SQL",
+        "query",
+        "select",
+        "insert",
+        "update",
+        "merge",
+        "statement"
+      ],
+      "presetId" : "SubmitStatement"
+    },
+    {
+      "name" : "Get statement status",
+      "description" : "Get the result of a Snowflake SQL statement, or HTTP 202 while it still runs",
+      "keywords" : [
+        "statement status",
+        "poll",
+        "async result",
+        "result partition"
+      ],
+      "presetId" : "GetStatementStatus"
+    },
+    {
+      "name" : "Cancel statement",
+      "description" : "Cancel a running Snowflake SQL statement",
+      "keywords" : [
+        "cancel",
+        "stop statement",
+        "timeout"
+      ],
+      "presetId" : "CancelStatement"
+    }
+  ],
+  "presets" : [
+    {
+      "id" : "SubmitStatement",
+      "properties" : {
+        "operationId" : "SubmitStatement"
+      }
+    },
+    {
+      "id" : "GetStatementStatus",
+      "properties" : {
+        "operationId" : "GetStatementStatus"
+      }
+    },
+    {
+      "id" : "CancelStatement",
+      "properties" : {
+        "operationId" : "CancelStatement"
+      }
+    }
+  ],
+  "configurationTemplates" : [
+    {
+      "id" : "io.camunda.connectors:snowflake-authentication:1",
+      "kind" : "CREDENTIAL",
+      "version" : 1,
+      "name" : "Snowflake Authentication",
+      "properties" : [
+        {
+          "id" : "authentication.type",
+          "value" : "bearer",
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.type",
+            "type" : "property"
+          },
+          "type" : "Hidden"
+        },
+        {
+          "id" : "authentication.token",
+          "label" : "Access token",
+          "constraints" : {
+            "notEmpty" : true
+          },
+          "group" : "authentication",
+          "binding" : {
+            "name" : "authentication.token",
+            "type" : "property"
+          },
+          "tooltip" : "A Snowflake <a href='https://docs.snowflake.com/en/user-guide/programmatic-access-tokens' target='_blank'>programmatic access token</a> or an <a href='https://docs.snowflake.com/en/user-guide/oauth-ext-overview' target='_blank'>External OAuth</a> access token. Snowflake detects the token type.",
+          "type" : "String",
+          "secret" : true
+        }
+      ]
+    }
+  ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSIjMjlCNUU4IiBkPSJNNy42MDIgMTIuNGMuMDM4LS4xNTEuMDc2LS4zMDQuMDc2LS40NTYgMC0uMTE0LS4wMzgtLjIyOC0uMDM4LS4zNDItLjExNC0uMzQzLS4zMDQtLjY0Ny0uNjQ2LS44MzhsLTQuODctMi43NzdjLS42ODUtLjM4LTEuNTYtLjE1Mi0xLjk0LjUzMy0uMzgxLjY4NS0uMTUzIDEuNTYuNTMyIDEuOTRsMi43MDEgMS41Ni0yLjcwMSAxLjU2Yy0uNjg1LjM4LS45MTMgMS4yNTYtLjUzMyAxLjk0LjM4LjY4NSAxLjI1Ni45MTQgMS45NC41MzNsNC44MzItMi43NzdjLjM0My0uMjY3LjU3MS0uNTMzLjY0Ny0uODc2em0xLjMzMiAyLjYyNmMtLjI2Ni0uMDM4LS41Ny4wMzgtLjgzNy4xOWwtNC44MzIgMi43NzdjLS42ODUuMzgtLjkxMyAxLjI1Ni0uNTMyIDEuOTQuMzguNjg2IDEuMjU1LjkxNCAxLjk0LjUzM2wyLjcwMS0xLjU2djMuMTJjMCAuOC42NDcgMS40MDggMS40NDYgMS40MDguNzk5IDAgMS40MDctLjY0NyAxLjQwNy0xLjQwOHYtNS41OTJjMC0uNzYxLS41Ny0xLjM3LTEuMjkzLTEuNDA4em00Ljk0Ni02LjA4OGMuMjY2LjAzOC41Ny0uMDM4LjgzNy0uMTlsNC44MzItMi43NzdjLjY4NS0uMzguOTEzLTEuMjU2LjUzMi0xLjk0LS4zOC0uNjg2LTEuMjU1LS45MTQtMS45NC0uNTMzbC0yLjcwMSAxLjU2VjEuOTc1YzAtLjc5OS0uNjQ3LTEuNDA4LTEuNDQ2LTEuNDA4LS43OTkgMC0xLjQ0Ni42MDktMS40NDYgMS40MDhWNy41M2MwIC43Ni42MDkgMS4zNyAxLjMzMiAxLjQwN3pNMy4yNjUgNS45N2w0LjgzMiAyLjc3N2MuMjY2LjE1Mi41MzMuMTkuODM3LjE5LjcyMy0uMDM4IDEuMzMxLS42ODQgMS4zMzEtMS40MDdWMS45NzVjMC0uNzk5LS42NDYtMS40MDgtMS40MDctMS40MDgtLjc5OSAwLTEuNDQ2LjY0Ny0xLjQ0NiAxLjQwOHYzLjEybC0yLjcwMS0xLjU2Yy0uNjg1LS4zOC0xLjU2LS4xNTItMS45NC41MzMtLjQxOS42NDYtLjE5IDEuNTIxLjQ5NCAxLjkwMnptOS4wOTMgNi4wMTFhLjQxMi40MTIgMCAwMC0uMTE0LS4yNjZsLS41Ny0uNTcxYS4zNDYuMzQ2IDAgMDAtLjI2Ny0uMTE0LjQxMi40MTIgMCAwMC0uMjY2LjExNGwtLjU3MS41N2EuNDExLjQxMSAwIDAwLS4xMTQuMjY3YzAgLjA3Ni4wMzguMTkuMTE0LjI2N2wuNTcuNTdhLjM0NS4zNDUgMCAwMC4yNjcuMTE0Yy4wNzYgMCAuMTktLjAzOC4yNjYtLjExNGwuNTcxLS41N2EuNDEyLjQxMiAwIDAwLjExNC0uMjY3em0xLjU5OC41MzNMMTEuOTQgMTQuNTNjLS4wMzkuMDM4LS4xNTMuMTE0LS4yMjkuMTE0aC0uNjA4YS40MTEuNDExIDAgMDEtLjI2Ny0uMTE0TDguODIgMTIuNTE0YS40MDguNDA4IDAgMDEtLjA3Ni0uMjI5di0uNjA4YzAtLjA3Ni4wMzgtLjE5LjExNC0uMjY3bDIuMDE2LTIuMDE2YS40MS40MSAwIDAxLjI2Ny0uMTE0aC42MDhhLjQxLjQxIDAgMDEuMjY3LjExNGwyLjAxNiAyLjAxNmEuMzQ3LjM0NyAwIDAxLjExNC4yNjd2LjYwOGMtLjA3Ni4wNzctLjExNC4xOS0uMTkuMjI5em01LjU5MyA1LjQ0bC00LjgzMi0yLjc3N2MtLjI2Ni0uMTUyLS41Ny0uMTktLjgzNy0uMTUyLS43MjMuMDM4LTEuMzMyLjY4NC0xLjMzMiAxLjQwOHY1LjU1NGMwIC44LjY0NyAxLjQwOCAxLjQwOCAxLjQwOC43OTkgMCAxLjQ0Ni0uNjQ3IDEuNDQ2LTEuNDA4di0zLjEybDIuNyAxLjU2Yy42ODYuMzggMS41NjEuMTUyIDEuOTQxLS41MzMuNDE5LS42NDYuMTktMS41MjEtLjQ5NC0xLjk0em0yLjU0OS03LjUzM2wtMi43MDEgMS41NiAyLjcgMS41NmMuNjg2LjM4LjkxNCAxLjI1Ni41MzMgMS45NC0uMzguNjg1LTEuMjU1LjkxMy0xLjk0LjUzM2wtNC44MzItMi43NzhhMS42NDQgMS42NDQgMCAwMS0uNjQ3LS43OThjLS4wMzctLjE1My0uMDc2LS4zMDUtLjA3Ni0uNDU3IDAtLjExNC4wMzktLjIyOC4wMzktLjM0Mi4xMTQtLjM0My4zNDItLjY0Ny42NDYtLjgzN2w0LjgzMi0yLjc3OGMuNjg1LS4zOCAxLjU2LS4xNTIgMS45NC41MzMuNDU3LjYwOS4xOSAxLjQ4NC0uNDk0IDEuODY0Ii8+PC9zdmc+Cg=="
+  }
+}

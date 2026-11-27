@@ -42,6 +42,7 @@
     <module>salesforce</module>
     <module>sendgrid</module>
     <module>slack</module>
+    <module>snowflake</module>
     <module>soap</module>
     <module>webhook</module>
     <module>idp-extraction</module>
