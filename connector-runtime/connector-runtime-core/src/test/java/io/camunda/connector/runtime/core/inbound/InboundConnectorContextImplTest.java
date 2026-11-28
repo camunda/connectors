@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.client.CamundaClient;
@@ -49,6 +50,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationP
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -877,6 +879,448 @@ class InboundConnectorContextImplTest {
     var logs =
         activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
     assertThat(logs).hasSize(2);
+  }
+
+  @Test
+  void reportHealth_masksASecretInTheDetails() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when the reported health carries the resolved value in its details, also nested
+    context.reportHealth(
+        Health.up(
+            Map.of(
+                "detail",
+                "token was bar",
+                "nested",
+                Map.of("values", List.of("bar", 42)),
+                "port",
+                8080)));
+
+    // then it is masked in the stored health, in the health change and in the log message
+    var details = context.getHealth().getDetails();
+    assertThat(details)
+        .containsEntry("detail", "token was ***")
+        .containsEntry("nested", Map.of("values", List.of("***", 42)))
+        .containsEntry("port", 8080);
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> {
+          assertThat(log.message()).doesNotContain("bar");
+          assertThat(log.healthChange().getDetails()).isEqualTo(details);
+        });
+  }
+
+  @Test
+  void reportHealth_withholdsDetailsWhenSecretValuesCannotBeFetched() {
+    // given a provider that fails to resolve the declared secret
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var failingProvider = mock(SecretProvider.class);
+    when(failingProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var context =
+        new InboundConnectorContextImpl(
+            failingProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when an UP health is reported twice with details that may hold the value
+    context.reportHealth(Health.up("detail", "token was bar"));
+    context.reportHealth(Health.up("detail", "token was bar"));
+
+    // then the details are withheld, and an unverifiable health is never deduped
+    assertThat(context.getHealth().getDetails().toString())
+        .doesNotContain("bar")
+        .contains("withheld");
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs).hasSize(2).allSatisfy(log -> assertThat(log.message()).doesNotContain("bar"));
+  }
+
+  @Test
+  void log_masksASecretInTheActivityData() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when an activity's data carries the resolved value, as a value and as a key
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withMessage("received")
+            .withData(Map.of("header", "Bearer bar", "bar", true, "count", 3)));
+
+    // then the logged data has the value masked and keeps everything else as it was
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log ->
+            assertThat(log.data())
+                .containsOnly(
+                    Map.entry("header", "Bearer ***"),
+                    Map.entry("***", true),
+                    Map.entry("count", 3)));
+  }
+
+  @Test
+  void reportHealth_masksANumericSecretInValuesAndKeys() throws Exception {
+    // given a secret whose value is a number
+    var definition = getInboundConnectorDefinition(Map.of("pin", "secrets.PIN"));
+    var pinProvider =
+        new SecretProvider() {
+          @Override
+          public String getSecret(String name, SecretContext secretContext) {
+            return "PIN".equals(name) ? "123456" : null;
+          }
+        };
+    var context =
+        new InboundConnectorContextImpl(
+            pinProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when the details hold it as a number, also nested, and as a numeric key of a nested map
+    context.reportHealth(
+        Health.up(
+            Map.of(
+                "pin", 123456,
+                "nested", Map.of(123456L, "seen", 7, "kept"),
+                "values", List.of(123456, 42))));
+
+    // then it is masked in the details, in the health change and in the published JSON
+    var details = context.getHealth().getDetails();
+    assertThat(details)
+        .containsEntry("pin", "***")
+        .containsEntry("nested", Map.of("***", "seen", 7, "kept"))
+        .containsEntry("values", List.of("***", 42));
+    assertThat(mapper.writeValueAsString(context.getHealth())).doesNotContain("123456");
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.healthChange().getDetails()).isEqualTo(details));
+  }
+
+  @Test
+  void log_masksANumericSecretInTheActivityData() throws Exception {
+    // given a secret whose value is a number
+    var definition = getInboundConnectorDefinition(Map.of("pin", "secrets.PIN"));
+    var pinProvider =
+        new SecretProvider() {
+          @Override
+          public String getSecret(String name, SecretContext secretContext) {
+            return "PIN".equals(name) ? "123456" : null;
+          }
+        };
+    var context =
+        new InboundConnectorContextImpl(
+            pinProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when an activity's data carries it as a number, and as a numeric key of a nested map
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withMessage("received")
+            .withData(Map.of("pin", 123456, "byPin", Map.of(123456, true), "count", 3)));
+
+    // then the logged data has it masked and keeps everything else as it was
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> {
+          assertThat(log.data())
+              .containsOnly(
+                  Map.entry("pin", "***"),
+                  Map.entry("byPin", Map.of("***", true)),
+                  Map.entry("count", 3));
+          assertThat(mapper.writeValueAsString(log.data())).doesNotContain("123456");
+        });
+  }
+
+  @Test
+  void reportHealth_masksASecretThatFormattingTheDetailsJoinsTogether() {
+    // given a secret that a details key and its value print as, though neither shows it alone
+    var definition = getInboundConnectorDefinition(Map.of("pair", "secrets.PAIR"));
+    var context = contextWithSecrets(Map.of("PAIR", "region=eu"), definition);
+
+    // when
+    context.reportHealth(Health.up(Map.of("region", "eu")));
+
+    // then the details are withheld, and neither the message nor the logged line shows the pair
+    assertThat(context.getHealth().getDetails().toString())
+        .doesNotContain("region=eu")
+        .contains("withheld");
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> {
+          assertThat(log.message()).doesNotContain("region=eu");
+          // ActivityLogRegistry writes the whole activity, data and health included, to the log
+          assertThat(log.toString()).doesNotContain("region=eu");
+        });
+  }
+
+  @Test
+  void log_withholdsDataWhoseMapKeyPrintsASecret() throws Exception {
+    // given a secret that a map used as a key prints as, though neither its key nor value shows it
+    var definition = getInboundConnectorDefinition(Map.of("pair", "secrets.PAIR"));
+    var context = contextWithSecrets(Map.of("PAIR", "region=eu"), definition);
+
+    // when the activity's data has such a key, which JSON writes with its toString()
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withMessage("received")
+            .withData(Map.of("byRegion", Map.of(Map.of("region", "eu"), 1))));
+
+    // then the data is withheld, so neither the log line nor the JSON shows the pair
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> {
+          assertThat(log.data().toString()).contains("withheld");
+          assertThat(log.toString()).doesNotContain("region=eu");
+          assertThat(new ObjectMapper().writeValueAsString(log.data())).doesNotContain("region=eu");
+        });
+  }
+
+  enum Lang {
+    PYTHON;
+
+    @JsonValue
+    String json() {
+      return "s3cret-lang";
+    }
+  }
+
+  enum Shown {
+    ON;
+
+    @Override
+    public String toString() {
+      return "s3cret-shown";
+    }
+  }
+
+  @Test
+  void reportHealth_masksAnEnumByItsJsonValueAndItsStringForm() throws Exception {
+    // given secrets that one enum publishes through @JsonValue and another prints as toString()
+    var definition =
+        getInboundConnectorDefinition(Map.of("a", "secrets.LANG", "b", "secrets.SHOWN"));
+    var context =
+        contextWithSecrets(Map.of("LANG", "s3cret-lang", "SHOWN", "s3cret-shown"), definition);
+
+    // when the details hold both
+    context.reportHealth(Health.up(Map.of("lang", Lang.PYTHON, "shown", Shown.ON)));
+
+    // then each is published as its masked JSON form, and the message shows neither secret
+    var details = context.getHealth().getDetails();
+    assertThat(details).containsEntry("lang", "***").containsEntry("shown", "ON");
+    assertThat(mapper.writeValueAsString(context.getHealth())).doesNotContain("s3cret");
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> assertThat(log.message()).doesNotContain("s3cret"));
+  }
+
+  private InboundConnectorContextImpl contextWithSecrets(
+      Map<String, String> secrets, ValidInboundConnectorDetails definition) {
+    var provider =
+        new SecretProvider() {
+          @Override
+          public String getSecret(String name, SecretContext secretContext) {
+            return secrets.get(name);
+          }
+        };
+    return new InboundConnectorContextImpl(
+        provider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry, camundaClient);
+  }
+
+  @Test
+  void reportHealth_publishesAnObjectAsItsMaskedStringForm() throws Exception {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when the details hold a bean whose getter returns the value, and the value as a char[]
+    context.reportHealth(
+        Health.up(Map.of("credentials", new Credentials("bar"), "password", "bar".toCharArray())));
+
+    // then neither reaches the JSON that the health endpoints publish
+    var details = context.getHealth().getDetails();
+    assertThat(details)
+        .containsEntry("credentials", "Credentials")
+        .containsEntry("password", "***");
+    assertThat(mapper.writeValueAsString(context.getHealth())).doesNotContain("bar");
+  }
+
+  @Test
+  void reportHealth_replacesACircularReferenceInTheDetails() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+    var details = new HashMap<String, Object>();
+    details.put("detail", "token was bar");
+    details.put("self", details);
+    var list = new ArrayList<Object>();
+    list.add("bar");
+    list.add(list);
+    details.put("list", list);
+    var array = new Object[2];
+    array[0] = "bar";
+    array[1] = array;
+    details.put("array", array);
+
+    // when
+    context.reportHealth(Health.up(details));
+
+    // then the health is recorded, masked, with each repeat replaced
+    assertThat(context.getHealth().getDetails())
+        .containsEntry("detail", "token was ***")
+        .containsEntry("self", "[circular reference]")
+        .containsEntry("list", List.of("***", "[circular reference]"))
+        .containsEntry("array", List.of("***", "[circular reference]"));
+  }
+
+  @Test
+  void log_replacesACircularReferenceInTheActivityData() {
+    // given
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+    var nested = new HashMap<String, Object>();
+    nested.put("header", "Bearer bar");
+    nested.put("parent", nested);
+
+    // when
+    context.log(activity ->
+        activity.withSeverity(Severity.INFO).withMessage("received").withData("nested", nested));
+
+    // then
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log ->
+            assertThat(log.data())
+                .containsEntry(
+                    "nested", Map.of("header", "Bearer ***", "parent", "[circular reference]")));
+  }
+
+  // a bean whose JSON form shows the token but whose string form does not
+  public static final class Credentials {
+    private final String token;
+
+    Credentials(String token) {
+      this.token = token;
+    }
+
+    public String getToken() {
+      return token;
+    }
+
+    @Override
+    public String toString() {
+      return "Credentials";
+    }
+  }
+
+  @Test
+  void log_withholdsActivityDataWhenSecretValuesCannotBeFetched() {
+    // given a provider that fails to resolve the declared secret
+    var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
+    var failingProvider = mock(SecretProvider.class);
+    when(failingProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
+    var context =
+        new InboundConnectorContextImpl(
+            failingProvider,
+            e -> {},
+            definition,
+            null,
+            e -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    // when
+    context.log(activity -> activity.withSeverity(Severity.INFO).withData("header", "Bearer bar"));
+
+    // then the raw data is withheld rather than published unmasked
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> {
+          assertThat(log.data().toString()).doesNotContain("bar").contains("withheld");
+        });
   }
 
   @Test

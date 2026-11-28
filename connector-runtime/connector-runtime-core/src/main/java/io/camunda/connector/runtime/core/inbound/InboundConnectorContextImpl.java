@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.Document;
@@ -60,6 +61,10 @@ import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -93,6 +98,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private static final String REDACTION_UNAVAILABLE_MESSAGE =
       "Message withheld: could not verify it does not contain a secret value";
+
+  private static final Map<String, Object> WITHHELD_DATA =
+      Map.of("withheld", "Data withheld: could not verify it does not contain a secret value");
+
+  private static final String CIRCULAR_REFERENCE = "[circular reference]";
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -531,10 +541,14 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     var activityLog =
         Activity.newBuilder()
             .withTag(ActivityLogTag.HEALTH)
+            // masked again as a whole: formatting the details can join a masked key and value
+            // into a secret (a key "a" and value "b" print as "a=b"), and an object's toString()
+            // can differ from the JSON form its details were masked as
             .withMessage(
-                String.format(
-                    "Health status changed to %s, details: %s",
-                    masked.getStatus(), masked.getDetails()))
+                redactMessage(
+                    String.format(
+                        "Health status changed to %s, details: %s",
+                        masked.getStatus(), masked.getDetails())))
             .withSeverity(masked.getStatus() == Health.Status.UP ? Severity.INFO : Severity.ERROR)
             .andReportHealth(masked)
             .build();
@@ -649,17 +663,27 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   // an unmaskable health can't be verified as a repeat either, so it must never be deduped away
   private static boolean isWithheld(Health health) {
-    return health.getError() != null
-        && REDACTION_UNAVAILABLE_MESSAGE.equals(health.getError().message());
+    return (health.getError() != null
+            && REDACTION_UNAVAILABLE_MESSAGE.equals(health.getError().message()))
+        || WITHHELD_DATA.equals(health.getDetails());
   }
 
   private @Nullable Health redactHealth(@Nullable Health health) {
-    if (health == null || health.getError() == null) {
-      return health;
+    if (health == null) {
+      return null;
     }
+    var redacted = health;
     var error = health.getError();
-    return health.withError(
-        new Health.Error(redactMessage(error.code()), redactMessage(error.message())));
+    if (error != null) {
+      redacted =
+          redacted.withError(
+              new Health.Error(redactMessage(error.code()), redactMessage(error.message())));
+    }
+    var details = health.getDetails();
+    if (details != null && !details.isEmpty()) {
+      redacted = redacted.withDetails(redactData(details));
+    }
+    return redacted;
   }
 
   private Activity redact(Activity activity) {
@@ -668,8 +692,109 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         activity.tag(),
         activity.timestamp(),
         redactMessage(activity.message()),
-        activity.data(),
+        redactData(activity.data()),
         redactHealth(activity.healthChange()));
+  }
+
+  // structured health details and activity data, masked the same way as messages
+  private @Nullable Map<String, Object> redactData(@Nullable Map<String, Object> data) {
+    if (data == null || data.isEmpty()) {
+      return data;
+    }
+    var secrets = secretValuesForRedaction();
+    if (secrets == null) {
+      return WITHHELD_DATA;
+    }
+    if (secrets.isEmpty()) {
+      return data;
+    }
+    // the data is user-supplied, so a container may contain itself
+    Set<Object> enclosing = Collections.newSetFromMap(new IdentityHashMap<>());
+    enclosing.add(data);
+    var redacted = new LinkedHashMap<String, Object>();
+    data.forEach((key, value) ->
+        redacted.put(
+            SecretUtil.hideSecretsFromMessage(key, secrets),
+            redactValue(value, secrets, enclosing)));
+    // a key and its value, or a map used as a key, can print a secret together that no part shows
+    // alone (a key "a" and value "b" print as "a=b"); the activity log line renders the data with
+    // toString(), and so does JSON for a map key, so data whose rendering still shows one is withheld
+    var shown = String.valueOf(redacted);
+    if (!SecretUtil.hideSecretsFromMessage(shown, secrets).equals(shown)) {
+      return WITHHELD_DATA;
+    }
+    return redacted;
+  }
+
+  /**
+   * Masks every secret in a value that is published as JSON.
+   *
+   * <p>Strings keep their type, and so do numbers and booleans whose JSON form shows no secret; one
+   * that shows a secret, such as a numeric PIN, is published as its masked string form. An enum is
+   * published as its masked JSON form, as a string: its name, or the value of a {@code @JsonValue}
+   * method. Maps, collections and object arrays are copied with each key and element masked. Any
+   * other value, such as a bean or a {@code char[]}, is published as its masked string form: its
+   * JSON form could carry a secret that its string form doesn't show, for example from a getter. A
+   * container that contains itself is replaced by {@link #CIRCULAR_REFERENCE} where it repeats.
+   */
+  private @Nullable Object redactValue(
+      @Nullable Object value, List<String> secrets, Set<Object> enclosing) {
+    return switch (value) {
+      case null -> null;
+      case Number number -> keepUnlessSecret(number, String.valueOf(number), secrets);
+      case Boolean bool -> keepUnlessSecret(bool, String.valueOf(bool), secrets);
+      case Enum<?> constant -> SecretUtil.hideSecretsFromMessage(enumJson(constant), secrets);
+      case String text -> SecretUtil.hideSecretsFromMessage(text, secrets);
+      case char[] chars -> SecretUtil.hideSecretsFromMessage(new String(chars), secrets);
+      case Map<?, ?> map -> {
+        if (!enclosing.add(map)) {
+          yield CIRCULAR_REFERENCE;
+        }
+        try {
+          var redacted = new LinkedHashMap<Object, Object>();
+          map.forEach((key, nested) ->
+              redacted.put(
+                  redactValue(key, secrets, enclosing), redactValue(nested, secrets, enclosing)));
+          yield redacted;
+        } finally {
+          enclosing.remove(map);
+        }
+      }
+      case Collection<?> collection -> redactElements(collection, collection, secrets, enclosing);
+      case Object[] array -> redactElements(array, Arrays.asList(array), secrets, enclosing);
+      default -> SecretUtil.hideSecretsFromMessage(String.valueOf(value), secrets);
+    };
+  }
+
+  // the JSON form of a number, boolean or enum is its string form, or an enum's name
+  private static Object keepUnlessSecret(Object value, String published, List<String> secrets) {
+    var masked = SecretUtil.hideSecretsFromMessage(published, secrets);
+    return masked.equals(published) ? value : masked;
+  }
+
+  // what the JSON endpoints publish for an enum: its name, or the value of a @JsonValue method
+  private String enumJson(Enum<?> constant) {
+    try {
+      JsonNode json = objectMapper.valueToTree(constant);
+      return json.isTextual() ? json.textValue() : json.toString();
+    } catch (IllegalArgumentException e) {
+      return constant.name();
+    }
+  }
+
+  // the container is tracked by identity, since an array's list view is a new object each time
+  private Object redactElements(
+      Object container, Collection<?> elements, List<String> secrets, Set<Object> enclosing) {
+    if (!enclosing.add(container)) {
+      return CIRCULAR_REFERENCE;
+    }
+    try {
+      var redacted = new ArrayList<@Nullable Object>(elements.size());
+      elements.forEach(nested -> redacted.add(redactValue(nested, secrets, enclosing)));
+      return redacted;
+    } finally {
+      enclosing.remove(container);
+    }
   }
 
   @Override
