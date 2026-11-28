@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.agenticai.realllm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.e2e.agenticai.aiagent.fixtures.DocumentSetup;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -137,6 +138,25 @@ class RealProviderSelectionTest {
   }
 
   @Test
+  void shouldSelectOpenRouterDocumentProvidersOnlyWhenGroupIsOpenRouter() {
+    environment.set("OPENROUTER_API_KEY", "key").set("REAL_LLM_PROVIDER_GROUP", "openrouter");
+
+    assertThat(DocumentToolCallResultsIT.providers())
+        .extracting(DocumentToolCallResultsIT.ProviderConfig::label)
+        .containsExactly(
+            "openrouter-v2/openai/gpt-oss-20b",
+            "openrouter-v2/qwen/qwen3.8-27b",
+            "openrouter-v2/google/gemma-4-31b-it",
+            "openrouter-v2/z-ai/glm-5.3-flash");
+
+    environment.set("REAL_LLM_PROVIDER_GROUP", "openai").set("OPENAI_API_KEY", "key");
+
+    assertThat(DocumentToolCallResultsIT.providers())
+        .extracting(DocumentToolCallResultsIT.ProviderConfig::label)
+        .noneMatch(label -> label.startsWith("openrouter-v2/"));
+  }
+
+  @Test
   void shouldSelectMistralRowsOnlyWhenGroupIsMistral() {
     environment.set("MISTRAL_API_KEY", "key");
     environment.set("REAL_LLM_PROVIDER_GROUP", "mistral");
@@ -181,8 +201,13 @@ class RealProviderSelectionTest {
 
     assertThat(RealProviderApiSmokeSupport.providersWithStructuredOutputAndTools()).isEmpty();
     assertThat(RealProviderApiSmokeSupport.providersWithStructuredOutputWithoutTools())
-        .extracting(RealProviderApiSmokeSupport.ProviderConfig::label)
-        .containsExactly("google-gemini-vertex-ai-v2/gemini-3.8-flash");
+        .singleElement()
+        .satisfies(provider -> {
+          assertThat(provider.label()).isEqualTo("google-gemini-vertex-ai-v2/gemini-3.8-flash");
+          assertThat(
+                  provider.propertiesFor(RealProviderApiSmokeSupport.Capability.STRUCTURED_OUTPUT))
+              .isEqualTo(DocumentSetup.REFERENCES_OFF.properties());
+        });
   }
 
   @Test

@@ -21,6 +21,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -93,6 +94,50 @@ class RealProviderMultimodalE2ETestIT extends RealProviderApiSmokeSupport {
                 List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH)));
 
     assertResponseTextContains(instance, "Zypherion");
+  }
+
+  /**
+   * The same document with the user prompt delivery "Reference": the model gets the handle of the
+   * document only, so it can answer only after it loaded the document with {@code
+   * c8__load_document}.
+   */
+  @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
+  @MethodSource("providersWithMultimodalUserMessage")
+  void documentReferenceInUserMessageIsLoadedByModel(
+      ProviderConfig provider, WireMockRuntimeInfo wireMock) {
+    stubPdfDownload();
+
+    final var systemPrompt =
+        "You are a document analyst. Answer using only the document attached to the user's "
+            + "message. Always quote specific facts, numbers, dates, and names found in the "
+            + "document.";
+
+    var model =
+        buildModel(
+            provider,
+            AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
+            DOCUMENT_BPMN_RESOURCE,
+            template ->
+                template
+                    .property("data.userPrompt.documents", "=downloadedFiles")
+                    .property("data.documents.userPromptDelivery", "reference"));
+
+    var instance =
+        startAgent(
+            model,
+            DOCUMENT_PROCESS_ID,
+            systemPrompt,
+            Map.of(
+                "userPrompt",
+                "What is the internal project code name mentioned in the attached document? "
+                    + "Quote it exactly.",
+                "downloadUrls",
+                List.of(wireMock.getHttpBaseUrl() + "/" + DOC_PROJECT_LAUNCH)));
+
+    assertResponseTextContains(instance, "Zypherion");
+    // the tools of the process return the same document, so the model must not have used them
+    assertThat(instance)
+        .hasNotActivatedElements("Analyze_Single_Document", "Search_Documents", "Fetch_Report");
   }
 
   // ---------------------------------------------------------------------------

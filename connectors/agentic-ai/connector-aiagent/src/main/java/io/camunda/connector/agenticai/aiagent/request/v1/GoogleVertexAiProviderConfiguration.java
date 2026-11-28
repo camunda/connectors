@@ -31,16 +31,6 @@ public record GoogleVertexAiProviderConfiguration(
   @TemplateProperty(ignore = true)
   public static final String GOOGLE_VERTEX_AI_ID = "google-vertex-ai";
 
-  @Override
-  public String provider() {
-    return GOOGLE_VERTEX_AI_ID;
-  }
-
-  @Override
-  public String model() {
-    return googleVertexAi.model.model();
-  }
-
   public record GoogleVertexAiConnection(
       @NotBlank
           @TemplateProperty(

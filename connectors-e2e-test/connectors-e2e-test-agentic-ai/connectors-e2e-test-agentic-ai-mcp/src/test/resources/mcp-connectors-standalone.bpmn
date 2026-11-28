@@ -9,7 +9,7 @@
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
-          <zeebe:input source="=[&#34;toolB&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
+          <zeebe:input source="=[&#34;echo&#34;, &#34;echoMeta&#34;]" target="data.connectorMode.standaloneModeFilters.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -21,12 +21,14 @@
       <bpmn:incoming>Flow_0tqwlqt</bpmn:incoming>
       <bpmn:outgoing>Flow_132cj6p</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="Flow_0tqwlqt" sourceRef="Gateway_1e98ie0" targetRef="Client_List_Tools" />
-    <bpmn:parallelGateway id="Gateway_1e98ie0">
+    <bpmn:sequenceFlow id="Flow_0tqwlqt" sourceRef="Gateway_1e98ie0" targetRef="Client_List_Tools">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=runLocal</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:inclusiveGateway id="Gateway_1e98ie0">
       <bpmn:incoming>Flow_1xrlw8t</bpmn:incoming>
       <bpmn:outgoing>Flow_0tqwlqt</bpmn:outgoing>
       <bpmn:outgoing>Flow_0utxpy4</bpmn:outgoing>
-    </bpmn:parallelGateway>
+    </bpmn:inclusiveGateway>
     <bpmn:sequenceFlow id="Flow_132cj6p" sourceRef="Client_List_Tools" targetRef="Client_Call_Tool" />
     <bpmn:serviceTask id="Client_Call_Tool" name="Client Call Tool" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="3" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
       <bpmn:extensionElements>
@@ -35,10 +37,10 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
-          <zeebe:input source="toolA" target="data.connectorMode.operation.toolName" />
-          <zeebe:input source="={&#10;  paramA1: &#34;someValue&#34;,&#10;  paramA2: 3&#10;}" target="data.connectorMode.operation.toolArguments" />
+          <zeebe:input source="echoMeta" target="data.connectorMode.operation.toolName" />
+          <zeebe:input source="={}" target="data.connectorMode.operation.toolArguments" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
-          <zeebe:input source="=[&#34;toolB&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
+          <zeebe:input source="=[&#34;echo&#34;, &#34;echoMeta&#34;]" target="data.connectorMode.standaloneModeFilters.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -50,7 +52,9 @@
       <bpmn:incoming>Flow_132cj6p</bpmn:incoming>
       <bpmn:outgoing>Flow_10kcu2o</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="Flow_0utxpy4" sourceRef="Gateway_1e98ie0" targetRef="Remote_Client_List_Tools" />
+    <bpmn:sequenceFlow id="Flow_0utxpy4" sourceRef="Gateway_1e98ie0" targetRef="Remote_Client_List_Tools">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=runRemote</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
     <bpmn:serviceTask id="Remote_Client_List_Tools" name="Remote Client List Tools" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.remoteclient.v0" zeebe:modelerTemplateVersion="3" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="io.camunda.agenticai:mcpremoteclient:1" retries="3" />
@@ -61,7 +65,7 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
-          <zeebe:input source="=[&#34;toolA&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
+          <zeebe:input source="=[&#34;add&#34;, &#34;greet&#34;]" target="data.connectorMode.standaloneModeFilters.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -84,9 +88,9 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
-          <zeebe:input source="toolC" target="data.connectorMode.operation.toolName" />
-          <zeebe:input source="={&#10;  paramC1: &#34;someOtherValue&#34;&#10;}" target="data.connectorMode.operation.toolArguments" />
-          <zeebe:input source="=[&#34;toolA&#34;]" target="data.connectorMode.standaloneModeFilters.tools.excluded" />
+          <zeebe:input source="add" target="data.connectorMode.operation.toolName" />
+          <zeebe:input source="={a: 5, b: 3}" target="data.connectorMode.operation.toolArguments" />
+          <zeebe:input source="=[&#34;add&#34;, &#34;greet&#34;]" target="data.connectorMode.standaloneModeFilters.tools.included" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -99,11 +103,11 @@
       <bpmn:outgoing>Flow_1941kri</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_1941kri" sourceRef="Remote_Client_Call_Tool" targetRef="Gateway_0dtirok" />
-    <bpmn:parallelGateway id="Gateway_0dtirok">
+    <bpmn:inclusiveGateway id="Gateway_0dtirok">
       <bpmn:incoming>Flow_1941kri</bpmn:incoming>
       <bpmn:incoming>Flow_10kcu2o</bpmn:incoming>
       <bpmn:outgoing>Flow_0pwiar2</bpmn:outgoing>
-    </bpmn:parallelGateway>
+    </bpmn:inclusiveGateway>
     <bpmn:sequenceFlow id="Flow_10kcu2o" sourceRef="Client_Call_Tool" targetRef="Gateway_0dtirok" />
     <bpmn:exclusiveGateway id="Gateway_151cvnc" name="Which path to take?" default="Flow_127k1ft">
       <bpmn:incoming>Flow_17cfr6w</bpmn:incoming>
@@ -145,7 +149,7 @@
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/list" target="data.connectorMode.operation.type" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
-          <zeebe:input source="=[&#34;resourceB&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
+          <zeebe:input source="=[&#34;file://cookbook-essentials.pdf&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -164,9 +168,8 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/read" target="data.connectorMode.operation.type" />
-          <zeebe:input source="resourceA" target="data.connectorMode.operation.resourceUri" />
+          <zeebe:input source="echo-meta://client" target="data.connectorMode.operation.resourceUri" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
-          <zeebe:input source="=[&#34;resourceB&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -188,8 +191,7 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/read" target="data.connectorMode.operation.type" />
-          <zeebe:input source="resourceC" target="data.connectorMode.operation.resourceUri" />
-          <zeebe:input source="=[&#34;resourceA&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
+          <zeebe:input source="echo-meta://remote-client" target="data.connectorMode.operation.resourceUri" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -211,7 +213,7 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/list" target="data.connectorMode.operation.type" />
-          <zeebe:input source="=[&#34;resourceA&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
+          <zeebe:input source="=[&#34;file://jokes-guide.md&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -223,30 +225,34 @@
       <bpmn:incoming>Flow_1ml8l0r</bpmn:incoming>
       <bpmn:outgoing>Flow_19u6hw7</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:parallelGateway id="Gateway_0je99rx">
+    <bpmn:inclusiveGateway id="Gateway_0je99rx">
       <bpmn:incoming>Flow_1ro7abc</bpmn:incoming>
       <bpmn:outgoing>Flow_0gcr3wk</bpmn:outgoing>
       <bpmn:outgoing>Flow_1ml8l0r</bpmn:outgoing>
-    </bpmn:parallelGateway>
-    <bpmn:parallelGateway id="Gateway_1oxlxso">
+    </bpmn:inclusiveGateway>
+    <bpmn:inclusiveGateway id="Gateway_1oxlxso">
       <bpmn:incoming>Flow_02mvl14</bpmn:incoming>
       <bpmn:incoming>Flow_1jarufg</bpmn:incoming>
       <bpmn:outgoing>Flow_12uw1v3</bpmn:outgoing>
-    </bpmn:parallelGateway>
-    <bpmn:sequenceFlow id="Flow_0gcr3wk" sourceRef="Gateway_0je99rx" targetRef="Client_List_Resources" />
+    </bpmn:inclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0gcr3wk" sourceRef="Gateway_0je99rx" targetRef="Client_List_Resources">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=runLocal</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_1kok8hq" sourceRef="Client_List_Resources" targetRef="Client_Read_Resource" />
     <bpmn:sequenceFlow id="Flow_02mvl14" sourceRef="Client_Read_Resource" targetRef="Gateway_1oxlxso" />
     <bpmn:sequenceFlow id="Flow_19u6hw7" sourceRef="Remote_Client_List_Resources" targetRef="Remote_Client_Read_Resource" />
     <bpmn:sequenceFlow id="Flow_1jarufg" sourceRef="Remote_Client_Read_Resource" targetRef="Gateway_1oxlxso" />
-    <bpmn:sequenceFlow id="Flow_1ml8l0r" sourceRef="Gateway_0je99rx" targetRef="Remote_Client_List_Resources" />
+    <bpmn:sequenceFlow id="Flow_1ml8l0r" sourceRef="Gateway_0je99rx" targetRef="Remote_Client_List_Resources">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=runRemote</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_1ro7abc" name="resources" sourceRef="Gateway_151cvnc" targetRef="Gateway_0je99rx">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=path = "resources"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:parallelGateway id="Gateway_1a8dyt8">
+    <bpmn:inclusiveGateway id="Gateway_1a8dyt8">
       <bpmn:incoming>Flow_0auymf6</bpmn:incoming>
       <bpmn:outgoing>Flow_1mg0x1q</bpmn:outgoing>
       <bpmn:outgoing>Flow_1hzgiqm</bpmn:outgoing>
-    </bpmn:parallelGateway>
+    </bpmn:inclusiveGateway>
     <bpmn:serviceTask id="Client_List_Resource_Templates" name="Client List Resource Templates" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="3" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:1" retries="3" />
@@ -255,7 +261,6 @@
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/templates/list" target="data.connectorMode.operation.type" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
-          <zeebe:input source="=[&#34;resource-b-{number}&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -274,7 +279,7 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/read" target="data.connectorMode.operation.type" />
-          <zeebe:input source="resource-a-1" target="data.connectorMode.operation.resourceUri" />
+          <zeebe:input source="echo-meta://client-template" target="data.connectorMode.operation.resourceUri" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -297,7 +302,7 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/read" target="data.connectorMode.operation.type" />
-          <zeebe:input source="resource-a-1" target="data.connectorMode.operation.resourceUri" />
+          <zeebe:input source="echo-meta://remote-client-template" target="data.connectorMode.operation.resourceUri" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -319,7 +324,6 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="resources/templates/list" target="data.connectorMode.operation.type" />
-          <zeebe:input source="=[&#34;resource-c-{number}&#34;]" target="data.connectorMode.standaloneModeFilters.resources.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -331,13 +335,17 @@
       <bpmn:incoming>Flow_1hzgiqm</bpmn:incoming>
       <bpmn:outgoing>Flow_1c4a5h0</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:parallelGateway id="Gateway_18h8kdw">
+    <bpmn:inclusiveGateway id="Gateway_18h8kdw">
       <bpmn:incoming>Flow_0rkv1w2</bpmn:incoming>
       <bpmn:incoming>Flow_037fcko</bpmn:incoming>
       <bpmn:outgoing>Flow_1n9seo9</bpmn:outgoing>
-    </bpmn:parallelGateway>
-    <bpmn:sequenceFlow id="Flow_1mg0x1q" sourceRef="Gateway_1a8dyt8" targetRef="Client_List_Resource_Templates" />
-    <bpmn:sequenceFlow id="Flow_1hzgiqm" sourceRef="Gateway_1a8dyt8" targetRef="Remote_Client_List_Resource_Templates" />
+    </bpmn:inclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1mg0x1q" sourceRef="Gateway_1a8dyt8" targetRef="Client_List_Resource_Templates">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=runLocal</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1hzgiqm" sourceRef="Gateway_1a8dyt8" targetRef="Remote_Client_List_Resource_Templates">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=runRemote</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_1ku7c26" sourceRef="Client_List_Resource_Templates" targetRef="Client_Read_Resource_Template" />
     <bpmn:sequenceFlow id="Flow_0rkv1w2" sourceRef="Client_Read_Resource_Template" targetRef="Gateway_18h8kdw" />
     <bpmn:sequenceFlow id="Flow_1c4a5h0" sourceRef="Remote_Client_List_Resource_Templates" targetRef="Remote_Client_Read_Resource_Template" />
@@ -345,11 +353,11 @@
     <bpmn:sequenceFlow id="Flow_0auymf6" name="resourceTemplates" sourceRef="Gateway_151cvnc" targetRef="Gateway_1a8dyt8">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=path = "resourceTemplates"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:parallelGateway id="Gateway_12z95vo">
+    <bpmn:inclusiveGateway id="Gateway_12z95vo">
       <bpmn:incoming>Flow_0arsydl</bpmn:incoming>
       <bpmn:outgoing>Flow_1agu7f3</bpmn:outgoing>
       <bpmn:outgoing>Flow_1lwj12s</bpmn:outgoing>
-    </bpmn:parallelGateway>
+    </bpmn:inclusiveGateway>
     <bpmn:serviceTask id="Remote_Client_List_Prompts" name="Remote Client List Prompts" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.remoteclient.v0" zeebe:modelerTemplateVersion="3" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="io.camunda.agenticai:mcpremoteclient:1" retries="3" />
@@ -360,7 +368,7 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="prompts/list" target="data.connectorMode.operation.type" />
-          <zeebe:input source="=[&#34;promptC&#34;]" target="data.connectorMode.standaloneModeFilters.prompts.excluded" />
+          <zeebe:input source="=[&#34;echo-meta&#34;]" target="data.connectorMode.standaloneModeFilters.prompts.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -380,7 +388,7 @@
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="prompts/list" target="data.connectorMode.operation.type" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
-          <zeebe:input source="=[&#34;promptB&#34;]" target="data.connectorMode.standaloneModeFilters.prompts.excluded" />
+          <zeebe:input source="=[&#34;get-greeting&#34;]" target="data.connectorMode.standaloneModeFilters.prompts.excluded" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -399,8 +407,8 @@
           <zeebe:input source="a-mcp-client" target="data.client.clientId" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="prompts/get" target="data.connectorMode.operation.type" />
-          <zeebe:input source="promptA" target="data.connectorMode.operation.promptName" />
-          <zeebe:input source="={&#10;  &#34;aName&#34;: &#34;nameA&#34;&#10;}" target="data.connectorMode.operation.promptArguments" />
+          <zeebe:input source="echo-meta" target="data.connectorMode.operation.promptName" />
+          <zeebe:input source="={}" target="data.connectorMode.operation.promptArguments" />
           <zeebe:input source="={exampleMetaKey: &#34;exampleMetaValue&#34;}" target="data.connectorMode.meta" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -423,8 +431,8 @@
           <zeebe:input source="=false" target="data.options.clientCache" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="prompts/get" target="data.connectorMode.operation.type" />
-          <zeebe:input source="promptC" target="data.connectorMode.operation.promptName" />
-          <zeebe:input source="={&#10;  &#34;cName&#34;: &#34;nameC&#34;&#10;}" target="data.connectorMode.operation.promptArguments" />
+          <zeebe:input source="get-greeting" target="data.connectorMode.operation.promptName" />
+          <zeebe:input source="={name: &#34;Jane&#34;}" target="data.connectorMode.operation.promptArguments" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -436,13 +444,17 @@
       <bpmn:incoming>Flow_0t99v31</bpmn:incoming>
       <bpmn:outgoing>Flow_0kofo0g</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:parallelGateway id="Gateway_0a7tujo">
+    <bpmn:inclusiveGateway id="Gateway_0a7tujo">
       <bpmn:incoming>Flow_0drfo34</bpmn:incoming>
       <bpmn:incoming>Flow_0kofo0g</bpmn:incoming>
       <bpmn:outgoing>Flow_0w9izz4</bpmn:outgoing>
-    </bpmn:parallelGateway>
-    <bpmn:sequenceFlow id="Flow_1agu7f3" sourceRef="Gateway_12z95vo" targetRef="Client_List_Prompts" />
-    <bpmn:sequenceFlow id="Flow_1lwj12s" sourceRef="Gateway_12z95vo" targetRef="Remote_Client_List_Prompts" />
+    </bpmn:inclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1agu7f3" sourceRef="Gateway_12z95vo" targetRef="Client_List_Prompts">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=runLocal</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1lwj12s" sourceRef="Gateway_12z95vo" targetRef="Remote_Client_List_Prompts">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=runRemote</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_0t99v31" sourceRef="Remote_Client_List_Prompts" targetRef="Remote_Client_Get_Prompt" />
     <bpmn:sequenceFlow id="Flow_1niubg1" sourceRef="Client_List_Prompts" targetRef="Client_Get_Prompt" />
     <bpmn:sequenceFlow id="Flow_0drfo34" sourceRef="Client_Get_Prompt" targetRef="Gateway_0a7tujo" />

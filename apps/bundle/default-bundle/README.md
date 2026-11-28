@@ -67,8 +67,40 @@ beyond that, so keep the endpoint off untrusted networks.
 
 When the endpoint is isolated from untrusted networks, it can instead be enabled without
 authentication by setting `camunda.connector.configuration.validation.unsecured=true`. This cannot
-be combined with `issuer` or `audience`; the runtime fails to start if both modes are configured.
-Only use this mode when network controls prevent unauthorized access to the runtime.
+be combined with `issuer` or `audience` (unless `secure-management-api` is enabled, see below); the
+runtime fails to start if both modes are configured. Only use this mode when network controls
+prevent unauthorized access to the runtime.
 
 Only a `BEARER_TOKEN`-auth cluster registration can use secured mode. `NONE`- and `BASIC`-auth
 clusters require unsecured mode.
+
+## Securing the management API
+
+The management API lists every active connector, including the raw properties of inbound connector
+elements (webhook paths, authentication type, activation and correlation expressions), and can
+reset inbound executables. It is open by default. To require a token on it, set:
+
+| Property | Environment variable |
+|---|---|
+| `camunda.connector.auth.self-managed.secure-management-api` | `CAMUNDA_CONNECTOR_AUTH_SELF_MANAGED_SECURE_MANAGEMENT_API` |
+
+It uses the same `issuer` and `audience` as above, and the same token checks. Both must be set, or
+the runtime fails to start. Setting them also enables `POST /configurations/validate` with token
+authentication, unless `camunda.connector.configuration.validation.unsecured=true` is set. The
+protected routes are:
+
+- `/inbound` (exact path only)
+- `/tenants/**`
+- `/inbound-instances/**`
+- `/outbound/**`
+
+Webhook endpoints (`/inbound/{context}` and `/inbound/{physicalTenantId}/{tenantId}/{context}`) and
+`/actuator/**` stay unauthenticated.
+
+Camunda Hub's connector management views call `/inbound-instances/**` and `/outbound/**`. They keep
+working only with a `BEARER_TOKEN`-auth cluster registration. With `NONE`-auth, Hub sends no
+token, so these views stop working once this property is enabled. Anything else that calls these
+routes, such as monitoring scripts, must send a bearer token from the configured issuer.
+
+This property may be combined with `camunda.connector.configuration.validation.unsecured=true`: the
+management API then requires a token while credential validation stays unsecured.

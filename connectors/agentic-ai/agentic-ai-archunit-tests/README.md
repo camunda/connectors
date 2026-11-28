@@ -14,3 +14,4 @@ one test class per topic. The class Javadoc of each architecture test describes 
 
 - [Architecture tests](../AGENTS.md#architecture-tests): when to update the tests and how to run them
 - [Architectural invariants](../docs/design-guidelines.md#architectural-invariants)
+- [Doc checks](../docs/documentation-rules.md#checks)

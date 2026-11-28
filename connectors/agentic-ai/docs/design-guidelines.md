@@ -1,25 +1,29 @@
 # Design guidelines
 
-<!-- docs-lint: allow-names Foo, FooImpl, Impl, Interface: placeholders of a naming rule -->
+<!-- docs-lint: allow-names Foo, FooImpl: placeholders of a naming rule -->
 
-Follow existing patterns, agreed requirements and relevant checks when choosing stored shapes,
-customer-facing names, defaults or limits. If these do not resolve the choice, ask for the missing
-requirements before choosing. State new contract decisions and their rationale in the PR description,
-including the pattern or requirement they follow. A passing API compatibility check alone does not
-justify a product name or a default.
+Follow existing patterns, agreed requirements and relevant checks when you make a customer-facing
+decision: persisted state, a name, a default or a limit. If these do not resolve the choice, ask the
+user for the missing requirements before choosing. State new customer-facing decisions and their
+rationale in the PR description, including the pattern or requirement they follow. A passing API
+compatibility check alone does not justify a product name or a default.
 
 This file covers contract and system design. For code structure, follow the
 [code design rules](implementation-rules.md#code-design). For the target state of the module, read the
 [target architecture](target-architecture.md).
 
+## Audiences
+
+- **Process developer**: models the process and configures the connector templates, often low-code.
+- **Operator**: installs and configures the connector runtime, watches running processes and resolves
+  incidents.
+- **Extension developer**: builds a runtime with their own SPI implementations or beans.
+- **Business user**: the person the process serves.
+
 ## Architectural invariants
 
-Before changing architecture or extension points, read and preserve these invariants.
-These are the boundaries that keep the module maintainable and framework-pluggable.
-They are documented here as the single source of truth. The
-[architecture tests](../AGENTS.md#architecture-tests) enforce framework isolation and interface naming
-(I1 to I3), so violations fail the build; review checks the rest. I4 and I5 are behavioral contracts:
-review and the tests of the stores and SPIs enforce them.
+The [architecture tests](../AGENTS.md#architecture-tests) enforce the framework isolation and interface naming of
+I1 to I3. Review checks the rest, and with the tests of the stores and SPIs, the behavioral contracts I4 and I5.
 
 - **I1. Framework-agnostic core.** The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/document`, `aiagent/tool`, `aiagent/memory`, the root `model/`,
   `adhoctoolsschema/`, `tool/`) stays framework-neutral. Only the LangChain4j adapter package may depend on LangChain4j.
@@ -28,54 +32,31 @@ review and the tests of the stores and SPIs enforce them.
   - **Why**: the LLM provider is an SPI (`ChatModel` / `ChatModelFactory`, see
     [`chat-model-spi.md`](../aiagent-api/docs/chat-model-spi.md#the-chatmodel-provider-spi-adr-009)). Keeping LangChain4j behind the SPI means it can be replaced or
     extended per provider without touching orchestration, memory, or the data model.
-  - **Verify**: `grep -rl "import dev.langchain4j" --include="*.java"
-    connector-aiagent/src/main/java/io/camunda/connector/agenticai | grep -v /chatmodel/provider/langchain4j/` returns nothing.
 - **I2. Domain types never leak framework types.** The module owns a framework-agnostic domain model in
   `io.camunda.connector.agenticai.aiagent.model.*` (the `Message`, `Content`, `ToolCall`, and `ToolDefinition` sealed types).
   - **Rule**: these types must not expose LangChain4j types in their API. Conversion to/from
-    vendor SDK and `dev.langchain4j` types happens **only** in the converters of the chat model providers
+    provider SDK and `dev.langchain4j` types happens **only** in the converters of the chat model providers
     (`aiagent/chatmodel/provider/**`): the request and response converters of each native provider (see
     [`native-providers.md`](../connector-aiagent/docs/native-providers.md)) and the converter chain of the
     LangChain4j chat models (see
     [`langchain4j-chat-model.md`](../connector-aiagent/docs/langchain4j-chat-model.md#converter-chain-architecture)).
   - **Why**: a leak here re-couples the whole codebase to the framework and defeats I1.
-- **I3 (deprecated). Interface in package root, `*Impl` alongside.** Existing public collaborators are interfaces
-  (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
-  `*Impl`. Wire impls as Spring beans, depend on the interface (constructor injection). The architecture tests check that a class
-  named `FooImpl` implements the interface `Foo`; review checks the rest.
-  - The single implementation is named `<Interface>Impl` in the same package (e.g.
-    `ConversationStoreRegistry` / `ConversationStoreRegistryImpl`, `AgentToolsResolver` / `AgentToolsResolverImpl`,
-    `SystemPromptComposer` / `SystemPromptComposerImpl`). The convention is pervasive, so follow the nearest
-    existing pair.
-  - One class can implement one interface per agent flavor of the same concept. It then takes the concept name
-    without `Impl`, and one bean serves all of these interfaces (e.g. `AgentExecutionContextFactory` for
-    `AgentTaskExecutionContextFactory` and `AgentSubProcessExecutionContextFactory`).
-  - **Rule**: register the `Impl` as a Spring bean (typically `@ConditionalOnMissingBean` so it can be
-    overridden). Don't inject `*Impl` directly.
-  - **Enforced by**: review checks that there is a single implementation and that it is registered as an
-    overridable bean.
-  - **Deprecated**: a new collaborator is a concrete `@ConditionalOnMissingBean` bean. Add an interface
-    only for an SPI or a seam with two or more adapters. Existing pairs stay.
-    [#9539](https://github.com/camunda/connectors/issues/9539) tracks the change.
-- **I4. SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
-  gateway tool by implementing the SPI and registering a bean. See
+- **I3 (legacy convention). Interface in package root, `*Impl` alongside.** Existing pairs such as
+  `AgentToolsResolver` and `ConversationStoreRegistry` stay. Inject the interface. The architecture tests check that a
+  class named `FooImpl` implements `Foo`. New code follows [trait 4](target-architecture.md#traits): a concrete
+  `@ConditionalOnMissingBean` bean, and an interface only for an SPI or where two or more implementations exist in
+  production code.
+- **I4. SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store,
+  gateway tool or runtime tool by implementing the SPI and registering a bean. See
   [Extension Points](architecture/extension-points.md#extension-points). Do not modify the core to
-  special-case a new provider, store, or contributor. The SPIs:
-
-  | SPI                       | Add a…                          | Where to start      |
-  |---------------------------|---------------------------------|---------------------|
-  | `ChatModelFactory`        | LLM provider                    | [Add an LLM provider](architecture/extension-points.md#add-an-llm-provider) |
-  | `SystemPromptContributor` | system-prompt contribution      | [Add a `SystemPromptContributor`](architecture/extension-points.md#add-a-systempromptcontributor) |
-  | `ConversationStore`       | conversation memory backend     | [Add a `ConversationStore`](architecture/extension-points.md#add-a-conversationstore) |
-  | `GatewayToolHandler`      | multi-tool gateway (MCP/A2A)    | [Gateway Tool Pattern](architecture/extension-points.md#gateway-tool-pattern) |
-  | `RuntimeTool`             | tool the agent executes itself  | [Add a runtime tool](architecture/extension-points.md#add-a-runtime-tool) |
+  special-case a new provider, store, or contributor.
 - **I5. Conversation stores follow the write-ahead, pointer-based contract.** Any `ConversationStore` must
   write each turn to a **new** location and load **only** what the `AgentContext` pointer references; never
   overwrite data the current pointer resolves to. This is the correctness foundation for
   retry/supersession safety; full statement in
   [Storage Contract](../aiagent-api/docs/conversation-store-spi.md#storage-contract).
 
-## Preserve stored data
+## Preserve persisted state
 
 Existing process instances must continue working after an upgrade. Demonstrate that new code reads
 supported older state and preserves its behavior. A compatible field addition does not by itself
@@ -95,14 +76,15 @@ Rollback support is not required.
 
 Use established product terminology throughout templates, documentation and code
 ([ADR 010](adr/010-agent-task-subprocess-naming.md)). Configuration keys, template IDs, job types,
-error codes and tool names are customer-facing contracts; apply the decision rule above before
+error codes and tool names are customer-facing decisions; apply the decision rule above before
 changing them.
 
 ## Choose defaults and limits that can evolve
 
-Prefer sensible existing or library defaults. Override them only when throughput, latency,
-compatibility or resource usage justifies it. When choosing a new limit, prefer the tighter value
-that meets the use case, rather than an arbitrarily low value that breaks normal workloads.
+Use the default of the library or of the existing setting. Override it only when you can name the
+throughput, latency, compatibility or resource problem it solves, and state that problem in the PR.
+When choosing a new limit, prefer the tighter value that meets the use case, rather than an
+arbitrarily low value that breaks normal workloads.
 
 Tightening a default later can break existing workloads. Record breaking changes in
 [`breaking-changes.md`](breaking-changes.md); do not introduce a per-installation default-preservation
@@ -113,21 +95,24 @@ must change to recover. A new field or capability does not change behavior when 
 
 ## Design observable automated behavior
 
-Make important agent actions and outcomes observable through agent instance history, logs or
-incidents, as appropriate. Fallbacks and skipped work need evidence of what happened and why.
-For example, where a provider exposes displayable reasoning/thinking text, preserve its visibility
-in agent instance history; do not infer or reveal opaque reasoning payloads.
-Use metadata for diagnostic logs, never message contents or secrets.
+Record a decision in agent instance history when a process developer or operator needs it to
+understand a run, for example a rejected tool call. Log it when only runtime debugging needs it.
+Raise an incident when the process cannot continue. When unsure, ask the user. Fallbacks and skipped
+work need evidence of what happened and why. For example, where a provider exposes displayable
+reasoning/thinking text, preserve its visibility in agent instance history; do not infer or reveal
+opaque reasoning payloads. Use metadata for diagnostic logs, never message contents or secrets.
 
-## Make author-configurable concepts discoverable
+## Make concepts that a process developer configures discoverable
 
-Each author-configurable concept needs a template field or documented configuration, with an example
-where usage is not obvious. Follow the repo-root [field-help conventions](../../../AGENTS.md#element-templates).
+Each concept that a process developer configures needs a template field or documented configuration,
+with an example where usage is not obvious. Follow the repo-root
+[field-help conventions](../../../AGENTS.md#element-templates).
 
 ## Architecture decision records
 
-Write an ADR in [`adr/`](adr/) when choosing between meaningful alternatives: replacing a framework,
-restructuring a core subsystem, or changing storage strategy. Routine bug fixes, refactors and
-pattern-following feature additions do not need one.
+Write an ADR in [`adr/`](adr/) when you choose between options that a later change cannot easily
+undo, for example a framework, a storage strategy or a module boundary. When unsure, ask the user
+whether the change needs an ADR. Routine bug fixes, refactors and new capabilities that follow an
+existing pattern do not need one.
 
 Read the [ADR authoring rules](adr/README.md) when writing or revising an ADR.

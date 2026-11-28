@@ -1,7 +1,8 @@
 # Element template generation
 
 The transform scripts in [`../bin/`](../bin/) change the generated AI Agent templates in
-[`../element-templates/`](../element-templates/). This doc describes what they add.
+[`../element-templates/`](../element-templates/). This doc describes what they add, and how to maintain the
+element template READMEs.
 
 ## Provider steps in the v2 templates
 
@@ -51,3 +52,31 @@ own and appending `(Deprecated)` to `name` if not already present, the same patt
 definition marker above. `element-templates/versioned/` snapshots are static and are patched by hand
 instead (three pre-8.10 snapshots already carried an unrelated legacy `"deprecated": true` boolean flag
 and were left untouched).
+
+## Element template READMEs
+
+When a version is bumped, a template moves into `versioned/`, or a connector is added, update the README in the
+`element-templates` folder of the connector module (for example [`../element-templates/README.md`](../element-templates/README.md))
+and the [index of all modules](../../connector-agentic-ai/element-templates/README.md) by these rules:
+
+1. **Identify the new minimum Camunda version** by checking the `engines.camunda` field of the new
+   template (e.g. `^8.10`).
+2. **Same minimum as the current top row**: bump the top row's template version and keep its link
+   pointing to the latest `./<file>.json` in the `element-templates` folder. The superseded version moves into `versioned/`
+   but is not listed (the table shows only the latest template per minimum Camunda version).
+3. **Higher minimum than the current top row**: insert a new top row with the new minimum Camunda
+   version and template version, and move the previous top row's link under `versioned/`. Skip
+   template versions so the previous minor keeps room for patch releases: use the smallest multiple
+   of 5 that leaves at least two versions free (7 to 10 for Camunda 8.10, 1 to 5 for Camunda 8.11).
+   The patch releases of the previous minor take the skipped versions on its `stable/*` branch. The
+   validator rule `current-version-bump` expects the highest `versioned/` snapshot plus one, so
+   suppress it for the bumped templates in the `element-template-suppressions.json` of the module.
+   The next regular bump fails on the unused suppression; remove it then.
+4. **AI Agent has two tables** (Task and Sub-process) sharing the same version numbers. Update both.
+5. **New connector**: in an existing module, add a section to the README of the module with an intro
+   paragraph linking to the `docs.camunda.io` overview page. In a new module, add a README like the
+   existing ones, including the "Which template do I need?" section, and add the module to the table
+   and the sections of the index in the same order as the existing ones (AI Agent, MCP Client, A2A,
+   Ad-hoc tools schema).
+
+Do not list `hybrid/` templates in the README. They are intentionally omitted.

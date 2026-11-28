@@ -32,6 +32,7 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
+import java.util.Map;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,10 +47,10 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * Covers the {@code tenantId} input of the send message connector against a cluster that enforces
+ * Covers tenant isolation of the send message connector against a cluster that enforces
  * multi-tenancy checks. The client of the test (and with it the connector runtime) is the CPT
- * multi-tenancy user, which this test assigns to {@link #TENANT_A} and {@link #TENANT_B} but never
- * to {@link #UNASSIGNED_TENANT}.
+ * multi-tenancy user, which this test assigns to {@link #TENANT_A} and {@link #TENANT_B}. Although
+ * the runtime may act in both, a message must only ever reach the tenant of the sending job.
  */
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
@@ -64,7 +65,8 @@ import org.springframework.test.context.DynamicPropertySource;
       "camunda.connector.auth.console.audience=cloud.dev.ultrawombat.com",
       "camunda.connector.secretprovider.discovery.enabled=false",
       "management.endpoints.web.exposure.include=*",
-      "camunda.process-test.multi-tenancy-enabled=true"
+      "camunda.process-test.multi-tenancy-enabled=true",
+      "camunda.client.worker.defaults.tenant-ids=<default>,tenant-a,tenant-b"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -74,11 +76,15 @@ public class MessageTenantIdTests {
 
   private static final String TENANT_A = "tenant-a";
   private static final String TENANT_B = "tenant-b";
-  private static final String UNASSIGNED_TENANT = "tenant-unassigned";
   private static final String DEFAULT_TENANT = "<default>";
   private static final String CLIENT_USER = "demo";
 
   private static final String MESSAGE_NAME = "tenant-message";
+  private static final String CURRENT_TEMPLATE =
+      "../../connectors/camunda-message/element-templates/send-message-connector-send-task.json";
+  // the last template version that still offered the tenant id field
+  private static final String TENANT_ID_TEMPLATE =
+      "../../connectors/camunda-message/element-templates/versioned/send-message-connector-send-task-1.json";
   private static final String CORRELATION_KEY_EXPRESSION = "valOneCorrelation";
   private static final String CORRELATION_VALUE = "123";
   private static final MockOidcServer OIDC_SERVER = MockOidcServer.start();
@@ -101,69 +107,87 @@ public class MessageTenantIdTests {
   void createTenants() {
     createTenant(TENANT_A);
     createTenant(TENANT_B);
-    createTenant(UNASSIGNED_TENANT);
     assignClientUser(TENANT_A);
     assignClientUser(TENANT_B);
   }
 
   @Test
-  void publish_toTenantWithSubscription_isReceivedAndResponseCarriesTenant() {
+  void publish_reachesOnlyTheJobTenant() {
     var receiver = startReceiver(TENANT_A);
-
-    var sender = runSender("publish", TENANT_A).waitForProcessCompletion();
-
-    assertThat(sender.getProcessInstanceEvent())
-        .hasVariable("tenantIdResult", TENANT_A)
-        .hasVariableNames("messageKeyResult");
-    assertThat(receiver).isCompleted();
-  }
-
-  @Test
-  void publish_toTenantWithoutSubscription_isNotCorrelated() {
     var receiverInOtherTenant = startReceiver(TENANT_B);
     var receiverInDefaultTenant = startReceiver(DEFAULT_TENANT);
 
-    var sender = runSender("publish", TENANT_A).waitForProcessCompletion();
+    var sender = runSender(TENANT_A, "publish", CURRENT_TEMPLATE, null);
 
-    assertThat(sender.getProcessInstanceEvent()).hasVariable("tenantIdResult", TENANT_A);
-    assertSubscriptionsUncorrelated(receiverInOtherTenant, receiverInDefaultTenant);
+    awaitCompleted(sender);
+    assertThat(sender).hasVariable("tenantIdResult", TENANT_A).hasVariableNames("messageKeyResult");
+    awaitCompleted(receiver);
+    assertStaysActive(receiverInOtherTenant);
+    assertStaysActive(receiverInDefaultTenant);
   }
 
   @Test
-  void correlate_toInstanceInTenant_isCorrelatedAndResponseCarriesTenant() {
+  void correlate_reachesOnlyTheJobTenant() {
     var receiver = startReceiver(TENANT_A);
+    var receiverInOtherTenant = startReceiver(TENANT_B);
 
-    var sender = runSender("correlate", TENANT_A).waitForProcessCompletion();
+    var sender = runSender(TENANT_A, "correlate", CURRENT_TEMPLATE, null);
 
-    assertThat(sender.getProcessInstanceEvent())
+    awaitCompleted(sender);
+    assertThat(sender)
         .hasVariable("tenantIdResult", TENANT_A)
         .hasVariable("processInstanceKeyResult", receiver.getProcessInstanceKey());
-    assertThat(receiver).isCompleted();
+    awaitCompleted(receiver);
+    assertStaysActive(receiverInOtherTenant);
   }
 
   @Test
-  void correlate_toInstanceInOtherTenant_raisesIncident() {
+  void correlate_withoutInstanceInJobTenant_raisesIncidentInsteadOfReachingOtherTenant() {
     var receiverInOtherTenant = startReceiver(TENANT_B);
     var receiverInDefaultTenant = startReceiver(DEFAULT_TENANT);
 
-    var sender = runSender("correlate", TENANT_A).waitForActiveIncidents();
+    var sender = runSender(TENANT_A, "correlate", CURRENT_TEMPLATE, null);
 
-    assertIncidentFailedWith(sender.getProcessInstanceEvent(), "404");
-
+    assertIncidentFailedWith(sender, "code 404");
     assertStaysActive(receiverInOtherTenant);
     assertStaysActive(receiverInDefaultTenant);
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"publish", "correlate"})
-  void unassignedTenant_raisesIncidentInsteadOfFallingBackToDefaultTenant(String mode) {
-    var receiverInDefaultTenant = startReceiver(DEFAULT_TENANT);
+  void processVariableNamedTenantId_doesNotAffectCurrentTemplate(String mode) {
+    var receiver = startReceiver(TENANT_A);
+    var receiverInOtherTenant = startReceiver(TENANT_B);
 
-    var sender = runSender(mode, UNASSIGNED_TENANT).waitForActiveIncidents();
+    var sender = runSender(TENANT_A, mode, CURRENT_TEMPLATE, null, Map.of("tenantId", TENANT_B));
 
-    assertIncidentFailedWith(sender.getProcessInstanceEvent(), "403");
+    awaitCompleted(sender);
+    assertThat(sender).hasVariable("tenantIdResult", TENANT_A);
+    awaitCompleted(receiver);
+    assertStaysActive(receiverInOtherTenant);
+  }
 
-    assertStaysActive(receiverInDefaultTenant);
+  @ParameterizedTest
+  @ValueSource(strings = {"publish", "correlate"})
+  void tenantIdOfJobTenant_fromOlderTemplate_isStillAccepted(String mode) {
+    var receiver = startReceiver(TENANT_A);
+
+    var sender = runSender(TENANT_A, mode, TENANT_ID_TEMPLATE, TENANT_A);
+
+    awaitCompleted(sender);
+    assertThat(sender).hasVariable("tenantIdResult", TENANT_A);
+    awaitCompleted(receiver);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"publish", "correlate"})
+  void tenantIdOfOtherTenant_fromOlderTemplate_raisesIncident(String mode) {
+    var receiverInOtherTenant = startReceiver(TENANT_B);
+
+    var sender = runSender(TENANT_A, mode, TENANT_ID_TEMPLATE, TENANT_B);
+
+    assertIncidentFailedWith(sender, "can only send messages to the tenant of the job");
+    assertStaysActive(receiverInOtherTenant);
   }
 
   private ProcessInstanceEvent startReceiver(String tenantId) {
@@ -212,35 +236,70 @@ public class MessageTenantIdTests {
                 .containsExactly(MessageSubscriptionState.CREATED));
   }
 
-  /** Runs the send task in the default tenant, so only the {@code tenantId} input differs. */
-  private ZeebeTest runSender(String mode, String tenantId) {
+  /** Deploys and starts the sending process in {@code senderTenant}, the tenant of its job. */
+  private ProcessInstanceEvent runSender(
+      String senderTenant, String mode, String templatePath, String tenantIdInput) {
+    return runSender(senderTenant, mode, templatePath, tenantIdInput, Map.of());
+  }
+
+  private ProcessInstanceEvent runSender(
+      String senderTenant,
+      String mode,
+      String templatePath,
+      String tenantIdInput,
+      Map<String, Object> variables) {
     BpmnModelInstance model =
-        Bpmn.createExecutableProcess().startEvent().sendTask("sendTask").endEvent().done();
+        Bpmn.createExecutableProcess("sendProcess")
+            .startEvent()
+            .sendTask("sendTask")
+            .endEvent()
+            .done();
     var template =
-        ElementTemplate.from(
-                "../../connectors/camunda-message/element-templates/send-message-connector-send-task.json")
+        ElementTemplate.from(templatePath)
             .property("correlationType.type", mode)
             .property("messageName", MESSAGE_NAME)
             .property("correlationKey", CORRELATION_VALUE)
-            .property("tenantId", tenantId)
             .property("retryCount", "1")
             .property("resultVariable", "messageResponse")
             .property(
                 "resultExpression",
-                "={messageKeyResult: messageKey, processInstanceKeyResult: processInstanceKey, tenantIdResult: tenantId}")
-            .writeTo(new File(tempDir, "sendTaskTemplate.json"));
+                "={messageKeyResult: messageKey, processInstanceKeyResult: processInstanceKey, tenantIdResult: tenantId}");
+    if (tenantIdInput != null) {
+      template.property("tenantId", tenantIdInput);
+    }
     var modelWithTemplate =
         new BpmnFile(model)
             .writeToFile(new File(tempDir, "message_send.bpmn"))
-            .apply(template, "sendTask", new File(tempDir, "message_send_with_template.bpmn"));
-    return ZeebeTest.with(camundaClient).deploy(modelWithTemplate).createInstance();
+            .apply(
+                template.writeTo(new File(tempDir, "sendTaskTemplate.json")),
+                "sendTask",
+                new File(tempDir, "message_send_with_template.bpmn"));
+    camundaClient
+        .newDeployResourceCommand()
+        .addProcessModel(modelWithTemplate, "message_send.bpmn")
+        .tenantId(senderTenant)
+        .send()
+        .join();
+    return camundaClient
+        .newCreateInstanceCommand()
+        .bpmnProcessId("sendProcess")
+        .latestVersion()
+        .variables(variables)
+        .tenantId(senderTenant)
+        .send()
+        .join();
   }
 
-  /**
-   * The incident alone does not tell why the job failed: a missing subscription (404) and a denied
-   * tenant (403) both raise one, so the cause has to be asserted.
-   */
-  private void assertIncidentFailedWith(ProcessInstanceEvent sender, String statusCode) {
+  private void awaitCompleted(ProcessInstanceEvent instance) {
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(Duration.ofSeconds(30))
+        .untilAsserted(() -> assertThat(instance).isCompleted());
+  }
+
+  /** The incident alone does not tell why the job failed, so the cause has to be asserted. */
+  private void assertIncidentFailedWith(ProcessInstanceEvent sender, String expectedMessagePart) {
     Awaitility.with()
         .pollInSameThread()
         .await()
@@ -256,7 +315,7 @@ public class MessageTenantIdTests {
                 .extracting(Incident::getErrorMessage)
                 .anySatisfy(message ->
                     org.assertj.core.api.Assertions.assertThat(message)
-                        .contains("code " + statusCode)));
+                        .contains(expectedMessagePart)));
   }
 
   private void assertStaysActive(ProcessInstanceEvent instance) {
@@ -266,41 +325,6 @@ public class MessageTenantIdTests {
         .during(Duration.ofSeconds(3))
         .atMost(Duration.ofSeconds(10))
         .untilAsserted(() -> assertThat(instance).isActive());
-  }
-
-  /**
-   * Checks through the search API that the receivers still wait on their subscription and that the
-   * message was correlated to no subscription at all. The {@code during} window bridges the
-   * exporter lag, since a correlation that did happen is only visible once it is exported.
-   */
-  private void assertSubscriptionsUncorrelated(ProcessInstanceEvent... receivers) {
-    Awaitility.with()
-        .pollInSameThread()
-        .await()
-        .during(Duration.ofSeconds(3))
-        .atMost(Duration.ofSeconds(15))
-        .untilAsserted(() -> {
-          for (var receiver : receivers) {
-            var subscriptions =
-                camundaClient
-                    .newMessageSubscriptionSearchRequest()
-                    .filter(f -> f.processInstanceKey(receiver.getProcessInstanceKey()))
-                    .send()
-                    .join()
-                    .items();
-            org.assertj.core.api.Assertions.assertThat(subscriptions)
-                .extracting(MessageSubscription::getMessageSubscriptionState)
-                .containsExactly(MessageSubscriptionState.CREATED);
-          }
-          var correlations =
-              camundaClient
-                  .newCorrelatedMessageSubscriptionSearchRequest()
-                  .filter(f -> f.messageName(MESSAGE_NAME))
-                  .send()
-                  .join()
-                  .items();
-          org.assertj.core.api.Assertions.assertThat(correlations).isEmpty();
-        });
   }
 
   private void createTenant(String tenantId) {

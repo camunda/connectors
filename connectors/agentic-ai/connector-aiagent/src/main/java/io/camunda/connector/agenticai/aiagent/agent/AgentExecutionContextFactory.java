@@ -7,23 +7,20 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.DocumentsConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV2Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV2Request;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
-import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Builds the execution context of both AI Agent flavors. A v1 request keeps its v1 provider
- * configuration when {@code rewriteV1ProviderConfigToV2} is {@code false}. When it is {@code true},
- * the {@link V1ToV2ProviderConfigurationMapper} maps the v1 provider configuration to its v2
+ * Builds the execution context of both AI Agent flavors. The {@link
+ * V1ToV2ProviderConfigurationMapper} maps the v1 provider configuration of a v1 request to its v2
  * equivalent. A v2 request keeps its provider configuration.
  */
 public class AgentExecutionContextFactory
@@ -34,15 +31,12 @@ public class AgentExecutionContextFactory
 
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
-  private final boolean rewriteV1ProviderConfigToV2;
 
   public AgentExecutionContextFactory(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      V1ToV2ProviderConfigurationMapper providerConfigurationMapper,
-      boolean rewriteV1ProviderConfigToV2) {
+      V1ToV2ProviderConfigurationMapper providerConfigurationMapper) {
     this.toolElementsResolver = toolElementsResolver;
     this.providerConfigurationMapper = providerConfigurationMapper;
-    this.rewriteV1ProviderConfigToV2 = rewriteV1ProviderConfigToV2;
   }
 
   @Override
@@ -52,7 +46,7 @@ public class AgentExecutionContextFactory
         context.getJobContext(),
         context,
         request.data(),
-        v1ChatModel(request.provider()),
+        providerConfigurationMapper.map(request.provider()),
         toolElementsResolver,
         V1_NEW_INSTANCE_FEATURES);
   }
@@ -79,7 +73,7 @@ public class AgentExecutionContextFactory
         request.agentContext(),
         request.toolCallResults(),
         request.toolElements(),
-        v1ChatModel(request.provider()),
+        providerConfigurationMapper.map(request.provider()),
         V1_NEW_INSTANCE_FEATURES);
   }
 
@@ -108,9 +102,5 @@ public class AgentExecutionContextFactory
       features.add(AgentFeatures.DOCUMENTS);
     }
     return List.copyOf(features);
-  }
-
-  private ChatModelConfiguration v1ChatModel(ProviderConfiguration provider) {
-    return rewriteV1ProviderConfigToV2 ? providerConfigurationMapper.map(provider) : provider;
   }
 }

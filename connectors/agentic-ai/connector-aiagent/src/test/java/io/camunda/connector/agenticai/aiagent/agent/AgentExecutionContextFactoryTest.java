@@ -120,33 +120,25 @@ class AgentExecutionContextFactoryTest {
   }
 
   @Test
-  void taskContextOfV1RequestHasV2ProviderWhenRewriteIsEnabled() {
+  void taskContextOfV1RequestHasV2Provider() {
     var executionContext =
-        factory(true).taskContext(context, new AgentTaskV1Request(V1_PROVIDER, TASK_DATA));
+        factory().taskContext(context, new AgentTaskV1Request(V1_PROVIDER, TASK_DATA));
 
     assertTaskContext(executionContext, V1_PROVIDER_AS_V2);
   }
 
   @Test
-  void taskContextOfV1RequestKeepsV1ProviderWhenRewriteIsDisabled() {
-    var executionContext =
-        factory(false).taskContext(context, new AgentTaskV1Request(V1_PROVIDER, TASK_DATA));
-
-    assertTaskContext(executionContext, V1_PROVIDER);
-  }
-
-  @Test
   void taskContextOfV2RequestKeepsV2Provider() {
     var executionContext =
-        factory(true).taskContext(context, new AgentTaskV2Request(V2_PROVIDER, TASK_DATA));
+        factory().taskContext(context, new AgentTaskV2Request(V2_PROVIDER, TASK_DATA));
 
     assertTaskContext(executionContext, V2_PROVIDER);
   }
 
   @Test
-  void subProcessContextOfV1RequestHasV2ProviderWhenRewriteIsEnabled() {
+  void subProcessContextOfV1RequestHasV2Provider() {
     var executionContext =
-        factory(true)
+        factory()
             .subProcessContext(
                 context,
                 new AgentSubProcessV1Request(
@@ -160,25 +152,9 @@ class AgentExecutionContextFactoryTest {
   }
 
   @Test
-  void subProcessContextOfV1RequestKeepsV1ProviderWhenRewriteIsDisabled() {
-    var executionContext =
-        factory(false)
-            .subProcessContext(
-                context,
-                new AgentSubProcessV1Request(
-                    AD_HOC_TOOL_ELEMENTS,
-                    AGENT_CONTEXT,
-                    TOOL_CALL_RESULTS,
-                    V1_PROVIDER,
-                    SUB_PROCESS_DATA));
-
-    assertSubProcessContext(executionContext, V1_PROVIDER);
-  }
-
-  @Test
   void subProcessContextOfV2RequestKeepsV2Provider() {
     var executionContext =
-        factory(true)
+        factory()
             .subProcessContext(
                 context,
                 new AgentSubProcessV2Request(
@@ -191,12 +167,11 @@ class AgentExecutionContextFactoryTest {
     assertSubProcessContext(executionContext, V2_PROVIDER);
   }
 
-  private AgentExecutionContextFactory factory(boolean rewriteV1ProviderConfigToV2) {
+  private AgentExecutionContextFactory factory() {
     return new AgentExecutionContextFactory(
         toolElementsResolver,
         new V1ToV2ProviderConfigurationMapperImpl(
-            new ChatModelProperties(new ApiProperties(DEFAULT_TIMEOUT), null)),
-        rewriteV1ProviderConfigToV2);
+            new ChatModelProperties(new ApiProperties(DEFAULT_TIMEOUT), null)));
   }
 
   private void assertTaskContext(

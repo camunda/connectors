@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.message;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -23,6 +23,7 @@ import io.camunda.client.api.command.PublishMessageCommandStep1.PublishMessageCo
 import io.camunda.client.api.command.PublishMessageCommandStep1.PublishMessageCommandStep3;
 import io.camunda.client.api.response.CorrelateMessageResponse;
 import io.camunda.client.api.response.PublishMessageResponse;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.runtime.app.CamundaClientContext;
@@ -35,7 +36,8 @@ class SendMessageConnectorFunctionTenantIdTest {
 
   private static final String MESSAGE_NAME = "message";
   private static final String CORRELATION_KEY = "key";
-  private static final String TENANT_ID = "tenant-a";
+  private static final String JOB_TENANT_ID = "tenant-a";
+  private static final String OTHER_TENANT_ID = "tenant-b";
 
   private final CamundaClient camundaClient = mock(CamundaClient.class);
   private final OutboundConnectorContext context = mock(OutboundConnectorContext.class);
@@ -58,6 +60,7 @@ class SendMessageConnectorFunctionTenantIdTest {
   void setUp() {
     var jobContext = mock(JobContext.class);
     var selector = mock(PhysicalTenantClientSelector.class);
+    when(jobContext.getTenantId()).thenReturn(JOB_TENANT_ID);
     when(context.getJobContext()).thenReturn(jobContext);
     when(selector.forJob(jobContext)).thenReturn(camundaClient);
 
@@ -85,41 +88,65 @@ class SendMessageConnectorFunctionTenantIdTest {
   }
 
   @Test
-  void publish_withTenantId_setsTenantIdOnCommand() throws Exception {
-    givenRequest(new SendMessageRequest.CorrelationType.Publish(null, null), TENANT_ID);
-
-    function.execute(context);
-
-    verify(publishStep3).tenantId(TENANT_ID);
-  }
-
-  @Test
-  void publish_withoutTenantId_doesNotSetTenantIdOnCommand() throws Exception {
+  void publish_withoutTenantId_targetsJobTenant() throws Exception {
     givenRequest(new SendMessageRequest.CorrelationType.Publish(null, null), null);
 
     function.execute(context);
 
-    verify(publishStep3, never()).tenantId(any());
+    verify(publishStep3).tenantId(JOB_TENANT_ID);
     verify(publishStep3).send();
   }
 
   @Test
-  void correlate_withTenantId_setsTenantIdOnCommand() throws Exception {
-    givenRequest(new SendMessageRequest.CorrelationType.CorrelateWithResult(), TENANT_ID);
+  void publish_withJobTenantId_targetsJobTenant() throws Exception {
+    givenRequest(new SendMessageRequest.CorrelationType.Publish(null, null), JOB_TENANT_ID);
 
     function.execute(context);
 
-    verify(correlateStep3).tenantId(TENANT_ID);
+    verify(publishStep3).tenantId(JOB_TENANT_ID);
+    verify(publishStep3).send();
   }
 
   @Test
-  void correlate_withoutTenantId_doesNotSetTenantIdOnCommand() throws Exception {
+  void publish_withOtherTenantId_failsWithoutSending() {
+    givenRequest(new SendMessageRequest.CorrelationType.Publish(null, null), OTHER_TENANT_ID);
+
+    assertThatThrownBy(() -> function.execute(context))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining(JOB_TENANT_ID)
+        .hasMessageContaining(OTHER_TENANT_ID);
+    verify(publishStep3, never()).send();
+  }
+
+  @Test
+  void correlate_withoutTenantId_targetsJobTenant() throws Exception {
     givenRequest(new SendMessageRequest.CorrelationType.CorrelateWithResult(), null);
 
     function.execute(context);
 
-    verify(correlateStep3, never()).tenantId(any());
+    verify(correlateStep3).tenantId(JOB_TENANT_ID);
     verify(correlateStep3).send();
+  }
+
+  @Test
+  void correlate_withJobTenantId_targetsJobTenant() throws Exception {
+    givenRequest(new SendMessageRequest.CorrelationType.CorrelateWithResult(), JOB_TENANT_ID);
+
+    function.execute(context);
+
+    verify(correlateStep3).tenantId(JOB_TENANT_ID);
+    verify(correlateStep3).send();
+  }
+
+  @Test
+  void correlate_withOtherTenantId_failsWithoutSending() {
+    givenRequest(new SendMessageRequest.CorrelationType.CorrelateWithResult(), OTHER_TENANT_ID);
+
+    assertThatThrownBy(() -> function.execute(context))
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageContaining(JOB_TENANT_ID)
+        .hasMessageContaining(OTHER_TENANT_ID);
+    verify(correlateStep3, never()).send();
   }
 
   private void givenRequest(SendMessageRequest.CorrelationType type, String tenantId) {

@@ -89,7 +89,7 @@ class AgentSubProcessV2FunctionTest {
     when(context.getJobContext()).thenReturn(jobContext);
     final var function =
         new AgentSubProcessV2Function(
-            new AgentExecutionContextFactory(null, null, false), agentRequestHandler);
+            new AgentExecutionContextFactory(null, null), agentRequestHandler);
 
     function.execute(context);
 

@@ -17,12 +17,15 @@
 package io.camunda.connector.generator.openapi.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /** Utility functions related to converting OpenAPI parameters to {@link HttpOperationProperty}s. */
@@ -35,10 +38,34 @@ public class ParameterUtil {
           "header", HttpOperationProperty.Target.HEADER,
           "headers", HttpOperationProperty.Target.HEADER);
 
+  private static final ObjectMapper EXAMPLE_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
+
+  /** Returns the parameter a {@code $ref} points to, or the parameter itself. */
+  public static Parameter resolve(Parameter parameter, Components components) {
+    if (parameter.get$ref() != null) {
+      return resolveParameterRef(parameter.get$ref(), components);
+    }
+    return parameter;
+  }
+
+  /**
+   * Cookie parameters can't be mapped to the REST connector. An optional one can be left out, so
+   * the operation still works without it.
+   */
+  public static boolean isOptionalCookie(Parameter parameter) {
+    return "cookie".equals(parameter.getIn()) && !Boolean.TRUE.equals(parameter.getRequired());
+  }
+
   public static HttpOperationProperty transformToProperty(
       Parameter parameter, Components components) {
-    if (parameter.get$ref() != null) {
-      parameter = resolveParameterRef(parameter.get$ref(), components);
+    parameter = resolve(parameter, components);
+    if (parameter.getIn() == null || !targetMapping.containsKey(parameter.getIn())) {
+      throw new IllegalArgumentException(
+          "Parameter '"
+              + parameter.getName()
+              + "' in '"
+              + parameter.getIn()
+              + "' is not supported");
     }
     if (parameter.getSchema() != null) {
       return fromSchema(parameter, components);
@@ -98,16 +125,17 @@ public class ParameterUtil {
 
     String example;
     if (parameter.getExample() != null) {
-      example = parameter.getExample().toString();
+      example = exampleToString(parameter.getExample());
     } else {
       example = getExampleFromSchema(parameter.getSchema(), components);
     }
     var schema = getSchemaOrFromComponents(parameter.getSchema(), components);
+    var type = typeOf(schema);
 
-    if (Objects.isNull(schema.getType())
-        || schema.getType().equals("string")
-        || schema.getType().equals("integer")
-        || schema.getType().equals("number")) {
+    if (Objects.isNull(type)
+        || type.equals("string")
+        || type.equals("integer")
+        || type.equals("number")) {
       return HttpOperationProperty.createStringProperty(
           name,
           targetMapping.get(parameter.getIn()),
@@ -121,14 +149,14 @@ public class ParameterUtil {
           parameter.getDescription(),
           parameter.getRequired() != null && parameter.getRequired(),
           schema.getEnum());
-    } else if (schema.getType().equals("boolean")) {
+    } else if (type.equals("boolean")) {
       return HttpOperationProperty.createEnumProperty(
           name,
           targetMapping.get(parameter.getIn()),
           parameter.getDescription(),
           parameter.getRequired() != null && parameter.getRequired(),
           Arrays.asList("true", "false"));
-    } else if (schema.getType().equals("object") || schema.getType().equals("array")) {
+    } else if (type.equals("object") || type.equals("array")) {
       return HttpOperationProperty.createFeelProperty(
           name,
           targetMapping.get(parameter.getIn()),
@@ -136,7 +164,31 @@ public class ParameterUtil {
           parameter.getRequired() != null && parameter.getRequired(),
           example);
     }
-    throw new IllegalArgumentException("Unsupported parameter type: " + schema.getType());
+    throw new IllegalArgumentException("Unsupported parameter type: " + type);
+  }
+
+  /**
+   * Returns the single type of a schema, for both OpenAPI 3.0 and 3.1 documents.
+   *
+   * <p>For 3.0 documents, the parser sets {@link Schema#getType()}. For 3.1 documents, it sets
+   * {@link Schema#getTypes()} instead and {@link Schema#getType()} returns {@code null}. In 3.1, a
+   * nullable value is written as a type array such as {@code [string, "null"]}, so the {@code
+   * "null"} entry is ignored.
+   *
+   * @return the type, or {@code null} if the schema declares no type or more than one non-null type
+   */
+  public static String typeOf(Schema<?> schema) {
+    if (schema == null) {
+      return null;
+    }
+    if (schema.getType() != null) {
+      return schema.getType();
+    }
+    if (schema.getTypes() == null) {
+      return null;
+    }
+    var nonNullTypes = schema.getTypes().stream().filter(t -> !"null".equals(t)).toList();
+    return nonNullTypes.size() == 1 ? nonNullTypes.getFirst() : null;
   }
 
   public static String getExampleFromSchema(Schema schema, Components components) {
@@ -145,12 +197,49 @@ public class ParameterUtil {
       return null;
     }
     if (schema.getExample() != null) {
-      return schema.getExample().toString();
+      return exampleToString(schema.getExample());
     }
-    if (schema.getExamples() != null && !schema.getExamples().isEmpty()) {
-      return schema.getExamples().get(0).toString();
+    if (schema.getExamples() != null) {
+      // nullable 3.1 values often list null as an example; prefill the first real value instead
+      for (Object example : schema.getExamples()) {
+        if (example != null && !(example instanceof JsonNode node && node.isNull())) {
+          return exampleToString(example);
+        }
+      }
     }
     return generateFakeDataStringFromSchema(schema, components);
+  }
+
+  /**
+   * Writes an example as the text a template field holds: a plain value as text, an object or array
+   * as JSON.
+   *
+   * <p>The parser can return an OpenAPI 3.1 {@code examples} entry as a {@link JsonNode}. The
+   * {@code toString()} of a text node keeps its JSON quotes, so plain values are read as text
+   * instead. For OpenAPI 3.1 documents with resolved refs, the parser returns object and array
+   * examples as {@link Map} and {@link List}, whose {@code toString()} is not JSON ({@code
+   * {a=red}}), so they are serialized as JSON.
+   */
+  private static String exampleToString(Object example) {
+    if (example instanceof JsonNode node && node.isValueNode()) {
+      return node.asText();
+    }
+    // the parser stores a format: byte example as the bytes of the example text
+    if (example instanceof byte[] bytes) {
+      return new String(bytes, StandardCharsets.UTF_8);
+    }
+    if (example instanceof JsonNode
+        || example instanceof Map<?, ?>
+        || example instanceof Collection<?>
+        || example.getClass().isArray()) {
+      try {
+        return EXAMPLE_MAPPER.writeValueAsString(example);
+      } catch (JsonProcessingException e) {
+        // an example is only a prefill; it must not make the operation unsupported
+        return example.toString();
+      }
+    }
+    return example.toString();
   }
 
   public static Schema<?> getSchemaOrFromComponents(Schema<?> schema, Components components) {
@@ -197,7 +286,7 @@ public class ParameterUtil {
 
   private static Object generateFakeDataFromSchema(
       Schema<?> schema, Components components, HashSet<Schema<?>> visitedSchemas) {
-    switch (schema.getType()) {
+    switch (typeOf(schema)) {
       case "string" -> {
         return "string";
       }
@@ -221,11 +310,19 @@ public class ParameterUtil {
         return nested;
       }
       case "array" -> {
+        // an array that contains itself would otherwise recurse until the stack overflows
+        if (visitedSchemas.contains(schema)) {
+          return new Object[0];
+        }
+        visitedSchemas.add(schema);
+
         var items = getSchemaOrFromComponents(schema.getItems(), components);
         if (items.getEnum() != null && !items.getEnum().isEmpty()) {
           return items.getEnum();
         }
-        return new Object[] {generateFakeDataFromSchema(items, components)};
+        return new Object[] {
+          generateFakeDataFromSchema(items, components, new HashSet<>(visitedSchemas))
+        };
       }
       case "integer", "number" -> {
         return 0;

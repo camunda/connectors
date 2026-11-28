@@ -21,6 +21,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
@@ -112,11 +113,16 @@ public class InboundCorrelationConfiguration {
       ObjectProvider<CamundaClient> camundaClientProvider,
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       @Autowired(required = false) DocumentFactory legacyDocumentFactory,
-      ConnectorsInboundMetrics connectorsInboundMetrics) {
+      ConnectorsInboundMetrics connectorsInboundMetrics,
+      @Value("${" + ExternalDocumentHostPolicy.ENABLED_PROPERTY + ":true}")
+          boolean externalDocumentHostValidationEnabled) {
     var legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     var documentFactoriesByPhysicalTenantId =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
-            registry, legacyCamundaClient, legacyDocumentFactory);
+            registry,
+            legacyCamundaClient,
+            legacyDocumentFactory,
+            new ExternalDocumentHostPolicy(externalDocumentHostValidationEnabled, false));
     return PhysicalTenantIds.onlyValue(
         buildCorrelationHandlersByPhysicalTenantId(
             registry,

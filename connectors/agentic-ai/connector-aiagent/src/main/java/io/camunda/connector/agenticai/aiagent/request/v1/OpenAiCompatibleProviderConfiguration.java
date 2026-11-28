@@ -27,16 +27,6 @@ public record OpenAiCompatibleProviderConfiguration(
   @TemplateProperty(ignore = true)
   public static final String OPENAI_COMPATIBLE_ID = "openaiCompatible";
 
-  @Override
-  public String provider() {
-    return OPENAI_COMPATIBLE_ID;
-  }
-
-  @Override
-  public String model() {
-    return openaiCompatible.model.model();
-  }
-
   public record OpenAiCompatibleConnection(
       @NotBlank
           @HttpUrl

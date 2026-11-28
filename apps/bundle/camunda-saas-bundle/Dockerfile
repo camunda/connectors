@@ -7,7 +7,7 @@ FROM --platform=$BUILDPLATFORM alpine:3.24@sha256:f59abe656b692d901e184be3445e08
 COPY target/*-with-dependencies.jar /tmp/runtime.jar
 RUN unzip -q /tmp/runtime.jar -d /tmp/runtime
 
-FROM reg.mini.dev/1212/openjre-base:v25.0.5-dev@sha256:a842c75d2f4ddaabdcc8261d04bf6f80f77004386a6f69ea65b4eb310f146bb0
+FROM reg.mini.dev/1212/openjre-base:v25.0.5-dev@sha256:f3e627a73f325894e82c0f41b7ef2eb11d587a9c8b2dabc30bd07a42ff25c83c
 
 VOLUME /tmp
 
@@ -39,5 +39,4 @@ ENV HEALTHCHECK_URL=http://localhost:9080/actuator/health/readiness
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=30s \
   CMD ["java", "-cp", "/opt/app/runtime:/opt/app/*", "-Dloader.main=io.camunda.connector.runtime.healthcheck.HealthCheckCommand", "org.springframework.boot.loader.launch.PropertiesLauncher"]
 
-# -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 (Java4Shell). Remove once the base JRE ships the fix.
-ENTRYPOINT ["java", "-XX:-UseBASE64Intrinsics", "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", "-XX:+ExitOnOutOfMemoryError", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/tmp", "-cp", "/opt/app/runtime:/opt/app/*", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+ENTRYPOINT ["java", "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", "-XX:+ExitOnOutOfMemoryError", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/tmp", "-cp", "/opt/app/runtime:/opt/app/*", "org.springframework.boot.loader.launch.PropertiesLauncher"]

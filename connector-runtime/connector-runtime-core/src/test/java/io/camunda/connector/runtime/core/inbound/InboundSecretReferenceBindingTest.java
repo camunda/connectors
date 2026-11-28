@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -60,6 +61,7 @@ class InboundSecretReferenceBindingTest {
   private final List<List<String>> resolveRequests = new ArrayList<>();
   private final Map<String, Object> evaluations = new HashMap<>();
   private final Map<String, List<String>> referencedSecrets = new HashMap<>();
+  private boolean clusterUnreachable;
 
   /** Mirrors a credential property class: some fields carry @FEEL, most do not. */
   record Credentials(
@@ -247,14 +249,63 @@ class InboundSecretReferenceBindingTest {
   }
 
   @Test
-  void leavesThePlaceholderWhenTheClusterCannotResolveIt() {
+  void refusesToBindAReferenceTheClusterDoesNotHold() {
+    // Leaving the placeholder in place would make the reference text, which anyone who can read
+    // the model or credential can see, the value incoming requests are checked against.
     evaluationOf("=camunda.secrets.MISSING")
         .returns("camunda.secrets.MISSING")
         .referencing("MISSING");
 
-    var bound = bind(Map.of("hmacSecret", "=camunda.secrets.MISSING"));
+    assertThatThrownBy(() -> bind(Map.of("hmacSecret", "=camunda.secrets.MISSING")))
+        .hasMessageContaining("camunda.secrets.MISSING could not be resolved");
+  }
 
-    assertThat(bound.hmacSecret()).isEqualTo("camunda.secrets.MISSING");
+  @Test
+  void refusesToBindAReferenceInsideACompositeValueTheClusterDoesNotHold() {
+    evaluationOf("=\"Bearer \" + camunda.secrets.MISSING")
+        .returns("Bearer camunda.secrets.MISSING")
+        .referencing("MISSING");
+
+    assertThatThrownBy(() -> bind(Map.of("token", "=\"Bearer \" + camunda.secrets.MISSING")))
+        .hasMessageContaining("camunda.secrets.MISSING could not be resolved");
+  }
+
+  @Test
+  void refusesToBindWhenOnlyOneOfTwoReferencesResolves() {
+    secretStore.put("camunda.secrets.USER", "user-value");
+    evaluationOf("=camunda.secrets.USER + \":\" + camunda.secrets.MISSING")
+        .returns("camunda.secrets.USER:camunda.secrets.MISSING")
+        .referencing("USER", "MISSING");
+
+    assertThatThrownBy(
+            () -> bind(Map.of("token", "=camunda.secrets.USER + \":\" + camunda.secrets.MISSING")))
+        .hasMessageContaining("camunda.secrets.MISSING could not be resolved")
+        .hasMessageNotContaining("user-value");
+  }
+
+  @Test
+  void refusesToBindWhenTheClusterCannotBeReached() {
+    // Not a missing secret, so not reported as one, but the reference text must not be bound
+    // either.
+    clusterUnreachable = true;
+    evaluationOf("=camunda.secrets.TOKEN").returns("camunda.secrets.TOKEN").referencing("TOKEN");
+
+    assertThatThrownBy(() -> bind(Map.of("hmacSecret", "=camunda.secrets.TOKEN")))
+        .isInstanceOf(RuntimeException.class);
+  }
+
+  @Test
+  void stillLeavesUnreportedReferenceTextThatArrivedAsData() {
+    // Failing applies only to references the cluster reported for this evaluation. Text that only
+    // looks like a reference is data, and must neither resolve nor fail the bind.
+    evaluationOf("=camunda.vars.cluster.plainNote")
+        .returns("camunda.secrets.MISSING")
+        .referencingNothing();
+
+    var bound = bind(Map.of("token", "=camunda.vars.cluster.plainNote"));
+
+    assertThat(bound.token()).isEqualTo("camunda.secrets.MISSING");
+    assertThat(resolveRequests).isEmpty();
   }
 
   private Credentials bind(Map<String, String> rawProperties) {
@@ -342,7 +393,12 @@ class InboundSecretReferenceBindingTest {
         });
     when(resolveCommand.send()).thenReturn(resolveFuture);
     when(resolveFuture.join())
-        .thenAnswer(invocation -> new StubResolution(resolveRequests.getLast(), secretStore));
+        .thenAnswer(invocation -> {
+          if (clusterUnreachable) {
+            throw new IllegalStateException("connection refused");
+          }
+          return new StubResolution(resolveRequests.getLast(), secretStore);
+        });
     return client;
   }
 

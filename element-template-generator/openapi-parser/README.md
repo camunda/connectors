@@ -39,7 +39,8 @@ congen openapi-outbound generate https://raw.githubusercontent.com/OAI/OpenAPI-S
 
 ## Known limitations
 
-The OpenAPI parser currently supports only OpenAPI 3.0 specifications.
+The OpenAPI parser supports OpenAPI 3.0 and 3.1 specifications.
+Swagger 2.0 specifications are not supported. Convert them to OpenAPI 3.0 first.
 
 Only the following authentication methods from the OpenAPI specification are supported:
 

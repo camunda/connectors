@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.client.api.response.SecretReference;
 import io.camunda.connector.feel.EvaluationResultProcessor;
+import io.camunda.connector.feel.EvaluationResultRejectedException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -64,8 +65,37 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
 
   private final SecretReferenceResolver resolver;
 
+  private final boolean failOnUnresolved;
+
+  /**
+   * Leaves a reported reference that does not resolve in place (ADR-0007, Decision 7). Outbound,
+   * the reference text then reaches the remote service, which rejects it and fails the job.
+   */
   public SecretResolvingResultProcessor(SecretReferenceResolver resolver) {
+    this(resolver, false);
+  }
+
+  private SecretResolvingResultProcessor(
+      SecretReferenceResolver resolver, boolean failOnUnresolved) {
     this.resolver = resolver;
+    this.failOnUnresolved = failOnUnresolved;
+  }
+
+  /**
+   * Refuses a result in which a reported reference does not resolve, instead of leaving it in
+   * place.
+   *
+   * <p>For inbound connectors. There the bound value is often what incoming requests are checked
+   * against — a webhook password, an HMAC key — so leaving the reference text in place would make
+   * that text, which anyone who can read the model or credential can see, the accepted secret.
+   *
+   * <p>Uses {@link SecretReferenceResolver#resolveOrFail}, so a cluster that could not be reached
+   * or read fails the bind too, rather than being treated as a secret that is simply missing.
+   * Either way the connector is not activated with the reference text as its value.
+   */
+  public static SecretResolvingResultProcessor failingOnUnresolvedReferences(
+      SecretReferenceResolver resolver) {
+    return new SecretResolvingResultProcessor(resolver, true);
   }
 
   @Override
@@ -87,8 +117,43 @@ public class SecretResolvingResultProcessor implements EvaluationResultProcessor
     if (resolvable.isEmpty()) {
       return result;
     }
-    Map<String, String> values = resolver.resolve(resolvable);
-    return values.isEmpty() ? result : substitute(result, values);
+    if (!failOnUnresolved) {
+      Map<String, String> values = resolver.resolve(resolvable);
+      return values.isEmpty() ? result : substitute(result, values);
+    }
+    Map<String, String> values = resolver.resolveOrFail(resolvable);
+    Set<String> unresolved = new LinkedHashSet<>(resolvable);
+    unresolved.removeAll(values.keySet());
+    if (!unresolved.isEmpty()) {
+      throw new UnresolvedSecretReferenceException(unresolved);
+    }
+    return substitute(result, values);
+  }
+
+  /**
+   * A reference the cluster reported for this evaluation, and answered definitively that it cannot
+   * resolve: the secret does not exist, the runtime may not read it, or the reference is invalid.
+   *
+   * <p>Extends {@link EvaluationResultRejectedException} so the evaluator passes it through rather
+   * than wrapping it as an evaluation failure. The message names only references, which are written
+   * in the model or credential and carry no secret value.
+   */
+  public static final class UnresolvedSecretReferenceException
+      extends EvaluationResultRejectedException implements SecretFailureDiagnostic {
+
+    public UnresolvedSecretReferenceException(Set<String> references) {
+      super(
+          "Secret reference(s) "
+              + String.join(", ", references)
+              + " could not be resolved. The connector is not activated with the reference text as"
+              + " the secret value; check that the secret exists and that the connectors runtime"
+              + " may read it.");
+    }
+
+    @Override
+    public String publishableMessage() {
+      return getMessage();
+    }
   }
 
   /**

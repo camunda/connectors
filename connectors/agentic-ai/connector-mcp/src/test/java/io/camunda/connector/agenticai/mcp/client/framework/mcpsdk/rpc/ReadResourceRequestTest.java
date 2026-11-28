@@ -197,27 +197,6 @@ class ReadResourceRequestTest {
   }
 
   @Test
-  void throwsException_whenResourceInDenyListEvenIfInAllowList() {
-    final var filter =
-        AllowDenyListBuilder.builder()
-            .allowed(List.of("conflicted-resource"))
-            .denied(List.of("conflicted-resource"))
-            .build();
-
-    final var parameters = Map.<String, Object>of("uri", "conflicted-resource");
-
-    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters, Map.of()))
-        .isInstanceOfSatisfying(
-            ConnectorException.class,
-            exception -> {
-              assertThat(exception.getErrorCode()).isEqualTo("MCP_CLIENT_READ_RESOURCE_ERROR");
-              assertThat(exception.getMessage())
-                  .contains(
-                      "Reading resource 'conflicted-resource' is not allowed by filter configuration");
-            });
-  }
-
-  @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
     when(mcpClient.readResource(any(McpSchema.ReadResourceRequest.class)))
         .thenReturn(

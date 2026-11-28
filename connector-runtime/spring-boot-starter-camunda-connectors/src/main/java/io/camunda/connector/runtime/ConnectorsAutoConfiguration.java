@@ -44,6 +44,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
+import io.camunda.connector.runtime.core.document.ExternalDocumentHostPolicy;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.secret.CentralStoreSecretProvider;
@@ -84,7 +85,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -95,9 +95,6 @@ import org.springframework.scheduling.annotation.Scheduled;
   InboundConnectorsAutoConfiguration.class,
   CamundaAutoConfiguration.class
 })
-// Configuration (credential) validation is direction-agnostic, so it is wired here in the neutral
-// runtime auto-configuration rather than the outbound-specific one.
-@Import(io.camunda.connector.runtime.configuration.ConfigurationValidationConfiguration.class)
 @EnableConfigurationProperties(ConnectorProperties.class)
 public class ConnectorsAutoConfiguration {
 
@@ -425,7 +422,9 @@ public class ConnectorsAutoConfiguration {
       CamundaClientRegistry registry,
       ObjectProvider<CamundaClient> camundaClientProvider,
       DocumentFactory legacyDocumentFactory,
-      FeelExpressionEvaluator feelExpressionEvaluator) {
+      FeelExpressionEvaluator feelExpressionEvaluator,
+      @Value("${" + ExternalDocumentHostPolicy.ENABLED_PROPERTY + ":true}")
+          boolean externalDocumentHostValidationEnabled) {
     var legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     var functionExecutor = new DisabledIntrinsicFunctionExecutor();
@@ -434,7 +433,10 @@ public class ConnectorsAutoConfiguration {
     // object mapper
     var documentFactoriesByPhysicalTenantId =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
-            registry, legacyCamundaClient, legacyDocumentFactory);
+            registry,
+            legacyCamundaClient,
+            legacyDocumentFactory,
+            new ExternalDocumentHostPolicy(externalDocumentHostValidationEnabled, false));
     var jacksonModuleDocumentDeserializer =
         new JacksonModuleDocumentDeserializer(
             documentFactoriesByPhysicalTenantId,
