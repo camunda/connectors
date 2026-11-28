@@ -1085,13 +1085,44 @@ class InboundConnectorContextImplTest {
     // when
     context.reportHealth(Health.up(Map.of("region", "eu")));
 
-    // then the details keep the key and value, but the health change's message masks the pair
-    assertThat(context.getHealth().getDetails()).containsEntry("region", "eu");
+    // then the details are withheld, and neither the message nor the logged line shows the pair
+    assertThat(context.getHealth().getDetails().toString())
+        .doesNotContain("region=eu")
+        .contains("withheld");
     var logs =
         activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
     assertThat(logs)
         .singleElement()
-        .satisfies(log -> assertThat(log.message()).doesNotContain("region=eu").contains("***"));
+        .satisfies(log -> {
+          assertThat(log.message()).doesNotContain("region=eu");
+          // ActivityLogRegistry writes the whole activity, data and health included, to the log
+          assertThat(log.toString()).doesNotContain("region=eu");
+        });
+  }
+
+  @Test
+  void log_withholdsDataWhoseMapKeyPrintsASecret() throws Exception {
+    // given a secret that a map used as a key prints as, though neither its key nor value shows it
+    var definition = getInboundConnectorDefinition(Map.of("pair", "secrets.PAIR"));
+    var context = contextWithSecrets(Map.of("PAIR", "region=eu"), definition);
+
+    // when the activity's data has such a key, which JSON writes with its toString()
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withMessage("received")
+            .withData(Map.of("byRegion", Map.of(Map.of("region", "eu"), 1))));
+
+    // then the data is withheld, so neither the log line nor the JSON shows the pair
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(log -> {
+          assertThat(log.data().toString()).contains("withheld");
+          assertThat(log.toString()).doesNotContain("region=eu");
+          assertThat(new ObjectMapper().writeValueAsString(log.data())).doesNotContain("region=eu");
+        });
   }
 
   enum Lang {

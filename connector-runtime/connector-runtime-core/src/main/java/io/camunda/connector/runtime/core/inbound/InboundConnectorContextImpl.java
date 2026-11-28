@@ -692,6 +692,13 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         redacted.put(
             SecretUtil.hideSecretsFromMessage(key, secrets),
             redactValue(value, secrets, enclosing)));
+    // a key and its value, or a map used as a key, can print a secret together that no part shows
+    // alone (a key "a" and value "b" print as "a=b"); the activity log line renders the data with
+    // toString(), and so does JSON for a map key, so data whose rendering still shows one is withheld
+    var shown = String.valueOf(redacted);
+    if (!SecretUtil.hideSecretsFromMessage(shown, secrets).equals(shown)) {
+      return WITHHELD_DATA;
+    }
     return redacted;
   }
 
