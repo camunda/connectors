@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.collections4.MapUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -35,6 +36,8 @@ final class ToolCallRequest {
 
   private static final String CONTENT_NO_RESULT =
       "Tool execution succeeded, but returned no result.";
+  private static final String CONTENT_ERROR_NO_RESULT =
+      "Tool execution failed, but returned no result.";
 
   private final String clientId;
   private final ObjectMapper objectMapper;
@@ -76,28 +79,30 @@ final class ToolCallRequest {
     try {
       final var result = client.callTool(toolExecutionRequest);
 
-      LOGGER.debug(
-          "MCP({}): Successfully executed tool '{}'", clientId, toolExecutionRequest.name());
+      // the server reports a failed tool execution in the result, not as a protocol error
+      final boolean isError = result != null && Boolean.TRUE.equals(result.isError());
+      if (isError) {
+        LOGGER.debug(
+            "MCP({}): Tool '{}' reported an error in its result",
+            clientId,
+            toolExecutionRequest.name());
+      } else {
+        LOGGER.debug(
+            "MCP({}): Successfully executed tool '{}'", clientId, toolExecutionRequest.name());
+      }
 
-      if (!hasContent(result)) {
+      final var mappedContent = mapResultContent(result);
+      if (mappedContent.isEmpty()) {
         LOGGER.debug(
             "MCP({}): Tool '{}' returned no content", clientId, toolExecutionRequest.name());
         return new McpClientCallToolResult(
             toolExecutionRequest.name(),
-            List.of(McpTextContent.textContent(CONTENT_NO_RESULT)),
-            false);
+            List.of(
+                McpTextContent.textContent(isError ? CONTENT_ERROR_NO_RESULT : CONTENT_NO_RESULT)),
+            isError);
       }
 
-      if (result.structuredContent() != null) {
-        return new McpClientCallToolResult(
-            toolExecutionRequest.name(),
-            List.of(McpObjectContent.objectContent(fromObjectContent(result.structuredContent()))),
-            false);
-      }
-
-      var mappedContent = result.content().stream().map(this::mapContent).toList();
-
-      return new McpClientCallToolResult(toolExecutionRequest.name(), mappedContent, false);
+      return new McpClientCallToolResult(toolExecutionRequest.name(), mappedContent, isError);
     } catch (Exception e) {
       LOGGER.error(
           "MCP({}): Failed to execute tool '{}'", clientId, toolExecutionRequest.name(), e);
@@ -109,6 +114,32 @@ final class ToolCallRequest {
                       .formatted(toolExecutionRequest.name(), e.getMessage()))),
           true);
     }
+  }
+
+  /**
+   * The content of a tool call result: the structured content if the server sent one, otherwise the
+   * content blocks. A blank text block is left out, as {@link McpTextContent} holds no blank text.
+   * Empty when the result holds nothing else.
+   */
+  private List<McpContent> mapResultContent(McpSchema.@Nullable CallToolResult result) {
+    if (result == null) {
+      return List.of();
+    }
+    if (result.structuredContent() != null) {
+      return List.of(McpObjectContent.objectContent(fromObjectContent(result.structuredContent())));
+    }
+    if (CollectionUtils.isEmpty(result.content())) {
+      return List.of();
+    }
+    return result.content().stream()
+        .filter(content -> !isBlankText(content))
+        .map(this::mapContent)
+        .toList();
+  }
+
+  private static boolean isBlankText(McpSchema.Content content) {
+    return content instanceof McpSchema.TextContent textContent
+        && (textContent.text() == null || textContent.text().isBlank());
   }
 
   private McpContent mapContent(McpSchema.Content responseContent) {
@@ -162,11 +193,6 @@ final class ToolCallRequest {
   private Map<String, Object> fromObjectContent(Object responseContent) {
     return objectMapper.convertValue(
         responseContent, ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
-  }
-
-  private boolean hasContent(McpSchema.CallToolResult result) {
-    return result != null
-        && (!CollectionUtils.isEmpty(result.content()) || result.structuredContent() != null);
   }
 
   private ToolExecutionParameters parseParams(Map<String, Object> params) {

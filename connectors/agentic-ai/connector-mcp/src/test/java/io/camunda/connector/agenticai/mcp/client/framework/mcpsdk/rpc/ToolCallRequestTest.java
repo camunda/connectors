@@ -268,6 +268,187 @@ class ToolCallRequestTest {
   }
 
   @Test
+  void returnsError_whenServerReportsToolError() {
+    when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
+        .thenReturn(
+            new McpSchema.CallToolResult(
+                List.of(new McpSchema.TextContent("File not found")), true, null, null));
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "failing-tool", "arguments", Map.of("arg1", "value1")),
+            Map.of());
+
+    assertThat(result)
+        .isEqualTo(
+            new McpClientCallToolResult(
+                "failing-tool", List.of(textContent("File not found")), true));
+  }
+
+  @Test
+  void returnsError_whenServerReportsToolErrorWithStructuredContent() {
+    when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
+        .thenReturn(
+            new McpSchema.CallToolResult(List.of(), true, Map.of("code", "NOT_FOUND"), null));
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "failing-tool", "arguments", Map.of("arg1", "value1")),
+            Map.of());
+
+    assertThat(result)
+        .isEqualTo(
+            new McpClientCallToolResult(
+                "failing-tool",
+                List.of(new McpObjectContent(Map.of("code", "NOT_FOUND"), null)),
+                true));
+  }
+
+  @Test
+  void returnsOnlyStructuredContent_whenServerReportsToolErrorWithStructuredContentAndText() {
+    // structured content wins over the text blocks, for failed results as for successful ones
+    when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
+        .thenReturn(
+            new McpSchema.CallToolResult(
+                List.of(new McpSchema.TextContent("File not found")),
+                true,
+                Map.of("code", "NOT_FOUND"),
+                null));
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "failing-tool", "arguments", Map.of("arg1", "value1")),
+            Map.of());
+
+    assertThat(result)
+        .isEqualTo(
+            new McpClientCallToolResult(
+                "failing-tool",
+                List.of(new McpObjectContent(Map.of("code", "NOT_FOUND"), null)),
+                true));
+  }
+
+  @Test
+  void returnsErrorWithDefaultText_whenServerReportsToolErrorWithOnlyBlankText() {
+    when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
+        .thenReturn(
+            new McpSchema.CallToolResult(
+                List.of(new McpSchema.TextContent("  ")), true, null, null));
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "failing-tool", "arguments", Map.of("arg1", "value1")),
+            Map.of());
+
+    assertThat(result)
+        .isEqualTo(
+            new McpClientCallToolResult(
+                "failing-tool",
+                List.of(textContent("Tool execution failed, but returned no result.")),
+                true));
+  }
+
+  @Test
+  void returnsSuccess_whenServerOmitsErrorFlag() {
+    // isError is optional in the MCP schema and defaults to false
+    when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
+        .thenReturn(
+            new McpSchema.CallToolResult(
+                List.of(new McpSchema.TextContent("Tool execution result")), null, null, null));
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")),
+            Map.of());
+
+    assertThat(result)
+        .isEqualTo(
+            new McpClientCallToolResult(
+                "test-tool", List.of(textContent("Tool execution result")), false));
+  }
+
+  @Test
+  void returnsErrorWithDefaultText_whenServerReportsToolErrorWithoutContent() {
+    when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
+        .thenReturn(new McpSchema.CallToolResult(List.of(), true, null, null));
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "failing-tool", "arguments", Map.of("arg1", "value1")),
+            Map.of());
+
+    assertThat(result)
+        .isEqualTo(
+            new McpClientCallToolResult(
+                "failing-tool",
+                List.of(textContent("Tool execution failed, but returned no result.")),
+                true));
+  }
+
+  @ParameterizedTest
+  @MethodSource("blankTexts")
+  void returnsDefaultResponseText_whenTheOnlyContentIsBlankText(String blankText) {
+    when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
+        .thenReturn(callToolResult(blankText));
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")),
+            Map.of());
+
+    assertThat(result)
+        .isEqualTo(
+            new McpClientCallToolResult(
+                "test-tool",
+                List.of(textContent("Tool execution succeeded, but returned no result.")),
+                false));
+  }
+
+  @Test
+  void skipsBlankTextContent_whenOtherContentIsReturned() {
+    when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
+        .thenReturn(
+            new McpSchema.CallToolResult(
+                List.of(new McpSchema.TextContent(""), new McpSchema.TextContent("Deleted 3 rows")),
+                false,
+                null,
+                null));
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")),
+            Map.of());
+
+    assertThat(result)
+        .isEqualTo(
+            new McpClientCallToolResult(
+                "test-tool", List.of(textContent("Deleted 3 rows")), false));
+  }
+
+  private static Stream<Arguments> blankTexts() {
+    return Stream.of(
+        argumentSet("empty text", ""),
+        argumentSet("line break only", "\n"),
+        argumentSet("spaces only", "   "));
+  }
+
+  @Test
   void forwardsMetaUnmodified_whenMetaConfigured() {
     when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
         .thenReturn(callToolResult("Tool execution result"));

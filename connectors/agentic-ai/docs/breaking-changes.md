@@ -23,6 +23,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
+| [MCP tool call results](#mcp-tool-call-results) | Processes that read `isError` or the text of an MCP Client or MCP Remote Client tool call result |
 | [Turn input composer and response handler](#turn-input-composer-and-response-handler) | Custom `AgentConversationTurnInputComposer` and `AgentResponseHandler` |
 | [Gateway tool handlers](#gateway-tool-handlers)              | Custom `GatewayToolHandler` that overrides `extractDocuments` |
 | [Agent instance client and mappers](#agent-instance-client-and-mappers)      | Custom `AgentInstanceClient`, `AgentInstanceHistoryMapper`, `AgentInstanceToolMapper` |
@@ -199,6 +200,24 @@ The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpU
 
 A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
 client in its properties does not start.
+
+### MCP tool call results
+
+The MCP Client and MCP Remote Client connectors pass on the `isError` flag of the server's tool call
+result, and leave out text blocks that are empty or hold only whitespace:
+
+| Result of the MCP server                                  | 8.10                                                                            | 8.11                                                                   |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `isError: true` with content blocks or structured content | The content, `isError = false`                                                  | The content, `isError = true`                                          |
+| `isError: true` without content                           | `Tool execution succeeded, but returned no result.`, `isError = false`          | `Tool execution failed, but returned no result.`, `isError = true`     |
+| A blank text block next to other content blocks           | `Error executing tool '<name>': Text cannot be null or empty`, `isError = true` | The other content blocks, with the server's `isError`                  |
+| Only blank text, without `isError`                        | `Error executing tool '<name>': Text cannot be null or empty`, `isError = true` | `Tool execution succeeded, but returned no result.`, `isError = false` |
+| Only blank text, `isError: true`                          | `Error executing tool '<name>': Text cannot be null or empty`, `isError = true` | `Tool execution failed, but returned no result.`, `isError = true`     |
+
+A result with structured content still returns only the structured content, and its text blocks are
+not mapped. Review the conditions and result expressions that read `isError` or these texts: a tool
+failure that the server reports now takes the error path. The AI Agent passes only the content of the
+result to the model, so for its MCP tools only the text changes.
 
 ### Turn input composer and response handler
 
