@@ -17,6 +17,8 @@ The Connector runtime used with this starter can be configured via the following
 | `camunda.connector.polling.enabled`  | Whether Operate polling is enabled. This is required for inbound Connectors.        | `true`  |
 | `camunda.connector.polling.interval` | The interval in which Operate polls for new process deployments.                    | `5000`  |
 | `camunda.connector.webhook.enabled`  | Whether webhook connector support is enabled.                                       | `true`  |
+| `camunda.connector.probes.enabled`   | Whether the runtime answers configuration validation probes.                        | `true`  |
+| `camunda.connector.probes.probe-id-prefix` | Prefix of the probe ID of each configuration validator, followed by its configuration ID. A hybrid runtime that must answer alone sets its own prefix. | `validate-configuration/` |
 
 ### Overriding Connector Configuration
 
