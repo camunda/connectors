@@ -41,6 +41,7 @@ import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import io.camunda.connector.generator.openapi.OpenApiGenerationSource;
 import io.camunda.connector.generator.openapi.OpenApiOutboundTemplateGenerator;
+import io.camunda.connector.generator.openapi.OpenApiOverlay;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;

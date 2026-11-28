@@ -1,0 +1,19 @@
+{
+  "overlay": "1.0.0",
+  "info": {
+    "title": "Camunda additions to the Mixpanel OpenAPI specs",
+    "version": "1.0.0"
+  },
+  "actions": [
+    {
+      "target": "$.paths.*.*.security[?(@.OAuthToken || @.ProjectSecret)]",
+      "description": "Mixpanel recommends service accounts for new integrations: the project secret is legacy, and an OAuth token is a personal token. Keep only the service account.",
+      "remove": true
+    },
+    {
+      "target": "$.paths.*.*.parameters[?(@.name == 'Content-Type' || @.name == 'Content-Encoding')]",
+      "description": "Import events declares Content-Type and Content-Encoding as header parameters. The connector always sends uncompressed JSON, so drop both.",
+      "remove": true
+    }
+  ]
+}
