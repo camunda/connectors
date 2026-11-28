@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.client.api.command.FailJobCommandStep1;
@@ -73,6 +74,7 @@ import io.camunda.connector.api.outbound.JobCompletionListener;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
@@ -90,6 +92,8 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.grpc.Status;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -107,6 +111,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -758,6 +763,350 @@ class SpringConnectorJobHandlerTest {
         assertThat(result.getVariable("nullVar")).isNull();
         assertThat(result.getVariable(resultVariable))
             .isEqualTo(Map.of("callStatus", Map.of("statusCode", "200 OK")));
+      }
+    }
+
+    /**
+     * Zeebe stores an integer as a signed 64-bit long. A command whose variables hold a larger one
+     * is refused, and a refused completion leaves the job activated: it times out, Zeebe hands it
+     * out again and the connector runs again, with no incident. So the runtime must fail the job
+     * before it sends the result, like an oversized result.
+     */
+    @Nested
+    class IntegerRangeTests {
+
+      private static final BigInteger TWO_TO_THE_63 = BigInteger.TWO.pow(63);
+
+      private record ResponseObject(int status, Object body) {}
+
+      private static Stream<Arguments> integersOutsideTheLongRange() {
+        return Stream.of(
+            Arguments.of("2^63", Map.of("value", TWO_TO_THE_63), "/result/value"),
+            Arguments.of(
+                "2^64 - 1",
+                Map.of("value", BigInteger.TWO.pow(64).subtract(BigInteger.ONE)),
+                "/result/value"),
+            Arguments.of("2^64", Map.of("value", BigInteger.TWO.pow(64)), "/result/value"),
+            Arguments.of(
+                "-2^63 - 1",
+                Map.of("value", TWO_TO_THE_63.negate().subtract(BigInteger.ONE)),
+                "/result/value"),
+            Arguments.of(
+                "nested in a map",
+                Map.of("order", Map.of("id", TWO_TO_THE_63)),
+                "/result/order/id"),
+            Arguments.of(
+                "nested in a list", Map.of("ids", List.of(1, TWO_TO_THE_63)), "/result/ids/1"),
+            Arguments.of(
+                "inside a response object",
+                new ResponseObject(200, Map.of("orderId", TWO_TO_THE_63)),
+                "/result/body/orderId"));
+      }
+
+      private static Stream<Arguments> numbersInsideTheRange() {
+        return Stream.of(
+            Arguments.of("Long.MAX_VALUE", Long.MAX_VALUE),
+            Arguments.of("Long.MIN_VALUE", Long.MIN_VALUE),
+            Arguments.of("2^63 - 1 as a BigInteger", TWO_TO_THE_63.subtract(BigInteger.ONE)),
+            Arguments.of("-2^63 as a BigInteger", TWO_TO_THE_63.negate()),
+            Arguments.of(
+                "a BigDecimal beyond the long range", new BigDecimal("92233720368547758080.5")),
+            Arguments.of("a BigDecimal with a large exponent", new BigDecimal("1E+400")),
+            Arguments.of(
+                "a BigDecimal longer than Jackson's default number length",
+                new BigDecimal("0." + "1".repeat(StreamReadConstraints.DEFAULT_MAX_NUM_LEN))));
+      }
+
+      @ParameterizedTest(name = "{0}")
+      @MethodSource("integersOutsideTheLongRange")
+      void shouldFailJobWithoutRetries_whenResultHoldsAnIntegerOutsideTheLongRange(
+          String description, Object response, String pointer) throws Exception {
+        // given
+        var jobHandler = newConnectorJobHandler(context -> response);
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withRetries(3)
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler, false);
+
+        // then - Zeebe would refuse the result, so this is an input error: an incident, no retry
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage())
+            .contains("outside the signed 64-bit range")
+            .contains("'" + pointer + "'");
+      }
+
+      @ParameterizedTest(name = "{0}")
+      @MethodSource("numbersInsideTheRange")
+      void shouldCompleteJob_whenResultHoldsANumberZeebeAccepts(String description, Object value)
+          throws Exception {
+        // given
+        var jobHandler = newConnectorJobHandler(context -> Map.of("value", value));
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler);
+
+        // then
+        assertThat(result.getVariable("result")).isEqualTo(Map.of("value", value));
+      }
+
+      @Test
+      void shouldApplyErrorExpression_whenResultHoldsAnIntegerOutsideTheLongRange()
+          throws Exception {
+        // given
+        var jobHandler = newConnectorJobHandler(context -> Map.of("orderId", TWO_TO_THE_63));
+        var errorExpression =
+            "=if error != null then bpmnError(\"OUT_OF_RANGE\", error.message) else null";
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withHeaders(
+                    Map.of(
+                        RESULT_VARIABLE_KEYWORD,
+                        "result",
+                        ERROR_EXPRESSION_KEYWORD,
+                        errorExpression))
+                .executeAndCaptureResult(jobHandler, false, true);
+
+        // then - the modeller can still route the failure, e.g. to an error boundary event
+        assertThat(result.getErrorCode()).isEqualTo("OUT_OF_RANGE");
+        assertThat(result.getErrorMessage()).contains("'/result/orderId'");
+      }
+
+      @Test
+      void shouldFailJobWithoutRetries_whenAdHocSubProcessVariablesHoldSuchAnInteger()
+          throws Exception {
+        // given
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(
+                null, Map.of("orderId", TWO_TO_THE_63), List.of(), false, false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+        // then
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage()).contains("'/orderId'");
+      }
+
+      @Test
+      void shouldFailJobWithoutRetries_whenAnElementActivationHoldsSuchAnInteger()
+          throws Exception {
+        // given - the completion also sends each activation's variables, e.g. an AI Agent's tool
+        // call, so the sub-process variables being fine is not enough
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(
+                null,
+                Map.of(),
+                List.of(
+                    new TestAdHocSubProcessResponse.TestElementActivation(
+                        "lookupOrder", Map.of("orderId", 42)),
+                    new TestAdHocSubProcessResponse.TestElementActivation(
+                        "cancelOrder", Map.of("orderId", TWO_TO_THE_63))),
+                false,
+                false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+        // then
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage())
+            .contains("outside the signed 64-bit range")
+            .contains("'cancelOrder'")
+            .contains("'/orderId'");
+      }
+
+      @Test
+      void shouldCompleteJob_whenAnElementActivationHasNullVariables() throws Exception {
+        // given
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(
+                null,
+                Map.of(),
+                List.of(new TestAdHocSubProcessResponse.TestElementActivation("task1", null)),
+                false,
+                false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(jobHandler);
+
+        // then
+        assertThat(result.elementActivations()).hasSize(1);
+        assertThat(result.elementActivations().get(0).elementId()).isEqualTo("task1");
+        assertThat(result.elementActivations().get(0).variables()).isEmpty();
+      }
+
+      /**
+       * An ad-hoc sub-process response skips the result expression, so nothing reads its variables
+       * before the guard does. The guard's read must not stop at Jackson's default limits: that
+       * exception is a generic error, which costs a retry.
+       */
+      private static Stream<Arguments> adHocSubProcessResponsesWithAVeryLongInteger() {
+        var longInteger = BigInteger.TEN.pow(StreamReadConstraints.DEFAULT_MAX_NUM_LEN);
+        return Stream.of(
+            Arguments.of(
+                "in the sub-process variables",
+                new TestAdHocSubProcessResponse(
+                    null, Map.of("orderId", longInteger), List.of(), false, false),
+                "at '/orderId'"),
+            Arguments.of(
+                "in an activation's variables",
+                new TestAdHocSubProcessResponse(
+                    null,
+                    Map.of(),
+                    List.of(
+                        new TestAdHocSubProcessResponse.TestElementActivation(
+                            "cancelOrder", Map.of("orderId", longInteger))),
+                    false,
+                    false),
+                "element 'cancelOrder'"));
+      }
+
+      @ParameterizedTest(name = "{0}")
+      @MethodSource("adHocSubProcessResponsesWithAVeryLongInteger")
+      void shouldFailJobWithoutRetries_whenAnIntegerIsLongerThanJacksonsDefaultNumberLength(
+          String description, TestAdHocSubProcessResponse ahspResponse, String where)
+          throws Exception {
+        // given - 10^1000 has 1001 digits, one more than Jackson reads by default
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+        // then
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage())
+            .contains("outside the signed 64-bit range")
+            .contains(where);
+      }
+
+      @Test
+      void shouldFailJobWithoutRetries_whenAPropertyNameIsLongerThanZeebeReads() throws Exception {
+        // given - Zeebe reads names with Jackson's default limit of 50,000 characters
+        var name = "a".repeat(StreamReadConstraints.DEFAULT_MAX_NAME_LEN + 1);
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(null, Map.of(name, 1), List.of(), false, false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+        // then - Zeebe would refuse it too, so this is an input error, no retry
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage())
+            .contains("Name length (" + (StreamReadConstraints.DEFAULT_MAX_NAME_LEN + 1) + ")");
+      }
+
+      @Test
+      void shouldCompleteJob_whenAPropertyNameIsAsLongAsZeebeReads() throws Exception {
+        // given
+        var name = "a".repeat(StreamReadConstraints.DEFAULT_MAX_NAME_LEN);
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(null, Map.of(name, 1), List.of(), false, false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(jobHandler);
+
+        // then
+        assertThat(result.variables()).isEqualTo(Map.of(name, 1));
+      }
+
+      /**
+       * The ad-hoc sub-process path, where the guard is the first reader: a decimal longer than
+       * Jackson's default number length must still complete, as Zeebe accepts it.
+       */
+      @Test
+      void shouldCompleteJob_whenAdHocSubProcessVariablesHoldADecimalLongerThanTheDefaultLength()
+          throws Exception {
+        // given
+        var decimal = new BigDecimal("0." + "1".repeat(StreamReadConstraints.DEFAULT_MAX_NUM_LEN));
+        var ahspResponse =
+            new TestAdHocSubProcessResponse(
+                null, Map.of("ratio", decimal), List.of(), false, false);
+        var jobHandler = newConnectorJobHandler(context -> ahspResponse);
+
+        // when
+        var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(jobHandler);
+
+        // then
+        assertThat(result.variables()).isEqualTo(Map.of("ratio", decimal));
+      }
+
+      private static final String SECRET_WITH_POINTER_CHARACTERS = "token/part~suffix";
+
+      private record SecretInput(String token) {}
+
+      /**
+       * A connector can use a resolved secret as a property name. The JSON pointer in the message
+       * escapes {@code /} as {@code ~1} and {@code ~} as {@code ~0}, so the secret must be masked
+       * in that form too.
+       */
+      private static Stream<Arguments> responsesWithSuchAnIntegerUnderASecretKey() {
+        return Stream.of(
+            Arguments.of(
+                "in the result variables",
+                (Function<String, Object>) secret -> Map.of("ids", Map.of(secret, TWO_TO_THE_63)),
+                "'/result/ids/***'"),
+            Arguments.of(
+                "in an activation's variables",
+                (Function<String, Object>)
+                    secret ->
+                        new TestAdHocSubProcessResponse(
+                            null,
+                            Map.of(),
+                            List.of(
+                                new TestAdHocSubProcessResponse.TestElementActivation(
+                                    "cancelOrder", Map.of(secret, TWO_TO_THE_63))),
+                            false,
+                            false),
+                "'/***'"));
+      }
+
+      @ParameterizedTest(name = "{0}")
+      @MethodSource("responsesWithSuchAnIntegerUnderASecretKey")
+      void shouldMaskTheSecret_whenSuchAnIntegerIsUnderAPropertyNamedByASecret(
+          String description, Function<String, Object> responseForSecret, String pointer)
+          throws Exception {
+        // given
+        var secretProvider =
+            new SecretProvider() {
+              @Override
+              public String getSecret(String name, SecretContext context) {
+                return SECRET_WITH_POINTER_CHARACTERS;
+              }
+            };
+        var jobHandler =
+            newConnectorJobHandler(
+                context ->
+                    responseForSecret.apply(context.bindVariables(SecretInput.class).token()),
+                new SecretProviderAggregator(List.of(secretProvider)));
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withVariables("{ \"token\" : \"{{secrets.TOKEN}}\" }")
+                .withRetries(3)
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler, false);
+
+        // then
+        assertThat(result.getRetries()).isEqualTo(0);
+        assertThat(result.getErrorMessage())
+            .contains("outside the signed 64-bit range")
+            .contains(pointer)
+            .doesNotContain("token~1part~0suffix")
+            .doesNotContain(SECRET_WITH_POINTER_CHARACTERS);
       }
     }
   }
